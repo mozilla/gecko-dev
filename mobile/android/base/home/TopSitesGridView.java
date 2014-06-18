@@ -113,13 +113,13 @@ public class TopSitesGridView extends GridView {
                 // If not, navigate to the page given by the url.
                 if (type != TopSites.TYPE_BLANK) {
                     if (mUrlOpenListener != null) {
-                        final String method;
+                        final TelemetryContract.Method method;
                         if (type == TopSites.TYPE_SUGGESTED) {
                             method = TelemetryContract.Method.SUGGESTION;
                         } else {
                             method = TelemetryContract.Method.GRID_ITEM;
                         }
-                        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, method);
+                        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, method, Integer.toString(position));
 
                         mUrlOpenListener.onUrlOpen(url, EnumSet.noneOf(OnUrlOpenListener.Flags.class));
                     }
@@ -250,6 +250,7 @@ public class TopSitesGridView extends GridView {
         info.url = cursor.getString(cursor.getColumnIndexOrThrow(TopSites.URL));
         info.title = cursor.getString(cursor.getColumnIndexOrThrow(TopSites.TITLE));
         info.type = cursor.getInt(cursor.getColumnIndexOrThrow(TopSites.TYPE));
+        info.historyId = cursor.getInt(cursor.getColumnIndexOrThrow(TopSites.HISTORY_ID));
     }
     /**
      * Set an url open listener to be used by this view.

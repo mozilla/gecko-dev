@@ -113,7 +113,12 @@ var gSimpleMatchFunc = function gSimpleMatchFunc(aAccessible) {
 
   function isFlatSubtree(acc) {
     for (let child = acc.firstChild; child; child = child.nextSibling) {
-      if (child.childCount > 0) {
+      // text leafs inherit the actionCount of any ancestor that has a click
+      // listener.
+      if ([Roles.TEXT_LEAF, Roles.STATICTEXT].indexOf(child.role) >= 0) {
+        continue;
+      }
+      if (child.childCount > 0 || child.actionCount > 0) {
         return false;
       }
     }

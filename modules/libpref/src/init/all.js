@@ -35,11 +35,10 @@ pref("general.warnOnAboutConfig", true);
 pref("browser.bookmarks.max_backups",       5);
 
 // Preference for switching the cache backend, can be changed freely at runtime
-// 0 - use the old (Darin's) cache [DEFAULT]
+// 0 - use the old (Darin's) cache
 // 1 - use the new cache back-end (cache v2)
-// 2 - do a random choise for A/B testing (browser chooses old or new back-end at startup
-//     and keeps it per session)
 pref("browser.cache.use_new_backend",       0);
+pref("browser.cache.use_new_backend_temp",  true);
 
 pref("browser.cache.disk.enable",           true);
 // Is this the first-time smartsizing has been introduced?
@@ -62,9 +61,12 @@ pref("browser.cache.memory.max_entry_size",  5120);
 pref("browser.cache.disk_cache_ssl",        true);
 // 0 = once-per-session, 1 = each-time, 2 = never, 3 = when-appropriate/automatically
 pref("browser.cache.check_doc_frequency",   3);
-
 // Limit of recent metadata we keep in memory for faster access, in Kb
 pref("browser.cache.disk.metadata_memory_limit", 250); // 0.25 MB
+// The number of chunks we preload ahead of read.  One chunk has currently 256kB.
+pref("browser.cache.disk.preload_chunk_count", 4); // 1 MB of read ahead
+// The half life used to re-compute cache entries frecency in hours.
+pref("browser.cache.frecency_half_life_hours", 6);
 
 pref("browser.cache.offline.enable",           true);
 // enable offline apps by default, disable prompt
@@ -102,6 +104,9 @@ pref("dom.workers.maxPerDomain", 20);
 // Whether or not Shared Web Workers are enabled.
 pref("dom.workers.sharedWorkers.enabled", true);
 
+// Service workers
+pref("dom.serviceWorkers.enabled", false);
+
 // Whether nonzero values can be returned from performance.timing.*
 pref("dom.enable_performance", true);
 
@@ -114,6 +119,20 @@ pref("dom.gamepad.enabled", true);
 pref("dom.gamepad.non_standard_events.enabled", false);
 #else
 pref("dom.gamepad.non_standard_events.enabled", true);
+#endif
+
+// Whether the KeyboardEvent.code is enabled
+#ifdef RELEASE_BUILD
+pref("dom.keyboardevent.code.enabled", false);
+#else
+pref("dom.keyboardevent.code.enabled", true);
+#endif
+
+// Whether the WebCrypto API is enabled
+#ifdef RELEASE_BUILD
+pref("dom.webcrypto.enabled", false);
+#else
+pref("dom.webcrypto.enabled", true);
 #endif
 
 // Whether the UndoManager API is enabled
@@ -231,13 +250,20 @@ pref("media.apple.mp3.enabled", true);
 #ifdef MOZ_WEBRTC
 pref("media.navigator.enabled", true);
 pref("media.navigator.video.enabled", true);
-pref("media.navigator.load_adapt", false);
+pref("media.navigator.load_adapt", true);
 pref("media.navigator.load_adapt.measure_interval",1000);
 pref("media.navigator.load_adapt.avg_seconds",3);
 pref("media.navigator.load_adapt.high_load","0.90");
 pref("media.navigator.load_adapt.low_load","0.40");
 pref("media.navigator.video.default_fps",30);
 pref("media.navigator.video.default_minfps",10);
+
+pref("media.webrtc.debug.trace_mask", 0);
+pref("media.webrtc.debug.multi_log", false);
+pref("media.webrtc.debug.aec_log_dir", "");
+pref("media.webrtc.debug.log_file", "");
+pref("media.webrtc.debug.aec_dump_max_size", 4194304); // 4MB
+
 #ifdef MOZ_WIDGET_GONK
 pref("media.navigator.video.default_width",320);
 pref("media.navigator.video.default_height",240);
@@ -254,6 +280,9 @@ pref("media.peerconnection.video.enabled", true);
 pref("media.navigator.video.max_fs", 0); // unrestricted
 pref("media.navigator.video.max_fr", 0); // unrestricted
 #endif
+pref("media.peerconnection.video.min_bitrate", 200);
+pref("media.peerconnection.video.start_bitrate", 300);
+pref("media.peerconnection.video.max_bitrate", 2000);
 pref("media.navigator.permission.disabled", false);
 pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:stun.services.mozilla.com\"}]");
 pref("media.peerconnection.trickle_ice", true);
@@ -315,6 +344,7 @@ pref("media.mediasource.enabled", false);
 
 #ifdef MOZ_WEBSPEECH
 pref("media.webspeech.recognition.enable", false);
+pref("media.webspeech.synth.enabled", false);
 #endif
 #ifdef MOZ_WEBM_ENCODER
 pref("media.encoder.webm.enabled", true);
@@ -336,6 +366,9 @@ pref("media.video_stats.enabled", true);
 // Whether to enable the audio writing APIs on the audio element
 pref("media.audio_data.enabled", false);
 
+// Whether to use async panning and zooming
+pref("layers.async-pan-zoom.enabled", false);
+
 // Whether to lock touch scrolling to one axis at a time
 // 0 = FREE (No locking at all)
 // 1 = STANDARD (Once locked, remain locked until scrolling ends)
@@ -345,8 +378,19 @@ pref("apz.axis_lock_mode", 0);
 // Whether to print the APZC tree for debugging
 pref("apz.printtree", false);
 
+#ifdef XP_MACOSX
 // Layerize scrollable subframes to allow async panning
+pref("apz.subframe.enabled", true);
+pref("apz.fling_repaint_interval", 16);
+pref("apz.pan_repaint_interval", 16);
+pref("apz.apz.x_skate_size_multiplier", "2.5");
+pref("apz.apz.y_skate_size_multiplier", "3.5");
+#else
 pref("apz.subframe.enabled", false);
+#endif
+
+// APZ testing (bug 961289)
+pref("apz.test.logging_enabled", false);
 
 #ifdef XP_MACOSX
 // Whether to run in native HiDPI mode on machines with "Retina"/HiDPI display;
@@ -535,9 +579,6 @@ pref("accessibility.typeaheadfind.matchesCountLimit", 100);
 
 // use Mac OS X Appearance panel text smoothing setting when rendering text, disabled by default
 pref("gfx.use_text_smoothing_setting", false);
-
-// loading and rendering of framesets and iframes
-pref("browser.frames.enabled", true);
 
 // Number of characters to consider emphasizing for rich autocomplete results
 pref("toolkit.autocomplete.richBoundaryCutoff", 200);
@@ -752,6 +793,12 @@ pref("dom.forms.number", true);
 // platforms which don't have a color picker implemented yet.
 pref("dom.forms.color", true);
 
+// Support for new @autocomplete values
+pref("dom.forms.autocomplete.experimental", false);
+
+// Enables requestAutocomplete DOM API on forms.
+pref("dom.forms.requestAutocomplete", false);
+
 // Enables system messages and activities
 pref("dom.sysmsg.enabled", false);
 
@@ -759,6 +806,8 @@ pref("dom.sysmsg.enabled", false);
 pref("dom.webapps.useCurrentProfile", false);
 
 pref("dom.cycle_collector.incremental", true);
+
+pref("dom.window_experimental_bindings", true);
 
 // Parsing perf prefs. For now just mimic what the old code did.
 #ifndef XP_WIN
@@ -779,6 +828,11 @@ pref("privacy.donottrackheader.value",      1);
 
 pref("dom.event.contextmenu.enabled",       true);
 pref("dom.event.clipboardevents.enabled",   true);
+#if defined(XP_WIN) && !defined(RELEASE_BUILD)
+pref("dom.event.highrestimestamp.enabled",  true);
+#else
+pref("dom.event.highrestimestamp.enabled",  false);
+#endif
 
 pref("dom.webcomponents.enabled",           false);
 
@@ -790,8 +844,9 @@ pref("javascript.options.strict.debug",     true);
 pref("javascript.options.baselinejit",      true);
 pref("javascript.options.ion",              true);
 pref("javascript.options.asmjs",            true);
+pref("javascript.options.native_regexp",    true);
 pref("javascript.options.parallel_parsing", true);
-pref("javascript.options.ion.parallel_compilation", true);
+pref("javascript.options.ion.offthread_compilation", true);
 // This preference instructs the JS engine to discard the
 // source of any privileged JS after compilation. This saves
 // memory, but makes things like Function.prototype.toSource()
@@ -1318,24 +1373,24 @@ pref("network.dir.format", 2);
 pref("network.prefetch-next", true);
 
 // enables the predictive service
-pref("network.seer.enabled", false);
-pref("network.seer.enable-hover-on-ssl", false);
-pref("network.seer.page-degradation.day", 0);
-pref("network.seer.page-degradation.week", 5);
-pref("network.seer.page-degradation.month", 10);
-pref("network.seer.page-degradation.year", 25);
-pref("network.seer.page-degradation.max", 50);
-pref("network.seer.subresource-degradation.day", 1);
-pref("network.seer.subresource-degradation.week", 10);
-pref("network.seer.subresource-degradation.month", 25);
-pref("network.seer.subresource-degradation.year", 50);
-pref("network.seer.subresource-degradation.max", 100);
-pref("network.seer.preconnect-min-confidence", 90);
-pref("network.seer.preresolve-min-confidence", 60);
-pref("network.seer.redirect-likely-confidence", 75);
-pref("network.seer.max-queue-size", 50);
-pref("network.seer.max-db-size", 157286400); // bytes
-pref("network.seer.preserve", 80); // percentage of seer data to keep when cleaning up
+pref("network.predictor.enabled", false);
+pref("network.predictor.enable-hover-on-ssl", false);
+pref("network.predictor.page-degradation.day", 0);
+pref("network.predictor.page-degradation.week", 5);
+pref("network.predictor.page-degradation.month", 10);
+pref("network.predictor.page-degradation.year", 25);
+pref("network.predictor.page-degradation.max", 50);
+pref("network.predictor.subresource-degradation.day", 1);
+pref("network.predictor.subresource-degradation.week", 10);
+pref("network.predictor.subresource-degradation.month", 25);
+pref("network.predictor.subresource-degradation.year", 50);
+pref("network.predictor.subresource-degradation.max", 100);
+pref("network.predictor.preconnect-min-confidence", 90);
+pref("network.predictor.preresolve-min-confidence", 60);
+pref("network.predictor.redirect-likely-confidence", 75);
+pref("network.predictor.max-queue-size", 50);
+pref("network.predictor.max-db-size", 157286400); // bytes
+pref("network.predictor.preserve", 80); // percentage of predictor data to keep when cleaning up
 
 
 // The following prefs pertain to the negotiate-auth extension (see bug 17578),
@@ -1411,6 +1466,7 @@ pref("network.proxy.socks",                 "");
 pref("network.proxy.socks_port",            0);
 pref("network.proxy.socks_version",         5);
 pref("network.proxy.socks_remote_dns",      false);
+pref("network.proxy.proxy_over_tls",        true);
 pref("network.proxy.no_proxies_on",         "localhost, 127.0.0.1");
 pref("network.proxy.failover_timeout",      1800); // 30 minutes
 pref("network.online",                      true); //online/offline
@@ -1549,10 +1605,14 @@ pref("security.notification_enable_delay", 500);
 pref("security.csp.enable", true);
 pref("security.csp.debug", false);
 pref("security.csp.experimentalEnabled", false);
+pref("security.csp.newbackend.enable", false);
 
 // Mixed content blocking
 pref("security.mixed_content.block_active_content", false);
 pref("security.mixed_content.block_display_content", false);
+
+// Disable pinning checks by default.
+pref("security.cert_pinning.enforcement_level", 0);
 
 // Modifier key prefs: default to Windows settings,
 // menu access key = alt, accelerator key = control.
@@ -1806,9 +1866,6 @@ pref("layout.css.masking.enabled", true);
 // Is support for mix-blend-mode enabled?
 pref("layout.css.mix-blend-mode.enabled", true);
 
-// Is support for the the @supports rule enabled?
-pref("layout.css.supports-rule.enabled", true);
-
 // Is support for CSS Filters enabled?
 pref("layout.css.filters.enabled", false);
 
@@ -1865,11 +1922,7 @@ pref("layout.css.prefixes.animations", true);
 pref("layout.css.prefixes.box-sizing", true);
 
 // Is support for the :scope selector enabled?
-#ifdef RELEASE_BUILD
-pref("layout.css.scope-pseudo.enabled", false);
-#else
 pref("layout.css.scope-pseudo.enabled", true);
-#endif
 
 // Is support for background-blend-mode enabled?
 pref("layout.css.background-blend-mode.enabled", true);
@@ -1940,6 +1993,13 @@ pref("layout.display-list.dump", false);
 // heavily loaded.
 pref("layout.frame_rate.precise", false);
 
+// Is support for the Web Animations API enabled?
+#ifdef RELEASE_BUILD
+pref("dom.animations-api.core.enabled", false);
+#else
+pref("dom.animations-api.core.enabled", true);
+#endif
+
 // pref to permit users to make verified SOAP calls by default
 pref("capability.policy.default.SOAPCall.invokeVerifySourceHeader", "allAccess");
 
@@ -1983,11 +2043,7 @@ pref("plugins.click_to_play", false);
 // Player ("Shockwave for Director"). To hide all plugins from enumeration, use
 // the empty string "" to match no plugin names. To allow all plugins to be
 // enumerated, use the string "*" to match all plugin names.
-#ifdef EARLY_BETA_OR_EARLIER
-pref("plugins.enumerable_names", "Java,Nexus Personal,QuickTime,Shockwave");
-#else
 pref("plugins.enumerable_names", "*");
-#endif
 
 // The default value for nsIPluginTag.enabledState (STATE_ENABLED = 2)
 pref("plugin.default.state", 2);
@@ -2047,6 +2103,10 @@ pref("dom.ipc.plugins.java.enabled", false);
 pref("dom.ipc.plugins.flash.subprocess.crashreporter.enabled", true);
 pref("dom.ipc.plugins.reportCrashURL", true);
 
+// How long we wait before unloading an idle plugin process.
+// Defaults to 30 seconds.
+pref("dom.ipc.plugins.unloadTimeoutSecs", 30);
+
 pref("dom.ipc.processCount", 1);
 
 // Enable the use of display-lists for SVG hit-testing and painting.
@@ -2070,6 +2130,9 @@ pref("svg.svg-iframe.enabled", false);
 pref("svg.svg-iframe.enabled", false);
 #endif
 
+// Is support for the new getBBox method from SVG 2 enabled?
+// See https://svgwg.org/svg2-draft/single-page.html#types-SVGBoundingBoxOptions
+pref("svg.new-getBBox.enabled", false);
 
 // Default font types and sizes by locale
 pref("font.default.ar", "sans-serif");
@@ -3123,7 +3186,7 @@ pref("font.name.monospace.ko", "Fira Mono OT");
 pref("font.name.serif.th", "Charis SIL Compact");
 pref("font.name.sans-serif.th", "Fira Sans OT");
 pref("font.name.monospace.th", "Fira Mono OT");
-pref("font.name-list.sans-serif.th", "Fira Sans OT, Droid Sans Thai");
+pref("font.name-list.sans-serif.th", "Fira Sans OT, Noto Sans Thai, Droid Sans Thai");
 
 pref("font.name.serif.tr", "Charis SIL Compact");
 pref("font.name.sans-serif.tr", "Fira Sans OT");
@@ -3682,6 +3745,9 @@ pref("network.tcp.keepalive.probe_count", 4);
 
 // Whether to disable acceleration for all widgets.
 pref("layers.acceleration.disabled", false);
+// Preference that when switched at runtime will run a series of benchmarks
+// and output the result to stderr.
+pref("layers.bench.enabled", false);
 
 // Whether to force acceleration on, ignoring blacklists.
 #ifdef ANDROID
@@ -3700,6 +3766,9 @@ pref("layers.draw-tile-borders", false);
 pref("layers.draw-bigimage-borders", false);
 pref("layers.frame-counter", false);
 pref("layers.enable-tiles", false);
+pref("layers.low-precision-buffer", false);
+pref("layers.tile-width", 256);
+pref("layers.tile-height", 256);
 // Max number of layers per container. See Overwrite in mobile prefs.
 pref("layers.max-active", -1);
 // When a layer is moving it will add a scroll graph to measure the smoothness
@@ -3717,8 +3786,12 @@ pref("layers.offmainthreadcomposition.frame-rate", -1);
 #ifndef XP_WIN
 // Asynchonous video compositing using the ImageBridge IPDL protocol.
 // requires off-main-thread compositing.
-// Never works on Windows, so no point pref'ing it on.
 pref("layers.async-video.enabled",false);
+#endif
+
+#ifdef XP_WIN
+pref("layers.offmainthreadcomposition.enabled", true);
+pref("layers.async-video.enabled", true);
 #endif
 
 #ifdef MOZ_X11
@@ -3849,6 +3922,9 @@ pref("dom.vibrator.max_vibrate_list_len", 128);
 // Battery API
 pref("dom.battery.enabled", true);
 
+// Image srcset
+pref("dom.image.srcset.enabled", false);
+
 // WebSMS
 pref("dom.sms.enabled", false);
 // Enable Latin characters replacement with corresponding ones in GSM SMS
@@ -3897,8 +3973,12 @@ pref("profiler.enabled", false);
 pref("profiler.interval", 10);
 pref("profiler.entries", 100000);
 
+#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
 // Network Information API
 pref("dom.netinfo.enabled", true);
+#else
+pref("dom.netinfo.enabled", false);
+#endif
 
 #ifdef XP_WIN
 // On 32-bit Windows, fire a low-memory notification if we have less than this
@@ -4008,7 +4088,7 @@ pref("dom.mms.requestStatusReport", true);
 pref("dom.mms.retrieval_mode", "manual");
 
 pref("dom.mms.sendRetryCount", 3);
-pref("dom.mms.sendRetryInterval", 300000);
+pref("dom.mms.sendRetryInterval", "10000,60000,180000");
 
 pref("dom.mms.retrievalRetryCount", 4);
 pref("dom.mms.retrievalRetryIntervals", "60000,300000,600000,1800000");
@@ -4111,6 +4191,26 @@ pref("urlclassifier.disallow_completions", "test-malware-simple,test-phish-simpl
 // Turn off Spatial navigation by default.
 pref("snav.enabled", false);
 
+// Turn off touch caret by default.
+pref("touchcaret.enabled", false);
+
+// Maximum distance to the center of touch caret (in app unit square) which
+// will be accepted to drag touch caret (0 means only in the bounding box of touch
+// caret is accepted)
+pref("touchcaret.distance.threshold", 1500);
+
+// We'll start to increment time when user release the control of touch caret.
+// When time exceed this expiration time, we'll hide touch caret.
+// In milliseconds. (0 means disable this feature)
+pref("touchcaret.expiration.time", 3000);
+
+// Turn off selection caret by default
+pref("selectioncaret.enabled", false);
+
+// This will inflate size of selection caret frame when we checking if
+// user click on selection caret or not. In app units.
+pref("selectioncaret.inflatesize.threshold", 40);
+
 // Wakelock is disabled by default.
 pref("dom.wakelock.enabled", false);
 
@@ -4127,5 +4227,5 @@ pref("beacon.enabled", true);
 #endif
 
 // Camera prefs
-pref("camera.control.autofocus_moving_callback.enabled", false);
+pref("camera.control.autofocus_moving_callback.enabled", true);
 pref("camera.control.face_detection.enabled", true);

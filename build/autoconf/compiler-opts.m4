@@ -25,8 +25,8 @@ case "$target" in
 *-mingw*)
     if test -z "$CC"; then CC=cl; fi
     if test -z "$CXX"; then CXX=cl; fi
-    if test -z "$CPP"; then CPP="cl -E -nologo"; fi
-    if test -z "$CXXCPP"; then CXXCPP="cl -TP -E -nologo"; ac_cv_prog_CXXCPP="$CXXCPP"; fi
+    if test -z "$CPP"; then CPP="$CC -E -nologo"; fi
+    if test -z "$CXXCPP"; then CXXCPP="$CXX -TP -E -nologo"; ac_cv_prog_CXXCPP="$CXXCPP"; fi
     if test -z "$LD"; then LD=link; fi
     if test -z "$AS"; then
         case "${target_cpu}" in
@@ -122,7 +122,13 @@ MOZ_ARG_ENABLE_STRING(debug,
   fi ],
   MOZ_DEBUG=)
 
-MOZ_DEBUG_ENABLE_DEFS="-DDEBUG -D_DEBUG -DTRACING"
+if test -z "$MOZ_DEBUG"; then
+    MOZ_NO_DEBUG_RTL=1
+fi
+
+AC_SUBST(MOZ_NO_DEBUG_RTL)
+
+MOZ_DEBUG_ENABLE_DEFS="-DDEBUG -DTRACING"
 MOZ_ARG_WITH_STRING(debug-label,
 [  --with-debug-label=LABELS
                           Define DEBUG_<value> for each comma-separated

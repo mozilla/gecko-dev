@@ -164,6 +164,8 @@ const sdp_attrarray_t sdp_attr[SDP_MAX_ATTR_TYPES] =
       sdp_parse_attr_ice_attr, sdp_build_attr_ice_attr },
     {"ice-pwd", sizeof("ice-pwd"),
       sdp_parse_attr_ice_attr, sdp_build_attr_ice_attr},
+    {"ice-lite", sizeof("ice-lite"),
+      sdp_parse_attr_simple_flag, sdp_build_attr_simple_flag},
     {"rtcp-mux", sizeof("rtcp-mux"),
       sdp_parse_attr_rtcp_mux_attr, sdp_build_attr_rtcp_mux_attr},
     {"fingerprint", sizeof("fingerprint"),
@@ -1006,6 +1008,7 @@ sdp_result_e sdp_parse (sdp_t *sdp_p, char **bufp, u16 len)
             sdp_parse_error(sdp_p->peerconnection,
                 "%s End of line beyond end of buffer.",
                 sdp_p->debug_str);
+            CSFLogError(logTag, "SDP: Invalid SDP, no \\n (len %u): %*s", len, len, *bufp);
             end_found = TRUE;
             break;
         }

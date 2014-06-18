@@ -7,6 +7,7 @@
 
 #include "mozilla/Attributes.h"
 #include "nsContainerFrame.h"
+#include "nsIFrameInlines.h" // for methods used by IS_TRUE_OVERFLOW_CONTAINER
 
 class nsColumnSetFrame : public nsContainerFrame {
 public:
@@ -14,21 +15,22 @@ public:
 
   nsColumnSetFrame(nsStyleContext* aContext);
 
-  virtual nsresult SetInitialChildList(ChildListID     aListID,
-                                       nsFrameList&    aChildList) MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext* aPresContext,
+                      nsHTMLReflowMetrics& aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus& aStatus) MOZ_OVERRIDE;
 
-  virtual nsresult Reflow(nsPresContext* aPresContext,
-                          nsHTMLReflowMetrics& aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus& aStatus) MOZ_OVERRIDE;
-
-  virtual nsresult  AppendFrames(ChildListID     aListID,
-                                 nsFrameList&    aFrameList) MOZ_OVERRIDE;
-  virtual nsresult  InsertFrames(ChildListID     aListID,
-                                 nsIFrame*       aPrevFrame,
-                                 nsFrameList&    aFrameList) MOZ_OVERRIDE;
-  virtual nsresult  RemoveFrame(ChildListID     aListID,
-                                nsIFrame*       aOldFrame) MOZ_OVERRIDE;
+#ifdef DEBUG
+  virtual void SetInitialChildList(ChildListID     aListID,
+                                   nsFrameList&    aChildList) MOZ_OVERRIDE;
+  virtual void AppendFrames(ChildListID     aListID,
+                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+  virtual void InsertFrames(ChildListID     aListID,
+                            nsIFrame*       aPrevFrame,
+                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+  virtual void RemoveFrame(ChildListID     aListID,
+                           nsIFrame*       aOldFrame) MOZ_OVERRIDE;
+#endif
 
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
@@ -39,7 +41,7 @@ public:
    */
   virtual nscoord GetAvailableContentHeight(const nsHTMLReflowState& aReflowState);
 
-  virtual nsIFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
+  virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
     nsIFrame* frame = GetFirstPrincipalChild();
 
     // if no children return nullptr
@@ -50,8 +52,11 @@ public:
   }
 
   virtual nsresult StealFrame(nsIFrame* aChild, bool aForceNormal) MOZ_OVERRIDE
-  { // nsColumnSetFrame keeps overflow containers in main child list
-    return nsContainerFrame::StealFrame(aChild, true);
+  {
+    // nsColumnSetFrame keeps true overflow containers in the normal flow
+    // child lists (i.e. the principal and overflow lists).
+    return nsContainerFrame::StealFrame(aChild,
+                                        IS_TRUE_OVERFLOW_CONTAINER(aChild));
   }
 
   virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE

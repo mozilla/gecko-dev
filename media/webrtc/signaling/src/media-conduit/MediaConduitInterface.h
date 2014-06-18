@@ -164,6 +164,16 @@ public:
   /**
    * Functions returning stats needed by w3c stats model.
    */
+  virtual bool GetVideoEncoderStats(double* framerateMean,
+                                    double* framerateStdDev,
+                                    double* bitrateMean,
+                                    double* bitrateStdDev,
+                                    uint32_t* droppedFrames) = 0;
+  virtual bool GetVideoDecoderStats(double* framerateMean,
+                                    double* framerateStdDev,
+                                    double* bitrateMean,
+                                    double* bitrateStdDev,
+                                    uint32_t* discardedPackets) = 0;
   virtual bool GetAVStats(int32_t* jitterBufferDelayMs,
                           int32_t* playoutBufferDelayMs,
                           int32_t* avSyncOffsetMs) = 0;
@@ -279,7 +289,7 @@ public:
    * @param encoder
    * @result: on success, we will use the specified encoder
    */
-  virtual MediaConduitErrorCode SetExternalSendCodec(int pltype,
+  virtual MediaConduitErrorCode SetExternalSendCodec(VideoCodecConfig* config,
                                                      VideoEncoder* encoder) = 0;
 
   /**
@@ -287,7 +297,7 @@ public:
    * @param decoder
    * @result: on success, we will use the specified decoder
    */
-  virtual MediaConduitErrorCode SetExternalRecvCodec(int pltype,
+  virtual MediaConduitErrorCode SetExternalRecvCodec(VideoCodecConfig* config,
                                                      VideoDecoder* decoder) = 0;
 
   /**

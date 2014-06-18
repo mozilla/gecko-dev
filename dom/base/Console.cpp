@@ -15,6 +15,7 @@
 #include "nsGlobalWindow.h"
 #include "nsJSUtils.h"
 #include "nsPerformance.h"
+#include "ScriptSettings.h"
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
 #include "xpcprivate.h"
@@ -232,7 +233,7 @@ public:
     AutoSyncLoopHolder syncLoop(mWorkerPrivate);
     mSyncLoopTarget = syncLoop.EventTarget();
 
-    if (NS_FAILED(NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL))) {
+    if (NS_FAILED(NS_DispatchToMainThread(this))) {
       JS_ReportError(cx,
                      "Failed to dispatch to main thread for the Console API!");
       return false;
@@ -323,7 +324,8 @@ private:
       wp = wp->GetParent();
     }
 
-    AutoPushJSContext cx(wp->ParentJSContext());
+    AutoJSAPI jsapi;
+    JSContext* cx = jsapi.cx();
     ClearException ce(cx);
 
     nsPIDOMWindow* window = wp->GetWindow();
@@ -331,6 +333,8 @@ private:
 
     nsRefPtr<nsGlobalWindow> win = static_cast<nsGlobalWindow*>(window);
     NS_ENSURE_TRUE_VOID(win);
+
+    JSAutoCompartment ac(cx, win->GetWrapperPreserveColor());
 
     ErrorResult error;
     nsRefPtr<Console> console = win->GetConsole(error);
@@ -432,18 +436,17 @@ private:
       wp = wp->GetParent();
     }
 
-    AutoPushJSContext cx(wp->ParentJSContext());
+    AutoJSAPI jsapi;
+    JSContext* cx = jsapi.cx();
     ClearException ce(cx);
-
-    JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
-    NS_ENSURE_TRUE_VOID(global);
-    JSAutoCompartment ac(cx, global);
 
     nsPIDOMWindow* window = wp->GetWindow();
     NS_ENSURE_TRUE_VOID(window);
 
     nsRefPtr<nsGlobalWindow> win = static_cast<nsGlobalWindow*>(window);
     NS_ENSURE_TRUE_VOID(win);
+
+    JSAutoCompartment ac(cx, win->GetWrapperPreserveColor());
 
     ErrorResult error;
     nsRefPtr<Console> console = win->GetConsole(error);
@@ -697,7 +700,7 @@ Console::ProfileMethod(JSContext* aCx, const nsAString& aAction,
   }
 
   JS::Rooted<JS::Value> eventValue(aCx);
-  if (!event.ToObject(aCx, &eventValue)) {
+  if (!ToJSValue(aCx, event, &eventValue)) {
     return;
   }
 
@@ -907,7 +910,7 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
 
       ErrorResult rv;
       nsRefPtr<nsPerformance> performance = win->GetPerformance(rv);
-      if (rv.Failed()) {
+      if (rv.Failed() || !performance) {
         return;
       }
 
@@ -1111,7 +1114,7 @@ Console::ProcessCallData(ConsoleCallData* aData)
   JSAutoCompartment ac2(cx, xpc::GetJunkScope());
 
   JS::Rooted<JS::Value> eventValue(cx);
-  if (!event.ToObject(cx, &eventValue)) {
+  if (!ToJSValue(cx, event, &eventValue)) {
     return;
   }
 
@@ -1439,13 +1442,13 @@ void
 Console::MakeFormatString(nsCString& aFormat, int32_t aInteger,
                           int32_t aMantissa, char aCh)
 {
-  aFormat.Append("%");
+  aFormat.Append('%');
   if (aInteger >= 0) {
     aFormat.AppendInt(aInteger);
   }
 
   if (aMantissa >= 0) {
-    aFormat.Append(".");
+    aFormat.Append('.');
     aFormat.AppendInt(aMantissa);
   }
 
@@ -1485,7 +1488,7 @@ Console::StartTimer(JSContext* aCx, const JS::Value& aName,
     RootedDictionary<ConsoleTimerError> error(aCx);
 
     JS::Rooted<JS::Value> value(aCx);
-    if (!error.ToObject(aCx, &value)) {
+    if (!ToJSValue(aCx, error, &value)) {
       return JS::UndefinedValue();
     }
 
@@ -1517,7 +1520,7 @@ Console::StartTimer(JSContext* aCx, const JS::Value& aName,
   timer.mStarted = aTimestamp;
 
   JS::Rooted<JS::Value> value(aCx);
-  if (!timer.ToObject(aCx, &value)) {
+  if (!ToJSValue(aCx, timer, &value)) {
     return JS::UndefinedValue();
   }
 
@@ -1551,7 +1554,7 @@ Console::StopTimer(JSContext* aCx, const JS::Value& aName,
   timer.mDuration = aTimestamp - entry;
 
   JS::Rooted<JS::Value> value(aCx);
-  if (!timer.ToObject(aCx, &value)) {
+  if (!ToJSValue(aCx, timer, &value)) {
     return JS::UndefinedValue();
   }
 
@@ -1589,7 +1592,7 @@ Console::IncreaseCounter(JSContext* aCx, const ConsoleStackEntry& aFrame,
 
   if (key.IsEmpty()) {
     key.Append(aFrame.mFilename);
-    key.Append(NS_LITERAL_STRING(":"));
+    key.Append(':');
     key.AppendInt(aFrame.mLineNumber);
   }
 
@@ -1599,7 +1602,7 @@ Console::IncreaseCounter(JSContext* aCx, const ConsoleStackEntry& aFrame,
       RootedDictionary<ConsoleCounterError> error(aCx);
 
       JS::Rooted<JS::Value> value(aCx);
-      if (!error.ToObject(aCx, &value)) {
+      if (!ToJSValue(aCx, error, &value)) {
         return JS::UndefinedValue();
       }
 
@@ -1615,7 +1618,7 @@ Console::IncreaseCounter(JSContext* aCx, const ConsoleStackEntry& aFrame,
   data.mCount = count;
 
   JS::Rooted<JS::Value> value(aCx);
-  if (!data.ToObject(aCx, &value)) {
+  if (!ToJSValue(aCx, data, &value)) {
     return JS::UndefinedValue();
   }
 

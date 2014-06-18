@@ -105,7 +105,6 @@ class RangeAnalysis
                                                   MTest *test, BranchDirection direction);
     void analyzeLoopPhi(MBasicBlock *header, LoopIterationBound *loopBound, MPhi *phi);
     bool tryHoistBoundsCheck(MBasicBlock *header, MBoundsCheck *ins);
-    bool markBlocksInLoopBody(MBasicBlock *header, MBasicBlock *current);
 };
 
 class Range : public TempObject {
@@ -277,12 +276,17 @@ class Range : public TempObject {
     // Given an exponent value and pointers to the lower and upper bound values,
     // this function refines the lower and upper bound values to the tighest
     // bound for integer values implied by the exponent.
-    static void refineInt32BoundsByExponent(uint16_t e, int32_t *l, int32_t *h) {
+    static void refineInt32BoundsByExponent(uint16_t e,
+                                            int32_t *l, bool *lb,
+                                            int32_t *h, bool *hb)
+    {
        if (e < MaxInt32Exponent) {
            // pow(2, max_exponent_+1)-1 to compute a maximum absolute value.
            int32_t limit = (uint32_t(1) << (e + 1)) - 1;
            *h = Min(*h, limit);
            *l = Max(*l, -limit);
+           *hb = true;
+           *lb = true;
        }
     }
 
@@ -361,7 +365,7 @@ class Range : public TempObject {
     // Construct a range from the given MDefinition. This differs from the
     // MDefinition's range() method in that it describes the range of values
     // *after* any bailout checks.
-    Range(const MDefinition *def);
+    explicit Range(const MDefinition *def);
 
     static Range *NewInt32Range(TempAllocator &alloc, int32_t l, int32_t h) {
         return new(alloc) Range(l, h, false, MaxInt32Exponent);
@@ -410,6 +414,7 @@ class Range : public TempObject {
     static Range *abs(TempAllocator &alloc, const Range *op);
     static Range *min(TempAllocator &alloc, const Range *lhs, const Range *rhs);
     static Range *max(TempAllocator &alloc, const Range *lhs, const Range *rhs);
+    static Range *floor(TempAllocator &alloc, const Range *op);
 
     static bool negativeZeroMul(const Range *lhs, const Range *rhs);
 

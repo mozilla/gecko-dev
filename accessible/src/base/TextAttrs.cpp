@@ -13,6 +13,7 @@
 #include "gfxFont.h"
 #include "nsFontMetrics.h"
 #include "nsLayoutUtils.h"
+#include "nsContainerFrame.h"
 #include "HyperTextAccessible.h"
 #include "mozilla/AppUnits.h"
 #include "mozilla/gfx/2D.h"
@@ -364,7 +365,7 @@ TextAttrsMgr::BGColorTextAttr::
     return true;
   }
 
-  nsIFrame *parentFrame = aFrame->GetParent();
+  nsContainerFrame *parentFrame = aFrame->GetParent();
   if (!parentFrame) {
     *aColor = aFrame->PresContext()->DefaultBackgroundColor();
     return true;
@@ -518,7 +519,7 @@ TextAttrsMgr::FontSizeTextAttr::
 
   nsAutoString value;
   value.AppendInt(pts);
-  value.Append(NS_LITERAL_STRING("pt"));
+  value.AppendLiteral("pt");
 
   nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::font_size, value);
 }

@@ -145,12 +145,10 @@ JSObject *Wrapper::defaultProto = TaggedProto::LazyProto;
 
 extern JSObject *
 js::TransparentObjectWrapper(JSContext *cx, HandleObject existing, HandleObject obj,
-                             HandleObject wrappedProto, HandleObject parent,
-                             unsigned flags)
+                             HandleObject parent, unsigned flags)
 {
     // Allow wrapping outer window proxies.
     JS_ASSERT(!obj->is<WrapperObject>() || obj->getClass()->ext.innerObject);
-    JS_ASSERT(wrappedProto == TaggedProto::LazyProto);
     return Wrapper::New(cx, obj, parent, &CrossCompartmentWrapper::singleton);
 }
 
@@ -193,7 +191,7 @@ bool Wrapper::finalizeInBackground(Value priv)
      * If the wrapped object is in the nursery then we know it doesn't have a
      * finalizer, and so background finalization is ok.
      */
-    if (IsInsideNursery(priv.toObject().runtimeFromMainThread(), &priv.toObject()))
+    if (IsInsideNursery(&priv.toObject()))
         return true;
     return IsBackgroundFinalized(priv.toObject().tenuredGetAllocKind());
 }
@@ -569,8 +567,16 @@ CrossCompartmentWrapper::fun_toString(JSContext *cx, HandleObject wrapper, unsig
 bool
 CrossCompartmentWrapper::regexp_toShared(JSContext *cx, HandleObject wrapper, RegExpGuard *g)
 {
-    AutoCompartment call(cx, wrappedObject(wrapper));
-    return Wrapper::regexp_toShared(cx, wrapper, g);
+    RegExpGuard wrapperGuard(cx);
+    {
+        AutoCompartment call(cx, wrappedObject(wrapper));
+        if (!Wrapper::regexp_toShared(cx, wrapper, &wrapperGuard))
+            return false;
+    }
+
+    // Get an equivalent RegExpShared associated with the current compartment.
+    RegExpShared *re = wrapperGuard.re();
+    return cx->compartment()->regExps.get(cx, re->getSource(), re->getFlags(), g);
 }
 
 bool
@@ -999,7 +1005,7 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
     // Update the entry in the compartment's wrapper map to point to the old
     // wrapper, which has now been updated (via reuse or swap).
     JS_ASSERT(wobj->is<WrapperObject>());
-    wcompartment->putWrapper(cx, ObjectValue(*newTarget), ObjectValue(*wobj));
+    wcompartment->putWrapper(cx, CrossCompartmentKey(newTarget), ObjectValue(*wobj));
     return true;
 }
 

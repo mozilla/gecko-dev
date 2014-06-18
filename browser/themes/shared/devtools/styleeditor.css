@@ -64,6 +64,41 @@
   padding: 0 10px;
 }
 
+.stylesheet-sidebar {
+  width: 230px;
+  -moz-border-start: 1px solid;
+}
+
+.theme-light .stylesheet-sidebar {
+  border-color: #aaa; /* Splitters */
+}
+
+.theme-dark .stylesheet-sidebar {
+  border-color: #000;  /* Splitters */
+}
+
+.theme-light .media-rule-label {
+  border-bottom-color: #cddae5; /* Grey */
+}
+
+.theme-dark .media-rule-label {
+  border-bottom-color: #303b47; /* Grey */
+}
+
+.media-rule-label {
+  padding: 4px;
+  cursor: pointer;
+  border-bottom: 1px solid;
+}
+
+.theme-light .media-condition-unmatched {
+  color: grey;
+}
+
+.theme-dark .media-condition-unmatched {
+  color: #606C75;
+}
+
 .stylesheet-enabled {
   padding: 8px 0;
   margin: 0 8px;
@@ -71,16 +106,29 @@
   background-repeat: no-repeat;
   background-clip: content-box;
   background-position: 0 8px;
+  background-size: 48px 24px;
   width: 24px;
   height: 40px;
 }
 
-.theme-light .stylesheet-enabled {
-  background-image: url(itemToggle-light.png);
+@media (min-resolution: 2dppx) {
+  .stylesheet-enabled {
+    background-image: url(itemToggle@2x.png);
+  }
 }
 
 .disabled > .stylesheet-enabled {
   background-position: -24px 8px;
+}
+
+#style-editor-options {
+  width: 20px;
+  overflow: hidden;
+}
+
+/* Invert all toggle icons but the one in the active row for light theme */
+.theme-light .splitview-nav > li:not(.splitview-active) .stylesheet-enabled {
+  filter: url(filters.svg#invert);
 }
 
 .splitview-nav > li > .stylesheet-enabled:focus,
@@ -123,6 +171,12 @@ h3 {
   padding: 0;
 }
 
+@media (max-width: 700px) {
+  .stylesheet-sidebar {
+    width: 150px;
+  }
+}
+
 /* portrait mode */
 @media (max-width: 550px) {
   .splitview-nav {
@@ -146,4 +200,126 @@ h3 {
   .splitview-nav > li > hgroup.stylesheet-info {
     -moz-box-align: baseline;
   }
+
+  .stylesheet-sidebar {
+    width: 180px;
+  }
+}
+
+.theme-light .csscoverage-report {
+  background-color: #f0f1f2; /* Toolbars */
+}
+
+.theme-dark .csscoverage-report {
+  background-color: #343c45; /* Toolbars */
+}
+
+.csscoverage-report-container {
+  height: 100vh;
+  padding: 0 30px;
+}
+
+.csscoverage-report-content {
+  margin: 20px auto;
+  -moz-column-width: 300px;
+  font-size: 13px;
+}
+
+.csscoverage-report h1 {
+  font-size: 120%;
+}
+
+.csscoverage-report h2 {
+  font-size: 110%;
+}
+
+.csscoverage-report h1,
+.csscoverage-report h2,
+.csscoverage-report h3 {
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.csscoverage-list:after {
+  content: ', ';
+}
+
+.csscoverage-list:last-child:after {
+  display: none;
+}
+
+.csscoverage-report textarea {
+  width: 100%;
+  height: 100px;
+}
+
+.csscoverage-report a {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.csscoverage-report > .csscoverage-toolbar {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.csscoverage-report > .csscoverage-toolbarbutton {
+  min-width: 4em;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  border-top: none;
+  border-bottom: none;
+  -moz-border-start: none;
+}
+
+.theme-dark .chart-colored-blob[name="Used Preload"] {
+  fill: #df80ff; /* Pink highlight */
+  background: #df80ff;
+}
+
+.theme-light .chart-colored-blob[name="Used Preload"] {
+  fill: #b82ee5; /* Pink highlight */
+  background: #b82ee5;
+}
+
+.theme-dark .chart-colored-blob[name=Used] {
+  fill: #70bf53; /* Green highlight */
+  background: #70bf53;
+}
+
+.theme-light .chart-colored-blob[name=Used] {
+  fill: #2cbb0f; /* Green highlight */
+  background: #2cbb0f;
+}
+
+.theme-dark .chart-colored-blob[name=Unused] {
+  fill: #d99b28; /* Light Orange highlight */
+  background: #d99b28;
+}
+
+.theme-light .chart-colored-blob[name=Unused] {
+  fill: #d97e00; /* Light Orange highlight */
+  background: #d97e00;
+}
+
+/* Undo 'largest' customization */
+.theme-dark .pie-chart-slice[largest] {
+  stroke-width: 1px;
+  stroke: rgba(0,0,0,0.2);
+}
+
+.theme-light .pie-chart-slice[largest] {
+  stroke-width: 1px;
+  stroke: rgba(255,255,255,0.8);
+}
+
+.csscoverage-report .pie-chart-slice {
+  cursor: default;
+}
+
+.csscoverage-report-chart {
+  margin: 0 50px;
 }

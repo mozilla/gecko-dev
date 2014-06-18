@@ -3,6 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#style-editor-chrome {
+  -moz-box-flex: 1;
+}
+
 .stylesheet-error-message {
   display: none;
 }
@@ -11,10 +15,31 @@ li.error > .stylesheet-info > .stylesheet-more  > .stylesheet-error-message {
   display: block;
 }
 
+.devtools-toolbar > spacer {
+  -moz-box-flex: 1;
+}
+
 .splitview-nav > li,
 .stylesheet-info,
 .stylesheet-more {
   display: -moz-box;
+}
+
+.stylesheet-details-container {
+  -moz-box-flex: 1;
+}
+
+.stylesheet-media-container {
+  overflow-y: auto;
+}
+
+.media-rule-label {
+  display: flex;
+}
+
+.media-rule-condition {
+  flex: 1;
+  overflow: hidden;
 }
 
 .splitview-nav > li {
@@ -105,4 +130,22 @@ li:hover > hgroup > .stylesheet-more > h3 > .stylesheet-saveButton {
   .stylesheet-more > spacer {
     -moz-box-flex: 0;
   }
+}
+
+.csscoverage-report-container {
+  -moz-box-flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.csscoverage-report-content > * {
+  display: inline-block;
+}
+
+.csscoverage-report {
+  -moz-box-orient: horizontal;
+}
+
+.csscoverage-report .pie-table-chart-container {
+  -moz-box-orient: vertical;
 }

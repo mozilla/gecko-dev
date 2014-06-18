@@ -149,27 +149,17 @@ gfxPlatformGtk::UpdateFontList()
 }
 
 nsresult
-gfxPlatformGtk::ResolveFontName(const nsAString& aFontName,
-                                FontResolverCallback aCallback,
-                                void *aClosure,
-                                bool& aAborted)
-{
-    return sFontconfigUtils->ResolveFontName(aFontName, aCallback,
-                                             aClosure, aAborted);
-}
-
-nsresult
 gfxPlatformGtk::GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName)
 {
     return sFontconfigUtils->GetStandardFamilyName(aFontName, aFamilyName);
 }
 
 gfxFontGroup *
-gfxPlatformGtk::CreateFontGroup(const nsAString &aFamilies,
+gfxPlatformGtk::CreateFontGroup(const FontFamilyList& aFontFamilyList,
                                 const gfxFontStyle *aStyle,
                                 gfxUserFontSet *aUserFontSet)
 {
-    return new gfxPangoFontGroup(aFamilies, aStyle, aUserFontSet);
+    return new gfxPangoFontGroup(aFontFamilyList, aStyle, aUserFontSet);
 }
 
 gfxFontEntry*
@@ -260,18 +250,6 @@ gfxPlatformGtk::GetScreenDepth() const
     }
 
     return sDepth;
-}
-
-bool
-gfxPlatformGtk::SupportsOffMainThreadCompositing()
-{
-  // Nightly builds have OMTC support by default for Electrolysis testing.
-#if defined(MOZ_X11) && !defined(NIGHTLY_BUILD)
-  return (PR_GetEnv("MOZ_USE_OMTC") != nullptr) ||
-         (PR_GetEnv("MOZ_OMTC_ENABLED") != nullptr);
-#else
-  return true;
-#endif
 }
 
 void

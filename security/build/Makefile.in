@@ -253,30 +253,7 @@ DEFAULT_GMAKE_FLAGS += MAKE_OBJDIR='$$(INSTALL) -D $$(OBJDIR)'
 # it, creating race conditions. See bug #836220
 DEFAULT_GMAKE_FLAGS += TARGETS='$$(LIBRARY) $$(SHARED_LIBRARY) $$(PROGRAM)'
 
-ifdef MOZ_B2G_CERTDATA
-include $(srcdir)/b2g-certdata.mk
-endif
-
-ifdef MOZ_NSS_PATCH
-# If we're applying a patch, we'll copy the NSS source to the objdir
-# and build it from there.
-NSS_SRCDIR = $(CURDIR)/nss
-
-# This will copy and patch the NSS source for every build.
-# Since we "cp -p", it won't force rebuilds for most files, just
-# for patched files, but that's easier than trying to track
-# dependencies for patched files.
-export::
-	rm -rf $(NSS_SRCDIR)
-	$(NSINSTALL) -D $(NSS_SRCDIR)/security
-	cp -Rp $(topsrcdir)/security/nss $(NSS_SRCDIR)/security
-	cp -Rp $(topsrcdir)/security/coreconf $(NSS_SRCDIR)/security
-	cp -Rp $(topsrcdir)/security/dbm $(NSS_SRCDIR)/security
-	cp -Rp $(topsrcdir)/dbm $(NSS_SRCDIR)
-	(cd $(NSS_SRCDIR) && patch -p1 < $(abspath $(MOZ_NSS_PATCH)))
-else
 NSS_SRCDIR = $(topsrcdir)
-endif
 
 NSS_DIRS =
 ifndef MOZ_FOLD_LIBS
@@ -356,17 +333,42 @@ EXTRA_DSO_LDOPTS += $(DEPTH)/db/sqlite3/src/$(LIB_PREFIX)mozsqlite3.$(LIB_SUFFIX
 # Add all static libraries for nss, smime, ssl and nssutil
 SHARED_LIBRARY_LIBS = $(addprefix ../,$(NSS_STATIC_LIBS))
 
+nss_def_files := $(addprefix $(srcdir)/../, \
+  nss/lib/util/nssutil.def \
+  nss/lib/nss/nss.def \
+  nss/lib/ssl/ssl.def \
+  nss/lib/smime/smime.def \
+)
+
+# Try to guard against NSS renaming things out from underneath us.
+ifneq ($(nss_def_files),$(wildcard $(nss_def_files)))
+$(error Need to update list of NSS def files)
+endif
+
 ifeq (WINNT,$(OS_TARGET))
 # Create a .def file based on the various .def files for nss, smime, ssl and
 # nssutil.
-NSS_STATIC_LIBS_DEFS := $(wildcard $(addprefix $(srcdir)/../,$(NSS_STATIC_LIBS:.$(LIB_SUFFIX)=.def)))
-
-nss3.def: $(NSS_STATIC_LIBS_DEFS) $(DEPTH)/db/sqlite3/src/sqlite-processed.def
+nss3.def: $(nss_def_files) $(DEPTH)/db/sqlite3/src/sqlite-processed.def
 	echo LIBRARY nss3$(DLL_SUFFIX) > $@.tmp
 	echo EXPORTS >> $@.tmp
 	grep -v -h -e ^LIBRARY -e ^EXPORTS -e ^\; $^ >> $@.tmp
 	mv $@.tmp $@
-endif
+else
+ifdef GCC_USE_GNU_LD
+sqlite_def_file := $(topsrcdir)/db/sqlite3/src/sqlite.def
+nspr_def_file := $(srcdir)/nspr-dummy.def
+
+nss3.def: $(nss_def_files) $(sqlite_def_file) $(nspr_def_file)
+	@$(call py_action,convert_def_file, \
+	  $(DEFINES) $(ACDEFINES) $(XULPPFLAGS) -o $@ \
+	  $(addprefix --nss-file=,$(nss_def_files)) \
+	  $(sqlite_def_file) $(nspr_def_file))
+
+GARBAGE += \
+  nss3.def \
+  $(NULL)
+endif # GCC_USE_GNU_LD
+endif # WINNT
 
 ifneq (,$(filter WINNT,$(OS_ARCH)))
 SDK_LIBRARY = $(IMPORT_LIBRARY)

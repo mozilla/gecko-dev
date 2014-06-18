@@ -113,15 +113,26 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
             // to be numbered, ensured by running this immediately after alias
             // analysis.
             uint32_t maxDefinition = 0;
-            for (MUseDefIterator uses(*ins); uses; uses++) {
-                if (uses.def()->block() != *block ||
-                    uses.def()->isBox() ||
-                    uses.def()->isPhi())
-                {
+            for (MUseIterator uses(ins->usesBegin()); uses != ins->usesEnd(); uses++) {
+                MNode *consumer = uses->consumer();
+                if (consumer->isResumePoint()) {
+                    // If the instruction's is captured by one of the resume point, then
+                    // it might be observed indirectly while the frame is live on the
+                    // stack, so it has to be computed.
+                    MResumePoint *resume = consumer->toResumePoint();
+                    if (resume->isObservableOperand(*uses)) {
+                        maxDefinition = UINT32_MAX;
+                        break;
+                    }
+                    continue;
+                }
+
+                MDefinition *def = consumer->toDefinition();
+                if (def->block() != *block || def->isBox() || def->isPhi()) {
                     maxDefinition = UINT32_MAX;
                     break;
                 }
-                maxDefinition = Max(maxDefinition, uses.def()->id());
+                maxDefinition = Max(maxDefinition, def->id());
             }
             if (maxDefinition == UINT32_MAX)
                 continue;
@@ -129,25 +140,15 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
             // Walk the uses a second time, removing any in resume points after
             // the last use in a definition.
             for (MUseIterator uses(ins->usesBegin()); uses != ins->usesEnd(); ) {
-                if (uses->consumer()->isDefinition()) {
-                    uses++;
+                MUse *use = *uses++;
+                if (use->consumer()->isDefinition())
                     continue;
-                }
-                MResumePoint *mrp = uses->consumer()->toResumePoint();
+                MResumePoint *mrp = use->consumer()->toResumePoint();
                 if (mrp->block() != *block ||
                     !mrp->instruction() ||
                     mrp->instruction() == *ins ||
                     mrp->instruction()->id() <= maxDefinition)
                 {
-                    uses++;
-                    continue;
-                }
-
-                // The operand is an uneliminable slot. This currently
-                // includes argument slots in non-strict scripts (due to being
-                // observable via Function.arguments).
-                if (!block->info().canOptimizeOutSlot(uses->index())) {
-                    uses++;
                     continue;
                 }
 
@@ -161,7 +162,7 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
                 // by removing dead operands before removing dead code.
                 MConstant *constant = MConstant::New(graph.alloc(), MagicValue(JS_OPTIMIZED_OUT));
                 block->insertBefore(*(block->begin()), constant);
-                uses = mrp->replaceOperand(uses, constant);
+                use->replaceProducer(constant);
             }
         }
     }
@@ -215,45 +216,20 @@ IsPhiObservable(MPhi *phi, Observability observe)
     // actual uses in the program have been (incorrectly) optimized
     // away, so we must be more conservative and consider resume
     // points as well.
-    switch (observe) {
-      case AggressiveObservability:
-        for (MUseDefIterator iter(phi); iter; iter++) {
-            if (!iter.def()->isPhi())
+    for (MUseIterator iter(phi->usesBegin()); iter != phi->usesEnd(); iter++) {
+        MNode *consumer = iter->consumer();
+        if (consumer->isResumePoint()) {
+            MResumePoint *resume = consumer->toResumePoint();
+            if (observe == ConservativeObservability)
+                return true;
+            if (resume->isObservableOperand(*iter))
+                return true;
+        } else {
+            MDefinition *def = consumer->toDefinition();
+            if (!def->isPhi())
                 return true;
         }
-        break;
-
-      case ConservativeObservability:
-        for (MUseIterator iter(phi->usesBegin()); iter != phi->usesEnd(); iter++) {
-            if (!iter->consumer()->isDefinition() ||
-                !iter->consumer()->toDefinition()->isPhi())
-                return true;
-        }
-        break;
     }
-
-    uint32_t slot = phi->slot();
-    CompileInfo &info = phi->block()->info();
-    JSFunction *fun = info.funMaybeLazy();
-
-    // If the Phi is of the |this| value, it must always be observable.
-    if (fun && slot == info.thisSlot())
-        return true;
-
-    // If the function may need an arguments object, then make sure to
-    // preserve the scope chain, because it may be needed to construct the
-    // arguments object during bailout. If we've already created an arguments
-    // object (or got one via OSR), preserve that as well.
-    if (fun && info.hasArguments() &&
-        (slot == info.scopeChainSlot() || slot == info.argsObjSlot()))
-    {
-        return true;
-    }
-
-    // The Phi is an uneliminable slot. Currently this includes argument slots
-    // in non-strict scripts (due to being observable via Function.arguments).
-    if (fun && !info.canOptimizeOutSlot(slot))
-        return true;
 
     return false;
 }
@@ -1156,7 +1132,7 @@ static void
 ComputeImmediateDominators(MIRGraph &graph)
 {
     // The default start block is a root and therefore only self-dominates.
-    MBasicBlock *startBlock = *graph.begin();
+    MBasicBlock *startBlock = graph.entryBlock();
     startBlock->setImmediateDominator(startBlock);
 
     // Any OSR block is a root and therefore only self-dominates.
@@ -1225,6 +1201,9 @@ jit::BuildDominatorTree(MIRGraph &graph)
         MBasicBlock *child = *i;
         MBasicBlock *parent = child->immediateDominator();
 
+        // Domininace is defined such that blocks always dominate themselves.
+        child->addNumDominated(1);
+
         // If the block only self-dominates, it has no definite parent.
         if (child == parent)
             continue;
@@ -1232,15 +1211,14 @@ jit::BuildDominatorTree(MIRGraph &graph)
         if (!parent->addImmediatelyDominatedBlock(child))
             return false;
 
-        // An additional +1 for the child block.
-        parent->addNumDominated(child->numDominated() + 1);
+        parent->addNumDominated(child->numDominated());
     }
 
 #ifdef DEBUG
     // If compiling with OSR, many blocks will self-dominate.
     // Without OSR, there is only one root block which dominates all.
     if (!graph.osrBlock())
-        JS_ASSERT(graph.begin()->numDominated() == graph.numBlocks() - 1);
+        JS_ASSERT(graph.entryBlock()->numDominated() == graph.numBlocks());
 #endif
     // Now, iterate through the dominator tree and annotate every
     // block with its index in the pre-order traversal of the
@@ -1297,10 +1275,8 @@ jit::BuildPhiReverseMapping(MIRGraph &graph)
     //             break statement is present, the exit block will forward
     //             directly to the break block.
     for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
-        if (block->numPredecessors() < 2) {
-            JS_ASSERT(block->phisEmpty());
+        if (block->phisEmpty())
             continue;
-        }
 
         // Assert on the above.
         for (size_t j = 0; j < block->numPredecessors(); j++) {
@@ -1431,7 +1407,7 @@ jit::AssertBasicGraphCoherency(MIRGraph &graph)
 
 #ifdef DEBUG
 static void
-AssertReversePostOrder(MIRGraph &graph)
+AssertReversePostorder(MIRGraph &graph)
 {
     // Check that every block is visited after all its predecessors (except backedges).
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
@@ -1439,13 +1415,62 @@ AssertReversePostOrder(MIRGraph &graph)
 
         for (size_t i = 0; i < block->numPredecessors(); i++) {
             MBasicBlock *pred = block->getPredecessor(i);
-            JS_ASSERT_IF(!pred->isLoopBackedge(), pred->isMarked());
+            if (!pred->isMarked()) {
+                JS_ASSERT(pred->isLoopBackedge());
+                JS_ASSERT(block->backedge() == pred);
+            }
         }
 
         block->mark();
     }
 
     graph.unmarkBlocks();
+}
+#endif
+
+#ifdef DEBUG
+static void
+AssertDominatorTree(MIRGraph &graph)
+{
+    // Check dominators.
+    size_t i = graph.numBlocks();
+    size_t totalNumDominated = 0;
+    for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
+        JS_ASSERT(block->dominates(*block));
+
+        MBasicBlock *idom = block->immediateDominator();
+        JS_ASSERT(idom->dominates(*block));
+        JS_ASSERT(idom == *block || idom->id() < block->id());
+
+        if (idom == *block) {
+            totalNumDominated += block->numDominated();
+        } else {
+            bool foundInParent = false;
+            for (size_t j = 0; j < idom->numImmediatelyDominatedBlocks(); j++) {
+                if (idom->getImmediatelyDominatedBlock(j) == *block) {
+                    foundInParent = true;
+                    break;
+                }
+            }
+            JS_ASSERT(foundInParent);
+        }
+
+        size_t numDominated = 1;
+        for (size_t j = 0; j < block->numImmediatelyDominatedBlocks(); j++) {
+            MBasicBlock *dom = block->getImmediatelyDominatedBlock(j);
+            JS_ASSERT(block->dominates(dom));
+            JS_ASSERT(dom->id() > block->id());
+            JS_ASSERT(dom->immediateDominator() == *block);
+
+            numDominated += dom->numDominated();
+        }
+        JS_ASSERT(block->numDominated() == numDominated);
+        JS_ASSERT(block->numDominated() <= i);
+        JS_ASSERT(block->numSuccessors() != 0 || block->numDominated() == 1);
+        i--;
+    }
+    JS_ASSERT(i == 0);
+    JS_ASSERT(totalNumDominated == graph.numBlocks());
 }
 #endif
 
@@ -1456,7 +1481,7 @@ jit::AssertGraphCoherency(MIRGraph &graph)
     if (!js_JitOptions.checkGraphConsistency)
         return;
     AssertBasicGraphCoherency(graph);
-    AssertReversePostOrder(graph);
+    AssertReversePostorder(graph);
 #endif
 }
 
@@ -1503,14 +1528,10 @@ jit::AssertExtendedGraphCoherency(MIRGraph &graph)
                 successorWithPhis++;
 
         JS_ASSERT(successorWithPhis <= 1);
-        JS_ASSERT_IF(successorWithPhis, block->successorWithPhis() != nullptr);
-
-        // I'd like to assert this, but it's not necc. true.  Sometimes we set this
-        // flag to non-nullptr just because a successor has multiple preds, even if it
-        // does not actually have any phis.
-        //
-        // JS_ASSERT_IF(!successorWithPhis, block->successorWithPhis() == nullptr);
+        JS_ASSERT((successorWithPhis != 0) == (block->successorWithPhis() != nullptr));
     }
+
+    AssertDominatorTree(graph);
 #endif
 }
 
@@ -1518,7 +1539,7 @@ jit::AssertExtendedGraphCoherency(MIRGraph &graph)
 struct BoundsCheckInfo
 {
     MBoundsCheck *check;
-    uint32_t validUntil;
+    uint32_t validEnd;
 };
 
 typedef HashMap<uint32_t,
@@ -1542,11 +1563,11 @@ FindDominatingBoundsCheck(BoundsCheckMap &checks, MBoundsCheck *check, size_t in
     // See the comment in ValueNumberer::findDominatingDef.
     HashNumber hash = BoundsCheckHashIgnoreOffset(check);
     BoundsCheckMap::Ptr p = checks.lookup(hash);
-    if (!p || index > p->value().validUntil) {
+    if (!p || index >= p->value().validEnd) {
         // We didn't find a dominating bounds check.
         BoundsCheckInfo info;
         info.check = check;
-        info.validUntil = index + check->block()->numDominated();
+        info.validEnd = index + check->block()->numDominated();
 
         if(!checks.put(hash, info))
             return nullptr;
@@ -1892,97 +1913,6 @@ jit::EliminateRedundantChecks(MIRGraph &graph)
     return true;
 }
 
-// If the given block contains a goto and nothing interesting before that,
-// return the goto. Return nullptr otherwise.
-static LGoto *
-FindLeadingGoto(LBlock *bb)
-{
-    for (LInstructionIterator ins(bb->begin()); ins != bb->end(); ins++) {
-        // Ignore labels.
-        if (ins->isLabel())
-            continue;
-        // If we have a goto, we're good to go.
-        if (ins->isGoto())
-            return ins->toGoto();
-        break;
-    }
-    return nullptr;
-}
-
-// Eliminate blocks containing nothing interesting besides gotos. These are
-// often created by optimizer, which splits all critical edges. If these
-// splits end up being unused after optimization and register allocation,
-// fold them back away to avoid unnecessary branching.
-bool
-jit::UnsplitEdges(LIRGraph *lir)
-{
-    for (size_t i = 0; i < lir->numBlocks(); i++) {
-        LBlock *bb = lir->getBlock(i);
-        MBasicBlock *mirBlock = bb->mir();
-
-        // Renumber the MIR blocks as we go, since we may remove some.
-        mirBlock->setId(i);
-
-        // Register allocation is done by this point, so we don't need the phis
-        // anymore. Clear them to avoid needed to keep them current as we edit
-        // the CFG.
-        bb->clearPhis();
-        mirBlock->discardAllPhis();
-
-        // First make sure the MIR block looks sane. Some of these checks may be
-        // over-conservative, but we're attempting to keep everything in MIR
-        // current as we modify the LIR, so only proceed if the MIR is simple.
-        if (mirBlock->numPredecessors() == 0 || mirBlock->numSuccessors() != 1 ||
-            !mirBlock->begin()->isGoto())
-        {
-            continue;
-        }
-
-        // The MIR block is empty, but check the LIR block too (in case the
-        // register allocator inserted spill code there, or whatever).
-        LGoto *theGoto = FindLeadingGoto(bb);
-        if (!theGoto)
-            continue;
-        MBasicBlock *target = theGoto->target();
-        if (target == mirBlock || target != mirBlock->getSuccessor(0))
-            continue;
-
-        // If we haven't yet cleared the phis for the successor, do so now so
-        // that the CFG manipulation routines don't trip over them.
-        if (!target->phisEmpty()) {
-            target->discardAllPhis();
-            target->lir()->clearPhis();
-        }
-
-        // Edit the CFG to remove lir/mirBlock and reconnect all its edges.
-        for (size_t j = 0; j < mirBlock->numPredecessors(); j++) {
-            MBasicBlock *mirPred = mirBlock->getPredecessor(j);
-
-            for (size_t k = 0; k < mirPred->numSuccessors(); k++) {
-                if (mirPred->getSuccessor(k) == mirBlock) {
-                    mirPred->replaceSuccessor(k, target);
-                    if (!target->addPredecessorWithoutPhis(mirPred))
-                        return false;
-                }
-            }
-
-            LInstruction *predTerm = *mirPred->lir()->rbegin();
-            for (size_t k = 0; k < predTerm->numSuccessors(); k++) {
-                if (predTerm->getSuccessor(k) == mirBlock)
-                    predTerm->setSuccessor(k, target);
-            }
-        }
-        target->removePredecessor(mirBlock);
-
-        // Zap the block.
-        lir->removeBlock(i);
-        lir->mir().removeBlock(mirBlock);
-        --i;
-    }
-
-    return true;
-}
-
 bool
 LinearSum::multiply(int32_t scale)
 {
@@ -2147,14 +2077,10 @@ AnalyzePoppedThis(JSContext *cx, types::TypeObject *type,
         JS_ASSERT(!baseobj->inDictionaryMode());
 
         Vector<MResumePoint *> callerResumePoints(cx);
-        MBasicBlock *block = ins->block();
-        for (MResumePoint *rp = block->callerResumePoint();
+        for (MResumePoint *rp = ins->block()->callerResumePoint();
              rp;
-             block = rp->block(), rp = block->callerResumePoint())
+             rp = rp->block()->callerResumePoint())
         {
-            JSScript *script = rp->block()->info().script();
-            if (!types::AddClearDefiniteFunctionUsesInScript(cx, type, script, block->info().script()))
-                return true;
             if (!callerResumePoints.append(rp))
                 return false;
         }
@@ -2313,7 +2239,7 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
     if (!EliminatePhis(&builder, graph, AggressiveObservability))
         return false;
 
-    MDefinition *thisValue = graph.begin()->getSlot(info.thisSlot());
+    MDefinition *thisValue = graph.entryBlock()->getSlot(info.thisSlot());
 
     // Get a list of instructions using the |this| value in the order they
     // appear in the graph.
@@ -2341,6 +2267,9 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
             return false;
     }
 
+    // id of the last block which added a new property.
+    size_t lastAddedBlock = 0;
+
     for (size_t i = 0; i < instructions.length(); i++) {
         MInstruction *ins = instructions[i];
 
@@ -2367,13 +2296,40 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
             definitelyExecuted = false;
 
         bool handled = false;
+        size_t slotSpan = baseobj->slotSpan();
         if (!AnalyzePoppedThis(cx, type, thisValue, ins, definitelyExecuted,
                                baseobj, initializerList, &accessedProperties, &handled))
         {
             return false;
         }
         if (!handled)
-            return true;
+            break;
+
+        if (slotSpan != baseobj->slotSpan()) {
+            JS_ASSERT(ins->block()->id() >= lastAddedBlock);
+            lastAddedBlock = ins->block()->id();
+        }
+    }
+
+    if (baseobj->slotSpan() != 0) {
+        // We found some definite properties, but their correctness is still
+        // contingent on the correct frames being inlined. Add constraints to
+        // invalidate the definite properties if additional functions could be
+        // called at the inline frame sites.
+        Vector<MBasicBlock *> exitBlocks(cx);
+        for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
+            // Inlining decisions made after the last new property was added to
+            // the object don't need to be frozen.
+            if (block->id() > lastAddedBlock)
+                break;
+            if (MResumePoint *rp = block->callerResumePoint()) {
+                if (block->numPredecessors() == 1 && block->getPredecessor(0) == rp->block()) {
+                    JSScript *script = rp->block()->info().script();
+                    if (!types::AddClearDefiniteFunctionUsesInScript(cx, type, script, block->info().script()))
+                        return false;
+                }
+            }
+        }
     }
 
     return true;
@@ -2501,7 +2457,7 @@ jit::AnalyzeArgumentsUsage(JSContext *cx, JSScript *scriptArg)
     if (!EliminatePhis(&builder, graph, AggressiveObservability))
         return false;
 
-    MDefinition *argumentsValue = graph.begin()->getSlot(info.argsObjSlot());
+    MDefinition *argumentsValue = graph.entryBlock()->getSlot(info.argsObjSlot());
 
     bool argumentsContentsObserved = false;
 
@@ -2512,7 +2468,7 @@ jit::AnalyzeArgumentsUsage(JSContext *cx, JSScript *scriptArg)
         if (!use->isInstruction())
             return true;
 
-        if (!ArgumentsUseCanBeLazy(cx, script, use->toInstruction(), uses.index(),
+        if (!ArgumentsUseCanBeLazy(cx, script, use->toInstruction(), use->indexOf(uses.use()),
                                    &argumentsContentsObserved))
         {
             return true;
@@ -2527,5 +2483,171 @@ jit::AnalyzeArgumentsUsage(JSContext *cx, JSScript *scriptArg)
         return true;
 
     script->setNeedsArgsObj(false);
+    return true;
+}
+
+// Mark all the blocks that are in the loop with the given header.
+// Returns the number of blocks marked. Set *canOsr to true if the loop is
+// reachable from both the normal entry and the OSR entry.
+size_t
+jit::MarkLoopBlocks(MIRGraph &graph, MBasicBlock *header, bool *canOsr)
+{
+#ifdef DEBUG
+    for (ReversePostorderIterator i = graph.rpoBegin(), e = graph.rpoEnd(); i != e; ++i)
+        MOZ_ASSERT(!i->isMarked(), "Some blocks already marked");
+#endif
+
+    MBasicBlock *osrBlock = graph.osrBlock();
+    *canOsr = false;
+
+    // The blocks are in RPO; start at the loop backedge, which is marks the
+    // bottom of the loop, and walk up until we get to the header. Loops may be
+    // discontiguous, so we trace predecessors to determine which blocks are
+    // actually part of the loop. The backedge is always part of the loop, and
+    // so are its predecessors, transitively, up to the loop header or an OSR
+    // entry.
+    MBasicBlock *backedge = header->backedge();
+    backedge->mark();
+    size_t numMarked = 1;
+    for (PostorderIterator i = graph.poBegin(backedge); ; ++i) {
+        MOZ_ASSERT(i != graph.poEnd(),
+                   "Reached the end of the graph while searching for the loop header");
+        MBasicBlock *block = *i;
+        // A block not marked by the time we reach it is not in the loop.
+        if (!block->isMarked())
+            continue;
+        // If we've reached the loop header, we're done.
+        if (block == header)
+            break;
+        // This block is in the loop; trace to its predecessors.
+        for (size_t p = 0, e = block->numPredecessors(); p != e; ++p) {
+            MBasicBlock *pred = block->getPredecessor(p);
+            if (pred->isMarked())
+                continue;
+
+            // Blocks dominated by the OSR entry are not part of the loop
+            // (unless they aren't reachable from the normal entry).
+            if (osrBlock && pred != header && osrBlock->dominates(pred)) {
+                *canOsr = true;
+                continue;
+            }
+
+            MOZ_ASSERT(pred->id() >= header->id() && pred->id() <= backedge->id(),
+                       "Loop block not between loop header and loop backedge");
+
+            pred->mark();
+            ++numMarked;
+
+            // A nested loop may not exit back to the enclosing loop at its
+            // bottom. If we just marked its header, then the whole nested loop
+            // is part of the enclosing loop.
+            if (pred->isLoopHeader()) {
+                MBasicBlock *innerBackedge = pred->backedge();
+                if (!innerBackedge->isMarked()) {
+                    // Mark its backedge so that we add all of its blocks to the
+                    // outer loop as we walk upwards.
+                    innerBackedge->mark();
+                    ++numMarked;
+
+                    // If the nested loop is not contiguous, we may have already
+                    // passed its backedge. If this happens, back up.
+                    if (backedge->id() > block->id()) {
+                        i = graph.poBegin(innerBackedge);
+                        --i;
+                    }
+                }
+            }
+        }
+    }
+    MOZ_ASSERT(header->isMarked(), "Loop header should be part of the loop");
+    return numMarked;
+}
+
+// Unmark all the blocks that are in the loop with the given header.
+void
+jit::UnmarkLoopBlocks(MIRGraph &graph, MBasicBlock *header)
+{
+    MBasicBlock *backedge = header->backedge();
+    for (ReversePostorderIterator i = graph.rpoBegin(header); ; ++i) {
+        MOZ_ASSERT(i != graph.rpoEnd(),
+                   "Reached the end of the graph while searching for the backedge");
+        MBasicBlock *block = *i;
+        if (block->isMarked()) {
+            block->unmark();
+            if (block == backedge)
+                break;
+        }
+    }
+
+#ifdef DEBUG
+    for (ReversePostorderIterator i = graph.rpoBegin(), e = graph.rpoEnd(); i != e; ++i)
+        MOZ_ASSERT(!i->isMarked(), "Not all blocks got unmarked");
+#endif
+}
+
+// Reorder the blocks in the loop starting at the given header to be contiguous.
+static void
+MakeLoopContiguous(MIRGraph &graph, MBasicBlock *header, size_t numMarked)
+{
+    MBasicBlock *backedge = header->backedge();
+
+    MOZ_ASSERT(header->isMarked(), "Loop header is not part of loop");
+    MOZ_ASSERT(backedge->isMarked(), "Loop backedge is not part of loop");
+
+    // If there are any blocks between the loop header and the loop backedge
+    // that are not part of the loop, prepare to move them to the end. We keep
+    // them in order, which preserves RPO.
+    ReversePostorderIterator insertIter = graph.rpoBegin(backedge);
+    insertIter++;
+    MBasicBlock *insertPt = *insertIter;
+
+    // Visit all the blocks from the loop header to the loop backedge.
+    size_t headerId = header->id();
+    size_t inLoopId = headerId;
+    size_t notInLoopId = inLoopId + numMarked;
+    ReversePostorderIterator i = graph.rpoBegin(header);
+    for (;;) {
+        MBasicBlock *block = *i++;
+        MOZ_ASSERT(block->id() >= header->id() && block->id() <= backedge->id(),
+                   "Loop backedge should be last block in loop");
+
+        if (block->isMarked()) {
+            // This block is in the loop.
+            block->unmark();
+            block->setId(inLoopId++);
+            // If we've reached the loop backedge, we're done!
+            if (block == backedge)
+                break;
+        } else {
+            // This block is not in the loop. Move it to the end.
+            graph.moveBlockBefore(insertPt, block);
+            block->setId(notInLoopId++);
+        }
+    }
+    MOZ_ASSERT(header->id() == headerId, "Loop header id changed");
+    MOZ_ASSERT(inLoopId == headerId + numMarked, "Wrong number of blocks kept in loop");
+    MOZ_ASSERT(notInLoopId == (insertIter != graph.rpoEnd() ? insertPt->id() : graph.numBlocks()),
+               "Wrong number of blocks moved out of loop");
+}
+
+// Reorder the blocks in the graph so that loops are contiguous.
+bool
+jit::MakeLoopsContiguous(MIRGraph &graph)
+{
+    // Visit all loop headers (in any order).
+    for (MBasicBlockIterator i(graph.begin()); i != graph.end(); i++) {
+        MBasicBlock *header = *i;
+        if (!header->isLoopHeader())
+            continue;
+
+        // Mark all blocks that are actually part of the loop.
+        bool canOsr;
+        size_t numMarked = MarkLoopBlocks(graph, header, &canOsr);
+
+        // Move all blocks between header and backedge that aren't marked to
+        // the end of the loop, making the loop itself contiguous.
+        MakeLoopContiguous(graph, header, numMarked);
+    }
+
     return true;
 }

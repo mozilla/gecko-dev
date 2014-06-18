@@ -6,10 +6,10 @@
 
 #include "FileStreamWrappers.h"
 
-#include "FileHandle.h"
 #include "FileHelper.h"
 #include "MainThreadUtils.h"
 #include "mozilla/Attributes.h"
+#include "MutableFile.h"
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsIRunnable.h"
@@ -98,7 +98,7 @@ FileStreamWrapper::~FileStreamWrapper()
       nsCOMPtr<nsIRunnable> runnable =
         new DestroyRunnable(mFileHelper);
 
-      nsresult rv = NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+      nsresult rv = NS_DispatchToMainThread(runnable);
       if (NS_FAILED(rv)) {
         NS_WARNING("Failed to dispatch to the main thread!");
       }
@@ -131,7 +131,7 @@ FileInputStreamWrapper::Close()
   if (mFlags & NOTIFY_CLOSE) {
     nsCOMPtr<nsIRunnable> runnable = new CloseRunnable(mFileHelper);
 
-    if (NS_FAILED(NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL))) {
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
       NS_WARNING("Failed to dispatch to the main thread!");
     }
   }
@@ -201,7 +201,7 @@ FileInputStreamWrapper::Read(char* aBuf, uint32_t aCount, uint32_t* _retval)
     nsCOMPtr<nsIRunnable> runnable =
       new ProgressRunnable(mFileHelper, mOffset, mLimit);
 
-    rv = NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+    rv = NS_DispatchToMainThread(runnable);
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to dispatch to the main thread!");
     }
@@ -252,13 +252,13 @@ FileOutputStreamWrapper::Close()
   if (!mFirstTime) {
     NS_ASSERTION(PR_GetCurrentThread() == mWriteThread,
                  "Unsetting thread locals on wrong thread!");
-    mFileHelper->mFileHandle->UnsetThreadLocals();
+    mFileHelper->mMutableFile->UnsetThreadLocals();
   }
 
   if (mFlags & NOTIFY_CLOSE) {
     nsCOMPtr<nsIRunnable> runnable = new CloseRunnable(mFileHelper);
 
-    if (NS_FAILED(NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL))) {
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
       NS_WARNING("Failed to dispatch to the main thread!");
     }
   }
@@ -283,7 +283,7 @@ FileOutputStreamWrapper::Write(const char* aBuf, uint32_t aCount,
 #ifdef DEBUG
     mWriteThread = PR_GetCurrentThread();
 #endif
-    mFileHelper->mFileHandle->SetThreadLocals();
+    mFileHelper->mMutableFile->SetThreadLocals();
 
     nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mOutputStream);
     if (seekable) {
@@ -318,7 +318,7 @@ FileOutputStreamWrapper::Write(const char* aBuf, uint32_t aCount,
     nsCOMPtr<nsIRunnable> runnable =
       new ProgressRunnable(mFileHelper, mOffset, mLimit);
 
-    NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+    NS_DispatchToMainThread(runnable);
   }
 
   return NS_OK;

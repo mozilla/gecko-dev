@@ -151,8 +151,8 @@ nsContextMenu.prototype = {
     var shouldShow = !(this.isContentSelected || this.onLink || this.onImage ||
                        this.onCanvas || this.onVideo || this.onAudio ||
                        this.onTextInput || this.onSocial);
-    this.showItem("context-back", shouldShow);
-    this.showItem("context-forward", shouldShow);
+    this.showItem("context-navigation", shouldShow);
+    this.showItem("context-sep-navigation", shouldShow);
 
     let stopped = XULBrowserWindow.stopCommand.getAttribute("disabled") == "true";
 
@@ -163,7 +163,6 @@ nsContextMenu.prototype = {
 
     this.showItem("context-reload", stopReloadItem == "reload");
     this.showItem("context-stop", stopReloadItem == "stop");
-    this.showItem("context-sep-stop", !!stopReloadItem);
 
     // XXX: Stop is determined in browser.js; the canStop broadcaster is broken
     //this.setItemAttrFromNode( "context-stop", "disabled", "canStop" );
@@ -270,7 +269,8 @@ nsContextMenu.prototype = {
     // Use "Bookmark This Link" if on a link.
     this.showItem("context-bookmarkpage",
                   !(this.isContentSelected || this.onTextInput || this.onLink ||
-                    this.onImage || this.onVideo || this.onAudio || this.onSocial));
+                    this.onImage || this.onVideo || this.onAudio || this.onSocial ||
+                    this.onCanvas));
     this.showItem("context-bookmarklink", (this.onLink && !this.onMailtoLink &&
                                            !this.onSocial) || this.onPlainTextLink);
     this.showItem("context-keywordfield",
@@ -445,7 +445,7 @@ nsContextMenu.prototype = {
     this.showItem("context-media-showcontrols", onMedia && !this.target.controls);
     this.showItem("context-media-hidecontrols", onMedia && this.target.controls);
     this.showItem("context-video-fullscreen", this.onVideo && this.target.ownerDocument.mozFullScreenElement == null);
-    var statsShowing = this.onVideo && XPCNativeWrapper.unwrap(this.target).mozMediaStatisticsShowing;
+    var statsShowing = this.onVideo && this.target.mozMediaStatisticsShowing;
     this.showItem("context-video-showstats", this.onVideo && this.target.controls && !statsShowing);
     this.showItem("context-video-hidestats", this.onVideo && this.target.controls && statsShowing);
 

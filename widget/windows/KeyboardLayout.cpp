@@ -3,6 +3,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifdef MOZ_LOGGING
+#define FORCE_PR_LOG /* Allow logging in the release build */
+#endif // MOZ_LOGGING
+#include "prlog.h"
+
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MouseEvents.h"
@@ -40,8 +45,105 @@
 #include <winable.h>
 #endif
 
+// In WinUser.h, MAPVK_VK_TO_VSC_EX is defined only when WINVER >= 0x0600
+#ifndef MAPVK_VK_TO_VSC_EX
+#define MAPVK_VK_TO_VSC_EX (4)
+#endif
+
 namespace mozilla {
 namespace widget {
+
+#ifdef PR_LOGGING
+static const char* kVirtualKeyName[] = {
+  "NULL", "VK_LBUTTON", "VK_RBUTTON", "VK_CANCEL",
+  "VK_MBUTTON", "VK_XBUTTON1", "VK_XBUTTON2", "0x07",
+  "VK_BACK", "VK_TAB", "0x0A", "0x0B",
+  "VK_CLEAR", "VK_RETURN", "0x0E", "0x0F",
+
+  "VK_SHIFT", "VK_CONTROL", "VK_MENU", "VK_PAUSE",
+  "VK_CAPITAL", "VK_KANA, VK_HANGUL", "0x16", "VK_JUNJA",
+  "VK_FINAL", "VK_HANJA, VK_KANJI", "0x1A", "VK_ESCAPE",
+  "VK_CONVERT", "VK_NONCONVERT", "VK_ACCEPT", "VK_MODECHANGE",
+
+  "VK_SPACE", "VK_PRIOR", "VK_NEXT", "VK_END",
+  "VK_HOME", "VK_LEFT", "VK_UP", "VK_RIGHT",
+  "VK_DOWN", "VK_SELECT", "VK_PRINT", "VK_EXECUTE",
+  "VK_SNAPSHOT", "VK_INSERT", "VK_DELETE", "VK_HELP",
+
+  "VK_0", "VK_1", "VK_2", "VK_3",
+  "VK_4", "VK_5", "VK_6", "VK_7",
+  "VK_8", "VK_9", "0x3A", "0x3B",
+  "0x3C", "0x3D", "0x3E", "0x3F",
+
+  "0x40", "VK_A", "VK_B", "VK_C",
+  "VK_D", "VK_E", "VK_F", "VK_G",
+  "VK_H", "VK_I", "VK_J", "VK_K",
+  "VK_L", "VK_M", "VK_N", "VK_O",
+
+  "VK_P", "VK_Q", "VK_R", "VK_S",
+  "VK_T", "VK_U", "VK_V", "VK_W",
+  "VK_X", "VK_Y", "VK_Z", "VK_LWIN",
+  "VK_RWIN", "VK_APPS", "0x5E", "VK_SLEEP",
+
+  "VK_NUMPAD0", "VK_NUMPAD1", "VK_NUMPAD2", "VK_NUMPAD3",
+  "VK_NUMPAD4", "VK_NUMPAD5", "VK_NUMPAD6", "VK_NUMPAD7",
+  "VK_NUMPAD8", "VK_NUMPAD9", "VK_MULTIPLY", "VK_ADD",
+  "VK_SEPARATOR", "VK_SUBTRACT", "VK_DECIMAL", "VK_DIVIDE",
+
+  "VK_F1", "VK_F2", "VK_F3", "VK_F4",
+  "VK_F5", "VK_F6", "VK_F7", "VK_F8",
+  "VK_F9", "VK_F10", "VK_F11", "VK_F12",
+  "VK_F13", "VK_F14", "VK_F15", "VK_F16",
+
+  "VK_F17", "VK_F18", "VK_F19", "VK_F20",
+  "VK_F21", "VK_F22", "VK_F23", "VK_F24",
+  "0x88", "0x89", "0x8A", "0x8B",
+  "0x8C", "0x8D", "0x8E", "0x8F",
+
+  "VK_NUMLOCK", "VK_SCROLL", "VK_OEM_NEC_EQUAL, VK_OEM_FJ_JISHO",
+    "VK_OEM_FJ_MASSHOU",
+  "VK_OEM_FJ_TOUROKU", "VK_OEM_FJ_LOYA", "VK_OEM_FJ_ROYA", "0x97",
+  "0x98", "0x99", "0x9A", "0x9B",
+  "0x9C", "0x9D", "0x9E", "0x9F",
+
+  "VK_LSHIFT", "VK_RSHIFT", "VK_LCONTROL", "VK_RCONTROL",
+  "VK_LMENU", "VK_RMENU", "VK_BROWSER_BACK", "VK_BROWSER_FORWARD",
+  "VK_BROWSER_REFRESH", "VK_BROWSER_STOP", "VK_BROWSER_SEARCH",
+    "VK_BROWSER_FAVORITES",
+  "VK_BROWSER_HOME", "VK_VOLUME_MUTE", "VK_VOLUME_DOWN", "VK_VOLUME_UP",
+
+  "VK_MEDIA_NEXT_TRACK", "VK_MEDIA_PREV_TRACK", "VK_MEDIA_STOP",
+    "VK_MEDIA_PLAY_PAUSE",
+  "VK_LAUNCH_MAIL", "VK_LAUNCH_MEDIA_SELECT", "VK_LAUNCH_APP1",
+    "VK_LAUNCH_APP2",
+  "0xB8", "0xB9", "VK_OEM_1", "VK_OEM_PLUS",
+  "VK_OEM_COMMA", "VK_OEM_MINUS", "VK_OEM_PERIOD", "VK_OEM_2",
+
+  "VK_OEM_3", "VK_ABNT_C1", "VK_ABNT_C2", "0xC3",
+  "0xC4", "0xC5", "0xC6", "0xC7",
+  "0xC8", "0xC9", "0xCA", "0xCB",
+  "0xCC", "0xCD", "0xCE", "0xCF",
+
+  "0xD0", "0xD1", "0xD2", "0xD3",
+  "0xD4", "0xD5", "0xD6", "0xD7",
+  "0xD8", "0xD9", "0xDA", "VK_OEM_4",
+  "VK_OEM_5", "VK_OEM_6", "VK_OEM_7", "VK_OEM_8",
+
+  "0xE0", "VK_OEM_AX", "VK_OEM_102", "VK_ICO_HELP",
+  "VK_ICO_00", "VK_PROCESSKEY", "VK_ICO_CLEAR", "VK_PACKET",
+  "0xE8", "VK_OEM_RESET", "VK_OEM_JUMP", "VK_OEM_PA1",
+  "VK_OEM_PA2", "VK_OEM_PA3", "VK_OEM_WSCTRL", "VK_OEM_CUSEL",
+
+  "VK_OEM_ATTN", "VK_OEM_FINISH", "VK_OEM_COPY", "VK_OEM_AUTO",
+  "VK_OEM_ENLW", "VK_OEM_BACKTAB", "VK_ATTN", "VK_CRSEL",
+  "VK_EXSEL", "VK_EREOF", "VK_PLAY", "VK_ZOOM",
+  "VK_NONAME", "VK_PA1", "VK_OEM_CLEAR", "0xFF"
+};
+
+static_assert(sizeof(kVirtualKeyName) / sizeof(const char*) == 0x100,
+  "The virtual key name must be defined just 256 keys");
+
+#endif // #ifdef PR_LOGGING
 
 // Unique id counter associated with a keydown / keypress events. Used in
 // identifing keypress events for removal from async event dispatch queue
@@ -584,15 +686,25 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
   mKeyboardLayout = keyboardLayout->GetLayout();
   mScanCode = WinUtils::GetScanCode(mMsg.lParam);
   mIsExtended = WinUtils::IsExtendedScanCode(mMsg.lParam);
-  // On WinXP and WinServer2003, we cannot compute the virtual keycode for
-  // extended keys due to the API limitation.
-  bool canComputeVirtualKeyCodeFromScanCode =
-    (!mIsExtended || IsVistaOrLater());
   switch (mMsg.message) {
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     case WM_KEYUP:
     case WM_SYSKEYUP: {
+      // If the key message is sent from other application like a11y tools, the
+      // scancode value might not be set proper value.  Then, probably the value
+      // is 0.
+      // NOTE: If the virtual keycode can be caused by both non-extended key
+      //       and extended key, the API returns the non-extended key's
+      //       scancode.  E.g., VK_LEFT causes "4" key on numpad.
+      if (!mScanCode) {
+        uint16_t scanCodeEx = ComputeScanCodeExFromVirtualKeyCode(mMsg.wParam);
+        if (scanCodeEx) {
+          mScanCode = static_cast<uint8_t>(scanCodeEx & 0xFF);
+          uint8_t extended = static_cast<uint8_t>((scanCodeEx & 0xFF00) >> 8);
+          mIsExtended = (extended == 0xE0) || (extended == 0xE1);
+        }
+      }
       // First, resolve the IME converted virtual keycode to its original
       // keycode.
       if (mMsg.wParam == VK_PROCESSKEY) {
@@ -648,7 +760,7 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
         break;
       }
 
-      if (!canComputeVirtualKeyCodeFromScanCode) {
+      if (!CanComputeVirtualKeyCodeFromScanCode()) {
         // The right control key and the right alt key are extended keys.
         // Therefore, we never get VK_RCONTRL and VK_RMENU for the result of
         // MapVirtualKeyEx() on WinXP or WinServer2003.
@@ -679,11 +791,9 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
       // Otherwise, compute the virtual keycode with MapVirtualKeyEx().
       mVirtualKeyCode = ComputeVirtualKeyCodeFromScanCodeEx();
 
-      // The result might be unexpected value due to the scan code is
-      // wrong.  For example, any key messages can be generated by
-      // SendMessage() or PostMessage() from applications.  So, it's possible
-      // failure.  Then, let's respect the extended flag even if it might be
-      // set intentionally.
+      // Following code shouldn't be used now because we compute scancode value
+      // if we detect that the sender doesn't set proper scancode.
+      // However, the detection might fail. Therefore, let's keep using this.
       switch (mOriginalVirtualKeyCode) {
         case VK_CONTROL:
           if (mVirtualKeyCode != VK_LCONTROL &&
@@ -711,9 +821,13 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
     case WM_CHAR:
     case WM_UNICHAR:
     case WM_SYSCHAR:
+      // NOTE: If other applications like a11y tools sends WM_*CHAR without
+      //       scancode, we cannot compute virtual keycode.  I.e., with such
+      //       applications, we cannot generate proper KeyboardEvent.code value.
+
       // We cannot compute the virtual key code from WM_CHAR message on WinXP
       // if it's caused by an extended key.
-      if (!canComputeVirtualKeyCodeFromScanCode) {
+      if (!CanComputeVirtualKeyCodeFromScanCode()) {
         break;
       }
       mVirtualKeyCode = mOriginalVirtualKeyCode =
@@ -732,6 +846,9 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
     keyboardLayout->ConvertNativeKeyCodeToDOMKeyCode(mOriginalVirtualKeyCode);
   mKeyNameIndex =
     keyboardLayout->ConvertNativeKeyCodeToKeyNameIndex(mOriginalVirtualKeyCode);
+  mCodeNameIndex =
+    KeyboardLayout::ConvertScanCodeToCodeNameIndex(
+      GetScanCodeWithExtendedFlag());
 
   keyboardLayout->InitNativeKey(*this, mModKeyState);
 
@@ -870,6 +987,18 @@ NativeKey::GetKeyLocation() const
   }
 }
 
+bool
+NativeKey::CanComputeVirtualKeyCodeFromScanCode() const
+{
+  // Vista or later supports ScanCodeEx.
+  if (IsVistaOrLater()) {
+    return true;
+  }
+  // Otherwise, MapVirtualKeyEx() can compute virtual keycode only with
+  // non-extended key.
+  return !mIsExtended;
+}
+
 uint8_t
 NativeKey::ComputeVirtualKeyCodeFromScanCode() const
 {
@@ -880,11 +1009,21 @@ NativeKey::ComputeVirtualKeyCodeFromScanCode() const
 uint8_t
 NativeKey::ComputeVirtualKeyCodeFromScanCodeEx() const
 {
-  // NOTE: WinXP doesn't support mapping scan code to virtual keycode of
-  //       extended keys.
-  NS_ENSURE_TRUE(!mIsExtended || IsVistaOrLater(), 0);
+  if (NS_WARN_IF(!CanComputeVirtualKeyCodeFromScanCode())) {
+    return 0;
+  }
   return static_cast<uint8_t>(
            ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(), MAPVK_VSC_TO_VK_EX,
+                             mKeyboardLayout));
+}
+
+uint16_t
+NativeKey::ComputeScanCodeExFromVirtualKeyCode(UINT aVirtualKeyCode) const
+{
+  return static_cast<uint16_t>(
+           ::MapVirtualKeyEx(aVirtualKeyCode,
+                             IsVistaOrLater() ? MAPVK_VK_TO_VSC_EX :
+                                                MAPVK_VK_TO_VSC,
                              mKeyboardLayout));
 }
 
@@ -938,6 +1077,8 @@ NativeKey::InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
   if (mKeyNameIndex == KEY_NAME_INDEX_USE_STRING) {
     aKeyEvent.mKeyValue = mCommittedCharsAndModifiers.ToString();
   }
+  aKeyEvent.mCodeNameIndex = mCodeNameIndex;
+  MOZ_ASSERT(mCodeNameIndex != CODE_NAME_INDEX_USE_STRING);
   aKeyEvent.location = GetKeyLocation();
   aModKeyState.InitInputEvent(aKeyEvent);
 }
@@ -1809,11 +1950,20 @@ NativeKey::DispatchKeyPressEventForFollowingCharMessage(
 KeyboardLayout* KeyboardLayout::sInstance = nullptr;
 nsIIdleServiceInternal* KeyboardLayout::sIdleService = nullptr;
 
+#ifdef PR_LOGGING
+PRLogModuleInfo* sKeyboardLayoutLogger = nullptr;
+#endif // #ifdef PR_LOGGING
+
 // static
 KeyboardLayout*
 KeyboardLayout::GetInstance()
 {
   if (!sInstance) {
+#ifdef PR_LOGGING
+    if (!sKeyboardLayoutLogger) {
+      sKeyboardLayoutLogger = PR_NewLogModule("KeyboardLayoutWidgets");
+    }
+#endif // #ifdef PR_LOGGING
     sInstance = new KeyboardLayout();
     nsCOMPtr<nsIIdleServiceInternal> idleService =
       do_GetService("@mozilla.org/widget/idleservice;1");
@@ -2102,6 +2252,31 @@ KeyboardLayout::LoadLayout(HKL aLayout)
   }
 
   ::SetKeyboardState(originalKbdState);
+
+#ifdef PR_LOGGING
+  if (PR_LOG_TEST(sKeyboardLayoutLogger, PR_LOG_DEBUG)) {
+    static const UINT kExtendedScanCode[] = { 0x0000, 0xE000 };
+    static const UINT kMapType =
+      IsVistaOrLater() ? MAPVK_VSC_TO_VK_EX : MAPVK_VSC_TO_VK;
+    PR_LOG(sKeyboardLayoutLogger, PR_LOG_DEBUG,
+           ("Logging virtual keycode values for scancode (0x%08X)...",
+            reinterpret_cast<const uint32_t>(mKeyboardLayout)));
+    for (uint32_t i = 0; i < ArrayLength(kExtendedScanCode); i++) {
+      for (uint32_t j = 1; j <= 0xFF; j++) {
+        UINT scanCode = kExtendedScanCode[i] + j;
+        UINT virtualKeyCode =
+          ::MapVirtualKeyEx(scanCode, kMapType, mKeyboardLayout);
+        PR_LOG(sKeyboardLayoutLogger, PR_LOG_DEBUG,
+               ("0x%04X, %s", scanCode, kVirtualKeyName[virtualKeyCode]));
+      }
+      // XP and Server 2003 don't support 0xE0 prefix of the scancode.
+      // Therefore, we don't need to continue on them.
+      if (!IsVistaOrLater()) {
+        break;
+      }
+    }
+  }
+#endif // #ifdef PR_LOGGING
 }
 
 inline int32_t
@@ -2617,6 +2792,24 @@ KeyboardLayout::ConvertNativeKeyCodeToKeyNameIndex(uint8_t aVirtualKey) const
 
     default:
       return KEY_NAME_INDEX_Unidentified;
+  }
+}
+
+// static
+CodeNameIndex
+KeyboardLayout::ConvertScanCodeToCodeNameIndex(UINT aScanCode)
+{
+  switch (aScanCode) {
+
+#define NS_NATIVE_KEY_TO_DOM_CODE_NAME_INDEX(aNativeKey, aCodeNameIndex) \
+    case aNativeKey: return aCodeNameIndex;
+
+#include "NativeKeyToDOMCodeName.h"
+
+#undef NS_NATIVE_KEY_TO_DOM_CODE_NAME_INDEX
+
+    default:
+      return CODE_NAME_INDEX_UNKNOWN;
   }
 }
 

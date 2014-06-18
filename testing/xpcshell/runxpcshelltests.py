@@ -859,6 +859,8 @@ class XPCShellTests(object):
         # Capturing backtraces is very slow on some platforms, and it's
         # disabled by automation.py too
         self.env["NS_TRACE_MALLOC_DISABLE_STACKS"] = "1"
+        # Don't permit remote connections.
+        self.env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
 
     def buildEnvironment(self):
         """
@@ -887,7 +889,7 @@ class XPCShellTests(object):
                 self.env["ASAN_SYMBOLIZER_PATH"] = llvmsym
                 self.log.info("INFO | runxpcshelltests.py | ASan using symbolizer at %s", llvmsym)
             else:
-                self.log.info("INFO | runxpcshelltests.py | ASan symbolizer binary not found: %s", llvmsym)
+                self.log.info("TEST-UNEXPECTED-FAIL | runxpcshelltests.py | Failed to find ASan symbolizer at %s", llvmsym)
 
         return self.env
 

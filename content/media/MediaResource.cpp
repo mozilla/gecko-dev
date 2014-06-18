@@ -665,7 +665,7 @@ nsresult ChannelMediaResource::SetupChannelHeaders()
     } else {
       rangeString.AppendInt(mOffset);
     }
-    rangeString.Append("-");
+    rangeString.Append('-');
     if (!mByteRange.IsNull()) {
       rangeString.AppendInt(mByteRange.mEnd);
     }
@@ -971,7 +971,7 @@ ChannelMediaResource::CacheClientNotifyDataReceived()
 
   mDataReceivedEvent =
     NS_NewNonOwningRunnableMethod(this, &ChannelMediaResource::DoNotifyDataReceived);
-  NS_DispatchToMainThread(mDataReceivedEvent.get(), NS_DISPATCH_NORMAL);
+  NS_DispatchToMainThread(mDataReceivedEvent.get());
 }
 
 class DataEnded : public nsRunnable {
@@ -990,12 +990,12 @@ private:
 void
 ChannelMediaResource::CacheClientNotifyDataEnded(nsresult aStatus)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
+  MOZ_ASSERT(NS_IsMainThread());
   // NOTE: this can be called with the media cache lock held, so don't
   // block or do anything which might try to acquire a lock!
 
   nsCOMPtr<nsIRunnable> event = new DataEnded(mDecoder, aStatus);
-  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  NS_DispatchToCurrentThread(event);
 }
 
 void
@@ -1316,7 +1316,7 @@ void FileMediaResource::EnsureSizeInitialized()
   if (NS_SUCCEEDED(res) && size <= INT64_MAX) {
     mSize = (int64_t)size;
     nsCOMPtr<nsIRunnable> event = new DataEnded(mDecoder, NS_OK);
-    NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+    NS_DispatchToMainThread(event);
   }
 }
 
@@ -1534,12 +1534,12 @@ int64_t FileMediaResource::Tell()
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
   MutexAutoLock lock(mLock);
-  if (!mSeekable)
-    return 0;
   EnsureSizeInitialized();
 
   int64_t offset = 0;
-  mSeekable->Tell(&offset);
+  // Return mSize as offset (end of stream) in case of error
+  if (!mSeekable || NS_FAILED(mSeekable->Tell(&offset)))
+    return mSize;
   return offset;
 }
 
@@ -1664,7 +1664,7 @@ void BaseMediaResource::DispatchBytesConsumed(int64_t aNumBytes, int64_t aOffset
     return;
   }
   RefPtr<nsIRunnable> event(new DispatchBytesConsumedEvent(mDecoder, aNumBytes, aOffset));
-  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  NS_DispatchToMainThread(event);
 }
 
 } // namespace mozilla

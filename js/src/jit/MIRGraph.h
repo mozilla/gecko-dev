@@ -79,9 +79,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
                                              MBasicBlock *pred, const BytecodeSite &site,
                                              unsigned loopStateSlots);
     static MBasicBlock *NewSplitEdge(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred);
-    static MBasicBlock *NewAbortPar(MIRGraph &graph, CompileInfo &info,
-                                    MBasicBlock *pred, const BytecodeSite &site,
-                                    MResumePoint *resumePoint);
     static MBasicBlock *NewAsmJS(MIRGraph &graph, CompileInfo &info,
                                  MBasicBlock *pred, Kind kind);
 
@@ -91,8 +88,14 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
         id_ = id;
     }
 
-    // Mark the current block and all dominated blocks as unreachable.
-    void setUnreachable();
+    // Mark this block (and only this block) as unreachable.
+    void setUnreachable() {
+        JS_ASSERT(!unreachable_);
+        setUnreachableUnchecked();
+    }
+    void setUnreachableUnchecked() {
+        unreachable_ = true;
+    }
     bool unreachable() const {
         return unreachable_;
     }
@@ -206,6 +209,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     // Propagates phis placed in a loop header down to this successor block.
     void inheritPhis(MBasicBlock *header);
+
+    // Propagates backedge slots into phis operands of the loop header.
+    bool inheritPhisFromBackedge(MBasicBlock *backedge, bool *hadTypeChange);
 
     // Compute the types for phis in this block according to their inputs.
     bool specializePhis();
@@ -358,9 +364,14 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
         return mark_;
     }
     void mark() {
+        MOZ_ASSERT(!mark_, "Marking already-marked block");
+        markUnchecked();
+    }
+    void markUnchecked() {
         mark_ = true;
     }
     void unmark() {
+        MOZ_ASSERT(mark_, "Unarking unmarked block");
         mark_ = false;
     }
     void makeStart(MStart *start) {
@@ -397,7 +408,10 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
         return immediatelyDominated_.end();
     }
 
+    // Return the number of blocks dominated by this block. All blocks
+    // dominate at least themselves, so this will always be non-zero.
     size_t numDominated() const {
+        JS_ASSERT(numDominated_ != 0);
         return numDominated_;
     }
 
@@ -414,6 +428,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     MResumePoint *entryResumePoint() const {
         return entryResumePoint_;
+    }
+    void clearEntryResumePoint() {
+        entryResumePoint_ = nullptr;
     }
     MResumePoint *callerResumePoint() {
         return entryResumePoint()->caller();
@@ -545,7 +562,7 @@ class MIRGraph
     bool hasTryBlock_;
 
   public:
-    MIRGraph(TempAllocator *alloc)
+    explicit MIRGraph(TempAllocator *alloc)
       : alloc_(alloc),
         returnAccumulator_(nullptr),
         blockIdGen_(0),
@@ -582,17 +599,6 @@ class MIRGraph
     MBasicBlock *entryBlock() {
         return *blocks_.begin();
     }
-
-    void clearBlockList() {
-        blocks_.clear();
-        blockIdGen_ = 0;
-        numBlocks_ = 0;
-    }
-    void resetInstructionNumber() {
-        // This intentionally starts above 0. The id 0 is in places used to
-        // indicate a failure to perform an operation on an instruction.
-        idGen_ = 1;
-    }
     MBasicBlockIterator begin() {
         return blocks_.begin();
     }
@@ -604,6 +610,9 @@ class MIRGraph
     }
     PostorderIterator poBegin() {
         return blocks_.rbegin();
+    }
+    PostorderIterator poBegin(MBasicBlock *at) {
+        return blocks_.rbegin(at);
     }
     PostorderIterator poEnd() {
         return blocks_.rend();
@@ -624,6 +633,11 @@ class MIRGraph
         blocks_.remove(block);
         blocks_.pushBack(block);
     }
+    void moveBlockBefore(MBasicBlock *at, MBasicBlock *block) {
+        JS_ASSERT(block->id());
+        blocks_.remove(block);
+        blocks_.insertBefore(at, block);
+    }
     size_t numBlocks() const {
         return numBlocks_;
     }
@@ -637,7 +651,7 @@ class MIRGraph
         return idGen_;
     }
     MResumePoint *entryResumePoint() {
-        return blocks_.begin()->entryResumePoint();
+        return entryBlock()->entryResumePoint();
     }
 
     void copyIds(const MIRGraph &other) {
@@ -709,7 +723,7 @@ class MDefinitionIterator
     }
 
   public:
-    MDefinitionIterator(MBasicBlock *block)
+    explicit MDefinitionIterator(MBasicBlock *block)
       : block_(block),
         phiIter_(block->phisBegin()),
         iter_(block->begin())

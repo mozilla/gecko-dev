@@ -49,10 +49,11 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
     pushedArgs_(0),
 #endif
     lastOsiPointOffset_(0),
-    sps_(&GetIonContext()->runtime->spsProfiler(), &lastPC_),
+    sps_(&GetIonContext()->runtime->spsProfiler(), &lastNotInlinedPC_),
     osrEntryOffset_(0),
     skipArgCheckEntryOffset_(0),
-    frameDepth_(graph->paddedLocalSlotsSize() + graph->argumentsSize())
+    frameDepth_(graph->paddedLocalSlotsSize() + graph->argumentsSize()),
+    frameInitialAdjustment_(0)
 {
     if (!gen->compilingAsmJS())
         masm.setInstrumentation(&sps_);
@@ -67,13 +68,8 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
         // An MAsmJSCall does not align the stack pointer at calls sites but instead
         // relies on the a priori stack adjustment (in the prologue) on platforms
         // (like x64) which require the stack to be aligned.
-#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-        bool forceAlign = true;
-#else
-        bool forceAlign = false;
-#endif
-        if (gen->performsAsmJSCall() || forceAlign) {
-            unsigned alignmentAtCall = AlignmentMidPrologue + frameDepth_;
+        if (StackKeptAligned || gen->needsInitialStackAlignment()) {
+            unsigned alignmentAtCall = AsmJSSizeOfRetAddr + frameDepth_;
             if (unsigned rem = alignmentAtCall % StackAlignment)
                 frameDepth_ += StackAlignment - rem;
         }
@@ -89,9 +85,13 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
 bool
 CodeGeneratorShared::generateOutOfLineCode()
 {
+    JSScript *topScript = sps_.getPushed();
     for (size_t i = 0; i < outOfLineCode_.length(); i++) {
         if (!gen->alloc().ensureBallast())
             return false;
+
+        IonSpew(IonSpew_Codegen, "# Emitting out of line code");
+
         masm.setFramePushed(outOfLineCode_[i]->framePushed());
         lastPC_ = outOfLineCode_[i]->pc();
         if (!sps_.prepareForOOL())
@@ -104,6 +104,7 @@ CodeGeneratorShared::generateOutOfLineCode()
             return false;
         sps_.finishOOL();
     }
+    sps_.setPushed(topScript);
     oolIns = nullptr;
 
     return true;
@@ -465,7 +466,7 @@ class StoreOp
     MacroAssembler &masm;
 
   public:
-    StoreOp(MacroAssembler &masm)
+    explicit StoreOp(MacroAssembler &masm)
       : masm(masm)
     {}
 
@@ -517,14 +518,6 @@ class VerifyOp
         masm.branchDouble(Assembler::DoubleNotEqual, ScratchFloatReg, reg, failure_);
     }
 };
-
-static void
-OsiPointRegisterCheckFailed()
-{
-    // Any live register captured by a safepoint (other than temp registers)
-    // must remain unchanged between the call and the OsiPoint instruction.
-    MOZ_ASSUME_UNREACHABLE("Modified registers between VM call and OsiPoint");
-}
 
 void
 CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
@@ -579,10 +572,11 @@ CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
     // the profiler instrumentation of the callWithABI below to ASSERT, since
     // the script and pc are mismatched.  To avoid this, we simply omit
     // instrumentation for these callWithABIs.
+
+    // Any live register captured by a safepoint (other than temp registers)
+    // must remain unchanged between the call and the OsiPoint instruction.
     masm.bind(&failure);
-    masm.setupUnalignedABICall(0, scratch);
-    masm.callWithABINoProfiling(JS_FUNC_TO_DATA_PTR(void *, OsiPointRegisterCheckFailed));
-    masm.breakpoint();
+    masm.assumeUnreachable("Modified registers between VM call and OsiPoint");
 
     masm.bind(&done);
     masm.pop(scratch);
@@ -721,7 +715,7 @@ class OutOfLineTruncateSlow : public OutOfLineCodeBase<CodeGeneratorShared>
 };
 
 OutOfLineCode *
-CodeGeneratorShared::oolTruncateDouble(const FloatRegister &src, const Register &dest)
+CodeGeneratorShared::oolTruncateDouble(FloatRegister src, Register dest)
 {
     OutOfLineTruncateSlow *ool = new(alloc()) OutOfLineTruncateSlow(src, dest);
     if (!addOutOfLineCode(ool))
@@ -730,7 +724,7 @@ CodeGeneratorShared::oolTruncateDouble(const FloatRegister &src, const Register 
 }
 
 bool
-CodeGeneratorShared::emitTruncateDouble(const FloatRegister &src, const Register &dest)
+CodeGeneratorShared::emitTruncateDouble(FloatRegister src, Register dest)
 {
     OutOfLineCode *ool = oolTruncateDouble(src, dest);
     if (!ool)
@@ -742,7 +736,7 @@ CodeGeneratorShared::emitTruncateDouble(const FloatRegister &src, const Register
 }
 
 bool
-CodeGeneratorShared::emitTruncateFloat32(const FloatRegister &src, const Register &dest)
+CodeGeneratorShared::emitTruncateFloat32(FloatRegister src, Register dest)
 {
     OutOfLineTruncateSlow *ool = new(alloc()) OutOfLineTruncateSlow(src, dest, true);
     if (!addOutOfLineCode(ool))
@@ -945,9 +939,6 @@ CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction *lir,
     return true;
 }
 
-typedef bool (*InterruptCheckFn)(JSContext *);
-const VMFunction InterruptCheckInfo = FunctionInfo<InterruptCheckFn>(InterruptCheck);
-
 Label *
 CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock *mir)
 {
@@ -977,6 +968,9 @@ CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock *mir)
 void
 CodeGeneratorShared::jumpToBlock(MBasicBlock *mir)
 {
+    // Skip past trivial blocks.
+    mir = skipTrivialBlocks(mir);
+
     // No jump necessary if we can fall through to the next block.
     if (isNextBlock(mir->lir()))
         return;
@@ -999,6 +993,9 @@ CodeGeneratorShared::jumpToBlock(MBasicBlock *mir)
 void
 CodeGeneratorShared::jumpToBlock(MBasicBlock *mir, Assembler::Condition cond)
 {
+    // Skip past trivial blocks.
+    mir = skipTrivialBlocks(mir);
+
     if (Label *oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
         // Note: the backedge is initially a jump to the next instruction.
         // It will be patched to the target block's label during link().

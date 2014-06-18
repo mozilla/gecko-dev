@@ -6,7 +6,9 @@
 
 EXPORTS += [
     'nsCanvasFrame.h',
+    'nsContainerFrame.h',
     'nsDirection.h',
+    'nsFrame.h',
     'nsFrameIdList.h',
     'nsFrameList.h',
     'nsFrameSelection.h',
@@ -28,7 +30,9 @@ EXPORTS += [
     'nsIStatefulFrame.h',
     'nsObjectFrame.h',
     'nsQueryFrame.h',
+    'nsSplittableFrame.h',
     'nsSubDocumentFrame.h',
+    'nsTextRunTransformations.h',
     'ScrollbarActivity.h',
     'Selection.h',
     'WritingModes.h',

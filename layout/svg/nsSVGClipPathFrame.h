@@ -57,9 +57,9 @@ public:
                                     nsIAtom*        aAttribute,
                                     int32_t         aModType) MOZ_OVERRIDE;
 
-  virtual void Init(nsIContent*      aContent,
-                    nsIFrame*        aParent,
-                    nsIFrame*        aPrevInFlow) MOZ_OVERRIDE;
+  virtual void Init(nsIContent*       aContent,
+                    nsContainerFrame* aParent,
+                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
 
   /**
    * Get the "type" of the frame
@@ -74,6 +74,9 @@ public:
     return MakeFrameName(NS_LITERAL_STRING("SVGClipPath"), aResult);
   }
 #endif
+
+  SVGBBox 
+  GetBBoxForClipPathFrame(const SVGBBox &aBBox, const gfxMatrix &aMatrix);
 
  private:
   // A helper class to allow us to paint clip paths safely. The helper

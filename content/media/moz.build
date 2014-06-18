@@ -6,6 +6,7 @@
 
 PARALLEL_DIRS += [
   'encoder',
+  'gmp',
   'mediasource',
   'ogg',
   'webaudio',
@@ -48,6 +49,8 @@ if CONFIG['MOZ_OMX_DECODER']:
     PARALLEL_DIRS += ['omx/mediaresourcemanager']
 
 PARALLEL_DIRS += ['webspeech']
+
+PARALLEL_DIRS += ['eme']
 
 TEST_DIRS += [
     'test',

@@ -124,7 +124,17 @@ bool GetScreenEnabled();
  *
  * Note that it may take a few seconds for the screen to turn on or off.
  */
-void SetScreenEnabled(bool enabled);
+void SetScreenEnabled(bool aEnabled);
+
+/**
+ * Determine whether the device's keypad/button backlight is currently enabled.
+ */
+bool GetKeyLightEnabled();
+
+/**
+ * Enable or disable the device's keypad/button backlight.
+ */
+void SetKeyLightEnabled(bool aEnabled);
 
 /**
  * Get the brightness of the device's screen's backlight, on a scale from 0
@@ -145,7 +155,7 @@ double GetScreenBrightness();
  * followed by GetScreenBrightness(), the value returned by
  * GetScreenBrightness() may not be exactly x.
  */
-void SetScreenBrightness(double brightness);
+void SetScreenBrightness(double aBrightness);
 
 /**
  * Determine whether the device is allowed to sleep.
@@ -156,25 +166,7 @@ bool GetCpuSleepAllowed();
  * Set whether the device is allowed to suspend automatically after
  * the screen is disabled.
  */
-void SetCpuSleepAllowed(bool allowed);
-
-/**
- * Set the value of a light to a particular color, with a specific flash pattern.
- * light specifices which light.  See Hal.idl for the list of constants
- * mode specifies user set or based on ambient light sensor
- * flash specifies whether or how to flash the light
- * flashOnMS and flashOffMS specify the pattern for XXX flash mode
- * color specifies the color.  If the light doesn't support color, the given color is
- * transformed into a brightness, or just an on/off if that is all the light is capable of.
- * returns true if successful and false if failed.
- */
-bool SetLight(hal::LightType light, const hal::LightConfiguration& aConfig);
-/**
- * GET the value of a light returning a particular color, with a specific flash pattern.
- * returns true if successful and false if failed.
- */
-bool GetLight(hal::LightType light, hal::LightConfiguration* aConfig);
-
+void SetCpuSleepAllowed(bool aAllowed);
 
 /**
  * Register an observer for the sensor of given type.
@@ -615,6 +607,14 @@ void StopDiskSpaceWatcher();
  * Returns 0 if we are unable to determine this information from /proc/meminfo.
  */
 uint32_t GetTotalSystemMemory();
+
+/**
+ * Get the level of total system memory on device in MiB.
+ * (round the value up to the next power of two)
+ *
+ * Returns 0 if we are unable to determine this information from /proc/meminfo.
+ */
+uint32_t GetTotalSystemMemoryLevel();
 
 } // namespace MOZ_HAL_NAMESPACE
 } // namespace mozilla

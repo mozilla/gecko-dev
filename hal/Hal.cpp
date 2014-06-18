@@ -374,10 +374,22 @@ bool GetScreenEnabled()
   RETURN_PROXY_IF_SANDBOXED(GetScreenEnabled(), false);
 }
 
-void SetScreenEnabled(bool enabled)
+void SetScreenEnabled(bool aEnabled)
 {
   AssertMainThread();
-  PROXY_IF_SANDBOXED(SetScreenEnabled(enabled));
+  PROXY_IF_SANDBOXED(SetScreenEnabled(aEnabled));
+}
+
+bool GetKeyLightEnabled()
+{
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(GetKeyLightEnabled(), false);
+}
+
+void SetKeyLightEnabled(bool aEnabled)
+{
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(SetKeyLightEnabled(aEnabled));
 }
 
 bool GetCpuSleepAllowed()
@@ -390,10 +402,10 @@ bool GetCpuSleepAllowed()
   RETURN_PROXY_IF_SANDBOXED(GetCpuSleepAllowed(), true);
 }
 
-void SetCpuSleepAllowed(bool allowed)
+void SetCpuSleepAllowed(bool aAllowed)
 {
   AssertMainThread();
-  PROXY_IF_SANDBOXED(SetCpuSleepAllowed(allowed));
+  PROXY_IF_SANDBOXED(SetCpuSleepAllowed(aAllowed));
 }
 
 double GetScreenBrightness()
@@ -402,22 +414,10 @@ double GetScreenBrightness()
   RETURN_PROXY_IF_SANDBOXED(GetScreenBrightness(), 0);
 }
 
-void SetScreenBrightness(double brightness)
+void SetScreenBrightness(double aBrightness)
 {
   AssertMainThread();
-  PROXY_IF_SANDBOXED(SetScreenBrightness(clamped(brightness, 0.0, 1.0)));
-}
-
-bool SetLight(LightType light, const LightConfiguration& aConfig)
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(SetLight(light, aConfig), false);
-}
-
-bool GetLight(LightType light, LightConfiguration* aConfig)
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(GetLight(light, aConfig), false);
+  PROXY_IF_SANDBOXED(SetScreenBrightness(clamped(aBrightness, 0.0, 1.0)));
 }
 
 class SystemClockChangeObserversManager : public ObserversManager<int64_t>
@@ -752,6 +752,7 @@ SwitchState GetCurrentSwitchState(SwitchDevice aDevice)
 
 void NotifySwitchStateFromInputDevice(SwitchDevice aDevice, SwitchState aState)
 {
+  AssertMainThread();
   PROXY_IF_SANDBOXED(NotifySwitchStateFromInputDevice(aDevice, aState));
 }
 
@@ -1232,6 +1233,11 @@ GetTotalSystemMemory()
   return hal_impl::GetTotalSystemMemory();
 }
 
+uint32_t
+GetTotalSystemMemoryLevel()
+{
+  return hal_impl::GetTotalSystemMemoryLevel();
+}
 
 } // namespace hal
 } // namespace mozilla

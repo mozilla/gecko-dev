@@ -15,6 +15,7 @@ class CRMFObject;
 }
 #endif
 
+#include "mozilla/dom/SubtleCrypto.h"
 #include "nsPIDOMWindow.h"
 
 #include "nsWrapperCache.h"
@@ -40,9 +41,13 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Crypto)
 
-  JSObject *
+  void
   GetRandomValues(JSContext* aCx, const ArrayBufferView& aArray,
+		  JS::MutableHandle<JSObject*> aRetval,
 		  ErrorResult& aRv);
+
+  SubtleCrypto*
+  Subtle();
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
   virtual bool EnableSmartCardEvents();
@@ -92,6 +97,7 @@ public:
 
 private:
   nsCOMPtr<nsPIDOMWindow> mWindow;
+  nsRefPtr<SubtleCrypto> mSubtle;
 };
 
 } // namespace dom

@@ -21,7 +21,7 @@ interface nsIStackFrame;
 * interface of Components.interfacesByID
 * (interesting stuff only reflected into JavaScript)
 */
-[scriptable, uuid(c99cffac-5aed-4267-ad2f-f4a4c9d4a081)]
+[scriptable, uuid(f235ef76-9919-478b-aa0f-282d994ddf76)]
 interface nsIXPCComponents_InterfacesByID : nsISupports
 {
 };
@@ -121,7 +121,7 @@ interface ScheduledGCCallback : nsISupports
 /**
 * interface of Components.utils
 */
-[scriptable, uuid(c9b6f5a0-cfe8-11e3-9c1a-0800200c9a66)]
+[scriptable, uuid(76ef3a80-f24d-11e3-ac10-0800200c9a66)]
 interface nsIXPCComponents_Utils : nsISupports
 {
 
@@ -217,6 +217,18 @@ interface nsIXPCComponents_Utils : nsISupports
     [implicit_jscontext,optional_argc]
     jsval import(in AUTF8String aResourceURI, [optional] in jsval targetObj);
 
+    /**
+     * Returns true if the js file located at 'registryLocation' location has
+     * been loaded previously via the import method above. Returns false
+     * otherwise.
+     *
+     * @param resourceURI A resource:// URI string representing the location of
+     *        the js file to be checked if it is already loaded or not.
+     * @returns boolean, true if the js file has been loaded via import. false
+     *          otherwise
+     */
+    boolean isModuleLoaded(in AUTF8String aResourceURI);
+
     /*
      * Unloads the JS module at 'registryLocation'. Existing references to the
      * module will continue to work but any subsequent import of the module will
@@ -275,6 +287,22 @@ interface nsIXPCComponents_Utils : nsISupports
      * For testing.
      */
     void ccSlice(in long long budget);
+
+    /*
+     * To be called from JS only.
+     *
+     * Return the longest cycle collector slice time since the last
+     * time clearMaxCCTime() was called.
+     */
+    long getMaxCCSliceTimeSinceClear();
+
+    /*
+     * To be called from JS only.
+     *
+     * Reset the internal max slice time value used for
+     * getMaxCCSliceTimeSinceClear().
+     */
+    void clearMaxCCTime();
 
     /*
      * To be called from JS only.
@@ -397,6 +425,11 @@ interface nsIXPCComponents_Utils : nsISupports
      * reading/writing a property).
      */
     bool isDeadWrapper(in jsval obj);
+
+    /**
+     * Determines whether this object is a cross-process wrapper.
+     */
+    bool isCrossProcessWrapper(in jsval obj);
 
     /*
      * To be called from JS only. This is for Gecko internal use only, and may
@@ -562,7 +595,7 @@ interface nsIXPCComponents_Utils : nsISupports
     /*
      * Clone an object into a scope.
      * The 3rd argument is an optional options object:
-     * - cloneFunction: boolean. If true, any function in the value is are
+     * - cloneFunctions: boolean. If true, functions in the value are
      *   wrapped in a function forwarder that appears to be a native function in
      *   the content scope.
      */

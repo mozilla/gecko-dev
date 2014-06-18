@@ -128,8 +128,28 @@ function prompt(aContentWindow, aCallID, aAudioRequested, aVideoRequested, aDevi
   let chromeDoc = browser.ownerDocument;
   let chromeWin = chromeDoc.defaultView;
   let stringBundle = chromeWin.gNavigatorBundle;
+#ifdef MOZ_LOOP
+  let host;
+  // For Loop protocols that start with about:, use brandShortName instead of the host for now.
+  // Bug 990678 will implement improvements/replacements for the permissions dialog, so this
+  // should become unnecessary.
+  if (uri.spec.startsWith("about:loop")) {
+    let brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
+
+    host = brandBundle.GetStringFromName("brandShortName");
+  }
+  else {
+    // uri.host throws for about: protocols, so we have to do this once we know
+    // it isn't about:loop.
+    host = uri.host;
+  }
+
+  let message = stringBundle.getFormattedString("getUserMedia.share" + requestType + ".message",
+                                                [ host ]);
+#else
   let message = stringBundle.getFormattedString("getUserMedia.share" + requestType + ".message",
                                                 [ uri.host ]);
+#endif
 
   let mainAction = {
     label: PluralForm.get(requestType == "CameraAndMicrophone" ? 2 : 1,
@@ -191,6 +211,38 @@ function prompt(aContentWindow, aCallID, aAudioRequested, aVideoRequested, aDevi
 
       if (aTopic != "showing")
         return false;
+
+      // DENY_ACTION is handled immediately by MediaManager, but handling
+      // of ALLOW_ACTION is delayed until the popupshowing event
+      // to avoid granting permissions automatically to background tabs.
+      if (aSecure) {
+        let perms = Services.perms;
+
+        let micPerm = perms.testExactPermission(uri, "microphone");
+        if (micPerm == perms.PROMPT_ACTION)
+          micPerm = perms.UNKNOWN_ACTION;
+
+        let camPerm = perms.testExactPermission(uri, "camera");
+        if (camPerm == perms.PROMPT_ACTION)
+          camPerm = perms.UNKNOWN_ACTION;
+
+        // We don't check that permissions are set to ALLOW_ACTION in this
+        // test; only that they are set. This is because if audio is allowed
+        // and video is denied persistently, we don't want to show the prompt,
+        // and will grant audio access immediately.
+        if ((!audioDevices.length || micPerm) && (!videoDevices.length || camPerm)) {
+          // All permissions we were about to request are already persistently set.
+          let allowedDevices = Cc["@mozilla.org/supports-array;1"]
+                                 .createInstance(Ci.nsISupportsArray);
+          if (videoDevices.length && camPerm == perms.ALLOW_ACTION)
+            allowedDevices.AppendElement(videoDevices[0]);
+          if (audioDevices.length && micPerm == perms.ALLOW_ACTION)
+            allowedDevices.AppendElement(audioDevices[0]);
+          Services.obs.notifyObservers(allowedDevices, "getUserMedia:response:allow", aCallID);
+          this.remove();
+          return true;
+        }
+      }
 
       function listDevices(menupopup, devices) {
         while (menupopup.lastChild)

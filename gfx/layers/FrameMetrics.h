@@ -32,6 +32,8 @@ namespace mozilla {
 // to get a picture of how the various coordinate systems relate to each other.
 struct ParentLayerPixel {};
 
+template<> struct IsPixel<ParentLayerPixel> : TrueType {};
+
 typedef gfx::PointTyped<ParentLayerPixel> ParentLayerPoint;
 typedef gfx::RectTyped<ParentLayerPixel> ParentLayerRect;
 typedef gfx::SizeTyped<ParentLayerPixel> ParentLayerSize;
@@ -56,6 +58,10 @@ namespace layers {
  * time of a layer-tree transaction.  These metrics are especially
  * useful for shadow layers, because the metrics values are updated
  * atomically with new pixels.
+ *
+ * Note that the FrameMetrics struct is sometimes stored in shared
+ * memory and shared across processes, so it should be a "Plain Old
+ * Data (POD)" type with no members that use dynamic memory.
  */
 struct FrameMetrics {
   friend struct IPC::ParamTraits<mozilla::layers::FrameMetrics>;
@@ -76,8 +82,8 @@ public:
     , mCumulativeResolution(1)
     , mTransformScale(1)
     , mDevPixelsPerCSSPixel(1)
-    , mPresShellId(-1)
     , mMayHaveTouchListeners(false)
+    , mMayHaveTouchCaret(false)
     , mIsRoot(false)
     , mHasScrollgrab(false)
     , mScrollId(NULL_SCROLL_ID)
@@ -85,9 +91,11 @@ public:
     , mZoom(1)
     , mUpdateScrollOffset(false)
     , mScrollGeneration(0)
+    , mContentDescription()
     , mRootCompositionSize(0, 0)
     , mDisplayPortMargins(0, 0, 0, 0)
     , mUseDisplayPortMargins(false)
+    , mPresShellId(-1)
   {}
 
   // Default copy ctor and operator= are fine
@@ -108,6 +116,7 @@ public:
            mCumulativeResolution == aOther.mCumulativeResolution &&
            mDevPixelsPerCSSPixel == aOther.mDevPixelsPerCSSPixel &&
            mMayHaveTouchListeners == aOther.mMayHaveTouchListeners &&
+           mMayHaveTouchCaret == aOther.mMayHaveTouchCaret &&
            mPresShellId == aOther.mPresShellId &&
            mIsRoot == aOther.mIsRoot &&
            mScrollId == aOther.mScrollId &&
@@ -182,7 +191,9 @@ public:
   // into its composition bounds.
   CSSToScreenScale CalculateIntrinsicScale() const
   {
-    return CSSToScreenScale(float(mCompositionBounds.width) / float(mViewport.width));
+    return CSSToScreenScale(
+        std::max(float(mCompositionBounds.width) / mViewport.width,
+                 float(mCompositionBounds.height) / mViewport.height));
   }
 
   // Return the scale factor for converting from CSS pixels (for this layer)
@@ -334,10 +345,11 @@ public:
   // resolution.
   CSSToLayoutDeviceScale mDevPixelsPerCSSPixel;
 
-  uint32_t mPresShellId;
-
   // Whether or not this frame may have touch listeners.
   bool mMayHaveTouchListeners;
+
+  // Whether or not this frame may have touch caret.
+  bool mMayHaveTouchCaret;
 
   // Whether or not this is the root scroll frame for the root content document.
   bool mIsRoot;
@@ -382,14 +394,16 @@ public:
     return mScrollGeneration;
   }
 
-  const std::string& GetContentDescription() const
+  std::string GetContentDescription() const
   {
-    return mContentDescription;
+    return std::string(mContentDescription);
   }
 
   void SetContentDescription(const std::string& aContentDescription)
   {
-    mContentDescription = aContentDescription;
+    strncpy(mContentDescription, aContentDescription.c_str(), sizeof(mContentDescription));
+    // forcibly null-terminate in case aContentDescription is too long
+    mContentDescription[sizeof(mContentDescription) - 1] = '\0';
   }
 
   ViewID GetScrollId() const
@@ -432,6 +446,16 @@ public:
     return mUseDisplayPortMargins;
   }
 
+  uint32_t GetPresShellId() const
+  {
+    return mPresShellId;
+  }
+
+  void SetPresShellId(uint32_t aPresShellId)
+  {
+    mPresShellId = aPresShellId;
+  }
+
 private:
   // New fields from now on should be made private and old fields should
   // be refactored to be private.
@@ -470,7 +494,7 @@ private:
 
   // A description of the content element corresponding to this frame.
   // This is empty unless the apz.printtree pref is turned on.
-  std::string mContentDescription;
+  char mContentDescription[20];
 
   // The size of the root scrollable's composition bounds, but in local CSS pixels.
   CSSSize mRootCompositionSize;
@@ -482,6 +506,8 @@ private:
   // If this is true then we use the display port margins on this metrics,
   // otherwise use the display port rect.
   bool mUseDisplayPortMargins;
+
+  uint32_t mPresShellId;
 };
 
 /**
@@ -516,7 +542,7 @@ struct ScrollableLayerGuid {
 
   ScrollableLayerGuid(uint64_t aLayersId, const FrameMetrics& aMetrics)
     : mLayersId(aLayersId)
-    , mPresShellId(aMetrics.mPresShellId)
+    , mPresShellId(aMetrics.GetPresShellId())
     , mScrollId(aMetrics.GetScrollId())
   {
     MOZ_COUNT_CTOR(ScrollableLayerGuid);

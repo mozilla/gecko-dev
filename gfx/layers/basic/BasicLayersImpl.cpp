@@ -13,10 +13,10 @@
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "AutoMaskData.h"
 
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace layers {
+
+using namespace mozilla::gfx;
 
 bool
 GetMaskData(Layer* aMaskLayer,
@@ -117,7 +117,7 @@ FillRectWithMask(DrawTarget* aDT,
 
     Matrix transform = oldTransform * inverseMask;
     if (aSurfaceTransform) {
-      transform = transform * (*aSurfaceTransform);
+      transform = (*aSurfaceTransform) * transform;
     }
 
     SurfacePattern source(aSurface, aExtendMode, transform, aFilter);

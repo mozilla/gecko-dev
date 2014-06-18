@@ -40,6 +40,7 @@ using mozilla::layers::DiagnosticTypes from "mozilla/layers/CompositorTypes.h";
 using struct mozilla::layers::FrameMetrics from "FrameMetrics.h";
 using mozilla::layers::FrameMetrics::ViewID from "FrameMetrics.h";
 using struct mozilla::layers::FenceHandle from "mozilla/layers/FenceUtils.h";
+using struct mozilla::layers::FenceHandleFromChild from "mozilla/layers/FenceUtils.h";
 using mozilla::layers::TextureIdentifier from "mozilla/layers/CompositorTypes.h";
 
 namespace mozilla {
@@ -178,8 +179,10 @@ struct Animation {
   // startTime, the direction, the duration, and the current time.
   // The segments must uniquely cover the portion from 0.0 to 1.0
   AnimationSegment[] segments;
-  // How many times to repeat the animation.  -1 means "forever".
-  float numIterations;
+  // Number of times to repeat the animation, including positive infinity.
+  // Values <= 0 mean the animation will not play (although events are still
+  // dispatched on the main thread).
+  float iterationCount;
   // This uses the NS_STYLE_ANIMATION_DIRECTION_* constants.
   int32_t direction;
   nsCSSProperty property;
@@ -224,6 +227,7 @@ struct ContainerLayerAttributes {
   float preYScale;
   float inheritedXScale;
   float inheritedYScale;
+  LayerColor backgroundColor;
 };
 struct ColorLayerAttributes     { LayerColor color; nsIntRect bounds; };
 struct CanvasLayerAttributes    { GraphicsFilterType filter; nsIntRect bounds; };
@@ -334,15 +338,16 @@ struct OpRemoveTexture {
 };
 
 struct OpRemoveTextureAsync {
+  uint64_t holderId;
   uint64_t transactionId;
   PCompositable compositable;
   PTexture texture;
 };
 
 struct OpReplyRemoveTexture {
+  bool isMain;
+  uint64_t holderId;
   uint64_t transactionId;
-  PCompositable compositable;
-  PTexture texture;
 };
 
 /**
@@ -375,6 +380,19 @@ struct OpDeliverFence {
   uint64_t transactionId;
   PTexture texture;
   FenceHandle fence;
+};
+
+struct OpDeliverFenceToTracker {
+  uint64_t transactionId;
+  uint64_t destHolderId;
+  uint64_t destTransactionId;
+  FenceHandle fence;
+};
+
+struct OpDeliverFenceFromChild {
+  uint64_t transactionId;
+  PTexture texture;
+  FenceHandleFromChild fence;
 };
 
 struct OpReplyDeliverFence {
@@ -455,10 +473,13 @@ union EditReply {
 
 union AsyncParentMessageData {
   OpDeliverFence;
+  OpDeliverFenceToTracker;
+  OpReplyDeliverFence;
   OpReplyRemoveTexture;
 };
 
 union AsyncChildMessageData {
+  OpDeliverFenceFromChild;
   OpReplyDeliverFence;
 };
 

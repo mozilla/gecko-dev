@@ -60,7 +60,7 @@ struct frontend::StmtInfoBCE : public StmtInfoBase
     ptrdiff_t       continues;      /* offset of last continue in loop */
     uint32_t        blockScopeIndex; /* index of scope in BlockScopeArray */
 
-    StmtInfoBCE(ExclusiveContext *cx) : StmtInfoBase(cx) {}
+    explicit StmtInfoBCE(ExclusiveContext *cx) : StmtInfoBase(cx) {}
 
     /*
      * To reuse space, alias two of the ptrdiff_t fields for use during
@@ -93,7 +93,7 @@ struct LoopStmtInfo : public StmtInfoBCE
     // Can we OSR into Ion from here?  True unless there is non-loop state on the stack.
     bool            canIonOsr;
 
-    LoopStmtInfo(ExclusiveContext *cx) : StmtInfoBCE(cx) {}
+    explicit LoopStmtInfo(ExclusiveContext *cx) : StmtInfoBCE(cx) {}
 
     static LoopStmtInfo* fromStmtInfo(StmtInfoBCE *stmt) {
         JS_ASSERT(stmt->isLoop());
@@ -3061,7 +3061,7 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
     } else if (emitOption == PushInitialValues) {
         // The lhs is a simple name so the to-be-destructured value is
         // its initial value and there is nothing to do.
-        JS_ASSERT(pn->getOp() == JSOP_GETLOCAL);
+        JS_ASSERT(pn->getOp() == JSOP_SETLOCAL);
         JS_ASSERT(pn->pn_dflags & PND_BOUND);
     } else {
         switch (pn->getKind()) {
@@ -3931,7 +3931,7 @@ class EmitLevelManager
 {
     BytecodeEmitter *bce;
   public:
-    EmitLevelManager(BytecodeEmitter *bce) : bce(bce) { bce->emitLevel++; }
+    explicit EmitLevelManager(BytecodeEmitter *bce) : bce(bce) { bce->emitLevel++; }
     ~EmitLevelManager() { bce->emitLevel--; }
 };
 
@@ -4381,6 +4381,26 @@ EmitWith(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     return true;
 }
 
+/**
+ * EmitIterator expects the iterable to already be on the stack.
+ * It will replace that stack value with the corresponding iterator
+ */
+static bool
+EmitIterator(ExclusiveContext *cx, BytecodeEmitter *bce)
+{
+    // Convert iterable to iterator.
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                          // OBJ OBJ
+        return false;
+    if (!EmitAtomOp(cx, cx->names().std_iterator, JSOP_CALLPROP, bce)) // OBJ @@ITERATOR
+        return false;
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                         // @@ITERATOR OBJ
+        return false;
+    if (EmitCall(cx, bce, JSOP_CALL, 0) < 0)                   // ITER
+        return false;
+    CheckTypeSet(cx, bce, JSOP_CALL);
+    return true;
+}
+
 static bool
 EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 {
@@ -4409,16 +4429,8 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     if (!EmitTree(cx, bce, forHead->pn_kid3))
         return false;
 
-    // Convert iterable to iterator.
-    if (Emit1(cx, bce, JSOP_DUP) < 0)                          // OBJ OBJ
+    if (!EmitIterator(cx, bce))
         return false;
-    if (!EmitAtomOp(cx, cx->names().std_iterator, JSOP_CALLPROP, bce)) // OBJ @@ITERATOR
-        return false;
-    if (Emit1(cx, bce, JSOP_SWAP) < 0)                         // @@ITERATOR OBJ
-        return false;
-    if (EmitCall(cx, bce, JSOP_CALL, 0) < 0)                   // ITER
-        return false;
-    CheckTypeSet(cx, bce, JSOP_CALL);
 
     // Push a dummy result so that we properly enter iteration midstream.
     if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                    // ITER RESULT
@@ -6067,9 +6079,13 @@ EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t co
 
     ParseNode *pn2 = pn;
     jsatomid atomIndex;
-    if (nspread && !EmitNumberOp(cx, 0, bce))
-        return false;
+    bool afterSpread = false;
     for (atomIndex = 0; pn2; atomIndex++, pn2 = pn2->pn_next) {
+        if (!afterSpread && pn2->isKind(PNK_SPREAD)) {
+            afterSpread = true;
+            if (!EmitNumberOp(cx, atomIndex, bce))
+                return false;
+        }
         if (!UpdateSourceCoordNotes(cx, bce, pn2->pn_pos.begin))
             return false;
         if (pn2->isKind(PNK_ELISION)) {
@@ -6081,9 +6097,11 @@ EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t co
                 return false;
         }
         if (pn2->isKind(PNK_SPREAD)) {
+            if (!EmitIterator(cx, bce))
+                return false;
             if (Emit1(cx, bce, JSOP_SPREAD) < 0)
                 return false;
-        } else if (nspread) {
+        } else if (afterSpread) {
             if (Emit1(cx, bce, JSOP_INITELEM_INC) < 0)
                 return false;
         } else {
@@ -6094,7 +6112,7 @@ EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t co
         }
     }
     JS_ASSERT(atomIndex == count);
-    if (nspread) {
+    if (afterSpread) {
         if (Emit1(cx, bce, JSOP_POP) < 0)
             return false;
     }

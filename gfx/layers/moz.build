@@ -105,6 +105,7 @@ EXPORTS.mozilla.layers += [
     'apz/src/Axis.h',
     'apz/src/GestureEventListener.h',
     'apz/src/TaskThrottler.h',
+    'apz/testutil/APZTestData.h',
     'apz/util/ActiveElementManager.h',
     'apz/util/APZCCallbackHelper.h',
     'AtomicRefCountedWithFinalize.h',
@@ -162,6 +163,7 @@ EXPORTS.mozilla.layers += [
     'opengl/TextureClientOGL.h',
     'opengl/TextureHostOGL.h',
     'RenderTrace.h',
+    'TransactionIdAllocator.h',
     'YCbCrImageDataSerializer.h',
 ]
 
@@ -228,6 +230,7 @@ UNIFIED_SOURCES += [
     'apz/src/Axis.cpp',
     'apz/src/GestureEventListener.cpp',
     'apz/src/TaskThrottler.cpp',
+    'apz/testutil/APZTestData.cpp',
     'apz/util/ActiveElementManager.cpp',
     'apz/util/APZCCallbackHelper.cpp',
     'basic/BasicCanvasLayer.cpp',
@@ -277,6 +280,7 @@ UNIFIED_SOURCES += [
     'ImageLayers.cpp',
     'ipc/AsyncTransactionTracker.cpp',
     'ipc/CompositableTransactionParent.cpp',
+    'ipc/CompositorBench.cpp',
     'ipc/CompositorChild.cpp',
     'ipc/CompositorParent.cpp',
     'ipc/ImageBridgeChild.cpp',
@@ -294,7 +298,6 @@ UNIFIED_SOURCES += [
     'LayerScope.cpp',
     'LayersLogging.cpp',
     'LayerSorter.cpp',
-    'LayerUtils.cpp',
     'opengl/CompositingRenderTargetOGL.cpp',
     'opengl/CompositorOGL.cpp',
     'opengl/OGLShaderProgram.cpp',
@@ -367,3 +370,5 @@ CXXFLAGS += [
         'frameworks/native/include/media/openmax',
     ]
 ]
+
+MOCHITEST_MANIFESTS += ['apz/test/mochitest.ini']

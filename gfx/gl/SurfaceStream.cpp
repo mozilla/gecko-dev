@@ -80,8 +80,12 @@ SurfaceStream::New(SurfaceFactory* factory, const gfx::IntSize& size,
     MOZ_ASSERT(!surf);
     surf = factory->NewSharedSurface(size);
 
-    if (surf)
+    if (surf) {
+        // Before next use, wait until SharedSurface's buffer
+        // is no longer being used.
+        surf->WaitForBufferOwnership();
         mSurfaces.insert(surf);
+    }
 }
 
 void
@@ -426,7 +430,8 @@ SharedSurface*
 SurfaceStream_TripleBuffer::SwapProducer(SurfaceFactory* factory,
                                          const gfx::IntSize& size)
 {
-    PROFILER_LABEL("SurfaceStream_TripleBuffer", "SwapProducer");
+    PROFILER_LABEL("SurfaceStream_TripleBuffer", "SwapProducer",
+        js::ProfileEntry::Category::GRAPHICS);
 
     MonitorAutoLock lock(mMonitor);
     if (mProducer) {
@@ -434,10 +439,13 @@ SurfaceStream_TripleBuffer::SwapProducer(SurfaceFactory* factory,
 
         // If WaitForCompositor succeeds, mStaging has moved to mConsumer.
         // If it failed, we might have to scrap it.
-        if (mStaging && !WaitForCompositor())
+        if (mStaging) {
+            WaitForCompositor();
+        }
+        if (mStaging) {
             Scrap(mStaging);
+        }
 
-        MOZ_ASSERT(!mStaging);
         Move(mProducer, mStaging);
         mStaging->Fence();
     }
@@ -470,19 +478,16 @@ SurfaceStream_TripleBuffer_Async::~SurfaceStream_TripleBuffer_Async()
 {
 }
 
-bool
+void
 SurfaceStream_TripleBuffer_Async::WaitForCompositor()
 {
-    PROFILER_LABEL("SurfaceStream_TripleBuffer_Async", "WaitForCompositor");
+    PROFILER_LABEL("SurfaceStream_TripleBuffer_Async", "WaitForCompositor",
+        js::ProfileEntry::Category::GRAPHICS);
 
-    // We are assumed to be locked
-    while (mStaging) {
-        if (!NS_SUCCEEDED(mMonitor.Wait(PR_MillisecondsToInterval(100)))) {
-            return false;
-        }
-    }
-
-    return true;
+    // If we haven't be notified within 100ms, then
+    // something must have happened and it will never arrive.
+    // Bail out to avoid deadlocking.
+    mMonitor.Wait(PR_MillisecondsToInterval(100));
 }
 
 } /* namespace gfx */

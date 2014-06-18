@@ -46,17 +46,11 @@ using namespace mozilla::unicode;
 using namespace mozilla::gfx;
 
 gfxFontconfigUtils *gfxQtPlatform::sFontconfigUtils = nullptr;
-#ifdef MOZ_X11
-bool gfxQtPlatform::sUseXRender = true;
-#endif
 
 static gfxImageFormat sOffscreenFormat = gfxImageFormat::RGB24;
 
 gfxQtPlatform::gfxQtPlatform()
 {
-#ifdef MOZ_X11
-    sUseXRender = mozilla::Preferences::GetBool("gfx.xrender.enabled");
-#endif
     if (!sFontconfigUtils)
         sFontconfigUtils = gfxFontconfigUtils::GetFontconfigUtils();
 
@@ -107,20 +101,6 @@ gfxQtPlatform::CreateOffscreenSurface(const IntSize& size,
     return newSurface.forget();
 }
 
-already_AddRefed<gfxASurface>
-gfxQtPlatform::OptimizeImage(gfxImageSurface *aSurface,
-                             gfxImageFormat format)
-{
-    /* Qt have no special offscreen surfaces so we can avoid a copy */
-    if (OptimalFormatForContent(gfxASurface::ContentFromFormat(format)) ==
-        format) {
-        return nullptr;
-    }
-
-    return gfxPlatform::OptimizeImage(aSurface, format);
-}
-
-
 nsresult
 gfxQtPlatform::GetFontList(nsIAtom *aLangGroup,
                            const nsACString& aGenericFamily,
@@ -137,27 +117,17 @@ gfxQtPlatform::UpdateFontList()
 }
 
 nsresult
-gfxQtPlatform::ResolveFontName(const nsAString& aFontName,
-                                FontResolverCallback aCallback,
-                                void *aClosure,
-                                bool& aAborted)
-{
-    return sFontconfigUtils->ResolveFontName(aFontName, aCallback,
-                                             aClosure, aAborted);
-}
-
-nsresult
 gfxQtPlatform::GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName)
 {
     return sFontconfigUtils->GetStandardFamilyName(aFontName, aFamilyName);
 }
 
 gfxFontGroup *
-gfxQtPlatform::CreateFontGroup(const nsAString &aFamilies,
+gfxQtPlatform::CreateFontGroup(const FontFamilyList& aFontFamilyList,
                                const gfxFontStyle *aStyle,
                                gfxUserFontSet* aUserFontSet)
 {
-    return new gfxPangoFontGroup(aFamilies, aStyle, aUserFontSet);
+    return new gfxPangoFontGroup(aFontFamilyList, aStyle, aUserFontSet);
 }
 
 gfxFontEntry*
@@ -174,17 +144,6 @@ gfxQtPlatform::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
     // passing ownership of the font data to the new font entry
     return gfxPangoFontGroup::NewFontEntry(*aProxyEntry,
                                            aFontData, aLength);
-}
-
-bool
-gfxQtPlatform::SupportsOffMainThreadCompositing()
-{
-#if defined(MOZ_X11) && !defined(NIGHTLY_BUILD)
-  return (PR_GetEnv("MOZ_USE_OMTC") != nullptr) ||
-         (PR_GetEnv("MOZ_OMTC_ENABLED") != nullptr);
-#else
-  return true;
-#endif
 }
 
 bool

@@ -63,8 +63,10 @@
 #include "CacheObserver.h"
 #include "DisplayItemClip.h"
 #include "ActiveLayerTracker.h"
+#include "CounterStyleManager.h"
 
 #include "AudioChannelService.h"
+#include "mozilla/dom/DataStoreService.h"
 
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
@@ -292,6 +294,8 @@ nsLayoutStatics::Initialize()
 
   CacheObserver::Init();
 
+  CounterStyleManager::InitializeBuiltinCounterStyles();
+
   return NS_OK;
 }
 
@@ -410,6 +414,8 @@ nsLayoutStatics::Shutdown()
   nsDOMMutationObserver::Shutdown();
 
   AudioChannelService::Shutdown();
+
+  DataStoreService::Shutdown();
 
   ContentParent::ShutDown();
 

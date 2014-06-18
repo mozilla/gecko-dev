@@ -10,10 +10,10 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/devtools/event-emitter.js");
 Cu.import("resource://gre/modules/devtools/Loader.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "promise", "resource://gre/modules/Promise.jsm", "Promise");
 
+const EventEmitter = devtools.require("devtools/toolkit/event-emitter");
 const FORBIDDEN_IDS = new Set(["toolbox", ""]);
 const MAX_ORDINAL = 99;
 
@@ -273,25 +273,25 @@ DevTools.prototype = {
 
       this._toolboxes.set(target, toolbox);
 
-      toolbox.once("destroyed", function() {
+      toolbox.once("destroyed", () => {
         this._toolboxes.delete(target);
         this.emit("toolbox-destroyed", target);
-      }.bind(this));
+      });
 
       // If we were asked for a specific tool then we need to wait for the
       // tool to be ready, otherwise we can just wait for toolbox open
       if (toolId != null) {
-        toolbox.once(toolId + "-ready", function(event, panel) {
+        toolbox.once(toolId + "-ready", (event, panel) => {
           this.emit("toolbox-ready", toolbox);
           deferred.resolve(toolbox);
-        }.bind(this));
+        });
         toolbox.open();
       }
       else {
-        toolbox.open().then(function() {
+        toolbox.open().then(() => {
           deferred.resolve(toolbox);
           this.emit("toolbox-ready", toolbox);
-        }.bind(this));
+        });
       }
     }
 
@@ -501,12 +501,14 @@ let gDevToolsBrowser = {
       } else {
         toolbox.destroy();
       }
+      gDevTools.emit("select-tool-command", toolId);
     } else {
       gDevTools.showToolbox(target, toolId).then(() => {
         let target = devtools.TargetFactory.forTab(gBrowser.selectedTab);
         let toolbox = gDevTools.getToolbox(target);
 
         toolbox.fireCustomKey(toolId);
+        gDevTools.emit("select-tool-command", toolId);
       });
     }
   },
@@ -522,7 +524,17 @@ let gDevToolsBrowser = {
    * Open the App Manager
    */
   openAppManager: function(gBrowser) {
-    gBrowser.selectedTab = gBrowser.addTab("about:app-manager");
+    if (Services.prefs.getBoolPref("devtools.webide.enabled")) {
+      let win = Services.wm.getMostRecentWindow("devtools:webide");
+      if (win) {
+        win.focus();
+      } else {
+        let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].getService(Ci.nsIWindowWatcher);
+        ww.openWindow(null, "chrome://webide/content/", "webide", "chrome,centerscreen,resizable", null);
+      }
+    } else {
+      gBrowser.selectedTab = gBrowser.addTab("about:app-manager");
+    }
   },
 
   /**
@@ -570,6 +582,79 @@ let gDevToolsBrowser = {
     mainKeyset.parentNode.insertBefore(devtoolsKeyset, mainKeyset);
   },
 
+  /**
+   * Hook the JS debugger tool to the "Debug Script" button of the slow script
+   * dialog.
+   */
+  setSlowScriptDebugHandler: function DT_setSlowScriptDebugHandler() {
+    let debugService = Cc["@mozilla.org/dom/slow-script-debug;1"]
+                         .getService(Ci.nsISlowScriptDebug);
+    let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
+
+    debugService.activationHandler = function(aWindow) {
+      let chromeWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIWebNavigation)
+                                .QueryInterface(Ci.nsIDocShellTreeItem)
+                                .rootTreeItem
+                                .QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDOMWindow)
+                                .QueryInterface(Ci.nsIDOMChromeWindow);
+      let target = devtools.TargetFactory.forTab(chromeWindow.gBrowser.selectedTab);
+
+      let setupFinished = false;
+      gDevTools.showToolbox(target, "jsdebugger").then(toolbox => {
+        let threadClient = toolbox.getCurrentPanel().panelWin.gThreadClient;
+
+        // Break in place, which means resuming the debuggee thread and pausing
+        // right before the next step happens.
+        switch (threadClient.state) {
+          case "paused":
+            // When the debugger is already paused.
+            threadClient.breakOnNext();
+            setupFinished = true;
+            break;
+          case "attached":
+            // When the debugger is already open.
+            threadClient.interrupt(() => {
+              threadClient.breakOnNext();
+              setupFinished = true;
+            });
+            break;
+          case "resuming":
+            // The debugger is newly opened.
+            threadClient.addOneTimeListener("resumed", () => {
+              threadClient.interrupt(() => {
+                threadClient.breakOnNext();
+                setupFinished = true;
+              });
+            });
+            break;
+          default:
+            throw Error("invalid thread client state in slow script debug handler: " +
+                        threadClient.state);
+          }
+      });
+
+      // Don't return from the interrupt handler until the debugger is brought
+      // up; no reason to continue executing the slow script.
+      let utils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIDOMWindowUtils);
+      utils.enterModalState();
+      while (!setupFinished) {
+        tm.currentThread.processNextEvent(true);
+      }
+      utils.leaveModalState();
+    };
+  },
+
+  /**
+   * Unset the slow script debug handler.
+   */
+  unsetSlowScriptDebugHandler: function DT_unsetSlowScriptDebugHandler() {
+    let debugService = Cc["@mozilla.org/dom/slow-script-debug;1"]
+                         .getService(Ci.nsISlowScriptDebug);
+    debugService.activationHandler = undefined;
+  },
 
   /**
    * Detect the presence of a Firebug.
@@ -658,6 +743,10 @@ let gDevToolsBrowser = {
           mp.insertBefore(elements.menuitem, ref);
         }
       }
+    }
+
+    if (toolDefinition.id === "jsdebugger") {
+      gDevToolsBrowser.setSlowScriptDebugHandler();
     }
   },
 
@@ -833,6 +922,10 @@ let gDevToolsBrowser = {
   _removeToolFromWindows: function DT_removeToolFromWindows(toolId) {
     for (let win of gDevToolsBrowser._trackedBrowserWindows) {
       gDevToolsBrowser._removeToolFromMenu(toolId, win.document);
+    }
+
+    if (toolId === "jsdebugger") {
+      gDevToolsBrowser.unsetSlowScriptDebugHandler();
     }
   },
 

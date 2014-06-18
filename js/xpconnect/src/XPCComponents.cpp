@@ -13,6 +13,7 @@
 #include "nsJSUtils.h"
 #include "mozJSComponentLoader.h"
 #include "nsContentUtils.h"
+#include "JavaScriptParent.h"
 #include "jsfriendapi.h"
 #include "js/StructuredClone.h"
 #include "mozilla/Attributes.h"
@@ -2146,7 +2147,7 @@ nsXPCConstructor::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,JSContext *
 
     JS::Rooted<JS::Value> arg(cx, ObjectValue(*iidObj));
     RootedValue rval(cx);
-    if (!JS_CallFunctionName(cx, cidObj, "createInstance", arg, &rval) ||
+    if (!JS_CallFunctionName(cx, cidObj, "createInstance", JS::HandleValueArray(arg), &rval) ||
         rval.isPrimitive()) {
         // createInstance will have thrown an exception
         *_retval = false;
@@ -2724,6 +2725,18 @@ nsXPCComponents_Utils::Import(const nsACString& registryLocation,
     return moduleloader->Import(registryLocation, targetObj, cx, optionalArgc, retval);
 }
 
+/* boolean isModuleLoaded (in AUTF8String registryLocation);
+ */
+NS_IMETHODIMP
+nsXPCComponents_Utils::IsModuleLoaded(const nsACString& registryLocation, bool *retval)
+{
+    nsCOMPtr<xpcIJSModuleLoader> moduleloader =
+        do_GetService(MOZJSCOMPONENTLOADER_CONTRACTID);
+    if (!moduleloader)
+        return NS_ERROR_FAILURE;
+    return moduleloader->IsModuleLoaded(registryLocation, retval);
+}
+
 /* unload (in AUTF8String registryLocation);
  */
 NS_IMETHODIMP
@@ -2796,11 +2809,27 @@ nsXPCComponents_Utils::FinishCC()
     return NS_OK;
 }
 
-/* void ccSlice(long long budget); */
+/* void ccSlice(in long long budget); */
 NS_IMETHODIMP
 nsXPCComponents_Utils::CcSlice(int64_t budget)
 {
-    nsCycleCollector_collectSliceWork(budget);
+    nsJSContext::RunCycleCollectorWorkSlice(budget);
+    return NS_OK;
+}
+
+/* long getMaxCCSliceTimeSinceClear(); */
+NS_IMETHODIMP
+nsXPCComponents_Utils::GetMaxCCSliceTimeSinceClear(int32_t *out)
+{
+    *out = nsJSContext::GetMaxCCSliceTimeSinceClear();
+    return NS_OK;
+}
+
+/* void clearMaxCCTime(); */
+NS_IMETHODIMP
+nsXPCComponents_Utils::ClearMaxCCTime()
+{
+    nsJSContext::ClearMaxCCSliceTime();
     return NS_OK;
 }
 
@@ -3098,6 +3127,17 @@ nsXPCComponents_Utils::IsDeadWrapper(HandleValue obj, bool *out)
     return NS_OK;
 }
 
+NS_IMETHODIMP
+nsXPCComponents_Utils::IsCrossProcessWrapper(HandleValue obj, bool *out)
+{
+    *out = false;
+    if (obj.isPrimitive())
+        return NS_ERROR_INVALID_ARG;
+
+    *out = jsipc::IsCPOW(js::CheckedUnwrap(&obj.toObject()));
+    return NS_OK;
+}
+
 /* void recomputerWrappers(jsval vobj); */
 NS_IMETHODIMP
 nsXPCComponents_Utils::RecomputeWrappers(HandleValue vobj, JSContext *cx)
@@ -3359,7 +3399,7 @@ nsXPCComponents_Utils::GetIncumbentGlobal(HandleValue aCallback,
     // Invoke the callback, if passed.
     if (aCallback.isObject()) {
         RootedValue ignored(aCx);
-        if (!JS_CallFunctionValue(aCx, JS::NullPtr(), aCallback, globalVal, &ignored))
+        if (!JS_CallFunctionValue(aCx, JS::NullPtr(), aCallback, JS::HandleValueArray(globalVal), &ignored))
             return NS_ERROR_FAILURE;
     }
 
@@ -3507,7 +3547,7 @@ CloneIntoReadStructuredClone(JSContext *cx,
       if (!JS_WrapObject(cx, &obj))
           return nullptr;
 
-      if (!xpc::NewFunctionForwarder(cx, obj, false, &functionValue))
+      if (!xpc::NewFunctionForwarder(cx, obj, true, &functionValue))
           return nullptr;
 
       return &functionValue.toObject();
@@ -3631,7 +3671,7 @@ nsXPCComponents_Utils::GetObjectPrincipal(HandleValue val, JSContext *cx,
     obj = js::CheckedUnwrap(obj);
     MOZ_ASSERT(obj);
 
-    nsCOMPtr<nsIPrincipal> prin = nsContentUtils::GetObjectPrincipal(obj);
+    nsCOMPtr<nsIPrincipal> prin = nsContentUtils::ObjectPrincipal(obj);
     prin.forget(result);
     return NS_OK;
 }

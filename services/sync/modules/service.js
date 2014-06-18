@@ -51,6 +51,14 @@ const STORAGE_INFO_TYPES = [INFO_COLLECTIONS,
                             INFO_COLLECTION_COUNTS,
                             INFO_QUOTA];
 
+// A structure mapping a (boolean) telemetry probe name to a preference name.
+// The probe will record true if the pref is modified, false otherwise.
+const TELEMETRY_CUSTOM_SERVER_PREFS = {
+  WEAVE_CUSTOM_LEGACY_SERVER_CONFIGURATION: "services.sync.serverURL",
+  WEAVE_CUSTOM_FXA_SERVER_CONFIGURATION: "identity.fxaccounts.auth.uri",
+  WEAVE_CUSTOM_TOKEN_SERVER_CONFIGURATION: "services.sync.tokenServerURI",
+};
+
 
 function Sync11Service() {
   this._notify = Utils.notify("weave:service:");
@@ -354,6 +362,12 @@ Sync11Service.prototype = {
     let status = this._checkSetup();
     if (status != STATUS_DISABLED && status != CLIENT_NOT_CONFIGURED) {
       Svc.Obs.notify("weave:engine:start-tracking");
+    }
+
+    // Telemetry probes to indicate if the user is using custom servers.
+    for (let [probeName, prefName] of Iterator(TELEMETRY_CUSTOM_SERVER_PREFS)) {
+      let isCustomized = Services.prefs.prefHasUserValue(prefName);
+      Services.telemetry.getHistogramById(probeName).add(isCustomized);
     }
 
     // Send an event now that Weave service is ready.  We don't do this
@@ -968,7 +982,7 @@ Sync11Service.prototype = {
           && (username || password || passphrase)) {
         Svc.Obs.notify("weave:service:setup-complete");
       }
-      this._log.info("Logging in user " + this.identity.username);
+      this._log.info("Logging in the user.");
       this._updateCachedURLs();
 
       if (!this.verifyLogin()) {
@@ -1247,6 +1261,9 @@ Sync11Service.prototype = {
     return this._lock("service.js: sync",
                       this._notify("sync", "", function onNotify() {
 
+      let histogram = Services.telemetry.getHistogramById("WEAVE_START_COUNT");
+      histogram.add(1);
+
       let synchronizer = new EngineSynchronizer(this);
       let cb = Async.makeSpinningCallback();
       synchronizer.onComplete = cb;
@@ -1255,6 +1272,9 @@ Sync11Service.prototype = {
       // wait() throws if the first argument is truthy, which is exactly what
       // we want.
       let result = cb.wait();
+
+      histogram = Services.telemetry.getHistogramById("WEAVE_COMPLETE_SUCCESS_COUNT");
+      histogram.add(1);
 
       // We successfully synchronized. Now let's update our declined engines.
       let meta = this.recordManager.get(this.metaURL);

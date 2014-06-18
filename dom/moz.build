@@ -35,15 +35,16 @@ interfaces = [
 PARALLEL_DIRS += ['interfaces/' + i for i in interfaces]
 
 PARALLEL_DIRS += [
+    'animation',
     'apps',
     'base',
     'activities',
     'archivereader',
     'bindings',
     'battery',
-    'bluetooth',
     'browser-element',
     'contacts',
+    'crypto',
     'phonenumberutils',
     'alarm',
     'datastore',
@@ -112,7 +113,15 @@ if CONFIG['MOZ_NFC']:
     PARALLEL_DIRS += ['nfc']
 
 if CONFIG['MOZ_B2G']:
-    PARALLEL_DIRS += ['downloads']
+    PARALLEL_DIRS += [
+        'downloads',
+        'mobileid'
+    ]
+
+if CONFIG['MOZ_B2G_BT_API_V2']:
+    PARALLEL_DIRS += ['bluetooth2']
+else:
+    PARALLEL_DIRS += ['bluetooth']
 
 TEST_DIRS += [
     'tests',

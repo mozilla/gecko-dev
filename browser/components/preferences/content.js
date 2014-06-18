@@ -16,6 +16,13 @@ var gContentPane = {
       menulist.insertItemAt(0, "", "", "");
       menulist.selectedIndex = 0;
     }
+
+    // Show translation preferences if we may:
+    const prefName = "browser.translation.ui.show";
+    if (Services.prefs.getBoolPref(prefName)) {
+      let row = document.getElementById("translationBox");
+      row.removeAttribute("hidden");
+    }
   },
 
   // UTILITY FUNCTIONS
@@ -170,5 +177,16 @@ var gContentPane = {
   {
     document.documentElement.openSubDialog("chrome://browser/content/preferences/languages.xul",
                                            "", null);
+  },
+
+  /**
+   * Displays the translation exceptions dialog where specific site and language
+   * translation preferences can be set.
+   */
+  showTranslationExceptions: function ()
+  {
+    document.documentElement.openWindow("Browser:TranslationExceptions",
+                                        "chrome://browser/content/preferences/translation.xul",
+                                        "", null);
   }
 };

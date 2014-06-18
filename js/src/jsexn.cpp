@@ -192,7 +192,7 @@ struct SuppressErrorsGuard
     JSErrorReporter prevReporter;
     JS::AutoSaveExceptionState prevState;
 
-    SuppressErrorsGuard(JSContext *cx)
+    explicit SuppressErrorsGuard(JSContext *cx)
       : cx(cx),
         prevReporter(JS_SetErrorReporter(cx, nullptr)),
         prevState(cx)
@@ -233,7 +233,7 @@ js::ComputeStackString(JSContext *cx)
             const char *cfilename = i.scriptFilename();
             if (!cfilename)
                 cfilename = "";
-            if (!sb.appendInflated(cfilename, strlen(cfilename)))
+            if (!sb.append(cfilename, strlen(cfilename)))
                 return nullptr;
 
             uint32_t column = 0;

@@ -16,10 +16,24 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 const NOTIFICATIONSTORAGE_CID = "{37f819b0-0b5c-11e3-8ffd-0800200c9a66}";
 const NOTIFICATIONSTORAGE_CONTRACTID = "@mozilla.org/notificationStorage;1";
 
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
+
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageSender");
 
+const kMessageNotificationGetAllOk = "Notification:GetAll:Return:OK";
+const kMessageNotificationGetAllKo = "Notification:GetAll:Return:KO";
+const kMessageNotificationSaveKo   = "Notification:Save:Return:KO";
+const kMessageNotificationDeleteKo = "Notification:Delete:Return:KO";
+
+const kMessages = [
+  kMessageNotificationGetAllOk,
+  kMessageNotificationGetAllKo,
+  kMessageNotificationSaveKo,
+  kMessageNotificationDeleteKo
+];
 
 function NotificationStorage() {
   // cache objects
@@ -30,11 +44,32 @@ function NotificationStorage() {
   this._requests = {};
   this._requestCount = 0;
 
+  Services.obs.addObserver(this, "xpcom-shutdown", false);
   // Register for message listeners.
-  cpmm.addMessageListener("Notification:GetAll:Return:OK", this);
+  this.registerListeners();
 }
 
 NotificationStorage.prototype = {
+
+  registerListeners: function() {
+    for (let message of kMessages) {
+      cpmm.addMessageListener(message, this);
+    }
+  },
+
+  unregisterListeners: function() {
+    for (let message of kMessages) {
+      cpmm.removeMessageListener(message, this);
+    }
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    if (DEBUG) debug("Topic: " + aTopic);
+    if (aTopic == "xpcom-shutdown") {
+      Services.obs.removeObserver(this, "xpcom-shutdown");
+      this.unregisterListeners();
+    }
+  },
 
   put: function(origin, id, title, dir, lang, body, tag, icon, alertName) {
     if (DEBUG) { debug("PUT: " + id + ": " + title); }
@@ -47,19 +82,24 @@ NotificationStorage.prototype = {
       tag: tag,
       icon: icon,
       alertName: alertName,
-      timestamp: new Date().getTime()
+      timestamp: new Date().getTime(),
+      origin: origin
     };
 
     this._notifications[id] = notification;
     if (tag) {
+      if (!this._byTag[origin]) {
+        this._byTag[origin] = {};
+      }
+
       // We might have existing notification with this tag,
       // if so we need to remove it from our cache.
-      if (this._byTag[tag]) {
-        var oldNotification = this._byTag[tag];
+      if (this._byTag[origin][tag]) {
+        var oldNotification = this._byTag[origin][tag];
         delete this._notifications[oldNotification.id];
       }
 
-      this._byTag[tag] = notification;
+      this._byTag[origin][tag] = notification;
     };
 
     cpmm.sendAsyncMessage("Notification:Save", {
@@ -69,9 +109,9 @@ NotificationStorage.prototype = {
   },
 
   get: function(origin, tag, callback) {
-    if (DEBUG) { debug("GET: " + tag); }
+    if (DEBUG) { debug("GET: " + origin + " " + tag); }
     if (this._cached) {
-      this._fetchFromCache(tag, callback);
+      this._fetchFromCache(origin, tag, callback);
     } else {
       this._fetchFromDB(origin, tag, callback);
     }
@@ -82,7 +122,7 @@ NotificationStorage.prototype = {
     var notification = this._notifications[id];
     if (notification) {
       if (notification.tag) {
-        delete this._byTag[notification.tag];
+        delete this._byTag[origin][notification.tag];
       }
       delete this._notifications[id];
     }
@@ -94,12 +134,28 @@ NotificationStorage.prototype = {
   },
 
   receiveMessage: function(message) {
+    var request = this._requests[message.data.requestID];
+
     switch (message.name) {
-      case "Notification:GetAll:Return:OK":
-        var request = this._requests[message.data.requestID];
+      case kMessageNotificationGetAllOk:
         delete this._requests[message.data.requestID];
         this._populateCache(message.data.notifications);
-        this._fetchFromCache(request.tag, request.callback);
+        this._fetchFromCache(request.origin, request.tag, request.callback);
+        break;
+
+      case kMessageNotificationGetAllKo:
+        delete this._requests[message.data.requestID];
+        try {
+          request.callback.done();
+        } catch (e) {
+          debug("Error calling callback done: " + e);
+        }
+      case kMessageNotificationSaveKo:
+      case kMessageNotificationDeleteKo:
+        if (DEBUG) {
+          debug("Error received when treating: '" + message.name +
+                "': " + message.data.errorMsg);
+        }
         break;
 
       default:
@@ -122,16 +178,18 @@ NotificationStorage.prototype = {
     });
   },
 
-  _fetchFromCache: function(tag, callback) {
+  _fetchFromCache: function(origin, tag, callback) {
     var notifications = [];
     // If a tag was specified and we have a notification
     // with this tag, return that. If no tag was specified
     // simple return all stored notifications.
-    if (tag && this._byTag[tag]) {
-      notifications.push(this._byTag[tag]);
+    if (tag && this._byTag[origin] && this._byTag[origin][tag]) {
+      notifications.push(this._byTag[origin][tag]);
     } else if (!tag) {
       for (var id in this._notifications) {
-        notifications.push(this._notifications[id]);
+        if (this._notifications[id].origin === origin) {
+          notifications.push(this._notifications[id]);
+        }
       }
     }
 
@@ -159,8 +217,13 @@ NotificationStorage.prototype = {
   _populateCache: function(notifications) {
     notifications.forEach(function(notification) {
       this._notifications[notification.id] = notification;
-      if (notification.tag) {
-        this._byTag[notification.tag] = notification;
+      if (notification.tag && notification.origin) {
+        let tag = notification.tag;
+        let origin = notification.origin;
+        if (!this._byTag[origin]) {
+          this._byTag[origin] = {};
+        }
+        this._byTag[origin][tag] = notification;
       }
     }.bind(this));
     this._cached = true;

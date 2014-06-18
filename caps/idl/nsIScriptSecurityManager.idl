@@ -5,15 +5,41 @@
 
 #include "nsISupports.idl"
 #include "nsIPrincipal.idl"
-#include "nsIXPCSecurityManager.idl"
 interface nsIURI;
 interface nsIChannel;
+interface nsIClassInfo;
 interface nsIDocShell;
 interface nsIDomainPolicy;
+interface nsILoadContext;
 
-[scriptable, uuid(2565769a-eaec-47a1-a076-605f5294d286)]
-interface nsIScriptSecurityManager : nsIXPCSecurityManager
+%{ C++
+#include "jspubtd.h"
+%}
+
+[ptr] native JSContextPtr(JSContext);
+[ptr] native JSObjectPtr(JSObject);
+
+[scriptable, uuid(f6e1e37e-14d0-44fa-a9bb-712bfad6c5f7)]
+interface nsIScriptSecurityManager : nsISupports
 {
+    /**
+     * For each of these hooks returning NS_OK means 'let the action continue'.
+     * Returning an error code means 'veto the action'. XPConnect will return
+     * false to the js engine if the action is vetoed. The implementor of this
+     * interface is responsible for setting a JS exception into the JSContext
+     * if that is appropriate.
+     */
+    [noscript] void canCreateWrapper(in JSContextPtr aJSContext,
+                                     in nsIIDRef aIID,
+                                     in nsISupports aObj,
+                                     in nsIClassInfo aClassInfo);
+
+    [noscript] void canCreateInstance(in JSContextPtr aJSContext,
+                                      in nsCIDRef aCID);
+
+    [noscript] void canGetService(in JSContextPtr aJSContext,
+                                  in nsCIDRef aCID);
+
     /**
      * Check that the script currently running in context "cx" can load "uri".
      *
@@ -121,6 +147,14 @@ interface nsIScriptSecurityManager : nsIXPCSecurityManager
     nsIPrincipal getAppCodebasePrincipal(in nsIURI uri,
                                          in unsigned long appId,
                                          in boolean inMozBrowser);
+
+    /**
+     * Returns a principal that has the appId and inMozBrowser of the load
+     * context.
+     * @param loadContext to get appId/inMozBrowser from.
+     */
+    nsIPrincipal getLoadContextCodebasePrincipal(in nsIURI uri,
+                                                 in nsILoadContext loadContext);
 
     /**
      * Returns a principal that has the appId and inMozBrowser of the docshell

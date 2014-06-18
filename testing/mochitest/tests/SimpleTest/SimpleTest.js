@@ -249,7 +249,7 @@ SimpleTest.is = function (a, b, name) {
 };
 
 SimpleTest.isfuzzy = function (a, b, epsilon, name) {
-  var pass = (a > b - epsilon) && (a < b + epsilon);
+  var pass = (a >= b - epsilon) && (a <= b + epsilon);
   var diag = pass ? "" : "got " + repr(a) + ", expected " + repr(b) + " epsilon: +/- " + repr(epsilon)
   SimpleTest.ok(pass, name, diag);
 };
@@ -697,9 +697,7 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     SimpleTest.waitForFocus_started = false;
     expectBlankPage = !!expectBlankPage;
 
-    var childTargetWindow = {};
-    SpecialPowers.getFocusedElementForWindow(targetWindow, true, childTargetWindow);
-    childTargetWindow = childTargetWindow.value;
+    var childTargetWindow = SpecialPowers.getFocusedElementForWindow(targetWindow, true);
 
     function info(msg) {
         SimpleTest.info(msg);
@@ -750,10 +748,9 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     }
 
     // Check if the desired window is already focused.
-    var focusedChildWindow = { };
+    var focusedChildWindow = null;
     if (SpecialPowers.activeWindow()) {
-        SpecialPowers.getFocusedElementForWindow(SpecialPowers.activeWindow(), true, focusedChildWindow);
-        focusedChildWindow = focusedChildWindow.value;
+        focusedChildWindow = SpecialPowers.getFocusedElementForWindow(SpecialPowers.activeWindow(), true);
     }
 
     // If this is a child frame, ensure that the frame is focused.

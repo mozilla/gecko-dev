@@ -10,6 +10,8 @@ include protocol PBlob;
 include protocol PBluetooth;
 include protocol PBrowser;
 include protocol PCompositor;
+include protocol PContentBridge;
+include protocol PCycleCollectWithLogs;
 include protocol PCrashReporter;
 include protocol PExternalHelperApp;
 include protocol PDeviceStorageRequest;
@@ -116,6 +118,14 @@ struct DeviceStorageAddParams
   PBlob blob;
 };
 
+struct DeviceStorageAppendParams
+{
+  nsString type;
+  nsString storageName;
+  nsString relpath;
+  PBlob blob;
+};
+
 struct DeviceStorageCreateFdParams
 {
   nsString type;
@@ -149,6 +159,7 @@ struct DeviceStorageEnumerationParams
 union DeviceStorageParams
 {
   DeviceStorageAddParams;
+  DeviceStorageAppendParams;
   DeviceStorageCreateFdParams;
   DeviceStorageGetParams;
   DeviceStorageDeleteParams;
@@ -261,6 +272,14 @@ struct PrefSetting {
   MaybePrefValue userValue;
 };
 
+struct DataStoreSetting {
+  nsString name;
+  nsString originURL;
+  nsString manifestURL;
+  bool readOnly;
+  bool enabled;
+};
+
 intr protocol PContent
 {
     parent opens PCompositor;
@@ -273,6 +292,7 @@ intr protocol PContent
     manages PBluetooth;
     manages PBrowser;
     manages PCrashReporter;
+    manages PCycleCollectWithLogs;
     manages PDeviceStorageRequest;
     manages PFileSystemRequest;
     manages PExternalHelperApp;
@@ -313,7 +333,10 @@ both:
     // privileges by requesting a PBrowser corresponding to a highly-privileged
     // app; the child can only request privileges for an app which the child has
     // access to (in the form of a TabChild).
-    async PBrowser(IPCTabContext context, uint32_t chromeFlags);
+    //
+    // Keep the last 3 attributes in sync with GetProcessAttributes!
+    async PBrowser(IPCTabContext context, uint32_t chromeFlags,
+                   uint64_t id, bool isForApp, bool isForBrowser);
 
     async PBlob(BlobConstructorParams params);
 
@@ -336,15 +359,18 @@ child:
 
     async SpeakerManagerNotify();
 
+    async DataStoreNotify(uint32_t aAppId, nsString aName,
+                          nsString aManifestURL);
+
     /**
-     * Dump this process's GC and CC logs.
+     * Dump this process's GC and CC logs to the provided files.
      *
-     * For documentation on the args, see dumpGCAndCCLogsToFile in
+     * For documentation on the other args, see dumpGCAndCCLogsToFile in
      * nsIMemoryInfoDumper.idl
      */
-    async DumpGCAndCCLogsToFile(nsString identifier,
-                                bool dumpAllTraces,
-                                bool dumpChildProcesses);
+    PCycleCollectWithLogs(bool dumpAllTraces,
+                          FileDescriptor gcLog,
+                          FileDescriptor ccLog);
 
     PTestShell();
 
@@ -354,6 +380,8 @@ child:
     async SetOffline(bool offline);
 
     async NotifyVisited(URIParams uri);
+
+    async SystemMemoryAvailable(uint64_t getterId, uint32_t memoryAvailable);
 
     PreferenceUpdate(PrefSetting pref);
 
@@ -386,7 +414,7 @@ child:
 
     FileSystemUpdate(nsString fsName, nsString mountPoint, int32_t fsState,
                      int32_t mountGeneration, bool isMediaPresent,
-                     bool isSharing, bool isFormatting);
+                     bool isSharing, bool isFormatting, bool isFake);
 
     // Ask the Nuwa process to create a new child process.
     NuwaFork();
@@ -417,11 +445,18 @@ parent:
      * isForBrowser|, we're loading <browser> for an app.  When
      * |isForBrowser|, we're loading <browser>.  When |!isForApp &&
      * !isForBrowser|, we're probably loading <xul:browser remote>.
+     *
+     * Keep the return values in sync with PBrowser()!
      */
     sync GetProcessAttributes()
         returns (uint64_t id, bool isForApp, bool isForBrowser);
     sync GetXPCOMProcessAttributes()
         returns (bool isOffline);
+
+    sync CreateChildProcess(IPCTabContext context,
+                            ProcessPriority priority)
+        returns (uint64_t id, bool isForApp, bool isForBrowser);
+    intr BridgeToChildProcess(uint64_t id);
 
     async PJavaScript();
 
@@ -433,6 +468,8 @@ parent:
 
     sync GetRandomValues(uint32_t length)
         returns (uint8_t[] randomValues);
+
+    async GetSystemMemory(uint64_t getterId);
 
     PHal();
 
@@ -544,6 +581,9 @@ parent:
     async AudioChannelChangedNotification();
     async AudioChannelChangeDefVolChannel(int32_t aChannel, bool aHidden);
 
+    sync DataStoreGetStores(nsString aName, Principal aPrincipal)
+        returns (DataStoreSetting[] dataStores);
+
     async FilePathUpdateNotify(nsString aType,
                                nsString aStorageName,
                                nsString aFilepath,
@@ -564,6 +604,11 @@ parent:
 
     sync KeywordToURI(nsCString keyword)
         returns (OptionalInputStreamParams postData, OptionalURIParams uri);
+
+    // Tell the compositor to allocate a layer tree id for nested remote mozbrowsers.
+    sync AllocateLayerTreeId()
+        returns (uint64_t id);
+    async DeallocateLayerTreeId(uint64_t id);
 
     sync SpeakerManagerForceSpeaker(bool aEnable);
 

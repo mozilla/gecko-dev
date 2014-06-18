@@ -6,6 +6,7 @@
 #ifdef MOZ_WIDGET_GONK
 
 #include "mozilla/gfx/2D.h"
+#include "mozilla/layers/AsyncTransactionTracker.h" // for AsyncTransactionTracker
 #include "mozilla/layers/GrallocTextureClient.h"
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
@@ -17,35 +18,6 @@ namespace layers {
 
 using namespace mozilla::gfx;
 using namespace android;
-
-class GrallocTextureClientData : public TextureClientData {
-public:
-  GrallocTextureClientData(MaybeMagicGrallocBufferHandle aDesc)
-    : mGrallocHandle(aDesc)
-  {
-    MOZ_COUNT_CTOR(GrallocTextureClientData);
-  }
-
-  ~GrallocTextureClientData()
-  {
-    MOZ_COUNT_DTOR(GrallocTextureClientData);
-  }
-
-  virtual void DeallocateSharedData(ISurfaceAllocator* allocator) MOZ_OVERRIDE
-  {
-    allocator->DeallocGrallocBuffer(&mGrallocHandle);
-  }
-
-private:
-  MaybeMagicGrallocBufferHandle mGrallocHandle;
-};
-
-TextureClientData*
-GrallocTextureClientOGL::DropTextureData()
-{
-  TextureClientData* result = new GrallocTextureClientData(mGrallocHandle);
-  return result;
-}
 
 GrallocTextureClientOGL::GrallocTextureClientOGL(MaybeMagicGrallocBufferHandle buffer,
                                                  gfx::IntSize aSize,
@@ -65,6 +37,7 @@ GrallocTextureClientOGL::GrallocTextureClientOGL(ISurfaceAllocator* aAllocator,
                                                  gfx::BackendType aMoz2dBackend,
                                                  TextureFlags aFlags)
 : BufferTextureClient(aAllocator, aFormat, aMoz2dBackend, aFlags)
+, mGrallocHandle(null_t())
 , mMappedBuffer(nullptr)
 , mMediaBuffer(nullptr)
 {
@@ -103,14 +76,19 @@ GrallocTextureClientOGL::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
 }
 
 void
-GrallocTextureClientOGL::SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle)
+GrallocTextureClientOGL::SetRemoveFromCompositableTracker(AsyncTransactionTracker* aTracker)
 {
-  mReleaseFenceHandle = aReleaseFenceHandle;
+  mRemoveFromCompositableTracker = aTracker;
 }
 
 void
-GrallocTextureClientOGL::WaitReleaseFence()
+GrallocTextureClientOGL::WaitForBufferOwnership()
 {
+  if (mRemoveFromCompositableTracker) {
+    mRemoveFromCompositableTracker->WaitComplete();
+    mRemoveFromCompositableTracker = nullptr;
+  }
+
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
    if (mReleaseFenceHandle.IsValid()) {
      android::sp<Fence> fence = mReleaseFenceHandle.mFence;
@@ -138,7 +116,7 @@ GrallocTextureClientOGL::Lock(OpenMode aMode)
     return true;
   }
 
-  WaitReleaseFence();
+  WaitForBufferOwnership();
 
   uint32_t usage = 0;
   if (aMode & OpenMode::OPEN_READ) {
@@ -193,11 +171,15 @@ SurfaceFormatForPixelFormat(android::PixelFormat aFormat)
   return gfx::SurfaceFormat::R8G8B8A8;
 }
 
-TemporaryRef<gfx::DrawTarget>
-GrallocTextureClientOGL::GetAsDrawTarget()
+gfx::DrawTarget*
+GrallocTextureClientOGL::BorrowDrawTarget()
 {
   MOZ_ASSERT(IsValid());
-  MOZ_ASSERT(mMappedBuffer, "Calling TextureClient::GetAsDrawTarget without locking :(");
+  MOZ_ASSERT(mMappedBuffer, "Calling TextureClient::BorrowDrawTarget without locking :(");
+
+  if (!IsValid() || !IsAllocated()) {
+    return nullptr;
+  }
 
   if (mDrawTarget) {
     return mDrawTarget;

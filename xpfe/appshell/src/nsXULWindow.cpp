@@ -1449,19 +1449,18 @@ NS_IMETHODIMP nsXULWindow::SavePersistentAttributes()
   }
 
   // get our size, position and mode to persist
-  int32_t x, y, cx, cy;
-  NS_ENSURE_SUCCESS(GetPositionAndSize(&x, &y, &cx, &cy), NS_ERROR_FAILURE);
+  nsIntRect rect;
+  bool gotRestoredBounds = NS_SUCCEEDED(mWindow->GetRestoredBounds(rect));
 
-  int32_t sizeMode = mWindow->SizeMode();
   CSSToLayoutDeviceScale scale = mWindow->GetDefaultScale();
 
   // make our position relative to our parent, if any
   nsCOMPtr<nsIBaseWindow> parent(do_QueryReferent(mParentWindow));
-  if (parent) {
+  if (parent && gotRestoredBounds) {
     int32_t parentX, parentY;
     if (NS_SUCCEEDED(parent->GetPosition(&parentX, &parentY))) {
-      x -= parentX;
-      y -= parentY;
+      rect.x -= parentX;
+      rect.y -= parentY;
     }
   }
 
@@ -1478,17 +1477,16 @@ NS_IMETHODIMP nsXULWindow::SavePersistentAttributes()
 
   ErrorResult rv;
   // (only for size elements which are persisted)
-  if ((mPersistentAttributesDirty & PAD_POSITION) &&
-      sizeMode == nsSizeMode_Normal) {
+  if ((mPersistentAttributesDirty & PAD_POSITION) && gotRestoredBounds) {
     if (persistString.Find("screenX") >= 0) {
-      PR_snprintf(sizeBuf, sizeof(sizeBuf), "%d", NSToIntRound(x / scale.scale));
+      PR_snprintf(sizeBuf, sizeof(sizeBuf), "%d", NSToIntRound(rect.x / scale.scale));
       sizeString.AssignWithConversion(sizeBuf);
       docShellElement->SetAttribute(SCREENX_ATTRIBUTE, sizeString, rv);
       if (ownerXULDoc) // force persistence in case the value didn't change
         ownerXULDoc->Persist(windowElementId, SCREENX_ATTRIBUTE);
     }
     if (persistString.Find("screenY") >= 0) {
-      PR_snprintf(sizeBuf, sizeof(sizeBuf), "%d", NSToIntRound(y / scale.scale));
+      PR_snprintf(sizeBuf, sizeof(sizeBuf), "%d", NSToIntRound(rect.y / scale.scale));
       sizeString.AssignWithConversion(sizeBuf);
       docShellElement->SetAttribute(SCREENY_ATTRIBUTE, sizeString, rv);
       if (ownerXULDoc)
@@ -1496,17 +1494,16 @@ NS_IMETHODIMP nsXULWindow::SavePersistentAttributes()
     }
   }
 
-  if ((mPersistentAttributesDirty & PAD_SIZE) &&
-      sizeMode == nsSizeMode_Normal) {
+  if ((mPersistentAttributesDirty & PAD_SIZE) && gotRestoredBounds) {
     if (persistString.Find("width") >= 0) {
-      PR_snprintf(sizeBuf, sizeof(sizeBuf), "%d", NSToIntRound(cx / scale.scale));
+      PR_snprintf(sizeBuf, sizeof(sizeBuf), "%d", NSToIntRound(rect.width / scale.scale));
       sizeString.AssignWithConversion(sizeBuf);
       docShellElement->SetAttribute(WIDTH_ATTRIBUTE, sizeString, rv);
       if (ownerXULDoc)
         ownerXULDoc->Persist(windowElementId, WIDTH_ATTRIBUTE);
     }
     if (persistString.Find("height") >= 0) {
-      PR_snprintf(sizeBuf, sizeof(sizeBuf), "%d", NSToIntRound(cy / scale.scale));
+      PR_snprintf(sizeBuf, sizeof(sizeBuf), "%d", NSToIntRound(rect.height / scale.scale));
       sizeString.AssignWithConversion(sizeBuf);
       docShellElement->SetAttribute(HEIGHT_ATTRIBUTE, sizeString, rv);
       if (ownerXULDoc)
@@ -1515,6 +1512,8 @@ NS_IMETHODIMP nsXULWindow::SavePersistentAttributes()
   }
 
   if (mPersistentAttributesDirty & PAD_MISC) {
+    int32_t sizeMode = mWindow->SizeMode();
+
     if (sizeMode != nsSizeMode_Minimized) {
       if (sizeMode == nsSizeMode_Maximized)
         sizeString.Assign(SIZEMODE_MAXIMIZED);
@@ -1548,7 +1547,7 @@ NS_IMETHODIMP nsXULWindow::GetWindowDOMWindow(nsIDOMWindow** aDOMWindow)
   NS_ENSURE_STATE(mDocShell);
 
   if (!mDOMWindow)
-    mDOMWindow = do_GetInterface(mDocShell);
+    mDOMWindow = mDocShell->GetWindow();
   NS_ENSURE_TRUE(mDOMWindow, NS_ERROR_FAILURE);
 
   *aDOMWindow = mDOMWindow;
@@ -1715,16 +1714,18 @@ NS_IMETHODIMP nsXULWindow::ExitModalLoop(nsresult aStatus)
 
 // top-level function to create a new window
 NS_IMETHODIMP nsXULWindow::CreateNewWindow(int32_t aChromeFlags,
-                             nsIXULWindow **_retval)
+                                           nsITabParent *aOpeningTab,
+                                           nsIXULWindow **_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
 
   if (aChromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME)
-    return CreateNewChromeWindow(aChromeFlags, _retval);
-  return CreateNewContentWindow(aChromeFlags, _retval);
+    return CreateNewChromeWindow(aChromeFlags, aOpeningTab, _retval);
+  return CreateNewContentWindow(aChromeFlags, aOpeningTab, _retval);
 }
 
 NS_IMETHODIMP nsXULWindow::CreateNewChromeWindow(int32_t aChromeFlags,
+                                                 nsITabParent *aOpeningTab,
                                                  nsIXULWindow **_retval)
 {
   nsCOMPtr<nsIAppShellService> appShell(do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
@@ -1736,6 +1737,7 @@ NS_IMETHODIMP nsXULWindow::CreateNewChromeWindow(int32_t aChromeFlags,
   appShell->CreateTopLevelWindow(this, nullptr, aChromeFlags,
                                  nsIAppShellService::SIZE_TO_CONTENT,
                                  nsIAppShellService::SIZE_TO_CONTENT,
+                                 aOpeningTab,
                                  getter_AddRefs(newWindow));
 
   NS_ENSURE_TRUE(newWindow, NS_ERROR_FAILURE);
@@ -1747,6 +1749,7 @@ NS_IMETHODIMP nsXULWindow::CreateNewChromeWindow(int32_t aChromeFlags,
 }
 
 NS_IMETHODIMP nsXULWindow::CreateNewContentWindow(int32_t aChromeFlags,
+                                                  nsITabParent *aOpeningTab,
                                                   nsIXULWindow **_retval)
 {
   nsCOMPtr<nsIAppShellService> appShell(do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
@@ -1779,6 +1782,7 @@ NS_IMETHODIMP nsXULWindow::CreateNewContentWindow(int32_t aChromeFlags,
     AutoNoJSAPI nojsapi;
     appShell->CreateTopLevelWindow(this, uri,
                                    aChromeFlags, 615, 480,
+                                   aOpeningTab,
                                    getter_AddRefs(newWindow));
     NS_ENSURE_TRUE(newWindow, NS_ERROR_FAILURE);
   }
@@ -1799,7 +1803,16 @@ NS_IMETHODIMP nsXULWindow::CreateNewContentWindow(int32_t aChromeFlags,
     }
  }
 
-  NS_ENSURE_STATE(xulWin->mPrimaryContentShell);
+  // If aOpeningTab is not null, it means that we're creating a new window
+  // with a remote browser, which doesn't have a primary docshell. In that
+  // case, we check for the chrome window docshell and make sure that a new
+  // remote tab was opened and stashed in that docshell.
+  if (aOpeningTab) {
+    NS_ENSURE_STATE(xulWin->mDocShell);
+    NS_ENSURE_STATE(xulWin->mDocShell->GetOpenedRemote());
+  } else {
+    NS_ENSURE_STATE(xulWin->mPrimaryContentShell);
+  }
 
   *_retval = newWindow;
   NS_ADDREF(*_retval);

@@ -41,19 +41,18 @@
 
 struct nsCSSValueSharedList;
 
-using namespace mozilla::dom;
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace layers {
+
+using namespace mozilla::gfx;
 
 enum Op { Resolve, Detach };
 
 static bool
-IsSameDimension(ScreenOrientation o1, ScreenOrientation o2)
+IsSameDimension(dom::ScreenOrientation o1, dom::ScreenOrientation o2)
 {
-  bool isO1portrait = (o1 == eScreenOrientation_PortraitPrimary || o1 == eScreenOrientation_PortraitSecondary);
-  bool isO2portrait = (o2 == eScreenOrientation_PortraitPrimary || o2 == eScreenOrientation_PortraitSecondary);
+  bool isO1portrait = (o1 == dom::eScreenOrientation_PortraitPrimary || o1 == dom::eScreenOrientation_PortraitSecondary);
+  bool isO2portrait = (o2 == dom::eScreenOrientation_PortraitPrimary || o2 == dom::eScreenOrientation_PortraitSecondary);
   return !(isO1portrait ^ isO2portrait);
 }
 
@@ -73,8 +72,8 @@ WalkTheTree(Layer* aLayer,
     if (const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(ref->GetReferentId())) {
       if (Layer* referent = state->mRoot) {
         if (!ref->GetVisibleRegion().IsEmpty()) {
-          ScreenOrientation chromeOrientation = aTargetConfig.orientation();
-          ScreenOrientation contentOrientation = state->mTargetConfig.orientation();
+          dom::ScreenOrientation chromeOrientation = aTargetConfig.orientation();
+          dom::ScreenOrientation contentOrientation = state->mTargetConfig.orientation();
           if (!IsSameDimension(chromeOrientation, contentOrientation) &&
               ContentMightReflowOnOrientationChange(aTargetConfig.clientBounds())) {
             aReady = false;
@@ -85,6 +84,7 @@ WalkTheTree(Layer* aLayer,
           ref->ConnectReferentLayer(referent);
         } else {
           ref->DetachReferentLayer(referent);
+          WalkTheTree<OP>(referent, aReady, aTargetConfig);
         }
       }
     }
@@ -431,29 +431,36 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
       continue;
     }
 
-    double numIterations = animation.numIterations() != -1 ?
-      animation.numIterations() : NS_IEEEPositiveInfinity();
-    double positionInIteration =
-      ElementAnimations::GetPositionInIteration(elapsedDuration,
-                                                animation.duration(),
-                                                numIterations,
-                                                animation.direction());
+    AnimationTiming timing;
+    timing.mIterationDuration = animation.duration();
+    timing.mIterationCount = animation.iterationCount();
+    timing.mDirection = animation.direction();
+    // Animations typically only run on the compositor during their active
+    // interval but if we end up sampling them outside that range (for
+    // example, while they are waiting to be removed) we currently just
+    // assume that we should fill.
+    timing.mFillMode = NS_STYLE_ANIMATION_FILL_MODE_BOTH;
 
-    NS_ABORT_IF_FALSE(0.0 <= positionInIteration &&
-                      positionInIteration <= 1.0,
-                      "position should be in [0-1]");
+    ComputedTiming computedTiming =
+      ElementAnimation::GetComputedTimingAt(elapsedDuration, timing);
+
+    NS_ABORT_IF_FALSE(0.0 <= computedTiming.mTimeFraction &&
+                      computedTiming.mTimeFraction <= 1.0,
+                      "time fraction should be in [0-1]");
 
     int segmentIndex = 0;
     AnimationSegment* segment = animation.segments().Elements();
-    while (segment->endPortion() < positionInIteration) {
+    while (segment->endPortion() < computedTiming.mTimeFraction) {
       ++segment;
       ++segmentIndex;
     }
 
-    double positionInSegment = (positionInIteration - segment->startPortion()) /
-                                 (segment->endPortion() - segment->startPortion());
+    double positionInSegment =
+      (computedTiming.mTimeFraction - segment->startPortion()) /
+      (segment->endPortion() - segment->startPortion());
 
-    double portion = animData.mFunctions[segmentIndex]->GetValue(positionInSegment);
+    double portion =
+      animData.mFunctions[segmentIndex]->GetValue(positionInSegment);
 
     // interpolate the property
     Animatable interpolatedValue;
@@ -604,6 +611,12 @@ ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer
                                          Layer* aContent, bool aScrollbarIsChild)
 {
   ContainerLayer* content = aContent->AsContainerLayer();
+
+  // We only apply the transform if the scroll-target layer has non-container
+  // children (i.e. when it has some possibly-visible content). This is to
+  // avoid moving scroll-bars in the situation that only a scroll information
+  // layer has been built for a scroll frame, as this would result in a
+  // disparity between scrollbars and visible content.
   if (!LayerHasNonContainerDescendants(content)) {
     return;
   }
@@ -677,6 +690,32 @@ ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer
   aScrollbar->AsLayerComposite()->SetShadowTransform(transform);
 }
 
+static Layer*
+FindScrolledLayerForScrollbar(ContainerLayer* aLayer, bool* aOutIsAncestor)
+{
+  // Search all siblings of aLayer and of its ancestors.
+  for (Layer* ancestor = aLayer; ancestor; ancestor = ancestor->GetParent()) {
+    for (Layer* scrollTarget = ancestor;
+         scrollTarget;
+         scrollTarget = scrollTarget->GetPrevSibling()) {
+      if (scrollTarget != aLayer &&
+          LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
+        *aOutIsAncestor = (scrollTarget == ancestor);
+        return scrollTarget;
+      }
+    }
+    for (Layer* scrollTarget = ancestor->GetNextSibling();
+         scrollTarget;
+         scrollTarget = scrollTarget->GetNextSibling()) {
+      if (LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
+        *aOutIsAncestor = false;
+        return scrollTarget;
+      }
+    }
+  }
+  return nullptr;
+}
+
 void
 AsyncCompositionManager::ApplyAsyncTransformToScrollbar(TimeStamp aCurrentFrame, ContainerLayer* aLayer)
 {
@@ -687,25 +726,11 @@ AsyncCompositionManager::ApplyAsyncTransformToScrollbar(TimeStamp aCurrentFrame,
   // Note that it is possible that the content layer is no longer there; in
   // this case we don't need to do anything because there can't be an async
   // transform on the content.
-  // We only apply the transform if the scroll-target layer has non-container
-  // children (i.e. when it has some possibly-visible content). This is to
-  // avoid moving scroll-bars in the situation that only a scroll information
-  // layer has been built for a scroll frame, as this would result in a
-  // disparity between scrollbars and visible content.
-  for (Layer* scrollTarget = aLayer->GetPrevSibling();
-       scrollTarget;
-       scrollTarget = scrollTarget->GetPrevSibling()) {
-    if (LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
-      // Found a sibling that matches our criteria
-      ApplyAsyncTransformToScrollbarForContent(aCurrentFrame, aLayer, scrollTarget, false);
-      return;
-    }
-  }
-
-  // If we didn't find a sibling, look for a parent
-  Layer* scrollTarget = aLayer->GetParent();
-  if (scrollTarget && LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
-    ApplyAsyncTransformToScrollbarForContent(aCurrentFrame, aLayer, scrollTarget, true);
+  bool isAncestor = false;
+  Layer* scrollTarget = FindScrolledLayerForScrollbar(aLayer, &isAncestor);
+  if (scrollTarget) {
+    ApplyAsyncTransformToScrollbarForContent(aCurrentFrame, aLayer, scrollTarget,
+                                             isAncestor);
   }
 }
 
@@ -848,7 +873,9 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
 bool
 AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame)
 {
-  PROFILER_LABEL("AsyncCompositionManager", "TransformShadowTree");
+  PROFILER_LABEL("AsyncCompositionManager", "TransformShadowTree",
+    js::ProfileEntry::Category::GRAPHICS);
+
   Layer* root = mLayerManager->GetRoot();
   if (!root) {
     return false;

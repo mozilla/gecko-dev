@@ -91,7 +91,7 @@ nsMathMLmspaceFrame::ProcessAttributes(nsPresContext* aPresContext)
   }
 }
 
-nsresult
+void
 nsMathMLmspaceFrame::Reflow(nsPresContext*          aPresContext,
                             nsHTMLReflowMetrics&     aDesiredSize,
                             const nsHTMLReflowState& aReflowState,
@@ -106,15 +106,14 @@ nsMathMLmspaceFrame::Reflow(nsPresContext*          aPresContext,
   mBoundingMetrics.leftBearing = 0;
   mBoundingMetrics.rightBearing = mBoundingMetrics.width;
 
-  aDesiredSize.SetTopAscent(mHeight);
+  aDesiredSize.SetBlockStartAscent(mHeight);
   aDesiredSize.Width() = std::max(0, mBoundingMetrics.width);
-  aDesiredSize.Height() = aDesiredSize.TopAscent() + mDepth;
+  aDesiredSize.Height() = aDesiredSize.BlockStartAscent() + mDepth;
   // Also return our bounding metrics
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return NS_OK;
 }
 
 /* virtual */ nsresult

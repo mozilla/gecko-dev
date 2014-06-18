@@ -25,7 +25,7 @@
 #include <utils/RefBase.h>
 #include <utils/threads.h>
 
-namespace android {
+namespace stagefright {
 
 class DataSource;
 struct SampleIterator;
@@ -66,6 +66,7 @@ public:
             off64_t *offset,
             size_t *size,
             uint32_t *compositionTime,
+            uint32_t *duration = NULL,
             bool *isSyncSample = NULL);
 
     enum {
@@ -148,6 +149,6 @@ private:
     SampleTable &operator=(const SampleTable &);
 };
 
-}  // namespace android
+}  // namespace stagefright
 
 #endif  // SAMPLE_TABLE_H_

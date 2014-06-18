@@ -22,6 +22,8 @@
 #include "js/Vector.h"
 #include "vm/RegExpObject.h"
 
+struct KeywordInfo;
+
 namespace js {
 namespace frontend {
 
@@ -43,6 +45,7 @@ enum TokenKind {
     TOK_NAME,                      // identifier
     TOK_NUMBER,                    // numeric constant
     TOK_STRING,                    // string constant
+    TOK_TEMPLATE_STRING,           // template string
     TOK_REGEXP,                    // RegExp constant
     TOK_TRUE,                      // true
     TOK_FALSE,                     // false
@@ -275,7 +278,7 @@ struct Token
     }
 
     void setAtom(JSAtom *atom) {
-        JS_ASSERT(type == TOK_STRING);
+        JS_ASSERT (type == TOK_STRING || type == TOK_TEMPLATE_STRING);
         JS_ASSERT(!IsPoisonedPtr(atom));
         u.atom = atom;
     }
@@ -300,7 +303,7 @@ struct Token
     }
 
     JSAtom *atom() const {
-        JS_ASSERT(type == TOK_STRING);
+        JS_ASSERT (type == TOK_STRING || type == TOK_TEMPLATE_STRING);
         return u.atom;
     }
 
@@ -597,7 +600,7 @@ class MOZ_STACK_CLASS TokenStream
         //
         // This class is explicity ignored by the analysis, so don't add any
         // more pointers to GC things here!
-        Position(AutoKeepAtoms&) { }
+        explicit Position(AutoKeepAtoms&) { }
       private:
         Position(const Position&) MOZ_DELETE;
         friend class TokenStream;
@@ -654,7 +657,9 @@ class MOZ_STACK_CLASS TokenStream
     // null, report a SyntaxError ("if is a reserved identifier") and return
     // false. If ttp is non-null, return true with the keyword's TokenKind in
     // *ttp.
+    bool checkForKeyword(const KeywordInfo *kw, TokenKind *ttp);
     bool checkForKeyword(const jschar *s, size_t length, TokenKind *ttp);
+    bool checkForKeyword(JSAtom *atom, TokenKind *ttp);
 
     // This class maps a userbuf offset (which is 0-indexed) to a line number
     // (which is 1-indexed) and a column index (which is 0-indexed).

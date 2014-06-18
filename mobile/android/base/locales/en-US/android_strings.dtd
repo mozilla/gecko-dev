@@ -62,11 +62,28 @@
      We can't use android plural forms, sadly. See bug #753859. -->
 <!ENTITY num_tabs2 "&formatD; tabs">
 <!ENTITY new_tab_opened "New tab opened">
+<!ENTITY new_private_tab_opened "New private tab opened">
+<!-- Localization note (switch_button_message): This string should be as short
+     as possible because it's shown as a label in a toast.  Ideally, this string
+     is upper-case, to match Google and Android's convention. -->
+<!ENTITY switch_button_message "SWITCH">
 
 <!ENTITY settings "Settings">
 <!ENTITY settings_title "Settings">
 <!ENTITY pref_category_advanced "Advanced">
 <!ENTITY pref_category_customize "Customize">
+
+<!-- Localization note (pref_category_language) : This is the preferences
+     section in which the user picks the locale in which to display Firefox
+     UI. The locale includes both language and region concepts. -->
+<!ENTITY pref_category_language "Language">
+<!ENTITY pref_browser_locale "Browser language">
+
+<!-- Localization note (locale_system_default) : This string indicates that
+     Firefox will use the locale currently selected in Android's settings
+     to display browser chrome. -->
+<!ENTITY locale_system_default "System default">
+
 <!ENTITY pref_category_search3 "Search">
 <!ENTITY pref_category_search_summary "Customize your search providers">
 <!ENTITY pref_category_display "Display">
@@ -92,7 +109,6 @@
 <!ENTITY pref_category_home "Home">
 <!ENTITY pref_category_home_summary "Customize your homepage">
 <!ENTITY pref_category_home_panels "Panels">
-<!ENTITY pref_home_add_panel "Add panel">
 <!ENTITY home_add_panel_title "Add new panel">
 <!ENTITY home_add_panel_empty "Sorry, we couldn\'t find any panels for you to add.">
 <!-- Localization note (home_add_panel_installed):
@@ -103,12 +119,15 @@
 <!ENTITY pref_home_updates "Automatic updates">
 <!ENTITY pref_home_updates_enabled "Enabled">
 <!ENTITY pref_home_updates_wifi "Only over Wi-Fi">
+<!ENTITY pref_home_suggested_sites "Show site suggestions">
+<!ENTITY pref_home_suggested_sites_summary "Display shortcuts to sites on your homepage that we think you might find interesting">
 
 <!-- Localization note: These are shown in the left sidebar on tablets -->
 <!ENTITY pref_header_customize "Customize">
 <!ENTITY pref_header_display "Display">
 <!ENTITY pref_header_privacy_short "Privacy">
 <!ENTITY pref_header_help "Help">
+<!ENTITY pref_header_language "Language">
 <!ENTITY pref_header_vendor "&vendorShortName;">
 <!ENTITY pref_header_devtools "Developer tools">
 
@@ -216,6 +235,9 @@ size. -->
 <!ENTITY pref_update_autodownload_never "Never">
 <!ENTITY pref_update_autodownload_always "Always">
 
+<!-- Localization note (help_menu) : This string is used in the main menu-->
+<!ENTITY help_menu "Help">
+
 <!ENTITY quit "Quit">
 
 <!ENTITY addons "Add-ons">
@@ -279,7 +301,10 @@ size. -->
      whether or not the dynamic toolbar is enabled. -->
 <!ENTITY pref_scroll_title_bar "Scroll title bar">
 
-<!ENTITY history_removed "Page removed">
+<!-- Localization note (page_removed): This string appears in a toast message when
+     any page is removed frome about:home. This includes pages that are in history,
+     bookmarks, or reading list. -->
+<!ENTITY page_removed "Page removed">
 
 <!ENTITY bookmark_edit_title "Edit Bookmark">
 <!ENTITY bookmark_edit_name "Name">
@@ -294,7 +319,6 @@ size. -->
 <!ENTITY site_settings_no_settings  "There are no settings to clear.">
 
 <!ENTITY reading_list_added "Page added to your Reading List">
-<!ENTITY reading_list_removed "Page removed from your Reading List">
 <!ENTITY reading_list_failed "Failed to add page to your Reading List">
 <!ENTITY reading_list_duplicate "Page already in your Reading List">
 
@@ -321,6 +345,8 @@ size. -->
 <!ENTITY home_top_sites_add "Add a site">
 
 <!ENTITY home_history_title "History">
+<!ENTITY home_clear_history_button "Clear browsing history">
+<!ENTITY home_clear_history_confirm "Are you sure you want to clear your history?">
 <!ENTITY home_bookmarks_empty "Bookmarks you save show up here.">
 <!ENTITY home_last_tabs_title "Tabs from last time">
 <!ENTITY home_last_tabs_open "Open all tabs from last time">
@@ -344,6 +370,10 @@ size. -->
 <!-- Localization note (home_move_up_to_filter): The variable is replaced by the name of the
      previous location in the navigation, such as the previous folder -->
 <!ENTITY home_move_up_to_filter "Up to &formatS;">
+
+<!ENTITY private_browsing_title "Private Browsing">
+<!ENTITY private_tabs_panel_description "Your private tabs will show up here. While we don\'t keep any form of your browsing history or cookies, files that you download will still be saved on your device.">
+<!ENTITY private_tabs_panel_learn_more "Want to learn more?">
 
 <!ENTITY pin_site_dialog_hint "Enter a search keyword">
 

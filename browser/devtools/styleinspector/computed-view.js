@@ -26,6 +26,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
 const FILTER_CHANGED_TIMEOUT = 300;
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+const TRANSFORM_HIGHLIGHTER_TYPE = "CssTransformHighlighter";
 
 /**
  * Helper for long-running processes that should yield occasionally to
@@ -149,6 +150,7 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this._onSelectAll = this._onSelectAll.bind(this);
   this._onClick = this._onClick.bind(this);
   this._onCopy = this._onCopy.bind(this);
+  this._onCopyColor = this._onCopyColor.bind(this);
 
   this.styleDocument.addEventListener("copy", this._onCopy);
   this.styleDocument.addEventListener("mousedown", this.focusWindow);
@@ -186,6 +188,12 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
 
   this._buildContextMenu();
   this.createStyleViews();
+
+  // Initialize the css transform highlighter if the target supports it
+  let hUtils = this.styleInspector.inspector.toolbox.highlighterUtils;
+  if (hUtils.hasCustomHighlighter(TRANSFORM_HIGHLIGHTER_TYPE)) {
+    this._initTransformHighlighter();
+  }
 }
 
 /**
@@ -421,10 +429,10 @@ CssHtmlTree.prototype = {
       win.clearTimeout(this._filterChangedTimeout);
     }
 
-    this._filterChangedTimeout = win.setTimeout(function() {
+    this._filterChangedTimeout = win.setTimeout(() => {
       this.refreshPanel();
       this._filterChangeTimeout = null;
-    }.bind(this), FILTER_CHANGED_TIMEOUT);
+    }, FILTER_CHANGED_TIMEOUT);
   },
 
   /**
@@ -513,6 +521,65 @@ CssHtmlTree.prototype = {
   },
 
   /**
+   * Get the css transform highlighter front, initializing it if needed
+   * @param a promise that resolves to the highlighter
+   */
+  getTransformHighlighter: function() {
+    if (this.transformHighlighterPromise) {
+      return this.transformHighlighterPromise;
+    }
+
+    let utils = this.styleInspector.inspector.toolbox.highlighterUtils;
+    this.transformHighlighterPromise =
+      utils.getHighlighterByType(TRANSFORM_HIGHLIGHTER_TYPE).then(highlighter => {
+        this.transformHighlighter = highlighter;
+        return this.transformHighlighter;
+      });
+
+    return this.transformHighlighterPromise;
+  },
+
+  _initTransformHighlighter: function() {
+    this.isTransformHighlighterShown = false;
+
+    this._onMouseMove = this._onMouseMove.bind(this);
+    this._onMouseLeave = this._onMouseLeave.bind(this);
+
+    this.propertyContainer.addEventListener("mousemove", this._onMouseMove, false);
+    this.propertyContainer.addEventListener("mouseleave", this._onMouseLeave, false);
+  },
+
+  _onMouseMove: function(event) {
+    if (event.target === this._lastHovered) {
+      return;
+    }
+
+    if (this.isTransformHighlighterShown) {
+      this.isTransformHighlighterShown = false;
+      this.getTransformHighlighter().then(highlighter => highlighter.hide());
+    }
+
+    this._lastHovered = event.target;
+    if (this._lastHovered.classList.contains("property-value")) {
+      let propName = this._lastHovered.parentNode.querySelector(".property-name");
+
+      if (propName.textContent === "transform") {
+        this.isTransformHighlighterShown = true;
+        let node = this.styleInspector.inspector.selection.nodeFront;
+        this.getTransformHighlighter().then(highlighter => highlighter.show(node));
+      }
+    }
+  },
+
+  _onMouseLeave: function(event) {
+    this._lastHovered = null;
+    if (this.isTransformHighlighterShown) {
+      this.isTransformHighlighterShown = false;
+      this.getTransformHighlighter().then(highlighter => highlighter.hide());
+    }
+  },
+
+  /**
    * Executed by the tooltip when the pointer hovers over an element of the view.
    * Used to decide whether the tooltip should be shown or not and to actually
    * put content in it.
@@ -537,16 +604,14 @@ CssHtmlTree.prototype = {
       let propValue = target;
       let propName = target.parentNode.querySelector(".property-name");
 
-      // Test for css transform
-      if (propName.textContent === "transform") {
-        return this.tooltip.setCssTransformContent(propValue.textContent,
-          this.pageStyle, this.viewedElement);
-      }
-
       // Test for font family
       if (propName.textContent === "font-family") {
-        this.tooltip.setFontFamilyContent(propValue.textContent);
-        return true;
+        let prop = propValue.textContent.toLowerCase();
+
+        if (prop !== "inherit" && prop !== "unset" && prop !== "initial") {
+          return this.tooltip.setFontFamilyContent(propValue.textContent,
+            inspector.selection.nodeFront);
+        }
       }
     }
 
@@ -578,6 +643,13 @@ CssHtmlTree.prototype = {
       label: "computedView.contextmenu.copy",
       accesskey: "computedView.contextmenu.copy.accessKey",
       command: this._onCopy
+    });
+
+    // Copy color
+    this.menuitemCopyColor = createMenuItem(this._contextmenu, {
+      label: "ruleView.contextmenu.copyColor",
+      accesskey: "ruleView.contextmenu.copyColor.accessKey",
+      command: this._onCopyColor
     });
 
     // Show Original Sources
@@ -615,6 +687,39 @@ CssHtmlTree.prototype = {
     let accessKey = label + ".accessKey";
     this.menuitemSources.setAttribute("accesskey",
                                       CssHtmlTree.l10n(accessKey));
+
+    this.menuitemCopyColor.hidden = !this._isColorPopup();
+  },
+
+  /**
+   * A helper that determines if the popup was opened with a click to a color
+   * value and saves the color to this._colorToCopy.
+   *
+   * @return {Boolean}
+   *         true if click on color opened the popup, false otherwise.
+   */
+  _isColorPopup: function () {
+    this._colorToCopy = "";
+
+    let trigger = this.popupNode;
+    if (!trigger) {
+      return false;
+    }
+
+    let container = (trigger.nodeType == trigger.TEXT_NODE) ?
+                     trigger.parentElement : trigger;
+
+    let isColorNode = el => el.dataset && "color" in el.dataset;
+
+    while (!isColorNode(container)) {
+      container = container.parentNode;
+      if (!container) {
+        return false;
+      }
+    }
+
+    this._colorToCopy = container.dataset["color"];
+    return true;
   },
 
   /**
@@ -622,6 +727,7 @@ CssHtmlTree.prototype = {
    */
   _onContextMenu: function(event) {
     try {
+      this.popupNode = event.explicitOriginalTarget;
       this.styleDocument.defaultView.focus();
       this._contextmenu.openPopupAtScreen(event.screenX, event.screenY, true);
     } catch(e) {
@@ -654,6 +760,10 @@ CssHtmlTree.prototype = {
                            .tab.ownerDocument.defaultView;
       browserWin.openUILinkIn(target.href, "tab");
     }
+  },
+
+  _onCopyColor: function() {
+    clipboardHelper.copyString(this._colorToCopy, this.styleDocument);
   },
 
   /**
@@ -747,14 +857,30 @@ CssHtmlTree.prototype = {
       this.menuitemSelectAll.removeEventListener("command", this._onSelectAll);
       this.menuitemSelectAll = null;
 
+      // Destroy Copy Color menuitem.
+      this.menuitemCopyColor.removeEventListener("command", this._onCopyColor);
+      this.menuitemCopyColor = null;
+
       // Destroy the context menu.
       this._contextmenu.removeEventListener("popupshowing", this._contextMenuUpdate);
       this._contextmenu.parentNode.removeChild(this._contextmenu);
       this._contextmenu = null;
     }
 
+    this.popupNode = null;
+
     this.tooltip.stopTogglingOnHover(this.propertyContainer);
     this.tooltip.destroy();
+
+    if (this.transformHighlighter) {
+      this.transformHighlighter.finalize();
+      this.transformHighlighter = null;
+
+      this.propertyContainer.removeEventListener("mousemove", this._onMouseMove, false);
+      this.propertyContainer.removeEventListener("mouseleave", this._onMouseLeave, false);
+
+      this._lastHovered = null;
+    }
 
     // Remove bound listeners
     this.styleDocument.removeEventListener("contextmenu", this._onContextMenu);

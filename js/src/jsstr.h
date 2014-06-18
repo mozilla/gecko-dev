@@ -34,8 +34,9 @@ ConcatStrings(ThreadSafeContext *cx,
               typename MaybeRooted<JSString*, allowGC>::HandleType right);
 
 // Return s advanced past any Unicode white space characters.
-static inline const jschar *
-SkipSpace(const jschar *s, const jschar *end)
+template <typename CharT>
+static inline const CharT *
+SkipSpace(const CharT *s, const CharT *end)
 {
     JS_ASSERT(s <= end);
 
@@ -47,25 +48,20 @@ SkipSpace(const jschar *s, const jschar *end)
 
 // Return less than, equal to, or greater than zero depending on whether
 // s1 is less than, equal to, or greater than s2.
+template <typename Char1, typename Char2>
 inline int32_t
-CompareChars(const jschar *s1, size_t l1, const jschar *s2, size_t l2)
+CompareChars(const Char1 *s1, size_t len1, const Char2 *s2, size_t len2)
 {
-    size_t n = Min(l1, l2);
+    size_t n = Min(len1, len2);
     for (size_t i = 0; i < n; i++) {
         if (int32_t cmp = s1[i] - s2[i])
             return cmp;
     }
 
-    return (int32_t)(l1 - l2);
+    return int32_t(len1 - len2);
 }
 
 }  /* namespace js */
-
-extern JSString * JS_FASTCALL
-js_toLowerCase(JSContext *cx, JSString *str);
-
-extern JSString * JS_FASTCALL
-js_toUpperCase(JSContext *cx, JSString *str);
 
 struct JSSubString {
     size_t          length;
@@ -98,21 +94,17 @@ extern const char js_decodeURIComponent_str[];
 extern const char js_encodeURIComponent_str[];
 
 /* GC-allocate a string descriptor for the given malloc-allocated chars. */
-template <js::AllowGC allowGC>
+template <js::AllowGC allowGC, typename CharT>
 extern JSFlatString *
-js_NewString(js::ThreadSafeContext *cx, jschar *chars, size_t length);
+js_NewString(js::ThreadSafeContext *cx, CharT *chars, size_t length);
 
 extern JSLinearString *
 js_NewDependentString(JSContext *cx, JSString *base, size_t start, size_t length);
 
 /* Copy a counted string and GC-allocate a descriptor for it. */
-template <js::AllowGC allowGC>
+template <js::AllowGC allowGC, typename CharT>
 extern JSFlatString *
-js_NewStringCopyN(js::ExclusiveContext *cx, const jschar *s, size_t n);
-
-template <js::AllowGC allowGC>
-extern JSFlatString *
-js_NewStringCopyN(js::ThreadSafeContext *cx, const char *s, size_t n);
+js_NewStringCopyN(js::ThreadSafeContext *cx, const CharT *s, size_t n);
 
 /* Copy a C string and GC-allocate a descriptor for it. */
 template <js::AllowGC allowGC>
@@ -192,6 +184,9 @@ EqualStrings(JSContext *cx, JSLinearString *str1, JSLinearString *str2, bool *re
 extern bool
 EqualStrings(JSLinearString *str1, JSLinearString *str2);
 
+extern bool
+EqualChars(JSLinearString *str1, JSLinearString *str2);
+
 /*
  * Return less than, equal to, or greater than zero depending on whether
  * str1 is less than, equal to, or greater than str2.
@@ -210,8 +205,7 @@ StringEqualsAscii(JSLinearString *str, const char *asciiBytes);
 
 /* Return true if the string contains a pattern anywhere inside it. */
 extern bool
-StringHasPattern(const jschar *text, uint32_t textlen,
-                 const jschar *pat, uint32_t patlen);
+StringHasPattern(JSLinearString *text, const jschar *pat, uint32_t patlen);
 
 extern int
 StringFindPattern(const jschar *text, uint32_t textlen,
@@ -242,6 +236,16 @@ js_strdup(js::ThreadSafeContext *cx, const jschar *s);
 
 namespace js {
 
+inline bool
+EqualCharsLatin1TwoByte(const Latin1Char *s1, const jschar *s2, size_t len)
+{
+    for (const Latin1Char *s1end = s1 + len; s1 < s1end; s1++, s2++) {
+        if (jschar(*s1) != *s2)
+            return false;
+    }
+    return true;
+}
+
 /*
  * Inflate bytes in ASCII encoding to jschars. Return null on error, otherwise
  * return the jschar that was malloc'ed. length is updated to the length of the
@@ -256,10 +260,17 @@ InflateString(ThreadSafeContext *cx, const char *bytes, size_t *length);
  * enough for 'srclen' jschars. The buffer is NOT null-terminated.
  */
 inline void
-InflateStringToBuffer(const char *src, size_t srclen, jschar *dst)
+CopyAndInflateChars(jschar *dst, const char *src, size_t srclen)
 {
     for (size_t i = 0; i < srclen; i++)
         dst[i] = (unsigned char) src[i];
+}
+
+inline void
+CopyAndInflateChars(jschar *dst, const JS::Latin1Char *src, size_t srclen)
+{
+    for (size_t i = 0; i < srclen; i++)
+        dst[i] = src[i];
 }
 
 /*
@@ -305,8 +316,9 @@ namespace js {
 extern size_t
 PutEscapedStringImpl(char *buffer, size_t size, FILE *fp, JSLinearString *str, uint32_t quote);
 
+template <typename CharT>
 extern size_t
-PutEscapedStringImpl(char *buffer, size_t bufferSize, FILE *fp, const jschar *chars,
+PutEscapedStringImpl(char *buffer, size_t bufferSize, FILE *fp, const CharT *chars,
                      size_t length, uint32_t quote);
 
 /*

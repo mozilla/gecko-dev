@@ -188,7 +188,7 @@ public:
 
   static bool     IsCallerChrome();
   static bool     ThreadsafeIsCallerChrome();
-  static bool     IsCallerXBL();
+  static bool     IsCallerContentXBL();
 
   static bool     IsImageSrcSetDisabled();
 
@@ -478,14 +478,11 @@ public:
 
   // Returns the subject principal. Guaranteed to return non-null. May only
   // be called when nsContentUtils is initialized.
-  static nsIPrincipal* GetSubjectPrincipal();
+  static nsIPrincipal* SubjectPrincipal();
 
-  // Returns the principal of the given JS object. This should never be null
-  // for any object in the XPConnect runtime.
-  //
-  // In general, being interested in the principal of an object is enough to
-  // guarantee that the return value is non-null.
-  static nsIPrincipal* GetObjectPrincipal(JSObject* aObj);
+  // Returns the prinipal of the given JS object. This may only be called on
+  // the main thread for objects from the main thread's JSRuntime.
+  static nsIPrincipal* ObjectPrincipal(JSObject* aObj);
 
   static nsresult GenerateStateKey(nsIContent* aContent,
                                    const nsIDocument* aDocument,
@@ -1338,6 +1335,12 @@ public:
   static nsIPrincipal* GetSystemPrincipal();
 
   /**
+   * Gets the null subject principal singleton. This is only useful for
+   * assertions.
+   */
+  static nsIPrincipal* GetNullSubjectPrincipal() { return sNullSubjectPrincipal; }
+
+  /**
    * *aResourcePrincipal is a principal describing who may access the contents
    * of a resource. The resource can only be consumed by a principal that
    * subsumes *aResourcePrincipal. MAKE SURE THAT NOTHING EVER ACTS WITH THE
@@ -1832,11 +1835,6 @@ public:
    */
   static bool IsFullscreenApiContentOnly();
 
-  /**
-   * Returns true if the idle observers API is enabled.
-   */
-  static bool IsIdleObserverAPIEnabled() { return sIsIdleObserverAPIEnabled; }
-
   /*
    * Returns true if the performance timing APIs are enabled.
    */
@@ -2029,6 +2027,22 @@ public:
    */
   static bool IsAutocompleteEnabled(nsIDOMHTMLInputElement* aInput);
 
+  enum AutocompleteAttrState MOZ_ENUM_TYPE(uint8_t)
+  {
+    eAutocompleteAttrState_Unknown = 1,
+    eAutocompleteAttrState_Invalid,
+    eAutocompleteAttrState_Valid,
+  };
+  /**
+   * Parses the value of the autocomplete attribute into aResult, ensuring it's
+   * composed of valid tokens, otherwise the value "" is used.
+   * Note that this method is used for form fields, not on a <form> itself.
+   *
+   * @return whether aAttr was valid and can be cached.
+   */
+  static AutocompleteAttrState SerializeAutocompleteAttribute(const nsAttrValue* aAttr,
+                                                          nsAString& aResult);
+
   /**
    * This will parse aSource, to extract the value of the pseudo attribute
    * with the name specified in aName. See
@@ -2168,10 +2182,14 @@ private:
   static void* AllocClassMatchingInfo(nsINode* aRootNode,
                                       const nsString* aClasses);
 
+  static AutocompleteAttrState InternalSerializeAutocompleteAttribute(const nsAttrValue* aAttrVal,
+                                                                  nsAString& aResult);
+
   static nsIXPConnect *sXPConnect;
 
   static nsIScriptSecurityManager *sSecurityManager;
   static nsIPrincipal *sSystemPrincipal;
+  static nsIPrincipal *sNullSubjectPrincipal;
 
   static nsIParserService *sParserService;
 
@@ -2224,9 +2242,9 @@ private:
   static bool sTrustedFullScreenOnly;
   static bool sFullscreenApiIsContentOnly;
   static uint32_t sHandlingInputTimeout;
-  static bool sIsIdleObserverAPIEnabled;
   static bool sIsPerformanceTimingEnabled;
   static bool sIsResourceTimingEnabled;
+  static bool sIsExperimentalAutocompleteEnabled;
 
   static nsHtml5StringParser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;

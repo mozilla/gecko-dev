@@ -26,10 +26,10 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/gfx/2D.h"
 
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace layers {
+
+using namespace mozilla::gfx;
 
 ThebesLayerD3D10::ThebesLayerD3D10(LayerManagerD3D10 *aManager)
   : ThebesLayer(aManager, nullptr)
@@ -47,7 +47,7 @@ void
 ThebesLayerD3D10::InvalidateRegion(const nsIntRegion &aRegion)
 {
   mInvalidRegion.Or(mInvalidRegion, aRegion);
-  mInvalidRegion.SimplifyOutward(10);
+  mInvalidRegion.SimplifyOutward(20);
   mValidRegion.Sub(mValidRegion, mInvalidRegion);
 }
 
@@ -404,6 +404,8 @@ ThebesLayerD3D10::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode)
     return;
   }
 
+  aRegion.SimplifyOutwardByArea(100 * 100);
+
   nsRefPtr<gfxASurface> destinationSurface;
   
   if (aMode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
@@ -411,8 +413,6 @@ ThebesLayerD3D10::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode)
   } else {
     destinationSurface = mD2DSurface;
   }
-
-  aRegion.SimplifyOutwardByArea(100 * 100);
 
   MOZ_ASSERT(mDrawTarget);
   nsRefPtr<gfxContext> context = new gfxContext(mDrawTarget);

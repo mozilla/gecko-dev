@@ -8,9 +8,8 @@
 
 #include "jit/IonSpewer.h"
 
-#include "jsworkers.h"
-
 #include "jit/Ion.h"
+#include "vm/HelperThreads.h"
 
 #ifndef ION_SPEW_DIR
 # if defined(_WIN32)
@@ -151,7 +150,6 @@ IonSpewer::beginFunction(MIRGraph *graph, HandleScript function)
     }
 
     this->graph = graph;
-    this->function.repoint(function);
 
     c1Spewer.beginFunction(graph, function);
     jsonSpewer.beginFunction(function);

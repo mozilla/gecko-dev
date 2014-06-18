@@ -84,6 +84,8 @@ public:
                         gfx::Float aOpacity,
                         const gfx::Matrix4x4 &aTransform) MOZ_OVERRIDE;
 
+  virtual void ClearRect(const gfx::Rect& aRect) MOZ_OVERRIDE;
+
   virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
                           const gfx::Rect *aClipRectIn,
                           const gfx::Matrix& aTransform,
@@ -101,10 +103,6 @@ public:
   virtual bool CanUseCanvasLayerForSize(const gfx::IntSize &aSize) MOZ_OVERRIDE { return true; }
   virtual int32_t GetMaxTextureSize() const MOZ_OVERRIDE { return INT32_MAX; }
   virtual void SetDestinationSurfaceSize(const gfx::IntSize& aSize) MOZ_OVERRIDE { }
-  virtual void SetTargetContext(gfx::DrawTarget* aTarget) MOZ_OVERRIDE
-  {
-    mCopyTarget = aTarget;
-  }
   
   virtual void SetScreenRenderOffset(const ScreenPoint& aOffset) MOZ_OVERRIDE {
   }
@@ -136,9 +134,6 @@ private:
   RefPtr<gfx::DrawTarget> mDrawTarget;
   // The current render target for drawing
   RefPtr<BasicCompositingRenderTarget> mRenderTarget;
-  // An optional destination target to copy the results
-  // to after drawing is completed.
-  RefPtr<gfx::DrawTarget> mCopyTarget;
 
   gfx::IntRect mInvalidRect;
   nsIntRegion mInvalidRegion;

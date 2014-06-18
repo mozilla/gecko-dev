@@ -196,9 +196,9 @@ AboutReader.prototype = {
         }
         break;
       }
-
       case "Reader:Remove": {
-        if (aData == this._article.url) {
+        let args = JSON.parse(aData);
+        if (args.url == this._article.url) {
           if (this._isReadingListItem != 0) {
             this._isReadingListItem = 0;
             this._updateToggleButton();
@@ -289,10 +289,8 @@ AboutReader.prototype = {
     this._isReadingListItem = (this._isReadingListItem == 1) ? 0 : 1;
     this._updateToggleButton();
 
-    // Create a relative timestamp for telemetry
-    let uptime = Date.now() - Services.startup.getStartupInfo().linkerInitialized;
-
     if (this._isReadingListItem == 1) {
+      let uptime = UITelemetry.uptimeMillis();
       gChromeWin.Reader.storeArticleInCache(this._article, function(success) {
         dump("Reader:Add (in reader) success=" + success);
 
@@ -318,9 +316,10 @@ AboutReader.prototype = {
       // In addition to removing the article from the cache (handled in
       // browser.js), sending this message will cause the toggle button to be
       // updated (handled in this file).
-      Services.obs.notifyObservers(null, "Reader:Remove", this._article.url);
+      let json = JSON.stringify({ url: this._article.url, notify: true });
+      Services.obs.notifyObservers(null, "Reader:Remove", json);
 
-      UITelemetry.addEvent("unsave.1", "button", uptime, "reader");
+      UITelemetry.addEvent("unsave.1", "button", null, "reader");
     }
   },
 
@@ -334,9 +333,7 @@ AboutReader.prototype = {
       title: this._article.title
     });
 
-    // Create a relative timestamp for telemetry
-    let uptime = Date.now() - Services.startup.getStartupInfo().linkerInitialized;
-    UITelemetry.addEvent("share.1", "list", uptime);
+    UITelemetry.addEvent("share.1", "list", null);
   },
 
   _setFontSize: function Reader_setFontSize(newFontSize) {
@@ -704,11 +701,9 @@ AboutReader.prototype = {
 
         aEvent.stopPropagation();
 
-        // Create a relative timestamp for telemetry
-        let uptime = Date.now() - Services.startup.getStartupInfo().linkerInitialized;
         // Just pass the ID of the button as an extra and hope the ID doesn't change
         // unless the context changes
-        UITelemetry.addEvent("action.1", "button", uptime, id);
+        UITelemetry.addEvent("action.1", "button", null, id);
 
         let items = segmentedButton.children;
         for (let j = items.length - 1; j >= 0; j--) {

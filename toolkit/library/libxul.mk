@@ -168,7 +168,11 @@ EXTRA_DSO_LDOPTS += $(MOZ_DBUS_GLIB_LIBS)
 endif
 
 ifdef MOZ_WIDGET_GTK
+ifdef MOZ_ENABLE_GTK3
+EXTRA_DSO_LDOPTS += $(filter-out -lgtk-3 -lgdk-3,$(TK_LIBS)) -lmozgtk_stub
+else
 EXTRA_DSO_LDOPTS += $(TK_LIBS)
+endif
 EXTRA_DSO_LDOPTS += $(XLDFLAGS) $(XLIBS) $(XEXT_LIBS) $(XCOMPOSITE_LIBS) $(MOZ_PANGO_LIBS) $(XT_LIBS) -lgthread-2.0
 EXTRA_DSO_LDOPTS += $(FT2_LIBS)
 endif
@@ -198,16 +202,12 @@ EXTRA_DSO_LDOPTS += -lelf -ldemangle
 endif
 endif
 
-ifneq (,$(filter DragonFly FreeBSD NetBSD OpenBSD,$(OS_ARCH)))
-OS_LIBS += $(call EXPAND_LIBNAME,kvm)
-endif
-
 ifeq ($(OS_ARCH),FreeBSD)
 OS_LIBS += $(call EXPAND_LIBNAME,util)
 endif
 
 ifeq ($(OS_ARCH),WINNT)
-OS_LIBS += $(call EXPAND_LIBNAME,shell32 ole32 version winspool comdlg32 imm32 msimg32 shlwapi psapi ws2_32 dbghelp rasapi32 rasdlg iphlpapi uxtheme setupapi secur32 sensorsapi portabledeviceguids windowscodecs wininet wbemuuid wintrust)
+OS_LIBS += $(call EXPAND_LIBNAME,shell32 ole32 version winspool comdlg32 imm32 msimg32 shlwapi psapi ws2_32 dbghelp rasapi32 rasdlg iphlpapi uxtheme setupapi secur32 sensorsapi portabledeviceguids windowscodecs wininet wbemuuid wintrust wtsapi32)
 ifdef ACCESSIBILITY
 OS_LIBS += $(call EXPAND_LIBNAME,oleacc)
 endif

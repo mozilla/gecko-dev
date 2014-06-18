@@ -14,9 +14,11 @@
 #include "LayerSorter.h"                // for SortLayersBy3DZOrder
 #include "LayersLogging.h"              // for AppendToString
 #include "ReadbackLayer.h"              // for ReadbackLayer
+#include "gfxImageSurface.h"
 #include "gfxPlatform.h"                // for gfxPlatform
 #include "gfxUtils.h"                   // for gfxUtils, etc
 #include "gfx2DGlue.h"
+#include "gfxImageSurface.h"
 #include "mozilla/DebugOnly.h"          // for DebugOnly
 #include "mozilla/Telemetry.h"          // for Accumulate
 #include "mozilla/gfx/2D.h"             // for DrawTarget
@@ -33,13 +35,10 @@
 #include "nsStyleStruct.h"              // for nsTimingFunction, etc
 #include "gfxPrefs.h"
 
-using namespace mozilla::layers;
-using namespace mozilla::gfx;
-
-typedef FrameMetrics::ViewID ViewID;
-const ViewID FrameMetrics::NULL_SCROLL_ID = 0;
-
 uint8_t gLayerManagerLayerBuilder;
+
+namespace mozilla {
+namespace layers {
 
 FILE*
 FILEOrDefault(FILE* aFile)
@@ -47,8 +46,10 @@ FILEOrDefault(FILE* aFile)
   return aFile ? aFile : stderr;
 }
 
-namespace mozilla {
-namespace layers {
+typedef FrameMetrics::ViewID ViewID;
+const ViewID FrameMetrics::NULL_SCROLL_ID = 0;
+
+using namespace mozilla::gfx;
 
 //--------------------------------------------------
 // LayerManager
@@ -739,6 +740,7 @@ ContainerLayer::ContainerLayer(LayerManager* aManager, void* aImplData)
     mPreYScale(1.0f),
     mInheritedXScale(1.0f),
     mInheritedYScale(1.0f),
+    mBackgroundColor(0, 0, 0, 0),
     mUseIntermediateSurface(false),
     mSupportsComponentAlphaChildren(false),
     mMayHaveReadbackChild(false)
@@ -897,7 +899,8 @@ ContainerLayer::FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
 {
   aAttrs = ContainerLayerAttributes(GetFrameMetrics(), mScrollHandoffParentId,
                                     mPreXScale, mPreYScale,
-                                    mInheritedXScale, mInheritedYScale);
+                                    mInheritedXScale, mInheritedYScale,
+                                    mBackgroundColor);
 }
 
 bool
@@ -1205,7 +1208,7 @@ void WriteSnapshotLinkToDumpFile(T* aObj, FILE* aFile)
     return;
   }
   nsCString string(aObj->Name());
-  string.Append("-");
+  string.Append('-');
   string.AppendInt((uint64_t)aObj);
   fprintf_stderr(aFile, "href=\"javascript:ViewImage('%s')\"", string.BeginReading());
 }
@@ -1219,7 +1222,7 @@ void WriteSnapshotToDumpFile_internal(T* aObj, DataSourceSurface* aSurf)
                         aSurf->Stride(),
                         SurfaceFormatToImageFormat(aSurf->GetFormat()));
   nsCString string(aObj->Name());
-  string.Append("-");
+  string.Append('-');
   string.AppendInt((uint64_t)aObj);
   if (gfxUtils::sDumpPaintFile) {
     fprintf_stderr(gfxUtils::sDumpPaintFile, "array[\"%s\"]=\"", string.BeginReading());
@@ -1263,7 +1266,7 @@ Layer::Dump(FILE* aFile, const char* aPrefix, bool aDumpHtml)
   DumpSelf(aFile, aPrefix);
 
 #ifdef MOZ_DUMP_PAINTING
-  if (AsLayerComposite() && AsLayerComposite()->GetCompositableHost()) {
+  if (gfxUtils::sDumpPainting && AsLayerComposite() && AsLayerComposite()->GetCompositableHost()) {
     AsLayerComposite()->GetCompositableHost()->Dump(aFile, aPrefix, aDumpHtml);
   }
 #endif
@@ -1347,7 +1350,7 @@ Layer::PrintInfo(nsACString& aTo, const char* aPrefix)
   aTo += aPrefix;
   aTo += nsPrintfCString("%s%s (0x%p)", mManager->Name(), Name(), this);
 
-  ::PrintInfo(aTo, AsLayerComposite());
+  layers::PrintInfo(aTo, AsLayerComposite());
 
   if (mUseClipRect) {
     AppendToString(aTo, mClipRect, " [clip=", "]");

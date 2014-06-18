@@ -9,7 +9,6 @@
 
 #include "AppProcessChecker.h"
 #include "ContentChild.h"
-#include "ContentParent.h"
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
 #include "nsError.h"
@@ -31,6 +30,8 @@
 #include "nsIDOMFile.h"
 #include "xpcpublic.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/dom/nsIContentParent.h"
+#include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/StructuredCloneUtils.h"
 #include "mozilla/dom/PBlobChild.h"
 #include "mozilla/dom/PBlobParent.h"
@@ -38,6 +39,7 @@
 #include "JavaScriptParent.h"
 #include "mozilla/dom/DOMStringList.h"
 #include "nsPrintfCString.h"
+#include "nsXULAppAPI.h"
 #include <algorithm>
 
 #ifdef ANDROID
@@ -144,7 +146,7 @@ struct BlobTraits<Parent>
 {
   typedef mozilla::dom::BlobParent BlobType;
   typedef mozilla::dom::PBlobParent ProtocolType;
-  typedef mozilla::dom::ContentParent ConcreteContentManagerType;
+  typedef mozilla::dom::nsIContentParent ConcreteContentManagerType;
 };
 
 template <>
@@ -152,7 +154,7 @@ struct BlobTraits<Child>
 {
   typedef mozilla::dom::BlobChild BlobType;
   typedef mozilla::dom::PBlobChild ProtocolType;
-  typedef mozilla::dom::ContentChild ConcreteContentManagerType;
+  typedef mozilla::dom::nsIContentChild ConcreteContentManagerType;
 };
 
 template<ActorFlavorEnum>
@@ -219,7 +221,7 @@ BuildClonedMessageData(typename BlobTraits<Flavor>::ConcreteContentManagerType* 
 }
 
 bool
-MessageManagerCallback::BuildClonedMessageDataForParent(ContentParent* aParent,
+MessageManagerCallback::BuildClonedMessageDataForParent(nsIContentParent* aParent,
                                                         const StructuredCloneData& aData,
                                                         ClonedMessageData& aClonedData)
 {
@@ -227,7 +229,7 @@ MessageManagerCallback::BuildClonedMessageDataForParent(ContentParent* aParent,
 }
 
 bool
-MessageManagerCallback::BuildClonedMessageDataForChild(ContentChild* aChild,
+MessageManagerCallback::BuildClonedMessageDataForChild(nsIContentChild* aChild,
                                                        const StructuredCloneData& aData,
                                                        ClonedMessageData& aClonedData)
 {
@@ -431,7 +433,7 @@ nsFrameMessageManager::LoadFrameScript(const nsAString& aURL,
   aRunInGlobalScope = true;
 
   if (aAllowDelayedLoad) {
-    if (IsGlobal() || IsWindowLevel()) {
+    if (IsGlobal() || IsBroadcaster()) {
       // Cache for future windows or frames
       mPendingScripts.AppendElement(aURL);
       mPendingScriptsGlobalStates.AppendElement(aRunInGlobalScope);
@@ -481,7 +483,7 @@ nsFrameMessageManager::GetDelayedFrameScripts(JSContext* aCx, JS::MutableHandle<
 {
   // Frame message managers may return an incomplete list because scripts
   // that were loaded after it was connected are not added to the list.
-  if (!IsGlobal() && !IsWindowLevel()) {
+  if (!IsGlobal() && !IsBroadcaster()) {
     NS_WARNING("Cannot retrieve list of pending frame scripts for frame"
                "message managers as it may be incomplete");
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -590,7 +592,7 @@ nsFrameMessageManager::SendMessage(const nsAString& aMessageName,
                                    bool aIsSync)
 {
   NS_ASSERTION(!IsGlobal(), "Should not call SendSyncMessage in chrome");
-  NS_ASSERTION(!IsWindowLevel(), "Should not call SendSyncMessage in chrome");
+  NS_ASSERTION(!IsBroadcaster(), "Should not call SendSyncMessage in chrome");
   NS_ASSERTION(!mParentManager, "Should not have parent manager in content!");
 
   aRetval.setUndefined();
@@ -1069,7 +1071,7 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
           return NS_ERROR_UNEXPECTED;
         }
 
-        if (!JS_CallFunctionValue(cx, thisObject, funval, argv, &rval)) {
+        if (!JS_CallFunctionValue(cx, thisObject, funval, JS::HandleValueArray(argv), &rval)) {
           nsJSUtils::ReportPendingException(cx);
           continue;
         }
@@ -1099,19 +1101,26 @@ nsFrameMessageManager::AddChildManager(nsFrameMessageManager* aManager)
 
   nsRefPtr<nsFrameMessageManager> kungfuDeathGrip = this;
   nsRefPtr<nsFrameMessageManager> kungfuDeathGrip2 = aManager;
-  // We have parent manager if we're a window message manager.
-  // In that case we want to load the pending scripts from global
-  // message manager.
-  if (mParentManager) {
-    nsRefPtr<nsFrameMessageManager> globalMM = mParentManager;
-    for (uint32_t i = 0; i < globalMM->mPendingScripts.Length(); ++i) {
-      aManager->LoadFrameScript(globalMM->mPendingScripts[i], false,
-                                globalMM->mPendingScriptsGlobalStates[i]);
-    }
+
+  LoadPendingScripts(this, aManager);
+}
+
+void
+nsFrameMessageManager::LoadPendingScripts(nsFrameMessageManager* aManager,
+                                          nsFrameMessageManager* aChildMM)
+{
+  // We have parent manager if we're a message broadcaster.
+  // In that case we want to load the pending scripts from all parent
+  // message managers in the hierarchy. Process the parent first so
+  // that pending scripts higher up in the hierarchy are loaded before others.
+  if (aManager->mParentManager) {
+    LoadPendingScripts(aManager->mParentManager, aChildMM);
   }
-  for (uint32_t i = 0; i < mPendingScripts.Length(); ++i) {
-    aManager->LoadFrameScript(mPendingScripts[i], false,
-                              mPendingScriptsGlobalStates[i]);
+
+  for (uint32_t i = 0; i < aManager->mPendingScripts.Length(); ++i) {
+    aChildMM->LoadFrameScript(aManager->mPendingScripts[i],
+                              false,
+                              aManager->mPendingScriptsGlobalStates[i]);
   }
 }
 
@@ -1138,7 +1147,7 @@ nsFrameMessageManager::InitWithCallback(MessageManagerCallback* aCallback)
 
   SetCallback(aCallback);
 
-  // First load global scripts by adding this to parent manager.
+  // First load parent scripts by adding this to parent manager.
   if (mParentManager) {
     mParentManager->AddChildManager(this);
   }
@@ -1861,8 +1870,6 @@ NS_NewParentProcessMessageManager(nsIMessageBroadcaster** aResult)
 {
   NS_ASSERTION(!nsFrameMessageManager::sParentProcessManager,
                "Re-creating sParentProcessManager");
-  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default,
-                 NS_ERROR_NOT_AVAILABLE);
   nsRefPtr<nsFrameMessageManager> mm = new nsFrameMessageManager(nullptr,
                                                                  nullptr,
                                                                  MM_CHROME | MM_PROCESSMANAGER | MM_BROADCASTER);
@@ -1873,7 +1880,7 @@ NS_NewParentProcessMessageManager(nsIMessageBroadcaster** aResult)
 
 
 nsFrameMessageManager*
-nsFrameMessageManager::NewProcessMessageManager(mozilla::dom::ContentParent* aProcess)
+nsFrameMessageManager::NewProcessMessageManager(mozilla::dom::nsIContentParent* aProcess)
 {
   if (!nsFrameMessageManager::sParentProcessManager) {
      nsCOMPtr<nsIMessageBroadcaster> dummy =

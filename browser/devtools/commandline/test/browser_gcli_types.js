@@ -42,7 +42,7 @@ function test() {
 
 // var assert = require('../testharness/assert');
 var util = require('gcli/util/util');
-var promise = require('gcli/util/promise');
+var Promise = require('gcli/util/promise').Promise;
 var nodetype = require('gcli/types/node');
 
 exports.setup = function(options) {
@@ -76,16 +76,20 @@ function forEachType(options, typeSpec, callback) {
     else if (name === 'remote') {
       return;
     }
+    else if (name === 'union') {
+      typeSpec.types = [{ name: "string" }];
+    }
 
     var type = types.createType(typeSpec);
     var reply = callback(type);
-    return promise.resolve(reply).then(function(value) {
+    return Promise.resolve(reply).then(function(value) {
       // Clean up
       delete typeSpec.name;
       delete typeSpec.requisition;
       delete typeSpec.data;
       delete typeSpec.delegateType;
       delete typeSpec.subtype;
+      delete typeSpec.types;
 
       return value;
     });
@@ -125,7 +129,7 @@ exports.testNullDefault = function(options) {
 
   return forEachType(options, { defaultValue: null }, function(type) {
     var reply = type.stringify(null, context);
-    return promise.resolve(reply).then(function(str) {
+    return Promise.resolve(reply).then(function(str) {
       assert.is(str, '', 'stringify(null) for ' + type.name);
     });
   });

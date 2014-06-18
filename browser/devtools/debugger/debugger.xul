@@ -57,7 +57,7 @@
     <command id="globalSearchCommand"
              oncommand="DebuggerView.Filtering._doGlobalSearch()"/>
     <command id="functionSearchCommand"
-             oncommand="DepbuggerView.Filtering._doFunctionSearch()"/>
+             oncommand="DebuggerView.Filtering._doFunctionSearch()"/>
     <command id="tokenSearchCommand"
              oncommand="DebuggerView.Filtering._doTokenSearch()"/>
     <command id="lineSearchCommand"
@@ -67,9 +67,9 @@
     <command id="variablesFocusCommand"
              oncommand="DebuggerView.Filtering._doVariablesFocus()"/>
     <command id="addBreakpointCommand"
-             oncommand="DebuggerView.Sources._onCmdAddBreakpoint()"/>
+             oncommand="DebuggerView.Sources._onCmdAddBreakpoint(event)"/>
     <command id="addConditionalBreakpointCommand"
-             oncommand="DebuggerView.Sources._onCmdAddConditionalBreakpoint()"/>
+             oncommand="DebuggerView.Sources._onCmdAddConditionalBreakpoint(event)"/>
     <command id="addWatchExpressionCommand"
              oncommand="DebuggerView.WatchExpressions._onCmdAddExpression()"/>
     <command id="removeAllWatchExpressionsCommand"
@@ -336,7 +336,7 @@
                      tooltiptext="&debuggerUI.panesButton.tooltip;"
                      tabindex="0"/>
       <toolbarbutton id="debugger-options"
-                     class="devtools-option-toolbarbutton"
+                     class="devtools-toolbarbutton devtools-option-toolbarbutton"
                      tooltiptext="&debuggerUI.optsButton.tooltip;"
                      popup="debuggerPrefsContextMenu"
                      tabindex="0"/>
@@ -363,11 +363,13 @@
                                command="blackBoxCommand"/>
                 <toolbarbutton id="pretty-print"
                                class="devtools-toolbarbutton devtools-monospace"
+                               text-as-image="true"
                                label="{}"
                                tooltiptext="&debuggerUI.sources.prettyPrint;"
                                command="prettyPrintCommand"
                                hidden="true"/>
               </hbox>
+              <vbox class="devtools-separator"/>
               <toolbarbutton id="toggle-breakpoints"
                              class="devtools-toolbarbutton"
                              tooltiptext="&debuggerUI.sources.toggleBreakpoints;"
@@ -412,7 +414,6 @@
           <button id="black-boxed-message-button"
                   class="devtools-toolbarbutton"
                   label="&debuggerUI.blackBoxMessage.unBlackBoxButton;"
-                  image="chrome://browser/skin/devtools/debugger-blackbox-eye.png"
                   command="unBlackBoxCommand"/>
         </vbox>
         <vbox id="source-progress-container"

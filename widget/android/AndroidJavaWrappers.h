@@ -453,13 +453,6 @@ public:
         return event;
     }
 
-    static AndroidGeckoEvent* MakeDrawEvent(const nsIntRect& aRect) {
-        AndroidGeckoEvent *event = new AndroidGeckoEvent();
-        event->Init(DRAW);
-        event->mRect = aRect;
-        return event;
-    }
-
     static AndroidGeckoEvent* MakeFromJavaObject(JNIEnv *jenv, jobject jobj) {
         AndroidGeckoEvent *event = new AndroidGeckoEvent();
         event->Init(jenv, jobj);
@@ -506,6 +499,7 @@ public:
     nsAString& CharactersExtra() { return mCharactersExtra; }
     nsAString& Data() { return mData; }
     int KeyCode() { return mKeyCode; }
+    int ScanCode() { return mScanCode; }
     int MetaState() { return mMetaState; }
     uint32_t DomKeyLocation() { return mDomKeyLocation; }
     Modifiers DOMModifiers() const;
@@ -562,7 +556,8 @@ protected:
     nsIntRect mRect;
     int mFlags, mMetaState;
     uint32_t mDomKeyLocation;
-    int mKeyCode, mUnicodeChar, mBaseUnicodeChar, mDOMPrintableKeyValue;
+    int mKeyCode, mScanCode;
+    int mUnicodeChar, mBaseUnicodeChar, mDOMPrintableKeyValue;
     int mRepeatCount;
     int mCount;
     int mStart, mEnd;
@@ -632,6 +627,7 @@ protected:
     static jfieldID jDataField;
     static jfieldID jDOMPrintableKeyValueField;
     static jfieldID jKeyCodeField;
+    static jfieldID jScanCodeField;
     static jfieldID jMetaStateField;
     static jfieldID jDomKeyLocationField;
     static jfieldID jFlagsField;
@@ -679,7 +675,6 @@ public:
         SENSOR_EVENT = 3,
         LOCATION_EVENT = 5,
         IME_EVENT = 6,
-        DRAW = 7,
         SIZE_CHANGED = 8,
         APP_BACKGROUNDING = 9,
         APP_FOREGROUNDING = 10,
@@ -753,6 +748,12 @@ class nsJNIString : public nsString
 {
 public:
     nsJNIString(jstring jstr, JNIEnv *jenv);
+};
+
+class nsJNICString : public nsCString
+{
+public:
+    nsJNICString(jstring jstr, JNIEnv *jenv);
 };
 
 }

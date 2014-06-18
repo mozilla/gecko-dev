@@ -43,6 +43,7 @@ class RemoteRunner(Runner):
         self.dm = devicemanager
         self.last_test = None
         self.remote_test_root = remote_test_root or self.dm.getDeviceRoot()
+        self.log.info('using %s as test_root' % self.remote_test_root)
         self.remote_profile = posixpath.join(self.remote_test_root, 'profile')
         self.restore = restore
         self.added_files = set()
@@ -109,6 +110,9 @@ class B2GRunner(RemoteRunner):
                  test_script=None, test_script_args=None,
                  marionette_port=None, emulator=None, **kwargs):
 
+        remote_test_root = kwargs.get('remote_test_root')
+        if not remote_test_root:
+            kwargs['remote_test_root'] = '/data/local'
         RemoteRunner.__init__(self, profile, devicemanager, **kwargs)
         self.log = mozlog.getLogger('B2GRunner')
 
@@ -147,7 +151,6 @@ class B2GRunner(RemoteRunner):
         self.test_script_args = test_script_args
         self.remote_profiles_ini = '/data/b2g/mozilla/profiles.ini'
         self.bundles_dir = '/system/b2g/distribution/bundles'
-        self.user_js = '/data/local/user.js'
 
     @property
     def command(self):
@@ -173,6 +176,11 @@ class B2GRunner(RemoteRunner):
                                 " prior to running before running the automation framework")
 
         self.dm.shellCheckOutput(['stop', 'b2g'])
+
+        # For some reason user.js in the profile doesn't get picked up.
+        # Manually copy it over to prefs.js. See bug 1009730 for more details.
+        self.dm.moveTree(posixpath.join(self.remote_profile, 'user.js'),
+                         posixpath.join(self.remote_profile, 'prefs.js'))
 
         self.kp_kwargs.update({'stream': sys.stdout,
                                'processOutputLine': self.on_output,
@@ -220,6 +228,12 @@ class B2GRunner(RemoteRunner):
 
 
     def start_tests(self):
+        #self.marionette.execute_script("""
+        #    var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+        #    var homeUrl = prefs.getCharPref("browser.homescreenURL");
+        #    dump(homeURL + "\n");
+        #""")
+
         # run the script that starts the tests
         if os.path.isfile(self.test_script):
             script = open(self.test_script, 'r')
@@ -328,11 +342,6 @@ class B2GRunner(RemoteRunner):
 
         self.backup_file(self.remote_profiles_ini)
         self.dm.pushFile(new_profiles_ini.name, self.remote_profiles_ini)
-
-        # In B2G, user.js is always read from /data/local, not the profile
-        # directory.  Backup the original user.js first so we can restore it.
-        self.backup_file(self.user_js)
-        self.dm.pushFile(os.path.join(self.profile.profile, "user.js"), self.user_js)
 
     def cleanup(self):
         RemoteRunner.cleanup(self)

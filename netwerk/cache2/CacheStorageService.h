@@ -77,8 +77,9 @@ public:
   void Shutdown();
   void DropPrivateBrowsingEntries();
 
-  // Wipes out the new or the old cache directory completely.
-  static void WipeCacheDirectory(uint32_t aVersion);
+  // Takes care of deleting any pending trashes for both cache1 and cache2
+  // as well as the cache directory of an inactive cache version when requested.
+  static void CleaupCacheDirectories(uint32_t aVersion, uint32_t aActive);
 
   static CacheStorageService* Self() { return sSelf; }
   static nsISupports* SelfISupports() { return static_cast<nsICacheStorageService*>(Self()); }
@@ -340,5 +341,8 @@ void ProxyReleaseMainThread(nsCOMPtr<T> &object)
 
 #define NS_CACHE_STORAGE_SERVICE_CONTRACTID \
   "@mozilla.org/netwerk/cache-storage-service;1"
+
+#define NS_CACHE_STORAGE_SERVICE_CONTRACTID2 \
+  "@mozilla.org/network/cache-storage-service;1"
 
 #endif

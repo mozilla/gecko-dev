@@ -99,7 +99,7 @@ public:
         clause.Append(andStr + aKeyColumnName);
         clause.AppendLiteral(" >");
         if (!IsLowerOpen()) {
-          clause.AppendLiteral("=");
+          clause.Append('=');
         }
         clause.Append(spacecolon + lowerKey);
       }
@@ -109,7 +109,7 @@ public:
         clause.Append(andStr + aKeyColumnName);
         clause.AppendLiteral(" <");
         if (!IsUpperOpen()) {
-          clause.AppendLiteral("=");
+          clause.Append('=');
         }
         clause.Append(spacecolon + NS_LITERAL_CSTRING("upper_key"));
       }
@@ -156,11 +156,13 @@ public:
     return mGlobal;
   }
 
-  JS::Value
-  GetLower(JSContext* aCx, ErrorResult& aRv);
+  void
+  GetLower(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+           ErrorResult& aRv);
 
-  JS::Value
-  GetUpper(JSContext* aCx, ErrorResult& aRv);
+  void
+  GetUpper(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+           ErrorResult& aRv);
 
   bool
   LowerOpen() const
@@ -175,19 +177,19 @@ public:
   }
 
   static already_AddRefed<IDBKeyRange>
-  Only(const GlobalObject& aGlobal, JSContext* aCx,
+  Only(const GlobalObject& aGlobal,
        JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
   static already_AddRefed<IDBKeyRange>
-  LowerBound(const GlobalObject& aGlobal, JSContext* aCx,
+  LowerBound(const GlobalObject& aGlobal,
              JS::Handle<JS::Value> aValue, bool aOpen, ErrorResult& aRv);
 
   static already_AddRefed<IDBKeyRange>
-  UpperBound(const GlobalObject& aGlobal, JSContext* aCx,
+  UpperBound(const GlobalObject& aGlobal,
              JS::Handle<JS::Value> aValue, bool aOpen, ErrorResult& aRv);
 
   static already_AddRefed<IDBKeyRange>
-  Bound(const GlobalObject& aGlobal, JSContext* aCx,
+  Bound(const GlobalObject& aGlobal,
         JS::Handle<JS::Value> aLower, JS::Handle<JS::Value> aUpper,
         bool aLowerOpen, bool aUpperOpen, ErrorResult& aRv);
 

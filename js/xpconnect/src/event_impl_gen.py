@@ -165,8 +165,6 @@ def print_class_declaration(eventname, iface, fd, conf):
             hasVariant = True
             break;
     fd.write("  static already_AddRefed<%s> Constructor(const GlobalObject& aGlobal, " % eventname)
-    if hasVariant:
-        fd.write("JSContext* aCx, ")
     fd.write("const nsAString& aType, ")
     fd.write("const %sInit& aParam, " % eventname)
     fd.write("ErrorResult& aRv);\n\n")
@@ -183,7 +181,7 @@ def print_class_declaration(eventname, iface, fd, conf):
         if a.realtype.nativeType('in').count("nsAString"):
             continue
         elif a.realtype.nativeType('in').count("nsIVariant"):
-            fd.write("  JS::Value Get%s(JSContext* aCx, ErrorResult& aRv);\n\n" % firstCapName);
+            fd.write("  void Get%s(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv);\n\n" % firstCapName);
         elif a.realtype.nativeType('in').endswith('*'):
             fd.write("  already_AddRefed<%s> Get%s()\n" % (xpidl_to_native(cleanNativeType, conf), firstCapName))
             fd.write("  {\n");
@@ -305,15 +303,15 @@ def writeAttributeGetter(fd, classname, a):
     fd.write("  return NS_OK;\n");
     fd.write("}\n\n");
     if a.realtype.nativeType('in').count("nsIVariant"):
-        fd.write("JS::Value\n")
-        fd.write("%s::Get%s(JSContext* aCx, ErrorResult& aRv)\n" % (classname, firstCap(a.name)))
+        fd.write("void\n")
+        fd.write("%s::Get%s(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv)\n" % (classname, firstCap(a.name)))
         fd.write("{\n")
-        fd.write("  JS::Rooted<JS::Value> retVal(aCx, JS::NullValue());\n");
         fd.write("  nsresult rv = NS_ERROR_UNEXPECTED;\n")
-        fd.write("  if (m%s && !XPCVariant::VariantDataToJS(m%s, &rv, &retVal)) {\n" % (firstCap(a.name), firstCap(a.name)))
+        fd.write("  if (!m%s) {\n" % firstCap(a.name))
+        fd.write("    aRetval.setNull();\n")
+        fd.write("  } else if (!XPCVariant::VariantDataToJS(m%s, &rv, aRetval)) {\n" % (firstCap(a.name)))
         fd.write("    aRv.Throw(NS_ERROR_FAILURE);\n")
         fd.write("  }\n")
-        fd.write("  return retVal;\n");
         fd.write("}\n\n")
 
 def writeAttributeParams(fd, a):
@@ -404,8 +402,6 @@ def write_cpp(eventname, iface, fd, conf):
 
     fd.write("already_AddRefed<%s>\n" % eventname)
     fd.write("%s::Constructor(const GlobalObject& aGlobal, " % eventname)
-    if hasVariant:
-        fd.write("JSContext* aCx, ");
     fd.write("const nsAString& aType, ")
     fd.write("const %sInit& aParam, " % eventname)
     fd.write("ErrorResult& aRv)\n")
@@ -415,7 +411,7 @@ def write_cpp(eventname, iface, fd, conf):
     fd.write("  bool trusted = e->Init(t);\n")
     fd.write("  e->Init%s(" % eventname)
     if hasVariant:
-        fd.write("aCx, ");
+        fd.write("aGlobal.Context(), ");
     fd.write("aType, aParam.mBubbles, aParam.mCancelable")
     for a in allattributes:
         fd.write(", aParam.m%s" % firstCap(a.name))

@@ -6,6 +6,7 @@
 
 #include "AudioProcessingEvent.h"
 #include "mozilla/dom/AudioProcessingEventBinding.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "AudioContext.h"
 
 namespace mozilla {
@@ -36,15 +37,27 @@ AudioProcessingEvent::WrapObject(JSContext* aCx)
   return AudioProcessingEventBinding::Wrap(aCx, this);
 }
 
-void
-AudioProcessingEvent::LazilyCreateBuffer(nsRefPtr<AudioBuffer>& aBuffer,
-                                         uint32_t aNumberOfChannels)
+already_AddRefed<AudioBuffer>
+AudioProcessingEvent::LazilyCreateBuffer(uint32_t aNumberOfChannels,
+                                         ErrorResult& aRv)
 {
-  AutoPushJSContext cx(mNode->Context()->GetJSContext());
+  // We need the global for the context so that we can enter its compartment.
+  JSObject* global = mNode->Context()->GetGlobalJSObject();
+  if (NS_WARN_IF(!global)) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return nullptr;
+  }
 
-  aBuffer = new AudioBuffer(mNode->Context(), mNode->BufferSize(),
-                            mNode->Context()->SampleRate());
-  aBuffer->InitializeBuffers(aNumberOfChannels, cx);
+  AutoJSAPI jsapi;
+  JSContext* cx = jsapi.cx();
+  JSAutoCompartment ac(cx, global);
+
+  nsRefPtr<AudioBuffer> buffer =
+    AudioBuffer::Create(mNode->Context(), aNumberOfChannels,
+                        mNode->BufferSize(),
+                        mNode->Context()->SampleRate(), cx, aRv);
+  MOZ_ASSERT(buffer || aRv.ErrorCode() == NS_ERROR_OUT_OF_MEMORY);
+  return buffer.forget();
 }
 
 }

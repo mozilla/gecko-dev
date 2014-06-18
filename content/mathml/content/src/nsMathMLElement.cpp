@@ -9,8 +9,10 @@
 #include "mozilla/ArrayUtils.h"
 #include "nsGkAtoms.h"
 #include "nsCRT.h"
+#include "nsLayoutStylesheetCache.h"
 #include "nsRuleData.h"
 #include "nsCSSValue.h"
+#include "nsCSSParser.h"
 #include "nsMappedAttributes.h"
 #include "nsStyleConsts.h"
 #include "nsIDocument.h"
@@ -91,8 +93,6 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                             nsIContent* aBindingParent,
                             bool aCompileEventHandlers)
 {
-  static const char kMathMLStyleSheetURI[] = "resource://gre-resources/mathml.css";
-
   Link::ResetLinkState(false, Link::ElementHasHref());
 
   nsresult rv = nsMathMLElementBase::BindToTree(aDocument, aParent,
@@ -108,7 +108,8 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
       // construction, because we could move a MathML element from the document
       // that created it to another document.
       aDocument->SetMathMLEnabled();
-      aDocument->EnsureCatalogStyleSheet(kMathMLStyleSheetURI);
+      aDocument->
+        EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::MathMLSheet());
 
       // Rebuild style data for the presshell, because style system
       // optimizations may have taken place assuming MathML was disabled.
@@ -652,7 +653,9 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
     }
     if (value && value->Type() == nsAttrValue::eString &&
         fontFamily->GetUnit() == eCSSUnit_Null) {
-      fontFamily->SetStringValue(value->GetStringValue(), eCSSUnit_Families);
+      nsCSSParser parser;
+      parser.ParseFontFamilyListString(value->GetStringValue(),
+                                       nullptr, 0, *fontFamily);
     }
 
     // fontstyle

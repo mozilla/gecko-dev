@@ -2,20 +2,19 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
-const PREF_NEWTAB_DIRECTORYSOURCE = "browser.newtabpage.directorySource";
+const PREF_NEWTAB_DIRECTORYSOURCE = "browser.newtabpage.directory.source";
 
 Services.prefs.setBoolPref(PREF_NEWTAB_ENABLED, true);
-// start with no directory links by default
-Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, "data:application/json,{}");
 
 let tmp = {};
 Cu.import("resource://gre/modules/Promise.jsm", tmp);
 Cu.import("resource://gre/modules/NewTabUtils.jsm", tmp);
+Cu.import("resource://gre/modules/DirectoryLinksProvider.jsm", tmp);
 Cc["@mozilla.org/moz/jssubscript-loader;1"]
   .getService(Ci.mozIJSSubScriptLoader)
   .loadSubScript("chrome://browser/content/sanitize.js", tmp);
 Cu.import("resource://gre/modules/Timer.jsm", tmp);
-let {Promise, NewTabUtils, Sanitizer, clearTimeout} = tmp;
+let {Promise, NewTabUtils, Sanitizer, clearTimeout, DirectoryLinksProvider} = tmp;
 
 let uri = Services.io.newURI("about:newtab", null, null);
 let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri);
@@ -24,6 +23,9 @@ let isMac = ("nsILocalFileMac" in Ci);
 let isLinux = ("@mozilla.org/gnome-gconf-service;1" in Cc);
 let isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
 let gWindow = window;
+
+// Default to empty directory links
+let gDirectorySource = "data:application/json,{}";
 
 // The tests assume all three rows of sites are shown, but the window may be too
 // short to actually show three rows.  Resize it if necessary.
@@ -60,22 +62,46 @@ registerCleanupFunction(function () {
   if (oldInnerHeight)
     gBrowser.contentWindow.innerHeight = oldInnerHeight;
 
-  Services.prefs.clearUserPref(PREF_NEWTAB_ENABLED);
-  Services.prefs.clearUserPref(PREF_NEWTAB_DIRECTORYSOURCE);
-
   // Stop any update timers to prevent unexpected updates in later tests
   let timer = NewTabUtils.allPages._scheduleUpdateTimeout;
   if (timer) {
     clearTimeout(timer);
     delete NewTabUtils.allPages._scheduleUpdateTimeout;
   }
+
+  Services.prefs.clearUserPref(PREF_NEWTAB_ENABLED);
+  Services.prefs.clearUserPref(PREF_NEWTAB_DIRECTORYSOURCE);
+
+  return watchLinksChangeOnce();
 });
+
+/**
+ * Resolves promise when directory links are downloaded and written to disk
+ */
+function watchLinksChangeOnce() {
+  let deferred = Promise.defer();
+  let observer = {
+    onManyLinksChanged: () => {
+      DirectoryLinksProvider.removeObserver(observer);
+      deferred.resolve();
+    }
+  };
+  observer.onDownloadFail = observer.onManyLinksChanged;
+  DirectoryLinksProvider.addObserver(observer);
+  return deferred.promise;
+};
 
 /**
  * Provide the default test function to start our test runner.
  */
 function test() {
-  TestRunner.run();
+  waitForExplicitFinish();
+  // start TestRunner.run() after directory links is downloaded and written to disk
+  watchLinksChangeOnce().then(() => {
+    // Wait for hidden page to update with the desired links
+    whenPagesUpdated(() => TestRunner.run(), true);
+  });
+  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, gDirectorySource);
 }
 
 /**
@@ -86,8 +112,6 @@ let TestRunner = {
    * Starts the test runner.
    */
   run: function () {
-    waitForExplicitFinish();
-
     this._iter = runTests();
     this.next();
   },

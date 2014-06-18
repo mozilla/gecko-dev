@@ -16,7 +16,7 @@ public:
 
   nsFieldSetFrame(nsStyleContext* aContext);
 
-  NS_HIDDEN_(nscoord)
+  nscoord
     GetIntrinsicWidth(nsRenderingContext* aRenderingContext,
                       nsLayoutUtils::IntrinsicWidthType);
   virtual nscoord GetMinWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
@@ -25,7 +25,7 @@ public:
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
                              uint32_t aFlags) MOZ_OVERRIDE;
-  virtual nscoord GetBaseline() const MOZ_OVERRIDE;
+  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
 
   /**
    * The area to paint box-shadows around.  It's the border rect except
@@ -33,10 +33,10 @@ public:
    */
   virtual nsRect VisualBorderRectRelativeToSelf() const MOZ_OVERRIDE;
 
-  virtual nsresult Reflow(nsPresContext*           aPresContext,
-                          nsHTMLReflowMetrics&     aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext*           aPresContext,
+                      nsHTMLReflowMetrics&     aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
                                
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
@@ -45,13 +45,17 @@ public:
   void PaintBorderBackground(nsRenderingContext& aRenderingContext,
     nsPoint aPt, const nsRect& aDirtyRect, uint32_t aBGFlags);
 
-  virtual nsresult AppendFrames(ChildListID    aListID,
-                                nsFrameList&   aFrameList) MOZ_OVERRIDE;
-  virtual nsresult InsertFrames(ChildListID    aListID,
-                                nsIFrame*      aPrevFrame,
-                                nsFrameList&   aFrameList) MOZ_OVERRIDE;
-  virtual nsresult RemoveFrame(ChildListID    aListID,
-                               nsIFrame*      aOldFrame) MOZ_OVERRIDE;
+#ifdef DEBUG
+  virtual void SetInitialChildList(ChildListID    aListID,
+                                   nsFrameList&   aChildList) MOZ_OVERRIDE;
+  virtual void AppendFrames(ChildListID    aListID,
+                            nsFrameList&   aFrameList) MOZ_OVERRIDE;
+  virtual void InsertFrames(ChildListID    aListID,
+                            nsIFrame*      aPrevFrame,
+                            nsFrameList&   aFrameList) MOZ_OVERRIDE;
+  virtual void RemoveFrame(ChildListID    aListID,
+                           nsIFrame*      aOldFrame) MOZ_OVERRIDE;
+#endif
 
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
   virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
@@ -66,11 +70,6 @@ public:
 
 #ifdef ACCESSIBILITY  
   virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
-#endif
-
-#ifdef DEBUG
-  virtual nsresult SetInitialChildList(ChildListID    aListID,
-                                       nsFrameList&   aChildList) MOZ_OVERRIDE;
 #endif
 
 #ifdef DEBUG_FRAME_DUMP

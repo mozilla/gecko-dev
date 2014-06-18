@@ -15,10 +15,12 @@
 #include "nsNetUtil.h"
 
 #include "nsICachingChannel.h"
+#include "nsIPrincipal.h"
 #include "nsISeekableStream.h"
 #include "nsITimedChannel.h"
 #include "nsIEncodedChannel.h"
 #include "nsIApplicationCacheChannel.h"
+#include "nsIMutableArray.h"
 #include "nsEscape.h"
 #include "nsStreamListenerWrapper.h"
 #include "nsISecurityConsoleMessage.h"
@@ -49,6 +51,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mRequestObserversCalled(false)
   , mResponseHeadersModified(false)
   , mAllowPipelining(true)
+  , mAllowSTS(true)
   , mForceAllowThirdPartyCookie(false)
   , mUploadStreamHasHeaders(false)
   , mInheritApplicationCache(true)
@@ -160,6 +163,7 @@ NS_INTERFACE_MAP_BEGIN(HttpBaseChannel)
   NS_INTERFACE_MAP_ENTRY(nsIEncodedChannel)
   NS_INTERFACE_MAP_ENTRY(nsIHttpChannel)
   NS_INTERFACE_MAP_ENTRY(nsIHttpChannelInternal)
+  NS_INTERFACE_MAP_ENTRY(nsIRedirectHistory)
   NS_INTERFACE_MAP_ENTRY(nsIUploadChannel)
   NS_INTERFACE_MAP_ENTRY(nsIUploadChannel2)
   NS_INTERFACE_MAP_ENTRY(nsISupportsPriority)
@@ -1192,6 +1196,23 @@ HttpBaseChannel::SetAllowPipelining(bool value)
 }
 
 NS_IMETHODIMP
+HttpBaseChannel::GetAllowSTS(bool *value)
+{
+  NS_ENSURE_ARG_POINTER(value);
+  *value = mAllowSTS;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetAllowSTS(bool value)
+{
+  ENSURE_CALLED_BEFORE_CONNECT();
+
+  mAllowSTS = value;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetRedirectionLimit(uint32_t *value)
 {
   NS_ENSURE_ARG_POINTER(value);
@@ -1588,6 +1609,13 @@ HttpBaseChannel::SetResponseTimeoutEnabled(bool aEnable)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::AddRedirect(nsIPrincipal *aRedirect)
+{
+  mRedirects.AppendObject(aRedirect);
+  return NS_OK;
+}
+
 //-----------------------------------------------------------------------------
 // HttpBaseChannel::nsISupportsPriority
 //-----------------------------------------------------------------------------
@@ -1651,6 +1679,60 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID)
 
   aEntityID = entityID;
 
+  return NS_OK;
+}
+
+nsIPrincipal *
+HttpBaseChannel::GetPrincipal(bool requireAppId)
+{
+  if (mPrincipal) {
+      if (requireAppId && mPrincipal->GetUnknownAppId()) {
+        LOG(("HttpBaseChannel::GetPrincipal: No app id [this=%p]", this));
+        return nullptr;
+      }
+      return mPrincipal;
+  }
+
+  nsIScriptSecurityManager *securityManager =
+      nsContentUtils::GetSecurityManager();
+
+  if (!securityManager) {
+      LOG(("HttpBaseChannel::GetPrincipal: No security manager [this=%p]",
+           this));
+      return nullptr;
+  }
+
+  securityManager->GetChannelPrincipal(this, getter_AddRefs(mPrincipal));
+  if (!mPrincipal) {
+      LOG(("HttpBaseChannel::GetPrincipal: No channel principal [this=%p]",
+           this));
+      return nullptr;
+  }
+
+  // principals with unknown app ids do not work with the permission manager
+  if (requireAppId && mPrincipal->GetUnknownAppId()) {
+      LOG(("HttpBaseChannel::GetPrincipal: No app id [this=%p]", this));
+      return nullptr;
+  }
+
+  return mPrincipal;
+}
+
+// nsIRedirectHistory
+NS_IMETHODIMP
+HttpBaseChannel::GetRedirects(nsIArray * *aRedirects)
+{
+  nsresult rv;
+  nsCOMPtr<nsIMutableArray> redirects =
+    do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  for (int i = 0; i < mRedirects.Count(); ++i) {
+    rv = redirects->AppendElement(mRedirects[i], false);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  *aRedirects = redirects;
+  NS_IF_ADDREF(*aRedirects);
   return NS_OK;
 }
 
@@ -1730,7 +1812,8 @@ HttpBaseChannel::AddCookiesToRequest()
       cookie = mUserSetCookieHeader;
     }
     else if (!mUserSetCookieHeader.IsEmpty()) {
-      cookie.Append(NS_LITERAL_CSTRING("; ") + mUserSetCookieHeader);
+      cookie.AppendLiteral("; ");
+      cookie.Append(mUserSetCookieHeader);
     }
   }
   else {
@@ -1793,6 +1876,13 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   newChannel->SetLoadGroup(mLoadGroup);
   newChannel->SetNotificationCallbacks(mCallbacks);
   newChannel->SetLoadFlags(newLoadFlags);
+
+  // If our owner is a null principal it will have been set as a security
+  // measure, so we want to propagate it to the new channel.
+  nsCOMPtr<nsIPrincipal> ownerPrincipal = do_QueryInterface(mOwner);
+  if (ownerPrincipal && ownerPrincipal->GetIsNullPrincipal()) {
+    newChannel->SetOwner(mOwner);
+  }
 
   // Try to preserve the privacy bit if it has been overridden
   if (mPrivateBrowsingOverriden) {
@@ -1859,8 +1949,9 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   // convey the referrer if one was used for this channel to the next one
   if (mReferrer)
     httpChannel->SetReferrer(mReferrer);
-  // convey the mAllowPipelining flag
+  // convey the mAllowPipelining and mAllowSTS flags
   httpChannel->SetAllowPipelining(mAllowPipelining);
+  httpChannel->SetAllowSTS(mAllowSTS);
   // convey the new redirection limit
   httpChannel->SetRedirectionLimit(mRedirectionLimit - 1);
 
@@ -1898,6 +1989,25 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
              "[this=%p] transferring chain of redirect cache-keys", this));
         httpInternal->SetCacheKeysRedirectChain(mRedirectedCachekeys.forget());
     }
+    // Transfer existing redirect information. Add all of our existing
+    // redirects to the new channel.
+    for (int32_t i = 0; i < mRedirects.Count(); ++i) {
+#ifdef PR_LOGGING
+      nsCOMPtr<nsIURI> uri;
+      mRedirects[i]->GetURI(getter_AddRefs(uri));
+      nsCString spec;
+      uri->GetSpec(spec);
+      LOG(("HttpBaseChannel::SetupReplacementChannel adding redirect %s "
+           "[this=%p]", spec.get(), this));
+#endif
+      httpInternal->AddRedirect(mRedirects[i]);
+    }
+
+    // Add our own principal to the redirect information on the new channel. If
+    // the redirect is vetoed, then newChannel->AsyncOpen won't be called.
+    // However, the new channel's redirect chain will still be complete.
+    nsCOMPtr<nsIPrincipal> principal = GetPrincipal(false);
+    httpInternal->AddRedirect(principal);
   }
 
   // transfer application cache information
@@ -1938,11 +2048,17 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     oldTimedChannel->GetResponseEnd(&prevResponseEnd);
     newTimedChannel->SetRedirectEnd(prevResponseEnd);
 
+    nsAutoString initiatorType;
+    oldTimedChannel->GetInitiatorType(initiatorType);
+    newTimedChannel->SetInitiatorType(initiatorType);
+
     // Check whether or not this was a cross-domain redirect.
     newTimedChannel->SetAllRedirectsSameOrigin(
         mAllRedirectsSameOrigin && SameOriginWithOriginalUri(newURI));
   }
 
+  // This channel has been redirected. Don't report timing info.
+  mTimingEnabled = false;
   return NS_OK;
 }
 

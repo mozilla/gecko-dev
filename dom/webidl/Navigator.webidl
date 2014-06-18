@@ -114,7 +114,7 @@ Navigator implements NavigatorGeolocation;
 interface NavigatorBattery {
     // XXXbz Per spec this should be non-nullable, but we return null in
     // torn-down windows.  See bug 884925.
-    [Throws, Func="Navigator::HasBatterySupport"]
+    [Throws, Pref="dom.battery.enabled"]
     readonly attribute BatteryManager? battery;
 };
 Navigator implements NavigatorBattery;
@@ -151,6 +151,15 @@ callback interface MozIdleObserver {
   void onactive();
 };
 
+#ifdef MOZ_B2G
+[NoInterfaceObject]
+interface NavigatorMobileId {
+    [Throws, NewObject]
+    Promise getMobileIdAssertion();
+};
+Navigator implements NavigatorMobileId;
+#endif // MOZ_B2G
+
 // nsIDOMNavigator
 partial interface Navigator {
   [Throws]
@@ -165,7 +174,7 @@ partial interface Navigator {
   readonly attribute boolean cookieEnabled;
   [Throws]
   readonly attribute DOMString buildID;
-  [Throws, Func="Navigator::HasPowerSupport"]
+  [Throws, CheckPermissions="power"]
   readonly attribute MozPowerManager mozPower;
 
   // WebKit/Blink/Trident/Presto support this.
@@ -175,13 +184,13 @@ partial interface Navigator {
   /**
    * Navigator requests to add an idle observer to the existing window.
    */
-  [Throws, Func="Navigator::HasIdleSupport"]
+  [Throws, CheckPermissions="idle", Pref="dom.idle-observers-api.enabled"]
   void addIdleObserver(MozIdleObserver aIdleObserver);
 
   /**
    * Navigator requests to remove an idle observer from the existing window.
    */
-  [Throws, Func="Navigator::HasIdleSupport"]
+  [Throws, CheckPermissions="idle", Pref="dom.idle-observers-api.enabled"]
   void removeIdleObserver(MozIdleObserver aIdleObserver);
 
   /**
@@ -226,7 +235,7 @@ partial interface Navigator {
 
 // nsIDOMNavigatorDesktopNotification
 partial interface Navigator {
-  [Throws, Func="Navigator::HasDesktopNotificationSupport"]
+  [Throws, Pref="notification.feature.enabled"]
   readonly attribute DesktopNotificationCenter mozNotification;
 };
 
@@ -267,30 +276,30 @@ partial interface Navigator {
 
 #ifdef MOZ_B2G_RIL
 partial interface Navigator {
-  [Throws, Func="Navigator::HasMobileConnectionSupport"]
+  [Throws, Pref="dom.mobileconnection.enabled", CheckPermissions="mobileconnection mobilenetwork"]
   readonly attribute MozMobileConnectionArray mozMobileConnections;
 };
 
 partial interface Navigator {
-  [Throws, Func="Navigator::HasCellBroadcastSupport"]
+  [Throws, Pref="dom.cellbroadcast.enabled", CheckPermissions="cellbroadcast"]
   readonly attribute MozCellBroadcast mozCellBroadcast;
 };
 
 partial interface Navigator {
-  [Throws, Func="Navigator::HasVoicemailSupport"]
+  [Throws, Pref="dom.voicemail.enabled", CheckPermissions="voicemail"]
   readonly attribute MozVoicemail mozVoicemail;
 };
 
 partial interface Navigator {
-  [Throws, Func="Navigator::HasIccManagerSupport"]
+  [Throws, Pref="dom.icc.enabled", CheckPermissions="mobileconnection"]
   readonly attribute MozIccManager? mozIccManager;
 };
-#endif // MOZ_B2G_RIL
 
 partial interface Navigator {
-  [Throws, Func="Navigator::HasTelephonySupport"]
+  [Throws, Pref="dom.telephony.enabled", CheckPermissions="telephony"]
   readonly attribute Telephony? mozTelephony;
 };
+#endif // MOZ_B2G_RIL
 
 #ifdef MOZ_GAMEPAD
 // https://dvcs.w3.org/hg/gamepad/raw-file/default/gamepad.html#navigator-interface-extension
@@ -302,14 +311,14 @@ partial interface Navigator {
 
 #ifdef MOZ_B2G_BT
 partial interface Navigator {
-  [Throws, Func="Navigator::HasBluetoothSupport"]
+  [Throws, CheckPermissions="bluetooth"]
   readonly attribute BluetoothManager mozBluetooth;
 };
 #endif // MOZ_B2G_BT
 
 #ifdef MOZ_B2G_FM
 partial interface Navigator {
-  [Throws, Func="Navigator::HasFMRadioSupport"]
+  [Throws, CheckPermissions="fmradio"]
   readonly attribute FMRadio mozFMRadio;
 };
 #endif // MOZ_B2G_FM
@@ -354,6 +363,12 @@ partial interface Navigator {
                               optional unsigned long long innerWindowID = 0);
 };
 #endif // MOZ_MEDIA_NAVIGATOR
+
+// Service Workers/Navigation Controllers
+partial interface Navigator {
+  [Pref="dom.serviceWorkers.enabled"]
+  readonly attribute ServiceWorkerContainer serviceWorker;
+};
 
 partial interface Navigator {
   [Throws, Pref="beacon.enabled"]

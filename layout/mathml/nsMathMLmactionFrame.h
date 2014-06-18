@@ -22,11 +22,11 @@ public:
   friend nsIFrame* NS_NewMathMLmactionFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
   virtual void
-  Init(nsIContent*      aContent,
-       nsIFrame*        aParent,
-       nsIFrame*        aPrevInFlow) MOZ_OVERRIDE;
+  Init(nsIContent*       aContent,
+       nsContainerFrame* aParent,
+       nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
 
-  virtual nsresult
+  virtual void
   SetInitialChildList(ChildListID     aListID,
                       nsFrameList&    aChildList) MOZ_OVERRIDE;
 

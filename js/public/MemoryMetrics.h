@@ -349,7 +349,6 @@ struct RuntimeSizes
     macro(_, _, contexts) \
     macro(_, _, dtoa) \
     macro(_, _, temporary) \
-    macro(_, _, regexpData) \
     macro(_, _, interpreterStack) \
     macro(_, _, mathCache) \
     macro(_, _, sourceDataCache) \
@@ -567,7 +566,7 @@ struct RuntimeStats
     macro(_, _, gcHeapChunkAdmin) \
     macro(_, _, gcHeapGCThings) \
 
-    RuntimeStats(mozilla::MallocSizeOf mallocSizeOf)
+    explicit RuntimeStats(mozilla::MallocSizeOf mallocSizeOf)
       : FOR_EACH_SIZE(ZERO_SIZE)
         runtime(),
         cTotals(),
@@ -630,7 +629,7 @@ class ObjectPrivateVisitor
     typedef bool(*GetISupportsFun)(JSObject *obj, nsISupports **iface);
     GetISupportsFun getISupports_;
 
-    ObjectPrivateVisitor(GetISupportsFun getISupports)
+    explicit ObjectPrivateVisitor(GetISupportsFun getISupports)
       : getISupports_(getISupports)
     {}
 };

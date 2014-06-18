@@ -57,7 +57,7 @@ add_task(function* test_setup() {
 
   gReporter = yield getReporter("json_payload_simple");
   yield gReporter.collectMeasurements();
-  let payload = yield gReporter.getJSONPayload(true);
+  let payload = yield gReporter.getJSONPayload(false);
   do_register_cleanup(() => gReporter._shutdown());
 
   gPolicy = new Experiments.Policy();
@@ -122,8 +122,8 @@ add_task(function* test_disableExperiments() {
   defineNow(gPolicy, now);
 
   yield experiments.updateManifest();
-  Assert.equal(observerFireCount, 0,
-               "Experiments observer should not have been called yet.");
+  Assert.equal(observerFireCount, ++expectedObserverFireCount,
+               "Experiments observer should have been called.");
   let list = yield experiments.getExperiments();
   Assert.equal(list.length, 0, "Experiment list should be empty.");
   let addons = yield getExperimentAddons();

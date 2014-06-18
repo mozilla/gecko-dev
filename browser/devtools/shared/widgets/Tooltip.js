@@ -12,7 +12,6 @@ const {Spectrum} = require("devtools/shared/widgets/Spectrum");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const {colorUtils} = require("devtools/css-color");
 const Heritage = require("sdk/core/heritage");
-const {CSSTransformPreviewer} = require("devtools/shared/widgets/CSSTransformPreviewer");
 const {Eyedropper} = require("devtools/eyedropper/eyedropper");
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -37,7 +36,6 @@ const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
 const ESCAPE_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE;
 const RETURN_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_RETURN;
 const POPUP_EVENTS = ["shown", "hidden", "showing", "hiding"];
-const FONT_FAMILY_PREVIEW_TEXT = "(ABCabc123&@%)";
 
 /**
  * Tooltip widget.
@@ -636,7 +634,9 @@ Tooltip.prototype = {
    *        it was resized, if if was resized before this function was called.
    *        If not provided, will be measured on the loaded image.
    *        - maxDim : if the image should be resized before being shown, pass
-   *        a number here
+   *        a number here.
+   *        - hideDimensionLabel : if the dimension label should be appended
+   *        after the image.
    */
   setImageContent: function(imageUrl, options={}) {
     if (!imageUrl) {
@@ -656,25 +656,28 @@ Tooltip.prototype = {
     }
     vbox.appendChild(image);
 
-    // Dimension label
-    let label = this.doc.createElement("label");
-    label.classList.add("devtools-tooltip-caption");
-    label.classList.add("theme-comment");
-    if (options.naturalWidth && options.naturalHeight) {
-      label.textContent = this._getImageDimensionLabel(options.naturalWidth,
-        options.naturalHeight);
-    } else {
-      // If no dimensions were provided, load the image to get them
-      label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
-      let imgObj = new this.doc.defaultView.Image();
-      imgObj.src = imageUrl;
-      imgObj.onload = () => {
-        imgObj.onload = null;
-        label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
-          imgObj.naturalHeight);
+    if (!options.hideDimensionLabel) {
+      let label = this.doc.createElement("label");
+      label.classList.add("devtools-tooltip-caption");
+      label.classList.add("theme-comment");
+
+      if (options.naturalWidth && options.naturalHeight) {
+        label.textContent = this._getImageDimensionLabel(options.naturalWidth,
+          options.naturalHeight);
+      } else {
+        // If no dimensions were provided, load the image to get them
+        label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
+        let imgObj = new this.doc.defaultView.Image();
+        imgObj.src = imageUrl;
+        imgObj.onload = () => {
+          imgObj.onload = null;
+            label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
+              imgObj.naturalHeight);
+        }
       }
+
+      vbox.appendChild(label);
     }
-    vbox.appendChild(label);
 
     this.content = vbox;
   },
@@ -734,69 +737,34 @@ Tooltip.prototype = {
   },
 
   /**
-   * Set the content of the tooltip to be the result of CSSTransformPreviewer.
-   * Meaning a canvas previewing a css transformation.
-   *
-   * @param {String} transform
-   *        The CSS transform value (e.g. "rotate(45deg) translateX(50px)")
-   * @param {PageStyleActor} pageStyle
-   *        An instance of the PageStyleActor that will be used to retrieve
-   *        computed styles
-   * @param {NodeActor} node
-   *        The NodeActor for the currently selected node
-   * @return A promise that resolves when the tooltip content is ready, or
-   *         rejects if no transform is provided or the transform is invalid
-   */
-  setCssTransformContent: Task.async(function*(transform, pageStyle, node) {
-    if (!transform) {
-      throw "Missing transform";
-    }
-
-    // Look into the computed styles to find the width and height and possibly
-    // the origin if it hadn't been provided
-    let styles = yield pageStyle.getComputed(node, {
-      filter: "user",
-      markMatched: false,
-      onlyMatched: false
-    });
-
-    let origin = styles["transform-origin"].value;
-    let width = parseInt(styles["width"].value);
-    let height = parseInt(styles["height"].value);
-
-    let root = this.doc.createElementNS(XHTML_NS, "div");
-    let previewer = new CSSTransformPreviewer(root);
-    this.content = root;
-    if (!previewer.preview(transform, origin, width, height)) {
-      throw "Invalid transform";
-    }
-  }),
-
-  /**
    * Set the content of the tooltip to display a font family preview.
    * This is based on Lea Verou's Dablet. See https://github.com/LeaVerou/dabblet
    * for more info.
    * @param {String} font The font family value.
+   * @param {object} nodeFront
+   *        The NodeActor that will used to retrieve the dataURL for the font
+   *        family tooltip contents.
+   * @return A promise that resolves when the font tooltip content is ready, or
+   *         rejects if no font is provided
    */
-  setFontFamilyContent: function(font) {
-    if (!font) {
-      return;
+  setFontFamilyContent: Task.async(function*(font, nodeFront) {
+    if (!font || !nodeFront) {
+      throw "Missing font";
     }
 
-    // Main container
-    let vbox = this.doc.createElement("vbox");
-    vbox.setAttribute("flex", "1");
+    if (typeof nodeFront.getFontFamilyDataURL === "function") {
+      font = font.replace(/"/g, "'");
+      font = font.replace("!important", "");
+      font = font.trim();
 
-    // Display the font family previewer
-    let previewer = this.doc.createElement("description");
-    previewer.setAttribute("flex", "1");
-    previewer.style.fontFamily = font;
-    previewer.classList.add("devtools-tooltip-font-previewer-text");
-    previewer.textContent = FONT_FAMILY_PREVIEW_TEXT;
-    vbox.appendChild(previewer);
+      let fillStyle = (Services.prefs.getCharPref("devtools.theme") === "light") ?
+        "black" : "white";
 
-    this.content = vbox;
-  }
+      let {data, size} = yield nodeFront.getFontFamilyDataURL(font, fillStyle);
+      let str = yield data.string();
+      this.setImageContent(str, { hideDimensionLabel: true, maxDim: size });
+    }
+  })
 };
 
 /**
@@ -1003,6 +971,7 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
   _selectColor: function(color) {
     if (this.activeSwatch) {
       this.activeSwatch.style.backgroundColor = color;
+      this.activeSwatch.parentNode.dataset.color = color;
       this.currentSwatchColor.textContent = color;
       this.preview(color);
     }

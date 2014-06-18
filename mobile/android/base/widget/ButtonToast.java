@@ -29,21 +29,22 @@ import android.widget.Button;
 import android.widget.TextView;
 
 public class ButtonToast {
+    @SuppressWarnings("unused")
     private final static String LOGTAG = "GeckoButtonToast";
+
     private final static int TOAST_DURATION = 5000;
 
     private final View mView;
     private final TextView mMessageView;
     private final Button mButton;
     private final Handler mHideHandler = new Handler();
-
-    private final ToastListener mListener;
-    private final LinkedList<Toast> mQueue = new LinkedList<Toast>();
     private Toast mCurrentToast;
 
     public enum ReasonHidden {
         CLICKED,
+        TOUCH_OUTSIDE,
         TIMEOUT,
+        REPLACED,
         STARTUP
     }
 
@@ -70,7 +71,6 @@ public class ButtonToast {
 
     public ButtonToast(View view) {
         mView = view;
-        mListener = null;
         mMessageView = (TextView) mView.findViewById(R.id.toast_message);
         mButton = (Button) mView.findViewById(R.id.toast_button);
         mButton.setOnClickListener(new View.OnClickListener() {
@@ -91,24 +91,31 @@ public class ButtonToast {
     }
 
     public void show(boolean immediate, CharSequence message,
+                     CharSequence buttonMessage, int buttonDrawableId,
+                     ToastListener listener) {
+        final Drawable d = mView.getContext().getResources().getDrawable(buttonDrawableId);
+        show(false, message, buttonMessage, d, listener);
+    }
+
+    public void show(boolean immediate, CharSequence message,
                      CharSequence buttonMessage, Drawable buttonDrawable,
                      ToastListener listener) {
         show(new Toast(message, buttonMessage, buttonDrawable, listener), immediate);
     }
 
     private void show(Toast t, boolean immediate) {
-        // If we're already showing a toast, add this one to the queue to show later
-        if (mView.getVisibility() == View.VISIBLE) {
-            mQueue.offer(t);
-            return;
+        // If we're already showing a toast, replace it with the new one by hiding the old one and quickly showing the new one.
+        if (mCurrentToast != null) {
+            hide(true, ReasonHidden.REPLACED);
+            immediate = true;
         }
 
         mCurrentToast = t;
         mButton.setEnabled(true);
 
-        mMessageView.setText(t.message);
-        mButton.setText(t.buttonMessage);
-        mButton.setCompoundDrawablePadding(mView.getContext().getResources().getDimensionPixelSize(R.dimen.toast_button_padding));
+        // Our toast is re-used, so we update all fields to clear any old values.
+        mMessageView.setText(null != t.message ? t.message : "");
+        mButton.setText(null != t.buttonMessage ? t.buttonMessage : "");
         mButton.setCompoundDrawablesWithIntrinsicBounds(t.buttonDrawable, null, null, null);
 
         mHideHandler.removeCallbacks(mHideRunnable);
@@ -123,8 +130,8 @@ public class ButtonToast {
     }
 
     public void hide(boolean immediate, ReasonHidden reason) {
-        if (mButton.isPressed() && reason != ReasonHidden.CLICKED) {
-            mHideHandler.postDelayed(mHideRunnable, TOAST_DURATION);
+        // There's nothing to do if the view is already hidden.
+        if (mView.getVisibility() == View.GONE) {
             return;
         }
 
@@ -139,7 +146,6 @@ public class ButtonToast {
         mView.clearAnimation();
         if (immediate) {
             mView.setVisibility(View.GONE);
-            showNextInQueue();
         } else {
             // Using Android's animation frameworks will not correctly turn off clicking.
             // See bug 885717.
@@ -149,26 +155,12 @@ public class ButtonToast {
                 // If we are showing a toast and go in the background
                 // onAnimationEnd will be called when the app is restored
                 public void onPropertyAnimationEnd() {
+                    mView.clearAnimation();
                     mView.setVisibility(View.GONE);
-                    showNextInQueue();
                 }
                 public void onPropertyAnimationStart() { }
             });
             animator.start();
-        }
-    }
-
-    public void onSaveInstanceState(Bundle outState) {
-        // Add whatever toast we're currently showing to the front of the queue
-        if (mCurrentToast != null) {
-            mQueue.add(0, mCurrentToast);
-        }
-    }
-
-    private void showNextInQueue() {
-        Toast t = mQueue.poll();
-        if (t != null) {
-            show(t, false);
         }
     }
 

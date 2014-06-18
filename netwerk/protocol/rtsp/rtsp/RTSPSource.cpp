@@ -247,7 +247,7 @@ void RTSPSource::performSuspend() {
 }
 
 void RTSPSource::performSeek(int64_t seekTimeUs) {
-    if (mState != PLAYING && mState != PAUSING) {
+    if (mState != CONNECTED && mState != PLAYING && mState != PAUSING) {
         return;
     }
 
@@ -434,6 +434,7 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
                 source->signalEOS(finalResult);
             }
 
+            onTrackEndOfStream(trackIndex);
             break;
         }
 
@@ -468,6 +469,22 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
             info->mRTPTime = rtpTime;
             info->mNormalPlaytimeUs = nptUs;
             info->mNPTMappingValid = true;
+            break;
+        }
+
+        case RtspConnectionHandler::kWhatTryTCPInterleaving:
+        {
+            // By default, we will request to deliver RTP over UDP. If the play
+            // request timed out and we didn't receive any RTP packet, we will
+            // fail back to use RTP interleaved in the existing RTSP/TCP
+            // connection. And in this case, we have to explicitly perform
+            // another play event to request the server to start streaming
+            // again.
+            int64_t playTimeUs;
+            if (!msg->findInt64("timeUs", &playTimeUs)) {
+                playTimeUs = 0;
+            }
+            performPlay(playTimeUs);
             break;
         }
 
@@ -603,6 +620,7 @@ void RTSPSource::onDisconnected(const sp<AMessage> &msg) {
 
 void RTSPSource::finishDisconnectIfPossible() {
     if (mState != DISCONNECTED) {
+        CHECK(mHandler != NULL);
         mHandler->disconnect();
     }
 
@@ -653,5 +671,22 @@ void RTSPSource::onTrackDataAvailable(size_t trackIndex)
     if (mListener) {
         mListener->OnMediaDataAvailable(trackIndex, data, data.Length(), 0, meta.get());
     }
+}
+
+void RTSPSource::onTrackEndOfStream(size_t trackIndex)
+{
+    mState = CONNECTED;
+    if (!mListener) {
+        return;
+    }
+
+    nsRefPtr<nsIStreamingProtocolMetaData> meta;
+    meta = new mozilla::net::RtspMetaData();
+    meta->SetFrameType(MEDIASTREAM_FRAMETYPE_END_OF_STREAM);
+
+    nsCString data;
+    data.AssignLiteral("END_OF_STREAM");
+
+    mListener->OnMediaDataAvailable(trackIndex, data, data.Length(), 0, meta.get());
 }
 }  // namespace android

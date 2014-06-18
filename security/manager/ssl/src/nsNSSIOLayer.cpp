@@ -39,6 +39,7 @@
 #include "SharedSSLState.h"
 #include "mozilla/Preferences.h"
 #include "nsContentUtils.h"
+#include "NSSErrorsService.h"
 
 #include "ssl.h"
 #include "sslproto.h"
@@ -133,6 +134,7 @@ nsNSSSocketInfo::nsNSSSocketInfo(SharedSSLState& aState, uint32_t providerFlags)
     mNotedTimeUntilReady(false),
     mKEAUsed(nsISSLSocketControl::KEY_EXCHANGE_UNKNOWN),
     mKEAExpected(nsISSLSocketControl::KEY_EXCHANGE_UNKNOWN),
+    mKEAKeyBits(0),
     mSSLVersionUsed(nsISSLSocketControl::SSL_VERSION_UNKNOWN),
     mProviderFlags(providerFlags),
     mSocketCreationTimestamp(TimeStamp::Now()),
@@ -171,6 +173,13 @@ NS_IMETHODIMP
 nsNSSSocketInfo::SetKEAExpected(int16_t aKea)
 {
   mKEAExpected = aKea;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSSocketInfo::GetKEAKeyBits(uint32_t* aKeyBits)
+{
+  *aKeyBits = mKEAKeyBits;
   return NS_OK;
 }
 
@@ -1088,7 +1097,7 @@ checkHandshake(int32_t bytesTransfered, bool wasReading,
     // nsHandleSSLError, which has logic to avoid replacing the error message,
     // so without the !socketInfo->GetErrorCode(), it would just be an
     // expensive no-op.)
-    if (!wantRetry && (IS_SSL_ERROR(err) || IS_SEC_ERROR(err)) &&
+    if (!wantRetry && mozilla::psm::IsNSSErrorCode(err) &&
         !socketInfo->GetErrorCode()) {
       RefPtr<SyncRunnableBase> runnable(new SSLErrorRunnable(socketInfo,
                                                              PlainErrorMessage,
@@ -1383,25 +1392,25 @@ PrefObserver::Observe(nsISupports* aSubject, const char* aTopic,
   if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
     NS_ConvertUTF16toUTF8 prefName(someData);
 
-    if (prefName.Equals("security.ssl.renego_unrestricted_hosts")) {
+    if (prefName.EqualsLiteral("security.ssl.renego_unrestricted_hosts")) {
       nsCString unrestricted_hosts;
       Preferences::GetCString("security.ssl.renego_unrestricted_hosts", &unrestricted_hosts);
       if (!unrestricted_hosts.IsEmpty()) {
         mOwner->setRenegoUnrestrictedSites(unrestricted_hosts);
       }
-    } else if (prefName.Equals("security.ssl.treat_unsafe_negotiation_as_broken")) {
+    } else if (prefName.EqualsLiteral("security.ssl.treat_unsafe_negotiation_as_broken")) {
       bool enabled;
       Preferences::GetBool("security.ssl.treat_unsafe_negotiation_as_broken", &enabled);
       mOwner->setTreatUnsafeNegotiationAsBroken(enabled);
-    } else if (prefName.Equals("security.ssl.warn_missing_rfc5746")) {
+    } else if (prefName.EqualsLiteral("security.ssl.warn_missing_rfc5746")) {
       int32_t warnLevel = 1;
       Preferences::GetInt("security.ssl.warn_missing_rfc5746", &warnLevel);
       mOwner->setWarnLevelMissingRFC5746(warnLevel);
-    } else if (prefName.Equals("security.ssl.false_start.require-npn")) {
+    } else if (prefName.EqualsLiteral("security.ssl.false_start.require-npn")) {
       mOwner->mFalseStartRequireNPN =
         Preferences::GetBool("security.ssl.false_start.require-npn",
                              FALSE_START_REQUIRE_NPN_DEFAULT);
-    } else if (prefName.Equals("security.ssl.false_start.require-forward-secrecy")) {
+    } else if (prefName.EqualsLiteral("security.ssl.false_start.require-forward-secrecy")) {
       mOwner->mFalseStartRequireForwardSecrecy =
         Preferences::GetBool("security.ssl.false_start.require-forward-secrecy",
                              FALSE_START_REQUIRE_FORWARD_SECRECY_DEFAULT);
@@ -2075,14 +2084,14 @@ ClientAuthDataRunnable::RunOnTargetThread()
       nsString cn_host_port;
       if (ccn && strcmp(ccn, hostname) == 0) {
         cn_host_port.Append(cn);
-        cn_host_port.AppendLiteral(":");
+        cn_host_port.Append(':');
         cn_host_port.AppendInt(port);
       } else {
         cn_host_port.Append(cn);
         cn_host_port.AppendLiteral(" (");
-        cn_host_port.AppendLiteral(":");
+        cn_host_port.Append(':');
         cn_host_port.AppendInt(port);
-        cn_host_port.AppendLiteral(")");
+        cn_host_port.Append(')');
       }
 
       char* corg = CERT_GetOrgName(&mServerCert->subject);
@@ -2331,10 +2340,10 @@ nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
   uint32_t flags = infoObject->GetProviderFlags();
   nsAutoCString peerId;
   if (flags & nsISocketProvider::ANONYMOUS_CONNECT) { // See bug 466080
-    peerId.Append("anon:");
+    peerId.AppendLiteral("anon:");
   }
   if (flags & nsISocketProvider::NO_PERMANENT_STORAGE) {
-    peerId.Append("private:");
+    peerId.AppendLiteral("private:");
   }
   peerId.Append(host);
   peerId.Append(':');

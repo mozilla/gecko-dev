@@ -8,7 +8,7 @@
 #include <string>
 
 #include "CSFLog.h"
-
+#include "WebRtcLog.h"
 #include "mozilla/dom/WebrtcGlobalInformationBinding.h"
 
 #include "nsAutoPtr.h"
@@ -23,6 +23,7 @@
 #include "runnable_utils.h"
 #include "PeerConnectionCtx.h"
 #include "PeerConnectionImpl.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 using sipcc::PeerConnectionImpl;
 using sipcc::PeerConnectionCtx;
@@ -57,7 +58,7 @@ static void OnStatsReport_m(
   // Reports for the currently active PeerConnections
   for (auto q = aQueryList->begin(); q != aQueryList->end(); ++q) {
     MOZ_ASSERT(*q);
-    report.mReports.Value().AppendElement((*q)->report);
+    report.mReports.Value().AppendElement(*(*q)->report);
   }
 
   PeerConnectionCtx* ctx = GetPeerConnectionCtx();
@@ -132,6 +133,7 @@ void
 WebrtcGlobalInformation::GetAllStats(
   const GlobalObject& aGlobal,
   WebrtcGlobalStatisticsCallback& aStatsCallback,
+  const Optional<nsAString>& pcIdFilter,
   ErrorResult& aRv)
 {
   if (!NS_IsMainThread()) {
@@ -164,10 +166,13 @@ WebrtcGlobalInformation::GetAllStats(
          ++p) {
       MOZ_ASSERT(p->second);
 
-      if (p->second->HasMedia()) {
-        queries->append(nsAutoPtr<RTCStatsQuery>(new RTCStatsQuery(true)));
-        p->second->BuildStatsQuery_m(nullptr, // all tracks
-                                     queries->back());
+      if (!pcIdFilter.WasPassed() ||
+          pcIdFilter.Value().EqualsASCII(p->second->GetIdAsAscii().c_str())) {
+        if (p->second->HasMedia()) {
+          queries->append(nsAutoPtr<RTCStatsQuery>(new RTCStatsQuery(true)));
+          p->second->BuildStatsQuery_m(nullptr, // all tracks
+                                       queries->back());
+        }
       }
     }
   }
@@ -228,6 +233,37 @@ WebrtcGlobalInformation::GetLogging(
   aRv = rv;
 }
 
+static int32_t sLastSetLevel = 0;
+static bool sLastAECDebug = false;
+
+void
+WebrtcGlobalInformation::SetDebugLevel(const GlobalObject& aGlobal, int32_t aLevel)
+{
+  StartWebRtcLog(webrtc::TraceLevel(aLevel));
+  sLastSetLevel = aLevel;
+}
+
+int32_t
+WebrtcGlobalInformation::DebugLevel(const GlobalObject& aGlobal)
+{
+  return sLastSetLevel;
+}
+
+void
+WebrtcGlobalInformation::SetAecDebug(const GlobalObject& aGlobal, bool aEnable)
+{
+  StartWebRtcLog(sLastSetLevel); // to make it read the aec path
+  webrtc::Trace::set_aec_debug(aEnable);
+  sLastAECDebug = aEnable;
+}
+
+bool
+WebrtcGlobalInformation::AecDebug(const GlobalObject& aGlobal)
+{
+  return sLastAECDebug;
+}
+
+
 struct StreamResult {
   StreamResult() : candidateTypeBitpattern(0), streamSucceeded(false) {}
   uint8_t candidateTypeBitpattern;
@@ -238,13 +274,15 @@ static void StoreLongTermICEStatisticsImpl_m(
     nsresult result,
     nsAutoPtr<RTCStatsQuery> query) {
 
+  using namespace Telemetry;
+
   if (NS_FAILED(result) ||
       !query->error.empty() ||
-      !query->report.mIceCandidateStats.WasPassed()) {
+      !query->report->mIceCandidateStats.WasPassed()) {
     return;
   }
 
-  query->report.mClosed.Construct(true);
+  query->report->mClosed.Construct(true);
 
   // First, store stuff in telemetry
   enum {
@@ -267,10 +305,10 @@ static void StoreLongTermICEStatisticsImpl_m(
 
   // Build list of streams, and whether or not they failed.
   for (size_t i = 0;
-       i < query->report.mIceCandidatePairStats.Value().Length();
+       i < query->report->mIceCandidatePairStats.Value().Length();
        ++i) {
     const RTCIceCandidatePairStats &pair =
-      query->report.mIceCandidatePairStats.Value()[i];
+      query->report->mIceCandidatePairStats.Value()[i];
 
     if (!pair.mState.WasPassed() || !pair.mComponentId.WasPassed()) {
       MOZ_CRASH();
@@ -288,10 +326,10 @@ static void StoreLongTermICEStatisticsImpl_m(
   }
 
   for (size_t i = 0;
-       i < query->report.mIceCandidateStats.Value().Length();
+       i < query->report->mIceCandidateStats.Value().Length();
        ++i) {
     const RTCIceCandidateStats &cand =
-      query->report.mIceCandidateStats.Value()[i];
+      query->report->mIceCandidateStats.Value()[i];
 
     if (!cand.mType.WasPassed() ||
         !cand.mCandidateType.WasPassed() ||
@@ -342,9 +380,81 @@ static void StoreLongTermICEStatisticsImpl_m(
     }
   }
 
+  // Beyond ICE, accumulate telemetry for various PER_CALL settings here.
+
+  if (query->report->mOutboundRTPStreamStats.WasPassed()) {
+    auto& array = query->report->mOutboundRTPStreamStats.Value();
+    for (decltype(array.Length()) i = 0; i < array.Length(); i++) {
+      auto& s = array[i];
+      bool isVideo = (s.mId.Value().Find("video") != -1);
+      if (!isVideo || s.mIsRemote) {
+        continue;
+      }
+      if (s.mBitrateMean.WasPassed()) {
+        Accumulate(WEBRTC_VIDEO_ENCODER_BITRATE_AVG_PER_CALL_KBPS,
+                   uint32_t(s.mBitrateMean.Value() / 1000));
+      }
+      if (s.mBitrateStdDev.WasPassed()) {
+        Accumulate(WEBRTC_VIDEO_ENCODER_BITRATE_STD_DEV_PER_CALL_KBPS,
+                   uint32_t(s.mBitrateStdDev.Value() / 1000));
+      }
+      if (s.mFramerateMean.WasPassed()) {
+        Accumulate(WEBRTC_VIDEO_ENCODER_FRAMERATE_AVG_PER_CALL,
+                   uint32_t(s.mFramerateMean.Value()));
+      }
+      if (s.mFramerateStdDev.WasPassed()) {
+        Accumulate(WEBRTC_VIDEO_ENCODER_FRAMERATE_10X_STD_DEV_PER_CALL,
+                   uint32_t(s.mFramerateStdDev.Value() * 10));
+      }
+      if (s.mDroppedFrames.WasPassed()) {
+        double mins = (TimeStamp::Now() - query->iceStartTime).ToSeconds() / 60;
+        if (mins > 0) {
+          Accumulate(WEBRTC_VIDEO_ENCODER_DROPPED_FRAMES_PER_CALL_FPM,
+                     uint32_t(double(s.mDroppedFrames.Value()) / mins));
+        }
+      }
+    }
+  }
+
+  if (query->report->mInboundRTPStreamStats.WasPassed()) {
+    auto& array = query->report->mInboundRTPStreamStats.Value();
+    for (decltype(array.Length()) i = 0; i < array.Length(); i++) {
+      auto& s = array[i];
+      bool isVideo = (s.mId.Value().Find("video") != -1);
+      if (!isVideo || s.mIsRemote) {
+        continue;
+      }
+      if (s.mBitrateMean.WasPassed()) {
+        Accumulate(WEBRTC_VIDEO_DECODER_BITRATE_AVG_PER_CALL_KBPS,
+                   uint32_t(s.mBitrateMean.Value() / 1000));
+      }
+      if (s.mBitrateStdDev.WasPassed()) {
+        Accumulate(WEBRTC_VIDEO_DECODER_BITRATE_STD_DEV_PER_CALL_KBPS,
+                   uint32_t(s.mBitrateStdDev.Value() / 1000));
+      }
+      if (s.mFramerateMean.WasPassed()) {
+        Accumulate(WEBRTC_VIDEO_DECODER_FRAMERATE_AVG_PER_CALL,
+                   uint32_t(s.mFramerateMean.Value()));
+      }
+      if (s.mFramerateStdDev.WasPassed()) {
+        Accumulate(WEBRTC_VIDEO_DECODER_FRAMERATE_10X_STD_DEV_PER_CALL,
+                   uint32_t(s.mFramerateStdDev.Value() * 10));
+      }
+      if (s.mDiscardedPackets.WasPassed()) {
+        double mins = (TimeStamp::Now() - query->iceStartTime).ToSeconds() / 60;
+        if (mins > 0) {
+          Accumulate(WEBRTC_VIDEO_DECODER_DISCARDED_PACKETS_PER_CALL_PPM,
+                     uint32_t(double(s.mDiscardedPackets.Value()) / mins));
+        }
+      }
+    }
+  }
+
+  // Finally, store the stats
+
   PeerConnectionCtx *ctx = GetPeerConnectionCtx();
   if (ctx) {
-    ctx->mStatsForClosedPeerConnections.AppendElement(query->report);
+    ctx->mStatsForClosedPeerConnections.AppendElement(*query->report);
   }
 }
 
@@ -354,6 +464,28 @@ static void GetStatsForLongTermStorage_s(
   MOZ_ASSERT(query);
 
   nsresult rv = PeerConnectionImpl::ExecuteStatsQuery_s(query.get());
+
+  // Check whether packets were dropped due to rate limiting during
+  // this call. (These calls must be made on STS)
+  unsigned char rate_limit_bit_pattern = 0;
+  if (!mozilla::nr_socket_short_term_violation_time().IsNull() &&
+      mozilla::nr_socket_short_term_violation_time() >= query->iceStartTime) {
+    rate_limit_bit_pattern |= 1;
+  }
+  if (!mozilla::nr_socket_long_term_violation_time().IsNull() &&
+      mozilla::nr_socket_long_term_violation_time() >= query->iceStartTime) {
+    rate_limit_bit_pattern |= 2;
+  }
+
+  if (query->failed) {
+    Telemetry::Accumulate(
+        Telemetry::WEBRTC_STUN_RATE_LIMIT_EXCEEDED_BY_TYPE_GIVEN_FAILURE,
+        rate_limit_bit_pattern);
+  } else {
+    Telemetry::Accumulate(
+        Telemetry::WEBRTC_STUN_RATE_LIMIT_EXCEEDED_BY_TYPE_GIVEN_SUCCESS,
+        rate_limit_bit_pattern);
+  }
 
   // Even if Telemetry::Accumulate is threadsafe, we still need to send the
   // query back to main, since that is where it must be destroyed.

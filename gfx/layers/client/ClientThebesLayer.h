@@ -27,15 +27,17 @@ class CompositableClient;
 class ShadowableLayer;
 class SpecificLayerAttributes;
 
-class ClientThebesLayer : public ThebesLayer, 
+class ClientThebesLayer : public ThebesLayer,
                           public ClientLayer {
 public:
   typedef RotatedContentBuffer::PaintState PaintState;
   typedef RotatedContentBuffer::ContentType ContentType;
 
-  ClientThebesLayer(ClientLayerManager* aLayerManager) :
+  ClientThebesLayer(ClientLayerManager* aLayerManager,
+                    LayerManager::ThebesLayerCreationHint aCreationHint = LayerManager::NONE) :
     ThebesLayer(aLayerManager,
-                static_cast<ClientLayer*>(MOZ_THIS_IN_INITIALIZER_LIST())),
+                static_cast<ClientLayer*>(MOZ_THIS_IN_INITIALIZER_LIST()),
+                aCreationHint),
     mContentClient(nullptr)
   {
     MOZ_COUNT_CTOR(ClientThebesLayer);
@@ -60,6 +62,7 @@ public:
     NS_ASSERTION(ClientManager()->InConstruction(),
                  "Can only set properties in construction phase");
     mInvalidRegion.Or(mInvalidRegion, aRegion);
+    mInvalidRegion.SimplifyOutward(20);
     mValidRegion.Sub(mValidRegion, mInvalidRegion);
   }
 

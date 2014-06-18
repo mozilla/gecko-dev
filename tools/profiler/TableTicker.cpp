@@ -347,7 +347,7 @@ void addProfileEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
     // that will happen to the preceding tag
 
     addDynamicTag(aProfile, 'c', sampleLabel);
-    if (entry.js()) {
+    if (entry.isJs()) {
       if (!entry.pc()) {
         // The JIT only allows the top-most entry to have a nullptr pc
         MOZ_ASSERT(&entry == &stack->mStack[stack->stackSize() - 1]);
@@ -367,10 +367,24 @@ void addProfileEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
     }
   } else {
     aProfile.addTag(ProfileEntry('c', sampleLabel));
-    lineno = entry.line();
+
+    // XXX: Bug 1010578. Don't assume a CPP entry and try to get the
+    // line for js entries as well.
+    if (entry.isCpp()) {
+      lineno = entry.line();
+    }
   }
+
   if (lineno != -1) {
     aProfile.addTag(ProfileEntry('n', lineno));
+  }
+
+  uint32_t category = entry.category();
+  MOZ_ASSERT(!(category & StackEntry::IS_CPP_ENTRY));
+  MOZ_ASSERT(!(category & StackEntry::FRAME_LABEL_COPY));
+
+  if (category) {
+    aProfile.addTag(ProfileEntry('y', (int)category));
   }
 }
 
@@ -507,7 +521,7 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
     // The pseudostack grows towards higher indices, so we iterate
     // backwards (from callee to caller).
     volatile StackEntry &entry = pseudoStack->mStack[i - 1];
-    if (!entry.js() && strcmp(entry.label(), "EnterJIT") == 0) {
+    if (!entry.isJs() && strcmp(entry.label(), "EnterJIT") == 0) {
       // Found JIT entry frame.  Unwind up to that point (i.e., force
       // the stack walk to stop before the block of saved registers;
       // note that it yields nondecreasing stack pointers), then restore
@@ -643,14 +657,24 @@ void TableTicker::InplaceTick(TickSample* sample)
   if (recordSample)
     currThreadProfile.flush();
 
-  if (!sLastTracerEvent.IsNull() && sample && currThreadProfile.IsMainThread()) {
-    TimeDuration delta = sample->timestamp - sLastTracerEvent;
+  if (sample && currThreadProfile.GetThreadResponsiveness()->HasData()) {
+    TimeDuration delta = currThreadProfile.GetThreadResponsiveness()->GetUnresponsiveDuration(sample->timestamp);
     currThreadProfile.addTag(ProfileEntry('r', static_cast<float>(delta.ToMilliseconds())));
   }
 
   if (sample) {
     TimeDuration delta = sample->timestamp - sStartTime;
     currThreadProfile.addTag(ProfileEntry('t', static_cast<float>(delta.ToMilliseconds())));
+  }
+
+  // rssMemory is equal to 0 when we are not recording.
+  if (sample && sample->rssMemory != 0) {
+    currThreadProfile.addTag(ProfileEntry('R', static_cast<float>(sample->rssMemory)));
+  }
+
+  // ussMemory is equal to 0 when we are not recording.
+  if (sample && sample->ussMemory != 0) {
+    currThreadProfile.addTag(ProfileEntry('U', static_cast<float>(sample->ussMemory)));
   }
 
 #if defined(XP_WIN)
@@ -676,9 +700,8 @@ SyncProfile* NewSyncProfile()
   }
   Thread::tid_t tid = Thread::GetCurrentId();
 
-  SyncProfile* profile = new SyncProfile("SyncProfile",
-                                         GET_BACKTRACE_DEFAULT_ENTRY,
-                                         stack, tid, NS_IsMainThread());
+  ThreadInfo* info = new ThreadInfo("SyncProfile", tid, NS_IsMainThread(), stack, nullptr);
+  SyncProfile* profile = new SyncProfile(info, GET_BACKTRACE_DEFAULT_ENTRY);
   return profile;
 }
 
@@ -741,7 +764,9 @@ void mozilla_sampler_print_location1()
 
   printf_stderr("Backtrace:\n");
   syncProfile->IterateTags(print_callback);
+  ThreadInfo* info = syncProfile->GetThreadInfo();
   delete syncProfile;
+  delete info;
 }
 
 

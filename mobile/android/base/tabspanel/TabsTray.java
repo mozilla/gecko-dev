@@ -87,11 +87,6 @@ class TabsTray extends TwoWayView
     }
 
     @Override
-    public ViewGroup getLayout() {
-        return this;
-    }
-
-    @Override
     public void setTabsPanel(TabsPanel panel) {
         mTabsPanel = panel;
     }
@@ -156,7 +151,7 @@ class TabsTray extends TwoWayView
                 @Override
                 public void onClick(View v) {
                     TabRow tab = (TabRow) v.getTag();
-                    final int pos = (isVertical() ? tab.info.getWidth() : tab.info.getHeight());
+                    final int pos = (isVertical() ? tab.info.getWidth() : 0 - tab.info.getHeight());
                     animateClose(tab.info, pos);
                 }
             };
@@ -274,8 +269,6 @@ class TabsTray extends TwoWayView
             Drawable thumbnailImage = tab.getThumbnail();
             if (thumbnailImage != null) {
                 row.thumbnail.setImageDrawable(thumbnailImage);
-            } else if (AboutPages.isAboutHome(tab.getURL())) {
-                row.thumbnail.setImageResource(R.drawable.abouthome_thumbnail);
             } else {
                 row.thumbnail.setImageResource(R.drawable.tab_thumbnail_default);
             }
@@ -373,9 +366,11 @@ class TabsTray extends TwoWayView
 
         TabRow tab = (TabRow)view.getTag();
         final int tabId = tab.id;
+
         // Caching this assumes that all rows are the same height
-	if (mOriginalSize == 0)
+        if (mOriginalSize == 0) {
             mOriginalSize = (isVertical ? view.getHeight() : view.getWidth());
+        }
 
         animator.addPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
             @Override
@@ -384,7 +379,7 @@ class TabsTray extends TwoWayView
             public void onPropertyAnimationEnd() {
                 Tabs tabs = Tabs.getInstance();
                 Tab tab = tabs.getTab(tabId);
-                tabs.closeTab(tab);
+                tabs.closeTab(tab, true);
             }
         });
 

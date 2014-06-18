@@ -5,13 +5,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 XPIDL_SOURCES += [
-    'nsITelephonyProvider.idl',
+    'nsITelephonyService.idl',
 ]
 
 XPIDL_MODULE = 'dom_telephony'
 
 EXPORTS.mozilla.dom += [
-    'CallEvent.h',
     'CallsList.h',
     'Telephony.h',
     'TelephonyCall.h',
@@ -26,10 +25,9 @@ EXPORTS.mozilla.dom.telephony += [
 ]
 
 UNIFIED_SOURCES += [
-    'CallEvent.cpp',
     'CallsList.cpp',
     'ipc/TelephonyChild.cpp',
-    'ipc/TelephonyIPCProvider.cpp',
+    'ipc/TelephonyIPCService.cpp',
     'ipc/TelephonyParent.cpp',
     'Telephony.cpp',
     'TelephonyCall.cpp',
@@ -45,11 +43,11 @@ IPDL_SOURCES += [
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_B2G_RIL']:
     XPIDL_SOURCES += [
-        'nsIGonkTelephonyProvider.idl',
+        'nsIGonkTelephonyService.idl',
     ]
     EXTRA_COMPONENTS += [
-        'gonk/TelephonyProvider.js',
-        'gonk/TelephonyProvider.manifest',
+        'gonk/TelephonyService.js',
+        'gonk/TelephonyService.manifest',
     ]
 
 FAIL_ON_WARNINGS = True

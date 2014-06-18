@@ -12,6 +12,7 @@
 #include "nsCSSRuleProcessor.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/MediaListBinding.h"
 #include "mozilla/css/NameSpaceRule.h"
 #include "mozilla/css/GroupRule.h"
@@ -23,7 +24,7 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsIDOMCSSStyleSheet.h"
-#include "nsICSSRuleList.h"
+#include "mozilla/dom/CSSRuleList.h"
 #include "nsIDOMMediaList.h"
 #include "nsIDOMNode.h"
 #include "nsError.h"
@@ -50,7 +51,7 @@ using namespace mozilla::dom;
 // -------------------------------
 // Style Rule List for the DOM
 //
-class CSSRuleListImpl : public nsICSSRuleList
+class CSSRuleListImpl : public CSSRuleList
 {
 public:
   CSSRuleListImpl(nsCSSStyleSheet *aStyleSheet);
@@ -353,7 +354,7 @@ nsMediaQuery::AppendToString(nsAString& aString) const
   for (uint32_t i = 0, i_end = mExpressions.Length(); i < i_end; ++i) {
     if (i > 0 || !mTypeOmitted)
       aString.AppendLiteral(" and ");
-    aString.AppendLiteral("(");
+    aString.Append('(');
 
     const nsMediaExpression &expr = mExpressions[i];
     if (expr.mRange == nsMediaExpression::eMin) {
@@ -406,7 +407,7 @@ nsMediaQuery::AppendToString(nsAString& aString) const
                          "bad unit");
             array->Item(0).AppendToString(eCSSProperty_z_index, aString,
                                           nsCSSValue::eNormalized);
-            aString.AppendLiteral("/");
+            aString.Append('/');
             array->Item(1).AppendToString(eCSSProperty_z_index, aString,
                                           nsCSSValue::eNormalized);
           }
@@ -441,7 +442,7 @@ nsMediaQuery::AppendToString(nsAString& aString) const
       }
     }
 
-    aString.AppendLiteral(")");
+    aString.Append(')');
   }
 }
 
@@ -1120,8 +1121,6 @@ nsCSSStyleSheet::TraverseInner(nsCycleCollectionTraversalCallback &cb)
   }
 }
 
-DOMCI_DATA(CSSStyleSheet, nsCSSStyleSheet)
-
 // QueryInterface implementation for nsCSSStyleSheet
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsCSSStyleSheet)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
@@ -1130,7 +1129,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsCSSStyleSheet)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCSSStyleSheet)
   NS_INTERFACE_MAP_ENTRY(nsICSSLoaderObserver)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIStyleSheet)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CSSStyleSheet)
   if (aIID.Equals(NS_GET_IID(nsCSSStyleSheet)))
     foundInterface = reinterpret_cast<nsISupports*>(this);
   else
@@ -1295,6 +1293,13 @@ nsCSSStyleSheet::SetComplete()
     mDocument->BeginUpdate(UPDATE_STYLE);
     mDocument->SetStyleSheetApplicableState(this, true);
     mDocument->EndUpdate(UPDATE_STYLE);
+  }
+
+  if (mOwningNode && !mDisabled &&
+      mOwningNode->HasFlag(NODE_IS_IN_SHADOW_TREE) &&
+      mOwningNode->IsContent()) {
+    ShadowRoot* shadowRoot = mOwningNode->AsContent()->GetContainingShadow();
+    shadowRoot->StyleSheetChanged();
   }
 }
 
@@ -1615,7 +1620,7 @@ nsCSSStyleSheet::DidDirty()
 nsresult
 nsCSSStyleSheet::SubjectSubsumesInnerPrincipal()
 {
-  nsCOMPtr<nsIPrincipal> subjectPrincipal = nsContentUtils::GetSubjectPrincipal();
+  nsCOMPtr<nsIPrincipal> subjectPrincipal = nsContentUtils::SubjectPrincipal();
   if (subjectPrincipal->Subsumes(mInner->mPrincipal)) {
     return NS_OK;
   }
@@ -1764,7 +1769,7 @@ nsCSSStyleSheet::GetCssRules(nsIDOMCSSRuleList** aCssRules)
   return rv.ErrorCode();
 }
 
-nsICSSRuleList*
+CSSRuleList*
 nsCSSStyleSheet::GetCssRules(ErrorResult& aRv)
 {
   // No doing this on incomplete sheets!
@@ -2037,6 +2042,7 @@ nsCSSStyleSheet::InsertRuleIntoGroup(const nsAString & aRule,
     case css::Rule::FONT_FACE_RULE:
     case css::Rule::PAGE_RULE:
     case css::Rule::KEYFRAMES_RULE:
+    case css::Rule::COUNTER_STYLE_RULE:
     case css::Rule::DOCUMENT_RULE:
     case css::Rule::SUPPORTS_RULE:
       // these types are OK to insert into a group

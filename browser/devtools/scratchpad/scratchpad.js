@@ -35,6 +35,7 @@ const DEVTOOLS_CHROME_ENABLED = "devtools.chrome.enabled";
 const PREF_RECENT_FILES_MAX = "devtools.scratchpad.recentFilesMax";
 const SHOW_TRAILING_SPACE = "devtools.scratchpad.showTrailingSpace";
 const ENABLE_CODE_FOLDING = "devtools.scratchpad.enableCodeFolding";
+const ENABLE_AUTOCOMPLETION = "devtools.scratchpad.enableAutocompletion";
 
 const VARIABLES_VIEW_URL = "chrome://browser/content/devtools/widgets/VariablesView.xul";
 
@@ -68,9 +69,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "EnvironmentClient",
 XPCOMUtils.defineLazyModuleGetter(this, "ObjectClient",
   "resource://gre/modules/devtools/dbg-client.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "WebConsoleUtils",
-  "resource://gre/modules/devtools/WebConsoleUtils.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "DebuggerServer",
   "resource://gre/modules/devtools/dbg-server.jsm");
 
@@ -90,6 +88,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Reflect",
 // to do so here.
 let telemetry = new Telemetry();
 telemetry.toolOpened("scratchpad");
+
+let WebConsoleUtils = require("devtools/toolkit/webconsole/utils").Utils;
 
 /**
  * The scratchpad object handles the Scratchpad window functionality.
@@ -493,6 +493,7 @@ var Scratchpad = {
    */
   execute: function SP_execute()
   {
+    WebConsoleUtils.usageCount++;
     let selection = this.editor.getSelection() || this.getText();
     return this.evaluate(selection);
   },
@@ -1605,16 +1606,23 @@ var Scratchpad = {
       mode: Editor.modes.js,
       value: initialText,
       lineNumbers: true,
+      contextMenu: "scratchpad-text-popup",
       showTrailingSpace: Services.prefs.getBoolPref(SHOW_TRAILING_SPACE),
       enableCodeFolding: Services.prefs.getBoolPref(ENABLE_CODE_FOLDING),
-      contextMenu: "scratchpad-text-popup"
+      autocomplete: Services.prefs.getBoolPref(ENABLE_AUTOCOMPLETION),
     };
 
     this.editor = new Editor(config);
-    this.editor.appendTo(document.querySelector("#scratchpad-editor")).then(() => {
+    let editorElement = document.querySelector("#scratchpad-editor");
+    this.editor.appendTo(editorElement).then(() => {
       var lines = initialText.split("\n");
 
+      this.editor.setupAutoCompletion();
       this.editor.on("change", this._onChanged);
+      this._onPaste = WebConsoleUtils.pasteHandlerGen(this.editor.container.contentDocument.body,
+                                                      document.querySelector('#scratchpad-notificationbox'));
+      editorElement.addEventListener("paste", this._onPaste);
+      editorElement.addEventListener("drop", this._onPaste);
       this.editor.on("save", () => this.saveFile());
       this.editor.focus();
       this.editor.setCursor({ line: lines.length, ch: lines.pop().length });
@@ -1627,7 +1635,7 @@ var Scratchpad = {
       this.populateRecentFilesMenu();
       PreferenceObserver.init();
       CloseObserver.init();
-    }).then(null, (err) => console.log(err.message));
+    }).then(null, (err) => console.error(err));
     this._setupCommandListeners();
     this._setupPopupShowingListeners();
   },
@@ -1686,7 +1694,12 @@ var Scratchpad = {
 
     PreferenceObserver.uninit();
     CloseObserver.uninit();
-
+    if (this._onPaste) {
+      let editorElement = document.querySelector("#scratchpad-editor");
+      editorElement.removeEventListener("paste", this._onPaste);
+      editorElement.removeEventListener("drop", this._onPaste);
+      this._onPaste = null;
+    }
     this.editor.off("change", this._onChanged);
     this.editor.destroy();
     this.editor = null;

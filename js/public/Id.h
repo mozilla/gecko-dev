@@ -117,7 +117,7 @@ OBJECT_TO_JSID(JSObject *obj)
     jsid id;
     MOZ_ASSERT(obj != nullptr);
     MOZ_ASSERT(((size_t)obj & JSID_TYPE_MASK) == 0);
-    JS_ASSERT(!js::gc::IsInsideNursery(js::gc::GetGCThingRuntime(obj), obj));
+    JS_ASSERT(!js::gc::IsInsideNursery(JS::AsCell(obj)));
     JSID_BITS(id) = ((size_t)obj | JSID_TYPE_OBJECT);
     return id;
 }
@@ -171,7 +171,6 @@ IsPoisonedId(jsid iden)
 template <> struct GCMethods<jsid>
 {
     static jsid initial() { return JSID_VOID; }
-    static ThingRootKind kind() { return THING_ROOT_ID; }
     static bool poisoned(jsid id) { return IsPoisonedId(id); }
     static bool needsPostBarrier(jsid id) { return false; }
 #ifdef JSGC_GENERATIONAL

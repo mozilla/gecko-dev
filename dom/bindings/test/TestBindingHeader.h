@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Date.h"
+#include "mozilla/dom/MozMap.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/UnionTypes.h"
 #include "mozilla/ErrorResult.h"
@@ -150,7 +151,6 @@ public:
 
   static
   already_AddRefed<TestInterface> Test2(const GlobalObject&,
-                                        JSContext*,
                                         const DictForConstructor&,
                                         JS::Handle<JS::Value>,
                                         JS::Handle<JSObject*>,
@@ -401,6 +401,32 @@ public:
   void PassSequenceOfSequences(const Sequence< Sequence<int32_t> >&);
   void ReceiveSequenceOfSequences(nsTArray< nsTArray<int32_t> >&);
 
+  // MozMap types
+  void PassMozMap(const MozMap<int32_t> &);
+  void PassNullableMozMap(const Nullable< MozMap<int32_t> >&);
+  void PassMozMapOfNullableInts(const MozMap<Nullable<int32_t> >&);
+  void PassOptionalMozMapOfNullableInts(const Optional<MozMap<Nullable<int32_t> > > &);
+  void PassOptionalNullableMozMapOfNullableInts(const Optional<Nullable<MozMap<Nullable<int32_t> > > > &);
+  void PassCastableObjectMozMap(const MozMap< OwningNonNull<TestInterface> >&);
+  void PassNullableCastableObjectMozMap(const MozMap< nsRefPtr<TestInterface> > &);
+  void PassCastableObjectNullableMozMap(const Nullable< MozMap< OwningNonNull<TestInterface> > >&);
+  void PassNullableCastableObjectNullableMozMap(const Nullable< MozMap< nsRefPtr<TestInterface> > >&);
+  void PassOptionalMozMap(const Optional<MozMap<int32_t> >&);
+  void PassOptionalNullableMozMap(const Optional<Nullable<MozMap<int32_t> > >&);
+  void PassOptionalNullableMozMapWithDefaultValue(const Nullable< MozMap<int32_t> >&);
+  void PassOptionalObjectMozMap(const Optional<MozMap<OwningNonNull<TestInterface> > >&);
+  void PassExternalInterfaceMozMap(const MozMap<nsRefPtr<TestExternalInterface> >&);
+  void PassNullableExternalInterfaceMozMap(const MozMap<nsRefPtr<TestExternalInterface> >&);
+  void PassStringMozMap(const MozMap<nsString>&);
+  void PassByteStringMozMap(const MozMap<nsCString>&);
+  void PassMozMapOfMozMaps(const MozMap< MozMap<int32_t> >&);
+  void ReceiveMozMap(MozMap<int32_t>&);
+  void ReceiveNullableMozMap(Nullable<MozMap<int32_t>>&);
+  void ReceiveMozMapOfNullableInts(MozMap<Nullable<int32_t>>&);
+  void ReceiveNullableMozMapOfNullableInts(Nullable<MozMap<Nullable<int32_t>>>&);
+  void ReceiveMozMapOfMozMaps(MozMap<MozMap<int32_t>>&);
+  void ReceiveAnyMozMap(JSContext*, MozMap<JS::Value>&);
+
   // Typed array types
   void PassArrayBuffer(const ArrayBuffer&);
   void PassNullableArrayBuffer(const Nullable<ArrayBuffer>&);
@@ -419,9 +445,11 @@ public:
   void PassFloat64Array(const Float64Array&);
   void PassSequenceOfArrayBuffers(const Sequence<ArrayBuffer>&);
   void PassSequenceOfNullableArrayBuffers(const Sequence<Nullable<ArrayBuffer> >&);
+  void PassMozMapOfArrayBuffers(const MozMap<ArrayBuffer>&);
+  void PassMozMapOfNullableArrayBuffers(const MozMap<Nullable<ArrayBuffer> >&);
   void PassVariadicTypedArray(const Sequence<Float32Array>&);
   void PassVariadicNullableTypedArray(const Sequence<Nullable<Float32Array> >&);
-  JSObject* ReceiveUint8Array(JSContext*);
+  void ReceiveUint8Array(JSContext*, JS::MutableHandle<JSObject*>);
 
   // DOMString types
   void PassString(const nsAString&);
@@ -483,7 +511,18 @@ public:
   void PassSequenceOfNullableSequenceOfAny(JSContext*, const Sequence<Nullable<Sequence<JS::Value> > >&);
   void PassNullableSequenceOfNullableSequenceOfAny(JSContext*, const Nullable<Sequence<Nullable<Sequence<JS::Value> > > >&);
   void PassOptionalNullableSequenceOfNullableSequenceOfAny(JSContext*, const Optional<Nullable<Sequence<Nullable<Sequence<JS::Value> > > > >&);
-  JS::Value ReceiveAny(JSContext*);
+  void PassMozMapOfAny(JSContext*, const MozMap<JS::Value>&);
+  void PassNullableMozMapOfAny(JSContext*, const Nullable<MozMap<JS::Value> >&);
+  void PassOptionalMozMapOfAny(JSContext*, const Optional<MozMap<JS::Value> >&);
+  void PassOptionalNullableMozMapOfAny(JSContext*, const Optional<Nullable<MozMap<JS::Value> > >&);
+  void PassOptionalMozMapOfAnyWithDefaultValue(JSContext*, const Nullable<MozMap<JS::Value> >&);
+  void PassMozMapOfMozMapOfAny(JSContext*, const MozMap<MozMap<JS::Value> >&);
+  void PassMozMapOfNullableMozMapOfAny(JSContext*, const MozMap<Nullable<MozMap<JS::Value> > >&);
+  void PassNullableMozMapOfNullableMozMapOfAny(JSContext*, const Nullable<MozMap<Nullable<MozMap<JS::Value> > > >&);
+  void PassOptionalNullableMozMapOfNullableMozMapOfAny(JSContext*, const Optional<Nullable<MozMap<Nullable<MozMap<JS::Value>>>>>&);
+  void PassOptionalNullableMozMapOfNullableSequenceOfAny(JSContext*, const Optional<Nullable<MozMap<Nullable<Sequence<JS::Value>>>>>&);
+  void PassOptionalNullableSequenceOfNullableMozMapOfAny(JSContext*, const Optional<Nullable<Sequence<Nullable<MozMap<JS::Value>>>>>&);
+  void ReceiveAny(JSContext*, JS::MutableHandle<JS::Value>);
 
   // object types
   void PassObject(JSContext*, JS::Handle<JSObject*>);
@@ -498,8 +537,9 @@ public:
   void PassNullableSequenceOfObject(JSContext*, const Nullable<Sequence<JSObject*> >&);
   void PassOptionalNullableSequenceOfNullableSequenceOfObject(JSContext*, const Optional<Nullable<Sequence<Nullable<Sequence<JSObject*> > > > >&);
   void PassOptionalNullableSequenceOfNullableSequenceOfNullableObject(JSContext*, const Optional<Nullable<Sequence<Nullable<Sequence<JSObject*> > > > >&);
-  JSObject* ReceiveObject(JSContext*);
-  JSObject* ReceiveNullableObject(JSContext*);
+  void PassMozMapOfObject(JSContext*, const MozMap<JSObject*>&);
+  void ReceiveObject(JSContext*, JS::MutableHandle<JSObject*>);
+  void ReceiveNullableObject(JSContext*, JS::MutableHandle<JSObject*>);
 
   // Union types
   void PassUnion(JSContext*, const ObjectOrLong& arg);
@@ -579,6 +619,8 @@ public:
 
   void PassSequenceOfNullableUnions(const Sequence<Nullable<OwningCanvasPatternOrCanvasGradient>>&);
   void PassVariadicNullableUnion(const Sequence<Nullable<OwningCanvasPatternOrCanvasGradient>>&);
+  void PassMozMapOfUnions(const MozMap<OwningCanvasPatternOrCanvasGradient>&);
+  void PassMozMapOfUnions2(JSContext*, const MozMap<OwningObjectOrLong>&);
 
   void ReceiveUnion(OwningCanvasPatternOrCanvasGradient&);
   void ReceiveUnion2(JSContext*, OwningObjectOrLong&);
@@ -599,6 +641,7 @@ public:
   void PassOptionalNullableDate(const Optional<Nullable<Date> >&);
   void PassOptionalNullableDateWithDefaultValue(const Nullable<Date>&);
   void PassDateSequence(const Sequence<Date>&);
+  void PassDateMozMap(const MozMap<Date>&);
   void PassNullableDateSequence(const Sequence<Nullable<Date> >&);
   Date ReceiveDate();
   Nullable<Date> ReceiveNullableDate();
@@ -624,6 +667,7 @@ public:
   void ReceiveNullableDictionary(JSContext*, Nullable<Dict>&);
   void PassOtherDictionary(const GrandparentDict&);
   void PassSequenceOfDictionaries(JSContext*, const Sequence<Dict>&);
+  void PassMozMapOfDictionaries(const MozMap<GrandparentDict>&);
   void PassDictionaryOrLong(JSContext*, const Dict&);
   void PassDictionaryOrLong(int32_t);
   void PassDictContainingDict(JSContext*, const DictContainingDict&);
@@ -637,8 +681,7 @@ public:
 
   // Static methods and attributes
   static void StaticMethod(const GlobalObject&, bool);
-  static void StaticMethodWithContext(const GlobalObject&, JSContext*,
-                                      JS::Value);
+  static void StaticMethodWithContext(const GlobalObject&, JS::Value);
   static bool StaticAttribute(const GlobalObject&);
   static void SetStaticAttribute(const GlobalObject&, bool);
 
@@ -722,7 +765,7 @@ public:
   TestInterface* PutForwardsAttr();
   TestInterface* PutForwardsAttr2();
   TestInterface* PutForwardsAttr3();
-  JS::Value JsonifierShouldSkipThis(JSContext*);
+  void GetJsonifierShouldSkipThis(JSContext*, JS::MutableHandle<JS::Value>);
   void SetJsonifierShouldSkipThis(JSContext*, JS::Rooted<JS::Value>&);
   TestParentInterface* JsonifierShouldSkipThis2();
   void SetJsonifierShouldSkipThis2(TestParentInterface&);

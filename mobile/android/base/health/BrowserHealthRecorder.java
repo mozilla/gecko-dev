@@ -22,8 +22,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.AppConstants;
-import org.mozilla.gecko.Distribution;
-import org.mozilla.gecko.Distribution.DistributionDescriptor;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
@@ -34,6 +32,8 @@ import org.mozilla.gecko.background.healthreport.HealthReportDatabaseStorage;
 import org.mozilla.gecko.background.healthreport.HealthReportStorage.Field;
 import org.mozilla.gecko.background.healthreport.HealthReportStorage.MeasurementFields;
 import org.mozilla.gecko.background.healthreport.ProfileInformationCache;
+import org.mozilla.gecko.distribution.Distribution;
+import org.mozilla.gecko.distribution.Distribution.DistributionDescriptor;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -525,16 +525,17 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
 
         // Because the distribution lookup can take some time, do it at the end of
         // our background startup work, along with the Gecko snapshot fetch.
-        final GeckoEventListener self = this;
-        ThreadUtils.postToBackgroundThread(new Runnable() {
+        final Distribution distribution = Distribution.getInstance(context);
+        distribution.addOnDistributionReadyCallback(new Runnable() {
             @Override
             public void run() {
-                final DistributionDescriptor desc = new Distribution(context).getDescriptor();
+                Log.d(LOG_TAG, "Running post-distribution task: health recorder.");
+                final DistributionDescriptor desc = distribution.getDescriptor();
                 if (desc != null && desc.valid) {
                     profileCache.setDistributionString(desc.id, desc.version);
                 }
                 Log.d(LOG_TAG, "Requesting all add-ons and FHR prefs from Gecko.");
-                dispatcher.registerGeckoThreadListener(self, EVENT_SNAPSHOT);
+                dispatcher.registerGeckoThreadListener(BrowserHealthRecorder.this, EVENT_SNAPSHOT);
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HealthReport:RequestSnapshot", null));
             }
         });

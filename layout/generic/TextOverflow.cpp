@@ -672,12 +672,12 @@ TextOverflow::CanHaveTextOverflow(nsDisplayListBuilder* aBuilder,
                                   nsIFrame*             aBlockFrame)
 {
   const nsStyleTextReset* style = aBlockFrame->StyleTextReset();
-  // Nothing to do for text-overflow:clip or if 'overflow-x:visible'
-  // or if we're just building items for event processing.
+  // Nothing to do for text-overflow:clip or if 'overflow-x:visible' or if
+  // we're just building items for event processing or image visibility.
   if ((style->mTextOverflow.mLeft.mType == NS_STYLE_TEXT_OVERFLOW_CLIP &&
        style->mTextOverflow.mRight.mType == NS_STYLE_TEXT_OVERFLOW_CLIP) ||
       IsHorizontalOverflowVisible(aBlockFrame) ||
-      aBuilder->IsForEventDelivery()) {
+      aBuilder->IsForEventDelivery() || aBuilder->IsForImageVisibility()) {
     return false;
   }
 
@@ -714,6 +714,7 @@ TextOverflow::CreateMarkers(const nsLineBox* aLine,
   if (aCreateLeft) {
     DisplayListClipState::AutoSaveRestore clipState(mBuilder);
 
+    //XXX Needs vertical text love
     nsRect markerRect = nsRect(aInsideMarkersArea.x - mLeft.mIntrinsicWidth,
                                aLine->BStart(),
                                mLeft.mIntrinsicWidth, aLine->BSize());
@@ -722,7 +723,7 @@ TextOverflow::CreateMarkers(const nsLineBox* aLine,
                markerRect, clipState);
     nsDisplayItem* marker = new (mBuilder)
       nsDisplayTextOverflowMarker(mBuilder, mBlock, markerRect,
-                                  aLine->GetAscent(), mLeft.mStyle, 0);
+                                  aLine->GetLogicalAscent(), mLeft.mStyle, 0);
     mMarkerList.AppendNewToTop(marker);
   }
 
@@ -737,7 +738,7 @@ TextOverflow::CreateMarkers(const nsLineBox* aLine,
                markerRect, clipState);
     nsDisplayItem* marker = new (mBuilder)
       nsDisplayTextOverflowMarker(mBuilder, mBlock, markerRect,
-                                  aLine->GetAscent(), mRight.mStyle, 1);
+                                  aLine->GetLogicalAscent(), mRight.mStyle, 1);
     mMarkerList.AppendNewToTop(marker);
   }
 }

@@ -24,6 +24,7 @@ const EXAMPLE_URL = "http://example.com/browser/browser/devtools/webaudioeditor/
 const SIMPLE_CONTEXT_URL = EXAMPLE_URL + "doc_simple-context.html";
 const COMPLEX_CONTEXT_URL = EXAMPLE_URL + "doc_complex-context.html";
 const SIMPLE_NODES_URL = EXAMPLE_URL + "doc_simple-node-creation.html";
+const BUFFER_AND_ARRAY_URL = EXAMPLE_URL + "doc_buffer-and-array.html";
 
 // All tests are asynchronous.
 waitForExplicitFinish();
@@ -212,14 +213,30 @@ function waitForGraphRendered (front, nodeCount, edgeCount) {
 }
 
 function checkVariableView (view, index, hash, description = "") {
+  info("Checking Variable View");
   let scope = view.getScopeAtIndex(index);
   let variables = Object.keys(hash);
   variables.forEach(variable => {
     let aVar = scope.get(variable);
     is(aVar.target.querySelector(".name").getAttribute("value"), variable,
       "Correct property name for " + variable);
-    is(aVar.target.querySelector(".value").getAttribute("value"), hash[variable],
-      "Correct property value of " + hash[variable] + " for " + variable + " " + description);
+    let value = aVar.target.querySelector(".value").getAttribute("value");
+
+    // Cast value with JSON.parse if possible;
+    // will fail when displaying Object types like "ArrayBuffer"
+    // and "Float32Array", but will match the original value.
+    try {
+      value = JSON.parse(value);
+    }
+    catch (e) {}
+    if (typeof hash[variable] === "function") {
+      ok(hash[variable](value),
+        "Passing property value of " + value + " for " + variable + " " + description);
+    }
+    else {
+      ise(value, hash[variable],
+        "Correct property value of " + hash[variable] + " for " + variable + " " + description);
+    }
   });
 }
 
@@ -229,18 +246,21 @@ function modifyVariableView (win, view, index, prop, value) {
   let aVar = scope.get(prop);
   scope.expand();
 
+  win.on(win.EVENTS.UI_SET_PARAM, handleSetting);
+  win.on(win.EVENTS.UI_SET_PARAM_ERROR, handleSetting);
+
+  // Focus and select the variable to begin editing
+  win.focus();
+  aVar.focus();
+  EventUtils.sendKey("RETURN", win);
+
   // Must wait for the scope DOM to be available to receive
   // events
   executeSoon(() => {
-    let varValue = aVar.target.querySelector(".title > .value");
-    EventUtils.sendMouseEvent({ type: "mousedown" }, varValue, win);
-
-    win.on(win.EVENTS.UI_SET_PARAM, handleSetting);
-    win.on(win.EVENTS.UI_SET_PARAM_ERROR, handleSetting);
-
     info("Setting " + value + " for " + prop + "....");
-    let varInput = aVar.target.querySelector(".title > .element-value-input");
-    setText(varInput, value);
+    for (let c of (value + "")) {
+      EventUtils.synthesizeKey(c, {}, win);
+    }
     EventUtils.sendKey("RETURN", win);
   });
 
@@ -254,18 +274,6 @@ function modifyVariableView (win, view, index, prop, value) {
   }
 
   return deferred.promise;
-}
-
-function clearText (aElement) {
-  info("Clearing text...");
-  aElement.focus();
-  aElement.value = "";
-}
-
-function setText (aElement, aText) {
-  clearText(aElement);
-  info("Setting text: " + aText);
-  aElement.value = aText;
 }
 
 function findGraphEdge (win, source, target) {
@@ -286,23 +294,140 @@ function mouseOver (win, element) {
   EventUtils.sendMouseEvent({ type: "mouseover" }, element, win);
 }
 
+function isVisible (element) {
+  return !element.getAttribute("hidden");
+}
+
+/**
+ * Used in debugging, returns a promise that resolves in `n` milliseconds.
+ */
+function wait (n) {
+  let { promise, resolve } = Promise.defer();
+  setTimeout(resolve, n);
+  info("Waiting " + n/1000 + " seconds.");
+  return promise;
+}
+
+/**
+ * Clicks a graph node based on actorID or passing in an element.
+ * Returns a promise that resolves once
+ * UI_INSPECTOR_NODE_SET is fired.
+ */
+function clickGraphNode (panelWin, el, waitForToggle = false) {
+  let { promise, resolve } = Promise.defer();
+  let promises = [
+   once(panelWin, panelWin.EVENTS.UI_INSPECTOR_NODE_SET)
+  ];
+
+  if (waitForToggle) {
+    promises.push(once(panelWin, panelWin.EVENTS.UI_INSPECTOR_TOGGLED));
+  }
+
+  // Use `el` as the element if it is one, otherwise
+  // assume it's an ID and find the related graph node
+  let element = el.tagName ? el : findGraphNode(panelWin, el);
+  click(panelWin, element);
+
+  return Promise.all(promises);
+}
+
+/**
+ * Returns the primitive value of a grip's value, or the
+ * original form that the string grip.type comes from.
+ */
+function getGripValue (value) {
+  if (~["boolean", "string", "number"].indexOf(typeof value)) {
+    return value;
+  }
+
+  switch (value.type) {
+    case "undefined": return undefined;
+    case "Infinity": return Infinity;
+    case "-Infinity": return -Infinity;
+    case "NaN": return NaN;
+    case "-0": return -0;
+    case "null": return null;
+    default: return value;
+  }
+}
+
+/**
+ * Counts how many nodes and edges are currently in the graph.
+ */
+function countGraphObjects (win) {
+  return {
+    nodes: win.document.querySelectorAll(".nodes > .audionode").length,
+    edges: win.document.querySelectorAll(".edgePaths > .edgePath").length
+  }
+}
+
 /**
  * List of audio node properties to test against expectations of the AudioNode actor
  */
 
-const NODE_PROPERTIES = {
-  "OscillatorNode": ["type", "frequency", "detune"],
-  "GainNode": ["gain"],
-  "DelayNode": ["delayTime"],
-  "AudioBufferSourceNode": ["buffer", "playbackRate", "loop", "loopStart", "loopEnd"],
-  "ScriptProcessorNode": ["bufferSize"],
-  "PannerNode": ["panningModel", "distanceModel", "refDistance", "maxDistance", "rolloffFactor", "coneInnerAngle", "coneOuterAngle", "coneOuterGain"],
-  "ConvolverNode": ["buffer", "normalize"],
-  "DynamicsCompressorNode": ["threshold", "knee", "ratio", "reduction", "attack", "release"],
-  "BiquadFilterNode": ["type", "frequency", "Q", "detune", "gain"],
-  "WaveShaperNode": ["curve", "oversample"],
-  "AnalyserNode": ["fftSize", "minDecibels", "maxDecibels", "smoothingTimeConstraint", "frequencyBinCount"],
-  "AudioDestinationNode": [],
-  "ChannelSplitterNode": [],
-  "ChannelMergerNode": []
+const NODE_DEFAULT_VALUES = {
+  "AudioDestinationNode": {},
+  "AudioBufferSourceNode": {
+    "playbackRate": 1,
+    "loop": false,
+    "loopStart": 0,
+    "loopEnd": 0,
+    "buffer": null
+  },
+  "ScriptProcessorNode": {
+    "bufferSize": 4096
+  },
+  "AnalyserNode": {
+    "fftSize": 2048,
+    "minDecibels": -100,
+    "maxDecibels": -30,
+    "smoothingTimeConstant": 0.8,
+    "frequencyBinCount": 1024
+  },
+  "GainNode": {
+    "gain": 1
+  },
+  "DelayNode": {
+    "delayTime": 0
+  },
+  "BiquadFilterNode": {
+    "type": "lowpass",
+    "frequency": 350,
+    "Q": 1,
+    "detune": 0,
+    "gain": 0
+  },
+  "WaveShaperNode": {
+    "curve": null,
+    "oversample": "none"
+  },
+  "PannerNode": {
+    "panningModel": "HRTF",
+    "distanceModel": "inverse",
+    "refDistance": 1,
+    "maxDistance": 10000,
+    "rolloffFactor": 1,
+    "coneInnerAngle": 360,
+    "coneOuterAngle": 360,
+    "coneOuterGain": 0
+  },
+  "ConvolverNode": {
+    "buffer": null,
+    "normalize": true
+  },
+  "ChannelSplitterNode": {},
+  "ChannelMergerNode": {},
+  "DynamicsCompressorNode": {
+    "threshold": -24,
+    "knee": 30,
+    "ratio": 12,
+    "reduction": 0,
+    "attack": 0.003000000026077032,
+    "release": 0.25
+  },
+  "OscillatorNode": {
+    "type": "sine",
+    "frequency": 440,
+    "detune": 0
+  }
 };

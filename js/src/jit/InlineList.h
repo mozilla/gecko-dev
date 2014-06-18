@@ -20,7 +20,7 @@ class InlineForwardListNode
   public:
     InlineForwardListNode() : next(nullptr)
     { }
-    InlineForwardListNode(InlineForwardListNode<T> *n) : next(n)
+    explicit InlineForwardListNode(InlineForwardListNode<T> *n) : next(n)
     { }
 
   protected:
@@ -155,7 +155,7 @@ private:
 
     typedef InlineForwardListNode<T> Node;
 
-    InlineForwardListIterator<T>(const InlineForwardList<T> *owner)
+    explicit InlineForwardListIterator<T>(const InlineForwardList<T> *owner)
       : prev(const_cast<Node *>(static_cast<const Node *>(owner))),
         iter(owner ? owner->next : nullptr)
 #ifdef DEBUG
@@ -172,10 +172,8 @@ public:
         return *this;
     }
     InlineForwardListIterator<T> operator ++(int) {
-        JS_ASSERT(modifyCount_ == owner_->modifyCount_);
         InlineForwardListIterator<T> old(*this);
-        prev = iter;
-        iter = iter->next;
+        operator++();
         return old;
     }
     T * operator *() const {
@@ -318,6 +316,15 @@ class InlineList : protected InlineListNode<T>
     bool empty() const {
         return begin() == end();
     }
+    void takeElements(InlineList &l) {
+        MOZ_ASSERT(&l != this, "cannot takeElements from this");
+        Node *lprev = l.prev;
+        static_cast<Node *>(l.next)->prev = this;
+        lprev->next = this->next;
+        static_cast<Node *>(this->next)->prev = l.prev;
+        this->next = l.next;
+        l.clear();
+    }
 };
 
 template <typename T>
@@ -328,7 +335,7 @@ class InlineListIterator
 
     typedef InlineListNode<T> Node;
 
-    InlineListIterator(const Node *iter)
+    explicit InlineListIterator(const Node *iter)
       : iter(const_cast<Node *>(iter))
     { }
 
@@ -339,12 +346,16 @@ class InlineListIterator
     }
     InlineListIterator<T> operator ++(int) {
         InlineListIterator<T> old(*this);
-        iter = static_cast<Node *>(iter->next);
+        operator++();
         return old;
+    }
+    InlineListIterator<T> & operator --() {
+        iter = iter->prev;
+        return *this;
     }
     InlineListIterator<T> operator --(int) {
         InlineListIterator<T> old(*this);
-        iter = iter->prev;
+        operator--();
         return old;
     }
     T * operator *() const {
@@ -372,7 +383,7 @@ class InlineListReverseIterator
 
     typedef InlineListNode<T> Node;
 
-    InlineListReverseIterator(const Node *iter)
+    explicit InlineListReverseIterator(const Node *iter)
       : iter(const_cast<Node *>(iter))
     { }
 
@@ -383,7 +394,16 @@ class InlineListReverseIterator
     }
     InlineListReverseIterator<T> operator ++(int) {
         InlineListReverseIterator<T> old(*this);
-        iter = iter->prev;
+        operator++();
+        return old;
+    }
+    InlineListReverseIterator<T> & operator --() {
+        iter = static_cast<Node *>(iter->next);
+        return *this;
+    }
+    InlineListReverseIterator<T> operator --(int) {
+        InlineListReverseIterator<T> old(*this);
+        operator--();
         return old;
     }
     T * operator *() {
@@ -458,18 +478,18 @@ class InlineConcatListIterator
 
     typedef InlineConcatList<T> Node;
 
-    InlineConcatListIterator(const Node *iter)
+    explicit InlineConcatListIterator(const Node *iter)
       : iter(const_cast<Node *>(iter))
     { }
 
   public:
     InlineConcatListIterator<T> & operator ++() {
-        iter = iter->next;
-        return *iter;
+        iter = static_cast<Node *>(iter->next);
+        return *this;
     }
     InlineConcatListIterator<T> operator ++(int) {
         InlineConcatListIterator<T> old(*this);
-        iter = static_cast<Node *>(iter->next);
+        operator++();
         return old;
     }
     T * operator *() const {

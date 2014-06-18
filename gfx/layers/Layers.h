@@ -358,6 +358,13 @@ public:
   };
 
   /**
+   * Returns true if aLayer is optimized for the given ThebesLayerCreationHint.
+   */
+  virtual bool IsOptimizedFor(ThebesLayer* aLayer,
+                              ThebesLayerCreationHint aCreationHint)
+  { return true; }
+
+  /**
    * CONSTRUCTION PHASE ONLY
    * Create a ThebesLayer for this manager's layer tree.
    */
@@ -1549,6 +1556,8 @@ public:
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
+  LayerManager::ThebesLayerCreationHint GetCreationHint() const { return mCreationHint; }
+
   bool UsedForReadback() { return mUsedForReadback; }
   void SetUsedForReadback(bool aUsed) { mUsedForReadback = aUsed; }
   /**
@@ -1562,9 +1571,11 @@ public:
   gfxPoint GetResidualTranslation() const { return mResidualTranslation; }
 
 protected:
-  ThebesLayer(LayerManager* aManager, void* aImplData)
+  ThebesLayer(LayerManager* aManager, void* aImplData,
+              LayerManager::ThebesLayerCreationHint aCreationHint = LayerManager::NONE)
     : Layer(aManager, aImplData)
     , mValidRegion()
+    , mCreationHint(aCreationHint)
     , mUsedForReadback(false)
     , mAllowResidualTranslation(false)
   {
@@ -1580,6 +1591,10 @@ protected:
    */
   gfxPoint mResidualTranslation;
   nsIntRegion mValidRegion;
+  /**
+   * The creation hint that was used when constructing this layer.
+   */
+  const LayerManager::ThebesLayerCreationHint mCreationHint;
   /**
    * Set when this ThebesLayer is participating in readback, i.e. some
    * ReadbackLayer (may) be getting its background from this layer.
@@ -1683,6 +1698,17 @@ public:
     Mutated();
   }
 
+  void SetBackgroundColor(const gfxRGBA& aColor)
+  {
+    if (mBackgroundColor == aColor) {
+      return;
+    }
+
+    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) BackgroundColor", this));
+    mBackgroundColor = aColor;
+    Mutated();
+  }
+
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
 
   void SortChildrenBy3DZOrder(nsTArray<Layer*>& aArray);
@@ -1700,6 +1726,8 @@ public:
   float GetPreYScale() const { return mPreYScale; }
   float GetInheritedXScale() const { return mInheritedXScale; }
   float GetInheritedYScale() const { return mInheritedYScale; }
+  
+  gfxRGBA GetBackgroundColor() const { return mBackgroundColor; }
 
   MOZ_LAYER_DECL_NAME("ContainerLayer", TYPE_CONTAINER)
 
@@ -1786,6 +1814,10 @@ protected:
   // be part of mTransform.
   float mInheritedXScale;
   float mInheritedYScale;
+  // This is currently set and used only for scrollable container layers.
+  // When multi-layer-apz (bug 967844) is implemented, this is likely to move
+  // elsewhere (e.g. to Layer).
+  gfxRGBA mBackgroundColor;
   bool mUseIntermediateSurface;
   bool mSupportsComponentAlphaChildren;
   bool mMayHaveReadbackChild;
@@ -1869,6 +1901,7 @@ public:
       , mStream(nullptr)
       , mTexID(0)
       , mSize(0,0)
+      , mHasAlpha(false)
       , mIsGLAlphaPremult(false)
     { }
 
@@ -1884,6 +1917,9 @@ public:
 
     // The size of the canvas content
     nsIntSize mSize;
+
+    // Whether the canvas drawingbuffer has an alpha channel.
+    bool mHasAlpha;
 
     // Whether mGLContext contains data that is alpha-premultiplied.
     bool mIsGLAlphaPremult;

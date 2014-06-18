@@ -6,6 +6,7 @@
 
 #include "AudioDestinationNode.h"
 #include "mozilla/dom/AudioDestinationNodeBinding.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "AudioChannelAgent.h"
@@ -125,21 +126,26 @@ public:
     // which is strongly referenced by the runnable that called
     // AudioDestinationNode::FireOfflineCompletionEvent.
 
-    AutoPushJSContext cx(context->GetJSContext());
-    if (!cx) {
+    // We need the global for the context so that we can enter its compartment.
+    JSObject* global = context->GetGlobalJSObject();
+    if (NS_WARN_IF(!global)) {
       return;
     }
-    JSAutoRequest ar(cx);
+
+    AutoJSAPI jsapi;
+    JSContext* cx = jsapi.cx();
+    JSAutoCompartment ac(cx, global);
 
     // Create the input buffer
-    nsRefPtr<AudioBuffer> renderedBuffer = new AudioBuffer(context,
-                                                           mLength,
-                                                           mSampleRate);
-    if (!renderedBuffer->InitializeBuffers(mInputChannels.Length(), cx)) {
+    ErrorResult rv;
+    nsRefPtr<AudioBuffer> renderedBuffer =
+      AudioBuffer::Create(context, mInputChannels.Length(),
+                          mLength, mSampleRate, cx, rv);
+    if (rv.Failed()) {
       return;
     }
     for (uint32_t i = 0; i < mInputChannels.Length(); ++i) {
-      renderedBuffer->SetRawChannelContents(cx, i, mInputChannels[i]);
+      renderedBuffer->SetRawChannelContents(i, mInputChannels[i]);
     }
 
     nsRefPtr<OfflineAudioCompletionEvent> event =
@@ -221,7 +227,6 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(AudioDestinationNode, AudioNode,
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(AudioDestinationNode)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
   NS_INTERFACE_MAP_ENTRY(nsIAudioChannelAgentCallback)
-  NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
 NS_INTERFACE_MAP_END_INHERITING(AudioNode)
 
 NS_IMPL_ADDREF_INHERITED(AudioDestinationNode, AudioNode)
@@ -241,6 +246,7 @@ AudioDestinationNode::AudioDestinationNode(AudioContext* aContext,
   , mAudioChannel(AudioChannel::Normal)
   , mIsOffline(aIsOffline)
   , mHasFinished(false)
+  , mAudioChannelAgentPlaying(false)
   , mExtraCurrentTime(0)
   , mExtraCurrentTimeSinceLastStartedBlocking(0)
   , mExtraCurrentTimeUpdatedSinceLastStableState(false)
@@ -420,7 +426,18 @@ AudioDestinationNode::HandleEvent(nsIDOMEvent* aEvent)
 NS_IMETHODIMP
 AudioDestinationNode::CanPlayChanged(int32_t aCanPlay)
 {
-  SetCanPlay(aCanPlay == AudioChannelState::AUDIO_CHANNEL_STATE_NORMAL);
+  bool playing = aCanPlay == AudioChannelState::AUDIO_CHANNEL_STATE_NORMAL;
+  if (playing == mAudioChannelAgentPlaying) {
+    return NS_OK;
+  }
+
+  mAudioChannelAgentPlaying = playing;
+  SetCanPlay(playing);
+
+  Context()->DispatchTrustedEvent(
+    playing ? NS_LITERAL_STRING("mozinterruptend")
+            : NS_LITERAL_STRING("mozinterruptbegin"));
+
   return NS_OK;
 }
 
@@ -525,7 +542,9 @@ AudioDestinationNode::CreateAudioChannelAgent()
 
   int32_t state = 0;
   mAudioChannelAgent->StartPlaying(&state);
-  SetCanPlay(state == AudioChannelState::AUDIO_CHANNEL_STATE_NORMAL);
+  mAudioChannelAgentPlaying =
+    state == AudioChannelState::AUDIO_CHANNEL_STATE_NORMAL;
+  SetCanPlay(mAudioChannelAgentPlaying);
 }
 
 void

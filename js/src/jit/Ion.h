@@ -50,7 +50,7 @@ class IonContext
     IonContext(JSContext *cx, TempAllocator *temp);
     IonContext(ExclusiveContext *cx, TempAllocator *temp);
     IonContext(CompileRuntime *rt, CompileCompartment *comp, TempAllocator *temp);
-    IonContext(CompileRuntime *rt);
+    explicit IonContext(CompileRuntime *rt);
     ~IonContext();
 
     // Running context when executing on the main thread. Not available during
@@ -190,7 +190,7 @@ NumLocalsAndArgs(JSScript *script)
 void ForbidCompilation(JSContext *cx, JSScript *script);
 void ForbidCompilation(JSContext *cx, JSScript *script, ExecutionMode mode);
 
-void PurgeCaches(JSScript *script, JS::Zone *zone);
+void PurgeCaches(JSScript *script);
 size_t SizeOfIonData(JSScript *script, mozilla::MallocSizeOf mallocSizeOf);
 void DestroyIonScripts(FreeOp *fop, JSScript *script);
 void TraceIonScripts(JSTracer* trc, JSScript *script);

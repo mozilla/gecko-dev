@@ -16,6 +16,9 @@
  * The purpose of abstracting this as a separate class is to allow it to be
  * wrapped in a JS::Heap<T> to correctly handle post-barriering of the JSObject
  * pointer, when present.
+ *
+ * No implementation of rootKind() is provided, which prevents
+ * Root<nsXBLMaybeCompiled<UncompiledT>> from being used.
  */
 template <class UncompiledT>
 class nsXBLMaybeCompiled
@@ -82,7 +85,7 @@ private:
 namespace js {
 
 template <class UncompiledT>
-struct GCMethods<nsXBLMaybeCompiled<UncompiledT> > : public GCMethods<JSObject *>
+struct GCMethods<nsXBLMaybeCompiled<UncompiledT> >
 {
   typedef struct GCMethods<JSObject *> Base;
 

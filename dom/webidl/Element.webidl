@@ -28,12 +28,10 @@ interface Element : Node {
 
   [Pure]
            attribute DOMString id;
-/*
-  FIXME Bug 810677 Move className from HTMLElement to Element
+  [Pure]
            attribute DOMString className;
-*/
   [Constant]
-  readonly attribute DOMTokenList? classList;
+  readonly attribute DOMTokenList classList;
 
   [SameObject]
   readonly attribute MozNamedAttrMap attributes;
@@ -201,10 +199,12 @@ partial interface Element {
   NodeList  querySelectorAll(DOMString selectors);
 };
 
-// https://dvcs.w3.org/hg/webcomponents/raw-file/tip/spec/shadow/index.html#shadow-root-object
+// http://w3c.github.io/webcomponents/spec/shadow/#extensions-to-element-interface
 partial interface Element {
   [Throws,Pref="dom.webcomponents.enabled"]
   ShadowRoot createShadowRoot();
+  [Pref="dom.webcomponents.enabled"]
+  NodeList getDestinationInsertionPoints();
   [Pref="dom.webcomponents.enabled"]
   readonly attribute ShadowRoot? shadowRoot;
 };

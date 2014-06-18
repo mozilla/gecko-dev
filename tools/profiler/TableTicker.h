@@ -65,11 +65,14 @@ class TableTicker: public Sampler {
     mProfileJS = hasFeature(aFeatures, aFeatureCount, "js");
     mProfileJava = hasFeature(aFeatures, aFeatureCount, "java");
     mProfilePower = hasFeature(aFeatures, aFeatureCount, "power");
-    mProfileThreads = hasFeature(aFeatures, aFeatureCount, "threads");
+    // Users sometimes ask to filter by a list of threads but forget to request
+    // profiling non main threads. Let's make it implificit if we have a filter
+    mProfileThreads = hasFeature(aFeatures, aFeatureCount, "threads") || aFilterCount > 0;
     mUnwinderThread = hasFeature(aFeatures, aFeatureCount, "unwinder") || sps_version2();
     mAddLeafAddresses = hasFeature(aFeatures, aFeatureCount, "leaf");
     mPrivacyMode = hasFeature(aFeatures, aFeatureCount, "privacy");
     mAddMainThreadIO = hasFeature(aFeatures, aFeatureCount, "mainthreadio");
+    mProfileMemory = hasFeature(aFeatures, aFeatureCount, "memory");
 
 #if defined(XP_WIN)
     if (mProfilePower) {
@@ -133,13 +136,7 @@ class TableTicker: public Sampler {
       return;
     }
 
-    ThreadProfile* profile = new ThreadProfile(aInfo->Name(),
-                                               EntrySize(),
-                                               aInfo->Stack(),
-                                               aInfo->ThreadId(),
-                                               aInfo->GetPlatformData(),
-                                               aInfo->IsMainThread(),
-                                               aInfo->StackTop());
+    ThreadProfile* profile = new ThreadProfile(aInfo, EntrySize());
     aInfo->SetProfile(profile);
   }
 
@@ -184,6 +181,7 @@ class TableTicker: public Sampler {
   bool ProfileThreads() const { return mProfileThreads; }
   bool InPrivacyMode() const { return mPrivacyMode; }
   bool AddMainThreadIO() const { return mAddMainThreadIO; }
+  bool ProfileMemory() const { return mProfileMemory; }
 
 protected:
   // Called within a signal. This function must be reentrant
@@ -215,6 +213,7 @@ protected:
   uint32_t mFilterCount;
   bool mPrivacyMode;
   bool mAddMainThreadIO;
+  bool mProfileMemory;
 #if defined(XP_WIN)
   IntelPowerGadget* mIntelPowerGadget;
 #endif

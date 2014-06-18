@@ -46,7 +46,7 @@ public:
   {
     MOZ_ASSERT(aWindow);
     MOZ_ASSERT(aPromise);
-    JSContext* cx = aGlobal.GetContext();
+    JSContext* cx = aGlobal.Context();
     JSAutoCompartment ac(cx, mGlobal);
     mNotifications = JS_NewArrayObject(cx, 0);
     HoldData();
@@ -396,8 +396,13 @@ NS_IMETHODIMP
 NotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
                               const char16_t* aData)
 {
+  nsCOMPtr<nsPIDOMWindow> window = mNotification->GetOwner();
+  if (!window) {
+    // Window has been closed, this observer is not valid anymore
+    return NS_ERROR_FAILURE;
+  }
+
   if (!strcmp("alertclickcallback", aTopic)) {
-    nsCOMPtr<nsPIDOMWindow> window = mNotification->GetOwner();
     nsIDocument* doc = window ? window->GetExtantDoc() : nullptr;
     if (doc) {
       nsContentUtils::DispatchChromeEvent(doc, window,
@@ -429,12 +434,12 @@ Notification::Notification(const nsAString& aID, const nsAString& aTitle, const 
 
   // Get the notification name that is unique per origin + tag/ID.
   // The name of the alert is of the form origin#tag/ID.
-  alertName.AppendLiteral("#");
+  alertName.Append('#');
   if (!mTag.IsEmpty()) {
-    alertName.Append(NS_LITERAL_STRING("tag:"));
+    alertName.AppendLiteral("tag:");
     alertName.Append(mTag);
   } else {
-    alertName.Append(NS_LITERAL_STRING("notag:"));
+    alertName.AppendLiteral("notag:");
     alertName.Append(mID);
   }
 
@@ -601,7 +606,7 @@ Notification::ShowInternal()
         ops.mLang = mLang;
         ops.mTag = mTag;
 
-        if (!ops.ToObject(cx, &val)) {
+        if (!ToJSValue(cx, ops, &val)) {
           NS_WARNING("Converting dict to object failed!");
           return;
         }
@@ -772,14 +777,13 @@ void
 Notification::CloseInternal()
 {
   if (!mIsClosed) {
-    nsresult rv;
     // Don't bail out if notification storage fails, since we still
     // want to send the close event through the alert service.
     nsCOMPtr<nsINotificationStorage> notificationStorage =
       do_GetService(NS_NOTIFICATION_STORAGE_CONTRACTID);
     if (notificationStorage) {
       nsString origin;
-      rv = GetOrigin(GetOwner(), origin);
+      nsresult rv = GetOrigin(GetOwner(), origin);
       if (NS_SUCCEEDED(rv)) {
         notificationStorage->Delete(origin, mID);
       }
@@ -788,9 +792,7 @@ Notification::CloseInternal()
     nsCOMPtr<nsIAlertsService> alertService =
       do_GetService(NS_ALERTSERVICE_CONTRACTID);
     if (alertService) {
-      if (NS_SUCCEEDED(rv)) {
-        alertService->CloseAlert(mAlertName, GetPrincipal());
-      }
+      alertService->CloseAlert(mAlertName, GetPrincipal());
     }
   }
 }

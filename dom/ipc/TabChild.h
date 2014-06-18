@@ -212,7 +212,7 @@ protected:
     bool UpdateFrameHandler(const mozilla::layers::FrameMetrics& aFrameMetrics);
 
 protected:
-    float mOldViewportWidth;
+    CSSSize mOldViewportSize;
     bool mContentDocumentIsDisplayed;
     nsRefPtr<TabChildGlobal> mTabChildGlobal;
     ScreenIntSize mInnerSize;
@@ -241,6 +241,9 @@ class TabChild : public TabChildBase,
     typedef mozilla::layers::ActiveElementManager ActiveElementManager;
 
 public:
+    static std::map<uint64_t, nsRefPtr<TabChild> >& NestedTabChildMap();
+
+public:
     /** 
      * This is expected to be called off the critical path to content
      * startup.  This is an opportunity to load things that are slow
@@ -250,11 +253,29 @@ public:
 
     /** Return a TabChild with the given attributes. */
     static already_AddRefed<TabChild>
-    Create(ContentChild* aManager, const TabContext& aContext, uint32_t aChromeFlags);
+    Create(nsIContentChild* aManager, const TabContext& aContext, uint32_t aChromeFlags);
 
     virtual ~TabChild();
 
     bool IsRootContentDocument();
+
+    const uint64_t Id() const {
+        return mUniqueId;
+    }
+
+    static uint64_t
+    GetTabChildId(TabChild* aTabChild)
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+        if (aTabChild->Id() != 0) {
+            return aTabChild->Id();
+        }
+        static uint64_t sId = 0;
+        sId++;
+        aTabChild->mUniqueId = sId;
+        NestedTabChildMap()[sId] = aTabChild;
+        return sId;
+    }
 
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIWEBBROWSERCHROME
@@ -430,7 +451,7 @@ public:
                                     const nsAString& aPath,
                                     nsICachedFileDescriptorListener* aCallback);
 
-    ContentChild* Manager() { return mManager; }
+    nsIContentChild* Manager() { return mManager; }
 
     bool GetUpdateHitRegion() { return mUpdateHitRegion; }
 
@@ -446,7 +467,7 @@ public:
     static TabChild* GetFrom(nsIPresShell* aPresShell);
     static TabChild* GetFrom(uint64_t aLayersId);
 
-    void DidComposite();
+    void DidComposite(uint64_t aTransactionId);
 
     static inline TabChild*
     GetFrom(nsIDOMWindow* aWindow)
@@ -455,6 +476,8 @@ public:
       nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(webNav);
       return GetFrom(docShell);
     }
+
+    virtual bool RecvUIResolutionChanged() MOZ_OVERRIDE;
 
 protected:
     virtual PRenderFrameChild* AllocPRenderFrameChild(ScrollingBehavior* aScrolling,
@@ -481,7 +504,7 @@ private:
      *
      * |aIsBrowserElement| indicates whether we're a browser (but not an app).
      */
-    TabChild(ContentChild* aManager, const TabContext& aContext, uint32_t aChromeFlags);
+    TabChild(nsIContentChild* aManager, const TabContext& aContext, uint32_t aChromeFlags);
 
     nsresult Init();
 
@@ -534,7 +557,7 @@ private:
     nsCOMPtr<nsIWidget> mWidget;
     nsCOMPtr<nsIURI> mLastURI;
     RenderFrameChild* mRemoteFrame;
-    nsRefPtr<ContentChild> mManager;
+    nsRefPtr<nsIContentChild> mManager;
     uint32_t mChromeFlags;
     uint64_t mLayersId;
     nsIntRect mOuterRect;
@@ -559,12 +582,14 @@ private:
     ScreenOrientation mOrientation;
     bool mUpdateHitRegion;
     bool mContextMenuHandled;
+    bool mLongTapEventHandled;
     bool mWaitingTouchListeners;
     void FireSingleTapEvent(LayoutDevicePoint aPoint);
 
     bool mIgnoreKeyPressEvent;
     nsRefPtr<ActiveElementManager> mActiveElementManager;
     bool mHasValidInnerSize;
+    uint64_t mUniqueId;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);
 };

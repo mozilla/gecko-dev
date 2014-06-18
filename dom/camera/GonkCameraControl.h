@@ -119,8 +119,8 @@ protected:
   virtual already_AddRefed<RecorderProfileManager> GetRecorderProfileManagerImpl() MOZ_OVERRIDE;
   already_AddRefed<GonkRecorderProfileManager> GetGonkRecorderProfileManager();
 
-  nsresult SetupRecording(int aFd, int aRotation, int64_t aMaxFileSizeBytes,
-                          int64_t aMaxVideoLengthMs);
+  nsresult SetupRecording(int aFd, int aRotation, uint64_t aMaxFileSizeBytes,
+                          uint64_t aMaxVideoLengthMs);
   nsresult SetupRecordingFlash(bool aAutoEnableLowLightTorch);
   nsresult SetupVideoMode(const nsAString& aProfile);
   nsresult SetPreviewSize(const Size& aSize);
@@ -155,6 +155,10 @@ protected:
 
   android::MediaProfiles*   mMediaProfiles;
   nsRefPtr<android::GonkRecorder> mRecorder;
+  // Touching mRecorder happens inside this monitor because the destructor
+  // can run on any thread, and we need to be able to clean up properly if
+  // GonkCameraControl goes away.
+  ReentrantMonitor          mRecorderMonitor;
 
   // Camcorder profile settings for the desired quality level
   nsRefPtr<GonkRecorderProfileManager> mProfileManager;

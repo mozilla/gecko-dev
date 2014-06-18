@@ -85,6 +85,10 @@ class Fake_MediaStream {
 
   virtual void Periodic() {}
 
+  double StreamTimeToSeconds(mozilla::StreamTime aTime);
+  mozilla::StreamTime
+  TicksToTimeRoundDown(mozilla::TrackRate aRate, mozilla::TrackTicks aTicks);
+
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Fake_MediaStream);
 
  protected:
@@ -243,6 +247,14 @@ public:
   void SetHintContents(uint32_t aHintContents) { mHintContents = aHintContents; }
 
   void SetTrackEnabled(mozilla::TrackID aTrackID, bool aEnabled) {}
+
+  class PrincipalChangeObserver
+  {
+  public:
+    virtual void PrincipalChanged(Fake_DOMMediaStream* aMediaStream) = 0;
+  };
+  void AddPrincipalChangeObserver(void* ignoredObserver) {}
+  void RemovePrincipalChangeObserver(void* ignoredObserver) {}
 
 private:
   nsRefPtr<Fake_MediaStream> mMediaStream;

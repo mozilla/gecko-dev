@@ -6,6 +6,7 @@
   <script type="application/javascript" src="head.js"></script>
   <script type="application/javascript" src="pc.js"></script>
   <script type="application/javascript" src="templates.js"></script>
+  <script type="application/javascript" src="turnConfig.js"></script>
 </head>
 <body>
 <pre id="test">
@@ -16,10 +17,10 @@
   });
 
   var test;
-  runTest(function () {
+  runNetworkTest(function () {
     test = new DataChannelTest();
     test.run();
-  }, true);
+  });
 
 </script>
 </pre>

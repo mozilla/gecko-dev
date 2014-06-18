@@ -9,6 +9,7 @@
 #include "nsIDOMKeyEvent.h"
 #include "nsIWidget.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/TimeStamp.h"
 #include "mozilla/TouchEvents.h"
 
 using namespace mozilla;
@@ -37,6 +38,7 @@ jfieldID AndroidGeckoEvent::jCharactersExtraField = 0;
 jfieldID AndroidGeckoEvent::jDataField = 0;
 jfieldID AndroidGeckoEvent::jDOMPrintableKeyValueField = 0;
 jfieldID AndroidGeckoEvent::jKeyCodeField = 0;
+jfieldID AndroidGeckoEvent::jScanCodeField = 0;
 jfieldID AndroidGeckoEvent::jMetaStateField = 0;
 jfieldID AndroidGeckoEvent::jDomKeyLocationField = 0;
 jfieldID AndroidGeckoEvent::jFlagsField = 0;
@@ -146,6 +148,7 @@ AndroidGeckoEvent::InitGeckoEventClass(JNIEnv *jEnv)
     jCharactersExtraField = getField("mCharactersExtra", "Ljava/lang/String;");
     jDataField = getField("mData", "Ljava/lang/String;");
     jKeyCodeField = getField("mKeyCode", "I");
+    jScanCodeField = getField("mScanCode", "I");
     jMetaStateField = getField("mMetaState", "I");
     jDomKeyLocationField = getField("mDomKeyLocation", "Lorg/mozilla/gecko/GeckoEvent$DomKeyLocation;");
     jFlagsField = getField("mFlags", "I");
@@ -432,6 +435,7 @@ AndroidGeckoEvent::Init(JNIEnv *jenv, jobject jobj)
             mDomKeyLocation = ReadDomKeyLocation(jenv, jobj);
             mFlags = jenv->GetIntField(jobj, jFlagsField);
             mKeyCode = jenv->GetIntField(jobj, jKeyCodeField);
+            mScanCode = jenv->GetIntField(jobj, jScanCodeField);
             mUnicodeChar = jenv->GetIntField(jobj, jUnicodeCharField);
             mBaseUnicodeChar = jenv->GetIntField(jobj, jBaseUnicodeCharField);
             mDOMPrintableKeyValue =
@@ -484,10 +488,6 @@ AndroidGeckoEvent::Init(JNIEnv *jenv, jobject jobj)
                 mRangeLineColor =
                     jenv->GetIntField(jobj, jRangeLineColorField);
             }
-            break;
-
-        case DRAW:
-            ReadRectField(jenv);
             break;
 
         case SENSOR_EVENT:
@@ -755,7 +755,7 @@ AndroidGeckoEvent::MakeMultiTouchInput(nsIWidget* widget)
         }
     }
 
-    MultiTouchInput event(type, Time(), 0);
+    MultiTouchInput event(type, Time(), TimeStamp(), 0);
     event.modifiers = DOMModifiers();
 
     if (type < 0) {
@@ -1011,4 +1011,31 @@ nsJNIString::nsJNIString(jstring jstr, JNIEnv *jenv)
         Assign(reinterpret_cast<const char16_t*>(jCharPtr), len);
     }
     jni->ReleaseStringChars(jstr, jCharPtr);
+}
+
+nsJNICString::nsJNICString(jstring jstr, JNIEnv *jenv)
+{
+    if (!jstr) {
+        SetIsVoid(true);
+        return;
+    }
+    JNIEnv *jni = jenv;
+    if (!jni) {
+        jni = AndroidBridge::GetJNIEnv();
+    }
+    const char* jCharPtr = jni->GetStringUTFChars(jstr, nullptr);
+
+    if (!jCharPtr) {
+        SetIsVoid(true);
+        return;
+    }
+
+    jsize len = jni->GetStringUTFLength(jstr);
+
+    if (len <= 0) {
+        SetIsVoid(true);
+    } else {
+        Assign(jCharPtr, len);
+    }
+    jni->ReleaseStringUTFChars(jstr, jCharPtr);
 }

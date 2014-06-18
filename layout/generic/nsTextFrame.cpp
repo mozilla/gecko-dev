@@ -675,8 +675,7 @@ static bool IsCSSWordSpacingSpace(const nsTextFragment* aFrag,
     return !IsSpaceCombiningSequenceTail(aFrag, aPos + 1);
   case '\r':
   case '\t': return !aStyleText->WhiteSpaceIsSignificant();
-  case '\n': return !aStyleText->NewlineIsSignificant() &&
-                    !aStyleText->NewlineIsDiscarded();
+  case '\n': return !aStyleText->NewlineIsSignificant();
   default: return false;
   }
 }
@@ -709,7 +708,7 @@ static bool IsTrimmableSpace(const nsTextFragment* aFrag, uint32_t aPos,
   case ' ': return !aStyleText->WhiteSpaceIsSignificant() &&
                    !IsSpaceCombiningSequenceTail(aFrag, aPos + 1);
   case '\n': return !aStyleText->NewlineIsSignificant() &&
-                    !aStyleText->NewlineIsDiscarded();
+                    aStyleText->mWhiteSpace != NS_STYLE_WHITESPACE_PRE_SPACE;
   case '\t':
   case '\r':
   case '\f': return !aStyleText->WhiteSpaceIsSignificant();
@@ -769,21 +768,6 @@ IsAllWhitespace(const nsTextFragment* aFrag, bool aAllowNewline)
     if (ch == ' ' || ch == '\t' || ch == '\r' || (ch == '\n' && aAllowNewline))
       continue;
     return false;
-  }
-  return true;
-}
-
-static bool
-IsAllNewlines(const nsTextFragment* aFrag)
-{
-  if (aFrag->Is2b())
-    return false;
-  int32_t len = aFrag->GetLength();
-  const char* str = aFrag->Get1b();
-  for (int32_t i = 0; i < len; ++i) {
-    char ch = str[i];
-    if (ch != '\n')
-      return false;
   }
   return true;
 }
@@ -1816,16 +1800,16 @@ PR_STATIC_ASSERT(NS_STYLE_WHITESPACE_PRE == 1);
 PR_STATIC_ASSERT(NS_STYLE_WHITESPACE_NOWRAP == 2);
 PR_STATIC_ASSERT(NS_STYLE_WHITESPACE_PRE_WRAP == 3);
 PR_STATIC_ASSERT(NS_STYLE_WHITESPACE_PRE_LINE == 4);
-PR_STATIC_ASSERT(NS_STYLE_WHITESPACE_PRE_DISCARD_NEWLINES == 5);
+PR_STATIC_ASSERT(NS_STYLE_WHITESPACE_PRE_SPACE == 5);
 
 static const nsTextFrameUtils::CompressionMode CSSWhitespaceToCompressionMode[] =
 {
-  nsTextFrameUtils::COMPRESS_WHITESPACE_NEWLINE, // normal
-  nsTextFrameUtils::COMPRESS_NONE,               // pre
-  nsTextFrameUtils::COMPRESS_WHITESPACE_NEWLINE, // nowrap
-  nsTextFrameUtils::COMPRESS_NONE,               // pre-wrap
-  nsTextFrameUtils::COMPRESS_WHITESPACE,         // pre-line
-  nsTextFrameUtils::DISCARD_NEWLINE              // -moz-pre-discard-newlines
+  nsTextFrameUtils::COMPRESS_WHITESPACE_NEWLINE,     // normal
+  nsTextFrameUtils::COMPRESS_NONE,                   // pre
+  nsTextFrameUtils::COMPRESS_WHITESPACE_NEWLINE,     // nowrap
+  nsTextFrameUtils::COMPRESS_NONE,                   // pre-wrap
+  nsTextFrameUtils::COMPRESS_WHITESPACE,             // pre-line
+  nsTextFrameUtils::COMPRESS_NONE_TRANSFORM_TO_SPACE // -moz-pre-space
 };
 
 gfxTextRun*
@@ -1834,7 +1818,6 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
   gfxSkipChars skipChars;
 
   const void* textPtr = aTextBuffer;
-  bool anySmallcapsStyle = false;
   bool anyTextTransformStyle = false;
   bool anyMathMLStyling = false;
   uint8_t sstyScriptLevel = 0;
@@ -1912,9 +1895,6 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
       textFlags |= gfxTextRunFactory::TEXT_ENABLE_SPACING;
     }
     fontStyle = f->StyleFont();
-    if (NS_STYLE_FONT_VARIANT_SMALL_CAPS == fontStyle->mFont.variant) {
-      anySmallcapsStyle = true;
-    }
     if (NS_MATHML_MATHVARIANT_NONE != fontStyle->mMathVariant) {
       anyMathMLStyling = true;
     } else if (mLineContainer->GetStateBits() & NS_FRAME_IS_IN_SINGLE_CHAR_MI) {
@@ -2079,9 +2059,6 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
 
   // Setup factory chain
   nsAutoPtr<nsTransformingTextRunFactory> transformingFactory;
-  if (anySmallcapsStyle) {
-    transformingFactory = new nsFontVariantTextRunFactory();
-  }
   if (anyTextTransformStyle) {
     transformingFactory =
       new nsCaseTransformTextRunFactory(transformingFactory.forget());
@@ -2712,7 +2689,7 @@ nsTextFrame::ClearMetrics(nsHTMLReflowMetrics& aMetrics)
 {
   aMetrics.Width() = 0;
   aMetrics.Height() = 0;
-  aMetrics.SetTopAscent(0);
+  aMetrics.SetBlockStartAscent(0);
   mAscent = 0;
 }
 
@@ -3850,9 +3827,9 @@ nsTextFrame::AccessibleType()
 
 //-----------------------------------------------------------------------------
 void
-nsTextFrame::Init(nsIContent*      aContent,
-                  nsIFrame*        aParent,
-                  nsIFrame*        aPrevInFlow)
+nsTextFrame::Init(nsIContent*       aContent,
+                  nsContainerFrame* aParent,
+                  nsIFrame*         aPrevInFlow)
 {
   NS_ASSERTION(!aPrevInFlow, "Can't be a continuation!");
   NS_PRECONDITION(aContent->IsNodeOfType(nsINode::eTEXT),
@@ -3912,9 +3889,9 @@ public:
 
   friend nsIFrame* NS_NewContinuingTextFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-  virtual void Init(nsIContent*      aContent,
-                    nsIFrame*        aParent,
-                    nsIFrame*        aPrevInFlow) MOZ_OVERRIDE;
+  virtual void Init(nsIContent*       aContent,
+                    nsContainerFrame* aParent,
+                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
 
@@ -3964,9 +3941,9 @@ protected:
 };
 
 void
-nsContinuingTextFrame::Init(nsIContent* aContent,
-                            nsIFrame*   aParent,
-                            nsIFrame*   aPrevInFlow)
+nsContinuingTextFrame::Init(nsIContent*       aContent,
+                            nsContainerFrame* aParent,
+                            nsIFrame*         aPrevInFlow)
 {
   NS_ASSERTION(aPrevInFlow, "Must be a continuation!");
   // NOTE: bypassing nsTextFrame::Init!!!
@@ -4041,10 +4018,7 @@ nsContinuingTextFrame::DestroyFrom(nsIFrame* aDestructRoot)
   // because there's a direction change at the start of this frame), then
   // we have to clear the textrun because we're going away and the
   // textrun had better not keep a dangling reference to us.
-  if ((GetStateBits() & TEXT_IN_TEXTRUN_USER_DATA) ||
-      (GetStateBits() & TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA) ||
-      (!mPrevContinuation &&
-       !(GetStateBits() & TEXT_STYLE_MATCHES_PREV_CONTINUATION)) ||
+  if (IsInTextRunUserData() ||
       (mPrevContinuation &&
        mPrevContinuation->StyleContext() != StyleContext())) {
     ClearTextRuns();
@@ -4353,6 +4327,17 @@ nsTextFrame::ClearTextRun(nsTextFrame* aStartContinuation,
   }
 }
 
+void
+nsTextFrame::DisconnectTextRuns()
+{
+  MOZ_ASSERT(!IsInTextRunUserData(),
+             "Textrun mentions this frame in its user data so we can't just disconnect");
+  mTextRun = nullptr;
+  if ((GetStateBits() & TEXT_HAS_FONT_INFLATION)) {
+    Properties().Delete(UninflatedTextRunProperty());
+  }
+}
+
 nsresult
 nsTextFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
 {
@@ -4526,7 +4511,9 @@ public:
 void
 nsDisplayText::Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx) {
-  PROFILER_LABEL("nsDisplayText", "Paint");
+  PROFILER_LABEL("nsDisplayText", "Paint",
+    js::ProfileEntry::Category::GRAPHICS);
+
   // Add 1 pixel of dirty area around mVisibleRect to allow us to paint
   // antialiased pixels beyond the measured text extents.
   // This is temporary until we do this in the actual calculation of text extents.
@@ -4682,7 +4669,7 @@ nsTextFrame::GetTextDecorations(
     // the CSS 2.1 spec that blocks should propagate decorations down to their
     // children (albeit the style should be preserved)
     // However, if we're vertically aligned within a block, then we need to
-    // recover the right baseline from the line by querying the FrameProperty
+    // recover the correct baseline from the line by querying the FrameProperty
     // that should be set (see nsLineLayout::VerticalAlignLine).
     if (firstBlock) {
       // At this point, fChild can't be null since TextFrames can't be blocks
@@ -4697,7 +4684,9 @@ nsTextFrame::GetTextDecorations(
       }
     }
     else if (!nearestBlockFound) {
-      baselineOffset = frameTopOffset - f->GetBaseline();
+      // use a dummy WritingMode, because nsTextFrame::GetLogicalBaseLine
+      // doesn't use it anyway
+      baselineOffset = frameTopOffset - f->GetLogicalBaseline(WritingMode());
     }
 
     nearestBlockFound = nearestBlockFound || firstBlock;
@@ -5332,7 +5321,9 @@ nsTextFrame::PaintOneShadow(uint32_t aOffset, uint32_t aLength,
                             const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                             nscoord aLeftSideOffset, gfxRect& aBoundingBox)
 {
-  PROFILER_LABEL("nsTextFrame", "PaintOneShadow");
+  PROFILER_LABEL("nsTextFrame", "PaintOneShadow",
+    js::ProfileEntry::Category::GRAPHICS);
+
   gfxPoint shadowOffset(aShadowDetails->mXOffset, aShadowDetails->mYOffset);
   nscoord blurRadius = std::max(aShadowDetails->mRadius, 0);
 
@@ -7154,7 +7145,7 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
 
   bool collapseWhitespace = !textStyle->WhiteSpaceIsSignificant();
   bool preformatNewlines = textStyle->NewlineIsSignificant();
-  bool preformatTabs = textStyle->WhiteSpaceIsSignificant();
+  bool preformatTabs = textStyle->TabIsSignificant();
   gfxFloat tabWidth = -1;
   uint32_t start =
     FindStartAfterSkippingWhitespace(&provider, aData, textStyle, &iter, flowEndInTextRun);
@@ -7170,8 +7161,8 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
       // XXXldb Shouldn't we be including the newline as part of the
       // segment that it ends rather than part of the segment that it
       // starts?
-      NS_ASSERTION(preformatNewlines || textStyle->NewlineIsDiscarded(),
-                   "We can't be here unless newlines are hard breaks or are discarded");
+      NS_ASSERTION(preformatNewlines,
+                   "We can't be here unless newlines are hard breaks");
       preformattedNewline = preformatNewlines && textRun->CharIsNewline(i);
       preformattedTab = preformatTabs && textRun->CharIsTab(i);
       if (!preformattedNewline && !preformattedTab) {
@@ -7362,8 +7353,12 @@ HasSoftHyphenBefore(const nsTextFragment* aFrag, gfxTextRun* aTextRun,
   return false;
 }
 
+/**
+ * Removes all frames from aFrame up to (but not including) aFirstToNotRemove,
+ * because their text has all been taken and reflowed by earlier frames.
+ */
 static void
-RemoveInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
+RemoveEmptyInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
 {
   NS_PRECONDITION(aFrame != aFirstToNotRemove, "This will go very badly");
   // We have to be careful here, because some RemoveFrame implementations
@@ -7389,16 +7384,18 @@ RemoveInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
   nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
   nsIFrame* lastRemoved = aFirstToNotRemove->GetPrevContinuation();
 
-  // Clear the text run on the first frame we'll remove to make sure none of
-  // the frames we keep shares its text run.  We need to do this now, before
-  // we unlink the frames to remove from the flow, because DestroyFrom calls
-  // ClearTextRuns() and that will start at the first frame with the text
-  // run and walk the continuations.  We only need to care about the first
-  // and last frames we remove since text runs are contiguous.
-  aFrame->ClearTextRuns();
-  if (aFrame != lastRemoved) {
-    // Clear the text run on the last frame we'll remove for the same reason.
-    static_cast<nsTextFrame*>(lastRemoved)->ClearTextRuns();
+  for (nsTextFrame* f = aFrame; f != aFirstToNotRemove;
+       f = static_cast<nsTextFrame*>(f->GetNextContinuation())) {
+    // f is going to be destroyed soon, after it is unlinked from the
+    // continuation chain. If its textrun is going to be destroyed we need to
+    // do it now, before we unlink the frames to remove from the flow,
+    // because DestroyFrom calls ClearTextRuns() and that will start at the
+    // first frame with the text run and walk the continuations.
+    if (f->IsInTextRunUserData()) {
+      f->ClearTextRuns();
+    } else {
+      f->DisconnectTextRuns();
+    }
   }
 
   prevContinuation->SetNextInFlow(aFirstToNotRemove);
@@ -7407,7 +7404,7 @@ RemoveInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
   aFrame->SetPrevInFlow(nullptr);
   lastRemoved->SetNextInFlow(nullptr);
 
-  nsIFrame* parent = aFrame->GetParent();
+  nsContainerFrame* parent = aFrame->GetParent();
   nsBlockFrame* parentBlock = nsLayoutUtils::GetAsBlock(parent);
   if (parentBlock) {
     // Manually call DoRemoveFrame so we can tell it that we're
@@ -7507,15 +7504,8 @@ nsTextFrame::SetLength(int32_t aLength, nsLineLayout* aLineLayout,
         // Remember that we have to remove this frame.
         framesToRemove = f;
       }
-
-      // Important: if |f| has the same style context as its prev continuation,
-      // mark it accordingly so we can skip clearing textruns as needed.  Note
-      // that at this point f always has a prev continuation.
-      if (f->StyleContext() == f->GetPrevContinuation()->StyleContext()) {
-        f->AddStateBits(TEXT_STYLE_MATCHES_PREV_CONTINUATION);
-      }
     } else if (framesToRemove) {
-      RemoveInFlows(framesToRemove, f);
+      RemoveEmptyInFlows(framesToRemove, f);
       framesToRemove = nullptr;
     }
     f = next;
@@ -7526,7 +7516,7 @@ nsTextFrame::SetLength(int32_t aLength, nsLineLayout* aLineLayout,
   if (framesToRemove) {
     // We are guaranteed that we exited the loop with f not null, per the
     // postcondition above
-    RemoveInFlows(framesToRemove, f);
+    RemoveEmptyInFlows(framesToRemove, f);
   }
 
 #ifdef DEBUG
@@ -7561,7 +7551,7 @@ struct NewlineProperty {
   int32_t mNewlineOffset;
 };
 
-nsresult
+void
 nsTextFrame::Reflow(nsPresContext*           aPresContext,
                     nsHTMLReflowMetrics&     aMetrics,
                     const nsHTMLReflowState& aReflowState,
@@ -7576,14 +7566,13 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   if (!aReflowState.mLineLayout) {
     ClearMetrics(aMetrics);
     aStatus = NS_FRAME_COMPLETE;
-    return NS_OK;
+    return;
   }
 
   ReflowText(*aReflowState.mLineLayout, aReflowState.AvailableWidth(),
              aReflowState.rendContext, aMetrics, aStatus);
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
-  return NS_OK;
 }
 
 #ifdef ACCESSIBILITY
@@ -7986,12 +7975,13 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   aMetrics.Width() = NSToCoordCeil(std::max(gfxFloat(0.0), textMetrics.mAdvanceWidth));
 
   if (transformedCharsFit == 0 && !usedHyphenation) {
-    aMetrics.SetTopAscent(0);
+    aMetrics.SetBlockStartAscent(0);
     aMetrics.Height() = 0;
   } else if (boundingBoxType != gfxFont::LOOSE_INK_EXTENTS) {
     // Use actual text metrics for floating first letter frame.
-    aMetrics.SetTopAscent(NSToCoordCeil(textMetrics.mAscent));
-    aMetrics.Height() = aMetrics.TopAscent() + NSToCoordCeil(textMetrics.mDescent);
+    aMetrics.SetBlockStartAscent(NSToCoordCeil(textMetrics.mAscent));
+    aMetrics.Height() = aMetrics.BlockStartAscent() +
+      NSToCoordCeil(textMetrics.mDescent);
   } else {
     // Otherwise, ascent should contain the overline drawable area.
     // And also descent should contain the underline drawable area.
@@ -7999,15 +7989,17 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     nsFontMetrics* fm = provider.GetFontMetrics();
     nscoord fontAscent = fm->MaxAscent();
     nscoord fontDescent = fm->MaxDescent();
-    aMetrics.SetTopAscent(std::max(NSToCoordCeil(textMetrics.mAscent), fontAscent));
+    aMetrics.SetBlockStartAscent(std::max(NSToCoordCeil(textMetrics.mAscent), fontAscent));
     nscoord descent = std::max(NSToCoordCeil(textMetrics.mDescent), fontDescent);
-    aMetrics.Height() = aMetrics.TopAscent() + descent;
+    aMetrics.Height() = aMetrics.BlockStartAscent() + descent;
   }
 
-  NS_ASSERTION(aMetrics.TopAscent() >= 0, "Negative ascent???");
-  NS_ASSERTION(aMetrics.Height() - aMetrics.TopAscent() >= 0, "Negative descent???");
+  NS_ASSERTION(aMetrics.BlockStartAscent() >= 0,
+               "Negative ascent???");
+  NS_ASSERTION(aMetrics.Height() - aMetrics.BlockStartAscent() >= 0,
+               "Negative descent???");
 
-  mAscent = aMetrics.TopAscent();
+  mAscent = aMetrics.BlockStartAscent();
 
   // Handle text that runs outside its normal bounds.
   nsRect boundingBox = RoundOut(textMetrics.mBoundingBox) + nsPoint(0, mAscent);
@@ -8126,7 +8118,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
 #ifdef NOISY_REFLOW
   ListTag(stdout);
   printf(": desiredSize=%d,%d(b=%d) status=%x\n",
-         aMetrics.Width(), aMetrics.Height(), aMetrics.TopAscent(),
+         aMetrics.Width(), aMetrics.Height(), aMetrics.BlockStartAscent(),
          aStatus);
 #endif
 }
@@ -8267,8 +8259,10 @@ static char16_t TransformChar(const nsStyleText* aStyle, gfxTextRun* aTextRun,
                                uint32_t aSkippedOffset, char16_t aChar)
 {
   if (aChar == '\n') {
-    return aStyle->NewlineIsSignificant() || aStyle->NewlineIsDiscarded() ?
-             aChar : ' ';
+    return aStyle->NewlineIsSignificant() ? aChar : ' ';
+  }
+  if (aChar == '\t') {
+    return aStyle->TabIsSignificant() ? aChar : ' ';
   }
   switch (aStyle->mTextTransform) {
   case NS_STYLE_TEXT_TRANSFORM_LOWERCASE:
@@ -8377,8 +8371,7 @@ nsTextFrame::IsEmpty()
   
   // XXXldb Should this check compatibility mode as well???
   const nsStyleText* textStyle = StyleText();
-  if (textStyle->WhiteSpaceIsSignificant() &&
-      textStyle->mWhiteSpace != NS_STYLE_WHITESPACE_PRE_DISCARD_NEWLINES) {
+  if (textStyle->WhiteSpaceIsSignificant()) {
     // XXX shouldn't we return true if the length is zero?
     return false;
   }
@@ -8392,10 +8385,8 @@ nsTextFrame::IsEmpty()
   }
 
   bool isEmpty =
-    textStyle->mWhiteSpace == NS_STYLE_WHITESPACE_PRE_DISCARD_NEWLINES ?
-      IsAllNewlines(mContent->GetText()) :
-      IsAllWhitespace(mContent->GetText(),
-                      textStyle->mWhiteSpace != NS_STYLE_WHITESPACE_PRE_LINE);
+    IsAllWhitespace(mContent->GetText(),
+                    textStyle->mWhiteSpace != NS_STYLE_WHITESPACE_PRE_LINE);
   mState |= (isEmpty ? TEXT_IS_ONLY_WHITESPACE : TEXT_ISNOT_ONLY_WHITESPACE);
   return isEmpty;
 }
@@ -8536,7 +8527,7 @@ nsTextFrame::IsAtEndOfLine() const
 }
 
 nscoord
-nsTextFrame::GetBaseline() const
+nsTextFrame::GetLogicalBaseline(WritingMode aWritingMode ) const
 {
   return mAscent;
 }

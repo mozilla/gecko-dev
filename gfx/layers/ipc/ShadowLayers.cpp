@@ -36,16 +36,15 @@
 
 struct nsIntPoint;
 
-using namespace mozilla::ipc;
-using namespace mozilla::gl;
-using namespace mozilla::dom;
-
 namespace mozilla {
 namespace ipc {
 class Shmem;
 }
 
 namespace layers {
+
+using namespace mozilla::ipc;
+using namespace mozilla::gl;
 
 class ClientTiledLayerBuffer;
 
@@ -64,7 +63,7 @@ public:
   {}
 
   void Begin(const nsIntRect& aTargetBounds, ScreenRotation aRotation,
-             const nsIntRect& aClientBounds, ScreenOrientation aOrientation)
+             const nsIntRect& aClientBounds, dom::ScreenOrientation aOrientation)
   {
     mOpen = true;
     mTargetBounds = aTargetBounds;
@@ -142,7 +141,7 @@ public:
   nsIntRect mTargetBounds;
   ScreenRotation mTargetRotation;
   nsIntRect mClientBounds;
-  ScreenOrientation mTargetOrientation;
+  dom::ScreenOrientation mTargetOrientation;
   bool mSwapRequired;
 
 private:
@@ -187,7 +186,7 @@ void
 ShadowLayerForwarder::BeginTransaction(const nsIntRect& aTargetBounds,
                                        ScreenRotation aRotation,
                                        const nsIntRect& aClientBounds,
-                                       ScreenOrientation aOrientation)
+                                       dom::ScreenOrientation aOrientation)
 {
   NS_ABORT_IF_FALSE(HasShadowManager(), "no manager to forward to");
   NS_ABORT_IF_FALSE(mTxn->Finished(), "uncommitted txn?");
@@ -412,6 +411,17 @@ ShadowLayerForwarder::UseComponentAlphaTextures(CompositableClient* aCompositabl
 }
 
 void
+ShadowLayerForwarder::SendFenceHandle(AsyncTransactionTracker* aTracker,
+                                        PTextureChild* aTexture,
+                                        const FenceHandle& aFence)
+{
+  if (!HasShadowManager() || !mShadowManager->IPCOpen()) {
+    return;
+  }
+  mShadowManager->SendFenceHandle(aTracker, aTexture, aFence);
+}
+
+void
 ShadowLayerForwarder::RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                                     TextureClient* aTexture)
 {
@@ -429,6 +439,20 @@ ShadowLayerForwarder::RemoveTextureFromCompositable(CompositableClient* aComposi
 }
 
 void
+ShadowLayerForwarder::RemoveTextureFromCompositableAsync(AsyncTransactionTracker* aAsyncTransactionTracker,
+                                                     CompositableClient* aCompositable,
+                                                     TextureClient* aTexture)
+{
+  mTxn->AddEdit(OpRemoveTextureAsync(CompositableClient::GetTrackersHolderId(aCompositable->GetIPDLActor()),
+                                     aAsyncTransactionTracker->GetId(),
+                                     nullptr, aCompositable->GetIPDLActor(),
+                                     nullptr, aTexture->GetIPDLActor()));
+  // Hold AsyncTransactionTracker until receving reply
+  CompositableClient::HoldUntilComplete(aCompositable->GetIPDLActor(),
+                                        aAsyncTransactionTracker);
+}
+
+void
 ShadowLayerForwarder::RemoveTexture(TextureClient* aTexture)
 {
   MOZ_ASSERT(aTexture);
@@ -438,12 +462,18 @@ ShadowLayerForwarder::RemoveTexture(TextureClient* aTexture)
 bool
 ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies,
                                      const nsIntRegion& aRegionToClear,
+                                     uint64_t aId,
                                      bool aScheduleComposite,
+                                     uint32_t aPaintSequenceNumber,
                                      bool* aSent)
 {
   *aSent = false;
 
-  PROFILER_LABEL("ShadowLayerForwarder", "EndTranscation");
+  MOZ_ASSERT(aId);
+
+  PROFILER_LABEL("ShadowLayerForwarder", "EndTranscation",
+    js::ProfileEntry::Category::GRAPHICS);
+
   RenderTraceScope rendertrace("Foward Transaction", "000091");
   NS_ABORT_IF_FALSE(HasShadowManager(), "no manager to forward to");
   NS_ABORT_IF_FALSE(!mTxn->Finished(), "forgot BeginTransaction?");
@@ -539,8 +569,10 @@ ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies,
                             mTxn->mTargetOrientation,
                             aRegionToClear);
 
-  MOZ_LAYERS_LOG(("[LayersForwarder] syncing before send..."));
-  PlatformSyncBeforeUpdate();
+  if (!IsSameProcess()) {
+    MOZ_LAYERS_LOG(("[LayersForwarder] syncing before send..."));
+    PlatformSyncBeforeUpdate();
+  }
 
   profiler_tracing("Paint", "Rasterize", TRACING_INTERVAL_END);
   if (mTxn->mSwapRequired) {
@@ -548,8 +580,9 @@ ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies,
     RenderTraceScope rendertrace3("Forward Transaction", "000093");
     if (!HasShadowManager() ||
         !mShadowManager->IPCOpen() ||
-        !mShadowManager->SendUpdate(cset, targetConfig, mIsFirstPaint,
-                                    aScheduleComposite, aReplies)) {
+        !mShadowManager->SendUpdate(cset, aId, targetConfig, mIsFirstPaint,
+                                    aScheduleComposite, aPaintSequenceNumber,
+                                    aReplies)) {
       MOZ_LAYERS_LOG(("[LayersForwarder] WARNING: sending transaction failed!"));
       return false;
     }
@@ -560,7 +593,8 @@ ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies,
     RenderTraceScope rendertrace3("Forward NoSwap Transaction", "000093");
     if (!HasShadowManager() ||
         !mShadowManager->IPCOpen() ||
-        !mShadowManager->SendUpdateNoSwap(cset, targetConfig, mIsFirstPaint, aScheduleComposite)) {
+        !mShadowManager->SendUpdateNoSwap(cset, aId, targetConfig, mIsFirstPaint,
+                                          aPaintSequenceNumber, aScheduleComposite)) {
       MOZ_LAYERS_LOG(("[LayersForwarder] WARNING: sending transaction failed!"));
       return false;
     }

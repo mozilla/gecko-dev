@@ -15,11 +15,23 @@ callback WebrtcGlobalLoggingCallback = void (sequence<DOMString> logMessages);
 interface WebrtcGlobalInformation {
 
   [Throws]
-  static void getAllStats(WebrtcGlobalStatisticsCallback callback);
+  static void getAllStats(WebrtcGlobalStatisticsCallback callback,
+                          optional DOMString pcIdFilter);
 
   [Throws]
   static void getLogging(DOMString pattern,
                          WebrtcGlobalLoggingCallback callback);
+
+  // NSPR WebRTC Trace debug level (0 - 65535)
+  //
+  // Notes:
+  // - Setting a non-zero debug level turns on gathering of log for file output.
+  // - Subsequently setting a zero debug level writes that log to disk.
+
+  static attribute long debugLevel;
+
+  // WebRTC AEC debugging enable
+  static attribute boolean aecDebug;
 };
 
 

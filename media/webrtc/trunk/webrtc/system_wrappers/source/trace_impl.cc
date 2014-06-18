@@ -29,12 +29,29 @@
 #pragma warning(disable:4355)
 #endif  // _WIN32
 
+extern "C" {
+  int AECDebug() { return (int) webrtc::Trace::aec_debug(); }
+  uint32_t AECDebugMaxSize() { return webrtc::Trace::aec_debug_size(); }
+  void AECDebugEnable(uint32_t enable) { webrtc::Trace::set_aec_debug(!!enable); }
+  void AECDebugFilenameBase(char *buffer, size_t size) {
+    webrtc::Trace::aec_debug_filename(buffer, size);
+  }
+}
+
 namespace webrtc {
 
 const int Trace::kBoilerplateLength = 71;
 const int Trace::kTimestampPosition = 13;
 const int Trace::kTimestampLength = 12;
 uint32_t Trace::level_filter_ = kTraceDefault;
+bool Trace::aec_debug_ = false;
+uint32_t Trace::aec_debug_size_ = 4*1024*1024;
+std::string Trace::aec_filename_base_;
+
+void Trace::aec_debug_filename(char *buffer, size_t size) {
+  strncpy(buffer, aec_filename_base_.c_str(), size-1);
+  buffer[size-1] = '\0';
+}
 
 // Construct On First Use idiom. Avoids "static initialization order fiasco".
 TraceImpl* TraceImpl::StaticInstance(CountOperation count_operation,
@@ -87,14 +104,12 @@ TraceImpl::TraceImpl()
 
   for (int m = 0; m < WEBRTC_TRACE_NUM_ARRAY; ++m) {
     for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE; ++n) {
-#if defined(WEBRTC_LAZY_TRACE_ALLOC)
-      message_queue_[m][n] = new
-      char[WEBRTC_TRACE_MAX_MESSAGE_SIZE];
-#else
       message_queue_[m][n] = NULL;
-#endif
     }
   }
+#if !defined(WEBRTC_LAZY_TRACE_ALLOC)
+  AllocateTraceBuffers();
+#endif
 }
 
 bool TraceImpl::StopThread() {
@@ -277,6 +292,10 @@ int32_t TraceImpl::AddModuleAndId(char* trace_message,
         sprintf(trace_message, "  VIDEO PROC:%5ld %5ld;", id_engine,
                 id_channel);
         break;
+      case kTraceRemoteBitrateEstimator:
+        sprintf(trace_message, "     BWE RBE:%5ld %5ld;", id_engine,
+                id_channel);
+        break;
     }
   } else {
     switch (module) {
@@ -336,25 +355,35 @@ int32_t TraceImpl::AddModuleAndId(char* trace_message,
       case kTraceVideoPreocessing:
         sprintf(trace_message, "  VIDEO PROC:%11ld;", idl);
         break;
+      case kTraceRemoteBitrateEstimator:
+        sprintf(trace_message, "     BWE RBE:%11ld;", idl);
+        break;
     }
   }
   return kMessageLength;
 }
 
-int32_t TraceImpl::SetTraceFileImpl(const char* file_name_utf8,
-                                    const bool add_file_counter) {
-#if !defined(WEBRTC_LAZY_TRACE_ALLOC)
-  if (file_name_utf8) {
-    // Lazy-allocate trace buffers to save memory.
-    // Avoid locking issues by not holding both critsects at once.
-    // Do this before we can return true from .Open().
-    CriticalSectionScoped lock(critsect_array_);
+void TraceImpl::AllocateTraceBuffers()
+{
+  // Lazy-allocate trace buffers to save memory.
+  // Avoid locking issues by not holding both critsects at once.
+  // Do this before we can return true from .Open().
+  CriticalSectionScoped lock(critsect_array_);
 
+  if (!message_queue_[0][0]) {
     for (int m = 0; m < WEBRTC_TRACE_NUM_ARRAY; ++m) {
       for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE; ++n) {
         message_queue_[m][n] = new char[WEBRTC_TRACE_MAX_MESSAGE_SIZE];
       }
     }
+  }
+}
+
+int32_t TraceImpl::SetTraceFileImpl(const char* file_name_utf8,
+                                    const bool add_file_counter) {
+#if defined(WEBRTC_LAZY_TRACE_ALLOC)
+  if (file_name_utf8) {
+    AllocateTraceBuffers();
   }
 #endif
 
@@ -392,6 +421,11 @@ int32_t TraceImpl::TraceFileImpl(
 }
 
 int32_t TraceImpl::SetTraceCallbackImpl(TraceCallback* callback) {
+#if defined(WEBRTC_LAZY_TRACE_ALLOC)
+  if (callback) {
+    AllocateTraceBuffers();
+  }
+#endif
   CriticalSectionScoped lock(critsect_interface_);
   callback_ = callback;
   return 0;
@@ -444,29 +478,29 @@ void TraceImpl::AddMessageToList(
 
   uint16_t idx = next_free_idx_[active_queue_];
 
-#if !defined(WEBRTC_LAZY_TRACE_ALLOC)
+#if defined(WEBRTC_LAZY_TRACE_ALLOC)
   // Avoid grabbing another lock just to check Open(); use
   // the fact we've allocated buffers to decide whether to save
   // the message in the buffer.  Use the indexing as this minimizes
   // cache misses/etc
   if (!message_queue_[active_queue_][idx]) {
-      return;
-  }
+  return;
+}
 #endif
 
   if (idx >= WEBRTC_TRACE_MAX_QUEUE) {
     if (!trace_file_.Open() && !callback_) {
-      // Keep at least the last 1/4 of old messages when not logging.
+      // Drop the first 1/4 of old messages when not logging.
       // TODO(hellner): isn't this redundant. The user will make it known
       //                when to start logging. Why keep messages before
       //                that?
-      for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE / 4; ++n) {
-        const int last_quarter_offset = (3 * WEBRTC_TRACE_MAX_QUEUE / 4);
+      for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE * 3 / 4; ++n) {
+        const int last_quarter_offset = (1 * WEBRTC_TRACE_MAX_QUEUE / 4);
         memcpy(message_queue_[active_queue_][n],
                message_queue_[active_queue_][n + last_quarter_offset],
                WEBRTC_TRACE_MAX_MESSAGE_SIZE);
       }
-      idx = next_free_idx_[active_queue_] = WEBRTC_TRACE_MAX_QUEUE / 4;
+      idx = next_free_idx_[active_queue_] = WEBRTC_TRACE_MAX_QUEUE * 3 / 4;
     } else {
       // More messages are being written than there is room for in the
       // buffer. Drop any new messages.

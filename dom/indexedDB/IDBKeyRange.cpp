@@ -164,8 +164,9 @@ IDBKeyRange::WrapObject(JSContext* aCx)
   return IDBKeyRangeBinding::Wrap(aCx, this);
 }
 
-JS::Value
-IDBKeyRange::GetLower(JSContext* aCx, ErrorResult& aRv)
+void
+IDBKeyRange::GetLower(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+                      ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
 
@@ -177,17 +178,19 @@ IDBKeyRange::GetLower(JSContext* aCx, ErrorResult& aRv)
 
     aRv = Lower().ToJSVal(aCx, mCachedLowerVal);
     if (aRv.Failed()) {
-      return JS::UndefinedValue();
+      return;
     }
 
     mHaveCachedLowerVal = true;
   }
 
-  return mCachedLowerVal;
+  JS::ExposeValueToActiveJS(mCachedLowerVal);
+  aResult.set(mCachedLowerVal);
 }
 
-JS::Value
-IDBKeyRange::GetUpper(JSContext* aCx, ErrorResult& aRv)
+void
+IDBKeyRange::GetUpper(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+                      ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
 
@@ -199,18 +202,19 @@ IDBKeyRange::GetUpper(JSContext* aCx, ErrorResult& aRv)
 
     aRv = Upper().ToJSVal(aCx, mCachedUpperVal);
     if (aRv.Failed()) {
-      return JS::UndefinedValue();
+      return;
     }
 
     mHaveCachedUpperVal = true;
   }
 
-  return mCachedUpperVal;
+  JS::ExposeValueToActiveJS(mCachedUpperVal);
+  aResult.set(mCachedUpperVal);
 }
 
 // static
 already_AddRefed<IDBKeyRange>
-IDBKeyRange::Only(const GlobalObject& aGlobal, JSContext* aCx,
+IDBKeyRange::Only(const GlobalObject& aGlobal,
                   JS::Handle<JS::Value> aValue, ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
@@ -218,7 +222,7 @@ IDBKeyRange::Only(const GlobalObject& aGlobal, JSContext* aCx,
   nsRefPtr<IDBKeyRange> keyRange =
     new IDBKeyRange(aGlobal.GetAsSupports(), false, false, true);
 
-  aRv = GetKeyFromJSVal(aCx, aValue, keyRange->Lower());
+  aRv = GetKeyFromJSVal(aGlobal.Context(), aValue, keyRange->Lower());
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -228,7 +232,7 @@ IDBKeyRange::Only(const GlobalObject& aGlobal, JSContext* aCx,
 
 // static
 already_AddRefed<IDBKeyRange>
-IDBKeyRange::LowerBound(const GlobalObject& aGlobal, JSContext* aCx,
+IDBKeyRange::LowerBound(const GlobalObject& aGlobal,
                         JS::Handle<JS::Value> aValue, bool aOpen,
                         ErrorResult& aRv)
 {
@@ -237,7 +241,7 @@ IDBKeyRange::LowerBound(const GlobalObject& aGlobal, JSContext* aCx,
   nsRefPtr<IDBKeyRange> keyRange =
     new IDBKeyRange(aGlobal.GetAsSupports(), aOpen, true, false);
 
-  aRv = GetKeyFromJSVal(aCx, aValue, keyRange->Lower());
+  aRv = GetKeyFromJSVal(aGlobal.Context(), aValue, keyRange->Lower());
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -247,7 +251,7 @@ IDBKeyRange::LowerBound(const GlobalObject& aGlobal, JSContext* aCx,
 
 // static
 already_AddRefed<IDBKeyRange>
-IDBKeyRange::UpperBound(const GlobalObject& aGlobal, JSContext* aCx,
+IDBKeyRange::UpperBound(const GlobalObject& aGlobal,
                         JS::Handle<JS::Value> aValue, bool aOpen,
                         ErrorResult& aRv)
 {
@@ -256,7 +260,7 @@ IDBKeyRange::UpperBound(const GlobalObject& aGlobal, JSContext* aCx,
   nsRefPtr<IDBKeyRange> keyRange =
     new IDBKeyRange(aGlobal.GetAsSupports(), true, aOpen, false);
 
-  aRv = GetKeyFromJSVal(aCx, aValue, keyRange->Upper());
+  aRv = GetKeyFromJSVal(aGlobal.Context(), aValue, keyRange->Upper());
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -266,7 +270,7 @@ IDBKeyRange::UpperBound(const GlobalObject& aGlobal, JSContext* aCx,
 
 // static
 already_AddRefed<IDBKeyRange>
-IDBKeyRange::Bound(const GlobalObject& aGlobal, JSContext* aCx,
+IDBKeyRange::Bound(const GlobalObject& aGlobal,
                    JS::Handle<JS::Value> aLower, JS::Handle<JS::Value> aUpper,
                    bool aLowerOpen, bool aUpperOpen, ErrorResult& aRv)
 {
@@ -275,12 +279,12 @@ IDBKeyRange::Bound(const GlobalObject& aGlobal, JSContext* aCx,
   nsRefPtr<IDBKeyRange> keyRange =
     new IDBKeyRange(aGlobal.GetAsSupports(), aLowerOpen, aUpperOpen, false);
 
-  aRv = GetKeyFromJSVal(aCx, aLower, keyRange->Lower());
+  aRv = GetKeyFromJSVal(aGlobal.Context(), aLower, keyRange->Lower());
   if (aRv.Failed()) {
     return nullptr;
   }
 
-  aRv = GetKeyFromJSVal(aCx, aUpper, keyRange->Upper());
+  aRv = GetKeyFromJSVal(aGlobal.Context(), aUpper, keyRange->Upper());
   if (aRv.Failed()) {
     return nullptr;
   }

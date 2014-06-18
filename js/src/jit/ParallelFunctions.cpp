@@ -8,6 +8,7 @@
 
 #include "builtin/TypedObject.h"
 #include "jit/arm/Simulator-arm.h"
+#include "jit/mips/Simulator-mips.h"
 #include "vm/ArrayObject.h"
 
 #include "jsgcinlines.h"
@@ -15,6 +16,8 @@
 
 using namespace js;
 using namespace jit;
+
+using JS::AutoCheckCannotGC;
 
 using parallel::Spew;
 using parallel::SpewOps;
@@ -35,7 +38,11 @@ JSObject *
 jit::NewGCThingPar(ForkJoinContext *cx, gc::AllocKind allocKind)
 {
     JS_ASSERT(ForkJoinContext::current() == cx);
+#ifdef JSGC_FJGENERATIONAL
+    return js::NewGCObject<CanGC>(cx, allocKind, 0, gc::DefaultHeap);
+#else
     return js::NewGCObject<NoGC>(cx, allocKind, 0, gc::TenuredHeap);
+#endif
 }
 
 bool
@@ -190,7 +197,7 @@ jit::CheckOverRecursedPar(ForkJoinContext *cx)
     // limit, but we do still call into this routine if the interrupt
     // flag is set, so we still need to double check.
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     if (Simulator::Current()->overRecursed()) {
         cx->bailoutRecord->setCause(ParallelBailoutOverRecursed);
         return false;
@@ -356,11 +363,12 @@ CompareStringsPar(ForkJoinContext *cx, JSString *left, JSString *right, int32_t 
 {
     ScopedThreadSafeStringInspector leftInspector(left);
     ScopedThreadSafeStringInspector rightInspector(right);
-    if (!leftInspector.ensureChars(cx) || !rightInspector.ensureChars(cx))
+    AutoCheckCannotGC nogc;
+    if (!leftInspector.ensureChars(cx, nogc) || !rightInspector.ensureChars(cx, nogc))
         return false;
 
-    *res = CompareChars(leftInspector.chars(), left->length(),
-                        rightInspector.chars(), right->length());
+    *res = CompareChars(leftInspector.twoByteChars(), left->length(),
+                        rightInspector.twoByteChars(), right->length());
     return true;
 }
 
@@ -427,7 +435,7 @@ StrictlyEqualImplPar(ForkJoinContext *cx, MutableHandleValue lhs, MutableHandleV
             return LooselyEqualImplPar<Equal>(cx, lhs, rhs, res);
     }
 
-    *res = false;
+    *res = !Equal;
     return true;
 }
 

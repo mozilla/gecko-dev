@@ -118,8 +118,10 @@ AppendToString(nsACString& s, const FrameMetrics& m,
 {
   s += pfx;
   AppendToString(s, m.mViewport, "{ viewport=");
+  AppendToString(s, m.mCompositionBounds, " cb=");
   AppendToString(s, m.GetScrollOffset(), " viewportScroll=");
   AppendToString(s, m.mDisplayPort, " displayport=");
+  AppendToString(s, m.mCriticalDisplayPort, " critdp=");
   AppendToString(s, m.mScrollableRect, " scrollableRect=");
   AppendToString(s, m.GetScrollId(), " scrollId=", " }");
   return s += sfx;

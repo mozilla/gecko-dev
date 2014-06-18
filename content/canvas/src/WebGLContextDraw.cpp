@@ -111,6 +111,11 @@ bool WebGLContext::DrawArrays_check(GLint first, GLsizei count, GLsizei primcoun
     if (!DoFakeVertexAttrib0(checked_firstPlusCount.value())) {
         return false;
     }
+
+    if (!DrawInstanced_check(info)) {
+        return false;
+    }
+
     BindFakeBlackTextures();
 
     return true;
@@ -128,7 +133,7 @@ WebGLContext::DrawArrays(GLenum mode, GLint first, GLsizei count)
     if (!DrawArrays_check(first, count, 1, "drawArrays"))
         return;
 
-    SetupContextLossTimer();
+    RunContextLossTimer();
     gl->fDrawArrays(mode, first, count);
 
     Draw_cleanup();
@@ -146,10 +151,7 @@ WebGLContext::DrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsiz
     if (!DrawArrays_check(first, count, primcount, "drawArraysInstanced"))
         return;
 
-    if (!DrawInstanced_check("drawArraysInstanced"))
-        return;
-
-    SetupContextLossTimer();
+    RunContextLossTimer();
     gl->fDrawArraysInstanced(mode, first, count, primcount);
 
     Draw_cleanup();
@@ -219,12 +221,12 @@ WebGLContext::DrawElements_check(GLsizei count, GLenum type,
         return false;
     }
 
-    if (!mBoundVertexArray->mBoundElementArrayBuffer) {
+    if (!mBoundVertexArray->mElementArrayBuffer) {
         ErrorInvalidOperation("%s: must have element array buffer binding", info);
         return false;
     }
 
-    WebGLBuffer& elemArrayBuffer = *mBoundVertexArray->mBoundElementArrayBuffer;
+    WebGLBuffer& elemArrayBuffer = *mBoundVertexArray->mElementArrayBuffer;
 
     if (!elemArrayBuffer.ByteLength()) {
         ErrorInvalidOperation("%s: bound element array buffer doesn't have any data", info);
@@ -260,6 +262,14 @@ WebGLContext::DrawElements_check(GLsizei count, GLenum type,
         return false;
     }
 
+    // Bug 1008310 - Check if buffer has been used with a different previous type
+    if (elemArrayBuffer.IsElementArrayUsedWithMultipleTypes()) {
+        GenerateWarning("%s: bound element array buffer previously used with a type other than "
+                        "%s, this will affect performance.",
+                        info,
+                        WebGLContext::EnumName(type));
+    }
+
     MakeContextCurrent();
 
     if (mBoundFramebuffer) {
@@ -274,6 +284,11 @@ WebGLContext::DrawElements_check(GLsizei count, GLenum type,
     if (!DoFakeVertexAttrib0(mMaxFetchedVertices)) {
         return false;
     }
+
+    if (!DrawInstanced_check(info)) {
+        return false;
+    }
+
     BindFakeBlackTextures();
 
     return true;
@@ -296,7 +311,7 @@ WebGLContext::DrawElements(GLenum mode, GLsizei count, GLenum type,
         return;
     }
 
-    SetupContextLossTimer();
+    RunContextLossTimer();
 
     if (gl->IsSupported(gl::GLFeature::draw_range_elements)) {
         gl->fDrawRangeElements(mode, 0, upperBound,
@@ -321,10 +336,7 @@ WebGLContext::DrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
     if (!DrawElements_check(count, type, byteOffset, primcount, "drawElementsInstanced"))
         return;
 
-    if (!DrawInstanced_check("drawElementsInstanced"))
-        return;
-
-    SetupContextLossTimer();
+    RunContextLossTimer();
     gl->fDrawElementsInstanced(mode, count, type, reinterpret_cast<GLvoid*>(byteOffset), primcount);
 
     Draw_cleanup();

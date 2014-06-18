@@ -33,6 +33,7 @@
 #include "nsIDOMElementCSSInlineStyle.h"
 #include "nsIDOMXULSelectCntrlItemEl.h"
 #include "nsIDocument.h"
+#include "nsLayoutStylesheetCache.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
@@ -334,6 +335,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsXULElement,
         }
     }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsXULElement,
+                                                nsStyledElement)
+    // Why aren't we unlinking the prototype?
+    tmp->ClearHasID();
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ADDREF_INHERITED(nsXULElement, nsStyledElement)
 NS_IMPL_RELEASE_INHERITED(nsXULElement, nsStyledElement)
@@ -729,6 +736,68 @@ nsXULElement::UpdateEditableState(bool aNotify)
     UpdateState(aNotify);
 }
 
+/**
+ * Returns true if the user-agent style sheet rules for this XUL element are
+ * in minimal-xul.css instead of xul.css.
+ */
+static inline bool XULElementsRulesInMinimalXULSheet(nsIAtom* aTag)
+{
+  return // scrollbar parts:
+         aTag == nsGkAtoms::scrollbar ||
+         aTag == nsGkAtoms::scrollbarbutton ||
+         aTag == nsGkAtoms::scrollcorner ||
+         aTag == nsGkAtoms::slider ||
+         aTag == nsGkAtoms::thumb ||
+         aTag == nsGkAtoms::scale ||
+         // other
+         aTag == nsGkAtoms::resizer ||
+         aTag == nsGkAtoms::label ||
+         aTag == nsGkAtoms::videocontrols;
+}
+
+#ifdef DEBUG
+/**
+ * Returns true if aElement is a XUL element created by the video controls
+ * binding. HTML <video> and <audio> bindings pull in this binding. This
+ * binding creates lots of different types of XUL elements.
+ */
+static inline bool
+IsInVideoControls(nsXULElement* aElement)
+{
+  nsIContent* ancestor = aElement->GetParent();
+  while (ancestor) {
+    if (ancestor->NodeInfo()->Equals(nsGkAtoms::videocontrols, kNameSpaceID_XUL)) {
+      return true;
+    }
+    ancestor = ancestor->GetParent();
+  }
+  return false;
+}
+
+/**
+ * Returns true if aElement is an element created by the <binding
+ * id="feedreaderUI"> binding or one of the bindings bound to such an element.
+ * element in one of the binding for such an element. Only
+ * subscribe.xhtml#feedSubscribeLine pulls in the feedreaderUI binding. This
+ * binding creates lots of different types of XUL elements.
+ */
+bool
+IsInFeedSubscribeLine(nsXULElement* aElement)
+{
+  nsIContent* bindingParent = aElement->GetBindingParent();
+  if (bindingParent) {
+    while (bindingParent->GetBindingParent()) {
+      bindingParent = bindingParent->GetBindingParent();
+    }
+    nsIAtom* idAtom = bindingParent->GetID();
+    if (idAtom && idAtom->Equals(NS_LITERAL_STRING("feedSubscribeLine"))) {
+      return true;
+    }
+  }
+  return false;
+}
+#endif
+
 nsresult
 nsXULElement::BindToTree(nsIDocument* aDocument,
                          nsIContent* aParent,
@@ -739,6 +808,38 @@ nsXULElement::BindToTree(nsIDocument* aDocument,
                                             aBindingParent,
                                             aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aDocument &&
+      !aDocument->LoadsFullXULStyleSheetUpFront() &&
+      !aDocument->IsUnstyledDocument()) {
+
+    // To save CPU cycles and memory, non-XUL documents only load the user
+    // agent style sheet rules for a minimal set of XUL elements such as
+    // 'scrollbar' that may be created implicitly for their content (those
+    // rules being in minimal-xul.css).  This is where we make sure that all
+    // the other XUL UA style sheet rules (xul.css) have been loaded if the
+    // minimal set is not sufficient.
+    //
+    // We do this during binding, not element construction, because elements
+    // can be moved from the document that creates them to another document.
+
+    if (!XULElementsRulesInMinimalXULSheet(Tag())) {
+      aDocument->EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::XULSheet());
+      // To keep memory usage down it is important that we try and avoid
+      // pulling xul.css into non-XUL documents. That should be very rare, and
+      // for HTML we currently should only pull it in if the document contains
+      // an <audio> or <video> element. This assertion is here to make sure
+      // that we don't fail to notice if a change to bindings causes us to
+      // start pulling in xul.css much more frequently. If this assertion
+      // fails then we need to figure out why, and how we can continue to avoid
+      // pulling in xul.css.
+      // Note that add-ons may introduce bindings that cause this assertion to
+      // fire.
+      NS_ASSERTION(IsInVideoControls(this) ||
+                   IsInFeedSubscribeLine(this),
+                   "Unexpected XUL element in non-XUL doc");
+    }
+  }
 
   if (aDocument) {
       NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
@@ -1408,7 +1509,6 @@ nsXULElement::GetBoxObject(ErrorResult& rv)
   }
 
 
-NS_IMPL_XUL_STRING_ATTR(ClassName, _class)
 NS_IMPL_XUL_STRING_ATTR(Align, align)
 NS_IMPL_XUL_STRING_ATTR(Dir, dir)
 NS_IMPL_XUL_STRING_ATTR(Flex, flex)
@@ -2621,14 +2721,11 @@ OffThreadScriptReceiverCallback(void *aToken, void *aCallbackData)
 
 nsresult
 nsXULPrototypeScript::Compile(JS::SourceBufferHolder& aSrcBuf,
-                              nsIURI* aURI,
-                              uint32_t aLineNo,
+                              nsIURI* aURI, uint32_t aLineNo,
                               nsIDocument* aDocument,
-                              nsXULPrototypeDocument* aProtoDoc,
                               nsIOffThreadScriptReceiver *aOffThreadReceiver /* = nullptr */)
 {
     // We'll compile the script in the compilation scope.
-    MOZ_ASSERT(aProtoDoc);
     NS_ENSURE_TRUE(xpc::GetCompilationScope(), NS_ERROR_UNEXPECTED);
     AutoSafeJSContext cx;
     JSAutoCompartment ac(cx, xpc::GetCompilationScope());
@@ -2675,12 +2772,11 @@ nsXULPrototypeScript::Compile(const char16_t* aText,
                               nsIURI* aURI,
                               uint32_t aLineNo,
                               nsIDocument* aDocument,
-                              nsXULPrototypeDocument* aProtoDoc,
                               nsIOffThreadScriptReceiver *aOffThreadReceiver /* = nullptr */)
 {
   JS::SourceBufferHolder srcBuf(aText, aTextLength,
                                 JS::SourceBufferHolder::NoOwnership);
-  return Compile(srcBuf, aURI, aLineNo, aDocument, aProtoDoc, aOffThreadReceiver);
+  return Compile(srcBuf, aURI, aLineNo, aDocument, aOffThreadReceiver);
 }
 
 void

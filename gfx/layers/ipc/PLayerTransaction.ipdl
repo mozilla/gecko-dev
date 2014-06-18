@@ -18,6 +18,7 @@ include "mozilla/GfxMessageUtils.h";
 using struct mozilla::layers::TextureInfo from "mozilla/layers/CompositorTypes.h";
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
 using mozilla::layers::TextureFlags from "mozilla/layers/CompositorTypes.h";
+using class mozilla::layers::APZTestData from "mozilla/layers/APZTestData.h";
 
 /**
  * The layers protocol is spoken between thread contexts that manage
@@ -42,7 +43,7 @@ sync protocol PLayerTransaction {
   manages PTexture;
 
 child:
-  async ParentAsyncMessage(AsyncParentMessageData aMessage);
+  async ParentAsyncMessages(AsyncParentMessageData[] aMessages);
 
 parent:
   async PLayer();
@@ -51,8 +52,14 @@ parent:
 
   // The isFirstPaint flag can be used to indicate that this is the first update
   // for a particular document.
-  sync Update(Edit[] cset, TargetConfig targetConfig, bool isFirstPaint, bool scheduleComposite)
+  sync Update(Edit[] cset, uint64_t id, TargetConfig targetConfig, bool isFirstPaint,
+              bool scheduleComposite, uint32_t paintSequenceNumber)
     returns (EditReply[] reply);
+  
+  // We don't need to send a sync transaction if
+  // no transaction operate require a swap.
+  async UpdateNoSwap(Edit[] cset, uint64_t id, TargetConfig targetConfig, bool isFirstPaint,
+                     bool scheduleComposite, uint32_t paintSequenceNumber);
 
   // Testing APIs
 
@@ -76,16 +83,16 @@ parent:
   // Useful for testing rendering of async scrolling.
   async SetAsyncScrollOffset(PLayer layer, int32_t x, int32_t y);
 
-  // We don't need to send a sync transaction if
-  // no transaction operate require a swap.
-  async UpdateNoSwap(Edit[] cset, TargetConfig targetConfig, bool isFirstPaint, bool scheduleComposite);
-
   // Drop any front buffers that might be retained on the compositor
   // side.
   async ClearCachedResources();
 
   // Schedule a composite if one isn't already scheduled.
   async ForceComposite();
+
+  // Get a copy of the compositor-side APZ test data instance for this
+  // layers id.
+  sync GetAPZTestData() returns (APZTestData data);
 
   async ChildAsyncMessages(AsyncChildMessageData[] aMessages);
 

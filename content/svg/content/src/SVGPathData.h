@@ -13,6 +13,7 @@
 #include "nsIWeakReferenceUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Types.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/RefPtr.h"
 #include "nsSVGElement.h"
 #include "nsTArray.h"
@@ -173,6 +174,10 @@ public:
   const_iterator begin() const { return mData.Elements(); }
   const_iterator end() const { return mData.Elements() + mData.Length(); }
 
+  // memory reporting methods
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
   // Access to methods that can modify objects of this type is deliberately
   // limited. This is to reduce the chances of someone modifying objects of
   // this type without taking the necessary steps to keep DOM wrappers in sync.
@@ -190,6 +195,7 @@ protected:
   nsresult CopyFrom(const SVGPathData& rhs);
 
   float& operator[](uint32_t aIndex) {
+    mCachedPath = nullptr;
     return mData[aIndex];
   }
 
@@ -198,12 +204,14 @@ protected:
    * increased, in which case the list will be left unmodified.
    */
   bool SetLength(uint32_t aLength) {
+    mCachedPath = nullptr;
     return mData.SetLength(aLength);
   }
 
   nsresult SetValueFromString(const nsAString& aValue);
 
   void Clear() {
+    mCachedPath = nullptr;
     mData.Clear();
   }
 
@@ -217,10 +225,11 @@ protected:
 
   nsresult AppendSeg(uint32_t aType, ...); // variable number of float args
 
-  iterator begin() { return mData.Elements(); }
-  iterator end() { return mData.Elements() + mData.Length(); }
+  iterator begin() { mCachedPath = nullptr; return mData.Elements(); }
+  iterator end() { mCachedPath = nullptr; return mData.Elements() + mData.Length(); }
 
   FallibleTArray<float> mData;
+  mutable RefPtr<gfx::Path> mCachedPath;
 };
 
 
@@ -232,7 +241,7 @@ protected:
  * sync, so we can safely expose any protected base class methods required by
  * the SMIL code.
  */
-class SVGPathDataAndInfo : public SVGPathData
+class SVGPathDataAndInfo MOZ_FINAL : public SVGPathData
 {
 public:
   SVGPathDataAndInfo(nsSVGElement *aElement = nullptr)

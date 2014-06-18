@@ -8,16 +8,19 @@ const Cu = Components.utils;
 const Cr = Components.results;
 
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const { worker } = Cu.import("resource://gre/modules/devtools/worker-loader.js", {})
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 const Services = devtools.require("Services");
-const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
-
 // Always log packets when running tests. runxpcshelltests.py will throw
 // the output away anyway, unless you give it the --verbose flag.
 Services.prefs.setBoolPref("devtools.debugger.log", true);
 // Enable remote debugging for the relevant tests.
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
+
+const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
+const { DebuggerServer } = devtools.require("devtools/server/main");
+const { DebuggerServer: WorkerDebuggerServer } = worker.require("devtools/server/main");
 
 function tryImport(url) {
   try {
@@ -29,13 +32,9 @@ function tryImport(url) {
   }
 }
 
-tryImport("resource://gre/modules/devtools/dbg-server.jsm");
 tryImport("resource://gre/modules/devtools/dbg-client.jsm");
 tryImport("resource://gre/modules/devtools/Loader.jsm");
 tryImport("resource://gre/modules/devtools/Console.jsm");
-
-let { RootActor } = devtools.require("devtools/server/actors/root");
-let { BreakpointStore, LongStringActor, ThreadActor } = devtools.require("devtools/server/actors/script");
 
 function testExceptionHook(ex) {
   try {
@@ -97,7 +96,17 @@ let listener = {
     while (DebuggerServer.xpcInspector.eventLoopNestLevel > 0) {
       DebuggerServer.xpcInspector.exitNestedEventLoop();
     }
-    do_throw("head_dbg.js got console message: " + string + "\n");
+
+    // In the world before bug 997440, exceptions were getting lost because of
+    // the arbitrary JSContext being used in nsXPCWrappedJSClass::CallMethod.
+    // In the new world, the wanderers have returned. However, because of the,
+    // currently very-broken, exception reporting machinery in XPCWrappedJSClass
+    // these get reported as errors to the console, even if there's actually JS
+    // on the stack above that will catch them.
+    // If we throw an error here because of them our tests start failing.
+    // So, we'll just dump the message to the logs instead, to make sure the
+    // information isn't lost.
+    dump("head_dbg.js observed a console message: " + string + "\n");
   }
 };
 
@@ -125,10 +134,10 @@ function testGlobal(aName) {
   return sandbox;
 }
 
-function addTestGlobal(aName)
+function addTestGlobal(aName, aServer = DebuggerServer)
 {
   let global = testGlobal(aName);
-  DebuggerServer.addTestGlobal(global);
+  aServer.addTestGlobal(global);
   return global;
 }
 
@@ -182,21 +191,21 @@ function attachTestTabAndResume(aClient, aTitle, aCallback) {
 /**
  * Initialize the testing debugger server.
  */
-function initTestDebuggerServer()
+function initTestDebuggerServer(aServer = DebuggerServer)
 {
-  DebuggerServer.registerModule("devtools/server/actors/script");
-  DebuggerServer.addActors("resource://test/testactors.js");
+  aServer.registerModule("devtools/server/actors/script");
+  aServer.registerModule("xpcshell-test/testactors");
   // Allow incoming connections.
-  DebuggerServer.init(function () { return true; });
+  aServer.init(function () { return true; });
 }
 
-function initTestTracerServer()
+function initTestTracerServer(aServer = DebuggerServer)
 {
-  DebuggerServer.registerModule("devtools/server/actors/script");
-  DebuggerServer.addActors("resource://test/testactors.js");
-  DebuggerServer.registerModule("devtools/server/actors/tracer");
+  aServer.registerModule("devtools/server/actors/script");
+  aServer.registerModule("xpcshell-test/testactors");
+  aServer.registerModule("devtools/server/actors/tracer");
   // Allow incoming connections.
-  DebuggerServer.init(function () { return true; });
+  aServer.init(function () { return true; });
 }
 
 function finishClient(aClient)
@@ -276,22 +285,6 @@ function TracingTransport(childTransport) {
   this.checkIndex = 0;
 }
 
-function deepEqual(a, b) {
-  if (a === b)
-    return true;
-  if (typeof a != "object" || typeof b != "object")
-    return false;
-  if (a === null || b === null)
-    return false;
-  if (Object.keys(a).length != Object.keys(b).length)
-    return false;
-  for (let k in a) {
-    if (!deepEqual(a[k], b[k]))
-      return false;
-  }
-  return true;
-}
-
 TracingTransport.prototype = {
   // Remove actor names
   normalize: function(packet) {
@@ -329,13 +322,13 @@ TracingTransport.prototype = {
   expectSend: function(expected) {
     let packet = this.packets[this.checkIndex++];
     do_check_eq(packet.type, "sent");
-    do_check_true(deepEqual(packet.packet, this.normalize(expected)));
+    deepEqual(packet.packet, this.normalize(expected));
   },
 
   expectReceive: function(expected) {
     let packet = this.packets[this.checkIndex++];
     do_check_eq(packet.type, "received");
-    do_check_true(deepEqual(packet.packet, this.normalize(expected)));
+    deepEqual(packet.packet, this.normalize(expected));
   },
 
   // Write your tests, call dumpLog at the end, inspect the output,
@@ -361,6 +354,39 @@ function executeSoon(aFunc) {
     run: DevToolsUtils.makeInfallible(aFunc)
   }, Ci.nsIThread.DISPATCH_NORMAL);
 }
+
+// The do_check_* family of functions expect their last argument to be an
+// optional stack object. Unfortunately, most tests actually pass a in a string
+// containing an error message instead, which causes error reporting to break if
+// strict warnings as errors is turned on. To avoid this, we wrap these
+// functions here below to ensure the correct number of arguments is passed.
+//
+// TODO: Remove this once bug 906232 is resolved
+//
+let do_check_true_old = do_check_true;
+let do_check_true = function (condition) {
+  do_check_true_old(condition);
+};
+
+let do_check_false_old = do_check_false;
+let do_check_false = function (condition) {
+  do_check_false_old(condition);
+};
+
+let do_check_eq_old = do_check_eq;
+let do_check_eq = function (left, right) {
+  do_check_eq_old(left, right);
+};
+
+let do_check_neq_old = do_check_neq;
+let do_check_neq = function (left, right) {
+  do_check_neq_old(left, right);
+};
+
+let do_check_matches_old = do_check_matches;
+let do_check_matches = function (pattern, value) {
+  do_check_matches_old(pattern, value);
+};
 
 // Create async version of the object where calling each method
 // is equivalent of calling it with asyncall. Mainly useful for

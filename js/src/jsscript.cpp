@@ -117,7 +117,7 @@ Bindings::initWithTemporaryStorage(ExclusiveContext *cx, InternalBindingsHandle 
 
     // Start with the empty shape and then append one shape per aliased binding.
     RootedShape shape(cx,
-        EmptyShape::getInitialShape(cx, &CallObject::class_, nullptr, nullptr, nullptr,
+        EmptyShape::getInitialShape(cx, &CallObject::class_, TaggedProto(nullptr), nullptr, nullptr,
                                     nfixed, BaseShape::VAROBJ | BaseShape::DELEGATE));
     if (!shape)
         return false;
@@ -1611,19 +1611,19 @@ ScriptSource::setSourceCopy(ExclusiveContext *cx, SourceBufferHolder &srcBuf,
     //    in Parser::stringLiteral).
     //
     // Lastly, since the parsing thread will eventually perform a blocking wait
-    // on the compresion task's worker thread, require that there are at least 2
-    // worker threads:
-    //  - If we are on a worker thread, there must be another worker thread to
+    // on the compression task's thread, require that there are at least 2
+    // helper threads:
+    //  - If we are on a helper thread, there must be another helper thread to
     //    execute our compression task.
-    //  - If we are on the main thread, there must be at least two worker
-    //    threads since at most one worker thread can be blocking on the main
-    //    thread (see WorkerThreadState::canStartParseTask) which would cause a
-    //    deadlock if there wasn't a second worker thread that could make
+    //  - If we are on the main thread, there must be at least two helper
+    //    threads since at most one helper thread can be blocking on the main
+    //    thread (see HelperThreadState::canStartParseTask) which would cause a
+    //    deadlock if there wasn't a second helper thread that could make
     //    progress on our compression task.
-#ifdef JS_THREADSAFE
+#if defined(JS_THREADSAFE) && defined(USE_ZLIB)
     bool canCompressOffThread =
-        WorkerThreadState().cpuCount > 1 &&
-        WorkerThreadState().threadCount >= 2;
+        HelperThreadState().cpuCount > 1 &&
+        HelperThreadState().threadCount >= 2;
 #else
     bool canCompressOffThread = false;
 #endif
@@ -2974,7 +2974,7 @@ js::CloneScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun, 
             ScriptSourceObject *obj = frontend::CreateScriptSourceObject(cx, options);
             if (!obj)
                 return nullptr;
-            cx->compartment()->selfHostingScriptSource = obj;
+            cx->compartment()->selfHostingScriptSource.set(obj);
         }
         sourceObject = cx->compartment()->selfHostingScriptSource;
     } else {
@@ -3422,10 +3422,10 @@ JSScript::getStaticScope(jsbytecode *pc)
     if (!hasBlockScopes())
         return nullptr;
 
-    ptrdiff_t offset = pc - main();
-
-    if (offset < 0)
+    if (pc < main())
         return nullptr;
+
+    size_t offset = pc - main();
 
     BlockScopeArray *scopes = blockScopes();
     NestedScopeObject *blockChain = nullptr;
@@ -3515,8 +3515,8 @@ js::SetFrameArgumentsObject(JSContext *cx, AbstractFramePtr frame,
         // Note that here and below, it is insufficient to only check for
         // JS_OPTIMIZED_ARGUMENTS, as Ion could have optimized out the
         // arguments slot.
-        if (IsOptimizedPlaceholderMagicValue(frame.callObj().as<ScopeObject>().aliasedVar(pc)))
-            frame.callObj().as<ScopeObject>().setAliasedVar(cx, pc, cx->names().arguments, ObjectValue(*argsobj));
+        if (IsOptimizedPlaceholderMagicValue(frame.callObj().as<ScopeObject>().aliasedVar(ScopeCoordinate(pc))))
+            frame.callObj().as<ScopeObject>().setAliasedVar(cx, ScopeCoordinate(pc), cx->names().arguments, ObjectValue(*argsobj));
     } else {
         if (IsOptimizedPlaceholderMagicValue(frame.unaliasedLocal(var)))
             frame.unaliasedLocal(var) = ObjectValue(*argsobj);

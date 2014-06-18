@@ -28,6 +28,7 @@
 
 #ifdef XP_WIN
 #include <process.h>
+#include "mozilla/ipc/WindowsMessageLoop.h"
 #endif
 
 #include "nsAppDirectoryServiceDefs.h"
@@ -47,6 +48,7 @@
 #include "chrome/common/mach_ipc_mac.h"
 #endif
 #include "nsX11ErrorHandler.h"
+#include "nsGDKErrorHandler.h"
 #include "base/at_exit.h"
 #include "base/command_line.h"
 #include "base/message_loop.h"
@@ -67,6 +69,8 @@
 
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/ipc/XPCShellEnvironment.h"
+
+#include "GMPProcessChild.h"
 
 #include "GeckoProfiler.h"
 
@@ -300,7 +304,9 @@ XRE_InitChildProcess(int aArgc,
 
   char aLocal;
   profiler_init(&aLocal);
-  PROFILER_LABEL("Startup", "XRE_InitChildProcess");
+
+  PROFILER_LABEL("Startup", "XRE_InitChildProcess",
+    js::ProfileEntry::Category::OTHER);
 
   sChildProcessType = aProcess;
 
@@ -471,6 +477,10 @@ XRE_InitChildProcess(int aArgc,
     {
       nsAutoPtr<ProcessChild> process;
 
+#ifdef XP_WIN
+      mozilla::ipc::windows::InitUIThread();
+#endif
+
       switch (aProcess) {
       case GeckoProcessType_Default:
         NS_RUNTIMEABORT("This makes no sense");
@@ -500,6 +510,10 @@ XRE_InitChildProcess(int aArgc,
 #else 
         NS_RUNTIMEABORT("rebuild with --enable-ipdl-tests");
 #endif
+        break;
+
+      case GeckoProcessType_GMPlugin:
+        process = new gmp::GMPProcessChild(parentHandle);
         break;
 
       default:
@@ -776,7 +790,11 @@ XRE_ShutdownTestShell()
 void
 XRE_InstallX11ErrorHandler()
 {
+#if (MOZ_WIDGET_GTK == 3)
+  InstallGdkErrorHandler();
+#else
   InstallX11ErrorHandler();
+#endif
 }
 #endif
 

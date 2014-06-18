@@ -81,6 +81,7 @@
 
 #include "nsIPrompt.h"
 #include "imgIContainer.h" // image animation mode constants
+#include "SelectionCarets.h"
 
 //--------------------------
 // Printing Include
@@ -566,38 +567,39 @@ nsDocumentViewer::LoadStart(nsIDocument* aDocument)
 nsresult
 nsDocumentViewer::SyncParentSubDocMap()
 {
-  nsCOMPtr<nsIDocShellTreeItem> item(mContainer);
-  nsCOMPtr<nsPIDOMWindow> pwin(do_GetInterface(item));
-  nsCOMPtr<nsIContent> content;
-
-  if (mDocument && pwin) {
-    content = do_QueryInterface(pwin->GetFrameElementInternal());
+  nsCOMPtr<nsIDocShell> docShell(mContainer);
+  if (!docShell) {
+    return NS_OK;
   }
 
-  if (content) {
-    nsCOMPtr<nsIDocShellTreeItem> parent;
-    item->GetParent(getter_AddRefs(parent));
-
-    nsCOMPtr<nsIDOMWindow> parent_win(do_GetInterface(parent));
-
-    if (parent_win) {
-      nsCOMPtr<nsIDOMDocument> dom_doc;
-      parent_win->GetDocument(getter_AddRefs(dom_doc));
-
-      nsCOMPtr<nsIDocument> parent_doc(do_QueryInterface(dom_doc));
-
-      if (parent_doc) {
-        if (mDocument &&
-            parent_doc->GetSubDocumentFor(content) != mDocument) {
-          mDocument->SuppressEventHandling(nsIDocument::eEvents,
-                                           parent_doc->EventHandlingSuppressed());
-        }
-        return parent_doc->SetSubDocumentFor(content->AsElement(), mDocument);
-      }
-    }
+  nsCOMPtr<nsPIDOMWindow> pwin(docShell->GetWindow());
+  if (!mDocument || !pwin) {
+    return NS_OK;
   }
 
-  return NS_OK;
+  nsCOMPtr<Element> element = pwin->GetFrameElementInternal();
+  if (!element) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIDocShellTreeItem> parent;
+  docShell->GetParent(getter_AddRefs(parent));
+
+  nsCOMPtr<nsPIDOMWindow> parent_win = parent ? parent->GetWindow() : nullptr;
+  if (!parent_win) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIDocument> parent_doc = parent_win->GetDoc();
+  if (!parent_doc) {
+    return NS_OK;
+  }
+
+  if (mDocument && parent_doc->GetSubDocumentFor(element) != mDocument) {
+    mDocument->SuppressEventHandling(nsIDocument::eEvents,
+                                     parent_doc->EventHandlingSuppressed());
+  }
+  return parent_doc->SetSubDocumentFor(element, mDocument);
 }
 
 NS_IMETHODIMP
@@ -715,6 +717,14 @@ nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow)
   rv = selPrivate->AddSelectionListener(mSelectionListener);
   if (NS_FAILED(rv))
     return rv;
+
+  nsRefPtr<SelectionCarets> selectionCaret = mPresShell->GetSelectionCarets();
+  if (selectionCaret) {
+    nsCOMPtr<nsIDocShell> docShell(mContainer);
+    if (docShell) {
+      docShell->AddWeakScrollObserver(selectionCaret);
+    }
+  }
 
   // Save old listener so we can unregister it
   nsRefPtr<nsDocViewerFocusListener> oldFocusListener = mFocusListener;
@@ -958,6 +968,7 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
     nsEventStatus status = nsEventStatus_eIgnore;
     WidgetEvent event(true, NS_LOAD);
     event.mFlags.mBubbles = false;
+    event.mFlags.mCancelable = false;
      // XXX Dispatching to |window|, but using |document| as the target.
     event.target = mDocument;
 
@@ -1794,7 +1805,7 @@ nsDocumentViewer::SetDocumentInternal(nsIDocument* aDocument,
 
     // Set the script global object on the new document
     nsCOMPtr<nsPIDOMWindow> window =
-      do_GetInterface(static_cast<nsIDocShell*>(mContainer.get()));
+      mContainer ? mContainer->GetWindow() : nullptr;
     if (window) {
       window->SetNewDocument(aDocument, nullptr, aForceReuseInnerWindow);
     }
@@ -2187,7 +2198,22 @@ nsDocumentViewer::CreateStyleSet(nsIDocument* aDocument,
   styleSet->BeginUpdate();
   
   // The document will fill in the document sheets when we create the presshell
-  
+
+  if (aDocument->IsBeingUsedAsImage()) {
+    MOZ_ASSERT(aDocument->IsSVG(),
+               "Do we want to skip most sheets for this new image type?");
+
+    // SVG-as-an-image must be kept as light and small as possible. We
+    // deliberately skip loading everything and leave svg.css (and html.css and
+    // xul.css) to be loaded on-demand.
+    // XXXjwatt Nothing else is loaded on-demand, but I don't think that
+    // should matter for SVG-as-an-image. If it does, I want to know why!
+
+    // Caller will handle calling EndUpdate, per contract.
+    *aStyleSet = styleSet;
+    return NS_OK;
+  }
+
   // Handle the user sheets.
   nsCSSStyleSheet* sheet = nullptr;
   if (nsContentUtils::IsInChromeDocshell(aDocument)) {
@@ -2249,38 +2275,82 @@ nsDocumentViewer::CreateStyleSet(nsIDocument* aDocument,
     }
   }
 
-  sheet = nsLayoutStylesheetCache::NumberControlSheet();
-  if (sheet) {
-    styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
-  }
-
-  sheet = nsLayoutStylesheetCache::FormsSheet();
-  if (sheet) {
-    styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
-  }
-
   sheet = nsLayoutStylesheetCache::FullScreenOverrideSheet();
   if (sheet) {
     styleSet->PrependStyleSheet(nsStyleSet::eOverrideSheet, sheet);
   }
 
-  // Make sure to clone the quirk sheet so that it can be usefully
-  // enabled/disabled as needed.
-  nsRefPtr<nsCSSStyleSheet> quirkClone;
-  nsCSSStyleSheet* quirkSheet;
-  if (!nsLayoutStylesheetCache::UASheet() ||
-      !(quirkSheet = nsLayoutStylesheetCache::QuirkSheet()) ||
-      !(quirkClone = quirkSheet->Clone(nullptr, nullptr, nullptr, nullptr)) ||
-      !sheet) {
-    delete styleSet;
-    return NS_ERROR_OUT_OF_MEMORY;
+  if (!aDocument->IsSVG()) {
+    // !!! IMPORTANT - KEEP THIS BLOCK IN SYNC WITH
+    // !!! SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded.
+
+    // SVGForeignObjectElement::BindToTree calls SVGDocument::
+    // EnsureNonSVGUserAgentStyleSheetsLoaded to loads these UA sheet
+    // on-demand. (Excluding the quirks sheet, which should never be loaded for
+    // an SVG document, and excluding xul.css which will be loaded on demand by
+    // nsXULElement::BindToTree.)
+
+    sheet = nsLayoutStylesheetCache::NumberControlSheet();
+    if (sheet) {
+      styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
+    }
+
+    sheet = nsLayoutStylesheetCache::FormsSheet();
+    if (sheet) {
+      styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
+    }
+
+    // Make sure to clone the quirk sheet so that it can be usefully
+    // enabled/disabled as needed.
+    nsRefPtr<nsCSSStyleSheet> quirkClone;
+    nsCSSStyleSheet* quirkSheet;
+    if (!nsLayoutStylesheetCache::UASheet() ||
+        !(quirkSheet = nsLayoutStylesheetCache::QuirkSheet()) ||
+        !(quirkClone = quirkSheet->Clone(nullptr, nullptr, nullptr, nullptr)) ||
+        !sheet) {
+      delete styleSet;
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    // quirk.css needs to come after the regular UA sheet (or more precisely,
+    // after the html.css and so forth that the UA sheet imports).
+    styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, quirkClone);
+    styleSet->SetQuirkStyleSheet(quirkClone);
+
+    if (aDocument->LoadsFullXULStyleSheetUpFront()) {
+      // nsXULElement::BindToTree loads xul.css on-demand if we don't load it
+      // up-front here.
+      sheet = nsLayoutStylesheetCache::XULSheet();
+      if (sheet) {
+        styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
+      }
+    }
+
+    sheet = nsLayoutStylesheetCache::MinimalXULSheet();
+    if (sheet) {
+      // Load the minimal XUL rules for scrollbars and a few other XUL things
+      // that non-XUL (typically HTML) documents commonly use.
+      styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
+    }
+
+    sheet = nsLayoutStylesheetCache::CounterStylesSheet();
+    if (sheet) {
+      styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
+    }
+
+    sheet = nsLayoutStylesheetCache::HTMLSheet();
+    if (sheet) {
+      styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
+    }
+
+    styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet,
+                                nsLayoutStylesheetCache::UASheet());
+  } else {
+    // SVG documents may have scrollbars and need the scrollbar styling.
+    sheet = nsLayoutStylesheetCache::MinimalXULSheet();
+    if (sheet) {
+      styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
+    }
   }
-  // quirk.css needs to come after the regular UA sheet (or more precisely,
-  // after the html.css and so forth that the UA sheet imports).
-  styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, quirkClone);
-  styleSet->SetQuirkStyleSheet(quirkClone);
-  styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet,
-                              nsLayoutStylesheetCache::UASheet());
 
   nsStyleSheetService *sheetService = nsStyleSheetService::GetInstance();
   if (sheetService) {
@@ -2398,21 +2468,19 @@ nsDocumentViewer::FindContainerView()
   nsView* containerView = nullptr;
 
   if (mContainer) {
-    nsCOMPtr<nsIDocShellTreeItem> docShellItem(mContainer);
-    nsCOMPtr<nsPIDOMWindow> pwin(do_GetInterface(docShellItem));
+    nsCOMPtr<nsIDocShell> docShell(mContainer);
+    nsCOMPtr<nsPIDOMWindow> pwin(docShell->GetWindow());
     if (pwin) {
-      nsCOMPtr<nsIContent> containerElement = do_QueryInterface(pwin->GetFrameElementInternal());
+      nsCOMPtr<Element> containerElement = pwin->GetFrameElementInternal();
       if (!containerElement) {
         return nullptr;
       }
       nsCOMPtr<nsIPresShell> parentPresShell;
-      if (docShellItem) {
-        nsCOMPtr<nsIDocShellTreeItem> parentDocShellItem;
-        docShellItem->GetParent(getter_AddRefs(parentDocShellItem));
-        if (parentDocShellItem) {
-          nsCOMPtr<nsIDocShell> parentDocShell = do_QueryInterface(parentDocShellItem);
-          parentPresShell = parentDocShell->GetPresShell();
-        }
+      nsCOMPtr<nsIDocShellTreeItem> parentDocShellItem;
+      docShell->GetParent(getter_AddRefs(parentDocShellItem));
+      if (parentDocShellItem) {
+        nsCOMPtr<nsIDocShell> parentDocShell = do_QueryInterface(parentDocShellItem);
+        parentPresShell = parentDocShell->GetPresShell();
       }
       if (!parentPresShell) {
         nsCOMPtr<nsIDocument> parentDoc = containerElement->GetCurrentDoc();
@@ -2423,9 +2491,8 @@ nsDocumentViewer::FindContainerView()
       if (!parentPresShell) {
         NS_WARNING("Subdocument container has no presshell");
       } else {
-        nsIFrame* f = parentPresShell->GetRealPrimaryFrameFor(containerElement);
-        if (f) {
-          nsIFrame* subdocFrame = f->GetContentInsertionFrame();
+        nsIFrame* subdocFrame = parentPresShell->GetRealPrimaryFrameFor(containerElement);
+        if (subdocFrame) {
           // subdocFrame might not be a subdocument frame; the frame
           // constructor can treat a <frame> as an inline in some XBL
           // cases. Treat that as display:none, the document is not
@@ -4276,10 +4343,11 @@ nsDocumentViewer::OnDonePrinting()
     // We are done printing, now cleanup 
     if (mDeferredWindowClose) {
       mDeferredWindowClose = false;
-      nsCOMPtr<nsIDOMWindow> win =
-        do_GetInterface(static_cast<nsIDocShell*>(mContainer));
-      if (win)
-        win->Close();
+      if (mContainer) {
+        nsCOMPtr<nsIDOMWindow> win = mContainer->GetWindow();
+        if (win)
+          win->Close();
+      }
     } else if (mClosingWhilePrinting) {
       if (mDocument) {
         mDocument->SetScriptGlobalObject(nullptr);
@@ -4358,6 +4426,14 @@ nsDocumentViewer::DestroyPresShell()
   nsCOMPtr<nsISelectionPrivate> selPrivate = do_QueryInterface(selection);
   if (selPrivate && mSelectionListener)
     selPrivate->RemoveSelectionListener(mSelectionListener);
+
+  nsRefPtr<SelectionCarets> selectionCaret = mPresShell->GetSelectionCarets();
+  if (selectionCaret) {
+    nsCOMPtr<nsIDocShell> docShell(mContainer);
+    if (docShell) {
+      docShell->RemoveWeakScrollObserver(selectionCaret);
+    }
+  }
 
   nsAutoScriptBlocker scriptBlocker;
   mPresShell->Destroy();

@@ -23,7 +23,7 @@ import android.widget.ExpandableListView;
 import android.widget.SimpleExpandableListAdapter;
 
 /**
- * The actual list of synced tabs. This serves as the only child view of {@link RemoteTabsContainer}
+ * The actual list of synced tabs. This serves as the only child view of {@link RemoteTabsContainerPanel}
  * so it can be refreshed using a swipe-to-refresh gesture.
  */
 class RemoteTabsList extends ExpandableListView
@@ -70,7 +70,7 @@ class RemoteTabsList extends ExpandableListView
             return true;
         }
 
-        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, "", "remote");
+        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.NONE, "remote");
 
         Tabs.getInstance().loadUrl(tab.get("url"), Tabs.LOADURL_NEW_TAB);
         autoHidePanel();

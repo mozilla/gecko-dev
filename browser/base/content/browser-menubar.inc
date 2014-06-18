@@ -27,6 +27,7 @@
                           accesskey="&newPrivateWindow.accesskey;"
                           command="Tools:PrivateBrowsing"
                           key="key_privatebrowsing"/>
+#ifdef E10S_TESTING_ONLY
                 <menuitem id="menu_newRemoteWindow"
                           label="New e10s Window"
                           hidden="true"
@@ -35,6 +36,13 @@
                           label="New Non-e10s Window"
                           hidden="true"
                           command="Tools:NonRemoteWindow"/>
+#endif
+#ifdef MAC_NON_BROWSER_WINDOW
+                <menuitem id="menu_openLocation"
+                          label="&openLocationCmd.label;"
+                          command="Browser:OpenLocation"
+                          key="focusURLBar"/>
+#endif
                 <menuitem id="menu_openFile"
                           label="&openFileCmd.label;"
                           command="Browser:OpenFile"

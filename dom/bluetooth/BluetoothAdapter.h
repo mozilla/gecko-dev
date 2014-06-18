@@ -83,8 +83,10 @@ public:
     return mDiscoverableTimeout;
   }
 
-  JS::Value GetDevices(JSContext* aContext, ErrorResult& aRv);
-  JS::Value GetUuids(JSContext* aContext, ErrorResult& aRv);
+  void GetDevices(JSContext* aContext, JS::MutableHandle<JS::Value> aDevices,
+                  ErrorResult& aRv);
+  void GetUuids(JSContext* aContext, JS::MutableHandle<JS::Value> aUuids,
+                ErrorResult& aRv);
 
   already_AddRefed<mozilla::dom::DOMRequest>
     SetName(const nsAString& aName, ErrorResult& aRv);
@@ -148,6 +150,7 @@ public:
     SendMediaPlayStatus(const MediaPlayStatus& aMediaPlayStatus, ErrorResult& aRv);
 
   IMPL_EVENT_HANDLER(devicefound);
+  IMPL_EVENT_HANDLER(discoverystatechanged);
   IMPL_EVENT_HANDLER(a2dpstatuschanged);
   IMPL_EVENT_HANDLER(hfpstatuschanged);
   IMPL_EVENT_HANDLER(pairedstatuschanged);

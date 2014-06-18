@@ -203,8 +203,10 @@ WebGLContext::BufferData(GLenum target,
     }
 
     const ArrayBuffer& data = maybeData.Value();
+    data.ComputeLengthAndData();
 
-    // careful: data.Length() could conceivably be any size_t, but GLsizeiptr is like intptr_t.
+    // Careful: data.Length() could conceivably be any uint32_t, but GLsizeiptr
+    // is like intptr_t.
     if (!CheckedInt<GLsizeiptr>(data.Length()).isValid())
         return ErrorOutOfMemory("bufferData: bad size");
 
@@ -253,7 +255,10 @@ WebGLContext::BufferData(GLenum target, const ArrayBufferView& data,
     if (!boundBuffer)
         return ErrorInvalidOperation("bufferData: no buffer bound!");
 
-    // careful: data.Length() could conceivably be any size_t, but GLsizeiptr is like intptr_t.
+    data.ComputeLengthAndData();
+
+    // Careful: data.Length() could conceivably be any uint32_t, but GLsizeiptr
+    // is like intptr_t.
     if (!CheckedInt<GLsizeiptr>(data.Length()).isValid())
         return ErrorOutOfMemory("bufferData: bad size");
 
@@ -290,8 +295,6 @@ WebGLContext::BufferSubData(GLenum target, WebGLsizeiptr byteOffset,
         return;
     }
 
-    const ArrayBuffer& data = maybeData.Value();
-
     if (byteOffset < 0)
         return ErrorInvalidValue("bufferSubData: negative offset");
 
@@ -299,6 +302,9 @@ WebGLContext::BufferSubData(GLenum target, WebGLsizeiptr byteOffset,
 
     if (!boundBuffer)
         return ErrorInvalidOperation("bufferData: no buffer bound!");
+
+    const ArrayBuffer& data = maybeData.Value();
+    data.ComputeLengthAndData();
 
     CheckedInt<WebGLsizeiptr> checked_neededByteLength = CheckedInt<WebGLsizeiptr>(byteOffset) + data.Length();
     if (!checked_neededByteLength.isValid())
@@ -335,6 +341,8 @@ WebGLContext::BufferSubData(GLenum target, WebGLsizeiptr byteOffset,
 
     if (!boundBuffer)
         return ErrorInvalidOperation("bufferSubData: no buffer bound!");
+
+    data.ComputeLengthAndData();
 
     CheckedInt<WebGLsizeiptr> checked_neededByteLength = CheckedInt<WebGLsizeiptr>(byteOffset) + data.Length();
     if (!checked_neededByteLength.isValid())
@@ -377,7 +385,7 @@ WebGLContext::DeleteBuffer(WebGLBuffer *buffer)
                    static_cast<WebGLBuffer*>(nullptr));
     }
 
-    if (mBoundVertexArray->mBoundElementArrayBuffer == buffer) {
+    if (mBoundVertexArray->mElementArrayBuffer == buffer) {
         BindBuffer(LOCAL_GL_ELEMENT_ARRAY_BUFFER,
                    static_cast<WebGLBuffer*>(nullptr));
     }
@@ -425,7 +433,7 @@ WebGLContext::GetBufferSlotByTarget(GLenum target, const char* infos)
             return &mBoundArrayBuffer;
 
         case LOCAL_GL_ELEMENT_ARRAY_BUFFER:
-            return &mBoundVertexArray->mBoundElementArrayBuffer;
+            return &mBoundVertexArray->mElementArrayBuffer;
 
         case LOCAL_GL_TRANSFORM_FEEDBACK_BUFFER:
             if (!IsWebGL2()) {
@@ -479,7 +487,7 @@ WebGLContext::CheckedBufferData(GLenum target,
     if (target == LOCAL_GL_ARRAY_BUFFER) {
         boundBuffer = mBoundArrayBuffer;
     } else if (target == LOCAL_GL_ELEMENT_ARRAY_BUFFER) {
-        boundBuffer = mBoundVertexArray->mBoundElementArrayBuffer;
+        boundBuffer = mBoundVertexArray->mElementArrayBuffer;
     }
     MOZ_ASSERT(boundBuffer != nullptr, "no buffer bound for this target");
 

@@ -101,10 +101,12 @@
                 accesskey="&moveToNewWindow.accesskey;"
                 tbattr="tabbrowser-multiple"
                 oncommand="gBrowser.replaceTabWithWindow(TabContextMenu.contextTab);"/>
+#ifdef E10S_TESTING_ONLY
       <menuitem id="context_openNonRemoteWindow" label="Open in new non-e10s window"
                 tbattr="tabbrowser-remote"
                 hidden="true"
                 oncommand="gBrowser.openNonRemoteWindow(TabContextMenu.contextTab);"/>
+#endif
       <menuseparator/>
       <menuitem id="context_reloadAllTabs" label="&reloadAllTabs.label;" accesskey="&reloadAllTabs.accesskey;"
                 tbattr="tabbrowser-multiple-visible"
@@ -224,7 +226,7 @@
       <hbox id="UITourTooltipButtons" flex="1" align="center"/>
      </vbox>
     </panel>
-    <!-- type="default" forces frames to be created so that the panel's size can be determined --> 
+    <!-- type="default" forces frames to be created so that the panel's size can be determined -->
     <panel id="UITourHighlightContainer"
            type="default"
            hidden="true"
@@ -244,7 +246,7 @@
            onpopuphidden="SocialShare.onHidden()"
            hidden="true">
       <vbox class="social-share-toolbar">
-        <vbox id="social-share-provider-buttons" flex="1"/>
+        <arrowscrollbox id="social-share-provider-buttons" orient="vertical" flex="1"/>
       </vbox>
     </panel>
 
@@ -264,6 +266,20 @@
            rolluponmousewheel="true"
            noautofocus="true"
            position="topcenter topright"/>
+
+#ifdef MOZ_LOOP
+    <panel id="loop-notification-panel"
+           class="loop-panel social-panel"
+           type="arrow"
+           hidden="true"
+           noautofocus="true"/>
+
+    <panel id="loop-panel"
+           class="loop-panel social-panel"
+           type="arrow"
+           orient="horizontal"
+           hidden="true"/>
+#endif
 
     <menupopup id="toolbar-context-menu"
                onpopupshowing="onViewToolbarsPopupShowing(event, document.getElementById('viewToolbarsMenuSeparator'));">
@@ -310,7 +326,7 @@
                 oncommand="BrowserFullScreen();"/>
     </menupopup>
 
-    <menupopup id="contentAreaContextMenu" pagemenu="start"
+    <menupopup id="contentAreaContextMenu" pagemenu="#page-menu-separator"
                onpopupshowing="if (event.target != this)
                                  return true;
                                gContextMenu = new nsContextMenu(this, event.shiftKey);
@@ -633,7 +649,11 @@
              aria-label="&navbarCmd.label;"
              fullscreentoolbar="true" mode="icons" customizable="true"
              iconsize="small"
+#ifdef MOZ_LOOP
+             defaultset="urlbar-container,search-container,webrtc-status-button,bookmarks-menu-button,downloads-button,home-button,loop-call-button,social-share-button,social-toolbar-item"
+#else
              defaultset="urlbar-container,search-container,webrtc-status-button,bookmarks-menu-button,downloads-button,home-button,social-share-button,social-toolbar-item"
+#endif
              customizationtarget="nav-bar-customization-target"
              overflowable="true"
              overflowbutton="nav-bar-overflow-button"
@@ -766,6 +786,24 @@
                      oncommand="WebrtcIndicator.menuCommand(event.target);"/>
         </toolbarbutton>
 
+#ifdef MOZ_LOOP
+        <!-- XXX Bug 1013989 will provide a label for the button -->
+        <!-- This uses badged to be compatible with the social api code it shares.
+             We may also want it to be badged in the future, for notification
+             purposes. -->
+        <toolbarbutton id="loop-call-button"
+                       class="toolbarbutton-1 chromeclass-toolbar-additional"
+                       persist="class"
+                       type="badged"
+                       removable="true"
+                       tooltiptext="&loopCallButton.tooltip;"
+                       oncommand="LoopUI.openCallPanel(event);"
+                       cui-areatype="toolbar"
+                       overflows="false"
+                       >
+        </toolbarbutton>
+#endif
+
         <toolbarbutton id="bookmarks-menu-button"
                        class="toolbarbutton-1 chromeclass-toolbar-additional"
                        persist="class"
@@ -797,10 +835,9 @@
                       oncommand="toggleSidebar('viewBookmarksSidebar');">
               <observes element="viewBookmarksSidebar" attribute="checked"/>
             </menuitem>
-            <menuseparator/>
             <!-- NB: temporary solution for bug 985024, this should go away soon. -->
             <menuitem id="BMB_bookmarksShowAllTop"
-                      class="subviewbutton"
+                      class="menuitem-iconic subviewbutton"
                       label="&showAllBookmarks2.label;"
                       command="Browser:ShowAllBookmarks"
                       key="manBookmarkKb"/>
@@ -900,10 +937,10 @@
         <toolbarbutton id="social-share-button"
                        class="toolbarbutton-1 chromeclass-toolbar-additional"
                        hidden="true"
-                       overflows="false"
                        label="&sharePageCmd.label;"
                        tooltiptext="&sharePageCmd.label;"
                        cui-areatype="toolbar"
+                       removable="true"
                        command="Social:SharePage"/>
       </hbox>
 

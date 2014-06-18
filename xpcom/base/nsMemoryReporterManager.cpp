@@ -18,7 +18,7 @@
 #include "nsIObserverService.h"
 #include "nsIGlobalObject.h"
 #include "nsIXPConnect.h"
-#if defined(XP_LINUX) || defined(__FreeBSD__) || defined(XP_MACOSX)
+#if defined(XP_UNIX) || defined(MOZ_DMD)
 #include "nsMemoryInfoDumper.h"
 #endif
 #include "mozilla/Attributes.h"
@@ -60,6 +60,36 @@ GetProcSelfStatmField(int aField, int64_t* aN)
   return NS_ERROR_FAILURE;
 }
 
+static nsresult
+GetProcSelfSmapsPrivate(int64_t* aN)
+{
+  // You might be tempted to calculate USS by subtracting the "shared"
+  // value from the "resident" value in /proc/<pid>/statm. But at least
+  // on Linux, statm's "shared" value actually counts pages backed by
+  // files, which has little to do with whether the pages are actually
+  // shared. /proc/self/smaps on the other hand appears to give us the
+  // correct information.
+
+  FILE* f = fopen("/proc/self/smaps", "r");
+  if (NS_WARN_IF(!f)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  int64_t amount = 0;
+  char line[256];
+  while (fgets(line, sizeof(line), f)) {
+    long long val = 0;
+    if (sscanf(line, "Private_Dirty: %lld kB", &val) == 1 ||
+        sscanf(line, "Private_Clean: %lld kB", &val) == 1) {
+      amount += val * 1024; // convert from kB to bytes
+    }
+  }
+
+  fclose(f);
+  *aN = amount;
+  return NS_OK;
+}
+
 #define HAVE_VSIZE_AND_RESIDENT_REPORTERS 1
 static nsresult
 VsizeDistinguishedAmount(int64_t* aN)
@@ -80,6 +110,12 @@ ResidentFastDistinguishedAmount(int64_t* aN)
 }
 
 #define HAVE_RESIDENT_UNIQUE_REPORTER
+static nsresult
+ResidentUniqueDistinguishedAmount(int64_t* aN)
+{
+  return GetProcSelfSmapsPrivate(aN);
+}
+
 class ResidentUniqueReporter MOZ_FINAL : public nsIMemoryReporter
 {
 public:
@@ -88,29 +124,9 @@ public:
   NS_METHOD CollectReports(nsIHandleReportCallback* aHandleReport,
                            nsISupports* aData)
   {
-    // You might be tempted to calculate USS by subtracting the "shared"
-    // value from the "resident" value in /proc/<pid>/statm. But at least
-    // on Linux, statm's "shared" value actually counts pages backed by
-    // files, which has little to do with whether the pages are actually
-    // shared. /proc/self/smaps on the other hand appears to give us the
-    // correct information.
-
-    FILE* f = fopen("/proc/self/smaps", "r");
-    if (NS_WARN_IF(!f)) {
-      return NS_ERROR_UNEXPECTED;
-    }
-
     int64_t amount = 0;
-    char line[256];
-    while (fgets(line, sizeof(line), f)) {
-      long long val = 0;
-      if (sscanf(line, "Private_Dirty: %lld kB", &val) == 1 ||
-          sscanf(line, "Private_Clean: %lld kB", &val) == 1) {
-        amount += val * 1024; // convert from kB to bytes
-      }
-    }
-
-    fclose(f);
+    nsresult rv = ResidentUniqueDistinguishedAmount(&amount);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     return MOZ_COLLECT_REPORT(
       "resident-unique", KIND_OTHER, UNITS_BYTES, amount,
@@ -215,8 +231,9 @@ static nsresult
 GetKinfoVmentrySelf(int64_t* aPrss, uint64_t* aMaxreg)
 {
   int cnt;
-  struct kinfo_vmentry *vmmap, *kve;
-  if ((vmmap = kinfo_getvmmap(getpid(), &cnt)) == nullptr) {
+  struct kinfo_vmentry* vmmap;
+  struct kinfo_vmentry* kve;
+  if (!(vmmap = kinfo_getvmmap(getpid(), &cnt))) {
     return NS_ERROR_FAILURE;
   }
   if (aPrss) {
@@ -680,7 +697,7 @@ NS_IMPL_ISUPPORTS(PageFaultsHardReporter, nsIMemoryReporter)
 static int64_t
 HeapOverheadRatio(jemalloc_stats_t* aStats)
 {
-  return (int64_t) 10000 *
+  return (int64_t)10000 *
     (aStats->waste + aStats->bookkeeping + aStats->page_cache) /
     ((double)aStats->allocated);
 }
@@ -710,13 +727,21 @@ public:
     // because KIND_HEAP memory means "counted in heap-allocated", which
     // this is not.
     rv = MOZ_COLLECT_REPORT(
+      "explicit/heap-overhead/bin-unused", KIND_NONHEAP, UNITS_BYTES,
+      stats.bin_unused,
+"Bytes reserved for bins of fixed-size allocations which do not correspond to "
+"an active allocation.");
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = MOZ_COLLECT_REPORT(
       "explicit/heap-overhead/waste", KIND_NONHEAP, UNITS_BYTES,
       stats.waste,
 "Committed bytes which do not correspond to an active allocation and which the "
 "allocator is not intentionally keeping alive (i.e., not 'heap-bookkeeping' or "
-"'heap-page-cache').  Although the allocator will waste some space under any "
-"circumstances, a large value here may indicate that the heap is highly "
-"fragmented, or that allocator is performing poorly for some other reason.");
+"'heap-page-cache' or 'heap-bin-unused').  Although the allocator will waste "
+"some space under any circumstances, a large value here may indicate that the "
+"heap is highly fragmented, or that allocator is performing poorly for some "
+"other reason.");
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = MOZ_COLLECT_REPORT(
@@ -750,6 +775,21 @@ public:
 "Ratio of committed, unused bytes to allocated bytes; i.e., "
 "'heap-overhead' / 'heap-allocated'.  This measures the overhead of "
 "the heap allocator relative to amount of memory allocated.");
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = MOZ_COLLECT_REPORT(
+      "heap-mapped", KIND_OTHER, UNITS_BYTES, stats.mapped,
+      "Amount of memory currently mapped.");
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = MOZ_COLLECT_REPORT(
+      "heap-chunksize", KIND_OTHER, UNITS_BYTES, stats.chunksize,
+      "Size of chunks.");
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = MOZ_COLLECT_REPORT(
+      "heap-chunks", KIND_OTHER, UNITS_COUNT, (stats.mapped / stats.chunksize),
+      "Number of chunks currently mapped.");
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
@@ -886,7 +926,7 @@ nsMemoryReporterManager::Init()
   RegisterStrongReporter(new mozilla::dmd::DMDReporter());
 #endif
 
-#if defined(XP_LINUX) || defined(__FreeBSD__) || defined(XP_MACOSX)
+#ifdef XP_UNIX
   nsMemoryInfoDumper::Initialize();
 #endif
 
@@ -1042,7 +1082,7 @@ nsMemoryReporterManager::GetReportsExtended(
 nsresult
 nsMemoryReporterManager::StartGettingReports()
 {
-  GetReportsState *s = mGetReportsState;
+  GetReportsState* s = mGetReportsState;
 
   // Get reports for this process.
   GetReportsForThisProcessExtended(s->mHandleReport, s->mHandleReportData,
@@ -1060,7 +1100,7 @@ typedef nsCOMArray<nsIMemoryReporter> MemoryReporterArray;
 static PLDHashOperator
 StrongEnumerator(nsRefPtrHashKey<nsIMemoryReporter>* aElem, void* aData)
 {
-  MemoryReporterArray *allReporters = static_cast<MemoryReporterArray*>(aData);
+  MemoryReporterArray* allReporters = static_cast<MemoryReporterArray*>(aData);
   allReporters->AppendElement(aElem->GetKey());
   return PL_DHASH_NEXT;
 }
@@ -1068,7 +1108,7 @@ StrongEnumerator(nsRefPtrHashKey<nsIMemoryReporter>* aElem, void* aData)
 static PLDHashOperator
 WeakEnumerator(nsPtrHashKey<nsIMemoryReporter>* aElem, void* aData)
 {
-  MemoryReporterArray *allReporters = static_cast<MemoryReporterArray*>(aData);
+  MemoryReporterArray* allReporters = static_cast<MemoryReporterArray*>(aData);
   allReporters->AppendElement(aElem->GetKey());
   return PL_DHASH_NEXT;
 }
@@ -1263,8 +1303,7 @@ nsMemoryReporterManager::RegisterReporterHelper(
   }
 
   if (mStrongReporters->Contains(aReporter) ||
-      mWeakReporters->Contains(aReporter))
-  {
+      mWeakReporters->Contains(aReporter)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1402,7 +1441,9 @@ class Int64Wrapper MOZ_FINAL : public nsISupports
 {
 public:
   NS_DECL_ISUPPORTS
-  Int64Wrapper() : mValue(0) { }
+  Int64Wrapper() : mValue(0)
+  {
+  }
   int64_t mValue;
 };
 
@@ -1424,10 +1465,9 @@ public:
     // create artificial (i.e. deterministic) reporters -- which allows us
     // to precisely test nsMemoryReporterManager.explicit -- but we can't
     // do that for distinguished amounts.
-    if (aPath.Equals("heap-allocated") ||
+    if (aPath.EqualsLiteral("heap-allocated") ||
         (aKind == nsIMemoryReporter::KIND_NONHEAP &&
-         PromiseFlatCString(aPath).Find("explicit") == 0))
-    {
+         PromiseFlatCString(aPath).Find("explicit") == 0)) {
       Int64Wrapper* wrappedInt64 = static_cast<Int64Wrapper*>(aWrappedExplicit);
       wrappedInt64->mValue += aAmount;
     }
@@ -1509,12 +1549,37 @@ nsMemoryReporterManager::GetResidentFast(int64_t* aAmount)
 #endif
 }
 
-/*static*/
-int64_t nsMemoryReporterManager::ResidentFast()
+/*static*/ int64_t
+nsMemoryReporterManager::ResidentFast()
 {
 #ifdef HAVE_VSIZE_AND_RESIDENT_REPORTERS
   int64_t amount;
-  ResidentFastDistinguishedAmount(&amount);
+  nsresult rv = ResidentFastDistinguishedAmount(&amount);
+  NS_ENSURE_SUCCESS(rv, 0);
+  return amount;
+#else
+  return 0;
+#endif
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::GetResidentUnique(int64_t* aAmount)
+{
+#ifdef HAVE_RESIDENT_UNIQUE_REPORTER
+  return ResidentUniqueDistinguishedAmount(aAmount);
+#else
+  *aAmount = 0;
+  return NS_ERROR_NOT_AVAILABLE;
+#endif
+}
+
+/*static*/ int64_t
+nsMemoryReporterManager::ResidentUnique()
+{
+#ifdef HAVE_RESIDENT_UNIQUE_REPORTER
+  int64_t amount = 0;
+  nsresult rv = ResidentUniqueDistinguishedAmount(&amount);
+  NS_ENSURE_SUCCESS(rv, 0);
   return amount;
 #else
   return 0;
@@ -1642,6 +1707,28 @@ nsMemoryReporterManager::GetHasMozMallocUsableSize(bool* aHas)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsMemoryReporterManager::GetIsDMDEnabled(bool* aIsEnabled)
+{
+#ifdef MOZ_DMD
+  *aIsEnabled = true;
+#else
+  *aIsEnabled = false;
+#endif
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::GetIsDMDRunning(bool* aIsRunning)
+{
+#ifdef MOZ_DMD
+  *aIsRunning = dmd::IsRunning();
+#else
+  *aIsRunning = false;
+#endif
+  return NS_OK;
+}
+
 namespace {
 
 /**
@@ -1658,7 +1745,8 @@ public:
   MinimizeMemoryUsageRunnable(nsIRunnable* aCallback)
     : mCallback(aCallback)
     , mRemainingIters(sNumIters)
-  {}
+  {
+  }
 
   NS_IMETHOD Run()
   {

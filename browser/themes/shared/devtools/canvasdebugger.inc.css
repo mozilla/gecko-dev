@@ -18,25 +18,20 @@
 }
 
 .theme-dark .notice-container {
-  background: url(background-noise-toolbar.png), #343c45; /* Toolbars */
+  background-color: #343c45; /* Toolbars */
   color: #f5f7fa; /* Light foreground text */
 }
 
 .theme-light .notice-container {
-  background: url(background-noise-toolbar.png), #f0f1f2; /* Toolbars */
+  background-color: #f0f1f2; /* Toolbars */
   color: #585959; /* Grey foreground text */
-}
-
-#reload-notice > button {
-  min-height: 2em;
 }
 
 #empty-notice > button {
   min-width: 30px;
   min-height: 28px;
   margin: 0;
-  list-style-image: url(profiler-stopwatch.png);
-  -moz-image-region: rect(0px,16px,16px,0px);
+  list-style-image: url(profiler-stopwatch.svg);
 }
 
 #empty-notice > button .button-text {
@@ -74,12 +69,11 @@
 }
 
 #record-snapshot {
-  list-style-image: url("chrome://browser/skin/devtools/profiler-stopwatch.png");
-  -moz-image-region: rect(0px,16px,16px,0px);
+  list-style-image: url("chrome://browser/skin/devtools/profiler-stopwatch.svg");
 }
 
 #record-snapshot[checked] {
-  -moz-image-region: rect(0px,32px,16px,16px);
+  list-style-image: url("chrome://browser/skin/devtools/profiler-stopwatch-checked.svg");
 }
 
 /* Snapshots items */
@@ -155,6 +149,11 @@
 
 /* Debugging pane controls */
 
+#debugging-controls .devtools-toolbarbutton > .toolbarbutton-icon {
+  width: 16px;
+  height: 16px;
+}
+
 #resume {
   list-style-image: url(debugger-play.png);
   -moz-image-region: rect(0px,32px,16px,16px);
@@ -170,6 +169,25 @@
 
 #step-out {
   list-style-image: url(debugger-step-out.png);
+}
+
+@media (min-resolution: 2dppx) {
+  #resume {
+    list-style-image: url(debugger-play@2x.png);
+    -moz-image-region: rect(0px,64px,32px,32px);
+  }
+
+  #step-over {
+    list-style-image: url(debugger-step-over@2x.png);
+  }
+
+  #step-in {
+    list-style-image: url(debugger-step-in@2x.png);
+  }
+
+  #step-out {
+    list-style-image: url(debugger-step-out@2x.png);
+  }
 }
 
 #debugging-controls > toolbarbutton {
@@ -256,6 +274,12 @@
   background-repeat: no-repeat;
   background-position: 6px center;
   background-size: 12px;
+}
+
+@media (min-resolution: 2dppx) {
+  .selected .call-item-gutter {
+    background-image: url("editor-debug-location@2x.png");
+  }
 }
 
 .theme-dark .call-item-gutter {
@@ -441,13 +465,11 @@
 
 .theme-dark #snapshot-filmstrip {
   border-top: 1px solid #000;
-  background-image: url(background-noise-toolbar.png);
   color: #f5f7fa; /* Light foreground text */
 }
 
 .theme-light #snapshot-filmstrip {
   border-top: 1px solid #aaa;
-  background-image: url(background-noise-toolbar.png);
   color: #585959; /* Grey foreground text */
 }
 

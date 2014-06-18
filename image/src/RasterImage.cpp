@@ -211,34 +211,31 @@ public:
 
     bool success = false;
     if (!dstLocked) {
+      // We need to hold a lock onto the RasterImage object itself so that
+      // it (and its associated imgFrames) aren't marked as discardable.
+      bool imgLocked = NS_SUCCEEDED(image->LockImage());
       bool srcLocked = NS_SUCCEEDED(srcFrame->LockImageData());
+      srcSurface = srcFrame->GetSurface();
+
       dstLocked = NS_SUCCEEDED(dstFrame->LockImageData());
+      dstSurface = dstFrame->GetSurface();
 
-      nsRefPtr<gfxASurface> dstASurf;
-      nsRefPtr<gfxASurface> srcASurf;
-      success = srcLocked && NS_SUCCEEDED(srcFrame->GetSurface(getter_AddRefs(srcASurf)));
-      success = success && dstLocked && NS_SUCCEEDED(dstFrame->GetSurface(getter_AddRefs(dstASurf)));
-
-      success = success && srcLocked && dstLocked && srcASurf && dstASurf;
+      success = imgLocked && srcLocked && dstLocked && srcSurface && dstSurface;
 
       if (success) {
-        srcSurface = srcASurf->GetAsImageSurface();
-        dstSurface = dstASurf->GetAsImageSurface();
-        srcData = srcSurface->Data();
-        dstData = dstSurface->Data();
-        srcStride = srcSurface->Stride();
-        dstStride = dstSurface->Stride();
-        srcFormat = mozilla::gfx::ImageFormatToSurfaceFormat(srcFrame->GetFormat());
+        srcData = srcFrame->GetImageData();
+        dstData = dstFrame->GetImageData();
+        srcStride = srcFrame->GetImageBytesPerRow();
+        dstStride = dstFrame->GetImageBytesPerRow();
+        srcFormat = srcFrame->GetFormat();
       }
 
-      // We have references to the Thebes surfaces, so we don't need to leave
+      // We have references to the surfaces, so we don't need to leave
       // the source frame (that we don't own) locked. We'll unlock the
       // destination frame in ReleaseSurfaces(), below.
       if (srcLocked) {
         success = NS_SUCCEEDED(srcFrame->UnlockImageData()) && success;
       }
-
-      success = success && srcSurface && dstSurface;
     }
 
     return success;
@@ -259,6 +256,7 @@ public:
       if (DiscardingEnabled())
         dstFrame->SetDiscardable();
       success = NS_SUCCEEDED(dstFrame->UnlockImageData());
+      success = success && NS_SUCCEEDED(image->UnlockImage());
 
       dstLocked = false;
       srcData = nullptr;
@@ -272,8 +270,8 @@ public:
   // These values may only be touched on the main thread.
   WeakPtr<RasterImage> weakImage;
   nsAutoPtr<imgFrame> dstFrame;
-  nsRefPtr<gfxImageSurface> srcSurface;
-  nsRefPtr<gfxImageSurface> dstSurface;
+  RefPtr<SourceSurface> srcSurface;
+  RefPtr<SourceSurface> dstSurface;
 
   // Below are the values that may be touched on the scaling thread.
   gfxSize scale;
@@ -283,7 +281,7 @@ public:
   gfxIntSize dstSize;
   uint32_t srcStride;
   uint32_t dstStride;
-  mozilla::gfx::SurfaceFormat srcFormat;
+  SurfaceFormat srcFormat;
   bool dstLocked;
   bool done;
   // This boolean is accessed from both threads simultaneously without locking.
@@ -335,7 +333,7 @@ public:
     // outputs.
     request->dstFrame = new imgFrame();
     nsresult rv = request->dstFrame->Init(0, 0, request->dstSize.width, request->dstSize.height,
-                                          gfxImageFormat::ARGB32);
+                                          SurfaceFormat::B8G8R8A8);
 
     if (NS_FAILED(rv) || !request->GetSurfaces(aSrcFrame)) {
       return;
@@ -352,9 +350,9 @@ public:
     ScaleRequest* request = mScaleRequest;
 
     if (!request->stopped) {
-      request->done = mozilla::gfx::Scale(request->srcData, request->srcRect.width, request->srcRect.height, request->srcStride,
-                                          request->dstData, request->dstSize.width, request->dstSize.height, request->dstStride,
-                                          request->srcFormat);
+      request->done = gfx::Scale(request->srcData, request->srcRect.width, request->srcRect.height, request->srcStride,
+                                 request->dstData, request->dstSize.width, request->dstSize.height, request->dstStride,
+                                 request->srcFormat);
     } else {
       request->done = false;
     }
@@ -362,7 +360,7 @@ public:
     // OK, we've got a new scaled image. Let's get the main thread to unlock and
     // redraw it.
     nsRefPtr<DrawRunner> runner = new DrawRunner(mScaleRequest.forget());
-    NS_DispatchToMainThread(runner, NS_DISPATCH_NORMAL);
+    NS_DispatchToMainThread(runner);
 
     return NS_OK;
   }
@@ -541,7 +539,7 @@ RasterImage::Init(const char* aMimeType,
 //******************************************************************************
 // [notxpcom] void requestRefresh ([const] in TimeStamp aTime);
 NS_IMETHODIMP_(void)
-RasterImage::RequestRefresh(const mozilla::TimeStamp& aTime)
+RasterImage::RequestRefresh(const TimeStamp& aTime)
 {
   if (HadRecentRefresh(aTime)) {
     return;
@@ -701,10 +699,6 @@ RasterImage::GetDrawableImgFrame(uint32_t framenum)
   if (frame && frame->GetCompositingFailed())
     return nullptr;
 
-  if (frame) {
-    frame->ApplyDirtToSurfaces();
-  }
-
   return frame;
 }
 
@@ -831,33 +825,30 @@ RasterImage::GetFirstFrameDelay()
   return mFrameBlender.GetTimeoutForFrame(0);
 }
 
-nsresult
+TemporaryRef<SourceSurface>
 RasterImage::CopyFrame(uint32_t aWhichFrame,
-                       uint32_t aFlags,
-                       gfxImageSurface **_retval)
+                       uint32_t aFlags)
 {
   if (aWhichFrame > FRAME_MAX_VALUE)
-    return NS_ERROR_INVALID_ARG;
+    return nullptr;
 
   if (mError)
-    return NS_ERROR_FAILURE;
+    return nullptr;
 
   // Disallowed in the API
   if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
-    return NS_ERROR_FAILURE;
+    return nullptr;
 
   nsresult rv;
 
   if (!ApplyDecodeFlags(aFlags, aWhichFrame))
-    return NS_ERROR_NOT_AVAILABLE;
+    return nullptr;
 
   // If requested, synchronously flush any data we have lying around to the decoder
   if (aFlags & FLAG_SYNC_DECODE) {
     rv = SyncDecode();
-    CONTAINER_ENSURE_SUCCESS(rv);
+    CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), nullptr);
   }
-
-  NS_ENSURE_ARG_POINTER(_retval);
 
   // Get the frame. If it's not there, it's probably the caller's fault for
   // not waiting for the data to be loaded from the network or not passing
@@ -866,28 +857,43 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
                         0 : GetCurrentImgFrameIndex();
   imgFrame *frame = GetDrawableImgFrame(frameIndex);
   if (!frame) {
-    *_retval = nullptr;
-    return NS_ERROR_FAILURE;
+    return nullptr;
   }
-
-  nsRefPtr<gfxPattern> pattern;
-  frame->GetPattern(getter_AddRefs(pattern));
-  nsIntRect intframerect = frame->GetRect();
-  gfxRect framerect(intframerect.x, intframerect.y, intframerect.width, intframerect.height);
 
   // Create a 32-bit image surface of our size, but draw using the frame's
   // rect, implicitly padding the frame out to the image's size.
-  nsRefPtr<gfxImageSurface> imgsurface = new gfxImageSurface(gfxIntSize(mSize.width, mSize.height),
-                                                             gfxImageFormat::ARGB32);
-  gfxContext ctx(imgsurface);
-  ctx.SetOperator(gfxContext::OPERATOR_SOURCE);
-  ctx.Rectangle(framerect);
-  ctx.Translate(framerect.TopLeft());
-  ctx.SetPattern(pattern);
-  ctx.Fill();
 
-  imgsurface.forget(_retval);
-  return NS_OK;
+  IntSize size(mSize.width, mSize.height);
+  RefPtr<DataSourceSurface> surf =
+    Factory::CreateDataSourceSurface(size, SurfaceFormat::B8G8R8A8);
+
+  DataSourceSurface::MappedSurface mapping;
+  DebugOnly<bool> success =
+    surf->Map(DataSourceSurface::MapType::WRITE, &mapping);
+  NS_ASSERTION(success, "Failed to map surface");
+  RefPtr<DrawTarget> target =
+    Factory::CreateDrawTargetForData(BackendType::CAIRO,
+                                     mapping.mData,
+                                     size,
+                                     mapping.mStride,
+                                     SurfaceFormat::B8G8R8A8);
+
+  nsIntRect intframerect = frame->GetRect();
+  Rect rect(intframerect.x, intframerect.y,
+            intframerect.width, intframerect.height);
+  if (frame->IsSinglePixel()) {
+    target->FillRect(rect, ColorPattern(frame->SinglePixelColor()),
+                     DrawOptions(1.0f, CompositionOp::OP_SOURCE));
+  } else {
+    RefPtr<SourceSurface> srcsurf = frame->GetSurface();
+    Rect srcrect(0, 0, intframerect.width, intframerect.height);
+    target->DrawSurface(srcsurf, srcrect, rect);
+  }
+
+  target->Flush();
+  surf->Unmap();
+
+  return surf;
 }
 
 //******************************************************************************
@@ -928,7 +934,7 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
     return nullptr;
   }
 
-  nsRefPtr<gfxASurface> framesurf;
+  RefPtr<SourceSurface> framesurf;
 
   // If this frame covers the entire image, we can just reuse its existing
   // surface.
@@ -936,7 +942,7 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
   if (framerect.x == 0 && framerect.y == 0 &&
       framerect.width == mSize.width &&
       framerect.height == mSize.height) {
-    frame->GetSurface(getter_AddRefs(framesurf));
+    framesurf = frame->GetSurface();
     if (!framesurf && !frame->IsSinglePixel()) {
       // No reason to be optimized away here - the OS threw out the data
       if (!(aFlags & FLAG_SYNC_DECODE))
@@ -957,27 +963,10 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
   // The image doesn't have a surface because it's been optimized away. Create
   // one.
   if (!framesurf) {
-    nsRefPtr<gfxImageSurface> imgsurf;
-    CopyFrame(aWhichFrame, aFlags, getter_AddRefs(imgsurf));
-    framesurf = imgsurf;
+    framesurf = CopyFrame(aWhichFrame, aFlags);
   }
 
-  RefPtr<SourceSurface> result;
-
-  // As far as Moz2D is concerned, SourceSurface contains premultiplied alpha.
-  // If we're abusing it to contain non-premultiplied alpha then we want to
-  // avoid having Moz2D do any conversions on it (like copy to another
-  // surface). Hence why we try to wrap framesurf's data here for
-  // FLAG_DECODE_NO_PREMULTIPLY_ALPHA.
-  if ((aFlags & FLAG_WANT_DATA_SURFACE) != 0 ||
-      (aFlags & FLAG_DECODE_NO_PREMULTIPLY_ALPHA) != 0) {
-    result = gfxPlatform::GetPlatform()->GetWrappedDataSourceSurface(framesurf);
-  }
-  if (!result) {
-    result = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(nullptr,
-                                                                    framesurf);
-  }
-  return result.forget();
+  return framesurf;
 }
 
 already_AddRefed<layers::Image>
@@ -1182,7 +1171,7 @@ nsresult
 RasterImage::InternalAddFrame(uint32_t framenum,
                               int32_t aX, int32_t aY,
                               int32_t aWidth, int32_t aHeight,
-                              gfxImageFormat aFormat,
+                              SurfaceFormat aFormat,
                               uint8_t aPaletteDepth,
                               uint8_t **imageData,
                               uint32_t *imageLength,
@@ -1319,7 +1308,7 @@ RasterImage::SetSize(int32_t aWidth, int32_t aHeight, Orientation aOrientation)
 nsresult
 RasterImage::EnsureFrame(uint32_t aFrameNum, int32_t aX, int32_t aY,
                          int32_t aWidth, int32_t aHeight,
-                         gfxImageFormat aFormat,
+                         SurfaceFormat aFormat,
                          uint8_t aPaletteDepth,
                          uint8_t **imageData, uint32_t *imageLength,
                          uint32_t **paletteData, uint32_t *paletteLength,
@@ -1394,7 +1383,7 @@ RasterImage::EnsureFrame(uint32_t aFrameNum, int32_t aX, int32_t aY,
 nsresult
 RasterImage::EnsureFrame(uint32_t aFramenum, int32_t aX, int32_t aY,
                          int32_t aWidth, int32_t aHeight,
-                         gfxImageFormat aFormat,
+                         SurfaceFormat aFormat,
                          uint8_t** imageData, uint32_t* imageLength,
                          imgFrame** aFrame)
 {
@@ -1583,7 +1572,7 @@ RasterImage::ResetAnimation()
 //******************************************************************************
 // [notxpcom] void setAnimationStartTime ([const] in TimeStamp aTime);
 NS_IMETHODIMP_(void)
-RasterImage::SetAnimationStartTime(const mozilla::TimeStamp& aTime)
+RasterImage::SetAnimationStartTime(const TimeStamp& aTime)
 {
   if (mError || mAnimationMode == kDontAnimMode || mAnimating || !mAnim)
     return;
@@ -2112,7 +2101,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
     // frame.  By default, we create an ARGB frame with no offset. If decoders
     // need a different type, they need to ask for it themselves.
     mDecoder->NeedNewFrame(0, 0, 0, mSize.width, mSize.height,
-                           gfxImageFormat::ARGB32);
+                           SurfaceFormat::B8G8R8A8);
     mDecoder->AllocateFrame();
   }
   mDecoder->Init();
@@ -2392,7 +2381,9 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   // large images will decode a bit and post themselves to the event loop
   // to finish decoding.
   if (!mDecoded && !mInDecoder && mHasSourceData && aDecodeType == SYNCHRONOUS_NOTIFY_AND_SOME_DECODE) {
-    PROFILER_LABEL_PRINTF("RasterImage", "DecodeABitOf", "%s", GetURIString().get());
+    PROFILER_LABEL_PRINTF("RasterImage", "DecodeABitOf",
+      js::ProfileEntry::Category::GRAPHICS, "%s", GetURIString().get());
+
     DecodePool::Singleton()->DecodeABitOf(this, DECODE_SYNC);
     return NS_OK;
   }
@@ -2411,7 +2402,8 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 nsresult
 RasterImage::SyncDecode()
 {
-  PROFILER_LABEL_PRINTF("RasterImage", "SyncDecode", "%s", GetURIString().get());;
+  PROFILER_LABEL_PRINTF("RasterImage", "SyncDecode",
+    js::ProfileEntry::Category::GRAPHICS, "%s", GetURIString().get());
 
   // If we have a size decoder open, make sure we get the size
   if (mDecoder && mDecoder->IsSizeDecode()) {
@@ -2568,7 +2560,6 @@ RasterImage::ScalingDone(ScaleRequest* request, ScaleStatus status)
 
     imgFrame *scaledFrame = request->dstFrame.forget();
     scaledFrame->ImageUpdated(scaledFrame->GetRect());
-    scaledFrame->ApplyDirtToSurfaces();
 
     if (mStatusTracker) {
       mStatusTracker->FrameChanged(&request->srcRect);
@@ -2606,7 +2597,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
   imageSpaceToUserSpace.Invert();
   gfxSize scale = imageSpaceToUserSpace.ScaleFactors(true);
   nsIntRect subimage = aSubimage;
-  nsRefPtr<gfxASurface> surf;
+  RefPtr<SourceSurface> surf;
 
   if (CanScale(aFilter, scale, aFlags) && !frame->IsSinglePixel()) {
     // If scale factor is still the same that we scaled for and
@@ -2620,7 +2611,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
     bool needScaleReq;
     if (mScaleResult.status == SCALE_DONE && mScaleResult.scale == scale) {
       // Grab and hold the surface to make sure the OS didn't destroy it
-      mScaleResult.frame->GetSurface(getter_AddRefs(surf));
+      surf = mScaleResult.frame->GetSurface();
       needScaleReq = !surf;
       if (surf) {
         frame = mScaleResult.frame;
@@ -3095,8 +3086,6 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent /* = eShutdownIntent_D
   nsresult rv = NS_OK;
 
   if (image->mDecoder) {
-    image->mDecoder->MarkFrameDirty();
-
     if (request && request->mChunkCount && !image->mDecoder->IsSizeDecode()) {
       Telemetry::Accumulate(Telemetry::IMAGE_DECODE_CHUNKS, request->mChunkCount);
     }
@@ -3247,7 +3236,7 @@ RasterImage::DecodePool::DecodePool()
       }
 #endif
 
-      nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
+      nsCOMPtr<nsIObserverService> obsSvc = services::GetObserverService();
       if (obsSvc) {
         obsSvc->AddObserver(this, "xpcom-shutdown-threads", false);
       }
@@ -3420,6 +3409,22 @@ RasterImage::DecodePool::DecodeJob::Run()
   }
 
   return NS_OK;
+}
+
+RasterImage::DecodePool::DecodeJob::~DecodeJob()
+{
+  if (gMultithreadedDecoding) {
+    // Dispatch mImage to main thread to prevent mImage from being destructed by decode thread.
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
+    if (mainThread) {
+      // Handle ambiguous nsISupports inheritance
+      RasterImage* rawImg = nullptr;
+      mImage.swap(rawImg);
+      DebugOnly<nsresult> rv = NS_ProxyRelease(mainThread, NS_ISUPPORTS_CAST(ImageResource*, rawImg));
+      MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to proxy release to main thread");
+    }
+  }
 }
 
 nsresult

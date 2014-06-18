@@ -17,7 +17,7 @@
 
 using namespace mozilla;
 
-nsIFrame*
+ViewportFrame*
 NS_NewViewportFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   return new (aPresShell) ViewportFrame(aContext);
@@ -29,9 +29,9 @@ NS_QUERYFRAME_HEAD(ViewportFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 void
-ViewportFrame::Init(nsIContent*      aContent,
-                    nsIFrame*        aParent,
-                    nsIFrame*        aPrevInFlow)
+ViewportFrame::Init(nsIContent*       aContent,
+                    nsContainerFrame* aParent,
+                    nsIFrame*         aPrevInFlow)
 {
   Super::Init(aContent, aParent, aPrevInFlow);
 
@@ -43,23 +43,14 @@ ViewportFrame::Init(nsIContent*      aContent,
   }
 }
 
-nsresult
-ViewportFrame::SetInitialChildList(ChildListID     aListID,
-                                   nsFrameList&    aChildList)
-{
-  // See which child list to add the frames to
-#ifdef DEBUG
-  nsFrame::VerifyDirtyBitSet(aChildList);
-#endif
-  return nsContainerFrame::SetInitialChildList(aListID, aChildList);
-}
-
 void
 ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists)
 {
-  PROFILER_LABEL("ViewportFrame", "BuildDisplayList");
+  PROFILER_LABEL("ViewportFrame", "BuildDisplayList",
+    js::ProfileEntry::Category::GRAPHICS);
+
   nsIFrame* kid = mFrames.FirstChild();
   if (!kid)
     return;
@@ -70,37 +61,42 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
 }
 
-nsresult
+#ifdef DEBUG
+void
+ViewportFrame::SetInitialChildList(ChildListID     aListID,
+                                   nsFrameList&    aChildList)
+{
+  nsFrame::VerifyDirtyBitSet(aChildList);
+  nsContainerFrame::SetInitialChildList(aListID, aChildList);
+}
+
+void
 ViewportFrame::AppendFrames(ChildListID     aListID,
                             nsFrameList&    aFrameList)
 {
-  NS_ASSERTION(aListID == kPrincipalList ||
-               aListID == GetAbsoluteListID(), "unexpected child list");
-  NS_ASSERTION(aListID != GetAbsoluteListID() ||
-               GetChildList(aListID).IsEmpty(), "Shouldn't have any kids!");
-  return nsContainerFrame::AppendFrames(aListID, aFrameList);
+  NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
+  NS_ASSERTION(GetChildList(aListID).IsEmpty(), "Shouldn't have any kids!");
+  nsContainerFrame::AppendFrames(aListID, aFrameList);
 }
 
-nsresult
+void
 ViewportFrame::InsertFrames(ChildListID     aListID,
                             nsIFrame*       aPrevFrame,
                             nsFrameList&    aFrameList)
 {
-  NS_ASSERTION(aListID == kPrincipalList ||
-               aListID == GetAbsoluteListID(), "unexpected child list");
-  NS_ASSERTION(aListID != GetAbsoluteListID() ||
-               GetChildList(aListID).IsEmpty(), "Shouldn't have any kids!");
-  return nsContainerFrame::InsertFrames(aListID, aPrevFrame, aFrameList);
+  NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
+  NS_ASSERTION(GetChildList(aListID).IsEmpty(), "Shouldn't have any kids!");
+  nsContainerFrame::InsertFrames(aListID, aPrevFrame, aFrameList);
 }
 
-nsresult
+void
 ViewportFrame::RemoveFrame(ChildListID     aListID,
                            nsIFrame*       aOldFrame)
 {
-  NS_ASSERTION(aListID == kPrincipalList ||
-               aListID == GetAbsoluteListID(), "unexpected child list");
-  return nsContainerFrame::RemoveFrame(aListID, aOldFrame);
+  NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
+  nsContainerFrame::RemoveFrame(aListID, aOldFrame);
 }
+#endif
 
 /* virtual */ nscoord
 ViewportFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
@@ -173,7 +169,7 @@ ViewportFrame::AdjustReflowStateAsContainingBlock(nsHTMLReflowState* aReflowStat
   return rect;
 }
 
-nsresult
+void
 ViewportFrame::Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
@@ -200,8 +196,6 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   // reflow.
   nscoord kidHeight = 0;
 
-  nsresult rv = NS_OK;
-  
   if (mFrames.NotEmpty()) {
     // Deal with a non-incremental reflow or an incremental reflow
     // targeted at our one-and-only principal child frame.
@@ -218,8 +212,8 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
 
       // Reflow the frame
       kidReflowState.SetComputedHeight(aReflowState.ComputedHeight());
-      rv = ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
-                       0, 0, 0, aStatus);
+      ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
+                  0, 0, 0, aStatus);
       kidHeight = kidDesiredSize.Height();
 
       FinishReflowChild(kidFrame, aPresContext, kidDesiredSize, nullptr, 0, 0, 0);
@@ -262,10 +256,10 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
     nsRect rect = AdjustReflowStateAsContainingBlock(&reflowState);
 
     // Just reflow all the fixed-pos frames.
-    rv = GetAbsoluteContainingBlock()->Reflow(this, aPresContext, reflowState, aStatus,
-                                              rect,
-                                              false, true, true, // XXX could be optimized
-                                              &aDesiredSize.mOverflowAreas);
+    GetAbsoluteContainingBlock()->Reflow(this, aPresContext, reflowState, aStatus,
+                                         rect,
+                                         false, true, true, // XXX could be optimized
+                                         &aDesiredSize.mOverflowAreas);
   }
 
   // If we were dirty then do a repaint
@@ -289,7 +283,6 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
 
   NS_FRAME_TRACE_REFLOW_OUT("ViewportFrame::Reflow", aStatus);
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return rv; 
 }
 
 nsIAtom*

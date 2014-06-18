@@ -25,6 +25,7 @@ EXPORTS.mozilla += [
     'InternalMutationEvent.h',
     'JSEventHandler.h',
     'KeyNameList.h',
+    'PhysicalKeyCodeNameList.h',
     'TextComposition.h',
     'VirtualKeyCodeList.h',
 ]
@@ -53,6 +54,7 @@ EXPORTS.mozilla.dom += [
     'PointerEvent.h',
     'ScrollAreaEvent.h',
     'SimpleGestureEvent.h',
+    'StorageEvent.h',
     'Touch.h',
     'TouchEvent.h',
     'TransitionEvent.h',
@@ -97,6 +99,7 @@ UNIFIED_SOURCES += [
     'PointerEvent.cpp',
     'ScrollAreaEvent.cpp',
     'SimpleGestureEvent.cpp',
+    'StorageEvent.cpp',
     'TextComposition.cpp',
     'Touch.cpp',
     'TouchEvent.cpp',

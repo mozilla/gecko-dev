@@ -23,7 +23,7 @@ enum StructuredCloneTags {
   SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE,
 
   SCTAG_DOM_FILELIST,
-  SCTAG_DOM_FILEHANDLE,
+  SCTAG_DOM_MUTABLEFILE,
   SCTAG_DOM_FILE,
 
   // These tags are used for both main thread and workers.
@@ -31,6 +31,9 @@ enum StructuredCloneTags {
   SCTAG_DOM_MAP_MESSAGEPORT,
 
   SCTAG_DOM_FUNCTION,
+
+  // This tag is for WebCrypto keys
+  SCTAG_DOM_WEBCRYPTO_KEY,
 
   SCTAG_DOM_MAX
 };

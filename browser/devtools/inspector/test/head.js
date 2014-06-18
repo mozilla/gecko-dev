@@ -13,6 +13,9 @@ const Cc = Components.classes;
 
 //Services.prefs.setBoolPref("devtools.dump.emit", true);
 
+const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
+const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
+
 let tempScope = {};
 Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm", tempScope);
 let LayoutHelpers = tempScope.LayoutHelpers;
@@ -40,6 +43,34 @@ SimpleTest.registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
 });
+
+/**
+ * Define an async test based on a generator function
+ */
+function asyncTest(generator) {
+  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
+}
+
+/**
+ * Add a new test tab in the browser and load the given url.
+ * @param {String} url The url to be loaded in the new tab
+ * @return a promise that resolves to the tab object when the url is loaded
+ */
+function addTab(url) {
+  let def = promise.defer();
+
+  let tab = gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedBrowser.addEventListener("load", function onload() {
+    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
+    info("URL " + url + " loading complete into new test tab");
+    waitForFocus(() => {
+      def.resolve(tab);
+    }, content);
+  }, true);
+  content.location = url;
+
+  return def.promise;
+}
 
 /**
  * Simple DOM node accesor function that takes either a node or a string css
@@ -306,6 +337,26 @@ function isHighlighting()
   return !root.hasAttribute("hidden");
 }
 
+/**
+ * Observes mutation changes on the box-model highlighter and returns a promise
+ * that resolves when one of the attributes changes.
+ * If an attribute changes in the box-model, it means its position/dimensions
+ * got updated
+ */
+function waitForBoxModelUpdate() {
+  let def = promise.defer();
+
+  let root = getBoxModelRoot();
+  let polygon = root.querySelector(".box-model-content");
+  let observer = new polygon.ownerDocument.defaultView.MutationObserver(() => {
+    observer.disconnect();
+    def.resolve();
+  });
+  observer.observe(polygon, {attributes: true});
+
+  return def.promise;
+}
+
 function getHighlitNode()
 {
   if (isHighlighting()) {
@@ -400,7 +451,7 @@ function focusSearchBoxUsingShortcut(panelWin, callback) {
     altKey: modifiersAttr.match("alt"),
     metaKey: modifiersAttr.match("meta"),
     accelKey: modifiersAttr.match("accel")
-  }
+  };
 
   let searchBox = panelWin.document.getElementById("inspector-searchbox");
   searchBox.addEventListener("focus", function onFocus() {
@@ -421,6 +472,26 @@ function getComputedPropertyValue(aName)
     if (name.textContent === aName) {
       let value = prop.querySelector(".property-value");
       return value.textContent;
+    }
+  }
+}
+
+function isNodeCorrectlyHighlighted(node, prefix="") {
+  let boxModel = getBoxModelStatus();
+  let helper = new LayoutHelpers(window.content);
+
+  prefix += (prefix ? " " : "") + node.nodeName;
+  prefix += (node.id ? "#" + node.id : "");
+  prefix += (node.classList.length ? "." + [...node.classList].join(".") : "");
+  prefix += " ";
+
+  for (let boxType of ["content", "padding", "border", "margin"]) {
+    let quads = helper.getAdjustedQuads(node, boxType);
+    for (let point in boxModel[boxType].points) {
+      is(boxModel[boxType].points[point].x, quads[point].x,
+        prefix + boxType + " point " + point + " x coordinate is correct");
+      is(boxModel[boxType].points[point].y, quads[point].y,
+        prefix + boxType + " point " + point + " y coordinate is correct");
     }
   }
 }

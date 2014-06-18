@@ -12,7 +12,7 @@ static bool IsCompartmentGCBuffer[BufferSize];
 BEGIN_TEST(testGCFinalizeCallback)
 {
     JS_SetGCParameter(rt, JSGC_MODE, JSGC_MODE_INCREMENTAL);
-    JS_SetFinalizeCallback(rt, FinalizeCallback);
+    JS_AddFinalizeCallback(rt, FinalizeCallback, nullptr);
 
     /* Full GC, non-incremental. */
     FinalizeCalls = 0;
@@ -26,7 +26,7 @@ BEGIN_TEST(testGCFinalizeCallback)
     FinalizeCalls = 0;
     JS::PrepareForFullGC(rt);
     JS::IncrementalGC(rt, JS::gcreason::API, 1000000);
-    CHECK(rt->gc.incrementalState == js::gc::NO_INCREMENTAL);
+    CHECK(rt->gc.state() == js::gc::NO_INCREMENTAL);
     CHECK(rt->gc.isFull);
     CHECK(checkMultipleGroups());
     CHECK(checkFinalizeStatus());
@@ -63,7 +63,7 @@ BEGIN_TEST(testGCFinalizeCallback)
     FinalizeCalls = 0;
     JS::PrepareZoneForGC(global1->zone());
     JS::IncrementalGC(rt, JS::gcreason::API, 1000000);
-    CHECK(rt->gc.incrementalState == js::gc::NO_INCREMENTAL);
+    CHECK(rt->gc.state() == js::gc::NO_INCREMENTAL);
     CHECK(!rt->gc.isFull);
     CHECK(checkSingleGroup());
     CHECK(checkFinalizeStatus());
@@ -75,7 +75,7 @@ BEGIN_TEST(testGCFinalizeCallback)
     JS::PrepareZoneForGC(global2->zone());
     JS::PrepareZoneForGC(global3->zone());
     JS::IncrementalGC(rt, JS::gcreason::API, 1000000);
-    CHECK(rt->gc.incrementalState == js::gc::NO_INCREMENTAL);
+    CHECK(rt->gc.state() == js::gc::NO_INCREMENTAL);
     CHECK(!rt->gc.isFull);
     CHECK(checkMultipleGroups());
     CHECK(checkFinalizeStatus());
@@ -89,12 +89,12 @@ BEGIN_TEST(testGCFinalizeCallback)
     JS_SetGCZeal(cx, 9, 1000000);
     JS::PrepareForFullGC(rt);
     js::GCDebugSlice(rt, true, 1);
-    CHECK(rt->gc.incrementalState == js::gc::MARK);
+    CHECK(rt->gc.state() == js::gc::MARK);
     CHECK(rt->gc.isFull);
 
     JS::RootedObject global4(cx, createGlobal());
     js::GCDebugSlice(rt, true, 1);
-    CHECK(rt->gc.incrementalState == js::gc::NO_INCREMENTAL);
+    CHECK(rt->gc.state() == js::gc::NO_INCREMENTAL);
     CHECK(!rt->gc.isFull);
     CHECK(checkMultipleGroups());
     CHECK(checkFinalizeStatus());
@@ -116,7 +116,7 @@ BEGIN_TEST(testGCFinalizeCallback)
     CHECK(JS_IsGlobalObject(global2));
     CHECK(JS_IsGlobalObject(global3));
 
-    JS_SetFinalizeCallback(rt, nullptr);
+    JS_RemoveFinalizeCallback(rt, FinalizeCallback);
     return true;
 }
 
@@ -162,7 +162,7 @@ bool checkFinalizeIsCompartmentGC(bool isCompartmentGC)
 }
 
 static void
-FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartmentGC)
+FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartmentGC, void *data)
 {
     if (FinalizeCalls < BufferSize) {
         StatusBuffer[FinalizeCalls] = status;

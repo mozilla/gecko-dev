@@ -66,6 +66,20 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
 
     // These all create a use of a virtual register, with an optional
     // allocation policy.
+    //
+    // Some of these use functions have atStart variants.
+    // - non-atStart variants will tell the register allocator that the input
+    // allocation must be different from any Temp or Definition also needed for
+    // this LInstruction.
+    // - atStart variants relax that restriction and allow the input to be in
+    // the same register as any Temp or output Definition used by the
+    // LInstruction. Note that it doesn't *imply* this will actually happen,
+    // but gives a hint to the register allocator that it can do it.
+    //
+    // TL;DR: Use non-atStart variants only if you need the input value after
+    // writing to any temp or definitions, during code generation of this
+    // LInstruction. Otherwise, use atStart variants, which will lower register
+    // pressure.
     inline LUse use(MDefinition *mir, LUse policy);
     inline LUse use(MDefinition *mir);
     inline LUse useAtStart(MDefinition *mir);
@@ -76,13 +90,14 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
     inline LUse useFixed(MDefinition *mir, AnyRegister reg);
     inline LUse useFixedAtStart(MDefinition *mir, Register reg);
     inline LAllocation useOrConstant(MDefinition *mir);
-    // "Any" is architecture dependent, and will include registers and stack slots on X86,
-    // and only registers on ARM.
+    inline LAllocation useOrConstantAtStart(MDefinition *mir);
+    // "Any" is architecture dependent, and will include registers and stack
+    // slots on X86, and only registers on ARM.
     inline LAllocation useAny(MDefinition *mir);
     inline LAllocation useAnyOrConstant(MDefinition *mir);
-    // "Storable" is architecture dependend, and will include registers and constants on X86
-    // and only registers on ARM.
-    // this is a generic "things we can expect to write into memory in 1 instruction"
+    // "Storable" is architecture dependend, and will include registers and
+    // constants on X86 and only registers on ARM.  This is a generic "things
+    // we can expect to write into memory in 1 instruction".
     inline LAllocation useStorable(MDefinition *mir);
     inline LAllocation useStorableAtStart(MDefinition *mir);
     inline LAllocation useKeepaliveOrConstant(MDefinition *mir);
@@ -170,12 +185,13 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
     // effects (if any), it may check pre-conditions and bailout if they do not
     // hold. This function informs the register allocator that it will need to
     // capture appropriate state.
-    bool assignSnapshot(LInstruction *ins, BailoutKind kind = Bailout_Normal);
+    bool assignSnapshot(LInstruction *ins, BailoutKind kind);
 
     // Marks this instruction as needing to call into either the VM or GC. This
     // function may build a snapshot that captures the result of its own
     // instruction, and as such, should generally be called after define*().
-    bool assignSafepoint(LInstruction *ins, MInstruction *mir);
+    bool assignSafepoint(LInstruction *ins, MInstruction *mir,
+                         BailoutKind kind = Bailout_DuringVMCall);
 
   public:
     bool visitConstant(MConstant *ins);

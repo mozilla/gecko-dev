@@ -125,6 +125,11 @@ static const char *kPrefWhitelist = "plugin.allowed_types";
 static const char *kPrefDisableFullPage = "plugin.disable_full_page_plugin_for_types";
 static const char *kPrefJavaMIME = "plugin.java.mime";
 
+// How long we wait before unloading an idle plugin process.
+// Defaults to 30 seconds.
+static const char *kPrefUnloadPluginTimeoutSecs = "dom.ipc.plugins.unloadTimeoutSecs";
+static const uint32_t kDefaultPluginUnloadingTimeout = 30;
+
 // Version of cached plugin info
 // 0.01 first implementation
 // 0.02 added caching of CanUnload to fix bug 105935
@@ -226,7 +231,7 @@ bool ReadSectionHeader(nsPluginManifestLineReader& reader, const char *token)
 
 static bool UnloadPluginsASAP()
 {
-  return Preferences::GetBool("dom.ipc.plugins.unloadASAP", false);
+  return (Preferences::GetUint(kPrefUnloadPluginTimeoutSecs, kDefaultPluginUnloadingTimeout) == 0);
 }
 
 nsPluginHost::nsPluginHost()
@@ -714,10 +719,10 @@ void nsPluginHost::OnPluginInstanceDestroyed(nsPluginTag* aPluginTag)
   // Another reason not to unload immediately is that loading is expensive,
   // and it is better to leave popular plugins loaded.
   //
-  // Our default behavior is to try to unload a plugin three minutes after
-  // its last instance is destroyed. This seems like a reasonable compromise
-  // that allows us to reclaim memory while allowing short state retention
-  // and avoid perf hits for loading popular plugins.
+  // Our default behavior is to try to unload a plugin after a pref-controlled
+  // delay once its last instance is destroyed. This seems like a reasonable
+  // compromise that allows us to reclaim memory while allowing short state
+  // retention and avoid perf hits for loading popular plugins.
   if (!hasInstance) {
     if (UnloadPluginsASAP()) {
       aPluginTag->TryUnloadPlugin(false);
@@ -727,7 +732,11 @@ void nsPluginHost::OnPluginInstanceDestroyed(nsPluginTag* aPluginTag)
       } else {
         aPluginTag->mUnloadTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
       }
-      aPluginTag->mUnloadTimer->InitWithCallback(this, 1000 * 60 * 3, nsITimer::TYPE_ONE_SHOT);
+      uint32_t unloadTimeout = Preferences::GetUint(kPrefUnloadPluginTimeoutSecs,
+                                                    kDefaultPluginUnloadingTimeout);
+      aPluginTag->mUnloadTimer->InitWithCallback(this,
+                                                 1000 * unloadTimeout,
+                                                 nsITimer::TYPE_ONE_SHOT);
     }
   }
 }
@@ -1406,7 +1415,7 @@ nsPluginHost::RegisterPlayPreviewMimeType(const nsACString& mimeType,
   nsAutoCString url(redirectURL);
   if (url.Length() == 0) {
     // using default play preview iframe URL, if redirectURL is not specified
-    url.Assign("data:application/x-moz-playpreview;,");
+    url.AssignLiteral("data:application/x-moz-playpreview;,");
     url.Append(mimeType);
   }
 
@@ -2272,7 +2281,7 @@ nsPluginHost::WritePluginInfo()
     return rv;
 
   nsAutoCString filename(kPluginRegistryFilename);
-  filename.Append(".tmp");
+  filename.AppendLiteral(".tmp");
   rv = pluginReg->AppendNative(filename);
   if (NS_FAILED(rv))
     return rv;

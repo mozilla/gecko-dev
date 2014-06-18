@@ -41,6 +41,7 @@ function run_test() {
 function MockFxAccountsClient() {
   this._email = "nobody@example.com";
   this._verified = false;
+  this._deletedOnServer = false; // for testing accountStatus
 
   // mock calls up to the auth server to determine whether the
   // user account has been verified
@@ -54,6 +55,12 @@ function MockFxAccountsClient() {
     };
     deferred.resolve(response);
 
+    return deferred.promise;
+  };
+
+  this.accountStatus = function(uid) {
+    let deferred = Promise.defer();
+    deferred.resolve(!!uid && (!this._deletedOnServer));
     return deferred.promise;
   };
 
@@ -169,7 +176,8 @@ add_task(function test_get_signed_in_user_initially_unset() {
   do_check_eq(result.kB, credentials.kB);
 
   // sign out
-  yield account.signOut();
+  let localOnly = true;
+  yield account.signOut(localOnly);
 
   // user should be undefined after sign out
   let result = yield account.getSignedInUser();
@@ -286,8 +294,9 @@ add_test(function test_getKeys() {
       // Before getKeys, we have no keys
       do_check_eq(!!user.kA, false);
       do_check_eq(!!user.kB, false);
-      // And we still have a key-fetch token to use
+      // And we still have a key-fetch token and unwrapBKey to use
       do_check_eq(!!user.keyFetchToken, true);
+      do_check_eq(!!user.unwrapBKey, true);
 
       fxa.internal.getKeys().then(() => {
         fxa.getSignedInUser().then((user) => {
@@ -297,6 +306,7 @@ add_test(function test_getKeys() {
           do_check_eq(user.kA, expandHex("11"));
           do_check_eq(user.kB, expandHex("66"));
           do_check_eq(user.keyFetchToken, undefined);
+          do_check_eq(user.unwrapBKey, undefined);
           do_test_finished();
           run_next_test();
         });
@@ -503,6 +513,39 @@ add_task(function test_resend_email_not_signed_in() {
     return;
   }
   do_throw("Should not be able to resend email when nobody is signed in");
+});
+
+add_test(function test_accountStatus() {
+  let fxa = new MockFxAccounts();
+  let alice = getTestUser("alice");
+
+  // If we have no user, we have no account server-side
+  fxa.accountStatus().then(
+    (result) => {
+      do_check_false(result);
+    }
+  ).then(
+    () => {
+      fxa.setSignedInUser(alice).then(
+        () => {
+          fxa.accountStatus().then(
+            (result) => {
+               // FxAccounts.accountStatus() should match Client.accountStatus()
+               do_check_true(result);
+               fxa.internal.fxAccountsClient._deletedOnServer = true;
+               fxa.accountStatus().then(
+                 (result) => {
+                   do_check_false(result);
+                   fxa.internal.fxAccountsClient._deletedOnServer = false;
+                   run_next_test();
+                 }
+               );
+            }
+          )
+        }
+      );
+    }
+  );
 });
 
 add_test(function test_resend_email() {

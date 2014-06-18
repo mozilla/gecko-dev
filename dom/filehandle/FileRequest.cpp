@@ -6,10 +6,10 @@
 
 #include "FileRequest.h"
 
+#include "FileHandle.h"
 #include "FileHelper.h"
 #include "js/RootingAPI.h"
 #include "jsapi.h"
-#include "LockedFile.h"
 #include "MainThreadUtils.h"
 #include "mozilla/dom/FileRequestBinding.h"
 #include "mozilla/EventDispatcher.h"
@@ -18,7 +18,7 @@
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsIDOMEvent.h"
-#include "nsIDOMProgressEvent.h"
+#include "mozilla/dom/ProgressEvent.h"
 #include "nsIScriptContext.h"
 #include "nsLiteralString.h"
 
@@ -38,13 +38,13 @@ FileRequest::~FileRequest()
 
 // static
 already_AddRefed<FileRequest>
-FileRequest::Create(nsPIDOMWindow* aOwner, LockedFile* aLockedFile,
+FileRequest::Create(nsPIDOMWindow* aOwner, FileHandle* aFileHandle,
                     bool aWrapAsDOMRequest)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
   nsRefPtr<FileRequest> request = new FileRequest(aOwner);
-  request->mLockedFile = aLockedFile;
+  request->mFileHandle = aFileHandle;
   request->mWrapAsDOMRequest = aWrapAsDOMRequest;
 
   return request.forget();
@@ -56,7 +56,7 @@ FileRequest::PreHandleEvent(EventChainPreVisitor& aVisitor)
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
   aVisitor.mCanHandle = true;
-  aVisitor.mParentTarget = mLockedFile;
+  aVisitor.mParentTarget = mFileHandle;
   return NS_OK;
 }
 
@@ -103,7 +103,7 @@ FileRequest::NotifyHelperCompleted(FileHelper* aFileHelper)
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(FileRequest, DOMRequest,
-                                   mLockedFile)
+                                   mFileHandle)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(FileRequest)
 NS_INTERFACE_MAP_END_INHERITING(DOMRequest)
@@ -121,11 +121,11 @@ FileRequest::WrapObject(JSContext* aCx)
   return FileRequestBinding::Wrap(aCx, this);
 }
 
-LockedFile*
-FileRequest::GetLockedFile() const
+FileHandle*
+FileRequest::GetFileHandle() const
 {
   MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
-  return mLockedFile;
+  return mFileHandle;
 }
 
 void
@@ -135,21 +135,15 @@ FileRequest::FireProgressEvent(uint64_t aLoaded, uint64_t aTotal)
     return;
   }
 
-  nsCOMPtr<nsIDOMEvent> event;
-  nsresult rv = NS_NewDOMProgressEvent(getter_AddRefs(event), this,
-                                       nullptr, nullptr);
-  if (NS_FAILED(rv)) {
-    return;
-  }
+  ProgressEventInit init;
+  init.mBubbles = false;
+  init.mCancelable = false;
+  init.mLengthComputable = false;
+  init.mLoaded = aLoaded;
+  init.mTotal = aTotal;
 
-  nsCOMPtr<nsIDOMProgressEvent> progress = do_QueryInterface(event);
-  MOZ_ASSERT(progress);
-  rv = progress->InitProgressEvent(NS_LITERAL_STRING("progress"), false, false,
-                                   false, aLoaded, aTotal);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
+  nsRefPtr<ProgressEvent> event =
+    ProgressEvent::Constructor(this, NS_LITERAL_STRING("progress"), init);
   DispatchTrustedEvent(event);
 }
 

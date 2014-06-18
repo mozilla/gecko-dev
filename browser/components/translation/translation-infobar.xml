@@ -21,60 +21,95 @@
     <content>
       <xul:hbox class="notification-inner outset" flex="1" xbl:inherits="type">
         <xul:hbox anonid="details" align="center" flex="1">
-          <xul:image anonid="messageImage" class="messageImage" xbl:inherits="src=image,type,value"/>
+          <xul:image class="translate-infobar-element messageImage"
+                     anonid="messageImage"/>
           <xul:deck anonid="translationStates" selectedIndex="0">
 
             <!-- offer to translate -->
-            <xul:hbox class="translate-offer-box" align="baseline">
-              <xul:label value="&translation.thisPageIsIn.label;"/>
-              <xul:menulist anonid="detectedLanguage">
+            <xul:hbox class="translate-offer-box" align="center">
+              <xul:label class="translate-infobar-element" value="&translation.thisPageIsIn.label;"/>
+              <xul:menulist class="translate-infobar-element" anonid="detectedLanguage">
                 <xul:menupopup/>
               </xul:menulist>
-              <xul:label value="&translation.translateThisPage.label;"/>
-              <xul:button label="&translation.translate.button;" anonid="translate"
+              <xul:label class="translate-infobar-element" value="&translation.translateThisPage.label;"/>
+              <xul:button class="translate-infobar-element"
+                          label="&translation.translate.button;"
+                          anonid="translate"
                           oncommand="document.getBindingParent(this).translate();"/>
-              <xul:button label="&translation.notNow.button;" anonid="notNow"
+              <xul:button class="translate-infobar-element"
+                          label="&translation.notNow.button;" anonid="notNow"
                           oncommand="document.getBindingParent(this).close();"/>
             </xul:hbox>
 
             <!-- translating -->
             <xul:vbox class="translating-box" pack="center">
-              <xul:label value="&translation.translatingContent.label;"/>
+              <xul:label class="translate-infobar-element"
+                         value="&translation.translatingContent.label;"/>
             </xul:vbox>
 
             <!-- translated -->
-            <xul:hbox class="translated-box" align="baseline">
-              <xul:label value="&translation.translatedFrom.label;"/>
-              <xul:menulist anonid="fromLanguage"
+            <xul:hbox class="translated-box" align="center">
+              <xul:label class="translate-infobar-element"
+                         value="&translation.translatedFrom.label;"/>
+              <xul:menulist class="translate-infobar-element"
+                            anonid="fromLanguage"
                             oncommand="document.getBindingParent(this).translate()">
                 <xul:menupopup/>
               </xul:menulist>
-              <xul:label value="&translation.translatedTo.label;"/>
-              <xul:menulist anonid="toLanguage"
+              <xul:label class="translate-infobar-element"
+                         value="&translation.translatedTo.label;"/>
+              <xul:menulist class="translate-infobar-element"
+                            anonid="toLanguage"
                             oncommand="document.getBindingParent(this).translate()">
                 <xul:menupopup/>
               </xul:menulist>
-              <xul:label value="&translation.translatedToSuffix.label;"/>
+              <xul:label class="translate-infobar-element"
+                         value="&translation.translatedToSuffix.label;"/>
               <xul:button anonid="showOriginal"
+                          class="translate-infobar-element"
                           label="&translation.showOriginal.button;"
                           oncommand="document.getBindingParent(this).showOriginal();"/>
               <xul:button anonid="showTranslation"
+                          class="translate-infobar-element"
                           label="&translation.showTranslation.button;"
                           oncommand="document.getBindingParent(this).showTranslation();"/>
             </xul:hbox>
 
             <!-- error -->
-            <xul:hbox class="translation-error" align="baseline">
-              <xul:label value="&translation.errorTranslating.label;"/>
-              <xul:button label="&translation.tryAgain.button;" anonid="tryAgain"
+            <xul:hbox class="translation-error" align="center">
+              <xul:label class="translate-infobar-element"
+                         value="&translation.errorTranslating.label;"/>
+              <xul:button class="translate-infobar-element"
+                          label="&translation.tryAgain.button;"
+                          anonid="tryAgain"
                           oncommand="document.getBindingParent(this).translate();"/>
             </xul:hbox>
+
+            <!-- unavailable -->
+            <xul:vbox class="translation-unavailable" pack="center">
+              <xul:label class="translate-infobar-element"
+                         value="&translation.serviceUnavailable.label;"/>
+            </xul:vbox>
 
           </xul:deck>
           <xul:spacer flex="1"/>
 
-          <xul:button type="menu" label="&translation.options.menu;">
-            <xul:menupopup/>
+          <xul:button type="menu"
+                      class="translate-infobar-element options-menu-button"
+                      anonid="options"
+                      label="&translation.options.menu;">
+            <xul:menupopup onpopupshowing="document.getBindingParent(this).optionsShowing();">
+              <xul:menuitem anonid="neverForLanguage"
+                            oncommand="document.getBindingParent(this).neverForLanguage();"/>
+              <xul:menuitem anonid="neverForSite"
+                            oncommand="document.getBindingParent(this).neverForSite();"
+                            label="&translation.options.neverForSite.label;"
+                            accesskey="&translation.options.neverForSite.accesskey;"/>
+              <xul:menuseparator/>
+              <xul:menuitem oncommand="openPreferences('paneContent');"
+                            label="&translation.options.preferences.label;"
+                            accesskey="&translation.options.preferences.accesskey;"/>
+            </xul:menupopup>
           </xul:button>
 
         </xul:hbox>
@@ -87,13 +122,41 @@
     </content>
     <implementation>
       <property name="state"
-                onget="return this._getAnonElt('translationStates').selectedIndex;"
-                onset="this._getAnonElt('translationStates').selectedIndex = val;"/>
+                onget="return this._getAnonElt('translationStates').selectedIndex;">
+        <setter>
+          <![CDATA[
+          let deck = this._getAnonElt('translationStates');
+
+          let activeElt = document.activeElement;
+          if (activeElt && deck.contains(activeElt))
+            activeElt.blur();
+
+          let stateName;
+          for (let name of ["OFFER", "TRANSLATING", "TRANSLATED", "ERROR"]) {
+            if (Translation["STATE_" + name] == val) {
+              stateName = name.toLowerCase();
+              break;
+            }
+          }
+          this.setAttribute("state", stateName);
+
+          if (val == Translation.STATE_TRANSLATED)
+            this._handleButtonHiding();
+
+          deck.selectedIndex = val;
+          ]]>
+        </setter>
+      </property>
 
       <method name="init">
         <parameter name="aTranslation"/>
         <body>
           <![CDATA[
+            if (Translation.serviceUnavailable) {
+              this.state = Translation.STATE_UNAVAILABLE;
+              return;
+            }
+
             this.translation = aTranslation;
             let bundle = Cc["@mozilla.org/intl/stringbundle;1"]
                            .getService(Ci.nsIStringBundleService)
@@ -123,8 +186,6 @@
 
             if (aTranslation.state)
               this.state = aTranslation.state;
-
-            this._handleButtonHiding(aTranslation.originalShown);
           ]]>
         </body>
       </method>
@@ -139,14 +200,13 @@
       <method name="translate">
         <body>
           <![CDATA[
-            if (this.state == this.translation.STATE_OFFER) {
+            if (this.state == Translation.STATE_OFFER) {
               this._getAnonElt("fromLanguage").value =
                 this._getAnonElt("detectedLanguage").value;
               this._getAnonElt("toLanguage").value =
                 Translation.defaultTargetLanguage;
             }
 
-            this._handleButtonHiding(false);
             this.translation.translate(this._getAnonElt("fromLanguage").value,
                                        this._getAnonElt("toLanguage").value);
           ]]>
@@ -154,11 +214,11 @@
       </method>
 
       <method name="_handleButtonHiding">
-        <parameter name="aOriginalShown"/>
         <body>
           <![CDATA[
-            this._getAnonElt("showOriginal").hidden = aOriginalShown;
-            this._getAnonElt("showTranslation").hidden = !aOriginalShown;
+            let originalShown = this.translation.originalShown;
+            this._getAnonElt("showOriginal").hidden = originalShown;
+            this._getAnonElt("showTranslation").hidden = !originalShown;
           ]]>
         </body>
       </method>
@@ -166,8 +226,8 @@
       <method name="showOriginal">
         <body>
           <![CDATA[
-            this._handleButtonHiding(true);
             this.translation.showOriginalContent();
+            this._handleButtonHiding();
           ]]>
         </body>
       </method>
@@ -175,8 +235,82 @@
       <method name="showTranslation">
         <body>
           <![CDATA[
-            this._handleButtonHiding(false);
             this.translation.showTranslatedContent();
+            this._handleButtonHiding();
+          ]]>
+        </body>
+      </method>
+
+      <method name="optionsShowing">
+        <body>
+          <![CDATA[
+            // Get the source language name.
+            let lang;
+            if (this.state == Translation.STATE_OFFER)
+              lang = this._getAnonElt("detectedLanguage").value;
+            else
+              lang = this._getAnonElt("fromLanguage").value;
+            let langBundle =
+              Cc["@mozilla.org/intl/stringbundle;1"]
+                .getService(Ci.nsIStringBundleService)
+                .createBundle("chrome://global/locale/languageNames.properties");
+            let langName = langBundle.GetStringFromName(lang);
+
+            // Set the label and accesskey on the menuitem.
+            let bundle =
+              Cc["@mozilla.org/intl/stringbundle;1"]
+                .getService(Ci.nsIStringBundleService)
+                .createBundle("chrome://browser/locale/translation.properties");
+            let item = this._getAnonElt("neverForLanguage");
+            const kStrId = "translation.options.neverForLanguage";
+            item.setAttribute("label",
+                              bundle.formatStringFromName(kStrId + ".label",
+                                                          [langName], 1));
+            item.setAttribute("accesskey",
+                              bundle.GetStringFromName(kStrId + ".accesskey"));
+            item.langCode = lang;
+
+            // We may need to disable the menuitems if they have already been used.
+            // Check if translation is already disabled for this language:
+            let neverForLangs =
+              Services.prefs.getCharPref("browser.translation.neverForLanguages");
+            item.disabled = neverForLangs.split(",").indexOf(lang) != -1;
+
+            // Check if translation is disabled for the domain:
+            let uri = this.translation.browser.currentURI;
+            let perms = Services.perms;
+            item = this._getAnonElt("neverForSite");
+            item.disabled =
+              perms.testExactPermission(uri, "translate") == perms.DENY_ACTION;
+          ]]>
+        </body>
+      </method>
+
+      <method name="neverForLanguage">
+        <body>
+          <![CDATA[
+            const kPrefName = "browser.translation.neverForLanguages";
+
+            let val = Services.prefs.getCharPref(kPrefName);
+            if (val)
+              val += ",";
+            val += this._getAnonElt("neverForLanguage").langCode;
+
+            Services.prefs.setCharPref(kPrefName, val);
+
+            this.close();
+          ]]>
+        </body>
+      </method>
+
+      <method name="neverForSite">
+        <body>
+          <![CDATA[
+            let uri = this.translation.browser.currentURI;
+            let perms = Services.perms;
+            perms.add(uri, "translate", perms.DENY_ACTION);
+
+            this.close();
           ]]>
         </body>
       </method>

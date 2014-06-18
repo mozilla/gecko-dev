@@ -16,6 +16,7 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  // for BufferMode, LayersBackend, etc
 #include "mozilla/layers/ShadowLayers.h"  // for ShadowLayerForwarder, etc
+#include "mozilla/layers/APZTestData.h" // for APZTestData
 #include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_ABORT_IF_FALSE
@@ -23,6 +24,7 @@
 #include "nsRect.h"                     // for nsIntRect
 #include "nsTArray.h"                   // for nsTArray
 #include "nscore.h"                     // for nsAString
+#include "mozilla/layers/TransactionIdAllocator.h"
 
 class nsIWidget;
 
@@ -70,6 +72,8 @@ public:
   virtual void SetRoot(Layer* aLayer);
 
   virtual void Mutated(Layer* aLayer);
+
+  virtual bool IsOptimizedFor(ThebesLayer* aLayer, ThebesLayerCreationHint aHint);
 
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
   virtual already_AddRefed<ThebesLayer> CreateThebesLayerWithHint(ThebesLayerCreationHint aHint);
@@ -165,12 +169,51 @@ public:
   virtual bool RequestOverfill(mozilla::dom::OverfillCallback* aCallback) MOZ_OVERRIDE;
   virtual void RunOverfillCallback(const uint32_t aOverfill) MOZ_OVERRIDE;
 
-  virtual void DidComposite();
+  virtual void DidComposite(uint64_t aTransactionId);
 
   virtual bool SupportsMixBlendModes(EnumSet<gfx::CompositionOp>& aMixBlendModes) MOZ_OVERRIDE
   {
    return (GetTextureFactoryIdentifier().mSupportedBlendModes & aMixBlendModes) == aMixBlendModes;
   }
+
+  // Log APZ test data for the current paint. We supply the paint sequence
+  // number ourselves, and take care of calling APZTestData::StartNewPaint()
+  // when a new paint is started.
+  void LogTestDataForCurrentPaint(FrameMetrics::ViewID aScrollId,
+                                  const std::string& aKey,
+                                  const std::string& aValue)
+  {
+    mApzTestData.LogTestDataForPaint(mPaintSequenceNumber, aScrollId, aKey, aValue);
+  }
+
+  // Log APZ test data for a repaint request. The sequence number must be
+  // passed in from outside, and APZTestData::StartNewRepaintRequest() needs
+  // to be called from the outside as well when a new repaint request is started.
+  void StartNewRepaintRequest(SequenceNumber aSequenceNumber)
+  {
+    mApzTestData.StartNewRepaintRequest(aSequenceNumber);
+  }
+  // TODO(botond): When we start using this and write a wrapper similar to
+  // nsLayoutUtils::LogTestDataForPaint(), make sure that wrapper checks
+  // gfxPrefs::APZTestLoggingEnabled().
+  void LogTestDataForRepaintRequest(SequenceNumber aSequenceNumber,
+                                    FrameMetrics::ViewID aScrollId,
+                                    const std::string& aKey,
+                                    const std::string& aValue)
+  {
+    mApzTestData.LogTestDataForRepaintRequest(aSequenceNumber, aScrollId, aKey, aValue);
+  }
+
+  // Get the content-side APZ test data for reading. For writing, use the
+  // LogTestData...() functions.
+  const APZTestData& GetAPZTestData() const {
+    return mApzTestData;
+  }
+
+  // Get a copy of the compositor-side APZ test data for our layers ID.
+  void GetCompositorSideAPZTestData(APZTestData* aData) const;
+
+  void SetTransactionIdAllocator(TransactionIdAllocator* aAllocator) { mTransactionIdAllocator = aAllocator; }
 
 protected:
   enum TransactionPhase {
@@ -218,6 +261,9 @@ private:
   // back to mShadowTarget.
   nsRefPtr<gfxContext> mShadowTarget;
 
+  nsRefPtr<TransactionIdAllocator> mTransactionIdAllocator;
+  uint64_t mLatestTransactionId;
+
   // Sometimes we draw to targets that don't natively support
   // landscape/portrait orientation.  When we need to implement that
   // ourselves, |mTargetRotation| describes the induced transform we
@@ -231,6 +277,12 @@ private:
   bool mTransactionIncomplete;
   bool mCompositorMightResample;
   bool mNeedsComposite;
+
+  // An incrementing sequence number for paints.
+  // Incremented in BeginTransaction(), but not for repeat transactions.
+  uint32_t mPaintSequenceNumber;
+
+  APZTestData mApzTestData;
 
   RefPtr<ShadowLayerForwarder> mForwarder;
   nsAutoTArray<RefPtr<TextureClientPool>,2> mTexturePools;

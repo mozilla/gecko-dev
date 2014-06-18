@@ -125,7 +125,11 @@ LoginManager.prototype = {
 
 
     _initStorage : function () {
+#ifdef ANDROID
         var contractID = "@mozilla.org/login-manager/storage/mozStorage;1";
+#else
+        var contractID = "@mozilla.org/login-manager/storage/json;1";
+#endif
         try {
             var catMan = Cc["@mozilla.org/categorymanager;1"].
                          getService(Ci.nsICategoryManager);
@@ -541,7 +545,7 @@ LoginManager.prototype = {
      */
     fillForm : function (form) {
         log("fillForm processing form[ id:", form.id, "]");
-        return LoginManagerContent._fillForm(form, true, true, false, null)[0];
+        return LoginManagerContent._fillForm(form, true, true, false, false, null)[0];
     },
 
 }; // end of LoginManager implementation

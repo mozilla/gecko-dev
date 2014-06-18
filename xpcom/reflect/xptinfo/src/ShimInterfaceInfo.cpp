@@ -116,18 +116,8 @@
 #include "nsIDOMMouseScrollEvent.h"
 #include "nsIDOMMutationEvent.h"
 #include "nsIDOMMozApplicationEvent.h"
-#include "nsIDOMMozMmsEvent.h"
 #include "nsIDOMMozNamedAttrMap.h"
 #include "nsIDOMMozSettingsEvent.h"
-#include "nsIDOMMozSmsEvent.h"
-#ifdef MOZ_B2G_RIL
-#include "nsIDOMMozVoicemailEvent.h"
-#endif
-#ifdef MOZ_WIDGET_GONK
-#include "nsIDOMMozWifiConnectionInfoEvent.h"
-#include "nsIDOMMozWifiStatusChangeEvent.h"
-#include "nsIDOMMozWifiP2pStatusChangeEvent.h"
-#endif
 #include "nsIDOMNode.h"
 #include "nsIDOMNodeIterator.h"
 #include "nsIDOMNotifyPaintEvent.h"
@@ -139,7 +129,6 @@
 #include "nsIDOMPopStateEvent.h"
 #include "nsIDOMPopupBlockedEvent.h"
 #include "nsIDOMProcessingInstruction.h"
-#include "nsIDOMProgressEvent.h"
 #include "nsIDOMRange.h"
 #include "nsIDOMRecordErrorEvent.h"
 #include "nsIDOMRect.h"
@@ -152,7 +141,6 @@
 #include "nsIDOMSpeechRecognitionEvent.h"
 #include "nsIDOMSpeechSynthesisEvent.h"
 #endif // MOZ_WEBSPEECH
-#include "nsIDOMStorageEvent.h"
 #include "nsIDOMStyleSheet.h"
 #include "nsIDOMStyleSheetList.h"
 #include "nsIDOMStyleRuleChangeEvent.h"
@@ -287,18 +275,8 @@
 #include "mozilla/dom/MouseScrollEventBinding.h"
 #include "mozilla/dom/MutationEventBinding.h"
 #include "mozilla/dom/MozApplicationEventBinding.h"
-#include "mozilla/dom/MozMmsEventBinding.h"
 #include "mozilla/dom/MozNamedAttrMapBinding.h"
 #include "mozilla/dom/MozSettingsEventBinding.h"
-#include "mozilla/dom/MozSmsEventBinding.h"
-#ifdef MOZ_B2G_RIL
-#include "mozilla/dom/MozVoicemailEventBinding.h"
-#endif
-#ifdef MOZ_WIDGET_GONK
-#include "mozilla/dom/MozWifiConnectionInfoEventBinding.h"
-#include "mozilla/dom/MozWifiStatusChangeEventBinding.h"
-#include "mozilla/dom/MozWifiP2pStatusChangeEventBinding.h"
-#endif
 #include "mozilla/dom/NodeIteratorBinding.h"
 #include "mozilla/dom/NodeBinding.h"
 #include "mozilla/dom/NotifyPaintEventBinding.h"
@@ -310,7 +288,6 @@
 #include "mozilla/dom/PopupBlockedEventBinding.h"
 #include "mozilla/dom/PositionErrorBinding.h"
 #include "mozilla/dom/ProcessingInstructionBinding.h"
-#include "mozilla/dom/ProgressEventBinding.h"
 #include "mozilla/dom/RangeBinding.h"
 #include "mozilla/dom/RecordErrorEventBinding.h"
 #include "mozilla/dom/RectBinding.h"
@@ -361,6 +338,40 @@ struct ComponentsInterfaceShimEntry {
      mozilla::dom::domName ## Binding::sNativePropertyHooks }
 #define DEFINE_SHIM(name) \
   DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOM ## name, name)
+
+/**
+ * These shim entries allow us to make old XPIDL interfaces implementing DOM
+ * APIs as non-scriptable in order to save some runtime memory on Firefox OS,
+ * without breaking the entries under Components.interfaces which might both
+ * be used by our code and add-ons.  Specifically, the shim entries provide
+ * the following:
+ *
+ * * Components.interfaces.nsIFoo entries.  These entries basically work
+ *   almost exactly as the usual ones that you would get through the
+ *   XPIDL machinery.  Specifically, they have the right name, they reflect
+ *   the right IID, and they will work properly when passed to QueryInterface.
+ *
+ * * Components.interfaces.nsIFoo.CONSTANT values.  These entries will have
+ *   the right name and the right value for most integer types.  Note that
+ *   support for non-numerical constants is untested and will probably not
+ *   work out of the box.
+ *
+ * FAQ:
+ * * When should I add an entry to the list here?
+ *   Only if you're making an XPIDL interfaces which has a corresponding
+ *   WebIDL interface non-scriptable.
+ * * When should I remove an entry from this list?
+ *   If you are completely removing an XPIDL interface from the code base.  If
+ *   you forget to do so, the compiler will remind you.
+ * * How should I add an entry to the list here?
+ *   First, make sure that the XPIDL interface in question is non-scriptable
+ *   and also has a corresponding WebIDL interface.  Then, add two include
+ *   entries above, one for the XPIDL interface and one for the WebIDL
+ *   interface, and add a shim entry below.  If the name of the XPIDL
+ *   interface only has an "nsIDOM" prefix prepended to the WebIDL name, you
+ *   can use the DEFINE_SHIM macro and pass in the name of the WebIDL
+ *   interface.  Otherwise, use DEFINE_SHIM_WITH_CUSTOM_INTERFACE.
+ */
 
 const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
 {
@@ -474,18 +485,8 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
   DEFINE_SHIM(MouseScrollEvent),
   DEFINE_SHIM(MutationEvent),
   DEFINE_SHIM(MozApplicationEvent),
-  DEFINE_SHIM(MozMmsEvent),
   DEFINE_SHIM(MozNamedAttrMap),
   DEFINE_SHIM(MozSettingsEvent),
-  DEFINE_SHIM(MozSmsEvent),
-#ifdef MOZ_B2G_RIL
-  DEFINE_SHIM(MozVoicemailEvent),
-#endif
-#ifdef MOZ_WIDGET_GONK
-  DEFINE_SHIM(MozWifiConnectionInfoEvent),
-  DEFINE_SHIM(MozWifiP2pStatusChangeEvent),
-  DEFINE_SHIM(MozWifiStatusChangeEvent),
-#endif
   DEFINE_SHIM(NodeIterator),
   DEFINE_SHIM(Node),
   DEFINE_SHIM(NotifyPaintEvent),
@@ -497,7 +498,6 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
   DEFINE_SHIM(PopStateEvent),
   DEFINE_SHIM(PopupBlockedEvent),
   DEFINE_SHIM(ProcessingInstruction),
-  DEFINE_SHIM(ProgressEvent),
   DEFINE_SHIM(Range),
   DEFINE_SHIM(RecordErrorEvent),
   DEFINE_SHIM(Rect),
@@ -510,7 +510,6 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
   DEFINE_SHIM(SpeechRecognitionEvent),
   DEFINE_SHIM(SpeechSynthesisEvent),
 #endif // MOZ_WEBSPEECH
-  DEFINE_SHIM(StorageEvent),
   DEFINE_SHIM(StyleSheet),
   DEFINE_SHIM(StyleSheetList),
   DEFINE_SHIM(StyleRuleChangeEvent),

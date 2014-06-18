@@ -462,7 +462,7 @@ nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   return autoSize;
 }
 
-nsresult
+void
 nsTextControlFrame::Reflow(nsPresContext*   aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,
                            const nsHTMLReflowState& aReflowState,
@@ -490,14 +490,13 @@ nsTextControlFrame::Reflow(nsPresContext*   aPresContext,
                                                    NS_AUTOHEIGHT, inflation);
   }
   nsRefPtr<nsFontMetrics> fontMet;
-  nsresult rv = nsLayoutUtils::GetFontMetricsForFrame(this, 
-                                                      getter_AddRefs(fontMet), 
-                                                      inflation);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet),
+                                        inflation);
   // now adjust for our borders and padding
-  aDesiredSize.SetTopAscent( 
-        nsLayoutUtils::GetCenteredFontBaseline(fontMet, lineHeight) 
-        + aReflowState.ComputedPhysicalBorderPadding().top);
+  WritingMode wm = aReflowState.GetWritingMode();
+  aDesiredSize.SetBlockStartAscent(
+    nsLayoutUtils::GetCenteredFontBaseline(fontMet, lineHeight) +
+    aReflowState.ComputedLogicalBorderPadding().BStart(wm));
 
   // overflow handling
   aDesiredSize.SetOverflowAreasToDesiredBounds();
@@ -513,7 +512,6 @@ nsTextControlFrame::Reflow(nsPresContext*   aPresContext,
 
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return NS_OK;
 }
 
 void
@@ -1187,11 +1185,11 @@ nsTextControlFrame::GetMaxLength(int32_t* aSize)
 
 // END IMPLEMENTING NS_IFORMCONTROLFRAME
 
-nsresult
+void
 nsTextControlFrame::SetInitialChildList(ChildListID     aListID,
                                         nsFrameList&    aChildList)
 {
-  nsresult rv = nsContainerFrame::SetInitialChildList(aListID, aChildList);
+  nsContainerFrame::SetInitialChildList(aListID, aChildList);
 
   nsIFrame* first = GetFirstPrincipalChild();
 
@@ -1219,7 +1217,6 @@ nsTextControlFrame::SetInitialChildList(ChildListID     aListID,
       delete contentScrollPos;
     }
   }
-  return rv;
 }
 
 void

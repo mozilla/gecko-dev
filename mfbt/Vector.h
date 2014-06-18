@@ -319,8 +319,8 @@ class VectorBase : private AllocPolicy
 
     typedef T ElementType;
 
-    VectorBase(AllocPolicy = AllocPolicy());
-    VectorBase(ThisVector&&); /* Move constructor. */
+    explicit VectorBase(AllocPolicy = AllocPolicy());
+    explicit VectorBase(ThisVector&&); /* Move constructor. */
     ThisVector& operator=(ThisVector&&); /* Move assignment. */
     ~VectorBase();
 
@@ -542,6 +542,12 @@ class VectorBase : private AllocPolicy
      * shifting existing elements from |t + 1| onward one position lower.
      */
     void erase(T* t);
+
+    /**
+     * Removes the elements [|b|, |e|), which must fall in the bounds [begin, end),
+     * shifting existing elements from |e + 1| onward to b's old position.
+     */
+    void erase(T* b, T *e);
 
     /**
      * Measure the size of the vector's heap-allocated storage.
@@ -974,10 +980,22 @@ VectorBase<T, N, AP, TV>::erase(T* it)
   MOZ_ASSERT(begin() <= it);
   MOZ_ASSERT(it < end());
   while (it + 1 < end()) {
-    *it = *(it + 1);
+    *it = Move(*(it + 1));
     ++it;
   }
-    popBack();
+  popBack();
+}
+
+template<typename T, size_t N, class AP, class TV>
+inline void
+VectorBase<T, N, AP, TV>::erase(T* b, T *e)
+{
+  MOZ_ASSERT(begin() <= b);
+  MOZ_ASSERT(b <= e);
+  MOZ_ASSERT(e <= end());
+  while (e < end())
+    *b++ = Move(*e++);
+  shrinkBy(e - b);
 }
 
 template<typename T, size_t N, class AP, class TV>
@@ -1191,7 +1209,7 @@ class Vector
     typedef VectorBase<T, MinInlineCapacity, AllocPolicy, Vector> Base;
 
   public:
-    Vector(AllocPolicy alloc = AllocPolicy()) : Base(alloc) {}
+    explicit Vector(AllocPolicy alloc = AllocPolicy()) : Base(alloc) {}
     Vector(Vector&& vec) : Base(Move(vec)) {}
     Vector& operator=(Vector&& vec) {
       return Base::operator=(Move(vec));

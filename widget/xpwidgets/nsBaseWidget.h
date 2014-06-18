@@ -115,6 +115,7 @@ public:
   NS_IMETHOD              SetCursor(nsCursor aCursor);
   NS_IMETHOD              SetCursor(imgIContainer* aCursor,
                                     uint32_t aHotspotX, uint32_t aHotspotY);
+  virtual void            ClearCachedCursor() { mUpdateCursor = true; }
   virtual void            SetTransparencyMode(nsTransparencyMode aMode);
   virtual nsTransparencyMode GetTransparencyMode();
   virtual void            GetWindowClipRegion(nsTArray<nsIntRect>* aRects);
@@ -143,7 +144,6 @@ public:
   virtual void            EndRemoteDrawing() { };
   virtual void            CleanupRemoteDrawing() { };
   virtual void            UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries) {}
-  virtual gfxASurface*    GetThebesSurface();
   NS_IMETHOD              SetModal(bool aModal);
   virtual uint32_t        GetMaxTouchPoints() const;
   NS_IMETHOD              SetWindowClass(const nsAString& xulWinType);
@@ -163,6 +163,7 @@ public:
   NS_IMETHOD              GetBounds(nsIntRect &aRect);
   NS_IMETHOD              GetClientBounds(nsIntRect &aRect);
   NS_IMETHOD              GetScreenBounds(nsIntRect &aRect);
+  NS_IMETHOD              GetRestoredBounds(nsIntRect &aRect) MOZ_OVERRIDE;
   NS_IMETHOD              GetNonClientMargins(nsIntMargin &margins);
   NS_IMETHOD              SetNonClientMargins(nsIntMargin &margins);
   virtual nsIntPoint      GetClientOffset();
@@ -401,6 +402,7 @@ protected:
   nsRefPtr<CompositorParent> mCompositorParent;
   nsRefPtr<WidgetShutdownObserver> mShutdownObserver;
   nsCursor          mCursor;
+  bool              mUpdateCursor;
   nsBorderStyle     mBorderStyle;
   bool              mUseLayersAcceleration;
   bool              mForceLayersAcceleration;

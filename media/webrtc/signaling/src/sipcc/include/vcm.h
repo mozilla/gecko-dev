@@ -63,6 +63,8 @@
 #define VCM_DSP_ENCODEONLY  1
 #define VCM_DSP_FULLDUPLEX  2
 #define VCM_DSP_IGNORE      3
+#define VCM_DSP_FULLDUPLEX_HW 4 // HW codecs
+#define VCM_DSP_FULLDUPLEX_GMP 5 // GMP-loaded codecs
 
 #define CC_KFACTOR_STAT_LEN   (256)
 
@@ -466,10 +468,12 @@ short vcmGetIceParams(const char *peerconnection, char **ufragp, char **pwdp);
  *  @param[in]  peerconnection - the peerconnection in use
  *  @param[in]  ufrag - the ufrag
  *  @param[in]  pwd - the pwd
+ *  @param[in]  icelite - is peer ice lite
  *
  *  @return 0 success, error failure
  */
-short vcmSetIceSessionParams(const char *peerconnection, char *ufrag, char *pwd);
+short vcmSetIceSessionParams(const char *peerconnection, char *ufrag, char *pwd,
+                             cc_boolean icelite);
 
 /* Set ice candidate for trickle ICE.
  *

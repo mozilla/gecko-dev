@@ -5,7 +5,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["StyleSheetEditor"];
+this.EXPORTED_SYMBOLS = ["StyleSheetEditor", "prettifyCSS"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -15,7 +15,6 @@ const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devt
 const Editor  = require("devtools/sourceeditor/editor");
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {CssLogic} = require("devtools/styleinspector/css-logic");
-const AutoCompleter = require("devtools/sourceeditor/autocomplete");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
@@ -40,6 +39,9 @@ const CHECK_LINKED_SHEET_DELAY=500;
 
 // How many times to check for linked file changes
 const MAX_CHECK_COUNT=10;
+
+// The classname used to show a line that is not used
+const UNUSED_CLASS = "cm-unused-line";
 
 /**
  * StyleSheetEditor controls the editor linked to a particular StyleSheet
@@ -88,18 +90,19 @@ function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
 
   this._onPropertyChange = this._onPropertyChange.bind(this);
   this._onError = this._onError.bind(this);
+  this._onMediaRuleMatchesChange = this._onMediaRuleMatchesChange.bind(this);
+  this._onMediaRulesChanged = this._onMediaRulesChanged.bind(this)
   this.checkLinkedFileForChanges = this.checkLinkedFileForChanges.bind(this);
   this.markLinkedFileBroken = this.markLinkedFileBroken.bind(this);
 
   this._focusOnSourceEditorReady = false;
-
-  let relatedSheet = this.styleSheet.relatedStyleSheet;
-  if (relatedSheet) {
-    relatedSheet.on("property-change", this._onPropertyChange);
-  }
-  this.styleSheet.on("property-change", this._onPropertyChange);
+  this.cssSheet.on("property-change", this._onPropertyChange);
   this.styleSheet.on("error", this._onError);
-
+  this.mediaRules = [];
+  if (this.cssSheet.getMediaRules) {
+    this.cssSheet.getMediaRules().then(this._onMediaRulesChanged);
+  }
+  this.cssSheet.on("media-rules-changed", this._onMediaRulesChanged);
   this.savedFile = file;
   this.linkCSSFile();
 }
@@ -118,6 +121,17 @@ StyleSheetEditor.prototype = {
    */
   get isNew() {
     return this._isNew;
+  },
+
+  /**
+   * The style sheet or the generated style sheet for this source if it's an
+   * original source.
+   */
+  get cssSheet() {
+    if (this.styleSheet.isOriginalSource) {
+      return this.styleSheet.relatedStyleSheet;
+    }
+    return this.styleSheet;
   },
 
   get savedFile() {
@@ -209,16 +223,55 @@ StyleSheetEditor.prototype = {
    * Start fetching the full text source for this editor's sheet.
    */
   fetchSource: function(callback) {
-    this.styleSheet.getText().then((longStr) => {
+    return this.styleSheet.getText().then((longStr) => {
       longStr.string().then((source) => {
-        this._state.text = prettifyCSS(source);
+        this._state.text = CssLogic.prettifyCSS(source);
         this.sourceLoaded = true;
 
-        callback(source);
+        if (callback) {
+          callback(source);
+        }
+        return source;
       });
     }, e => {
-      this.emit("error", LOAD_ERROR, this.styleSheet.href);
+      this.emit("error", { key: LOAD_ERROR, append: this.styleSheet.href });
+      throw e;
     })
+  },
+
+  /**
+   * Add markup to a region. UNUSED_CLASS is added to specified lines
+   * @param region An object shaped like
+   *   {
+   *     start: { line: L1, column: C1 },
+   *     end: { line: L2, column: C2 }    // optional
+   *   }
+   */
+  addUnusedRegion: function(region) {
+    this.sourceEditor.addLineClass(region.start.line - 1, UNUSED_CLASS);
+    if (region.end) {
+      for (let i = region.start.line; i <= region.end.line; i++) {
+        this.sourceEditor.addLineClass(i - 1, UNUSED_CLASS);
+      }
+    }
+  },
+
+  /**
+   * As addUnusedRegion except that it takes an array of regions
+   */
+  addUnusedRegions: function(regions) {
+    for (let region of regions) {
+      this.addUnusedRegion(region);
+    }
+  },
+
+  /**
+   * Remove all the unused markup regions added by addUnusedRegion
+   */
+  removeAllUnusedRegions: function() {
+    for (let i = 0; i < this.sourceEditor.lineCount(); i++) {
+      this.sourceEditor.removeLineClass(i, UNUSED_CLASS);
+    }
   },
 
   /**
@@ -234,14 +287,44 @@ StyleSheetEditor.prototype = {
   },
 
   /**
+   * Handles changes to the list of @media rules in the stylesheet.
+   * Emits 'media-rules-changed' if the list has changed.
+   *
+   * @param  {array} rules
+   *         Array of MediaRuleFronts for new media rules of sheet.
+   */
+  _onMediaRulesChanged: function(rules) {
+    if (!rules.length && !this.mediaRules.length) {
+      return;
+    }
+    for (let rule of this.mediaRules) {
+      rule.off("matches-change", this._onMediaRuleMatchesChange);
+      rule.destroy();
+    }
+    this.mediaRules = rules;
+
+    for (let rule of rules) {
+      rule.on("matches-change", this._onMediaRuleMatchesChange);
+    }
+    this.emit("media-rules-changed", rules);
+  },
+
+  /**
+   * Forward media-rules-changed event from stylesheet.
+   */
+  _onMediaRuleMatchesChange: function() {
+    this.emit("media-rules-changed", this.mediaRules);
+  },
+
+  /**
    * Forward error event from stylesheet.
    *
    * @param  {string} event
    *         Event type
    * @param  {string} errorCode
    */
-  _onError: function(event, errorCode) {
-    this.emit("error", errorCode);
+  _onError: function(event, data) {
+    this.emit("error", data);
   },
 
   /**
@@ -262,17 +345,16 @@ StyleSheetEditor.prototype = {
       readOnly: false,
       autoCloseBrackets: "{}()[]",
       extraKeys: this._getKeyBindings(),
-      contextMenu: "sourceEditorContextMenu"
+      contextMenu: "sourceEditorContextMenu",
+      autocomplete: Services.prefs.getBoolPref(AUTOCOMPLETION_PREF)
     };
     let sourceEditor = new Editor(config);
 
     sourceEditor.on("dirty-change", this._onPropertyChange);
 
     return sourceEditor.appendTo(inputElement).then(() => {
-      if (Services.prefs.getBoolPref(AUTOCOMPLETION_PREF)) {
-        sourceEditor.extend(AutoCompleter);
-        sourceEditor.setupAutoCompletion(this.walker);
-      }
+      sourceEditor.setupAutoCompletion({ walker: this.walker });
+
       sourceEditor.on("save", () => {
         this.saveToFile();
       });
@@ -418,12 +500,12 @@ StyleSheetEditor.prototype = {
       converter.charset = "UTF-8";
       let istream = converter.convertToInputStream(this._state.text);
 
-      NetUtil.asyncCopy(istream, ostream, function onStreamCopied(status) {
+      NetUtil.asyncCopy(istream, ostream, (status) => {
         if (!Components.isSuccessCode(status)) {
           if (callback) {
             callback(null);
           }
-          this.emit("error", SAVE_ERROR);
+          this.emit("error", { key: SAVE_ERROR });
           return;
         }
         FileUtils.closeSafeFileOutputStream(ostream);
@@ -433,7 +515,7 @@ StyleSheetEditor.prototype = {
         if (callback) {
           callback(returnFile);
         }
-      }.bind(this));
+      });
     };
 
     let defaultName;
@@ -451,7 +533,9 @@ StyleSheetEditor.prototype = {
     this._friendlyName = null;
     this.savedFile = returnFile;
 
-    this.sourceEditor.setClean();
+    if (this.sourceEditor) {
+      this.sourceEditor.setClean();
+    }
 
     this.emit("property-change");
 
@@ -549,76 +633,10 @@ StyleSheetEditor.prototype = {
     if (this.sourceEditor) {
       this.sourceEditor.destroy();
     }
-    this.styleSheet.off("property-change", this._onPropertyChange);
+    this.cssSheet.off("property-change", this._onPropertyChange);
+    this.cssSheet.off("media-rules-changed", this._onMediaRulesChanged);
     this.styleSheet.off("error", this._onError);
   }
-}
-
-
-const TAB_CHARS = "\t";
-
-const CURRENT_OS = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS;
-const LINE_SEPARATOR = CURRENT_OS === "WINNT" ? "\r\n" : "\n";
-
-/**
- * Prettify minified CSS text.
- * This prettifies CSS code where there is no indentation in usual places while
- * keeping original indentation as-is elsewhere.
- *
- * @param string text
- *        The CSS source to prettify.
- * @return string
- *         Prettified CSS source
- */
-function prettifyCSS(text)
-{
-  // remove initial and terminating HTML comments and surrounding whitespace
-  text = text.replace(/(?:^\s*<!--[\r\n]*)|(?:\s*-->\s*$)/g, "");
-
-  let parts = [];    // indented parts
-  let partStart = 0; // start offset of currently parsed part
-  let indent = "";
-  let indentLevel = 0;
-
-  for (let i = 0; i < text.length; i++) {
-    let c = text[i];
-    let shouldIndent = false;
-
-    switch (c) {
-      case "}":
-        if (i - partStart > 1) {
-          // there's more than just } on the line, add line
-          parts.push(indent + text.substring(partStart, i));
-          partStart = i;
-        }
-        indent = TAB_CHARS.repeat(--indentLevel);
-        /* fallthrough */
-      case ";":
-      case "{":
-        shouldIndent = true;
-        break;
-    }
-
-    if (shouldIndent) {
-      let la = text[i+1]; // one-character lookahead
-      if (!/\n/.test(la) || /^\s+$/.test(text.substring(i+1, text.length))) {
-        // following character should be a new line, but isn't,
-        // or it's whitespace at the end of the file
-        parts.push(indent + text.substring(partStart, i + 1));
-        if (c == "}") {
-          parts.push(""); // for extra line separator
-        }
-        partStart = i + 1;
-      } else {
-        return text; // assume it is not minified, early exit
-      }
-    }
-
-    if (c == "{") {
-      indent = TAB_CHARS.repeat(++indentLevel);
-    }
-  }
-  return parts.join(LINE_SEPARATOR);
 }
 
 /**

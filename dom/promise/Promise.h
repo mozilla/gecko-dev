@@ -26,6 +26,7 @@ namespace mozilla {
 namespace dom {
 
 class AnyCallback;
+class DOMError;
 class PromiseCallback;
 class PromiseInit;
 class PromiseNativeHandler;
@@ -59,6 +60,7 @@ class Promise MOZ_FINAL : public nsISupports,
   friend class PromiseWorkerProxyRunnable;
   friend class RejectPromiseCallback;
   friend class ResolvePromiseCallback;
+  friend class ThenableResolverMixin;
   friend class WorkerPromiseResolverTask;
   friend class WorkerPromiseTask;
   friend class WrapperPromiseCallback;
@@ -88,11 +90,21 @@ public:
     MaybeSomething(aArg, &Promise::MaybeResolve);
   }
 
-  // aArg is a const reference so we can pass rvalues like NS_ERROR_*
-  template <typename T>
-  void MaybeReject(const T& aArg) {
+  inline void MaybeReject(nsresult aArg) {
+    MOZ_ASSERT(NS_FAILED(aArg));
     MaybeSomething(aArg, &Promise::MaybeReject);
   }
+  // DO NOT USE MaybeRejectBrokenly with in new code.  Promises should be
+  // rejected with Error instances.
+  // Note: MaybeRejectBrokenly is a template so we can use it with DOMError
+  // without instantiating the DOMError specialization of MaybeSomething in
+  // every translation unit that includes this header, because that would
+  // require use to include DOMError.h either here or in all those translation
+  // units.
+  template<typename T>
+  void MaybeRejectBrokenly(const T& aArg); // Not implemented by default; see
+                                           // specializations in the .cpp for
+                                           // the T values we support.
 
   // WebIDL
 
@@ -109,7 +121,7 @@ public:
               ErrorResult& aRv);
 
   static already_AddRefed<Promise>
-  Resolve(const GlobalObject& aGlobal, JSContext* aCx,
+  Resolve(const GlobalObject& aGlobal,
           JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
   static already_AddRefed<Promise>
@@ -117,7 +129,7 @@ public:
           JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
   static already_AddRefed<Promise>
-  Reject(const GlobalObject& aGlobal, JSContext* aCx,
+  Reject(const GlobalObject& aGlobal,
          JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
   static already_AddRefed<Promise>
@@ -132,11 +144,11 @@ public:
   Catch(JSContext* aCx, AnyCallback* aRejectCallback);
 
   static already_AddRefed<Promise>
-  All(const GlobalObject& aGlobal, JSContext* aCx,
+  All(const GlobalObject& aGlobal,
       const Sequence<JS::Value>& aIterable, ErrorResult& aRv);
 
   static already_AddRefed<Promise>
-  Race(const GlobalObject& aGlobal, JSContext* aCx,
+  Race(const GlobalObject& aGlobal,
        const Sequence<JS::Value>& aIterable, ErrorResult& aRv);
 
   void AppendNativeHandler(PromiseNativeHandler* aRunnable);

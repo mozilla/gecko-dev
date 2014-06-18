@@ -28,9 +28,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
 
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const { PrefObserver, PREF_ORIG_SOURCES } = require("devtools/styleeditor/utils");
+const csscoverage = require("devtools/server/actors/csscoverage");
+const console = require("resource://gre/modules/devtools/Console.jsm").console;
 
 const LOAD_ERROR = "error-load";
 const STYLE_EDITOR_TEMPLATE = "stylesheet";
+const PREF_MEDIA_SIDEBAR = "devtools.styleeditor.showMediaSidebar";
 
 /**
  * StyleEditorUI is controls and builds the UI of the Style Editor, including
@@ -61,14 +64,17 @@ function StyleEditorUI(debuggee, target, panelDoc) {
   this.selectedEditor = null;
   this.savedLocations = {};
 
-  this._updateSourcesLabel = this._updateSourcesLabel.bind(this);
+  this._updateOptionsMenu = this._updateOptionsMenu.bind(this);
   this._onStyleSheetCreated = this._onStyleSheetCreated.bind(this);
   this._onNewDocument = this._onNewDocument.bind(this);
+  this._onMediaPrefChanged = this._onMediaPrefChanged.bind(this);
+  this._updateMediaList = this._updateMediaList.bind(this);
   this._clear = this._clear.bind(this);
   this._onError = this._onError.bind(this);
 
   this._prefObserver = new PrefObserver("devtools.styleeditor.");
   this._prefObserver.on(PREF_ORIG_SOURCES, this._onNewDocument);
+  this._prefObserver.on(PREF_MEDIA_SIDEBAR, this._onMediaPrefChanged);
 }
 
 StyleEditorUI.prototype = {
@@ -128,34 +134,34 @@ StyleEditorUI.prototype = {
 
     this._view = new SplitView(viewRoot);
 
-    wire(this._view.rootElement, ".style-editor-newButton", function onNew() {
+    wire(this._view.rootElement, ".style-editor-newButton", () =>{
       this._debuggee.addStyleSheet(null).then(this._onStyleSheetCreated);
-    }.bind(this));
+    });
 
-    wire(this._view.rootElement, ".style-editor-importButton", function onImport() {
+    wire(this._view.rootElement, ".style-editor-importButton", ()=> {
       this._importFromFile(this._mockImportFile || null, this._window);
-    }.bind(this));
+    });
 
-    this._contextMenu = this._panelDoc.getElementById("sidebar-context");
-    this._contextMenu.addEventListener("popupshowing",
-                                       this._updateSourcesLabel);
+    this._optionsMenu = this._panelDoc.getElementById("style-editor-options-popup");
+    this._optionsMenu.addEventListener("popupshowing",
+                                       this._updateOptionsMenu);
 
-    this._sourcesItem = this._panelDoc.getElementById("context-origsources");
+    this._sourcesItem = this._panelDoc.getElementById("options-origsources");
     this._sourcesItem.addEventListener("command",
                                        this._toggleOrigSources);
+    this._mediaItem = this._panelDoc.getElementById("options-show-media");
+    this._mediaItem.addEventListener("command",
+                                     this._toggleMediaSidebar);
   },
 
   /**
-   * Update text of context menu option to reflect whether we're showing
-   * original sources (e.g. Sass files) or not.
+   * Update options menu items to reflect current preference settings.
    */
-  _updateSourcesLabel: function() {
-    let string = "showOriginalSources";
-    if (Services.prefs.getBoolPref(PREF_ORIG_SOURCES)) {
-      string = "showCSSSources";
-    }
-    this._sourcesItem.setAttribute("label", _(string + ".label"));
-    this._sourcesItem.setAttribute("accesskey", _(string + ".accesskey"));
+  _updateOptionsMenu: function() {
+    this._sourcesItem.setAttribute("checked",
+      Services.prefs.getBoolPref(PREF_ORIG_SOURCES));
+    this._mediaItem.setAttribute("checked",
+      Services.prefs.getBoolPref(PREF_MEDIA_SIDEBAR));
   },
 
   /**
@@ -200,7 +206,7 @@ StyleEditorUI.prototype = {
       let {line, ch} = this.selectedEditor.sourceEditor.getCursor();
 
       this._styleSheetToSelect = {
-        href: href,
+        stylesheet: href,
         line: line,
         col: ch
       };
@@ -272,6 +278,7 @@ StyleEditorUI.prototype = {
       new StyleSheetEditor(styleSheet, this._window, file, isNew, this._walker);
 
     editor.on("property-change", this._summaryChange.bind(this, editor));
+    editor.on("media-rules-changed", this._updateMediaList.bind(this, editor));
     editor.on("linked-css-file", this._summaryChange.bind(this, editor));
     editor.on("linked-css-file-error", this._summaryChange.bind(this, editor));
     editor.on("error", this._onError);
@@ -293,14 +300,14 @@ StyleEditorUI.prototype = {
    *        Optional parent window for the file picker.
    */
   _importFromFile: function(file, parentWindow) {
-    let onFileSelected = function(file) {
+    let onFileSelected = (file) => {
       if (!file) {
         // nothing selected
         return;
       }
       NetUtil.asyncFetch(file, (stream, status) => {
         if (!Components.isSuccessCode(status)) {
-          this.emit("error", LOAD_ERROR);
+          this.emit("error", { key: LOAD_ERROR });
           return;
         }
         let source = NetUtil.readInputStreamToString(stream, stream.available());
@@ -311,7 +318,7 @@ StyleEditorUI.prototype = {
         });
       });
 
-    }.bind(this);
+    };
 
     showFilePicker(file, false, parentWindow, onFileSelected);
   },
@@ -330,21 +337,34 @@ StyleEditorUI.prototype = {
    *
    * @param  {string} event
    *         Event name
-   * @param  {string} errorCode
-   *         Code represeting type of error
-   * @param  {string} message
-   *         The full error message
+   * @param  {data} data
+   *         The event data
    */
-  _onError: function(event, errorCode, message) {
-    this.emit("error", errorCode, message);
+  _onError: function(event, data) {
+    this.emit("error", data);
   },
 
   /**
-   *  Toggle the original sources pref.
+   * Toggle the original sources pref.
    */
   _toggleOrigSources: function() {
     let isEnabled = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
     Services.prefs.setBoolPref(PREF_ORIG_SOURCES, !isEnabled);
+  },
+
+  /**
+   * Toggle the pref for showing a @media rules sidebar in each editor.
+   */
+  _toggleMediaSidebar: function() {
+    let isEnabled = Services.prefs.getBoolPref(PREF_MEDIA_SIDEBAR);
+    Services.prefs.setBoolPref(PREF_MEDIA_SIDEBAR, !isEnabled);
+  },
+
+  /**
+   * Toggle the @media sidebar in each editor depending on the setting.
+   */
+  _onMediaPrefChanged: function() {
+    this.editors.forEach(this._updateMediaList);
   },
 
   /**
@@ -399,6 +419,7 @@ StyleEditorUI.prototype = {
       onCreate: function(summary, details, data) {
         let editor = data.editor;
         editor.summary = summary;
+        editor.details = details;
 
         wire(summary, ".stylesheet-enabled", function onToggleDisabled(event) {
           event.stopPropagation();
@@ -409,11 +430,11 @@ StyleEditorUI.prototype = {
 
         wire(summary, ".stylesheet-name", {
           events: {
-            "keypress": function onStylesheetNameActivate(aEvent) {
+            "keypress": (aEvent) => {
               if (aEvent.keyCode == aEvent.DOM_VK_RETURN) {
                 this._view.activeSummary = summary;
               }
-            }.bind(this)
+            }
           }
         });
 
@@ -433,26 +454,23 @@ StyleEditorUI.prototype = {
           }
         }, false);
 
-        Task.spawn(function* () {
-          // autofocus if it's a new user-created stylesheet
-          if (editor.isNew) {
-            yield this._selectEditor(editor);
-          }
+        // autofocus if it's a new user-created stylesheet
+        if (editor.isNew) {
+          this._selectEditor(editor);
+        }
 
-          if (this._styleSheetToSelect
-              && this._styleSheetToSelect.href == editor.styleSheet.href) {
-            yield this.switchToSelectedSheet();
-          }
+        if (this._styleSheetToSelect
+            && this._styleSheetToSelect.stylesheet == editor.styleSheet.href) {
+          this.switchToSelectedSheet();
+        }
 
-          // If this is the first stylesheet and there is no pending request to
-          // select a particular style sheet, select this sheet.
-          if (!this.selectedEditor && !this._styleSheetBoundToSelect
-              && editor.styleSheet.styleSheetIndex == 0) {
-            yield this._selectEditor(editor);
-          }
-
-          this.emit("editor-added", editor);
-        }.bind(this)).then(null, Cu.reportError);
+        // If this is the first stylesheet and there is no pending request to
+        // select a particular style sheet, select this sheet.
+        if (!this.selectedEditor && !this._styleSheetBoundToSelect
+            && editor.styleSheet.styleSheetIndex == 0) {
+          this._selectEditor(editor);
+        }
+        this.emit("editor-added", editor);
       }.bind(this),
 
       onShow: function(summary, details, data) {
@@ -469,6 +487,32 @@ StyleEditorUI.prototype = {
           editor.onShow();
 
           this.emit("editor-selected", editor);
+
+          // Is there any CSS coverage markup to include?
+          csscoverage.getUsage(this._target).then(usage => {
+            if (usage == null) {
+              return;
+            }
+
+            let href = csscoverage.sheetToUrl(editor.styleSheet);
+            usage.createEditorReport(href).then(data => {
+              editor.removeAllUnusedRegions();
+
+              if (data.reports.length > 0) {
+                // So there is some coverage markup, but can we apply it?
+                let text = editor.sourceEditor.getText() + "\r";
+                // If the CSS text contains a '}' with some non-whitespace
+                // after then we assume this is compressed CSS and stop
+                // marking-up.
+                if (!/}\s*\S+\s*\r/.test(text)) {
+                  editor.addUnusedRegions(data.reports);
+                }
+                else {
+                  this.emit("error", { key: "error-compressed", level: "info" });
+                }
+              }
+            });
+          }, console.error);
         }.bind(this)).then(null, Cu.reportError);
       }.bind(this)
     });
@@ -482,9 +526,11 @@ StyleEditorUI.prototype = {
    */
   switchToSelectedSheet: function() {
     let sheet = this._styleSheetToSelect;
+    let isHref = sheet.stylesheet === null || typeof sheet.stylesheet == "string";
 
     for (let editor of this.editors) {
-      if (editor.styleSheet.href == sheet.href) {
+      if ((isHref && editor.styleSheet.href == sheet.stylesheet) ||
+          sheet.stylesheet == editor.styleSheet) {
         // The _styleSheetBoundToSelect will always hold the latest pending
         // requested style sheet (with line and column) which is not yet
         // selected by the source editor. Only after we select that particular
@@ -544,6 +590,24 @@ StyleEditorUI.prototype = {
     return deferred.promise;
   },
 
+  getEditorDetails: function(editor) {
+    if (editor.details) {
+      return promise.resolve(editor.details);
+    }
+
+    let deferred = promise.defer();
+    let self = this;
+
+    this.on("editor-added", function onAdd(e, selected) {
+      if (selected == editor) {
+        self.off("editor-added", onAdd);
+        deferred.resolve(editor.details);
+      }
+    });
+
+    return deferred.promise;
+  },
+
   /**
    * Returns an identifier for the given style sheet.
    *
@@ -559,19 +623,16 @@ StyleEditorUI.prototype = {
   /**
    * selects a stylesheet and optionally moves the cursor to a selected line
    *
-   * @param {string} [href]
-   *        Href of stylesheet that should be selected. If a stylesheet is not passed
-   *        and the editor is not initialized we focus the first stylesheet. If
-   *        a stylesheet is not passed and the editor is initialized we ignore
-   *        the call.
+   * @param {StyleSheetFront} [stylesheet]
+   *        Stylesheet to select or href of stylesheet to select
    * @param {Number} [line]
    *        Line to which the caret should be moved (zero-indexed).
    * @param {Number} [col]
    *        Column to which the caret should be moved (zero-indexed).
    */
-  selectStyleSheet: function(href, line, col) {
+  selectStyleSheet: function(stylesheet, line, col) {
     this._styleSheetToSelect = {
-      href: href,
+      stylesheet: stylesheet,
       line: line,
       col: col,
     };
@@ -643,10 +704,93 @@ StyleEditorUI.prototype = {
       PluralForm.get(ruleCount, _("ruleCount.label")).replace("#1", ruleCount));
   },
 
+  /**
+   * Update the @media rules sidebar for an editor. Hide if there are no rules
+   * Display a list of the @media rules in the editor's associated style sheet.
+   * Emits a 'media-list-changed' event after updating the UI.
+   *
+   * @param  {StyleSheetEditor} editor
+   *         Editor to update @media sidebar of
+   */
+  _updateMediaList: function(editor) {
+    Task.spawn(function* () {
+      let details = yield this.getEditorDetails(editor);
+      let list = details.querySelector(".stylesheet-media-list");
+
+      while (list.firstChild) {
+        list.removeChild(list.firstChild);
+      }
+
+      let rules = editor.mediaRules;
+      let showSidebar = Services.prefs.getBoolPref(PREF_MEDIA_SIDEBAR);
+      let sidebar = details.querySelector(".stylesheet-sidebar");
+
+      let inSource = false;
+
+      for (let rule of rules) {
+        let {line, column, parentStyleSheet} = rule;
+
+        let location = {
+          line: line,
+          column: column,
+          source: editor.styleSheet.href,
+          styleSheet: parentStyleSheet
+        };
+        if (editor.styleSheet.isOriginalSource) {
+          location = yield editor.cssSheet.getOriginalLocation(line, column);
+        }
+
+        // this @media rule is from a different original source
+        if (location.source != editor.styleSheet.href) {
+          continue;
+        }
+        inSource = true;
+
+        let div = this._panelDoc.createElement("div");
+        div.className = "media-rule-label";
+        div.addEventListener("click", this._jumpToLocation.bind(this, location));
+
+        let cond = this._panelDoc.createElement("div");
+        cond.textContent = rule.conditionText;
+        cond.className = "media-rule-condition"
+        if (!rule.matches) {
+          cond.classList.add("media-condition-unmatched");
+        }
+        div.appendChild(cond);
+
+        let link = this._panelDoc.createElement("div");
+        link.className = "media-rule-line theme-link";
+        link.textContent = ":" + location.line;
+        div.appendChild(link);
+
+        list.appendChild(div);
+      }
+
+      sidebar.hidden = !showSidebar || !inSource;
+
+      this.emit("media-list-changed", editor);
+    }.bind(this)).then(null, Cu.reportError);
+  },
+
+  /**
+   * Jump cursor to the editor for a stylesheet and line number for a rule.
+   *
+   * @param  {object} location
+   *         Location object with 'line', 'column', and 'source' properties.
+   */
+  _jumpToLocation: function(location) {
+    let source = location.styleSheet || location.source;
+    this.selectStyleSheet(source, location.line - 1, location.column - 1);
+  },
+
   destroy: function() {
     this._clearStyleSheetEditors();
 
+    this._optionsMenu.removeEventListener("popupshowing",
+                                          this._updateOptionsMenu);
+
     this._prefObserver.off(PREF_ORIG_SOURCES, this._onNewDocument);
+    this._prefObserver.off(PREF_MEDIA_SIDEBAR, this._onMediaPrefChanged);
     this._prefObserver.destroy();
   }
 }

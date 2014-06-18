@@ -72,9 +72,14 @@ ShadowRoot::ShadowRoot(nsIContent* aContent,
     mInsertionPointChanged(false)
 {
   SetHost(aContent);
+
+  // Nodes in a shadow tree should never store a value
+  // in the subtree root pointer, nodes in the shadow tree
+  // track the subtree root using GetContainingShadow().
+  ClearSubtreeRootPointer();
+
   SetFlags(NODE_IS_IN_SHADOW_TREE);
-  // ShadowRoot isn't really in the document but it behaves like it is.
-  SetInDocument();
+
   DOMSlots()->mBindingParent = aContent;
   DOMSlots()->mContainingShadow = this;
 
@@ -92,7 +97,11 @@ ShadowRoot::~ShadowRoot()
     mPoolHost->RemoveMutationObserver(this);
   }
 
-  ClearInDocument();
+  UnsetFlags(NODE_IS_IN_SHADOW_TREE);
+
+  // nsINode destructor expects mSubtreeRoot == this.
+  SetSubtreeRootPointer(this);
+
   SetHost(nullptr);
 }
 
@@ -115,14 +124,14 @@ ShadowRoot::FromNode(nsINode* aNode)
 }
 
 void
-ShadowRoot::Restyle()
+ShadowRoot::StyleSheetChanged()
 {
   mProtoBinding->FlushSkinSheets();
 
   nsIPresShell* shell = OwnerDoc()->GetShell();
   if (shell) {
     OwnerDoc()->BeginUpdate(UPDATE_STYLE);
-    shell->RestyleShadowRoot(this);
+    shell->RecordShadowStyleChange(this);
     OwnerDoc()->EndUpdate(UPDATE_STYLE);
   }
 }
@@ -157,7 +166,9 @@ ShadowRoot::InsertSheet(nsCSSStyleSheet* aSheet,
     }
   }
 
-  Restyle();
+  if (aSheet->IsApplicable()) {
+    StyleSheetChanged();
+  }
 }
 
 void
@@ -171,7 +182,9 @@ ShadowRoot::RemoveSheet(nsCSSStyleSheet* aSheet)
   MOZ_ASSERT(found, "Trying to remove a sheet from a ShadowRoot "
                     "that does not exist.");
 
-  Restyle();
+  if (aSheet->IsApplicable()) {
+    StyleSheetChanged();
+  }
 }
 
 Element*
@@ -257,6 +270,22 @@ ShadowRoot::SetYoungerShadow(ShadowRoot* aYoungerShadow)
 }
 
 void
+ShadowRoot::RemoveDestInsertionPoint(nsIContent* aInsertionPoint,
+                                     nsTArray<nsIContent*>& aDestInsertionPoints)
+{
+  // Remove the insertion point from the destination insertion points.
+  // Also remove all succeeding insertion points because it is no longer
+  // possible for the content to be distributed into deeper node trees.
+  int32_t index = aDestInsertionPoints.IndexOf(aInsertionPoint);
+
+  // It's possible that we already removed the insertion point while processing
+  // other insertion point removals.
+  if (index >= 0) {
+    aDestInsertionPoints.SetLength(index);
+  }
+}
+
+void
 ShadowRoot::DistributeSingleNode(nsIContent* aContent)
 {
   // Find the insertion point to which the content belongs.
@@ -295,7 +324,7 @@ ShadowRoot::DistributeSingleNode(nsIContent* aContent)
       // is found or when the current matched node is reached.
       if (childIterator.Seek(aContent, matchedNodes[i])) {
         // aContent was found before the current matched node.
-        matchedNodes.InsertElementAt(i, aContent);
+        insertionPoint->InsertMatchedNode(i, aContent);
         isIndexFound = true;
         break;
       }
@@ -306,7 +335,7 @@ ShadowRoot::DistributeSingleNode(nsIContent* aContent)
       // thus it must be at the end.
       MOZ_ASSERT(childIterator.Seek(aContent),
                  "Trying to match a node that is not a candidate to be matched");
-      matchedNodes.AppendElement(aContent);
+      insertionPoint->AppendMatchedNode(aContent);
     }
 
     // Handle the case where the parent of the insertion point is a ShadowRoot
@@ -354,7 +383,7 @@ ShadowRoot::RemoveDistributedNode(nsIContent* aContent)
         return;
       }
 
-      mInsertionPoints[i]->MatchedNodes().RemoveElement(aContent);
+      mInsertionPoints[i]->RemoveMatchedNode(aContent);
 
       // Handle the case where the parent of the insertion point is a ShadowRoot
       // that is projected into the younger ShadowRoot's shadow insertion point.
@@ -412,8 +441,7 @@ ShadowRoot::DistributeAllNodes()
     // Assign matching nodes from node pool.
     for (uint32_t j = 0; j < nodePool.Length(); j++) {
       if (mInsertionPoints[i]->Match(nodePool[j])) {
-        mInsertionPoints[i]->MatchedNodes().AppendElement(nodePool[j]);
-        nodePool[j]->SetXBLInsertionParent(mInsertionPoints[i]);
+        mInsertionPoints[i]->AppendMatchedNode(nodePool[j]);
         nodePool.RemoveElementAt(j--);
       }
     }
@@ -425,7 +453,7 @@ ShadowRoot::DistributeAllNodes()
                                 "mInsertionPoints array is to be a descendant of a"
                                 "ShadowRoot, in which case, it should have a parent");
 
-    // If the parent of the insertion point has as ShadowRoot, the nodes distributed
+    // If the parent of the insertion point has a ShadowRoot, the nodes distributed
     // to the insertion point must be reprojected to the insertion points of the
     // parent's ShadowRoot.
     ShadowRoot* parentShadow = insertionParent->GetShadowRoot();
@@ -479,7 +507,7 @@ ShadowRoot::SetApplyAuthorStyles(bool aApplyAuthorStyles)
   nsIPresShell* shell = OwnerDoc()->GetShell();
   if (shell) {
     OwnerDoc()->BeginUpdate(UPDATE_STYLE);
-    shell->RestyleShadowRoot(this);
+    shell->RecordShadowStyleChange(this);
     OwnerDoc()->EndUpdate(UPDATE_STYLE);
   }
 }
@@ -562,16 +590,16 @@ ShadowRoot::IsPooledNode(nsIContent* aContent, nsIContent* aContainer,
     return false;
   }
 
+  if (aContainer == aHost) {
+    // Any other child nodes of the host will end up in the pool.
+    return true;
+  }
+
   if (aContainer->IsHTML(nsGkAtoms::content)) {
     // Fallback content will end up in pool if its parent is a child of the host.
     HTMLContentElement* content = static_cast<HTMLContentElement*>(aContainer);
     return content->IsInsertionPoint() && content->MatchedNodes().IsEmpty() &&
            aContainer->GetParentNode() == aHost;
-  }
-
-  if (aContainer == aHost) {
-    // Any other child nodes of the host will end up in the pool.
-    return true;
   }
 
   return false;
@@ -609,9 +637,18 @@ ShadowRoot::ContentAppended(nsIDocument* aDocument,
   // may need to be added to an insertion point.
   nsIContent* currentChild = aFirstNewContent;
   while (currentChild) {
+    // Add insertion point to destination insertion points of fallback content.
+    if (nsContentUtils::IsContentInsertionPoint(aContainer)) {
+      HTMLContentElement* content = static_cast<HTMLContentElement*>(aContainer);
+      if (content->MatchedNodes().IsEmpty()) {
+        currentChild->DestInsertionPoints().AppendElement(aContainer);
+      }
+    }
+
     if (IsPooledNode(currentChild, aContainer, mPoolHost)) {
       DistributeSingleNode(currentChild);
     }
+
     currentChild = currentChild->GetNextSibling();
   }
 }
@@ -631,6 +668,14 @@ ShadowRoot::ContentInserted(nsIDocument* aDocument,
   // Watch for new nodes added to the pool because the node
   // may need to be added to an insertion point.
   if (IsPooledNode(aChild, aContainer, mPoolHost)) {
+    // Add insertion point to destination insertion points of fallback content.
+    if (nsContentUtils::IsContentInsertionPoint(aContainer)) {
+      HTMLContentElement* content = static_cast<HTMLContentElement*>(aContainer);
+      if (content->MatchedNodes().IsEmpty()) {
+        aChild->DestInsertionPoints().AppendElement(aContainer);
+      }
+    }
+
     DistributeSingleNode(aChild);
   }
 }
@@ -646,6 +691,15 @@ ShadowRoot::ContentRemoved(nsIDocument* aDocument,
     DistributeAllNodes();
     mInsertionPointChanged = false;
     return;
+  }
+
+  // Clear destination insertion points for removed
+  // fallback content.
+  if (nsContentUtils::IsContentInsertionPoint(aContainer)) {
+    HTMLContentElement* content = static_cast<HTMLContentElement*>(aContainer);
+    if (content->MatchedNodes().IsEmpty()) {
+      aChild->DestInsertionPoints().Clear();
+    }
   }
 
   // Watch for node that is removed from the pool because

@@ -27,6 +27,7 @@
 #include "nsFontInflationData.h"
 #include "StickyScrollContainer.h"
 #include "nsIFrameInlines.h"
+#include "CounterStyleManager.h"
 #include <algorithm>
 #include "mozilla/dom/HTMLInputElement.h"
 
@@ -107,23 +108,28 @@ FontSizeInflationListMarginAdjustment(const nsIFrame* aFrame)
   float inflation = nsLayoutUtils::FontSizeInflationFor(aFrame);
   if (aFrame->IsFrameOfType(nsIFrame::eBlockFrame)) {
     const nsBlockFrame* blockFrame = static_cast<const nsBlockFrame*>(aFrame);
-    const nsStyleList* styleList = aFrame->StyleList();
 
     // We only want to adjust the margins if we're dealing with an ordered
     // list.
     if (inflation > 1.0f &&
         blockFrame->HasBullet() &&
-        styleList->mListStyleType != NS_STYLE_LIST_STYLE_NONE &&
-        styleList->mListStyleType != NS_STYLE_LIST_STYLE_DISC &&
-        styleList->mListStyleType != NS_STYLE_LIST_STYLE_CIRCLE &&
-        styleList->mListStyleType != NS_STYLE_LIST_STYLE_SQUARE &&
         inflation > 1.0f) {
 
-      // The HTML spec states that the default padding for ordered lists begins
-      // at 40px, indicating that we have 40px of space to place a bullet. When
-      // performing font inflation calculations, we add space equivalent to this,
-      // but simply inflated at the same amount as the text, in app units.
-      return nsPresContext::CSSPixelsToAppUnits(40) * (inflation - 1);
+      auto listStyleType = aFrame->StyleList()->GetCounterStyle()->GetStyle();
+      if (listStyleType != NS_STYLE_LIST_STYLE_NONE &&
+          listStyleType != NS_STYLE_LIST_STYLE_DISC &&
+          listStyleType != NS_STYLE_LIST_STYLE_CIRCLE &&
+          listStyleType != NS_STYLE_LIST_STYLE_SQUARE &&
+          listStyleType != NS_STYLE_LIST_STYLE_DISCLOSURE_CLOSED &&
+          listStyleType != NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN) {
+        // The HTML spec states that the default padding for ordered lists
+        // begins at 40px, indicating that we have 40px of space to place a
+        // bullet. When performing font inflation calculations, we add space
+        // equivalent to this, but simply inflated at the same amount as the
+        // text, in app units.
+        return nsPresContext::CSSPixelsToAppUnits(40) * (inflation - 1);
+      }
+
     }
   }
 
@@ -141,9 +147,9 @@ nsCSSOffsetState::nsCSSOffsetState(nsIFrame *aFrame,
   , rendContext(aRenderingContext)
   , mWritingMode(aFrame->GetWritingMode())
 {
-  MOZ_ASSERT(!aFrame->IsFlexItem(),
+  MOZ_ASSERT(!aFrame->IsFlexOrGridItem(),
              "We're about to resolve vertical percent margin & padding "
-             "values against CB width, which is incorrect for flex items");
+             "values against CB width, which is incorrect for flex/grid items");
   InitOffsets(aContainingBlockWidth, aContainingBlockWidth, frame->GetType());
 }
 
@@ -717,6 +723,7 @@ nsHTMLReflowState::InitFrameType(nsIAtom* aFrameType)
     case NS_STYLE_DISPLAY_TABLE:
     case NS_STYLE_DISPLAY_TABLE_CAPTION:
     case NS_STYLE_DISPLAY_FLEX:
+    case NS_STYLE_DISPLAY_GRID:
       frameType = NS_CSS_FRAME_TYPE_BLOCK;
       break;
 
@@ -727,6 +734,7 @@ nsHTMLReflowState::InitFrameType(nsIAtom* aFrameType)
     case NS_STYLE_DISPLAY_INLINE_XUL_GRID:
     case NS_STYLE_DISPLAY_INLINE_STACK:
     case NS_STYLE_DISPLAY_INLINE_FLEX:
+    case NS_STYLE_DISPLAY_INLINE_GRID:
       frameType = NS_CSS_FRAME_TYPE_INLINE;
       break;
 
@@ -1873,7 +1881,7 @@ VerticalOffsetPercentBasis(const nsIFrame* aFrame,
                            nscoord aContainingBlockWidth,
                            nscoord aContainingBlockHeight)
 {
-  if (!aFrame->IsFlexItem()) {
+  if (!aFrame->IsFlexOrGridItem()) {
     return aContainingBlockWidth;
   }
 

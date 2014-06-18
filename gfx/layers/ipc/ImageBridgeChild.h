@@ -11,6 +11,7 @@
 #include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
 #include "mozilla/RefPtr.h"             // for TemporaryRef
 #include "mozilla/ipc/SharedMemory.h"   // for SharedMemory, etc
+#include "mozilla/layers/AsyncTransactionTracker.h" // for AsyncTransactionTrackerHolder
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/CompositorTypes.h"  // for TextureIdentifier, etc
 #include "mozilla/layers/PImageBridgeChild.h"
@@ -101,8 +102,10 @@ bool InImageBridgeChildThread();
  */
 class ImageBridgeChild : public PImageBridgeChild
                        , public CompositableForwarder
+                       , public AsyncTransactionTrackersHolder
 {
   friend class ImageContainer;
+  typedef InfallibleTArray<AsyncParentMessageData> AsyncParentMessageArray;
 public:
 
   /**
@@ -129,15 +132,6 @@ public:
    * Creates the ImageBridgeChild manager protocol.
    */
   static bool StartUpOnThread(base::Thread* aThread);
-
-  /**
-   * Destroys The ImageBridge protcol.
-   *
-   * The actual destruction happens synchronously on the ImageBridgeChild thread
-   * which means that if this function is called from another thread, the current
-   * thread will be paused until the destruction is done.
-   */
-  static void DestroyBridge();
 
   /**
    * Returns true if the singleton has been created.
@@ -194,7 +188,7 @@ public:
   DeallocPTextureChild(PTextureChild* actor) MOZ_OVERRIDE;
 
   virtual bool
-  RecvParentAsyncMessage(const mozilla::layers::AsyncParentMessageData& aMessage) MOZ_OVERRIDE;
+  RecvParentAsyncMessages(const InfallibleTArray<AsyncParentMessageData>& aMessages) MOZ_OVERRIDE;
 
   TemporaryRef<ImageClient> CreateImageClient(CompositableType aType);
   TemporaryRef<ImageClient> CreateImageClientNow(CompositableType aType);
@@ -229,6 +223,10 @@ public:
   virtual void UseComponentAlphaTextures(CompositableClient* aCompositable,
                                          TextureClient* aClientOnBlack,
                                          TextureClient* aClientOnWhite) MOZ_OVERRIDE;
+
+  virtual void SendFenceHandle(AsyncTransactionTracker* aTracker,
+                               PTextureChild* aTexture,
+                               const FenceHandle& aFence) MOZ_OVERRIDE;
 
   virtual void RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                              TextureClient* aTexture) MOZ_OVERRIDE;
@@ -309,6 +307,7 @@ public:
 
   void SendPendingAsyncMessge();
 
+  void MarkShutDown();
 protected:
   ImageBridgeChild();
   bool DispatchAllocShmemInternal(size_t aSize,
@@ -317,6 +316,7 @@ protected:
                                   bool aUnsafe);
 
   CompositableTransaction* mTxn;
+  bool mShuttingDown;
 };
 
 } // layers

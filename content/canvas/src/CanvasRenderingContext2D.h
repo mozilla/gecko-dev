@@ -46,7 +46,7 @@ extern const mozilla::gfx::Float SIGMA_MAX;
 
 template<typename T> class Optional;
 
-class CanvasPath :
+class CanvasPath MOZ_FINAL :
   public nsWrapperCache
 {
 public:
@@ -85,11 +85,14 @@ public:
                 const gfx::Point& aCP2,
                 const gfx::Point& aCP3);
 
-  mozilla::RefPtr<mozilla::gfx::Path> GetPath(const CanvasWindingRule& winding,
-                                              const mozilla::RefPtr<mozilla::gfx::DrawTarget>& mTarget) const;
+  TemporaryRef<gfx::Path> GetPath(const CanvasWindingRule& aWinding,
+                                  const gfx::DrawTarget* aTarget) const;
 
-  CanvasPath(nsCOMPtr<nsISupports> aParent);
-  CanvasPath(nsCOMPtr<nsISupports> aParent, RefPtr<gfx::PathBuilder> mPathBuilder);
+  explicit CanvasPath(nsISupports* aParent);
+  // TemporaryRef arg because the return value from Path::CopyToBuilder() is
+  // passed directly and we can't drop the only ref to have a raw pointer.
+  CanvasPath(nsISupports* aParent,
+             TemporaryRef<gfx::PathBuilder> aPathBuilder);
   virtual ~CanvasPath() {}
 
 private:
@@ -388,19 +391,22 @@ public:
   void Arc(double x, double y, double radius, double startAngle,
            double endAngle, bool anticlockwise, mozilla::ErrorResult& error);
 
-  JSObject* GetMozCurrentTransform(JSContext* cx,
-                                   mozilla::ErrorResult& error) const;
+  void GetMozCurrentTransform(JSContext* cx,
+			      JS::MutableHandle<JSObject*> result,
+			      mozilla::ErrorResult& error) const;
   void SetMozCurrentTransform(JSContext* cx,
                               JS::Handle<JSObject*> currentTransform,
                               mozilla::ErrorResult& error);
-  JSObject* GetMozCurrentTransformInverse(JSContext* cx,
-                                          mozilla::ErrorResult& error) const;
+  void GetMozCurrentTransformInverse(JSContext* cx,
+				     JS::MutableHandle<JSObject*> result,
+				     mozilla::ErrorResult& error) const;
   void SetMozCurrentTransformInverse(JSContext* cx,
                                      JS::Handle<JSObject*> currentTransform,
                                      mozilla::ErrorResult& error);
   void GetFillRule(nsAString& fillRule);
   void SetFillRule(const nsAString& fillRule);
-  JS::Value GetMozDash(JSContext* cx, mozilla::ErrorResult& error);
+  void GetMozDash(JSContext* cx, JS::MutableHandle<JS::Value> retval,
+		  mozilla::ErrorResult& error);
   void SetMozDash(JSContext* cx, const JS::Value& mozDash,
                   mozilla::ErrorResult& error);
 
@@ -537,13 +543,21 @@ public:
 
   virtual void GetImageBuffer(uint8_t** aImageBuffer, int32_t* aFormat);
 
+
+  // Given a point, return hit region ID if it exists
+  nsString GetHitRegion(const mozilla::gfx::Point& aPoint);
+
+
+  // return true and fills in the bound rect if element has a hit region.
+  bool GetHitRegionRect(Element* aElement, nsRect& aRect);
+
 protected:
   nsresult GetImageDataArray(JSContext* aCx, int32_t aX, int32_t aY,
                              uint32_t aWidth, uint32_t aHeight,
                              JSObject** aRetval);
 
   nsresult PutImageData_explicit(int32_t x, int32_t y, uint32_t w, uint32_t h,
-                                 unsigned char *aData, uint32_t aDataLen,
+                                 dom::Uint8ClampedArray* aArray,
                                  bool hasDirtyRect, int32_t dirtyX, int32_t dirtyY,
                                  int32_t dirtyWidth, int32_t dirtyHeight);
 
@@ -753,25 +767,16 @@ protected:
   /**
     * State information for hit regions
     */
-
-  struct RegionInfo : public nsStringHashKey
+  struct RegionInfo
   {
-    RegionInfo(const nsAString& aKey) :
-      nsStringHashKey(&aKey)
-    {
-    }
-    RegionInfo(const nsAString *aKey) :
-      nsStringHashKey(aKey)
-    {
-    }
-
+    nsString          mId;
+    // fallback element for a11y
     nsRefPtr<Element> mElement;
+    // Path of the hit region in the 2d context coordinate space (not user space)
+    RefPtr<gfx::Path> mPath;
   };
 
-#ifdef ACCESSIBILITY
-  static PLDHashOperator RemoveHitRegionProperty(RegionInfo* aEntry, void* aData);
-#endif
-  nsTHashtable<RegionInfo> mHitRegionsOptions;
+  nsTArray<RegionInfo> mHitRegionsOptions;
 
   /**
     * Returns true if a shadow should be drawn along with a

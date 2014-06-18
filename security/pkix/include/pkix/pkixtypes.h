@@ -1,6 +1,13 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* Copyright 2012 Mozilla Foundation
+/* This code is made available to you under your choice of the following sets
+ * of licensing terms:
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+/* Copyright 2013 Mozilla Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,20 +30,45 @@
 #include "plarena.h"
 #include "cert.h"
 #include "keyhi.h"
+#include "stdint.h"
 
 namespace mozilla { namespace pkix {
 
-typedef ScopedPtr<PLArenaPool, PL_FreeArenaPool> ScopedPLArenaPool;
+inline void
+PORT_FreeArena_false(PLArenaPool* arena) {
+  // PL_FreeArenaPool can't be used because it doesn't actually free the
+  // memory, which doesn't work well with memory analysis tools
+  return PORT_FreeArena(arena, PR_FALSE);
+}
+
+typedef ScopedPtr<PLArenaPool, PORT_FreeArena_false> ScopedPLArenaPool;
 
 typedef ScopedPtr<CERTCertificate, CERT_DestroyCertificate>
         ScopedCERTCertificate;
 typedef ScopedPtr<CERTCertList, CERT_DestroyCertList> ScopedCERTCertList;
-typedef ScopedPtr<SECKEYPublicKey, SECKEY_DestroyPublicKey>
-        ScopedSECKEYPublicKey;
+
+MOZILLA_PKIX_ENUM_CLASS EndEntityOrCA { MustBeEndEntity = 0, MustBeCA = 1 };
 
 typedef unsigned int KeyUsages;
 
-MOZILLA_PKIX_ENUM_CLASS EndEntityOrCA { MustBeEndEntity = 0, MustBeCA = 1 };
+MOZILLA_PKIX_ENUM_CLASS KeyPurposeId {
+  anyExtendedKeyUsage = 0,
+  id_kp_serverAuth = 1,           // id-kp-serverAuth
+  id_kp_clientAuth = 2,           // id-kp-clientAuth
+  id_kp_codeSigning = 3,          // id-kp-codeSigning
+  id_kp_emailProtection = 4,      // id-kp-emailProtection
+  id_kp_OCSPSigning = 9,          // id-kp-OCSPSigning
+};
+
+struct CertPolicyId {
+  uint16_t numBytes;
+  static const uint16_t MAX_BYTES = 24;
+  uint8_t bytes[MAX_BYTES];
+
+  bool IsAnyPolicy() const;
+
+  static const CertPolicyId anyPolicy;
+};
 
 MOZILLA_PKIX_ENUM_CLASS TrustLevel {
   TrustAnchor = 1,        // certificate is a trusted root CA certificate or
@@ -58,17 +90,17 @@ public:
   // This will be called for every certificate encountered during path
   // building.
   //
-  // When policy == SEC_OID_X509_ANY_POLICY, then no policy-related checking
-  // should be done. When policy != SEC_OID_X509_ANY_POLICY, then GetCertTrust
-  // MUST NOT return with *trustLevel == TrustAnchor unless the given cert is
-  // considered a trust anchor *for that policy*. In particular, if the user
-  // has marked an intermediate certificate as trusted, but that intermediate
-  // isn't in the list of EV roots, then GetCertTrust must result in
+  // When policy.IsAnyPolicy(), then no policy-related checking should be done.
+  // When !policy.IsAnyPolicy(), then GetCertTrust MUST NOT return with
+  // *trustLevel == TrustAnchor unless the given cert is considered a trust
+  // anchor *for that policy*. In particular, if the user has marked an
+  // intermediate certificate as trusted, but that intermediate isn't in the
+  // list of EV roots, then GetCertTrust must result in
   // *trustLevel == InheritsTrust instead of *trustLevel == TrustAnchor
   // (assuming the candidate cert is not actively distrusted).
   virtual SECStatus GetCertTrust(EndEntityOrCA endEntityOrCA,
-                                 SECOidTag policy,
-                                 const CERTCertificate* candidateCert,
+                                 const CertPolicyId& policy,
+                                 const SECItem& candidateCertDER,
                          /*out*/ TrustLevel* trustLevel) = 0;
 
   // Find all certificates (intermediate and/or root) in the certificate
@@ -83,15 +115,12 @@ public:
                                          PRTime time,
                                  /*out*/ ScopedCERTCertList& results) = 0;
 
-  // Verify the given signature using the public key of the given certificate.
-  // The implementation should be careful to ensure that the given certificate
-  // has all the public key information needed--i.e. it should ensure that the
-  // certificate is not trying to use EC(DSA) parameter inheritance.
+  // Verify the given signature using the given public key.
   //
   // Most implementations of this function should probably forward the call
   // directly to mozilla::pkix::VerifySignedData.
   virtual SECStatus VerifySignedData(const CERTSignedData* signedData,
-                                     const CERTCertificate* cert) = 0;
+                                     const SECItem& subjectPublicKeyInfo) = 0;
 
   // issuerCertToDup is only non-const so CERT_DupCertificate can be called on
   // it.

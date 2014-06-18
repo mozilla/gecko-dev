@@ -28,10 +28,10 @@
 #include "AutoMaskData.h"
 #include "gfx2DGlue.h"
 
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace layers {
+
+using namespace mozilla::gfx;
 
 static nsIntRegion
 IntersectWithClip(const nsIntRegion& aRegion, gfxContext* aContext)
@@ -50,7 +50,9 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
                               LayerManager::DrawThebesLayerCallback aCallback,
                               void* aCallbackData)
 {
-  PROFILER_LABEL("BasicThebesLayer", "PaintThebes");
+  PROFILER_LABEL("BasicThebesLayer", "PaintThebes",
+    js::ProfileEntry::Category::GRAPHICS);
+
   NS_ASSERTION(BasicManager()->InDrawing(),
                "Can only draw in drawing phase");
 

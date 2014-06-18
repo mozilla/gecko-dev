@@ -8,6 +8,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+Cu.import("resource:///modules/devtools/gDevTools.jsm");
 
 // Override DOM promises with Promise.jsm helpers
 const { defer, all } = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
@@ -16,6 +17,10 @@ const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const STRINGS_URI = "chrome://browser/locale/devtools/webaudioeditor.properties"
+const L10N = new ViewHelpers.L10N(STRINGS_URI);
+const Telemetry = require("devtools/shared/telemetry");
+const telemetry = new Telemetry();
+
 let { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 
 // The panel's window global is an EventEmitter firing the following events:
@@ -35,6 +40,9 @@ const EVENTS = {
   // On a node parameter's change.
   CHANGE_PARAM: "WebAudioEditor:ChangeParam",
 
+  // When the devtools theme changes.
+  THEME_CHANGE: "WebAudioEditor:ThemeChange",
+
   // When the UI is reset from tab navigation.
   UI_RESET: "WebAudioEditor:UIReset",
 
@@ -42,8 +50,17 @@ const EVENTS = {
   // pushed via the actor to the raw audio node.
   UI_SET_PARAM: "WebAudioEditor:UISetParam",
 
-  // When an audio node is added to the list pane.
-  UI_ADD_NODE_LIST: "WebAudioEditor:UIAddNodeList",
+  // When a node is to be set in the InspectorView.
+  UI_SELECT_NODE: "WebAudioEditor:UISelectNode",
+
+  // When the inspector is finished setting a new node.
+  UI_INSPECTOR_NODE_SET: "WebAudioEditor:UIInspectorNodeSet",
+
+  // When the inspector is finished rendering in or out of view.
+  UI_INSPECTOR_TOGGLED: "WebAudioEditor:UIInspectorToggled",
+
+  // When an audio node is finished loading in the Properties tab.
+  UI_PROPERTIES_TAB_RENDERED: "WebAudioEditor:UIPropertiesTabRendered",
 
   // When the Audio Context graph finishes rendering.
   // Is called with two arguments, first representing number of nodes
@@ -106,7 +123,7 @@ function startupWebAudioEditor() {
   return all([
     WebAudioEditorController.initialize(),
     WebAudioGraphView.initialize(),
-    WebAudioParamView.initialize()
+    WebAudioInspectorView.initialize(),
   ]);
 }
 
@@ -117,7 +134,7 @@ function shutdownWebAudioEditor() {
   return all([
     WebAudioEditorController.destroy(),
     WebAudioGraphView.destroy(),
-    WebAudioParamView.destroy()
+    WebAudioInspectorView.destroy(),
   ]);
 }
 
@@ -129,7 +146,9 @@ let WebAudioEditorController = {
    * Listen for events emitted by the current tab target.
    */
   initialize: function() {
+    telemetry.toolOpened("webaudioeditor");
     this._onTabNavigated = this._onTabNavigated.bind(this);
+    this._onThemeChange = this._onThemeChange.bind(this);
     gTarget.on("will-navigate", this._onTabNavigated);
     gTarget.on("navigate", this._onTabNavigated);
     gFront.on("start-context", this._onStartContext);
@@ -137,6 +156,11 @@ let WebAudioEditorController = {
     gFront.on("connect-node", this._onConnectNode);
     gFront.on("disconnect-node", this._onDisconnectNode);
     gFront.on("change-param", this._onChangeParam);
+
+    // Hook into theme change so we can change
+    // the graph's marker styling, since we can't do this
+    // with CSS
+    gDevTools.on("pref-changed", this._onThemeChange);
 
     // Set up events to refresh the Graph view
     window.on(EVENTS.CREATE_NODE, this._onUpdatedContext);
@@ -148,6 +172,7 @@ let WebAudioEditorController = {
    * Remove events emitted by the current tab target.
    */
   destroy: function() {
+    telemetry.toolClosed("webaudioeditor");
     gTarget.off("will-navigate", this._onTabNavigated);
     gTarget.off("navigate", this._onTabNavigated);
     gFront.off("start-context", this._onStartContext);
@@ -158,6 +183,19 @@ let WebAudioEditorController = {
     window.off(EVENTS.CREATE_NODE, this._onUpdatedContext);
     window.off(EVENTS.CONNECT_NODE, this._onUpdatedContext);
     window.off(EVENTS.DISCONNECT_NODE, this._onUpdatedContext);
+    gDevTools.off("pref-changed", this._onThemeChange);
+  },
+
+  /**
+   * Called when page is reloaded to show the reload notice and waiting
+   * for an audio context notice.
+   */
+  reset: function () {
+    $("#reload-notice").hidden = true;
+    $("#waiting-notice").hidden = false;
+    $("#content").hidden = true;
+    WebAudioGraphView.resetUI();
+    WebAudioInspectorView.resetUI();
   },
 
   /**
@@ -169,24 +207,31 @@ let WebAudioEditorController = {
   },
 
   /**
+   * Fired when the devtools theme changes (light, dark, etc.)
+   * so that the graph can update marker styling, as that
+   * cannot currently be done with CSS.
+   */
+  _onThemeChange: function (event, data) {
+    window.emit(EVENTS.THEME_CHANGE, data.newValue);
+  },
+
+  /**
    * Called for each location change in the debugged tab.
    */
-  _onTabNavigated: function(event) {
+  _onTabNavigated: Task.async(function* (event) {
     switch (event) {
       case "will-navigate": {
-        Task.spawn(function() {
-          // Make sure the backend is prepared to handle audio contexts.
-          yield gFront.setup({ reload: false });
+        // Make sure the backend is prepared to handle audio contexts.
+        yield gFront.setup({ reload: false });
 
-          // Reset UI to show "Waiting for Audio Context..." and clear out
-          // current UI.
-          WebAudioGraphView.resetUI();
-          WebAudioParamView.resetUI();
+        // Reset UI to show "Waiting for Audio Context..." and clear out
+        // current UI.
+        this.reset();
 
-          // Clear out stored audio nodes
-          AudioNodes.length = 0;
-          AudioNodeConnections.clear();
-        }).then(() => window.emit(EVENTS.UI_RESET));
+        // Clear out stored audio nodes
+        AudioNodes.length = 0;
+        AudioNodeConnections.clear();
+        window.emit(EVENTS.UI_RESET);
         break;
       }
       case "navigate": {
@@ -195,14 +240,16 @@ let WebAudioEditorController = {
         break;
       }
     }
-  },
+  }),
 
   /**
    * Called after the first audio node is created in an audio context,
    * signaling that the audio context is being used.
    */
   _onStartContext: function() {
-    WebAudioGraphView.showContent();
+    $("#reload-notice").hidden = true;
+    $("#waiting-notice").hidden = true;
+    $("#content").hidden = false;
     window.emit(EVENTS.START_CONTEXT);
   },
 
@@ -307,4 +354,3 @@ function getViewNodeByActor (actor) {
 function getViewNodeById (id) {
   return getViewNodeByActor({ actorID: id });
 }
-

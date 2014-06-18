@@ -40,13 +40,9 @@ public:
 
     nsresult UpdateFontList();
 
-    nsresult ResolveFontName(const nsAString& aFontName,
-                             FontResolverCallback aCallback,
-                             void *aClosure, bool& aAborted);
-
     nsresult GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
-    gfxFontGroup *CreateFontGroup(const nsAString &aFamilies,
+    gfxFontGroup *CreateFontGroup(const mozilla::FontFamilyList& aFontFamilyList,
                                   const gfxFontStyle *aStyle,
                                   gfxUserFontSet *aUserFontSet);
 
@@ -102,7 +98,6 @@ protected:
 private:
     virtual void GetPlatformCMSOutputProfile(void *&mem, size_t &size);
 
-    virtual bool SupportsOffMainThreadCompositing();
 #ifdef MOZ_X11
     static bool sUseXRender;
 #endif

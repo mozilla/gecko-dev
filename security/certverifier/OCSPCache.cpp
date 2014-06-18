@@ -1,6 +1,13 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* Copyright 2013 Mozilla Foundation
+/* This code is made available to you under your choice of the following sets
+ * of licensing terms:
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+/* Copyright 2013 Mozilla Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +23,8 @@
  */
 
 #include "OCSPCache.h"
+
+#include <limits>
 
 #include "NSSCertDBTrustDomain.h"
 #include "pk11pub.h"
@@ -106,30 +115,34 @@ OCSPCache::~OCSPCache()
   Clear();
 }
 
-// Returns -1 if no entry is found for the given (cert, issuer) pair.
-int32_t
+// Returns false with index in an undefined state if no matching entry was
+// found.
+bool
 OCSPCache::FindInternal(const CERTCertificate* aCert,
                         const CERTCertificate* aIssuerCert,
+                        /*out*/ size_t& index,
                         const MutexAutoLock& /* aProofOfLock */)
 {
   if (mEntries.length() == 0) {
-    return -1;
+    return false;
   }
 
   SHA384Buffer idHash;
   SECStatus rv = CertIDHash(idHash, aCert, aIssuerCert);
   if (rv != SECSuccess) {
-    return -1;
+    return false;
   }
 
   // mEntries is sorted with the most-recently-used entry at the end.
   // Thus, searching from the end will often be fastest.
-  for (int32_t i = mEntries.length() - 1; i >= 0; i--) {
-    if (memcmp(mEntries[i]->mIDHash, idHash, SHA384_LENGTH) == 0) {
-      return i;
+  index = mEntries.length();
+  while (index > 0) {
+    --index;
+    if (memcmp(mEntries[index]->mIDHash, idHash, SHA384_LENGTH) == 0) {
+      return true;
     }
   }
-  return -1;
+  return false;
 }
 
 void
@@ -169,8 +182,8 @@ OCSPCache::Get(const CERTCertificate* aCert,
 
   MutexAutoLock lock(mMutex);
 
-  int32_t index = FindInternal(aCert, aIssuerCert, lock);
-  if (index < 0) {
+  size_t index;
+  if (!FindInternal(aCert, aIssuerCert, index, lock)) {
     LogWithCerts("OCSPCache::Get(%s, %s) not in cache", aCert, aIssuerCert);
     return false;
   }
@@ -193,9 +206,8 @@ OCSPCache::Put(const CERTCertificate* aCert,
 
   MutexAutoLock lock(mMutex);
 
-  int32_t index = FindInternal(aCert, aIssuerCert, lock);
-
-  if (index >= 0) {
+  size_t index;
+  if (FindInternal(aCert, aIssuerCert, index, lock)) {
     // Never replace an entry indicating a revoked certificate.
     if (mEntries[index]->mErrorCode == SEC_ERROR_REVOKED_CERTIFICATE) {
       LogWithCerts("OCSPCache::Put(%s, %s) already in cache as revoked - "
@@ -274,6 +286,7 @@ OCSPCache::Put(const CERTCertificate* aCert,
   SECStatus rv = newEntry->Init(aCert, aIssuerCert, aErrorCode, aThisUpdate,
                                 aValidThrough);
   if (rv != SECSuccess) {
+    delete newEntry;
     return rv;
   }
   mEntries.append(newEntry);

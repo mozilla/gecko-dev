@@ -29,6 +29,7 @@ public:
   struct StateData
   {
     nsString mResponseText;
+    nsString mResponseURL;
     uint32_t mStatus;
     nsCString mStatusText;
     uint16_t mReadyState;
@@ -87,7 +88,7 @@ public:
   {
     // Pretend like someone passed null, so we can pick up the default values
     MozXMLHttpRequestParameters params;
-    if (!params.Init(aGlobal.GetContext(), JS::NullHandleValue)) {
+    if (!params.Init(aGlobal.Context(), JS::NullHandleValue)) {
       aRv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }
@@ -174,6 +175,12 @@ public:
   void
   Abort(ErrorResult& aRv);
 
+  void
+  GetResponseURL(nsAString& aUrl) const
+  {
+    aUrl = mStateData.mResponseURL;
+  }
+
   uint16_t
   GetStatus(ErrorResult& aRv) const
   {
@@ -206,8 +213,9 @@ public:
   void
   SetResponseType(XMLHttpRequestResponseType aResponseType, ErrorResult& aRv);
 
-  jsval
-  GetResponse(JSContext* /* unused */, ErrorResult& aRv);
+  void
+  GetResponse(JSContext* /* unused */, JS::MutableHandle<JS::Value> aResponse,
+              ErrorResult& aRv);
 
   void
   GetResponseText(nsAString& aResponseText, ErrorResult& aRv);
@@ -224,11 +232,11 @@ public:
     return nullptr;
   }
 
-  JS::Value
-  GetInterface(JSContext* cx, JS::Handle<JSObject*> aIID, ErrorResult& aRv)
+  void
+  GetInterface(JSContext* cx, JS::Handle<JSObject*> aIID,
+               JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv)
   {
     aRv.Throw(NS_ERROR_FAILURE);
-    return JSVAL_NULL;
   }
 
   XMLHttpRequestUpload*
@@ -238,7 +246,7 @@ public:
   }
 
   void
-  UpdateState(const StateData& aStateData);
+  UpdateState(const StateData& aStateData, bool aUseCachedArrayBufferResponse);
 
   void
   NullResponseText()
@@ -255,6 +263,12 @@ public:
   bool MozSystem() const
   {
     return mMozSystem;
+  }
+
+  bool
+  SendInProgress() const
+  {
+    return mRooted;
   }
 
 private:
@@ -276,12 +290,6 @@ private:
   DispatchPrematureAbortEvent(EventTarget* aTarget,
                               const nsAString& aEventType, bool aUploadTarget,
                               ErrorResult& aRv);
-
-  bool
-  SendInProgress() const
-  {
-    return mRooted;
-  }
 
   void
   SendInternal(const nsAString& aStringBody,

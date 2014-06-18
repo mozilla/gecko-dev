@@ -218,11 +218,27 @@ public:
   // ISize is the size in the writing mode's inline direction (which equates to
   // width in horizontal writing modes, height in vertical ones), and BSize is
   // the size in the block-progression direction.
-  nscoord ISize() const { return mISize; }
-  nscoord BSize() const { return mBSize; }
+  nscoord ISize(mozilla::WritingMode aWritingMode) const {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mISize;
+  }
+  nscoord BSize(mozilla::WritingMode aWritingMode) const {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mBSize;
+  }
+  mozilla::LogicalSize Size(mozilla::WritingMode aWritingMode) const {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mozilla::LogicalSize(aWritingMode, mISize, mBSize);
+  }
 
-  nscoord& ISize() { return mISize; }
-  nscoord& BSize() { return mBSize; }
+  nscoord& ISize(mozilla::WritingMode aWritingMode) {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mISize;
+  }
+  nscoord& BSize(mozilla::WritingMode aWritingMode) {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mBSize;
+  }
 
   // Width and Height are physical dimensions, independent of writing mode.
   // Accessing these is slightly more expensive than accessing the logical
@@ -232,49 +248,17 @@ public:
   nscoord Height() const { return mWritingMode.IsVertical() ? mISize : mBSize; }
 
   // It's only meaningful to consider "ascent" on the block-start side of the
-  // frame; asking for the "ascent" on any other side will just return zero.
-  nscoord TopAscent() const
+  // frame, so no need to pass a writing mode argument
+  nscoord BlockStartAscent() const
   {
-    return mWritingMode.IsVertical() ? 0 : mBlockStartAscent;
-  }
-  nscoord LeftAscent() const
-  {
-    return mWritingMode.IsVertical() && mWritingMode.IsVerticalLR() ?
-           mBlockStartAscent : 0;
-  }
-  nscoord RightAscent() const
-  {
-    return mWritingMode.IsVertical() && !mWritingMode.IsVerticalLR() ?
-           mBlockStartAscent : 0;
+    return mBlockStartAscent;
   }
 
   nscoord& Width() { return mWritingMode.IsVertical() ? mBSize : mISize; }
   nscoord& Height() { return mWritingMode.IsVertical() ? mISize : mBSize; }
 
-  // To set the ascent value, we must be sure we're working with the correct
-  // writing mode, so either pass it to the logical setter...
-  void SetBlockStartAscent(mozilla::WritingMode aWritingMode, nscoord aAscent)
+  void SetBlockStartAscent(nscoord aAscent)
   {
-    NS_ASSERTION(aWritingMode == mWritingMode, "writing mode mismatch");
-    mBlockStartAscent = aAscent;
-  }
-  // ...or call the appropriate physical setter (these will probably be removed
-  // eventually).
-  void SetTopAscent(nscoord aAscent)
-  {
-    NS_ASSERTION(!mWritingMode.IsVertical(), "writing mode mismatch");
-    mBlockStartAscent = aAscent;
-  }
-  void SetLeftAscent(nscoord aAscent)
-  {
-    NS_ASSERTION(mWritingMode.IsVertical() && mWritingMode.IsVerticalLR(),
-                 "writing mode mismatch");
-    mBlockStartAscent = aAscent;
-  }
-  void SetRightAscent(nscoord aAscent)
-  {
-    NS_ASSERTION(mWritingMode.IsVertical() && !mWritingMode.IsVerticalLR(),
-                 "writing mode mismatch");
     mBlockStartAscent = aAscent;
   }
 

@@ -7,6 +7,7 @@
 #define OMXCodecWrapper_h_
 
 #include <gui/Surface.h>
+#include <utils/RefBase.h>
 #include <stagefright/foundation/ABuffer.h>
 #include <stagefright/foundation/AMessage.h>
 #include <stagefright/MediaCodec.h>
@@ -15,9 +16,44 @@
 #include "GonkNativeWindow.h"
 #include "GonkNativeWindowClient.h"
 
+#include "IMediaResourceManagerService.h"
+#include "MediaResourceManagerClient.h"
+
 #include <speex/speex_resampler.h>
 
 namespace android {
+
+// Wrapper class for managing HW codec reservations
+class OMXCodecReservation : public MediaResourceManagerClient::EventListener
+{
+public:
+  OMXCodecReservation(bool aEncoder)
+  {
+    mType = aEncoder ? IMediaResourceManagerService::HW_VIDEO_ENCODER :
+            IMediaResourceManagerService::HW_VIDEO_DECODER;
+  }
+
+  virtual ~OMXCodecReservation()
+  {
+    ReleaseOMXCodec();
+  }
+
+  /** Reserve the Encode or Decode resource for this instance */
+  virtual bool ReserveOMXCodec();
+
+  /** Release the Encode or Decode resource for this instance */
+  virtual void ReleaseOMXCodec();
+
+  // MediaResourceManagerClient::EventListener
+  virtual void statusChanged(int event) {}
+
+private:
+  IMediaResourceManagerService::ResourceType mType;
+
+  sp<MediaResourceManagerClient> mClient;
+  sp<IMediaResourceManagerService> mManagerService;
+};
+
 
 class OMXAudioEncoder;
 class OMXVideoEncoder;
@@ -277,10 +313,10 @@ public:
 #endif
 
   /**
-   * Get current AVC codec config blob. The output format depends on the
-   * aBlobFormat argument given when Configure() was called.
+   * Ask codec to generate an instantaneous decoding refresh (IDR) frame
+   * (defined in ISO/IEC 14496-10).
    */
-  nsresult GetCodecConfig(nsTArray<uint8_t>* aOutputBuf);
+  nsresult RequestIDRFrame();
 
 protected:
   virtual status_t AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
@@ -307,7 +343,6 @@ private:
     , mWidth(0)
     , mHeight(0)
     , mBlobFormat(BlobFormat::AVC_MP4)
-    , mHasConfigBlob(false)
   {}
 
   // For creator function to access hidden constructor.
@@ -316,7 +351,6 @@ private:
   int mWidth;
   int mHeight;
   BlobFormat mBlobFormat;
-  bool mHasConfigBlob;
 };
 
 } // namespace android

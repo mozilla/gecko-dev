@@ -14,6 +14,7 @@
 #include "mozilla/dom/OfflineAudioContextBinding.h"
 #include "mozilla/dom/OwningNonNull.h"
 #include "MediaStreamGraph.h"
+#include "AudioChannelService.h"
 #include "AudioDestinationNode.h"
 #include "AudioBufferSourceNode.h"
 #include "AudioBuffer.h"
@@ -131,7 +132,9 @@ AudioContext::Constructor(const GlobalObject& aGlobal,
     return nullptr;
   }
 
-  nsRefPtr<AudioContext> object = new AudioContext(window, false);
+  nsRefPtr<AudioContext> object =
+    new AudioContext(window, false,
+                     AudioChannelService::GetDefaultAudioChannel());
 
   RegisterWeakMemoryReporter(object);
 
@@ -172,8 +175,8 @@ AudioContext::Constructor(const GlobalObject& aGlobal,
   if (aNumberOfChannels == 0 ||
       aNumberOfChannels > WebAudioUtils::MaxChannelCount ||
       aLength == 0 ||
-      aSampleRate <= 1.0f ||
-      aSampleRate >= TRACK_RATE_MAX) {
+      aSampleRate < WebAudioUtils::MinSampleRate ||
+      aSampleRate > WebAudioUtils::MaxSampleRate) {
     // The DOM binding protects us against infinity and NaN
     aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return nullptr;
@@ -204,24 +207,13 @@ AudioContext::CreateBuffer(JSContext* aJSContext, uint32_t aNumberOfChannels,
                            uint32_t aLength, float aSampleRate,
                            ErrorResult& aRv)
 {
-  if (aSampleRate < 8000 || aSampleRate > 192000 || !aLength || !aNumberOfChannels) {
+  if (!aNumberOfChannels) {
     aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
     return nullptr;
   }
 
-  if (aLength > INT32_MAX) {
-    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return nullptr;
-  }
-
-  nsRefPtr<AudioBuffer> buffer =
-    new AudioBuffer(this, int32_t(aLength), aSampleRate);
-  if (!buffer->InitializeBuffers(aNumberOfChannels, aJSContext)) {
-    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return nullptr;
-  }
-
-  return buffer.forget();
+  return AudioBuffer::Create(this, aNumberOfChannels, aLength,
+                             aSampleRate, aJSContext, aRv);
 }
 
 namespace {
@@ -411,6 +403,9 @@ AudioContext::CreatePeriodicWave(const Float32Array& aRealData,
                                  const Float32Array& aImagData,
                                  ErrorResult& aRv)
 {
+  aRealData.ComputeLengthAndData();
+  aImagData.ComputeLengthAndData();
+
   if (aRealData.Length() != aImagData.Length() ||
       aRealData.Length() == 0 ||
       aRealData.Length() > 4096) {
@@ -441,22 +436,31 @@ AudioContext::DecodeAudioData(const ArrayBuffer& aBuffer,
                               DecodeSuccessCallback& aSuccessCallback,
                               const Optional<OwningNonNull<DecodeErrorCallback> >& aFailureCallback)
 {
+  AutoJSAPI jsapi;
+  JSContext* cx = jsapi.cx();
+  JSAutoCompartment ac(cx, aBuffer.Obj());
+
+  aBuffer.ComputeLengthAndData();
+
+  // Neuter the array buffer
+  size_t length = aBuffer.Length();
+  JS::RootedObject obj(cx, aBuffer.Obj());
+
+  uint8_t* data = static_cast<uint8_t*>(JS_StealArrayBufferContents(cx, obj));
+
   // Sniff the content of the media.
   // Failed type sniffing will be handled by AsyncDecodeMedia.
   nsAutoCString contentType;
-  NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, nullptr,
-                  aBuffer.Data(), aBuffer.Length(),
-                  contentType);
+  NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, nullptr, data, length, contentType);
 
   nsRefPtr<DecodeErrorCallback> failureCallback;
   if (aFailureCallback.WasPassed()) {
     failureCallback = &aFailureCallback.Value();
   }
   nsRefPtr<WebAudioDecodeJob> job(
-    new WebAudioDecodeJob(contentType, this, aBuffer,
+    new WebAudioDecodeJob(contentType, this,
                           &aSuccessCallback, failureCallback));
-  mDecoder.AsyncDecodeMedia(contentType.get(),
-                            aBuffer.Data(), aBuffer.Length(), *job);
+  mDecoder.AsyncDecodeMedia(contentType.get(), data, length, *job);
   // Transfer the ownership to mDecodeJobs
   mDecodeJobs.AppendElement(job);
 }
@@ -533,7 +537,8 @@ AudioContext::DestinationStream() const
 double
 AudioContext::CurrentTime() const
 {
-  return MediaTimeToSeconds(Destination()->Stream()->GetCurrentTime()) +
+  MediaStream* stream = Destination()->Stream();
+  return stream->StreamTimeToSeconds(stream->GetCurrentTime()) +
       ExtraCurrentTime();
 }
 
@@ -590,21 +595,16 @@ AudioContext::UpdateNodeCount(int32_t aDelta)
   }
 }
 
-JSContext*
-AudioContext::GetJSContext() const
+JSObject*
+AudioContext::GetGlobalJSObject() const
 {
-  MOZ_ASSERT(NS_IsMainThread());
+  nsCOMPtr<nsIGlobalObject> parentObject = do_QueryInterface(GetParentObject());
+  if (!parentObject) {
+    return nullptr;
+  }
 
-  nsCOMPtr<nsIScriptGlobalObject> scriptGlobal =
-    do_QueryInterface(GetParentObject());
-  if (!scriptGlobal) {
-    return nullptr;
-  }
-  nsIScriptContext* scriptContext = scriptGlobal->GetContext();
-  if (!scriptContext) {
-    return nullptr;
-  }
-  return scriptContext->GetNativeContext();
+  // This can also return null.
+  return parentObject->GetGlobalJSObject();
 }
 
 void

@@ -20,7 +20,7 @@
            Preferences, SidebarView, ViewHistory, PageView, ThumbnailView, URL,
            noContextMenuHandler, SecondaryToolbar, PasswordPrompt,
            PresentationMode, HandTool, Promise, DocumentProperties,
-           DocumentOutlineView, DocumentAttachmentsView */
+           DocumentOutlineView, DocumentAttachmentsView, OverlayManager */
 
 'use strict';
 
@@ -28,18 +28,17 @@ var DEFAULT_URL = 'compressed.tracemonkey-pldi-09.pdf';
 var DEFAULT_SCALE = 'auto';
 var DEFAULT_SCALE_DELTA = 1.1;
 var UNKNOWN_SCALE = 0;
-var CACHE_SIZE = 20;
+var CACHE_SIZE = 10;
 var CSS_UNITS = 96.0 / 72.0;
 var SCROLLBAR_PADDING = 40;
 var VERTICAL_PADDING = 5;
 var MAX_AUTO_SCALE = 1.25;
 var MIN_SCALE = 0.25;
-var MAX_SCALE = 4.0;
+var MAX_SCALE = 10.0;
 var VIEW_HISTORY_MEMORY = 20;
 var SCALE_SELECT_CONTAINER_PADDING = 8;
 var SCALE_SELECT_PADDING = 22;
 var THUMBNAIL_SCROLL_MARGIN = -19;
-var USE_ONLY_CSS_ZOOM = false;
 var CLEANUP_TIMEOUT = 30000;
 var IGNORE_CURRENT_POSITION_ON_ZOOM = false;
 var RenderingStates = {
@@ -295,7 +294,7 @@ var Cache = function cacheCache(size) {
   this.push = function cachePush(view) {
     var i = data.indexOf(view);
     if (i >= 0) {
-      data.splice(i);
+      data.splice(i, 1);
     }
     data.push(view);
     if (data.length > size) {
@@ -312,7 +311,12 @@ var DEFAULT_PREFERENCES = {
   defaultZoomValue: '',
   sidebarViewOnLoad: 0,
   enableHandToolOnLoad: false,
-  enableWebGL: false
+  enableWebGL: false,
+  disableRange: false,
+  disableAutoFetch: false,
+  disableFontFace: false,
+  disableTextLayer: false,
+  useOnlyCssZoom: false
 };
 
 
@@ -509,9 +513,12 @@ var FirefoxCom = (function FirefoxComClosure() {
       document.documentElement.appendChild(request);
 
       var sender = document.createEvent('CustomEvent');
-      sender.initCustomEvent('pdf.js.message', true, false,
-                             {action: action, data: data, sync: false,
-                              callback: callback});
+      sender.initCustomEvent('pdf.js.message', true, false, {
+        action: action,
+        data: data,
+        sync: false,
+        responseExpected: !!callback
+      });
       return request.dispatchEvent(sender);
     }
   };
@@ -648,7 +655,7 @@ var ViewHistory = (function ViewHistoryClosure() {
         return;
       }
       this.file[name] = val;
-      this._writeToStorage();
+      return this._writeToStorage();
     },
 
     setMultiple: function ViewHistory_setMultiple(properties) {
@@ -658,7 +665,7 @@ var ViewHistory = (function ViewHistoryClosure() {
       for (var name in properties) {
         this.file[name] = properties[name];
       }
-      this._writeToStorage();
+      return this._writeToStorage();
     },
 
     get: function ViewHistory_get(name, defaultValue) {
@@ -1612,7 +1619,7 @@ var SecondaryToolbar = {
   },
 
   documentPropertiesClick: function secondaryToolbarDocumentPropsClick(evt) {
-    this.documentProperties.show();
+    this.documentProperties.open();
     this.close();
   },
 
@@ -1655,84 +1662,6 @@ var SecondaryToolbar = {
       this.close();
     } else {
       this.open();
-    }
-  }
-};
-
-
-var PasswordPrompt = {
-  visible: false,
-  updatePassword: null,
-  reason: null,
-  overlayContainer: null,
-  passwordField: null,
-  passwordText: null,
-  passwordSubmit: null,
-  passwordCancel: null,
-
-  initialize: function secondaryToolbarInitialize(options) {
-    this.overlayContainer = options.overlayContainer;
-    this.passwordField = options.passwordField;
-    this.passwordText = options.passwordText;
-    this.passwordSubmit = options.passwordSubmit;
-    this.passwordCancel = options.passwordCancel;
-
-    // Attach the event listeners.
-    this.passwordSubmit.addEventListener('click',
-      this.verifyPassword.bind(this));
-
-    this.passwordCancel.addEventListener('click', this.hide.bind(this));
-
-    this.passwordField.addEventListener('keydown',
-      function (e) {
-        if (e.keyCode === 13) { // Enter key
-          this.verifyPassword();
-        }
-      }.bind(this));
-
-    window.addEventListener('keydown',
-      function (e) {
-        if (e.keyCode === 27) { // Esc key
-          this.hide();
-        }
-      }.bind(this));
-  },
-
-  show: function passwordPromptShow() {
-    if (this.visible) {
-      return;
-    }
-    this.visible = true;
-    this.overlayContainer.classList.remove('hidden');
-    this.overlayContainer.firstElementChild.classList.remove('hidden');
-    this.passwordField.focus();
-
-    var promptString = mozL10n.get('password_label', null,
-      'Enter the password to open this PDF file.');
-
-    if (this.reason === PDFJS.PasswordResponses.INCORRECT_PASSWORD) {
-      promptString = mozL10n.get('password_invalid', null,
-        'Invalid password. Please try again.');
-    }
-
-    this.passwordText.textContent = promptString;
-  },
-
-  hide: function passwordPromptClose() {
-    if (!this.visible) {
-      return;
-    }
-    this.visible = false;
-    this.passwordField.value = '';
-    this.overlayContainer.classList.add('hidden');
-    this.overlayContainer.firstElementChild.classList.add('hidden');
-  },
-
-  verifyPassword: function passwordPromptVerifyPassword() {
-    var password = this.passwordField.value;
-    if (password && password.length > 0) {
-      this.hide();
-      return this.updatePassword(password);
     }
   }
 };
@@ -2228,11 +2157,201 @@ var HandTool = {
 };
 
 
+var OverlayManager = {
+  overlays: {},
+  active: null,
+
+  /**
+   * @param {string} name The name of the overlay that is registered. This must
+   *                 be equal to the ID of the overlay's DOM element.
+   * @param {function} callerCloseMethod (optional) The method that, if present,
+   *                   will call OverlayManager.close from the Object
+   *                   registering the overlay. Access to this method is
+   *                   necessary in order to run cleanup code when e.g.
+   *                   the overlay is force closed. The default is null.
+   * @param {boolean} canForceClose (optional) Indicates if opening the overlay
+   *                  will close an active overlay. The default is false.
+   * @returns {Promise} A promise that is resolved when the overlay has been
+   *                    registered.
+   */
+  register: function overlayManagerRegister(name,
+                                            callerCloseMethod, canForceClose) {
+    return new Promise(function (resolve) {
+      var element, container;
+      if (!name || !(element = document.getElementById(name)) ||
+          !(container = element.parentNode)) {
+        throw new Error('Not enough parameters.');
+      } else if (this.overlays[name]) {
+        throw new Error('The overlay is already registered.');
+      }
+      this.overlays[name] = { element: element,
+                              container: container,
+                              callerCloseMethod: (callerCloseMethod || null),
+                              canForceClose: (canForceClose || false) };
+      resolve();
+    }.bind(this));
+  },
+
+  /**
+   * @param {string} name The name of the overlay that is unregistered.
+   * @returns {Promise} A promise that is resolved when the overlay has been
+   *                    unregistered.
+   */
+  unregister: function overlayManagerUnregister(name) {
+    return new Promise(function (resolve) {
+      if (!this.overlays[name]) {
+        throw new Error('The overlay does not exist.');
+      } else if (this.active === name) {
+        throw new Error('The overlay cannot be removed while it is active.');
+      }
+      delete this.overlays[name];
+
+      resolve();
+    }.bind(this));
+  },
+
+  /**
+   * @param {string} name The name of the overlay that should be opened.
+   * @returns {Promise} A promise that is resolved when the overlay has been
+   *                    opened.
+   */
+  open: function overlayManagerOpen(name) {
+    return new Promise(function (resolve) {
+      if (!this.overlays[name]) {
+        throw new Error('The overlay does not exist.');
+      } else if (this.active) {
+        if (this.overlays[name].canForceClose) {
+          this._closeThroughCaller();
+        } else if (this.active === name) {
+          throw new Error('The overlay is already active.');
+        } else {
+          throw new Error('Another overlay is currently active.');
+        }
+      }
+      this.active = name;
+      this.overlays[this.active].element.classList.remove('hidden');
+      this.overlays[this.active].container.classList.remove('hidden');
+
+      window.addEventListener('keydown', this._keyDown);
+      resolve();
+    }.bind(this));
+  },
+
+  /**
+   * @param {string} name The name of the overlay that should be closed.
+   * @returns {Promise} A promise that is resolved when the overlay has been
+   *                    closed.
+   */
+  close: function overlayManagerClose(name) {
+    return new Promise(function (resolve) {
+      if (!this.overlays[name]) {
+        throw new Error('The overlay does not exist.');
+      } else if (!this.active) {
+        throw new Error('The overlay is currently not active.');
+      } else if (this.active !== name) {
+        throw new Error('Another overlay is currently active.');
+      }
+      this.overlays[this.active].container.classList.add('hidden');
+      this.overlays[this.active].element.classList.add('hidden');
+      this.active = null;
+
+      window.removeEventListener('keydown', this._keyDown);
+      resolve();
+    }.bind(this));
+  },
+
+  /**
+   * @private
+   */
+  _keyDown: function overlayManager_keyDown(evt) {
+    var self = OverlayManager;
+    if (self.active && evt.keyCode === 27) { // Esc key.
+      self._closeThroughCaller();
+      evt.preventDefault();
+    }
+  },
+
+  /**
+   * @private
+   */
+  _closeThroughCaller: function overlayManager_closeThroughCaller() {
+    if (this.overlays[this.active].callerCloseMethod) {
+      this.overlays[this.active].callerCloseMethod();
+    }
+    if (this.active) {
+      this.close(this.active);
+    }
+  }
+};
+
+
+var PasswordPrompt = {
+  overlayName: null,
+  updatePassword: null,
+  reason: null,
+  passwordField: null,
+  passwordText: null,
+  passwordSubmit: null,
+  passwordCancel: null,
+
+  initialize: function secondaryToolbarInitialize(options) {
+    this.overlayName = options.overlayName;
+    this.passwordField = options.passwordField;
+    this.passwordText = options.passwordText;
+    this.passwordSubmit = options.passwordSubmit;
+    this.passwordCancel = options.passwordCancel;
+
+    // Attach the event listeners.
+    this.passwordSubmit.addEventListener('click',
+      this.verifyPassword.bind(this));
+
+    this.passwordCancel.addEventListener('click', this.close.bind(this));
+
+    this.passwordField.addEventListener('keydown', function (e) {
+      if (e.keyCode === 13) { // Enter key
+        this.verifyPassword();
+      }
+    }.bind(this));
+
+    OverlayManager.register(this.overlayName, this.close.bind(this), true);
+  },
+
+  open: function passwordPromptOpen() {
+    OverlayManager.open(this.overlayName).then(function () {
+      this.passwordField.focus();
+
+      var promptString = mozL10n.get('password_label', null,
+        'Enter the password to open this PDF file.');
+
+      if (this.reason === PDFJS.PasswordResponses.INCORRECT_PASSWORD) {
+        promptString = mozL10n.get('password_invalid', null,
+          'Invalid password. Please try again.');
+      }
+
+      this.passwordText.textContent = promptString;
+    }.bind(this));
+  },
+
+  close: function passwordPromptClose() {
+    OverlayManager.close(this.overlayName).then(function () {
+      this.passwordField.value = '';
+    }.bind(this));
+  },
+
+  verifyPassword: function passwordPromptVerifyPassword() {
+    var password = this.passwordField.value;
+    if (password && password.length > 0) {
+      this.close();
+      return this.updatePassword(password);
+    }
+  }
+};
+
+
 var DocumentProperties = {
-  overlayContainer: null,
+  overlayName: null,
   fileName: '',
   fileSize: '',
-  visible: false,
 
   // Document property fields (in the viewer).
   fileNameField: null,
@@ -2249,7 +2368,7 @@ var DocumentProperties = {
   pageCountField: null,
 
   initialize: function documentPropertiesInitialize(options) {
-    this.overlayContainer = options.overlayContainer;
+    this.overlayName = options.overlayName;
 
     // Set the document property fields.
     this.fileNameField = options.fileNameField;
@@ -2267,24 +2386,18 @@ var DocumentProperties = {
 
     // Bind the event listener for the Close button.
     if (options.closeButton) {
-      options.closeButton.addEventListener('click', this.hide.bind(this));
+      options.closeButton.addEventListener('click', this.close.bind(this));
     }
 
     this.dataAvailablePromise = new Promise(function (resolve) {
       this.resolveDataAvailable = resolve;
     }.bind(this));
 
-    // Bind the event listener for the Esc key (to close the dialog).
-    window.addEventListener('keydown',
-      function (e) {
-        if (e.keyCode === 27) { // Esc key
-          this.hide();
-        }
-      }.bind(this));
+    OverlayManager.register(this.overlayName, this.close.bind(this));
   },
 
   getProperties: function documentPropertiesGetProperties() {
-    if (!this.visible) {
+    if (!OverlayManager.active) {
       // If the dialog was closed before dataAvailablePromise was resolved,
       // don't bother updating the properties.
       return;
@@ -2346,26 +2459,15 @@ var DocumentProperties = {
     }
   },
 
-  show: function documentPropertiesShow() {
-    if (this.visible) {
-      return;
-    }
-    this.visible = true;
-    this.overlayContainer.classList.remove('hidden');
-    this.overlayContainer.lastElementChild.classList.remove('hidden');
-
-    this.dataAvailablePromise.then(function () {
+  open: function documentPropertiesOpen() {
+    Promise.all([OverlayManager.open(this.overlayName),
+                 this.dataAvailablePromise]).then(function () {
       this.getProperties();
     }.bind(this));
   },
 
-  hide: function documentPropertiesClose() {
-    if (!this.visible) {
-      return;
-    }
-    this.visible = false;
-    this.overlayContainer.classList.add('hidden');
-    this.overlayContainer.lastElementChild.classList.add('hidden');
+  close: function documentPropertiesClose() {
+    OverlayManager.close(this.overlayName);
   },
 
   parseDate: function documentPropertiesParseDate(inputDate) {
@@ -2496,14 +2598,6 @@ var PDFView = {
       documentPropertiesButton: document.getElementById('documentProperties')
     });
 
-    PasswordPrompt.initialize({
-      overlayContainer: document.getElementById('overlayContainer'),
-      passwordField: document.getElementById('password'),
-      passwordText: document.getElementById('passwordText'),
-      passwordSubmit: document.getElementById('passwordSubmit'),
-      passwordCancel: document.getElementById('passwordCancel')
-    });
-
     PresentationMode.initialize({
       container: container,
       secondaryToolbar: SecondaryToolbar,
@@ -2513,8 +2607,16 @@ var PDFView = {
       pageRotateCcw: document.getElementById('contextPageRotateCcw')
     });
 
+    PasswordPrompt.initialize({
+      overlayName: 'passwordOverlay',
+      passwordField: document.getElementById('password'),
+      passwordText: document.getElementById('passwordText'),
+      passwordSubmit: document.getElementById('passwordSubmit'),
+      passwordCancel: document.getElementById('passwordCancel')
+    });
+
     DocumentProperties.initialize({
-      overlayContainer: document.getElementById('overlayContainer'),
+      overlayName: 'documentPropertiesOverlay',
       closeButton: document.getElementById('documentPropertiesClose'),
       fileNameField: document.getElementById('fileNameField'),
       fileSizeField: document.getElementById('fileSizeField'),
@@ -2537,12 +2639,36 @@ var PDFView = {
     var initializedPromise = Promise.all([
       Preferences.get('enableWebGL').then(function resolved(value) {
         PDFJS.disableWebGL = !value;
-      }, function rejected(reason) {}),
+      }),
       Preferences.get('sidebarViewOnLoad').then(function resolved(value) {
         self.preferenceSidebarViewOnLoad = value;
-      }, function rejected(reason) {})
+      }),
+      Preferences.get('disableTextLayer').then(function resolved(value) {
+        if (PDFJS.disableTextLayer === true) {
+          return;
+        }
+        PDFJS.disableTextLayer = value;
+      }),
+      Preferences.get('disableRange').then(function resolved(value) {
+        if (PDFJS.disableRange === true) {
+          return;
+        }
+        PDFJS.disableRange = value;
+      }),
+      Preferences.get('disableAutoFetch').then(function resolved(value) {
+        PDFJS.disableAutoFetch = value;
+      }),
+      Preferences.get('disableFontFace').then(function resolved(value) {
+        if (PDFJS.disableFontFace === true) {
+          return;
+        }
+        PDFJS.disableFontFace = value;
+      }),
+      Preferences.get('useOnlyCssZoom').then(function resolved(value) {
+        PDFJS.useOnlyCssZoom = value;
+      })
       // TODO move more preferences and other async stuff here
-    ]);
+    ]).catch(function (reason) { });
 
     return initializedPromise.then(function () {
       PDFView.initialized = true;
@@ -2925,7 +3051,7 @@ var PDFView = {
     var passwordNeeded = function passwordNeeded(updatePassword, reason) {
       PasswordPrompt.updatePassword = updatePassword;
       PasswordPrompt.reason = reason;
-      PasswordPrompt.show();
+      PasswordPrompt.open();
     };
 
     function getDocumentProgress(progressData) {
@@ -3446,14 +3572,15 @@ var PDFView = {
     }
   },
 
-  renderHighestPriority: function pdfViewRenderHighestPriority() {
+  renderHighestPriority:
+      function pdfViewRenderHighestPriority(currentlyVisiblePages) {
     if (PDFView.idleTimeout) {
       clearTimeout(PDFView.idleTimeout);
       PDFView.idleTimeout = null;
     }
 
     // Pages have a higher priority than thumbnails, so check them first.
-    var visiblePages = this.getVisiblePages();
+    var visiblePages = currentlyVisiblePages || this.getVisiblePages();
     var pageView = this.getHighestPriority(visiblePages, this.pages,
                                            this.pageViewScroll.down);
     if (pageView) {
@@ -3485,6 +3612,8 @@ var PDFView = {
       }
     }
     this.pdfDocument.cleanup();
+
+    ThumbnailView.tempImageCache = null;
   },
 
   getHighestPriority: function pdfViewGetHighestPriority(visible, views,
@@ -3553,6 +3682,9 @@ var PDFView = {
   },
 
   setHash: function pdfViewSetHash(hash) {
+    var validFitZoomValues = ['Fit','FitB','FitH','FitBH',
+      'FitV','FitBV','FitR'];
+
     if (!hash) {
       return;
     }
@@ -3577,10 +3709,13 @@ var PDFView = {
         // it should stay as it is.
         var zoomArg = zoomArgs[0];
         var zoomArgNumber = parseFloat(zoomArg);
+        var destName = 'XYZ';
         if (zoomArgNumber) {
           zoomArg = zoomArgNumber / 100;
+        } else if (validFitZoomValues.indexOf(zoomArg) >= 0) {
+          destName = zoomArg;
         }
-        dest = [null, {name: 'XYZ'},
+        dest = [null, { name: destName },
                 zoomArgs.length > 1 ? (zoomArgs[1] | 0) : null,
                 zoomArgs.length > 2 ? (zoomArgs[2] | 0) : null,
                 zoomArg];
@@ -3889,6 +4024,7 @@ var PageView = function pageView(container, id, scale,
   this.scale = scale || 1.0;
   this.viewport = defaultViewport;
   this.pdfPageRotate = defaultViewport.rotation;
+  this.hasRestrictedScaling = false;
 
   this.renderingState = RenderingStates.INITIAL;
   this.resume = null;
@@ -3959,7 +4095,13 @@ var PageView = function pageView(container, id, scale,
       this.annotationLayer = null;
     }
 
-    delete this.canvas;
+    if (this.canvas) {
+      // Zeroing the width and height causes Firefox to release graphics
+      // resources immediately, which can greatly reduce memory consumption.
+      this.canvas.width = 0;
+      this.canvas.height = 0;
+      delete this.canvas;
+    }
 
     this.loadingIconDiv = document.createElement('div');
     this.loadingIconDiv.className = 'loadingIcon';
@@ -3979,8 +4121,23 @@ var PageView = function pageView(container, id, scale,
       rotation: totalRotation
     });
 
-    if (USE_ONLY_CSS_ZOOM && this.canvas) {
-      this.cssTransform(this.canvas);
+    var isScalingRestricted = false;
+    if (this.canvas && PDFJS.maxCanvasPixels > 0) {
+      var ctx = this.canvas.getContext('2d');
+      var outputScale = getOutputScale(ctx);
+      var pixelsInViewport = this.viewport.width * this.viewport.height;
+      var maxScale = Math.sqrt(PDFJS.maxCanvasPixels / pixelsInViewport);
+      if (((Math.floor(this.viewport.width) * outputScale.sx) | 0) *
+          ((Math.floor(this.viewport.height) * outputScale.sy) | 0) >
+          PDFJS.maxCanvasPixels) {
+        isScalingRestricted = true;
+      }
+    }
+
+    if (this.canvas &&
+        (PDFJS.useOnlyCssZoom ||
+          (this.hasRestrictedScaling && isScalingRestricted))) {
+      this.cssTransform(this.canvas, true);
       return;
     } else if (this.canvas && !this.zoomLayer) {
       this.zoomLayer = this.canvas.parentNode;
@@ -3992,7 +4149,7 @@ var PageView = function pageView(container, id, scale,
     this.reset(true);
   };
 
-  this.cssTransform = function pageCssTransform(canvas) {
+  this.cssTransform = function pageCssTransform(canvas, redrawAnnotations) {
     // Scale canvas, canvas wrapper, and page container.
     var width = this.viewport.width;
     var height = this.viewport.height;
@@ -4018,12 +4175,13 @@ var PageView = function pageView(container, id, scale,
       // the text layer are rotated.
       // TODO: This could probably be simplified by drawing the text layer in
       // one orientation then rotating overall.
+      var textLayerViewport = this.textLayer.viewport;
       var textRelativeRotation = this.viewport.rotation -
-                                 this.textLayer.viewport.rotation;
+                                 textLayerViewport.rotation;
       var textAbsRotation = Math.abs(textRelativeRotation);
-      var scale = (width / canvas.width);
+      var scale = width / textLayerViewport.width;
       if (textAbsRotation === 90 || textAbsRotation === 270) {
-        scale = width / canvas.height;
+        scale = width / textLayerViewport.height;
       }
       var textLayerDiv = this.textLayer.textLayerDiv;
       var transX, transY;
@@ -4054,7 +4212,7 @@ var PageView = function pageView(container, id, scale,
       CustomStyle.setProp('transformOrigin', textLayerDiv, '0% 0%');
     }
 
-    if (USE_ONLY_CSS_ZOOM && this.annotationLayer) {
+    if (redrawAnnotations && this.annotationLayer) {
       setupAnnotations(div, this.pdfPage, this.viewport);
     }
   };
@@ -4351,13 +4509,26 @@ var PageView = function pageView(container, id, scale,
     var ctx = canvas.getContext('2d');
     var outputScale = getOutputScale(ctx);
 
-    if (USE_ONLY_CSS_ZOOM) {
+    if (PDFJS.useOnlyCssZoom) {
       var actualSizeViewport = viewport.clone({ scale: CSS_UNITS });
       // Use a scale that will make the canvas be the original intended size
       // of the page.
       outputScale.sx *= actualSizeViewport.width / viewport.width;
       outputScale.sy *= actualSizeViewport.height / viewport.height;
       outputScale.scaled = true;
+    }
+
+    if (PDFJS.maxCanvasPixels > 0) {
+      var pixelsInViewport = viewport.width * viewport.height;
+      var maxScale = Math.sqrt(PDFJS.maxCanvasPixels / pixelsInViewport);
+      if (outputScale.sx > maxScale || outputScale.sy > maxScale) {
+        outputScale.sx = maxScale;
+        outputScale.sy = maxScale;
+        outputScale.scaled = true;
+        this.hasRestrictedScaling = true;
+      } else {
+        this.hasRestrictedScaling = false;
+      }
     }
 
     canvas.width = (Math.floor(viewport.width) * outputScale.sx) | 0;
@@ -4442,8 +4613,6 @@ var PageView = function pageView(container, id, scale,
         self.onAfterDraw();
       }
 
-      cache.push(self);
-
       var event = document.createEvent('CustomEvent');
       event.initCustomEvent('pagerender', true, true, {
         pageNumber: pdfPage.pageNumber
@@ -4494,6 +4663,10 @@ var PageView = function pageView(container, id, scale,
 
     setupAnnotations(div, pdfPage, this.viewport);
     div.setAttribute('data-loaded', true);
+
+    // Add the page to the cache at the start of drawing. That way it can be
+    // evicted from the cache and destroyed even if we pause its rendering.
+    cache.push(this);
   };
 
   this.beforePrint = function pageViewBeforePrint() {
@@ -4720,6 +4893,17 @@ var ThumbnailView = function thumbnailView(container, id, defaultViewport) {
     this.hasImage = true;
   };
 
+  function getTempCanvas(width, height) {
+    var tempCanvas = ThumbnailView.tempImageCache;
+    if (!tempCanvas) {
+      tempCanvas = document.createElement('canvas');
+      ThumbnailView.tempImageCache = tempCanvas;
+    }
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    return tempCanvas;
+  }
+
   this.setImage = function thumbnailViewSetImage(img) {
     if (!this.pdfPage) {
       var promise = PDFView.getPage(this.id);
@@ -4734,12 +4918,39 @@ var ThumbnailView = function thumbnailView(container, id, defaultViewport) {
     }
     this.renderingState = RenderingStates.FINISHED;
     var ctx = this.getPageDrawContext();
-    ctx.drawImage(img, 0, 0, img.width, img.height,
+
+    var reducedImage = img;
+    var reducedWidth = img.width;
+    var reducedHeight = img.height;
+
+    // drawImage does an awful job of rescaling the image, doing it gradually
+    var MAX_SCALE_FACTOR = 2.0;
+    if (Math.max(img.width / ctx.canvas.width,
+                 img.height / ctx.canvas.height) > MAX_SCALE_FACTOR) {
+      reducedWidth >>= 1;
+      reducedHeight >>= 1;
+      reducedImage = getTempCanvas(reducedWidth, reducedHeight);
+      var reducedImageCtx = reducedImage.getContext('2d');
+      reducedImageCtx.drawImage(img, 0, 0, img.width, img.height,
+                                0, 0, reducedWidth, reducedHeight);
+      while (Math.max(reducedWidth / ctx.canvas.width,
+                      reducedHeight / ctx.canvas.height) > MAX_SCALE_FACTOR) {
+        reducedImageCtx.drawImage(reducedImage,
+                                  0, 0, reducedWidth, reducedHeight,
+                                  0, 0, reducedWidth >> 1, reducedHeight >> 1);
+        reducedWidth >>= 1;
+        reducedHeight >>= 1;
+      }
+    }
+
+    ctx.drawImage(reducedImage, 0, 0, reducedWidth, reducedHeight,
                   0, 0, ctx.canvas.width, ctx.canvas.height);
 
     this.hasImage = true;
   };
 };
+
+ThumbnailView.tempImageCache = null;
 
 
 var FIND_SCROLL_OFFSET_TOP = -50;
@@ -5201,7 +5412,7 @@ function webViewerInitialized() {
   }
 
   if ('useOnlyCssZoom' in hashParams) {
-    USE_ONLY_CSS_ZOOM = (hashParams['useOnlyCssZoom'] === 'true');
+    PDFJS.useOnlyCssZoom = (hashParams['useOnlyCssZoom'] === 'true');
   }
 
   if ('verbosity' in hashParams) {
@@ -5373,7 +5584,7 @@ function updateViewarea() {
     return;
   }
 
-  PDFView.renderHighestPriority();
+  PDFView.renderHighestPriority(visible);
 
   var currentId = PDFView.page;
   var firstPage = visible.first;
@@ -5430,6 +5641,8 @@ function updateViewarea() {
       'zoom': normalizedScaleValue,
       'scrollLeft': intLeft,
       'scrollTop': intTop
+    }).catch(function() {
+      // unable to write to storage
     });
   });
   var href = PDFView.getAnchorUrl(pdfOpenParams);
@@ -5578,7 +5791,7 @@ window.addEventListener('click', function click(evt) {
 }, false);
 
 window.addEventListener('keydown', function keydown(evt) {
-  if (PasswordPrompt.visible) {
+  if (OverlayManager.active) {
     return;
   }
 
@@ -5717,13 +5930,14 @@ window.addEventListener('keydown', function keydown(evt) {
         break;
 
       case 36: // home
-        if (PresentationMode.active) {
+        if (PresentationMode.active || PDFView.page > 1) {
           PDFView.page = 1;
           handled = true;
         }
         break;
       case 35: // end
-        if (PresentationMode.active) {
+        if (PresentationMode.active ||
+            PDFView.page < PDFView.pdfDocument.numPages) {
           PDFView.page = PDFView.pdfDocument.numPages;
           handled = true;
         }
@@ -5809,16 +6023,8 @@ window.addEventListener('afterprint', function afterPrint(evt) {
 (function animationStartedClosure() {
   // The offsetParent is not set until the pdf.js iframe or object is visible.
   // Waiting for first animation.
-  var requestAnimationFrame = window.requestAnimationFrame ||
-                              window.mozRequestAnimationFrame ||
-                              window.webkitRequestAnimationFrame ||
-                              window.oRequestAnimationFrame ||
-                              window.msRequestAnimationFrame ||
-                              function startAtOnce(callback) { callback(); };
   PDFView.animationStartedPromise = new Promise(function (resolve) {
-    requestAnimationFrame(function onAnimationFrame() {
-      resolve();
-    });
+    window.requestAnimationFrame(resolve);
   });
 })();
 

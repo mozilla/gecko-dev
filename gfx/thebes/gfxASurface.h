@@ -10,6 +10,7 @@
 #include "gfxTypes.h"
 #include "mozilla/Scoped.h"
 #include "nscore.h"
+#include "nsSize.h"
 
 #ifdef MOZILLA_INTERNAL_API
 #include "nsStringFwd.h"
@@ -22,7 +23,6 @@ struct nsIntPoint;
 struct nsIntRect;
 struct gfxRect;
 struct gfxPoint;
-struct nsIntSize;
 
 template <typename T>
 struct already_AddRefed;
@@ -50,7 +50,7 @@ public:
     /** Wrap the given cairo surface and return a gfxASurface for it.
      * This adds a reference to csurf (owned by the returned gfxASurface).
      */
-    static already_AddRefed<gfxASurface> Wrap(cairo_surface_t *csurf);
+    static already_AddRefed<gfxASurface> Wrap(cairo_surface_t *csurf, const gfxIntSize& aSize = gfxIntSize(-1, -1));
 
     /*** this DOES NOT addref the surface */
     cairo_surface_t *CairoSurface() {
@@ -190,11 +190,6 @@ public:
     void DumpAsDataURL(FILE* aOutput = stdout);
 
     /**
-     * Write as a PNG encoded Data URL to stdout.
-     */
-    void PrintAsDataURL();
-
-    /**
      * Copy a PNG encoded Data URL to the clipboard.
      */
     void CopyAsDataURL();
@@ -210,19 +205,6 @@ public:
     }
 
     /**
-     * Move the pixels in |aSourceRect| to |aDestTopLeft|.  Like with
-     * memmove(), |aSourceRect| and the rectangle defined by
-     * |aDestTopLeft| are allowed to overlap, and the effect is
-     * equivalent to copying |aSourceRect| to a scratch surface and
-     * then back to |aDestTopLeft|.
-     *
-     * |aSourceRect| and the destination rectangle defined by
-     * |aDestTopLeft| are clipped to this surface's bounds.
-     */
-    virtual void MovePixels(const nsIntRect& aSourceRect,
-                            const nsIntPoint& aDestTopLeft);
-
-    /**
      * Mark the surface as being allowed/not allowed to be used as a source.
      */
     void SetAllowUseAsSource(bool aAllow) { mAllowUseAsSource = aAllow; }
@@ -235,14 +217,6 @@ protected:
 
     static gfxASurface* GetSurfaceWrapper(cairo_surface_t *csurf);
     static void SetSurfaceWrapper(cairo_surface_t *csurf, gfxASurface *asurf);
-
-    /**
-     * An implementation of MovePixels that assumes the backend can
-     * internally handle this operation and doesn't allocate any
-     * temporary surfaces.
-     */
-    void FastMovePixels(const nsIntRect& aSourceRect,
-                        const nsIntPoint& aDestTopLeft);
 
     // NB: Init() *must* be called from within subclass's
     // constructors.  It's unsafe to call it after the ctor finishes;
@@ -274,11 +248,17 @@ protected:
  */
 class gfxUnknownSurface : public gfxASurface {
 public:
-    gfxUnknownSurface(cairo_surface_t *surf) {
+    gfxUnknownSurface(cairo_surface_t *surf, const gfxIntSize& aSize)
+        : mSize(aSize)
+    {
         Init(surf, true);
     }
 
     virtual ~gfxUnknownSurface() { }
+    virtual const nsIntSize GetSize() const { return mSize; }
+
+private:
+    nsIntSize mSize;
 };
 
 #endif /* GFX_ASURFACE_H */

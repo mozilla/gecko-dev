@@ -23,21 +23,16 @@ Test that CSP violation reports are not sent when a 301 redirect is encountered
 // This is used to watch the redirect of the report POST get blocked
 function examiner() {
   SpecialPowers.addObserver(this, "csp-on-violate-policy", false);
-  SpecialPowers.addObserver(this, "http-on-modify-request", false);
+  SpecialPowers.addObserver(this, "specialpowers-http-notify-request", false);
 }
 
 examiner.prototype  = {
   observe: function(subject, topic, data) {
-    // subject should be an nsURI
-    if(!SpecialPowers.can_QI(subject))
-       return;
-
-    if (topic === "http-on-modify-request") {
+    if (topic === "specialpowers-http-notify-request") {
       // this is used to fail the test - if we see the POST to the target of the redirect
       // we know this is a fail
-      var asciiSpec = SpecialPowers.getPrivilegedProps(SpecialPowers.do_QueryInterface(subject, "nsIHttpChannel"), "URI.asciiSpec");
-
-      if (asciiSpec == "http://example.com/some/fake/path")
+      var uri = data;
+      if (uri == "http://example.com/some/fake/path")
         window.done(false);
     }
 
@@ -52,7 +47,7 @@ examiner.prototype  = {
   // or mochitests might get borked.
   remove: function() {
     SpecialPowers.removeObserver(this, "csp-on-violate-policy");
-    SpecialPowers.removeObserver(this, "http-on-modify-request");
+    SpecialPowers.removeObserver(this, "specialpowers-http-notify-request");
   }
 }
 
@@ -71,7 +66,13 @@ window.done = function(result) {
 SimpleTest.waitForExplicitFinish();
 
 // save this for last so that our listeners are registered.
-document.getElementById('content_iframe').src = 'file_redirect_content.sjs?301';
+SpecialPowers.pushPrefEnv(
+  {'set':[["security.csp.speccompliant", true]]},
+    function() {
+      // save this for last so that our listeners are registered.
+      // ... this loads the testbed of good and bad requests.
+      document.getElementById('content_iframe').src = 'file_redirect_content.sjs?301';
+    });
 </script>
 </pre>
 </body>

@@ -49,7 +49,7 @@ static void Output(bool isError, const char *fmt, ... )
   va_start(ap, fmt);
 
 #if (defined(XP_WIN) && !MOZ_WINCONSOLE)
-  char16_t msg[2048];
+  wchar_t msg[2048];
   _vsnwprintf(msg, sizeof(msg)/sizeof(msg[0]), NS_ConvertUTF8toUTF16(fmt).get(), ap);
 
   UINT flags = MB_OK;
@@ -92,9 +92,9 @@ GetGREVersion(const char *argv0,
               nsACString *aVersion)
 {
   if (aMilestone)
-    aMilestone->Assign("<Error>");
+    aMilestone->AssignLiteral("<Error>");
   if (aVersion)
-    aVersion->Assign("<Error>");
+    aVersion->AssignLiteral("<Error>");
 
   nsCOMPtr<nsIFile> iniFile;
   nsresult rv = BinaryPath::GetFile(argv0, getter_AddRefs(iniFile));

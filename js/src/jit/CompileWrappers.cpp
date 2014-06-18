@@ -68,7 +68,7 @@ CompileRuntime::addressOfLastCachedNativeIterator()
 const void *
 CompileRuntime::addressOfGCZeal()
 {
-    return &runtime()->gc.zealMode;
+    return runtime()->gc.addressOfZealMode();
 }
 #endif
 
@@ -122,6 +122,12 @@ CompileRuntime::hadOutOfMemory()
     return runtime()->hadOutOfMemory;
 }
 
+bool
+CompileRuntime::profilingScripts()
+{
+    return runtime()->profilingScripts;
+}
+
 const JSAtomState &
 CompileRuntime::names()
 {
@@ -150,7 +156,7 @@ CompileRuntime::positiveInfinityValue()
 bool
 CompileRuntime::isInsideNursery(gc::Cell *cell)
 {
-    return UninlinedIsInsideNursery(runtime(), cell);
+    return UninlinedIsInsideNursery(cell);
 }
 #endif
 

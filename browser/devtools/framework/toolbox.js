@@ -13,6 +13,7 @@ let {Cc, Ci, Cu} = require("chrome");
 let {Promise: promise} = require("resource://gre/modules/Promise.jsm");
 let EventEmitter = require("devtools/toolkit/event-emitter");
 let Telemetry = require("devtools/shared/telemetry");
+let {getHighlighterUtils} = require("devtools/framework/toolbox-highlighter-utils");
 let HUDService = require("devtools/webconsole/hudservice");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -68,7 +69,7 @@ function Toolbox(target, selectedTool, hostType, hostOptions) {
   this._refreshHostTitle = this._refreshHostTitle.bind(this);
   this._splitConsoleOnKeypress = this._splitConsoleOnKeypress.bind(this)
   this.destroy = this.destroy.bind(this);
-  this.highlighterUtils = new ToolboxHighlighterUtils(this);
+  this.highlighterUtils = getHighlighterUtils(this);
   this._highlighterReady = this._highlighterReady.bind(this);
   this._highlighterHidden = this._highlighterHidden.bind(this);
 
@@ -187,13 +188,11 @@ Toolbox.prototype = {
   /**
    * Get the toolbox highlighter front. Note that it may not always have been
    * initialized first. Use `initInspector()` if needed.
+   * Consider using highlighterUtils instead, it exposes the highlighter API in
+   * a useful way for the toolbox panels
    */
   get highlighter() {
-    if (this.highlighterUtils.isRemoteHighlightable) {
-      return this._highlighter;
-    } else {
-      return null;
-    }
+    return this._highlighter;
   },
 
   /**
@@ -245,8 +244,9 @@ Toolbox.prototype = {
         this._buildDockButtons();
         this._buildOptions();
         this._buildTabs();
-        this._buildButtons();
+        let buttonsPromise = this._buildButtons();
         this._addKeysToWindow();
+        this._addReloadKeys();
         this._addToolSwitchingKeys();
         this._addZoomKeys();
         this._loadInitialZoom();
@@ -254,8 +254,10 @@ Toolbox.prototype = {
         this._telemetry.toolOpened("toolbox");
 
         this.selectTool(this._defaultToolId).then(panel => {
-          this.emit("ready");
-          deferred.resolve();
+          buttonsPromise.then(() => {
+            this.emit("ready");
+            deferred.resolve();
+          }, deferred.reject);
         });
       };
 
@@ -293,6 +295,19 @@ Toolbox.prototype = {
     if (e.keyCode === e.DOM_VK_ESCAPE && !responsiveModeActive) {
       this.toggleSplitConsole();
     }
+  },
+
+  _addReloadKeys: function() {
+    [
+      ["toolbox-reload-key", false],
+      ["toolbox-reload-key2", false],
+      ["toolbox-force-reload-key", true],
+      ["toolbox-force-reload-key2", true]
+    ].forEach(([id, force]) => {
+      this.doc.getElementById(id).addEventListener("command", (event) => {
+        this.reloadTarget(force);
+      }, true);
+    });
   },
 
   _addToolSwitchingKeys: function() {
@@ -532,17 +547,20 @@ Toolbox.prototype = {
     }
 
     if (!this.target.isLocalTab) {
-      return;
+      return Promise.resolve();
     }
 
     let spec = CommandUtils.getCommandbarSpec("devtools.toolbox.toolbarSpec");
     let environment = CommandUtils.createEnvironment(this, '_target');
-    this._requisition = CommandUtils.createRequisition(environment);
-    let buttons = CommandUtils.createButtons(spec, this._target,
-                                             this.doc, this._requisition);
-    let container = this.doc.getElementById("toolbox-buttons");
-    buttons.forEach(container.appendChild.bind(container));
-    this.setToolboxButtonsVisibility();
+    return CommandUtils.createRequisition(environment).then(requisition => {
+      this._requisition = requisition;
+      return CommandUtils.createButtons(spec, this.target, this.doc,
+                                        requisition).then(buttons => {
+        let container = this.doc.getElementById("toolbox-buttons");
+        buttons.forEach(container.appendChild.bind(container));
+        this.setToolboxButtonsVisibility();
+      });
+    });
   },
 
   /**
@@ -555,11 +573,23 @@ Toolbox.prototype = {
     this._pickerButton.className = "command-button command-button-invertable";
     this._pickerButton.setAttribute("tooltiptext", toolboxStrings("pickButton.tooltip"));
 
-    let container = this.doc.querySelector("#toolbox-buttons");
+    let container = this.doc.querySelector("#toolbox-picker-container");
     container.appendChild(this._pickerButton);
 
     this._togglePicker = this.highlighterUtils.togglePicker.bind(this.highlighterUtils);
     this._pickerButton.addEventListener("command", this._togglePicker, false);
+  },
+
+  /**
+   * Setter for the checked state of the picker button in the toolbar
+   * @param {Boolean} isChecked
+   */
+  set pickerButtonChecked(isChecked) {
+    if (isChecked) {
+      this._pickerButton.setAttribute("checked", "true");
+    } else {
+      this._pickerButton.removeAttribute("checked");
+    }
   },
 
   /**
@@ -576,7 +606,8 @@ Toolbox.prototype = {
       "command-button-paintflashing",
       "command-button-tilt",
       "command-button-scratchpad",
-      "command-button-eyedropper"
+      "command-button-eyedropper",
+      "command-button-screenshot"
     ].map(id => {
       let button = this.doc.getElementById(id);
       // Some buttons may not exist inside of Browser Toolbox
@@ -690,21 +721,29 @@ Toolbox.prototype = {
       vbox.id = "toolbox-panel-" + id;
     }
 
-    // If there is no tab yet, or the ordinal to be added is the largest one.
-    if (tabs.childNodes.length == 0 ||
-        +tabs.lastChild.getAttribute("ordinal") <= toolDefinition.ordinal) {
-      tabs.appendChild(radio);
+    if (id === "options") {
+      // Options panel is special.  It doesn't belong in the same container as
+      // the other tabs.
+      let optionTabContainer = this.doc.getElementById("toolbox-option-container");
+      optionTabContainer.appendChild(radio);
       deck.appendChild(vbox);
     } else {
-      // else, iterate over all the tabs to get the correct location.
-      Array.some(tabs.childNodes, (node, i) => {
-        if (+node.getAttribute("ordinal") > toolDefinition.ordinal) {
-          tabs.insertBefore(radio, node);
-          deck.insertBefore(vbox, deck.childNodes[i]);
-          return true;
-        }
-        return false;
-      });
+      // If there is no tab yet, or the ordinal to be added is the largest one.
+      if (tabs.childNodes.length == 0 ||
+          tabs.lastChild.getAttribute("ordinal") <= toolDefinition.ordinal) {
+        tabs.appendChild(radio);
+        deck.appendChild(vbox);
+      } else {
+        // else, iterate over all the tabs to get the correct location.
+        Array.some(tabs.childNodes, (node, i) => {
+          if (+node.getAttribute("ordinal") > toolDefinition.ordinal) {
+            tabs.insertBefore(radio, node);
+            deck.insertBefore(vbox, deck.childNodes[i]);
+            return true;
+          }
+          return false;
+        });
+      }
     }
 
     this._addKeysToWindow();
@@ -805,6 +844,15 @@ Toolbox.prototype = {
     let tab = this.doc.getElementById("toolbox-tab-" + id);
     tab.setAttribute("selected", "true");
 
+    // If options is selected, the separator between it and the
+    // command buttons should be hidden.
+    let sep = this.doc.getElementById("toolbox-controls-separator");
+    if (id === "options") {
+      sep.setAttribute("invisible", "true");
+    } else {
+      sep.removeAttribute("invisible");
+    }
+
     if (this.currentToolId == id) {
       // re-focus tool to get key events again
       this.focusTool(id);
@@ -831,20 +879,13 @@ Toolbox.prototype = {
     let tabstrip = this.doc.getElementById("toolbox-tabs");
 
     // select the right tab, making 0th index the default tab if right tab not
-    // found
-    let index = 0;
-    let tabs = tabstrip.childNodes;
-    for (let i = 0; i < tabs.length; i++) {
-      if (tabs[i] === tab) {
-        index = i;
-        break;
-      }
-    }
-    tabstrip.selectedItem = tab;
+    // found.
+    tabstrip.selectedItem = tab || tabstrip.childNodes[0];
 
     // and select the right iframe
     let deck = this.doc.getElementById("toolbox-deck");
-    deck.selectedIndex = index;
+    let panel = this.doc.getElementById("toolbox-panel-" + id);
+    deck.selectedPanel = panel;
 
     this.currentToolId = id;
     this._refreshConsoleDisplay();
@@ -904,11 +945,20 @@ Toolbox.prototype = {
   },
 
   /**
+   * Tells the target tab to reload.
+   */
+  reloadTarget: function(force) {
+    this.target.activeTab.reload({ force: force });
+  },
+
+  /**
    * Loads the tool next to the currently selected tool.
    */
   selectNextTool: function() {
+    let tools = this.doc.querySelectorAll(".devtools-tab");
     let selected = this.doc.querySelector(".devtools-tab[selected]");
-    let next = selected.nextSibling || selected.parentNode.firstChild;
+    let nextIndex = [...tools].indexOf(selected) + 1;
+    let next = tools[nextIndex] || tools[0];
     let tool = next.getAttribute("toolid");
     return this.selectTool(tool);
   },
@@ -917,9 +967,11 @@ Toolbox.prototype = {
    * Loads the tool just left to the currently selected tool.
    */
   selectPreviousTool: function() {
+    let tools = this.doc.querySelectorAll(".devtools-tab");
     let selected = this.doc.querySelector(".devtools-tab[selected]");
-    let previous = selected.previousSibling || selected.parentNode.lastChild;
-    let tool = previous.getAttribute("toolid");
+    let prevIndex = [...tools].indexOf(selected) - 1;
+    let prev = tools[prevIndex] || tools[tools.length - 1];
+    let tool = prev.getAttribute("toolid");
     return this.selectTool(tool);
   },
 
@@ -1101,12 +1153,11 @@ Toolbox.prototype = {
         this._walker = yield this._inspector.getWalker();
         this._selection = new Selection(this._walker);
 
-        if (this.highlighterUtils.isRemoteHighlightable) {
-          let autohide = !gDevTools.testing;
-
+        if (this.highlighterUtils.isRemoteHighlightable()) {
           this.walker.on("highlighter-ready", this._highlighterReady);
           this.walker.on("highlighter-hide", this._highlighterHidden);
 
+          let autohide = !gDevTools.testing;
           this._highlighter = yield this._inspector.getHighlighter(autohide);
         }
       }.bind(this));
@@ -1223,6 +1274,7 @@ Toolbox.prototype = {
     if (this.target.isLocalTab) {
       this._requisition.destroy();
     }
+    this._telemetry.toolClosed("toolbox");
     this._telemetry.destroy();
 
     return this._destroyer = promise.all(outstanding).then(() => {
@@ -1235,6 +1287,7 @@ Toolbox.prototype = {
       }
       let target = this._target;
       this._target = null;
+      this.highlighterUtils.release();
       target.off("close", this.destroy);
       return target.destroy();
     }).then(() => {
@@ -1252,202 +1305,5 @@ Toolbox.prototype = {
 
   _highlighterHidden: function() {
     this.emit("highlighter-hide");
-  },
-};
-
-/**
- * The ToolboxHighlighterUtils is what you should use for anything related to
- * node highlighting and picking.
- * It encapsulates the logic to connecting to the HighlighterActor.
- */
-function ToolboxHighlighterUtils(toolbox) {
-  this.toolbox = toolbox;
-  this._onPickerNodeHovered = this._onPickerNodeHovered.bind(this);
-  this._onPickerNodePicked = this._onPickerNodePicked.bind(this);
-  this.stopPicker = this.stopPicker.bind(this);
-}
-
-ToolboxHighlighterUtils.prototype = {
-  /**
-   * Indicates whether the highlighter actor exists on the server.
-   */
-  get isRemoteHighlightable() {
-    return this.toolbox._target.client.traits.highlightable;
-  },
-
-  /**
-   * Start/stop the element picker on the debuggee target.
-   */
-  togglePicker: function() {
-    if (this._isPicking) {
-      return this.stopPicker();
-    } else {
-      return this.startPicker();
-    }
-  },
-
-  _onPickerNodeHovered: function(res) {
-    this.toolbox.emit("picker-node-hovered", res.node);
-  },
-
-  _onPickerNodePicked: function(res) {
-    this.toolbox.selection.setNodeFront(res.node, "picker-node-picked");
-    this.stopPicker();
-  },
-
-  /**
-   * Start the element picker on the debuggee target.
-   * This will request the inspector actor to start listening for mouse/touch
-   * events on the target to highlight the hovered/picked element.
-   * Depending on the server-side capabilities, this may fire events when nodes
-   * are hovered.
-   * @return A promise that resolves when the picker has started or immediately
-   * if it is already started
-   */
-  startPicker: function() {
-    if (this._isPicking) {
-      return promise.resolve();
-    }
-
-    let deferred = promise.defer();
-
-    let done = () => {
-      this._isPicking = true;
-      this.toolbox.emit("picker-started");
-      this.toolbox.on("select", this.stopPicker);
-      deferred.resolve();
-    };
-
-    promise.all([
-      this.toolbox.initInspector(),
-      this.toolbox.selectTool("inspector")
-    ]).then(() => {
-      this.toolbox._pickerButton.setAttribute("checked", "true");
-
-      if (this.isRemoteHighlightable) {
-        this.toolbox.walker.on("picker-node-hovered", this._onPickerNodeHovered);
-        this.toolbox.walker.on("picker-node-picked", this._onPickerNodePicked);
-
-        this.toolbox.highlighter.pick().then(done);
-      } else {
-        return this.toolbox.walker.pick().then(node => {
-          this.toolbox.selection.setNodeFront(node, "picker-node-picked").then(() => {
-            this.stopPicker();
-            done();
-          });
-        });
-      }
-    });
-
-    return deferred.promise;
-  },
-
-  /**
-   * Stop the element picker
-   * @return A promise that resolves when the picker has stopped or immediately
-   * if it is already stopped
-   */
-  stopPicker: function() {
-    if (!this._isPicking) {
-      return promise.resolve();
-    }
-
-    let deferred = promise.defer();
-
-    let done = () => {
-      this.toolbox.emit("picker-stopped");
-      this.toolbox.off("select", this.stopPicker);
-      deferred.resolve();
-    };
-
-    this.toolbox.initInspector().then(() => {
-      this._isPicking = false;
-      this.toolbox._pickerButton.removeAttribute("checked");
-      if (this.isRemoteHighlightable) {
-        this.toolbox.highlighter.cancelPick().then(done);
-        this.toolbox.walker.off("picker-node-hovered", this._onPickerNodeHovered);
-        this.toolbox.walker.off("picker-node-picked", this._onPickerNodePicked);
-      } else {
-        this.toolbox.walker.cancelPick().then(done);
-      }
-    });
-
-    return deferred.promise;
-  },
-
-  /**
-   * Show the box model highlighter on a node, given its NodeFront (this type
-   * of front is normally returned by the WalkerActor).
-   * @return a promise that resolves to the nodeFront when the node has been
-   * highlit
-   */
-  highlightNodeFront: function(nodeFront, options={}) {
-    let deferred = promise.defer();
-
-    // If the remote highlighter exists on the target, use it
-    if (this.isRemoteHighlightable) {
-      this.toolbox.initInspector().then(() => {
-        this.toolbox.highlighter.showBoxModel(nodeFront, options).then(() => {
-          this.toolbox.emit("node-highlight", nodeFront);
-          deferred.resolve(nodeFront);
-        });
-      });
-    }
-    // Else, revert to the "older" version of the highlighter in the walker
-    // actor
-    else {
-      this.toolbox.walker.highlight(nodeFront).then(() => {
-        this.toolbox.emit("node-highlight", nodeFront);
-        deferred.resolve(nodeFront);
-      });
-    }
-
-    return deferred.promise;
-  },
-
-  /**
-   * This is a convenience method in case you don't have a nodeFront but a
-   * valueGrip. This is often the case with VariablesView properties.
-   * This method will simply translate the grip into a nodeFront and call
-   * highlightNodeFront
-   * @return a promise that resolves to the nodeFront when the node has been
-   * highlit
-   */
-  highlightDomValueGrip: function(valueGrip, options={}) {
-    return this._translateGripToNodeFront(valueGrip).then(nodeFront => {
-      if (nodeFront) {
-        return this.highlightNodeFront(nodeFront, options);
-      } else {
-        return promise.reject();
-      }
-    });
-  },
-
-  _translateGripToNodeFront: function(grip) {
-    return this.toolbox.initInspector().then(() => {
-      return this.toolbox.walker.getNodeActorFromObjectActor(grip.actor);
-    });
-  },
-
-  /**
-   * Hide the highlighter.
-   * @return a promise that resolves when the highlighter is hidden
-   */
-  unhighlight: function(forceHide=false) {
-    let unhighlightPromise;
-    forceHide = forceHide || !gDevTools.testing;
-
-    if (forceHide && this.isRemoteHighlightable && this.toolbox.highlighter) {
-      // If the remote highlighter exists on the target, use it
-      unhighlightPromise = this.toolbox.highlighter.hideBoxModel();
-    } else {
-      // If not, no need to unhighlight as the older highlight method uses a
-      // setTimeout to hide itself
-      unhighlightPromise = promise.resolve();
-    }
-
-    return unhighlightPromise.then(() => {
-      this.toolbox.emit("node-unhighlight");
-    });
   }
 };

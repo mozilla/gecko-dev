@@ -1106,9 +1106,10 @@ Simulator::setLastDebuggerInput(char *input)
 void
 Simulator::FlushICache(void *start_addr, size_t size)
 {
+    IonSpewCont(IonSpew_CacheFlush, "[%p %zx]", start_addr, size);
     if (!Simulator::ICacheCheckingEnabled)
         return;
-    SimulatorRuntime *srt = Simulator::Current()->srt_;
+    SimulatorRuntime *srt = TlsPerThreadData.get()->simulatorRuntime();
     AutoLockSimulatorRuntime alsr(srt);
     js::jit::FlushICache(srt->icache(), start_addr, size);
 }
@@ -1187,14 +1188,12 @@ class Redirection
 {
     friend class SimulatorRuntime;
 
-    Redirection(void *nativeFunction, ABIFunctionType type)
+    Redirection(void *nativeFunction, ABIFunctionType type, SimulatorRuntime *srt)
       : nativeFunction_(nativeFunction),
         swiInstruction_(Assembler::AL | (0xf * (1 << 24)) | kCallRtRedirected),
         type_(type),
         next_(nullptr)
     {
-        Simulator *sim = Simulator::Current();
-        SimulatorRuntime *srt = sim->srt_;
         next_ = srt->redirection();
         if (Simulator::ICacheCheckingEnabled)
             FlushICache(srt->icache(), addressOfSwiInstruction(), SimInstruction::kInstrSize);
@@ -1207,10 +1206,13 @@ class Redirection
     ABIFunctionType type() const { return type_; }
 
     static Redirection *Get(void *nativeFunction, ABIFunctionType type) {
-        Simulator *sim = Simulator::Current();
-        AutoLockSimulatorRuntime alsr(sim->srt_);
+        PerThreadData *pt = TlsPerThreadData.get();
+        SimulatorRuntime *srt = pt->simulatorRuntime();
+        AutoLockSimulatorRuntime alsr(srt);
 
-        Redirection *current = sim->srt_->redirection();
+        JS_ASSERT_IF(pt->simulator(), pt->simulator()->srt_ == srt);
+
+        Redirection *current = srt->redirection();
         for (; current != nullptr; current = current->next_) {
             if (current->nativeFunction_ == nativeFunction) {
                 MOZ_ASSERT(current->type() == type);
@@ -1224,7 +1226,7 @@ class Redirection
                                        __FILE__, __LINE__);
             MOZ_CRASH();
         }
-        new(redir) Redirection(nativeFunction, type);
+        new(redir) Redirection(nativeFunction, type, srt);
         return redir;
     }
 
@@ -1489,8 +1491,8 @@ Simulator::setCallResult(int64_t res)
 int
 Simulator::readW(int32_t addr, SimInstruction *instr)
 {
-    // YARR emits unaligned loads, so we don't check for them here like the
-    // other methods below.
+    // The regexp engines emit unaligned loads, so we don't check for them here
+    // like the other methods below.
     intptr_t *ptr = reinterpret_cast<intptr_t*>(addr);
     return *ptr;
 }
@@ -4204,9 +4206,10 @@ Simulator::call(uint8_t* entry, int argument_count, ...)
     va_start(parameters, argument_count);
 
     // First four arguments passed in registers.
-    MOZ_ASSERT(argument_count >= 2);
+    MOZ_ASSERT(argument_count >= 1);
     set_register(r0, va_arg(parameters, int32_t));
-    set_register(r1, va_arg(parameters, int32_t));
+    if (argument_count >= 2)
+        set_register(r1, va_arg(parameters, int32_t));
     if (argument_count >= 3)
         set_register(r2, va_arg(parameters, int32_t));
     if (argument_count >= 4)

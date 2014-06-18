@@ -1,7 +1,7 @@
 == default-size.html default-size-ref.html
 skip-if(B2G) fuzzy-if(Android&&AndroidVersion>=15,8,1000) == size-1.html size-1-ref.html
 
-== empty-transaction-1.html empty-transaction-1-ref.html
+random-if(B2G&&browserIsRemote) == empty-transaction-1.html empty-transaction-1-ref.html
 
 == image-rendering-test.html image-rendering-ref.html
 == image-shadow.html image-shadow-ref.html
@@ -48,6 +48,7 @@ fuzzy-if(azureSkiaGL,10,400) == text-not-in-doc-test.html text-not-in-doc-ref.ht
 skip-if(B2G) != text-font-lang.html text-font-lang-notref.html
 
 == text-measure.html text-measure-ref.html
+== text-small-caps-1.html text-small-caps-1-ref.html
 
 random-if(!d2d) != text-subpixel-1.html text-subpixel-1-ref.html
 

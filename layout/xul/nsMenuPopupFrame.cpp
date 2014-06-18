@@ -44,6 +44,7 @@
 #include "nsIScreenManager.h"
 #include "nsIServiceManager.h"
 #include "nsThemeConstants.h"
+#include "nsTransitionManager.h"
 #include "nsDisplayList.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStateManager.h"
@@ -111,9 +112,9 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
 
 
 void
-nsMenuPopupFrame::Init(nsIContent*      aContent,
-                       nsIFrame*        aParent,
-                       nsIFrame*        aPrevInFlow)
+nsMenuPopupFrame::Init(nsIContent*       aContent,
+                       nsContainerFrame* aParent,
+                       nsIFrame*         aPrevInFlow)
 {
   nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
 
@@ -330,35 +331,46 @@ nsMenuPopupFrame::GetShadowStyle()
   return NS_STYLE_WINDOW_SHADOW_DEFAULT;
 }
 
-// this class is used for dispatching popupshown events asynchronously.
-class nsXULPopupShownEvent : public nsRunnable
+NS_IMETHODIMP nsXULPopupShownEvent::Run()
 {
-public:
-  nsXULPopupShownEvent(nsIContent *aPopup, nsPresContext* aPresContext)
-    : mPopup(aPopup), mPresContext(aPresContext)
-  {
+  WidgetMouseEvent event(true, NS_XUL_POPUP_SHOWN, nullptr,
+                         WidgetMouseEvent::eReal);
+  return EventDispatcher::Dispatch(mPopup, mPresContext, &event);                 
+}
+
+NS_IMETHODIMP nsXULPopupShownEvent::HandleEvent(nsIDOMEvent* aEvent)
+{
+  nsMenuPopupFrame* popup = do_QueryFrame(mPopup->GetPrimaryFrame());
+  if (popup) {
+    // ResetPopupShownDispatcher will delete the reference to this, so keep
+    // another one until Run is finished.
+    nsRefPtr<nsXULPopupShownEvent> event = this;
+    // Only call Run if it the dispatcher was assigned. This avoids calling the
+    // Run method if the transitionend event fires multiple times.
+    if (popup->ClearPopupShownDispatcher()) {
+      return Run();
+    }
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE
-  {
-    WidgetMouseEvent event(true, NS_XUL_POPUP_SHOWN, nullptr,
-                           WidgetMouseEvent::eReal);
-    return EventDispatcher::Dispatch(mPopup, mPresContext, &event);                 
-  }
+  CancelListener();
+  return NS_OK;
+}
 
-private:
-  nsCOMPtr<nsIContent> mPopup;
-  nsRefPtr<nsPresContext> mPresContext;
-};
+void nsXULPopupShownEvent::CancelListener()
+{
+  mPopup->RemoveSystemEventListener(NS_LITERAL_STRING("transitionend"), this, false);
+}
 
-nsresult
+NS_IMPL_ISUPPORTS_INHERITED(nsXULPopupShownEvent, nsRunnable, nsIDOMEventListener);
+
+void
 nsMenuPopupFrame::SetInitialChildList(ChildListID  aListID,
                                       nsFrameList& aChildList)
 {
   // unless the list is empty, indicate that children have been generated.
   if (aChildList.NotEmpty())
     mGeneratedChildren = true;
-  return nsBoxFrame::SetInitialChildList(aListID, aChildList);
+  nsBoxFrame::SetInitialChildList(aListID, aChildList);
 }
 
 bool
@@ -406,7 +418,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
 
   // if the popup has just been opened, make sure the scrolled window is at 0,0
   if (mIsOpenChanged) {
-    nsIScrollableFrame *scrollframe = do_QueryFrame(GetChildBox());
+    nsIScrollableFrame *scrollframe = do_QueryFrame(nsBox::GetChildBox(this));
     if (scrollframe) {
       nsWeakFrame weakFrame(this);
       scrollframe->ScrollTo(nsPoint(0,0), nsIScrollableFrame::INSTANT);
@@ -482,6 +494,21 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
   // finally, if the popup just opened, send a popupshown event
   if (mIsOpenChanged) {
     mIsOpenChanged = false;
+
+#ifndef MOZ_WIDGET_GTK
+    // If the animate attribute is set to open, check for a transition and wait
+    // for it to finish before firing the popupshown event.
+    if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::animate,
+                              nsGkAtoms::open, eCaseMatters) &&
+        nsLayoutUtils::HasCurrentAnimations(mContent, nsGkAtoms::transitionsProperty, pc)) {
+      mPopupShownDispatcher = new nsXULPopupShownEvent(mContent, pc);
+      mContent->AddSystemEventListener(NS_LITERAL_STRING("transitionend"),
+                                       mPopupShownDispatcher, false, false);
+      return;
+    }
+#endif
+
+    // If there are no transitions, fire the popupshown event right away.
     nsCOMPtr<nsIRunnable> event = new nsXULPopupShownEvent(GetContent(), pc);
     NS_DispatchToCurrentThread(event);
   }
@@ -778,6 +805,8 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
 {
   NS_ASSERTION(aNewState == ePopupClosed || aNewState == ePopupInvisible,
                "popup being set to unexpected state");
+
+  ClearPopupShownDispatcher();
 
   // don't hide the popup when it isn't open
   if (mPopupState == ePopupClosed || mPopupState == ePopupShowing)
@@ -1156,15 +1185,28 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
     }
   }
 
-  // the dimensions of the anchor in its app units
-  nsRect parentRect = aAnchorFrame->GetScreenRectInAppUnits();
+  // In order to deal with transforms, we need the root prescontext:
+  nsPresContext* rootPresContext = presContext->GetRootPresContext();
 
-  // the anchor may be in a different document with a different scale,
-  // so adjust the size so that it is in the app units of the popup instead
-  // of the anchor.
-  parentRect = parentRect.ConvertAppUnitsRoundOut(
-    aAnchorFrame->PresContext()->AppUnitsPerDevPixel(),
-    presContext->AppUnitsPerDevPixel());
+  // If we can't reach a root pres context, don't bother continuing:
+  if (!rootPresContext) {
+    return NS_OK;
+  }
+
+  // And then we need its root frame for a reference
+  nsIFrame* referenceFrame = rootPresContext->FrameManager()->GetRootFrame();
+
+  // the dimensions of the anchor
+  nsRect parentRect = aAnchorFrame->GetRectRelativeToSelf();
+  // Relative to the root
+  parentRect = nsLayoutUtils::TransformFrameRectToAncestor(aAnchorFrame,
+                                                           parentRect,
+                                                           referenceFrame);
+  // Relative to the screen
+  parentRect.MoveBy(referenceFrame->GetScreenRectInAppUnits().TopLeft());
+  // In its own app units
+  parentRect.ConvertAppUnitsRoundOut(rootPresContext->AppUnitsPerDevPixel(),
+                                     presContext->AppUnitsPerDevPixel());
 
   // Set the popup's size to the preferred size. Below, this size will be
   // adjusted to fit on the screen or within the content area. If the anchor
@@ -1622,7 +1664,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
   doAction = false;
 
   // Enumerate over our list of frames.
-  nsIFrame* immediateParent = PresContext()->PresShell()->
+  nsContainerFrame* immediateParent = PresContext()->PresShell()->
     FrameConstructor()->GetInsertionPoint(GetContent(), nullptr);
   if (!immediateParent)
     immediateParent = this;
@@ -1682,13 +1724,13 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
 
   lastKeyTime = keyTime;
 
-  nsIFrame* currFrame;
   // NOTE: If you crashed here due to a bogus |immediateParent| it is 
   //       possible that the menu whose shortcut is being looked up has 
   //       been destroyed already.  One strategy would be to 
   //       setTimeout(<func>,0) as detailed in:
   //       <http://bugzilla.mozilla.org/show_bug.cgi?id=126675#c32>
-  currFrame = immediateParent->GetFirstPrincipalChild();
+  nsIFrame* firstMenuItem = nsXULPopupManager::GetNextMenuItem(immediateParent, nullptr, true);
+  nsIFrame* currFrame = firstMenuItem;
 
   int32_t menuAccessKey = -1;
   nsMenuBarListener::GetMenuAccessKey(&menuAccessKey);
@@ -1697,64 +1739,64 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
   //   -- before current and after current -- by the current item
   while (currFrame) {
     nsIContent* current = currFrame->GetContent();
-    
-    // See if it's a menu item.
-    if (nsXULPopupManager::IsValidMenuItem(PresContext(), current, true)) {
-      nsAutoString textKey;
-      if (menuAccessKey >= 0) {
-        // Get the shortcut attribute.
-        current->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, textKey);
-      }
-      if (textKey.IsEmpty()) { // No shortcut, try first letter
-        isShortcut = false;
-        current->GetAttr(kNameSpaceID_None, nsGkAtoms::label, textKey);
-        if (textKey.IsEmpty()) // No label, try another attribute (value)
-          current->GetAttr(kNameSpaceID_None, nsGkAtoms::value, textKey);
+    nsAutoString textKey;
+    if (menuAccessKey >= 0) {
+      // Get the shortcut attribute.
+      current->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, textKey);
+    }
+    if (textKey.IsEmpty()) { // No shortcut, try first letter
+      isShortcut = false;
+      current->GetAttr(kNameSpaceID_None, nsGkAtoms::label, textKey);
+      if (textKey.IsEmpty()) // No label, try another attribute (value)
+        current->GetAttr(kNameSpaceID_None, nsGkAtoms::value, textKey);
+    }
+    else
+      isShortcut = true;
+
+    if (StringBeginsWith(textKey, incrementalString,
+                         nsCaseInsensitiveStringComparator())) {
+      // mIncrementalString is a prefix of textKey
+      nsMenuFrame* menu = do_QueryFrame(currFrame);
+      if (menu) {
+        // There is one match
+        matchCount++;
+        if (isShortcut) {
+          // There is one shortcut-key match
+          matchShortcutCount++;
+          // Record the matched item. If there is only one matched shortcut item, do it
+          frameShortcut = menu;
+        }
+        if (!foundActive) {
+          // It's a first candidate item located before/on the current item
+          if (!frameBefore)
+            frameBefore = menu;
+        }
+        else {
+          // It's a first candidate item located after the current item
+          if (!frameAfter)
+            frameAfter = menu;
+        }
       }
       else
-        isShortcut = true;
+        return nullptr;
+    }
 
-      if (StringBeginsWith(textKey, incrementalString,
-                           nsCaseInsensitiveStringComparator())) {
-        // mIncrementalString is a prefix of textKey
-        nsMenuFrame* menu = do_QueryFrame(currFrame);
-        if (menu) {
-          // There is one match
-          matchCount++;
-          if (isShortcut) {
-            // There is one shortcut-key match
-            matchShortcutCount++;
-            // Record the matched item. If there is only one matched shortcut item, do it
-            frameShortcut = menu;
-          }
-          if (!foundActive) {
-            // It's a first candidate item located before/on the current item
-            if (!frameBefore)
-              frameBefore = menu;
-          }
-          else {
-            // It's a first candidate item located after the current item
-            if (!frameAfter)
-              frameAfter = menu;
-          }
-        }
-        else
-          return nullptr;
-      }
-
-      // Get the active status
-      if (current->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menuactive,
-                               nsGkAtoms::_true, eCaseMatters)) {
-        foundActive = true;
-        if (stringLength > 1) {
-          // If there is more than one char typed, the current item has highest priority,
-          //   otherwise the item next to current has highest priority
-          if (currFrame == frameBefore)
-            return frameBefore;
-        }
+    // Get the active status
+    if (current->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menuactive,
+                             nsGkAtoms::_true, eCaseMatters)) {
+      foundActive = true;
+      if (stringLength > 1) {
+        // If there is more than one char typed, the current item has highest priority,
+        //   otherwise the item next to current has highest priority
+        if (currFrame == frameBefore)
+          return frameBefore;
       }
     }
-    currFrame = currFrame->GetNextSibling();
+
+    nsMenuFrame* menu = do_QueryFrame(currFrame);
+    currFrame = nsXULPopupManager::GetNextMenuItem(immediateParent, menu, true);
+    if (currFrame == firstMenuItem)
+      break;
   }
 
   doAction = (isMenu && (matchCount == 1 || matchShortcutCount == 1));
@@ -1873,6 +1915,8 @@ nsMenuPopupFrame::DestroyFrom(nsIFrame* aDestructRoot)
     nsContentUtils::AddScriptRunner(
       new nsUnsetAttrRunnable(menu->GetContent(), nsGkAtoms::open));
   }
+
+  ClearPopupShownDispatcher();
 
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
   if (pm)

@@ -124,11 +124,13 @@ public:
     return GetTokenList(nsGkAtoms::itemprop);
   }
   mozilla::dom::HTMLPropertiesCollection* Properties();
-  JS::Value GetItemValue(JSContext* aCx, JSObject* aScope,
-                         mozilla::ErrorResult& aError);
-  JS::Value GetItemValue(JSContext* aCx, mozilla::ErrorResult& aError)
+  void GetItemValue(JSContext* aCx, JSObject* aScope,
+                    JS::MutableHandle<JS::Value> aRetval,
+                    mozilla::ErrorResult& aError);
+  void GetItemValue(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval,
+                    mozilla::ErrorResult& aError)
   {
-    return GetItemValue(aCx, GetWrapperPreserveColor(), aError);
+    GetItemValue(aCx, GetWrapperPreserveColor(), aRetval, aError);
   }
   void SetItemValue(JSContext* aCx, JS::Value aValue,
                     mozilla::ErrorResult& aError);
@@ -255,14 +257,6 @@ public:
 #undef ERROR_EVENT
 #undef FORWARDED_EVENT
 #undef EVENT
-  void GetClassName(mozilla::dom::DOMString& aClassName)
-  {
-    GetAttr(kNameSpaceID_None, nsGkAtoms::_class, aClassName);
-  }
-  void SetClassName(const nsAString& aClassName)
-  {
-    SetAttr(kNameSpaceID_None, nsGkAtoms::_class, aClassName, true);
-  }
   mozilla::dom::Element* GetOffsetParent()
   {
     mozilla::CSSIntRect rcFrame;
@@ -297,7 +291,6 @@ public:
     return rcFrame.height;
   }
 
-  static nsIAtom*** PropertiesToTraverseAndUnlink();
 protected:
   // These methods are used to implement element-specific behavior of Get/SetItemValue
   // when an element has @itemprop but no @itemscope.
@@ -322,14 +315,6 @@ public:
 
   NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
 
-  NS_IMETHOD GetId(nsAString& aId) MOZ_FINAL {
-    mozilla::dom::Element::GetId(aId);
-    return NS_OK;
-  }
-  NS_IMETHOD SetId(const nsAString& aId) MOZ_FINAL {
-    mozilla::dom::Element::SetId(aId);
-    return NS_OK;
-  }
   NS_IMETHOD GetTitle(nsAString& aTitle) MOZ_FINAL {
     nsString title;
     GetTitle(title);
@@ -842,7 +827,7 @@ public:
    * Get the presentation context for this content node.
    * @return the presentation context
    */
-  NS_HIDDEN_(nsPresContext*) GetPresContext();
+  nsPresContext* GetPresContext();
 
   // Form Helper Routines
   /**
@@ -868,7 +853,7 @@ public:
   /**
    * Locate an nsIEditor rooted at this content node, if there is one.
    */
-  NS_HIDDEN_(nsresult) GetEditor(nsIEditor** aEditor);
+  nsresult GetEditor(nsIEditor** aEditor);
 
   /**
    * Helper method for NS_IMPL_URI_ATTR macro.
@@ -881,7 +866,7 @@ public:
    * @param aBaseAttr  name of base attribute.
    * @param aResult    result value [out]
    */
-  NS_HIDDEN_(void) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& aResult) const;
+  void GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& aResult) const;
 
   /**
    * Gets the absolute URI values of an attribute, by resolving any relative
@@ -1050,7 +1035,7 @@ protected:
    * @param aDefault default-value to return if attribute isn't set.
    * @param aResult  result value [out]
    */
-  NS_HIDDEN_(nsresult) SetAttrHelper(nsIAtom* aAttr, const nsAString& aValue);
+  nsresult SetAttrHelper(nsIAtom* aAttr, const nsAString& aValue);
 
   /**
    * Helper method for NS_IMPL_INT_ATTR macro.
@@ -1061,7 +1046,7 @@ protected:
    * @param aAttr    name of attribute.
    * @param aDefault default-value to return if attribute isn't set.
    */
-  NS_HIDDEN_(int32_t) GetIntAttr(nsIAtom* aAttr, int32_t aDefault) const;
+  int32_t GetIntAttr(nsIAtom* aAttr, int32_t aDefault) const;
 
   /**
    * Helper method for NS_IMPL_INT_ATTR macro.
@@ -1071,7 +1056,7 @@ protected:
    * @param aAttr    name of attribute.
    * @param aValue   Integer value of attribute.
    */
-  NS_HIDDEN_(nsresult) SetIntAttr(nsIAtom* aAttr, int32_t aValue);
+  nsresult SetIntAttr(nsIAtom* aAttr, int32_t aValue);
 
   /**
    * Helper method for NS_IMPL_UINT_ATTR macro.
@@ -1128,7 +1113,7 @@ protected:
    * @param aAttr    name of attribute.
    * @param aResult  result value [out]
    */
-  NS_HIDDEN_(nsresult) GetURIListAttr(nsIAtom* aAttr, nsAString& aResult);
+  nsresult GetURIListAttr(nsIAtom* aAttr, nsAString& aResult);
 
   /**
    * Helper method for NS_IMPL_ENUM_ATTR_DEFAULT_VALUE.
@@ -1139,7 +1124,7 @@ protected:
    * @param aDefault  the default value if the attribute is missing or invalid.
    * @param aResult   string corresponding to the value [out].
    */
-  NS_HIDDEN_(void) GetEnumAttr(nsIAtom* aAttr,
+  void GetEnumAttr(nsIAtom* aAttr,
                                const char* aDefault,
                                nsAString& aResult) const;
 
@@ -1154,7 +1139,7 @@ protected:
    * @param aDefaultInvalid  the default value if the attribute is invalid.
    * @param aResult          string corresponding to the value [out].
    */
-  NS_HIDDEN_(void) GetEnumAttr(nsIAtom* aAttr,
+  void GetEnumAttr(nsIAtom* aAttr,
                                const char* aDefaultMissing,
                                const char* aDefaultInvalid,
                                nsAString& aResult) const;
@@ -1200,7 +1185,7 @@ protected:
    * contentEditable attribute and its value is "false". Otherwise returns
    * eInherit.
    */
-  NS_HIDDEN_(ContentEditableTristate) GetContentEditableValue() const
+  ContentEditableTristate GetContentEditableValue() const
   {
     static const nsIContent::AttrValuesArray values[] =
       { &nsGkAtoms::_false, &nsGkAtoms::_true, &nsGkAtoms::_empty, nullptr };

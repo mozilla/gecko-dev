@@ -102,6 +102,9 @@ protected:
                   const HIRect& inBoxRect, bool inIsDefault, 
                   ThemeButtonValue inValue, ThemeButtonAdornment inAdornment,
                   mozilla::EventStates inState, nsIFrame* aFrame);
+  void DrawFocusOutline(CGContextRef cgContext, const HIRect& inBoxRect,
+                        mozilla::EventStates inState, uint8_t aWidgetType,
+                        nsIFrame* aFrame);
   void DrawDropdown(CGContextRef context, const HIRect& inBoxRect,
                     mozilla::EventStates inState, uint8_t aWidgetType,
                     nsIFrame* aFrame);
@@ -129,6 +132,7 @@ protected:
   void GetScrollbarDrawInfo (HIThemeTrackDrawInfo& aTdi, nsIFrame *aFrame, 
                              const CGSize& aSize, bool aShouldGetButtonStates);
   nsIFrame* GetParentScrollbarFrame(nsIFrame *aFrame);
+  bool IsParentScrollbarRolledOver(nsIFrame* aFrame);
 
 private:
   NSButtonCell* mHelpButtonCell;

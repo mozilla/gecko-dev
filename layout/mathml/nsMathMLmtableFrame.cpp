@@ -422,7 +422,7 @@ NS_QUERYFRAME_HEAD(nsMathMLmtableOuterFrame)
   NS_QUERYFRAME_ENTRY(nsIMathMLFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsTableOuterFrame)
 
-nsIFrame*
+nsContainerFrame*
 NS_NewMathMLmtableOuterFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   return new (aPresShell) nsMathMLmtableOuterFrame(aContext);
@@ -473,11 +473,11 @@ nsMathMLmtableOuterFrame::AttributeChanged(int32_t  aNameSpaceID,
   // like changing an unit. Blow away and recompute all our automatic
   // presentational data, and issue a style-changed reflow request
   if (aAttribute == nsGkAtoms::displaystyle_) {
-    nsMathMLContainerFrame::RebuildAutomaticDataForChildren(mParent);
+    nsMathMLContainerFrame::RebuildAutomaticDataForChildren(GetParent());
     // Need to reflow the parent, not us, because this can actually
     // affect siblings.
     PresContext()->PresShell()->
-      FrameNeedsReflow(mParent, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+      FrameNeedsReflow(GetParent(), nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
     return NS_OK;
   }
 
@@ -545,18 +545,16 @@ nsMathMLmtableOuterFrame::GetRowFrameAt(nsPresContext* aPresContext,
   return nullptr;
 }
 
-nsresult
+void
 nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
                                  nsHTMLReflowMetrics&     aDesiredSize,
                                  const nsHTMLReflowState& aReflowState,
                                  nsReflowStatus&          aStatus)
 {
-  nsresult rv;
   nsAutoString value;
   // we want to return a table that is anchored according to the align attribute
 
-  rv = nsTableOuterFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
-                                 aStatus);
+  nsTableOuterFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
   NS_ASSERTION(aDesiredSize.Height() >= 0, "illegal height for mtable");
   NS_ASSERTION(aDesiredSize.Width() >= 0, "illegal width for mtable");
 
@@ -573,41 +571,43 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
   // it is wrapped in a single big fictional row at dy = 0, this way of
   // doing so allows us to have a single code path for all cases).
   nscoord dy = 0;
-  nscoord height = aDesiredSize.Height();
+  WritingMode wm = aDesiredSize.GetWritingMode();
+  nscoord blockSize = aDesiredSize.BSize(wm);
   nsIFrame* rowFrame = nullptr;
   if (rowIndex) {
     rowFrame = GetRowFrameAt(aPresContext, rowIndex);
     if (rowFrame) {
-      // translate the coordinates to be relative to us
+      // translate the coordinates to be relative to us and in our writing mode
       nsIFrame* frame = rowFrame;
-      height = frame->GetSize().height;
+      LogicalRect frameRect(wm, frame->GetRect(), aReflowState.ComputedWidth());
+      blockSize = frameRect.BSize(wm);
       do {
-        dy += frame->GetPosition().y;
+        dy += frameRect.BStart(wm);
         frame = frame->GetParent();
       } while (frame != this);
     }
   }
   switch (tableAlign) {
     case eAlign_top:
-      aDesiredSize.SetTopAscent(dy);
+      aDesiredSize.SetBlockStartAscent(dy);
       break;
     case eAlign_bottom:
-      aDesiredSize.SetTopAscent(dy + height);
+      aDesiredSize.SetBlockStartAscent(dy + blockSize);
       break;
     case eAlign_center:
-      aDesiredSize.SetTopAscent(dy + height / 2);
+      aDesiredSize.SetBlockStartAscent(dy + blockSize / 2);
       break;
     case eAlign_baseline:
       if (rowFrame) {
         // anchor the table on the baseline of the row of reference
         nscoord rowAscent = ((nsTableRowFrame*)rowFrame)->GetMaxCellAscent();
         if (rowAscent) { // the row has at least one cell with 'vertical-align: baseline'
-          aDesiredSize.SetTopAscent(dy + rowAscent);
+          aDesiredSize.SetBlockStartAscent(dy + rowAscent);
           break;
         }
       }
       // in other situations, fallback to center
-      aDesiredSize.SetTopAscent(dy + height / 2);
+      aDesiredSize.SetBlockStartAscent(dy + blockSize / 2);
       break;
     case eAlign_axis:
     default: {
@@ -625,33 +625,32 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
         // XXX need to fetch the axis of the row; would need rowalign=axis to work better
         nscoord rowAscent = ((nsTableRowFrame*)rowFrame)->GetMaxCellAscent();
         if (rowAscent) { // the row has at least one cell with 'vertical-align: baseline'
-          aDesiredSize.SetTopAscent(dy + rowAscent);
+          aDesiredSize.SetBlockStartAscent(dy + rowAscent);
           break;
         }
       }
       // in other situations, fallback to using half of the height
-      aDesiredSize.SetTopAscent(dy + height / 2 + axisHeight);
+      aDesiredSize.SetBlockStartAscent(dy + blockSize / 2 + axisHeight);
     }
   }
 
   mReference.x = 0;
-  mReference.y = aDesiredSize.TopAscent();
+  mReference.y = aDesiredSize.BlockStartAscent();
 
   // just make-up a bounding metrics
   mBoundingMetrics = nsBoundingMetrics();
-  mBoundingMetrics.ascent = aDesiredSize.TopAscent();
-  mBoundingMetrics.descent = aDesiredSize.Height() - aDesiredSize.TopAscent();
+  mBoundingMetrics.ascent = aDesiredSize.BlockStartAscent();
+  mBoundingMetrics.descent = aDesiredSize.Height() -
+                             aDesiredSize.BlockStartAscent();
   mBoundingMetrics.width = aDesiredSize.Width();
   mBoundingMetrics.leftBearing = 0;
   mBoundingMetrics.rightBearing = aDesiredSize.Width();
 
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-
-  return rv;
 }
 
-nsIFrame*
+nsContainerFrame*
 NS_NewMathMLmtableFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   return new (aPresShell) nsMathMLmtableFrame(aContext);
@@ -663,14 +662,12 @@ nsMathMLmtableFrame::~nsMathMLmtableFrame()
 {
 }
 
-nsresult
+void
 nsMathMLmtableFrame::SetInitialChildList(ChildListID  aListID,
                                          nsFrameList& aChildList)
 {
-  nsresult rv = nsTableFrame::SetInitialChildList(aListID, aChildList);
-  if (NS_FAILED(rv)) return rv;
+  nsTableFrame::SetInitialChildList(aListID, aChildList);
   MapAllAttributesIntoCSS(this);
-  return rv;
 }
 
 void
@@ -688,7 +685,7 @@ nsMathMLmtableFrame::RestyleTable()
 // --------
 // implementation of nsMathMLmtrFrame
 
-nsIFrame*
+nsContainerFrame*
 NS_NewMathMLmtrFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   return new (aPresShell) nsMathMLmtrFrame(aContext);
@@ -734,7 +731,7 @@ nsMathMLmtrFrame::AttributeChanged(int32_t  aNameSpaceID,
 // --------
 // implementation of nsMathMLmtdFrame
 
-nsIFrame*
+nsContainerFrame*
 NS_NewMathMLmtdFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   return new (aPresShell) nsMathMLmtdFrame(aContext);
@@ -868,7 +865,7 @@ NS_QUERYFRAME_HEAD(nsMathMLmtdInnerFrame)
   NS_QUERYFRAME_ENTRY(nsIMathMLFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsBlockFrame)
 
-nsIFrame*
+nsContainerFrame*
 NS_NewMathMLmtdInnerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   return new (aPresShell) nsMathMLmtdInnerFrame(aContext);
@@ -888,18 +885,17 @@ nsMathMLmtdInnerFrame::~nsMathMLmtdInnerFrame()
   mUniqueStyleText->Destroy(PresContext());
 }
 
-nsresult
+void
 nsMathMLmtdInnerFrame::Reflow(nsPresContext*          aPresContext,
                               nsHTMLReflowMetrics&     aDesiredSize,
                               const nsHTMLReflowState& aReflowState,
                               nsReflowStatus&          aStatus)
 {
   // Let the base class do the reflow
-  nsresult rv = nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
+  nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
 
   // more about <maligngroup/> and <malignmark/> later
   // ...
-  return rv;
 }
 
 const

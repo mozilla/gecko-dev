@@ -89,14 +89,17 @@ dictionary CameraPictureOptions
    'maxVideoLengthMs' is the maximum length in milliseconds to which the
    recorded video will be allowed to grow.
 
-   if either 'maxFileSizeBytes' or 'maxVideoLengthMs' is missing, zero,
-   or negative, that limit will be disabled.
+   if either 'maxFileSizeBytes' or 'maxVideoLengthMs' is missing or zero,
+   that limit will be disabled; if either value is out of range, it will
+   be clamped from 0 to the upper limit for an 'unsigned long long'.
 */
 dictionary CameraStartRecordingOptions
 {
-  long      rotation = 0;
-  long long maxFileSizeBytes = 0;
-  long long maxVideoLengthMs = 0;
+  long rotation = 0;
+  [Clamp]
+  unsigned long long maxFileSizeBytes = 0;
+  [Clamp]
+  unsigned long long maxVideoLengthMs = 0;
 
   /* If startRecording() is called with flashMode set to "auto" and the
      camera has determined that the scene is poorly lit, the flash mode
@@ -215,16 +218,13 @@ interface CameraControl : MediaStream
   [Throws]
   readonly attribute unrestricted double focusDistanceFar;
 
-  /* 'compensation' is optional, and if missing, will
-     set the camera to use automatic exposure compensation.
-
-     acceptable values must range from minExposureCompensation
-     to maxExposureCompensation in steps of stepExposureCompensation;
-     invalid values will be rounded to the nearest valid value. */
+  /* over- or under-expose the image; acceptable values must range from
+     minExposureCompensation to maxExposureCompensation in steps of
+     stepExposureCompensation. Invalid values will be rounded to the nearest
+     valid value; out-of-bounds values will be limited to the range
+     supported by the camera. */
   [Throws]
-  void setExposureCompensation(optional double compensation);
-  [Throws]
-  readonly attribute unrestricted double exposureCompensation;
+  attribute double          exposureCompensation;
 
   /* one of the values chosen from capabilities.isoModes; default
      value is "auto" if supported. */
@@ -249,29 +249,21 @@ interface CameraControl : MediaStream
      useful for synchronizing other UI elements. */
   attribute CameraPreviewStateChange? onPreviewStateChange;
 
-  /* the attribute is deprecated in favour of get/setPictureSize.
-
-     the size of the picture to be returned by a call to takePicture();
+  /* the size of the picture to be returned by a call to takePicture();
      an object with 'height' and 'width' properties that corresponds to
      one of the options returned by capabilities.pictureSizes. */
-  [Throws]
-  attribute any              pictureSize;
   [Throws]
   CameraSize getPictureSize();
   [Throws]
   void setPictureSize(optional CameraSize size);
 
-  /* the attribute is deprecated in favour of get/setThumbnailSize.
-
-     the size of the thumbnail to be included in the picture returned
+  /* the size of the thumbnail to be included in the picture returned
      by a call to takePicture(), assuming the chosen fileFormat supports
      one; an object with 'height' and 'width' properties that corresponds
      to one of the options returned by capabilities.pictureSizes.
 
      this setting should be considered a hint: the implementation will
      respect it when possible, and override it if necessary. */
-  [Throws]
-  attribute any              thumbnailSize;
   [Throws]
   CameraSize getThumbnailSize();
   [Throws]

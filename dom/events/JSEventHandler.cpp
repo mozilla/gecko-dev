@@ -18,6 +18,8 @@
 #include "nsDOMJSUtils.h"
 #include "WorkerPrivate.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/JSEventHandler.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/ErrorEvent.h"
@@ -35,6 +37,14 @@ JSEventHandler::JSEventHandler(nsISupports* aTarget,
 {
   nsCOMPtr<nsISupports> base = do_QueryInterface(aTarget);
   mTarget = base.get();
+  // Note, we call HoldJSObjects to get CanSkip called before CC.
+  HoldJSObjects(this);
+}
+
+JSEventHandler::~JSEventHandler()
+{
+  NS_ASSERTION(!mTarget, "Should have called Disconnect()!");
+  DropJSObjects(this);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(JSEventHandler)
@@ -114,7 +124,7 @@ JSEventHandler::HandleEvent(nsIDOMEvent* aEvent)
   bool isMainThread = event->IsMainThreadEvent();
   bool isChromeHandler =
     isMainThread ?
-      nsContentUtils::GetObjectPrincipal(
+      nsContentUtils::ObjectPrincipal(
         GetTypedEventHandler().Ptr()->CallbackPreserveColor()) ==
         nsContentUtils::GetSystemPrincipal() :
       mozilla::dom::workers::IsCurrentThreadRunningChromeWorker();
@@ -146,7 +156,7 @@ JSEventHandler::HandleEvent(nsIDOMEvent* aEvent)
 
       ThreadsafeAutoJSContext cx;
       error.Construct(cx);
-      error.Value() = scriptEvent->Error(cx);
+      scriptEvent->GetError(cx, &error.Value());
     } else {
       msgOrEvent.SetAsEvent() = aEvent->InternalDOMEvent();
     }
@@ -201,8 +211,8 @@ JSEventHandler::HandleEvent(nsIDOMEvent* aEvent)
   MOZ_ASSERT(mTypedHandler.Type() == TypedEventHandler::eNormal);
   ErrorResult rv;
   nsRefPtr<EventHandlerNonNull> handler = mTypedHandler.NormalEventHandler();
-  JS::Value retval =
-    handler->Call(mTarget, *(aEvent->InternalDOMEvent()), rv);
+  JS::Rooted<JS::Value> retval(CycleCollectedJSRuntime::Get()->Runtime());
+  handler->Call(mTarget, *(aEvent->InternalDOMEvent()), &retval, rv);
   if (rv.Failed()) {
     return rv.ErrorCode();
   }

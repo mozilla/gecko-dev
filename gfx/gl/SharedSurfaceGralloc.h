@@ -38,6 +38,7 @@ public:
 
 protected:
     GLLibraryEGL* const mEGL;
+    EGLSync mSync;
     RefPtr<layers::ISurfaceAllocator> mAllocator;
     RefPtr<layers::TextureClient> mTextureClient;
     const GLuint mProdTex;
@@ -55,6 +56,7 @@ protected:
                            size,
                            hasAlpha)
         , mEGL(egl)
+        , mSync(0)
         , mAllocator(allocator)
         , mTextureClient(textureClient)
         , mProdTex(prodTex)
@@ -67,6 +69,8 @@ public:
 
     virtual void Fence() MOZ_OVERRIDE;
     virtual bool WaitSync() MOZ_OVERRIDE;
+
+    virtual void WaitForBufferOwnership() MOZ_OVERRIDE;
 
     virtual void LockProdImpl() MOZ_OVERRIDE {}
     virtual void UnlockProdImpl() MOZ_OVERRIDE {}

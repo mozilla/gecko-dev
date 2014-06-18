@@ -34,6 +34,7 @@
 #include "mozilla/dom/WakeLock.h"
 #include "mozilla/dom/power/PowerManagerService.h"
 #include "mozilla/dom/MobileMessageManager.h"
+#include "mozilla/dom/ServiceWorkerContainer.h"
 #include "mozilla/dom/Telephony.h"
 #include "mozilla/Hal.h"
 #include "nsISiteSpecificUserAgent.h"
@@ -42,6 +43,9 @@
 #include "Connection.h"
 #include "mozilla/dom/Event.h" // for nsIDOMEvent::InternalDOMEvent()
 #include "nsGlobalWindow.h"
+#ifdef MOZ_B2G
+#include "nsIMobileIdentityService.h"
+#endif
 #ifdef MOZ_B2G_RIL
 #include "mozilla/dom/IccManager.h"
 #include "mozilla/dom/CellBroadcast.h"
@@ -81,7 +85,7 @@
 #endif
 
 #include "nsIDOMGlobalPropertyInitializer.h"
-#include "nsIDataStoreService.h"
+#include "mozilla/dom/DataStoreService.h"
 #include "nsJSUtils.h"
 
 #include "nsScriptNameSpaceManager.h"
@@ -97,10 +101,16 @@
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
 
+#if defined(XP_LINUX)
+#include "mozilla/Hal.h"
+#endif
+#include "mozilla/dom/ContentChild.h"
+
 namespace mozilla {
 namespace dom {
 
 static bool sDoNotTrackEnabled = false;
+static uint32_t sDoNotTrackValue = 1;
 static bool sVibratorEnabled   = false;
 static uint32_t sMaxVibrateMS  = 0;
 static uint32_t sMaxVibrateListLen = 0;
@@ -112,6 +122,9 @@ Navigator::Init()
   Preferences::AddBoolVarCache(&sDoNotTrackEnabled,
                                "privacy.donottrackheader.enabled",
                                false);
+  Preferences::AddUintVarCache(&sDoNotTrackValue,
+                               "privacy.donottrackheader.value",
+                               1);
   Preferences::AddBoolVarCache(&sVibratorEnabled,
                                "dom.vibrator.enabled", true);
   Preferences::AddUintVarCache(&sMaxVibrateMS,
@@ -177,6 +190,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMessagesManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDeviceStorageStores)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTimeManager)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mServiceWorkerContainer)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindow)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCachedResolveResults)
@@ -286,6 +300,8 @@ Navigator::Invalidate()
   if (mTimeManager) {
     mTimeManager = nullptr;
   }
+
+  mServiceWorkerContainer = nullptr;
 }
 
 //*****************************************************************************
@@ -612,7 +628,11 @@ NS_IMETHODIMP
 Navigator::GetDoNotTrack(nsAString &aResult)
 {
   if (sDoNotTrackEnabled) {
-    aResult.AssignLiteral("yes");
+    if (sDoNotTrackValue == 0) {
+      aResult.AssignLiteral("0");
+    } else {
+      aResult.AssignLiteral("1");
+    }
   } else {
     aResult.AssignLiteral("unspecified");
   }
@@ -650,12 +670,6 @@ Navigator::RefreshMIMEArray()
   if (mMimeTypes) {
     mMimeTypes->Refresh();
   }
-}
-
-bool
-Navigator::HasDesktopNotificationSupport()
-{
-  return Preferences::GetBool("notification.feature.enabled", false);
 }
 
 namespace {
@@ -781,19 +795,21 @@ Navigator::Vibrate(const nsTArray<uint32_t>& aPattern)
     return false;
   }
 
-  if (aPattern.Length() > sMaxVibrateListLen) {
-    return false;
+  nsTArray<uint32_t> pattern(aPattern);
+
+  if (pattern.Length() > sMaxVibrateListLen) {
+    pattern.SetLength(sMaxVibrateListLen);
   }
 
-  for (size_t i = 0; i < aPattern.Length(); ++i) {
-    if (aPattern[i] > sMaxVibrateMS) {
-      return false;
+  for (size_t i = 0; i < pattern.Length(); ++i) {
+    if (pattern[i] > sMaxVibrateMS) {
+      pattern[i] = sMaxVibrateMS;
     }
   }
 
   // The spec says we check sVibratorEnabled after we've done the sanity
   // checking on the pattern.
-  if (aPattern.IsEmpty() || !sVibratorEnabled) {
+  if (pattern.IsEmpty() || !sVibratorEnabled) {
     return true;
   }
 
@@ -811,7 +827,7 @@ Navigator::Vibrate(const nsTArray<uint32_t>& aPattern)
   }
   gVibrateWindowListener = new VibrateWindowListener(mWindow, doc);
 
-  hal::Vibrate(aPattern, mWindow);
+  hal::Vibrate(pattern, mWindow);
   return true;
 }
 
@@ -1234,8 +1250,10 @@ Navigator::SendBeacon(const nsAString& aUrl,
         return false;
       }
 
-      rv = strStream->SetData(reinterpret_cast<char*>(aData.Value().GetAsArrayBufferView().Data()),
-                              aData.Value().GetAsArrayBufferView().Length());
+      ArrayBufferView& view = aData.Value().GetAsArrayBufferView();
+      view.ComputeLengthAndData();
+      rv = strStream->SetData(reinterpret_cast<char*>(view.Data()),
+                              view.Length());
 
       if (NS_FAILED(rv)) {
         aRv.Throw(NS_ERROR_FAILURE);
@@ -1451,8 +1469,7 @@ Navigator::GetDataStores(nsPIDOMWindow* aWindow,
     return nullptr;
   }
 
-  nsCOMPtr<nsIDataStoreService> service =
-    do_GetService("@mozilla.org/datastore-service;1");
+  nsRefPtr<DataStoreService> service = DataStoreService::GetOrCreate();
   if (!service) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -1479,41 +1496,27 @@ Navigator::GetFeature(const nsAString& aName)
 
 #if defined(XP_LINUX)
   if (aName.EqualsLiteral("hardware.memory")) {
-    static int memLevel = 1;
-    if (memLevel == 1) {
-      FILE* f = fopen("/proc/meminfo", "r");
-      if (!f) {
-        p->MaybeReject(NS_LITERAL_STRING("CannotOpenMeminfo"));
+    // with seccomp enabled, fopen() should be in a non-sandboxed process
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      uint32_t memLevel = mozilla::hal::GetTotalSystemMemoryLevel();
+      if (memLevel == 0) {
+        p->MaybeReject(NS_ERROR_NOT_AVAILABLE);
         return p.forget();
       }
-
-      int memTotal;
-      int n = fscanf(f, "MemTotal: %d kB\n", &memTotal);
-      fclose(f);
-
-      if (memTotal == 0 || n != 1) {
-        p->MaybeReject(NS_LITERAL_STRING("Abnormal"));
-        return p.forget();
-      }
-      // From KB to MB
-      memTotal /= 1024;
-
-      // round the value up to the next power of two
-      while (memLevel <= memTotal) {
-        memLevel *= 2;
-      }
+      p->MaybeResolve((int)memLevel);
+    } else {
+      mozilla::dom::ContentChild* cc =
+        mozilla::dom::ContentChild::GetSingleton();
+      nsRefPtr<Promise> ipcRef(p);
+      cc->SendGetSystemMemory(reinterpret_cast<uint64_t>(ipcRef.forget().take()));
     }
-    p->MaybeResolve(memLevel);
+    return p.forget();
   } // hardware.memory
-  else
 #endif
-  {
-    // resolve with <undefined> because the feature name is not supported
-    p->MaybeResolve(JS::UndefinedHandleValue);
-  }
+  // resolve with <undefined> because the feature name is not supported
+  p->MaybeResolve(JS::UndefinedHandleValue);
 
   return p.forget();
-
 }
 
 
@@ -1584,6 +1587,30 @@ Navigator::GetMozTelephony(ErrorResult& aRv)
   return mTelephony;
 }
 
+#ifdef MOZ_B2G
+already_AddRefed<Promise>
+Navigator::GetMobileIdAssertion(ErrorResult& aRv)
+{
+  if (!mWindow || !mWindow->GetDocShell()) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIMobileIdentityService> service =
+    do_GetService("@mozilla.org/mobileidentity-service;1");
+  if (!service) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  nsCOMPtr<nsISupports> promise;
+  aRv = service->GetMobileIdAssertion(mWindow, getter_AddRefs(promise));
+
+  nsRefPtr<Promise> p = static_cast<Promise*>(promise.get());
+  return p.forget();
+}
+#endif // MOZ_B2G
+
 #ifdef MOZ_B2G_RIL
 
 MobileConnectionArray*
@@ -1647,7 +1674,6 @@ Navigator::GetMozIccManager(ErrorResult& aRv)
 
   return mIccManager;
 }
-
 #endif // MOZ_B2G_RIL
 
 #ifdef MOZ_GAMEPAD
@@ -1812,6 +1838,19 @@ Navigator::GetMozCameras(ErrorResult& aRv)
   return mCameraManager;
 }
 
+already_AddRefed<workers::ServiceWorkerContainer>
+Navigator::ServiceWorker()
+{
+  MOZ_ASSERT(mWindow);
+
+  if (!mServiceWorkerContainer) {
+    mServiceWorkerContainer = new workers::ServiceWorkerContainer(mWindow);
+  }
+
+  nsRefPtr<workers::ServiceWorkerContainer> ref = mServiceWorkerContainer;
+  return ref.forget();
+}
+
 size_t
 Navigator::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
@@ -1897,6 +1936,7 @@ Navigator::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
                         JS::Handle<jsid> aId,
                         JS::MutableHandle<JSPropertyDescriptor> aDesc)
 {
+  // Note: The infallibleInit call below depends on this check.
   if (!JSID_IS_STRING(aId)) {
     return true;
   }
@@ -1906,7 +1946,8 @@ Navigator::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
     return Throw(aCx, NS_ERROR_NOT_INITIALIZED);
   }
 
-  nsDependentJSString name(aId);
+  nsDependentJSString name;
+  name.infallibleInit(aId);
 
   const nsGlobalNameStruct* name_struct =
     nameSpaceManager->LookupNavigatorName(name);
@@ -2097,41 +2138,6 @@ Navigator::WrapObject(JSContext* cx)
 
 /* static */
 bool
-Navigator::HasBatterySupport(JSContext* /* unused*/, JSObject* /*unused */)
-{
-  return battery::BatteryManager::HasSupport();
-}
-
-/* static */
-bool
-Navigator::HasPowerSupport(JSContext* /* unused */, JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && PowerManager::CheckPermission(win);
-}
-
-/* static */
-bool
-Navigator::HasPhoneNumberSupport(JSContext* /* unused */, JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return CheckPermission(win, "phonenumberservice");
-}
-
-/* static */
-bool
-Navigator::HasIdleSupport(JSContext*  /* unused */, JSObject* aGlobal)
-{
-  if (!nsContentUtils::IsIdleObserverAPIEnabled()) {
-    return false;
-  }
-
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return CheckPermission(win, "idle");
-}
-
-/* static */
-bool
 Navigator::HasWakeLockSupport(JSContext* /* unused*/, JSObject* /*unused */)
 {
   nsCOMPtr<nsIPowerManagerService> pmService =
@@ -2169,87 +2175,11 @@ Navigator::HasMobileMessageSupport(JSContext* /* unused */, JSObject* aGlobal)
 
 /* static */
 bool
-Navigator::HasTelephonySupport(JSContext* cx, JSObject* aGlobal)
-{
-  JS::Rooted<JSObject*> global(cx, aGlobal);
-
-  // First of all, the general pref has to be turned on.
-  bool enabled = false;
-  Preferences::GetBool("dom.telephony.enabled", &enabled);
-  if (!enabled) {
-    return false;
-  }
-
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(global);
-  return win && CheckPermission(win, "telephony");
-}
-
-/* static */
-bool
 Navigator::HasCameraSupport(JSContext* /* unused */, JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && nsDOMCameraManager::CheckPermission(win);
 }
-
-#ifdef MOZ_B2G_RIL
-/* static */
-bool
-Navigator::HasMobileConnectionSupport(JSContext* /* unused */,
-                                      JSObject* aGlobal)
-{
-  // First of all, the general pref has to be turned on.
-  bool enabled = false;
-  Preferences::GetBool("dom.mobileconnection.enabled", &enabled);
-  NS_ENSURE_TRUE(enabled, false);
-
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && (CheckPermission(win, "mobileconnection") ||
-                 CheckPermission(win, "mobilenetwork"));
-}
-
-/* static */
-bool
-Navigator::HasCellBroadcastSupport(JSContext* /* unused */,
-                                   JSObject* aGlobal)
-{
-  // First of all, the general pref has to be turned on.
-  bool enabled = false;
-  Preferences::GetBool("dom.cellbroadcast.enabled", &enabled);
-  NS_ENSURE_TRUE(enabled, false);
-
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && CheckPermission(win, "cellbroadcast");
-}
-
-/* static */
-bool
-Navigator::HasVoicemailSupport(JSContext* /* unused */,
-                               JSObject* aGlobal)
-{
-  // First of all, the general pref has to be turned on.
-  bool enabled = false;
-  Preferences::GetBool("dom.voicemail.enabled", &enabled);
-  NS_ENSURE_TRUE(enabled, false);
-
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && CheckPermission(win, "voicemail");
-}
-
-/* static */
-bool
-Navigator::HasIccManagerSupport(JSContext* /* unused */,
-                                JSObject* aGlobal)
-{
-  // First of all, the general pref has to be turned on.
-  bool enabled = false;
-  Preferences::GetBool("dom.icc.enabled", &enabled);
-  NS_ENSURE_TRUE(enabled, false);
-
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && CheckPermission(win, "mobileconnection");
-}
-#endif // MOZ_B2G_RIL
 
 /* static */
 bool
@@ -2260,7 +2190,7 @@ Navigator::HasWifiManagerSupport(JSContext* /* unused */,
   // to use nsContentUtils::GetObjectPrincipal to get the principal
   // and test directly with permission manager.
 
-  nsIPrincipal* principal = nsContentUtils::GetObjectPrincipal(aGlobal);
+  nsIPrincipal* principal = nsContentUtils::ObjectPrincipal(aGlobal);
 
   nsCOMPtr<nsIPermissionManager> permMgr =
     services::GetPermissionManager();
@@ -2270,26 +2200,6 @@ Navigator::HasWifiManagerSupport(JSContext* /* unused */,
   permMgr->TestPermissionFromPrincipal(principal, "wifi-manage", &permission);
   return nsIPermissionManager::ALLOW_ACTION == permission;
 }
-
-#ifdef MOZ_B2G_BT
-/* static */
-bool
-Navigator::HasBluetoothSupport(JSContext* /* unused */, JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && bluetooth::BluetoothManager::CheckPermission(win);
-}
-#endif // MOZ_B2G_BT
-
-#ifdef MOZ_B2G_FM
-/* static */
-bool
-Navigator::HasFMRadioSupport(JSContext* /* unused */, JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && CheckPermission(win, "fmradio");
-}
-#endif // MOZ_B2G_FM
 
 #ifdef MOZ_NFC
 /* static */
@@ -2305,22 +2215,6 @@ Navigator::HasNFCSupport(JSContext* /* unused */, JSObject* aGlobal)
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && (CheckPermission(win, "nfc-read") ||
                  CheckPermission(win, "nfc-write"));
-}
-
-/* static */
-bool
-Navigator::HasNFCPeerSupport(JSContext* /* unused */, JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && CheckPermission(win, "nfc-write");
-}
-
-/* static */
-bool
-Navigator::HasNFCManagerSupport(JSContext* /* unused */, JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && CheckPermission(win, "nfc-manager");
 }
 #endif // MOZ_NFC
 
@@ -2345,16 +2239,6 @@ Navigator::HasUserMediaSupport(JSContext* /* unused */,
          Preferences::GetBool("media.peerconnection.enabled", false);
 }
 #endif // MOZ_MEDIA_NAVIGATOR
-
-/* static */
-bool
-Navigator::HasPushNotificationsSupport(JSContext* /* unused */,
-                                       JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return Preferences::GetBool("services.push.enabled", false) &&
-         win && CheckPermission(win, "push");
-}
 
 /* static */
 bool
@@ -2461,25 +2345,6 @@ Navigator::HasDataStoreSupport(JSContext* aCx, JSObject* aGlobal)
   }
 
   return HasDataStoreSupport(doc->NodePrincipal());
-}
-
-/* static */
-bool
-Navigator::HasDownloadsSupport(JSContext* aCx, JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-
-  return win &&
-         CheckPermission(win, "downloads")  &&
-         Preferences::GetBool("dom.mozDownloads.enabled");
-}
-
-/* static */
-bool
-Navigator::HasPermissionSettingsSupport(JSContext* /* unused */, JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return CheckPermission(win, "permissions");
 }
 
 /* static */

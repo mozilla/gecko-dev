@@ -30,7 +30,6 @@ class   nsDeviceContext;
 struct  nsFont;
 class   nsIRollupListener;
 class   imgIContainer;
-class   gfxASurface;
 class   nsIContent;
 class   ViewWrapper;
 class   nsIWidgetListener;
@@ -100,8 +99,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x87d80888, 0x9917, 0x4bfb, \
-  { 0x81, 0xa9, 0x1c, 0x5e, 0x30, 0x9c, 0x78, 0xb4 } }
+{ 0x5b27abd6, 0x9e53, 0x4a0a, \
+  { 0x86, 0xf, 0x77, 0x5c, 0xc5, 0x69, 0x35, 0xf } };
 
 /*
  * Window shadow styles
@@ -1088,6 +1087,20 @@ class nsIWidget : public nsISupports {
     NS_IMETHOD GetScreenBounds(nsIntRect &aRect) = 0;
 
     /**
+     * Similar to GetScreenBounds except that this function will always
+     * get the size when the widget is in the nsSizeMode_Normal size mode
+     * even if the current size mode is not nsSizeMode_Normal.
+     * This method will fail if the size mode is not nsSizeMode_Normal and
+     * the platform doesn't have the ability.
+     * This method will always succeed if the current size mode is
+     * nsSizeMode_Normal.
+     *
+     * @param aRect   On return it holds the  x, y, width and height of
+     *                this widget.
+     */
+    NS_IMETHOD GetRestoredBounds(nsIntRect &aRect) = 0;
+
+    /**
      * Get this widget's client area bounds, if the window has a 3D border
      * appearance this returns the area inside the border. The position is the
      * position of the client area relative to the client area of the parent
@@ -1150,6 +1163,13 @@ class nsIWidget : public nsISupports {
      */
 
     NS_IMETHOD SetCursor(nsCursor aCursor) = 0;
+
+    /**
+     * If a cursor type is currently cached locally for this widget, clear the
+     * cached cursor to force an update on the next SetCursor call.
+     */
+
+    virtual void ClearCachedCursor() = 0;
 
     /**
      * Sets an image as the cursor for this widget.
@@ -1564,11 +1584,6 @@ class nsIWidget : public nsISupports {
      * @return Whether a resize widget is shown.
      */
     virtual bool ShowsResizeIndicator(nsIntRect* aResizerRect) = 0;
-
-    /**
-     * Get the Thebes surface associated with this widget.
-     */
-    virtual gfxASurface *GetThebesSurface() = 0;
 
     /**
      * Return the popup that was last rolled up, or null if there isn't one.

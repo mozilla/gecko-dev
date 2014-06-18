@@ -261,7 +261,7 @@ this.OnRefTestLoad = function OnRefTestLoad(win)
     if (gBrowserIsIframe) {
       gBrowser = gContainingWindow.document.createElementNS(XHTML_NS, "iframe");
       gBrowser.setAttribute("mozbrowser", "");
-      gBrowser.setAttribute("mozapp", prefs.getCharPref("browser.manifestURL"));
+      gBrowser.setAttribute("mozapp", prefs.getCharPref("b2g.system_manifest_url"));
     } else {
       gBrowser = gContainingWindow.document.createElementNS(XUL_NS, "xul:browser");
     }
@@ -625,6 +625,7 @@ function BuildConditionSandbox(aURL) {
     var info = gfxInfo.getInfo();
     sandbox.azureQuartz = info.AzureCanvasBackend == "quartz";
     sandbox.azureSkia = info.AzureCanvasBackend == "skia";
+    sandbox.skiaContent = info.AzureContentBackend == "skia";
     sandbox.azureSkiaGL = info.AzureSkiaAccelerated; // FIXME: assumes GL right now
     // true if we are using the same Azure backend for rendering canvas and content
     sandbox.contentSameGfxBackendAsCanvas = info.AzureContentBackend == info.AzureCanvasBackend
@@ -658,6 +659,12 @@ function BuildConditionSandbox(aURL) {
     sandbox.AddressSanitizer = true;
 #else
     sandbox.AddressSanitizer = false;
+#endif
+
+#if MOZ_WEBRTC
+    sandbox.webrtc = true;
+#else
+    sandbox.webrtc = false;
 #endif
 
     var hh = CC[NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX + "http"].

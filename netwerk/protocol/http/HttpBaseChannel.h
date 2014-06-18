@@ -19,6 +19,7 @@
 #include "nsIHttpChannel.h"
 #include "nsHttpHandler.h"
 #include "nsIHttpChannelInternal.h"
+#include "nsIRedirectHistory.h"
 #include "nsIUploadChannel.h"
 #include "nsIUploadChannel2.h"
 #include "nsIProgressEventSink.h"
@@ -53,6 +54,7 @@ class HttpBaseChannel : public nsHashPropertyBag
                       , public nsIEncodedChannel
                       , public nsIHttpChannel
                       , public nsIHttpChannelInternal
+                      , public nsIRedirectHistory
                       , public nsIUploadChannel
                       , public nsIUploadChannel2
                       , public nsISupportsPriority
@@ -67,6 +69,7 @@ public:
   NS_DECL_NSIUPLOADCHANNEL2
   NS_DECL_NSITRACEABLECHANNEL
   NS_DECL_NSITIMEDCHANNEL
+  NS_DECL_NSIREDIRECTHISTORY
 
   HttpBaseChannel();
   virtual ~HttpBaseChannel();
@@ -125,6 +128,8 @@ public:
   NS_IMETHOD VisitResponseHeaders(nsIHttpHeaderVisitor *visitor);
   NS_IMETHOD GetAllowPipelining(bool *value);
   NS_IMETHOD SetAllowPipelining(bool value);
+  NS_IMETHOD GetAllowSTS(bool *value);
+  NS_IMETHOD SetAllowSTS(bool value);
   NS_IMETHOD GetRedirectionLimit(uint32_t *value);
   NS_IMETHOD SetRedirectionLimit(uint32_t value);
   NS_IMETHOD IsNoStoreResponse(bool *value);
@@ -161,6 +166,7 @@ public:
   NS_IMETHOD TakeAllSecurityMessages(nsCOMArray<nsISecurityConsoleMessage> &aMessages);
   NS_IMETHOD GetResponseTimeoutEnabled(bool *aEnable);
   NS_IMETHOD SetResponseTimeoutEnabled(bool aEnable);
+  NS_IMETHOD AddRedirect(nsIPrincipal *aRedirect);
 
   inline void CleanRedirectCacheChainIfNecessary()
   {
@@ -215,7 +221,7 @@ public: /* Necko internal use only... */
                                            nsHttpRequestHead::ParsedMethodType method);
 
 protected:
-    nsCOMArray<nsISecurityConsoleMessage> mSecurityConsoleMessages;
+  nsCOMArray<nsISecurityConsoleMessage> mSecurityConsoleMessages;
 
   // Handle notifying listener, removing from loadgroup if request failed.
   void     DoNotifyListener();
@@ -249,6 +255,11 @@ protected:
   // Redirect tracking
   // Checks whether or not aURI and mOriginalURI share the same domain.
   bool SameOriginWithOriginalUri(nsIURI *aURI);
+
+  // GetPrincipal
+  // Returns the channel principal. If requireAppId is true, then returns
+  // null if the principal has unknown appId.
+  nsIPrincipal *GetPrincipal(bool requireAppId);
 
   friend class PrivateBrowsingChannel<HttpBaseChannel>;
 
@@ -300,6 +311,7 @@ protected:
   uint32_t                          mRequestObserversCalled     : 1;
   uint32_t                          mResponseHeadersModified    : 1;
   uint32_t                          mAllowPipelining            : 1;
+  uint32_t                          mAllowSTS                   : 1;
   uint32_t                          mForceAllowThirdPartyCookie : 1;
   uint32_t                          mUploadStreamHasHeaders     : 1;
   uint32_t                          mInheritApplicationCache    : 1;
@@ -321,6 +333,8 @@ protected:
 
   nsCOMPtr<nsIURI>                  mAPIRedirectToURI;
   nsAutoPtr<nsTArray<nsCString> >   mRedirectedCachekeys;
+  // Redirects added by previous channels.
+  nsCOMArray<nsIPrincipal>          mRedirects;
 
   uint32_t                          mProxyResolveFlags;
   nsCOMPtr<nsIURI>                  mProxyURI;
@@ -351,6 +365,8 @@ protected:
   // copied from the transaction before we null out mTransaction
   // so that the timing can still be queried from OnStopRequest
   TimingStruct                      mTransactionTimings;
+
+  nsCOMPtr<nsIPrincipal> mPrincipal;
 };
 
 // Share some code while working around C++'s absurd inability to handle casting

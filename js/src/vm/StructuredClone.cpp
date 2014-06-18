@@ -31,6 +31,7 @@
 
 #include "mozilla/Endian.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/TypedEnum.h"
 
 #include <algorithm>
 
@@ -53,7 +54,7 @@ using mozilla::LittleEndian;
 using mozilla::NativeEndian;
 using JS::CanonicalizeNaN;
 
-enum StructuredDataType {
+enum StructuredDataType MOZ_ENUM_TYPE(uint32_t) {
     /* Structured data types provided by the engine */
     SCTAG_FLOAT_MAX = 0xFFF00000,
     SCTAG_NULL = 0xFFFF0000,
@@ -370,7 +371,7 @@ Discard(uint64_t *buffer, size_t nbytes, const JSStructuredCloneCallbacks *cb, v
         return;
 
     // freeTransfer should not GC
-    JS::AutoAssertNoGC nogc;
+    JS::AutoSuppressGCAnalysis nogc;
 
     uint64_t numTransferables = LittleEndian::readUint64(point++);
     while (numTransferables--) {
@@ -1137,7 +1138,7 @@ class Chars {
     JSContext *cx;
     jschar *p;
   public:
-    Chars(JSContext *cx) : cx(cx), p(nullptr) {}
+    explicit Chars(JSContext *cx) : cx(cx), p(nullptr) {}
     ~Chars() { js_free(p); }
 
     bool allocate(size_t len) {
@@ -1403,7 +1404,8 @@ JSStructuredCloneReader::startRead(Value *vp)
             return false;
 
         RegExpObject *reobj = RegExpObject::createNoStatics(context(), flat->chars(),
-                                                            flat->length(), flags, nullptr);
+                                                            flat->length(), flags, nullptr,
+                                                            context()->tempLifoAlloc());
         if (!reobj)
             return false;
         vp->setObject(*reobj);

@@ -20,6 +20,7 @@
 // by the headers included above.
 namespace JS {
 
+class Latin1Chars;
 class Latin1CharsZ;
 class ConstTwoByteChars;
 class TwoByteChars;
@@ -32,12 +33,12 @@ class AutoValueVector;
 
 class AutoIdArray;
 
-class AutoGCRooter;
 template <typename T> class AutoVectorRooter;
 template<typename K, typename V> class AutoHashMapRooter;
 template<typename T> class AutoHashSetRooter;
+template<typename T> class RootedGeneric;
 
-class SourceBufferHolder;
+class MOZ_STACK_CLASS SourceBufferHolder;
 
 class HandleValueArray;
 
@@ -64,6 +65,8 @@ using JS::UndefinedValue;
 
 using JS::IsPoisonedPtr;
 
+using JS::Latin1Char;
+using JS::Latin1Chars;
 using JS::Latin1CharsZ;
 using JS::ConstTwoByteChars;
 using JS::TwoByteChars;
@@ -76,10 +79,10 @@ using JS::AutoValueVector;
 
 using JS::AutoIdArray;
 
-using JS::AutoGCRooter;
 using JS::AutoHashMapRooter;
 using JS::AutoHashSetRooter;
 using JS::AutoVectorRooter;
+using JS::RootedGeneric;
 
 using JS::CallArgs;
 using JS::CallNonGenericMethod;

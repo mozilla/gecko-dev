@@ -103,15 +103,14 @@ AppTrustDomain::FindPotentialIssuers(const SECItem* encodedIssuerName,
 
 SECStatus
 AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
-                             SECOidTag policy,
-                             const CERTCertificate* candidateCert,
+                             const CertPolicyId& policy,
+                             const SECItem& candidateCertDER,
                      /*out*/ TrustLevel* trustLevel)
 {
-  MOZ_ASSERT(policy == SEC_OID_X509_ANY_POLICY);
-  MOZ_ASSERT(candidateCert);
+  MOZ_ASSERT(policy.IsAnyPolicy());
   MOZ_ASSERT(trustLevel);
   MOZ_ASSERT(mTrustedRoot);
-  if (!candidateCert || !trustLevel || policy != SEC_OID_X509_ANY_POLICY) {
+  if (!trustLevel || !policy.IsAnyPolicy()) {
     PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
     return SECFailure;
   }
@@ -121,8 +120,20 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   }
 
   // Handle active distrust of the certificate.
+
+  // XXX: This would be cleaner and more efficient if we could get the trust
+  // information without constructing a CERTCertificate here, but NSS doesn't
+  // expose it in any other easy-to-use fashion.
+  ScopedCERTCertificate candidateCert(
+    CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
+                            const_cast<SECItem*>(&candidateCertDER), nullptr,
+                            false, true));
+  if (!candidateCert) {
+    return SECFailure;
+  }
+
   CERTCertTrust trust;
-  if (CERT_GetCertTrust(candidateCert, &trust) == SECSuccess) {
+  if (CERT_GetCertTrust(candidateCert.get(), &trust) == SECSuccess) {
     PRUint32 flags = SEC_GET_TRUST_FLAGS(&trust, trustObjectSigning);
 
     // For DISTRUST, we use the CERTDB_TRUSTED or CERTDB_TRUSTED_CA bit,
@@ -138,24 +149,10 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
       *trustLevel = TrustLevel::ActivelyDistrusted;
       return SECSuccess;
     }
-
-#ifdef MOZ_B2G_CERTDATA
-    // XXX(Bug 972201): We have to allow the old way of supporting additional
-    // roots until we fix bug 889744. Remove this along with the rest of the
-    // MOZ_B2G_CERTDATA stuff.
-
-    // For TRUST, we only use the CERTDB_TRUSTED_CA bit, because Gecko hasn't
-    // needed to consider end-entity certs to be their own trust anchors since
-    // Gecko implemented nsICertOverrideService.
-    if (flags & CERTDB_TRUSTED_CA) {
-      *trustLevel = TrustLevel::TrustAnchor;
-      return SECSuccess;
-    }
-#endif
   }
 
   // mTrustedRoot is the only trust anchor for this validation.
-  if (CERT_CompareCerts(mTrustedRoot.get(), candidateCert)) {
+  if (CERT_CompareCerts(mTrustedRoot.get(), candidateCert.get())) {
     *trustLevel = TrustLevel::TrustAnchor;
     return SECSuccess;
   }
@@ -166,9 +163,10 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
 
 SECStatus
 AppTrustDomain::VerifySignedData(const CERTSignedData* signedData,
-                                  const CERTCertificate* cert)
+                                 const SECItem& subjectPublicKeyInfo)
 {
-  return ::mozilla::pkix::VerifySignedData(signedData, cert, mPinArg);
+  return ::mozilla::pkix::VerifySignedData(signedData, subjectPublicKeyInfo,
+                                           mPinArg);
 }
 
 SECStatus

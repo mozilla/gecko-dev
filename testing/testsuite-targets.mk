@@ -280,11 +280,11 @@ crashtest-ipc-gpu:
 	$(call RUN_REFTEST,'$(topsrcdir)/$(TEST_PATH)' $(OOP_CONTENT) $(GPU_RENDERING))
 	$(CHECK_TEST_ERROR)
 
-jstestbrowser: TESTS_PATH?=test-package-stage/jsreftest/tests/
+jstestbrowser: TESTS_PATH?=test-stage/jsreftest/tests/
 jstestbrowser:
 	$(MAKE) -C $(DEPTH)/config
 	$(MAKE) stage-jstests
-	$(call RUN_REFTEST,'$(DIST)/$(TESTS_PATH)/jstests.list' --extra-profile-file=$(DIST)/test-package-stage/jsreftest/tests/user.js)
+	$(call RUN_REFTEST,'$(DIST)/$(TESTS_PATH)/jstests.list' --extra-profile-file=$(DIST)/test-stage/jsreftest/tests/user.js)
 	$(CHECK_TEST_ERROR)
 
 GARBAGE += $(addsuffix .log,$(MOCHITESTS) reftest crashtest jstestbrowser)
@@ -381,11 +381,6 @@ cppunittests-remote:
 jetpack-tests:
 	$(PYTHON) $(topsrcdir)/addon-sdk/source/bin/cfx -b $(browser_path) --parseable testpkgs
 
-# -- -register
-# -- --trace-malloc malloc.log --shutdown-leaks=sdleak.log
-leaktest:
-	$(PYTHON) _leaktest/leaktest.py $(LEAKTEST_ARGS)
-
 pgo-profile-run:
 	$(PYTHON) $(topsrcdir)/build/pgo/profileserver.py $(EXTRA_TEST_ARGS)
 
@@ -393,7 +388,7 @@ pgo-profile-run:
 include $(topsrcdir)/toolkit/mozapps/installer/package-name.mk
 
 ifndef UNIVERSAL_BINARY
-PKG_STAGE = $(DIST)/test-package-stage
+PKG_STAGE = $(DIST)/test-stage
 package-tests: \
   stage-config \
   stage-mochitest \
@@ -411,7 +406,7 @@ package-tests: \
   $(NULL)
 else
 # This staging area has been built for us by universal/flight.mk
-PKG_STAGE = $(DIST)/universal/test-package-stage
+PKG_STAGE = $(DIST)/universal/test-stage
 endif
 
 package-tests:
@@ -510,7 +505,13 @@ ifeq ($(MOZ_WIDGET_TOOLKIT),android)
 endif
 	$(NSINSTALL) $(topsrcdir)/startupcache/test/TestStartupCacheTelemetry.js $(PKG_STAGE)/cppunittests
 	$(NSINSTALL) $(topsrcdir)/startupcache/test/TestStartupCacheTelemetry.manifest $(PKG_STAGE)/cppunittests
+ifdef STRIP_CPP_TESTS
+	$(OBJCOPY) $(or $(STRIP_FLAGS),--strip-unneeded) $(DIST)/bin/jsapi-tests$(BIN_SUFFIX) $(PKG_STAGE)/cppunittests/jsapi-tests$(BIN_SUFFIX)
+else
 	cp -RL $(DIST)/bin/jsapi-tests$(BIN_SUFFIX) $(PKG_STAGE)/cppunittests
+endif
+
+
 
 stage-jittest: make-stage-dir
 	$(NSINSTALL) -D $(PKG_STAGE)/jit-test/tests

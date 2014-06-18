@@ -118,19 +118,42 @@
       // list items
 
       testTextAtOffset([ "li1" ], BOUNDARY_LINE_START,
-                       [ [ 0, 5, kDiscBulletChar + "Item", 0, 5 ] ]);
+                       [ [ 0, 6, kDiscBulletText + "Item", 0, 6 ] ]);
       testTextAtOffset([ "li2" ], BOUNDARY_LINE_START,
-                       [ [ 0, 1, kDiscBulletChar, 0, 1 ] ]);
+                       [ [ 0, 2, kDiscBulletText, 0, 2 ] ]);
       testTextAtOffset([ "li3" ], BOUNDARY_LINE_START,
-                       [ [ 0, 7, kDiscBulletChar + "a long ", 0, 8 ],
-                         [ 8, 11, "and ", 8, 12 ] ]);
+                       [ [ 0, 8, kDiscBulletText + "a long ", 0, 9 ],
+                         [ 9, 12, "and ", 9, 13 ] ]);
       testTextAtOffset([ "li4" ], BOUNDARY_LINE_START,
-                       [ [ 0, 6, kDiscBulletChar + "a " + kEmbedChar + " c", 0, 6 ] ]);
+                       [ [ 0, 7, kDiscBulletText + "a " + kEmbedChar + " c", 0, 7 ] ]);
+      testTextAtOffset([ "li5" ], BOUNDARY_LINE_START,
+                       [ [ 0, 2, kDiscBulletText + "\n", 0, 3 ],
+                         [ 3, 7, "hello", 3, 8 ] ]);
       testTextAtOffset([ "ul1" ], BOUNDARY_LINE_START,
                        [ [ 0, 0, kEmbedChar, 0, 1 ],
                          [ 1, 1, kEmbedChar, 1, 2 ],
                          [ 2, 2, kEmbedChar, 2, 3 ],
-                         [ 3, 4, kEmbedChar, 3, 4 ] ]);
+                         [ 3, 3, kEmbedChar, 3, 4 ],
+                         [ 4, 5, kEmbedChar, 4, 5 ] ]);
+
+      testTextAtOffset([ "li6" ], BOUNDARY_LINE_START,
+                       [ [ 0, 7, "1. Item", 0, 7 ] ]);
+      testTextAtOffset([ "li7" ], BOUNDARY_LINE_START,
+                       [ [ 0, 3, "2. ", 0, 3 ] ]);
+      testTextAtOffset([ "li8" ], BOUNDARY_LINE_START,
+                       [ [ 0, 9, "3. a long ", 0, 10 ],
+                         [ 10, 13, "and ", 10, 14 ] ]);
+      testTextAtOffset([ "li9" ], BOUNDARY_LINE_START,
+                       [ [ 0, 8, "4. a " + kEmbedChar + " c", 0, 8 ] ]);
+      testTextAtOffset([ "li10" ], BOUNDARY_LINE_START,
+                       [ [ 0, 3, "5. \n", 0, 4 ],
+                         [ 4, 8, "hello", 4, 9 ] ]);
+      testTextAtOffset([ "ol1" ], BOUNDARY_LINE_START,
+                       [ [ 0, 0, kEmbedChar, 0, 1 ],
+                         [ 1, 1, kEmbedChar, 1, 2 ],
+                         [ 2, 2, kEmbedChar, 2, 3 ],
+                         [ 3, 3, kEmbedChar, 3, 4 ],
+                         [ 4, 5, kEmbedChar, 4, 5 ] ]);
 
       //////////////////////////////////////////////////////////////////////////
       // Nested hypertexts
@@ -210,7 +233,16 @@ two words
     <li id="li2"></li>
     <li id="li3" style="width:10ex; font-family:monospace; font-size:10pt;">a long and winding road that lead me to your door</li>
     <li id="li4">a <a href=''>b</a> c</li>
+    <li id="li5"><br>hello</li>
   </ul>
+
+  <ol id="ol1">
+    <li id="li6">Item</li>
+    <li id="li7"></li>
+    <li id="li8" style="width:10ex; font-family:monospace; font-size:10pt;">a long and winding road that lead me to your door</li>
+    <li id="li9">a <a href=''>b</a> c</li>
+    <li id="li10"><br>hello</li>
+  </ol>
 
   <div id="ht_5">
     <div>

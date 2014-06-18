@@ -348,7 +348,7 @@ nsLineLayout::UpdateBand(const nsRect& aNewAvailSpace,
     }
   }
 
-  mBStartEdge = aNewAvailSpace.y;
+  mBStartEdge = availSpace.BStart(lineWM);
   mImpactedByFloats = true;
 
   mLastFloatWasLetterFrame = nsGkAtoms::letterFrame == aFloatFrame->GetType();
@@ -711,7 +711,7 @@ IsPercentageAware(const nsIFrame* aFrame)
   return false;
 }
 
-nsresult
+void
 nsLineLayout::ReflowFrame(nsIFrame* aFrame,
                           nsReflowStatus& aReflowStatus,
                           nsHTMLReflowMetrics* aMetrics,
@@ -739,10 +739,11 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   WritingMode frameWM = aFrame->GetWritingMode();
   WritingMode lineWM = mRootSpan->mWritingMode;
 
-  // NOTE: While the x coordinate remains relative to the parent span,
-  // the y coordinate is fixed at the top edge for the line. During
-  // BlockDirAlignFrames we will repair this so that the y coordinate
-  // is properly set and relative to the appropriate span.
+  // NOTE: While the inline direction coordinate remains relative to the
+  // parent span, the block direction coordinate is fixed at the top
+  // edge for the line. During VerticalAlignFrames we will repair this
+  // so that the block direction coordinate is properly set and relative
+  // to the appropriate span.
   pfd->mBounds.IStart(lineWM) = psd->mICoord;
   pfd->mBounds.BStart(lineWM) = mBStartEdge;
 
@@ -798,9 +799,11 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         reflowState.ComputedLogicalOffsets().ConvertTo(frameWM, stateWM);
     }
 
-    // Apply start margins (as appropriate) to the frame computing the
-    // new starting x,y coordinates for the frame.
-    ApplyStartMargin(pfd, reflowState);
+    // Calculate whether the the frame should have a start margin and
+    // subtract the margin from the available width if necessary.
+    // The margin will be applied to the starting inline coordinates of
+    // the frame in CanPlaceFrame() after reflowing the frame.
+    AllowForStartMargin(pfd, reflowState);
   }
   // if isText(), no need to propagate NS_FRAME_IS_DIRTY from the parent,
   // because reflow doesn't look at the dirty bits on the frame being reflowed.
@@ -839,12 +842,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
                                  &savedOptionalBreakPriority);
 
   if (!isText) {
-    nsresult rv = aFrame->Reflow(mPresContext, metrics, reflowStateHolder.ref(),
-                                 aReflowStatus);
-    if (NS_FAILED(rv)) {
-      NS_WARNING( "Reflow of frame failed in nsLineLayout" );
-      return rv;
-    }
+    aFrame->Reflow(mPresContext, metrics, reflowStateHolder.ref(),
+                   aReflowStatus);
   } else {
     static_cast<nsTextFrame*>(aFrame)->
       ReflowText(*this, availableSpaceOnLine, psd->mReflowState->rendContext,
@@ -952,8 +951,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   // added in later by nsLineLayout::ReflowInlineFrames.
   pfd->mOverflowAreas = metrics.mOverflowAreas;
 
-  pfd->mBounds.ISize(lineWM) = metrics.ISize();
-  pfd->mBounds.BSize(lineWM) = metrics.BSize();
+  pfd->mBounds.ISize(lineWM) = metrics.ISize(lineWM);
+  pfd->mBounds.BSize(lineWM) = metrics.BSize(lineWM);
 
   // Size the frame, but |RelativePositionFrames| will size the view.
   aFrame->SetSize(nsSize(metrics.Width(), metrics.Height()));
@@ -978,9 +977,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         // Remove all of the childs next-in-flows. Make sure that we ask
         // the right parent to do the removal (it's possible that the
         // parent is not this because we are executing pullup code)
-        nsContainerFrame* parent = static_cast<nsContainerFrame*>
-                                                  (kidNextInFlow->GetParent());
-        parent->DeleteNextInFlowChild(kidNextInFlow, true);
+        kidNextInFlow->GetParent()->
+          DeleteNextInFlowChild(kidNextInFlow, true);
       }
     }
 
@@ -1021,7 +1019,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         // The frame we just finished reflowing is an inline
         // container.  It needs its child frames aligned in the block direction,
         // so do most of it now.
-        BlockDirAlignFrames(span);
+        VerticalAlignFrames(span);
       }
       
       if (!continuingTextRun) {
@@ -1056,20 +1054,17 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   nsFrame::ListTag(stdout, aFrame);
   printf(" status=%x\n", aReflowStatus);
 #endif
-
-  return NS_OK;
 }
 
 void
-nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
-                               nsHTMLReflowState& aReflowState)
+nsLineLayout::AllowForStartMargin(PerFrameData* pfd,
+                                  nsHTMLReflowState& aReflowState)
 {
   NS_ASSERTION(!aReflowState.IsFloating(),
                "How'd we get a floated inline frame? "
                "The frame ctor should've dealt with this.");
 
   WritingMode frameWM = pfd->mFrame->GetWritingMode();
-  WritingMode lineWM = mRootSpan->mWritingMode;
 
   // Only apply start-margin on the first-in flow for inline frames,
   // and make sure to not apply it to any inline other than the first
@@ -1085,21 +1080,7 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
     // Zero this out so that when we compute the max-element-width of
     // the frame we will properly avoid adding in the starting margin.
     pfd->mMargin.IStart(frameWM) = 0;
-  }
-  if ((pfd->mFrame->LastInFlow()->GetNextContinuation() ||
-      pfd->mFrame->FrameIsNonLastInIBSplit())
-    && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
-    pfd->mMargin.IEnd(frameWM) = 0;
-  }
-  nscoord startMargin = pfd->mMargin.ConvertTo(lineWM, frameWM).IStart(lineWM);
-  if (startMargin) {
-    // In RTL mode, we will only apply the start margin to the frame bounds
-    // after we finish flowing the frame and know more accurately whether we
-    // want to skip the margins.
-    if (lineWM.IsBidiLTR() && frameWM.IsBidiLTR()) {
-      pfd->mBounds.IStart(lineWM) += startMargin;
-    }
-
+  } else {
     NS_WARN_IF_FALSE(NS_UNCONSTRAINEDSIZE != aReflowState.AvailableWidth(),
                      "have unconstrained width; this should only result from "
                      "very large sizes, not attempts at intrinsic width "
@@ -1109,7 +1090,7 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
       // in the reflow state), adjust available width to account for the
       // start margin. The end margin will be accounted for when we
       // finish flowing the frame.
-      aReflowState.AvailableWidth() -= startMargin;
+      aReflowState.AvailableWidth() -= pfd->mMargin.IStart(frameWM);
     }
   }
 }
@@ -1167,10 +1148,6 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
    * For box-decoration-break:clone we apply the end margin on all
    * continuations (that are not letter frames).
    */
-  if (pfd->mFrame->GetPrevContinuation() ||
-      pfd->mFrame->FrameIsNonFirstInIBSplit()) {
-    pfd->mMargin.IStart(frameWM) = 0;
-  }
   if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
        pfd->mFrame->LastInFlow()->GetNextContinuation() ||
        pfd->mFrame->FrameIsNonLastInIBSplit()) &&
@@ -1179,13 +1156,14 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
         NS_STYLE_BOX_DECORATION_BREAK_SLICE) {
     pfd->mMargin.IEnd(frameWM) = 0;
   }
+
+  // Convert the frame's margins to the line's writing mode and apply
+  // the start margin to the frame bounds.
   LogicalMargin usedMargins = pfd->mMargin.ConvertTo(lineWM, frameWM);
   nscoord startMargin = usedMargins.IStart(lineWM);
   nscoord endMargin = usedMargins.IEnd(lineWM);
 
-  if (!(lineWM.IsBidiLTR() && frameWM.IsBidiLTR())) {
-    pfd->mBounds.IStart(lineWM) += startMargin;
-  }
+  pfd->mBounds.IStart(lineWM) += startMargin;
 
   PerSpanData* psd = mCurrentSpan;
   if (psd->mNoWrap) {
@@ -1310,15 +1288,17 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 void
 nsLineLayout::PlaceFrame(PerFrameData* pfd, nsHTMLReflowMetrics& aMetrics)
 {
-  // Record ascent and update max-ascent and max-descent values
-  if (aMetrics.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE)
-    pfd->mAscent = pfd->mFrame->GetBaseline();
-  else
-    pfd->mAscent = aMetrics.TopAscent();
-
-  // Advance to next inline coordinate
   WritingMode frameWM = pfd->mFrame->GetWritingMode();
   WritingMode lineWM = mRootSpan->mWritingMode;
+
+  // Record ascent and update max-ascent and max-descent values
+  if (aMetrics.BlockStartAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+    pfd->mAscent = pfd->mFrame->GetLogicalBaseline(lineWM);
+  } else {
+    pfd->mAscent = aMetrics.BlockStartAscent();
+  }
+
+  // Advance to next inline coordinate
   mCurrentSpan->mICoord = pfd->mBounds.IEnd(lineWM) +
                           pfd->mMargin.ConvertTo(lineWM, frameWM).IEnd(lineWM);
 
@@ -1349,17 +1329,18 @@ nsLineLayout::AddBulletFrame(nsIFrame* aFrame,
     mLineBox->SetHasBullet();
   }
 
+  WritingMode lineWM = mRootSpan->mWritingMode;
   PerFrameData* pfd = NewPerFrameData(aFrame);
   mRootSpan->AppendFrame(pfd);
   pfd->SetFlag(PFD_ISBULLET, true);
-  if (aMetrics.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE)
-    pfd->mAscent = aFrame->GetBaseline();
-  else
-    pfd->mAscent = aMetrics.TopAscent();
+  if (aMetrics.BlockStartAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+    pfd->mAscent = aFrame->GetLogicalBaseline(lineWM);
+  } else {
+    pfd->mAscent = aMetrics.BlockStartAscent();
+  }
 
   // Note: block-coord value will be updated during block-direction alignment
-  pfd->mBounds = LogicalRect(mRootSpan->mWritingMode,
-                             aFrame->GetRect(), mContainerWidth);
+  pfd->mBounds = LogicalRect(lineWM, aFrame->GetRect(), mContainerWidth);
   pfd->mOverflowAreas = aMetrics.mOverflowAreas;
 }
 
@@ -1390,7 +1371,7 @@ nsLineLayout::DumpPerSpanData(PerSpanData* psd, int32_t aIndent)
 #define VALIGN_BOTTOM 2
 
 void
-nsLineLayout::BlockDirAlignLine()
+nsLineLayout::VerticalAlignLine()
 {
   // Synthesize a PerFrameData for the block frame
   PerFrameData rootPFD(mBlockReflowState->frame->GetWritingMode());
@@ -1402,12 +1383,15 @@ nsLineLayout::BlockDirAlignLine()
   // this operation is set to zero so that the y coordinates for all
   // of the placed children will be relative to there.
   PerSpanData* psd = mRootSpan;
-  BlockDirAlignFrames(psd);
+  VerticalAlignFrames(psd);
 
-  // *** Note that comments here still use the anachronistic term "line-height"
-  // when we really mean "size of the line in the block direction". This is
-  // partly for brevity and partly to retain the association with the CSS
-  // line-height property
+  // *** Note that comments here still use the anachronistic term
+  // "line-height" when we really mean "size of the line in the block
+  // direction", "vertical-align" when we really mean "alignment in
+  // the block direction", and "top" and "bottom" when we really mean
+  // "block start" and "block end". This is partly for brevity and
+  // partly to retain the association with the CSS line-height and
+  // vertical-align properties.
   //
   // Compute the line-height. The line-height will be the larger of:
   //
@@ -1415,7 +1399,7 @@ nsLineLayout::BlockDirAlignLine()
   // block-start edge and the last child's block-end edge)
   //
   // [2] the maximum logical box block size (since not every frame may have
-  // participated in #1; for example: block-start/end aligned frames)
+  // participated in #1; for example: "top" and "botttom" aligned frames)
   //
   // [3] the minimum line height ("line-height" property set on the
   // block frame)
@@ -1433,7 +1417,7 @@ nsLineLayout::BlockDirAlignLine()
   }
 
   // It's also possible that the line block-size isn't tall enough because
-  // of block start/end aligned elements that were not accounted for in
+  // of "top" and "bottom" aligned elements that were not accounted for in
   // min/max BCoord.
   //
   // The CSS2 spec doesn't really say what happens when to the
@@ -1459,8 +1443,8 @@ nsLineLayout::BlockDirAlignLine()
 #endif
 
   // Now position all of the frames in the root span. We will also
-  // recurse over the child spans and place any block start/end aligned
-  // frames we find.
+  // recurse over the child spans and place any frames we find with
+  // vertical-align: top or bottom.
   // XXX PERFORMANCE: set a bit per-span to avoid the extra work
   // (propagate it upward too)
   WritingMode lineWM = psd->mWritingMode;
@@ -1470,7 +1454,7 @@ nsLineLayout::BlockDirAlignLine()
       pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
     }
   }
-  PlaceStartEndFrames(psd, -mBStartEdge, lineBSize);
+  PlaceTopBottomFrames(psd, -mBStartEdge, lineBSize);
 
   // If the frame being reflowed has text decorations, we simulate the
   // propagation of those decorations to a line-level element by storing the
@@ -1495,23 +1479,24 @@ nsLineLayout::BlockDirAlignLine()
                       mContainerWidth);
 
   mFinalLineBSize = lineBSize;
-  mLineBox->SetAscent(baselineBCoord - mBStartEdge);
+  mLineBox->SetLogicalAscent(baselineBCoord - mBStartEdge);
 #ifdef NOISY_BLOCKDIR_ALIGN
   printf(
     "  [line]==> bounds{x,y,w,h}={%d,%d,%d,%d} lh=%d a=%d\n",
-    mLineBox->mBounds.IStart(lineWM), mLineBox->mBounds.BStart(lineWM),
-    mLineBox->mBounds.ISize(lineWM), mLineBox->mBounds.BSize(lineWM),
-    mFinalLineBSize, mLineBox->GetAscent());
+    mLineBox->GetBounds().IStart(lineWM), mLineBox->GetBounds().BStart(lineWM),
+    mLineBox->GetBounds().ISize(lineWM), mLineBox->GetBounds().BSize(lineWM),
+    mFinalLineBSize, mLineBox->GetLogicalAscent());
 #endif
 
   // Undo root-span mFrame pointer to prevent brane damage later on...
   mRootSpan->mFrame = nullptr;
 }
 
+// Place frames with CSS property vertical-align: top or bottom.
 void
-nsLineLayout::PlaceStartEndFrames(PerSpanData* psd,
-                                  nscoord aDistanceFromStart,
-                                  nscoord aLineBSize)
+nsLineLayout::PlaceTopBottomFrames(PerSpanData* psd,
+                                   nscoord aDistanceFromStart,
+                                   nscoord aLineBSize)
 {
   for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
     PerSpanData* span = pfd->mSpan;
@@ -1559,7 +1544,7 @@ nsLineLayout::PlaceStartEndFrames(PerSpanData* psd,
     }
     if (span) {
       nscoord fromStart = aDistanceFromStart + pfd->mBounds.BStart(lineWM);
-      PlaceStartEndFrames(span, fromStart, aLineBSize);
+      PlaceTopBottomFrames(span, fromStart, aLineBSize);
     }
   }
 }
@@ -1581,12 +1566,13 @@ GetInflationForBlockDirAlignment(nsIFrame* aFrame,
 #define BLOCKDIR_ALIGN_FRAMES_NO_MINIMUM nscoord_MAX
 #define BLOCKDIR_ALIGN_FRAMES_NO_MAXIMUM nscoord_MIN
 
-// Place frames in the block direction within a given span. Note: this doesn't
-// place block start/end aligned frames as those have to wait until the
-// entire line box block size is known. This is called after the span
-// frame has finished being reflowed so that we know its block size.
+// Place frames in the block direction within a given span (CSS property
+// vertical-align) Note: this doesn't place frames with vertical-align:
+// top or bottom as those have to wait until the entire line box block
+// size is known. This is called after the span frame has finished being
+// reflowed so that we know its block size.
 void
-nsLineLayout::BlockDirAlignFrames(PerSpanData* psd)
+nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 {
   // Get parent frame info
   PerFrameData* spanFramePFD = psd->mFrame;
@@ -1933,6 +1919,8 @@ nsLineLayout::BlockDirAlignFrames(PerSpanData* psd)
         {
           // The top of the logical box is aligned with the top of
           // the parent element's text.
+          // XXX For vertical text we will need a new API to get the logical
+          //     max-ascent here
           nscoord parentAscent = fm->MaxAscent();
           if (frameSpan) {
             pfd->mBounds.BStart(lineWM) = baselineBCoord - parentAscent -
@@ -2308,7 +2296,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
             // we need to update the child spans frame rectangle
             // because it most likely will not be done again. Spans
             // that are direct children of the block will be updated
-            // later, however, because the BlockDirAlignFrames method
+            // later, however, because the VerticalAlignFrames method
             // will be run after this method.
             nsIFrame* f = pfd->mFrame;
             LogicalRect r(lineWM, f->GetRect(), mContainerWidth);
@@ -2331,7 +2319,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
               // we need to update the child span's frame rectangle
               // because it most likely will not be done again. Spans
               // that are direct children of the block will be updated
-              // later, however, because the BlockDirAlignFrames method
+              // later, however, because the VerticalAlignFrames method
               // will be run after this method.
               SlideSpanFrameRect(pfd->mFrame, deltaISize);
             }
@@ -2394,7 +2382,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
             // we need to update the child spans frame rectangle
             // because it most likely will not be done again. Spans
             // that are direct children of the block will be updated
-            // later, however, because the BlockDirAlignFrames method
+            // later, however, because the VerticalAlignFrames method
             // will be run after this method.
             SlideSpanFrameRect(pfd->mFrame, trimOutput.mDeltaWidth);
           }
@@ -2516,9 +2504,11 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD, FrameJustificationState
   return deltaICoord;
 }
 
+// Align inline frames within the line according to the CSS text-align
+// property.
 void
-nsLineLayout::InlineDirAlignFrames(nsLineBox* aLine,
-                                   bool aIsLastLine)
+nsLineLayout::TextAlignLine(nsLineBox* aLine,
+                            bool aIsLastLine)
 {
   /**
    * NOTE: aIsLastLine ain't necessarily so: it is correctly set by caller
@@ -2576,7 +2566,6 @@ nsLineLayout::InlineDirAlignFrames(nsLineBox* aLine,
           // width to account for it.
           aLine->ExpandBy(ApplyFrameJustification(psd, &state),
                           mContainerWidth);
-          remainingISize = availISize - aLine->ISize();
           break;
         }
         // Fall through to the default case if we could not justify to fill
@@ -2603,7 +2592,6 @@ nsLineLayout::InlineDirAlignFrames(nsLineBox* aLine,
       case NS_STYLE_TEXT_ALIGN_END:
         dx = remainingISize;
         break;
-
 
       case NS_STYLE_TEXT_ALIGN_CENTER:
       case NS_STYLE_TEXT_ALIGN_MOZ_CENTER:
@@ -2663,7 +2651,7 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
     // The minimum combined area for the frames that are direct
     // children of the block starts at the upper left corner of the
     // line and is sized to match the size of the line's bounding box
-    // (the same size as the values returned from BlockDirAlignFrames)
+    // (the same size as the values returned from VerticalAlignFrames)
     overflowAreas.VisualOverflow() = rect.GetPhysicalRect(wm, mContainerWidth);
     overflowAreas.ScrollableOverflow() = overflowAreas.VisualOverflow();
   }
@@ -2708,7 +2696,7 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
         // We need to recompute overflow areas in two cases:
         // (1) When PFD_RECOMPUTEOVERFLOW is set due to trimming
         // (2) When there are text decorations, since we can't recompute the
-        //     overflow area until Reflow and BlockDirAlignLine have finished
+        //     overflow area until Reflow and VerticalAlignLine have finished
         if (pfd->GetFlag(PFD_RECOMPUTEOVERFLOW) ||
             frame->StyleContext()->HasTextDecorationLines()) {
           nsTextFrame* f = static_cast<nsTextFrame*>(frame);

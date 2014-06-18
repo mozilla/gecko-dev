@@ -19,6 +19,7 @@ const nsIAccessibleScrollType = Components.interfaces.nsIAccessibleScrollType;
 const nsIAccessibleCoordinateType = Components.interfaces.nsIAccessibleCoordinateType;
 
 const nsIAccessibleRelation = Components.interfaces.nsIAccessibleRelation;
+const nsIAccessibleTextRange = Components.interfaces.nsIAccessibleTextRange;
 
 const nsIAccessible = Components.interfaces.nsIAccessible;
 
@@ -82,7 +83,7 @@ const kEmbedChar = String.fromCharCode(0xfffc);
 const kDiscBulletChar = String.fromCharCode(0x2022);
 const kDiscBulletText = kDiscBulletChar + " ";
 const kCircleBulletText = String.fromCharCode(0x25e6) + " ";
-const kSquareBulletText = String.fromCharCode(0x25aa) + " ";
+const kSquareBulletText = String.fromCharCode(0x25fe) + " ";
 
 const MAX_TRIM_LENGTH = 100;
 
@@ -434,7 +435,7 @@ function testAccessibleTree(aAccOrElmOrID, aAccTree, aFlags)
       }
 
       break;
-    } 
+    }
 
     default:
       if (prop.indexOf("todo_") == 0)

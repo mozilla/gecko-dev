@@ -10,7 +10,7 @@
 #endif
 
 #include "GLLibraryLoader.h"
-
+#include "mozilla/ThreadLocal.h"
 #include "nsIFile.h"
 
 #include <bitset>
@@ -117,6 +117,7 @@ public:
         EXT_create_context_robustness,
         KHR_image,
         KHR_fence_sync,
+        ANDROID_native_fence_sync,
         Extensions_Max
     };
 
@@ -296,7 +297,12 @@ public:
     const GLubyte* fQueryString(EGLDisplay dpy, EGLint name)
     {
         BEFORE_GL_CALL;
-        const GLubyte* b = mSymbols.fQueryString(dpy, name);
+        const GLubyte* b;
+        if (mSymbols.fQueryStringImplementationANDROID) {
+          b = mSymbols.fQueryStringImplementationANDROID(dpy, name);
+        } else {
+          b = mSymbols.fQueryString(dpy, name);
+        }
         AFTER_GL_CALL;
         return b;
     }
@@ -406,6 +412,14 @@ public:
         return b;
     }
 
+    EGLint fDupNativeFenceFDANDROID(EGLDisplay dpy, EGLSync sync)
+    {
+        MOZ_ASSERT(mSymbols.fDupNativeFenceFDANDROID);
+        BEFORE_GL_CALL;
+        EGLint ret = mSymbols.fDupNativeFenceFDANDROID(dpy, sync);
+        AFTER_GL_CALL;
+        return ret;
+    }
 
     EGLDisplay Display() {
         return mEGLDisplay;
@@ -484,6 +498,7 @@ public:
         pfnCopyBuffers fCopyBuffers;
         typedef const GLubyte* (GLAPIENTRY * pfnQueryString)(EGLDisplay, EGLint name);
         pfnQueryString fQueryString;
+        pfnQueryString fQueryStringImplementationANDROID;
         typedef EGLBoolean (GLAPIENTRY * pfnQueryContext)(EGLDisplay dpy, EGLContext ctx,
                                                           EGLint attribute, EGLint *value);
         pfnQueryContext fQueryContext;
@@ -515,11 +530,40 @@ public:
         pfnClientWaitSync fClientWaitSync;
         typedef EGLBoolean (GLAPIENTRY * pfnGetSyncAttrib)(EGLDisplay dpy, EGLSync sync, EGLint attribute, EGLint *value);
         pfnGetSyncAttrib fGetSyncAttrib;
+        typedef EGLint (GLAPIENTRY * pfnDupNativeFenceFDANDROID)(EGLDisplay dpy, EGLSync sync);
+        pfnDupNativeFenceFDANDROID fDupNativeFenceFDANDROID;
     } mSymbols;
 
 #ifdef DEBUG
     static void BeforeGLCall(const char* glFunction);
     static void AfterGLCall(const char* glFunction);
+#endif
+
+#ifdef MOZ_B2G
+    EGLContext CachedCurrentContext() {
+        return sCurrentContext.get();
+    }
+    void UnsetCachedCurrentContext() {
+        sCurrentContext.set(nullptr);
+    }
+    void SetCachedCurrentContext(EGLContext aCtx) {
+        sCurrentContext.set(aCtx);
+    }
+    bool CachedCurrentContextMatches() {
+        return sCurrentContext.get() == fGetCurrentContext();
+    }
+
+private:
+    static ThreadLocal<EGLContext> sCurrentContext;
+public:
+
+#else
+    EGLContext CachedCurrentContext() {
+        return nullptr;
+    }
+    void UnsetCachedCurrentContext() {}
+    void SetCachedCurrentContext(EGLContext aCtx) { }
+    bool CachedCurrentContextMatches() { return true; }
 #endif
 
 private:

@@ -56,6 +56,7 @@ AppValidator.prototype._fetchManifest = function (manifestURL) {
   this.manifestURL = manifestURL;
 
   let req = new XMLHttpRequest();
+  req.overrideMimeType('text/plain');
   try {
     req.open("GET", manifestURL, true);
   } catch(e) {
@@ -99,7 +100,7 @@ AppValidator.prototype._getManifest = function () {
     try {
       Services.io.newURI(manifestURL, null, null);
     } catch(e) {
-      this.error(strings.formatStringFromName("validator.invalidHostedManifestURL", [manifestURL, e.message]));
+      this.error(strings.formatStringFromName("validator.invalidHostedManifestURL", [manifestURL, e.message], 2));
       return promise.resolve(null);
     }
   } else {
@@ -155,6 +156,7 @@ AppValidator.prototype.validateLaunchPath = function (manifest) {
   }
 
   let req = new XMLHttpRequest();
+  req.overrideMimeType('text/plain');
   try {
     req.open("HEAD", indexURL, true);
   } catch(e) {

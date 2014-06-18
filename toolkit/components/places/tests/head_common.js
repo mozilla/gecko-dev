@@ -34,6 +34,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "BookmarkJSONUtils",
                                   "resource://gre/modules/BookmarkJSONUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "BookmarkHTMLUtils",
+                                  "resource://gre/modules/BookmarkHTMLUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
                                   "resource://gre/modules/PlacesBackups.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesTransactions",
@@ -950,3 +952,18 @@ function promiseIsURIVisited(aURI) {
   return deferred.promise;
 }
 
+/**
+ * Asynchronously set the favicon associated with a page.
+ * @param aPageURI
+ *        The page's URI
+ * @param aIconURI
+ *        The URI of the favicon to be set.
+ */
+function promiseSetIconForPage(aPageURI, aIconURI) {
+  let deferred = Promise.defer();
+  PlacesUtils.favicons.setAndFetchFaviconForPage(
+    aPageURI, aIconURI, true,
+    PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
+    () => { deferred.resolve(); });
+  return deferred.promise;
+}

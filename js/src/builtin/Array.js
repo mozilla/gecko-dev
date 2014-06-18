@@ -489,6 +489,69 @@ function ArrayFindIndex(predicate/*, thisArg*/) {
     return -1;
 }
 
+/* ES6 draft 2013-09-27 22.1.3.3. */
+function ArrayCopyWithin(target, start, end = undefined) {
+    /* Steps 1-2. */
+    var O = ToObject(this);
+
+    /* Steps 3-5. */
+    var len = ToInteger(O.length);
+
+    /* Steps 6-8. */
+    var relativeTarget = ToInteger(target);
+
+    var to = relativeTarget < 0 ? std_Math_max(len + relativeTarget, 0)
+                                : std_Math_min(relativeTarget, len);
+
+    /* Steps 9-11. */
+    var relativeStart = ToInteger(start);
+
+    var from = relativeStart < 0 ? std_Math_max(len + relativeStart, 0)
+                                 : std_Math_min(relativeStart, len);
+
+    /* Steps 12-14. */
+    var relativeEnd = end === undefined ? len
+                                        : ToInteger(end);
+
+    var final = relativeEnd < 0 ? std_Math_max(len + relativeEnd, 0)
+                                : std_Math_min(relativeEnd, len);
+
+    /* Step 15. */
+    var count = std_Math_min(final - from, len - to);
+
+    /* Steps 16-17. */
+    if (from < to && to < (from + count)) {
+        from = from + count - 1;
+        to = to + count - 1;
+        /* Step 18. */
+        while (count > 0) {
+            if (from in O)
+                O[to] = O[from];
+            else
+                delete O[to];
+
+            from--;
+            to--;
+            count--;
+        }
+    } else {
+        /* Step 18. */
+        while (count > 0) {
+            if (from in O)
+                O[to] = O[from];
+            else
+                delete O[to];
+
+            from++;
+            to++;
+            count--;
+        }
+    }
+
+    /* Step 19. */
+    return O;
+}
+
 // ES6 draft 2014-04-05 22.1.3.6
 function ArrayFill(value, start = 0, end = undefined) {
     // Steps 1-2.
@@ -597,6 +660,82 @@ function ArrayKeys() {
     return CreateArrayIterator(this, ITEM_KIND_KEY);
 }
 
+/* ES6 rev 25 (2014 May 22) 22.1.2.1 */
+function ArrayFrom(arrayLike, mapfn=undefined, thisArg=undefined) {
+    // Step 1.
+    var C = this;
+
+    // Steps 2-3.
+    var items = ToObject(arrayLike);
+
+    // Steps 4-5.
+    var mapping = (mapfn !== undefined);
+    if (mapping && !IsCallable(mapfn))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, mapfn));
+
+    // All elements defined by this algorithm have the same attrs:
+    var attrs = ATTR_CONFIGURABLE | ATTR_ENUMERABLE | ATTR_WRITABLE;
+
+    // Steps 6-8.
+    var usingIterator = items["@@iterator"];
+    if (usingIterator !== undefined) {
+        // Steps 8.a-c.
+        var A = IsConstructor(C) ? new C() : [];
+
+        // Steps 8.d-e.
+        var iterator = callFunction(usingIterator, items);
+
+        // Step 8.f.
+        var k = 0;
+
+        // Steps 8.g.i-vi.
+        // These steps cannot be implemented using a for-of loop.
+        // See <https://bugs.ecmascript.org/show_bug.cgi?id=2883>.
+        var next;
+        while (true) {
+            // Steps 8.g.ii-vi.
+            next = iterator.next();
+            if (!IsObject(next))
+                ThrowError(JSMSG_NEXT_RETURNED_PRIMITIVE);
+            if (next.done)
+                break;  // Substeps of 8.g.iv are implemented below.
+            var nextValue = next.value;
+
+            // Steps 8.g.vii-viii.
+            var mappedValue = mapping ? callFunction(mapfn, thisArg, nextValue, k) : nextValue;
+
+            // Steps 8.g.ix-xi.
+            _DefineDataProperty(A, k++, mappedValue, attrs);
+        }
+    } else {
+        // Step 9 is an assertion: items is not an Iterator. Testing this is
+        // literally the very last thing we did, so we don't assert here.
+
+        // Steps 10-12.
+        // FIXME: Array operations should use ToLength (bug 924058).
+        var len = ToInteger(items.length);
+
+        // Steps 13-15.
+        var A = IsConstructor(C) ? new C(len) : NewDenseArray(len);
+
+        // Steps 16-17.
+        for (var k = 0; k < len; k++) {
+            // Steps 17.a-c.
+            var kValue = items[k];
+
+            // Steps 17.d-e.
+            var mappedValue = mapping ? callFunction(mapfn, thisArg, kValue, k) : kValue;
+
+            // Steps 17.f-g.
+            _DefineDataProperty(A, k, mappedValue, attrs);
+        }
+    }
+
+    // Steps 8.g.iv.1-3 and 18-20 are the same.
+    A.length = k;
+    return A;
+}
+
 #ifdef ENABLE_PARALLEL_JS
 
 /*
@@ -629,7 +768,7 @@ function ArrayMapPar(func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode));
+    ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode), buffer);
     return buffer;
   }
 
@@ -678,7 +817,7 @@ function ArrayReducePar(func, mode) {
     var numSlices = slicesInfo.count;
     var subreductions = NewDenseArray(numSlices);
 
-    ForkJoin(reduceThread, 0, numSlices, ForkJoinMode(mode));
+    ForkJoin(reduceThread, 0, numSlices, ForkJoinMode(mode), null);
 
     var accumulator = subreductions[0];
     for (var i = 1; i < numSlices; i++)
@@ -725,7 +864,12 @@ function ArrayScanPar(func, mode) {
   if (length === 0)
     ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
 
+  // We need two buffers because phase2() will read an intermediate result and
+  // write a final result; that is safe against bailout-and-restart only if
+  // the intermediate and final buffers are distinct.  (Bug 1023755)
+  // Obviously paying for a second buffer is undesirable.
   var buffer = NewDenseArray(length);
+  var buffer2 = NewDenseArray(length);
 
   parallel: for (;;) { // see ArrayMapPar() to explain why for(;;) etc
     if (ShouldForceSequential())
@@ -737,7 +881,7 @@ function ArrayScanPar(func, mode) {
     var numSlices = slicesInfo.count;
 
     // Scan slices individually (see comment on phase1()).
-    ForkJoin(phase1, 0, numSlices, ForkJoinMode(mode));
+    ForkJoin(phase1, 0, numSlices, ForkJoinMode(mode), buffer);
 
     // Compute intermediates array (see comment on phase2()).
     var intermediates = [];
@@ -750,11 +894,12 @@ function ArrayScanPar(func, mode) {
 
     // Complete each slice using intermediates array (see comment on phase2()).
     //
-    // We start from slice 1 instead of 0 since there is no work to be done
-    // for slice 0.
-    if (numSlices > 1)
-      ForkJoin(phase2, 1, numSlices, ForkJoinMode(mode));
-    return buffer;
+    // Slice 0 must be handled specially - it's just a copy - since we don't
+    // have an identity value for the operation.
+    for ( var k=0, limit=finalElement(0) ; k <= limit ; k++ )
+      buffer2[k] = buffer[k];
+    ForkJoin(phase2, 1, numSlices, ForkJoinMode(mode), buffer2);
+    return buffer2;
   }
 
   // Sequential fallback:
@@ -847,7 +992,7 @@ function ArrayScanPar(func, mode) {
       var indexEnd = SLICE_END_INDEX(sliceShift, indexPos, length);
       var intermediate = intermediates[sliceId - 1];
       for (; indexPos < indexEnd; indexPos++)
-        UnsafePutElements(buffer, indexPos, func(intermediate, buffer[indexPos]));
+        UnsafePutElements(buffer2, indexPos, func(intermediate, buffer[indexPos]));
     }
     return sliceId;
   }
@@ -967,7 +1112,7 @@ function ArrayFilterPar(func, mode) {
       UnsafePutElements(counts, i, 0);
 
     var survivors = new Uint8Array(length);
-    ForkJoin(findSurvivorsThread, 0, numSlices, ForkJoinMode(mode));
+    ForkJoin(findSurvivorsThread, 0, numSlices, ForkJoinMode(mode), survivors);
 
     // Step 2. Compress the slices into one contiguous set.
     var count = 0;
@@ -975,7 +1120,7 @@ function ArrayFilterPar(func, mode) {
       count += counts[i];
     var buffer = NewDenseArray(count);
     if (count > 0)
-      ForkJoin(copySurvivorsThread, 0, numSlices, ForkJoinMode(mode));
+      ForkJoin(copySurvivorsThread, 0, numSlices, ForkJoinMode(mode), buffer);
 
     return buffer;
   }
@@ -1085,7 +1230,7 @@ function ArrayStaticBuildPar(length, func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    ForkJoin(constructThread, 0, slicesInfo.count, ForkJoinMode(mode));
+    ForkJoin(constructThread, 0, slicesInfo.count, ForkJoinMode(mode), buffer);
     return buffer;
   }
 

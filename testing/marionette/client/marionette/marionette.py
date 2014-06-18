@@ -9,6 +9,7 @@ import socket
 import sys
 import time
 import traceback
+import base64
 
 from application_cache import ApplicationCache
 from decorators import do_crash_check
@@ -364,15 +365,26 @@ class Actions(object):
         self.action_chain.append(['release'])
         return self
 
-    def long_press(self, element, time_in_seconds):
+    def long_press(self, element, time_in_seconds, x=None, y=None):
         '''
         Performs a long press gesture on the target element.
 
         :param element: The element to press.
         :param time_in_seconds: Time in seconds to wait before releasing the press.
+        :param x: Optional, x-coordinate to tap, relative to the top-left
+         corner of the element.
+        :param y: Optional, y-coordinate to tap, relative to the top-left
+         corner of the element.
+
+        This is equivalent to calling:
+
+        ::
+
+          action.press(element, x, y).wait(time_in_seconds).release()
+
         '''
         element = element.id
-        self.action_chain.append(['press', element])
+        self.action_chain.append(['press', element, x, y])
         self.action_chain.append(['wait', time_in_seconds])
         self.action_chain.append(['release'])
         return self
@@ -451,7 +463,7 @@ class Marionette(object):
                  emulatorImg=None, emulator_res=None, gecko_path=None,
                  connectToRunningEmulator=False, homedir=None, baseurl=None,
                  noWindow=False, logcat_dir=None, busybox=None, symbols_path=None,
-                 timeout=None, device_serial=None):
+                 timeout=None, device_serial=None, gecko_log=None):
         self.host = host
         self.port = self.local_port = port
         self.bin = bin
@@ -493,7 +505,8 @@ class Marionette(object):
                     instance_class = geckoinstance.GeckoInstance
             self.instance = instance_class(host=self.host, port=self.port,
                                            bin=self.bin, profile=self.profile,
-                                           app_args=app_args, symbols_path=symbols_path)
+                                           app_args=app_args, symbols_path=symbols_path,
+                                           gecko_log=gecko_log)
             self.instance.start()
             assert(self.wait_for_port()), "Timed out waiting for port!"
 
@@ -585,7 +598,7 @@ class Marionette(object):
                 sock.connect((self.host, self.port))
                 data = sock.recv(16)
                 sock.close()
-                if '"from"' in data:
+                if ':' in data:
                     time.sleep(5)
                     return True
             except socket.error:
@@ -1382,11 +1395,11 @@ class Marionette(object):
     def application_cache(self):
         return ApplicationCache(self)
 
-    def screenshot(self, element=None, highlights=None):
+    def screenshot(self, element=None, highlights=None, format="base64"):
         """Takes a screenshot of a web element or the current frame.
 
         The screen capture is returned as a lossless PNG image encoded
-        as a base 64 string.  If the `element` argument is defined the
+        as a base 64 string by default. If the `element` argument is defined the
         capture area will be limited to the bounding box of that
         element.  Otherwise, the capture area will be the bounding box
         of the current frame.
@@ -1397,6 +1410,10 @@ class Marionette(object):
         :param highlights: A list of HTMLElement objects to draw a red
             box around in the returned screenshot.
 
+        :param format: if "base64" (the default), returns the screenshot
+            as a base64-string. If "binary", the data is decoded and
+            returned as raw binary.
+
         """
 
         if element:
@@ -1404,8 +1421,15 @@ class Marionette(object):
         lights = None
         if highlights:
             lights = [highlight.id for highlight in highlights]
-        return self._send_message("takeScreenshot", "value",
+        screenshot_data = self._send_message("takeScreenshot", "value",
                                   id=element, highlights=lights)
+        if format == 'base64':
+            return screenshot_data
+        elif format == 'binary':
+            return base64.b64decode(screenshot_data.encode('ascii'))
+        else:
+            raise ValueError("format parameter must be either 'base64'"
+                             " or 'binary', not {0}".format(repr(format)))
 
     @property
     def orientation(self):

@@ -8,7 +8,8 @@ EXTRA_JS_MODULES += [
     'Accounts.jsm',
     'AndroidLog.jsm',
     'ContactService.jsm',
-    'DownloadNotifications.jsm',
+    'dbg-browser-actors.js',
+    'FireflyApp.jsm',
     'HelperApps.jsm',
     'Home.jsm',
     'HomeProvider.jsm',
@@ -18,17 +19,14 @@ EXTRA_JS_MODULES += [
     'Notifications.jsm',
     'OrderedBroadcast.jsm',
     'Prompt.jsm',
-    'RokuApp.jsm',
     'Sanitizer.jsm',
     'SharedPreferences.jsm',
     'SimpleServiceDiscovery.jsm',
     'SSLExceptions.jsm',
+    'WebappManagerWorker.js',
 ]
 
-if CONFIG['MOZ_ANDROID_SYNTHAPKS']:
-    EXTRA_PP_JS_MODULES += [
-        'WebappManager.jsm',
-    ]
-    EXTRA_JS_MODULES += [
-        'WebappManagerWorker.js',
-    ]
+EXTRA_PP_JS_MODULES += [
+    'RokuApp.jsm',
+    'WebappManager.jsm',
+]

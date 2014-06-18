@@ -23,15 +23,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
   "resource://gre/modules/Deprecated.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
   "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
-  "resource://gre/modules/Sqlite.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "localFileCtor",
   () => Components.Constructor("@mozilla.org/file/local;1",
                                "nsILocalFile", "initWithPath"));
 
 XPCOMUtils.defineLazyGetter(this, "filenamesRegex",
-  () => new RegExp("^bookmarks-([0-9\-]+)(?:_([0-9]+)){0,1}(?:_([a-z0-9=\+\-]{24})){0,1}\.(json|html)", "i")
+  () => new RegExp("^bookmarks-([0-9\-]+)(?:_([0-9]+)){0,1}(?:_([a-z0-9=\+\-]{24})){0,1}\.(json(lz4)?)$", "i")
 );
 
 /**
@@ -65,8 +63,7 @@ function isFilenameWithSameDate(aSourceName, aTargetName) {
   let targetMatches = aTargetName.match(filenamesRegex);
 
   return sourceMatches && targetMatches &&
-         sourceMatches[1] == targetMatches[1] &&
-         sourceMatches[4] == targetMatches[4];
+         sourceMatches[1] == targetMatches[1];
 }
 
 /**
@@ -227,13 +224,17 @@ this.PlacesBackups = {
    * @param [optional] aDateObj
    *                   Date object used to build the filename.
    *                   Will use current date if empty.
+   * @param [optional] bool - aCompress
+   *                   Determines if file extension is json or jsonlz4
+                       Default is json
    * @return A bookmarks backup filename.
    */
-  getFilenameForDate: function PB_getFilenameForDate(aDateObj) {
+  getFilenameForDate: function PB_getFilenameForDate(aDateObj, aCompress) {
     let dateObj = aDateObj || new Date();
     // Use YYYY-MM-DD (ISO 8601) as it doesn't contain illegal characters
     // and makes the alphabetical order of multiple backup files more useful.
-    return "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json";
+      return "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json" +
+                            (aCompress ? "lz4" : "");
   },
 
   /**
@@ -256,19 +257,15 @@ this.PlacesBackups = {
   /**
    * Get the most recent backup file.
    *
-   * @param [optional] aFileExt
-   *                   Force file extension.  Either "html" or "json".
-   *                   Will check for both if not defined.
    * @returns nsIFile backup file
    */
-  getMostRecent: function PB_getMostRecent(aFileExt) {
+  getMostRecent: function PB_getMostRecent() {
     Deprecated.warning(
       "PlacesBackups.getMostRecent is deprecated and will be removed in a future version",
       "https://bugzilla.mozilla.org/show_bug.cgi?id=859695");
 
-    let fileExt = aFileExt || "(json|html)";
     for (let i = 0; i < this._entries.length; i++) {
-      let rx = new RegExp("\." + fileExt + "$");
+      let rx = new RegExp("\.json(lz4)?$");
       if (this._entries[i].leafName.match(rx))
         return this._entries[i];
     }
@@ -278,18 +275,14 @@ this.PlacesBackups = {
    /**
     * Get the most recent backup file.
     *
-    * @param [optional] aFileExt
-    *                   Force file extension.  Either "html" or "json".
-    *                   Will check for both if not defined.
     * @return {Promise}
     * @result the path to the file.
     */
-   getMostRecentBackup: function PB_getMostRecentBackup(aFileExt) {
+   getMostRecentBackup: function PB_getMostRecentBackup() {
      return Task.spawn(function* () {
-       let fileExt = aFileExt || "(json|html)";
        let entries = yield this.getBackupFiles();
        for (let entry of entries) {
-         let rx = new RegExp("\." + fileExt + "$");
+         let rx = new RegExp("\.json(lz4)?$");
          if (OS.Path.basename(entry).match(rx)) {
            return entry;
          }
@@ -331,13 +324,13 @@ this.PlacesBackups = {
         this._backupFiles.unshift(aFilePath);
       } else {
         // If we are saving to a folder different than our backups folder, then
-        // we also want to copy this new backup to it.
+        // we also want to create a new compressed version in it.
         // This way we ensure the latest valid backup is the same saved by the
         // user.  See bug 424389.
-        let mostRecentBackupFile = yield this.getMostRecentBackup("json");
+        let mostRecentBackupFile = yield this.getMostRecentBackup();
         if (!mostRecentBackupFile ||
             hash != getHashFromFilename(OS.Path.basename(mostRecentBackupFile))) {
-          let name = this.getFilenameForDate();
+          let name = this.getFilenameForDate(undefined, true);
           let newFilename = appendMetaDataToFilename(name,
                                                      { count: nodeCount,
                                                        hash: hash });
@@ -358,8 +351,8 @@ this.PlacesBackups = {
               yield this.getBackupFiles();
             this._backupFiles.unshift(newFilePath);
           }
-
-          yield OS.File.copy(aFilePath, newFilePath);
+          let jsonString = yield OS.File.read(aFilePath);
+          yield OS.File.writeAtomic(newFilePath, jsonString, { compression: "lz4" });
         }
       }
 
@@ -369,7 +362,7 @@ this.PlacesBackups = {
 
   /**
    * Creates a dated backup in <profile>/bookmarkbackups.
-   * Stores the bookmarks using JSON.
+   * Stores the bookmarks using a lz4 compressed JSON file.
    * Note: any item that should not be backed up must be annotated with
    *       "places/excludeFromBackup".
    *
@@ -406,7 +399,7 @@ this.PlacesBackups = {
       // Ensure to initialize _backupFiles
       if (!this._backupFiles)
         yield this.getBackupFiles();
-      let newBackupFilename = this.getFilenameForDate();
+      let newBackupFilename = this.getFilenameForDate(undefined, true);
       // If we already have a backup for today we should do nothing, unless we
       // were required to enforce a new backup.
       let backupFile = yield getBackupFileForSameDate(newBackupFilename);
@@ -433,7 +426,8 @@ this.PlacesBackups = {
       try {
         let { count: nodeCount, hash: hash } =
           yield BookmarkJSONUtils.exportToFile(newBackupFile,
-                                               { failIfHashIs: mostRecentHash });
+                                               { compress: true,
+                                                 failIfHashIs: mostRecentHash });
         newFilenameWithMetaData = appendMetaDataToFilename(newBackupFilename,
                                                            { count: nodeCount,
                                                              hash: hash });
@@ -443,6 +437,10 @@ this.PlacesBackups = {
         this._backupFiles.shift();
         this._entries.shift();
         newBackupFile = mostRecentBackupFile;
+        // Ensure we retain the proper extension when renaming
+        // the most recent backup file.
+        if (/\.json$/.test(OS.Path.basename(mostRecentBackupFile)))
+          newBackupFilename = this.getFilenameForDate();
         newFilenameWithMetaData = appendMetaDataToFilename(
           newBackupFilename,
           { count: this.getBookmarkCountForFile(mostRecentBackupFile),
@@ -503,177 +501,24 @@ this.PlacesBackups = {
    *         * root: string describing whether this represents a root
    *         * children: array of child items in a folder
    */
-  getBookmarksTree: function () {
-    return Task.spawn(function* () {
-      let dbFilePath = OS.Path.join(OS.Constants.Path.profileDir, "places.sqlite");
-      let conn = yield Sqlite.openConnection({ path: dbFilePath,
-                                               sharedMemoryCache: false });
-      let rows = [];
-      try {
-        rows = yield conn.execute(
-          "SELECT b.id, h.url, IFNULL(b.title, '') AS title, b.parent, " +
-                 "b.position AS [index], b.type, b.dateAdded, b.lastModified, " +
-                 "b.guid, f.url AS iconuri, " +
-                 "( SELECT GROUP_CONCAT(t.title, ',') " +
-                   "FROM moz_bookmarks b2 " +
-                   "JOIN moz_bookmarks t ON t.id = +b2.parent AND t.parent = :tags_folder " +
-                   "WHERE b2.fk = h.id " +
-                 ") AS tags, " +
-                 "EXISTS (SELECT 1 FROM moz_items_annos WHERE item_id = b.id LIMIT 1) AS has_annos, " +
-                 "( SELECT a.content FROM moz_annos a " +
-                   "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id " +
-                   "WHERE place_id = h.id AND n.name = :charset_anno " +
-                 ") AS charset " +
-          "FROM moz_bookmarks b " +
-          "LEFT JOIN moz_bookmarks p ON p.id = b.parent " +
-          "LEFT JOIN moz_places h ON h.id = b.fk " +
-          "LEFT JOIN moz_favicons f ON f.id = h.favicon_id " +
-          "WHERE b.id <> :tags_folder AND b.parent <> :tags_folder AND p.parent <> :tags_folder " +
-          "ORDER BY b.parent, b.position",
-          { tags_folder: PlacesUtils.tagsFolderId,
-            charset_anno: PlacesUtils.CHARSET_ANNO });
-      } catch(e) {
-        Cu.reportError("Unable to query the database " + e);
-      } finally {
-        yield conn.close();
+  getBookmarksTree: Task.async(function* () {
+    let rootGUID = yield PlacesUtils.promiseItemGUID(PlacesUtils.placesRootId);
+    let startTime = Date.now();
+    let root = yield PlacesUtils.promiseBookmarksTree(rootGUID, {
+      excludeItemsCallback: aItem => {
+        return aItem.annos &&
+          aItem.annos.find(a => a.name == PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO);
       }
-
-      let startTime = Date.now();
-      // Create a Map for lookup and recursive building of the tree.
-      let itemsMap = new Map();
-      for (let row of rows) {
-        let id = row.getResultByName("id");
-        try {
-          let bookmark = sqliteRowToBookmarkObject(row);
-          if (itemsMap.has(id)) {
-            // Since children may be added before parents, we should merge with
-            // the existing object.
-            let original = itemsMap.get(id);
-            for (prop in bookmark) {
-              original[prop] = bookmark[prop];
-            }
-            bookmark = original;
-          }
-          else {
-            itemsMap.set(id, bookmark);
-          }
-
-          // Append bookmark to its parent.
-          if (!itemsMap.has(bookmark.parent))
-            itemsMap.set(bookmark.parent, {});
-          let parent = itemsMap.get(bookmark.parent);
-          if (!("children" in parent))
-            parent.children = [];
-          parent.children.push(bookmark);
-        } catch (e) {
-          Cu.reportError("Error while reading node " + id + " " + e);
-        }
-      }
-
-      // Handle excluded items, by removing entire subtrees pointed by them.
-      function removeFromMap(id) {
-        // Could have been removed by a previous call, since we can't
-        // predict order of items in EXCLUDE_FROM_BACKUP_ANNO.
-        if (itemsMap.has(id)) {
-          let excludedItem = itemsMap.get(id);
-          if (excludedItem.children) {
-            for (let child of excludedItem.children) {
-              removeFromMap(child.id);
-            }
-          }
-          // Remove the excluded item from its parent's children...
-          let parentItem = itemsMap.get(excludedItem.parent);
-          parentItem.children = parentItem.children.filter(aChild => aChild.id != id);
-          // ...then remove it from the map.
-          itemsMap.delete(id);
-        }
-      }
-
-      for (let id of PlacesUtils.annotations.getItemsWithAnnotation(
-                       PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO)) {
-        removeFromMap(id);
-      }
-
-      // Report the time taken to build the tree. This doesn't take into
-      // account the time spent in the query since that's off the main-thread.
-      try {
-        Services.telemetry
-                .getHistogramById("PLACES_BACKUPS_BOOKMARKSTREE_MS")
-                .add(Date.now() - startTime);
-      } catch (ex) {
-        Components.utils.reportError("Unable to report telemetry.");
-      }
-
-      return [itemsMap.get(PlacesUtils.placesRootId), itemsMap.size];
     });
-  }
-}
 
-/**
- * Helper function to convert a Sqlite.jsm row to a bookmark object
- * representation.
- *
- * @param aRow The Sqlite.jsm result row.
- */
-function sqliteRowToBookmarkObject(aRow) {
-  let bookmark = {};
-  for (let p of [ "id" ,"guid", "title", "index", "dateAdded", "lastModified" ]) {
-    bookmark[p] = aRow.getResultByName(p);
-  }
-  Object.defineProperty(bookmark, "parent",
-                        { value: aRow.getResultByName("parent") });
-
-  let type = aRow.getResultByName("type");
-
-  // Add annotations.
-  if (aRow.getResultByName("has_annos")) {
     try {
-      bookmark.annos = PlacesUtils.getAnnotationsForItem(bookmark.id);
-    } catch (e) {
-      Cu.reportError("Unexpected error while reading annotations " + e);
+      Services.telemetry
+              .getHistogramById("PLACES_BACKUPS_BOOKMARKSTREE_MS")
+              .add(Date.now() - startTime);
+    } catch (ex) {
+      Components.utils.reportError("Unable to report telemetry.");
     }
-  }
-
-  switch (type) {
-    case Ci.nsINavBookmarksService.TYPE_BOOKMARK:
-      // TODO: What about shortcuts?
-      bookmark.type = PlacesUtils.TYPE_X_MOZ_PLACE;
-      // This will throw if we try to serialize an invalid url and the node will
-      // just be skipped.
-      bookmark.uri = NetUtil.newURI(aRow.getResultByName("url")).spec;
-      // Keywords are cached, so this should be decently fast.
-      let keyword = PlacesUtils.bookmarks.getKeywordForBookmark(bookmark.id);
-      if (keyword)
-        bookmark.keyword = keyword;
-      let charset = aRow.getResultByName("charset");
-      if (charset)
-        bookmark.charset = charset;
-      let tags = aRow.getResultByName("tags");
-      if (tags)
-        bookmark.tags = tags;
-      let iconuri = aRow.getResultByName("iconuri");
-      if (iconuri)
-        bookmark.iconuri = iconuri;
-      break;
-    case Ci.nsINavBookmarksService.TYPE_FOLDER:
-      bookmark.type = PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER;
-
-      // Mark root folders.
-      if (bookmark.id == PlacesUtils.placesRootId)
-        bookmark.root = "placesRoot";
-      else if (bookmark.id == PlacesUtils.bookmarksMenuFolderId)
-        bookmark.root = "bookmarksMenuFolder";
-      else if (bookmark.id == PlacesUtils.unfiledBookmarksFolderId)
-        bookmark.root = "unfiledBookmarksFolder";
-      else if (bookmark.id == PlacesUtils.toolbarFolderId)
-        bookmark.root = "toolbarFolder";
-      break;
-    case Ci.nsINavBookmarksService.TYPE_SEPARATOR:
-      bookmark.type = PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR;
-      break;
-    default:
-      Cu.reportError("Unexpected bookmark type");
-      break;
-  }
-  return bookmark;
+    return [root, root.itemsCount];
+  })
 }
+

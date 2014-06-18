@@ -127,7 +127,7 @@ nsAppShellService::CreateHiddenWindowHelper(bool aIsPrivate)
   if (!aIsPrivate) {
     rv = JustCreateTopWindow(nullptr, url,
                              chromeMask, initialWidth, initialHeight,
-                             true, getter_AddRefs(newWindow));
+                             true, nullptr, getter_AddRefs(newWindow));
     NS_ENSURE_SUCCESS(rv, rv);
 
     mHiddenWindow.swap(newWindow);
@@ -137,7 +137,7 @@ nsAppShellService::CreateHiddenWindowHelper(bool aIsPrivate)
 
     rv = JustCreateTopWindow(nullptr, url,
                              chromeMask, initialWidth, initialHeight,
-                             true, getter_AddRefs(newWindow));
+                             true, nullptr, getter_AddRefs(newWindow));
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIDocShell> docShell;
@@ -181,6 +181,7 @@ nsAppShellService::CreateTopLevelWindow(nsIXULWindow *aParent,
                                         uint32_t aChromeMask,
                                         int32_t aInitialWidth,
                                         int32_t aInitialHeight,
+                                        nsITabParent *aOpeningTab,
                                         nsIXULWindow **aResult)
 
 {
@@ -191,7 +192,7 @@ nsAppShellService::CreateTopLevelWindow(nsIXULWindow *aParent,
   nsWebShellWindow *newWindow = nullptr;
   rv = JustCreateTopWindow(aParent, aUrl,
                            aChromeMask, aInitialWidth, aInitialHeight,
-                           false, &newWindow);  // addrefs
+                           false, aOpeningTab, &newWindow);  // addrefs
 
   *aResult = newWindow; // transfer ref
 
@@ -482,11 +483,12 @@ CheckForFullscreenWindow()
  */
 nsresult
 nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
-                                       nsIURI *aUrl, 
+                                       nsIURI *aUrl,
                                        uint32_t aChromeMask,
                                        int32_t aInitialWidth,
                                        int32_t aInitialHeight,
                                        bool aIsHiddenWindow,
+                                       nsITabParent *aOpeningTab,
                                        nsWebShellWindow **aResult)
 {
   *aResult = nullptr;
@@ -597,7 +599,7 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
 
   nsresult rv = window->Initialize(parent, center ? aParent : nullptr,
                                    aUrl, aInitialWidth, aInitialHeight,
-                                   aIsHiddenWindow, widgetInitData);
+                                   aIsHiddenWindow, aOpeningTab, widgetInitData);
 
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -656,13 +658,11 @@ nsAppShellService::GetHiddenDOMWindow(nsIDOMWindow **aWindow)
 
   rv = mHiddenWindow->GetDocShell(getter_AddRefs(docShell));
   NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDOMWindow> hiddenDOMWindow(do_GetInterface(docShell, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *aWindow = hiddenDOMWindow;
-  NS_IF_ADDREF(*aWindow);
-  return NS_OK;
+  nsCOMPtr<nsIDOMWindow> hiddenDOMWindow(docShell->GetWindow());
+  hiddenDOMWindow.forget(aWindow);
+  return *aWindow ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -688,13 +688,11 @@ nsAppShellService::GetHiddenPrivateDOMWindow(nsIDOMWindow **aWindow)
 
   rv = mHiddenPrivateWindow->GetDocShell(getter_AddRefs(docShell));
   NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDOMWindow> hiddenPrivateDOMWindow(do_GetInterface(docShell, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *aWindow = hiddenPrivateDOMWindow;
-  NS_IF_ADDREF(*aWindow);
-  return NS_OK;
+  nsCOMPtr<nsIDOMWindow> hiddenPrivateDOMWindow(docShell->GetWindow());
+  hiddenPrivateDOMWindow.forget(aWindow);
+  return *aWindow ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -722,14 +720,16 @@ nsAppShellService::GetHiddenWindowAndJSContext(nsIDOMWindow **aWindow,
                 nsCOMPtr<nsIDocShell> docShell;
                 rv = mHiddenWindow->GetDocShell(getter_AddRefs(docShell));
                 if (NS_FAILED(rv)) break;
+                if (!docShell) {
+                  break;
+                }
 
                 // 2. Convert that to an nsIDOMWindow.
-                nsCOMPtr<nsIDOMWindow> hiddenDOMWindow(do_GetInterface(docShell));
+                nsCOMPtr<nsIDOMWindow> hiddenDOMWindow(docShell->GetWindow());
                 if(!hiddenDOMWindow) break;
 
                 // 3. Get script global object for the window.
-                nsCOMPtr<nsIScriptGlobalObject> sgo;
-                sgo = do_QueryInterface( hiddenDOMWindow );
+                nsCOMPtr<nsIScriptGlobalObject> sgo = docShell->GetScriptGlobalObject();
                 if (!sgo) { rv = NS_ERROR_FAILURE; break; }
 
                 // 4. Get script context from that.
@@ -771,7 +771,9 @@ nsAppShellService::RegisterTopLevelWindow(nsIXULWindow* aWindow)
 
   nsCOMPtr<nsIDocShell> docShell;
   aWindow->GetDocShell(getter_AddRefs(docShell));
-  nsCOMPtr<nsPIDOMWindow> domWindow(do_GetInterface(docShell));
+  NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
+
+  nsCOMPtr<nsPIDOMWindow> domWindow(docShell->GetWindow());
   NS_ENSURE_TRUE(domWindow, NS_ERROR_FAILURE);
   domWindow->SetInitialPrincipalToSubject();
 
@@ -843,7 +845,7 @@ nsAppShellService::UnregisterTopLevelWindow(nsIXULWindow* aWindow)
     nsCOMPtr<nsIDocShell> docShell;
     aWindow->GetDocShell(getter_AddRefs(docShell));
     if (docShell) {
-      nsCOMPtr<nsIDOMWindow> domWindow(do_GetInterface(docShell));
+      nsCOMPtr<nsIDOMWindow> domWindow(docShell->GetWindow());
       if (domWindow)
         wwatcher->RemoveWindow(domWindow);
     }

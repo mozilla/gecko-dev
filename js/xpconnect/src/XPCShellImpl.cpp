@@ -196,7 +196,7 @@ GetLocationProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleV
 static bool
 GetLine(JSContext *cx, char *bufp, FILE *file, const char *prompt) {
     {
-        char line[256] = { '\0' };
+        char line[4096] = { '\0' };
         fputs(prompt, gOutFile);
         fflush(gOutFile);
         if ((!fgets(line, sizeof line, file) && errno != EINTR) || feof(file))
@@ -1529,8 +1529,10 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
             return 1;
         }
 
+        // Make the default XPCShell global use a fresh zone (rather than the
+        // System Zone) to improve cross-zone test coverage.
         JS::CompartmentOptions options;
-        options.setZone(JS::SystemZone)
+        options.setZone(JS::FreshZone)
                .setVersion(JSVERSION_LATEST);
         nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
         rv = xpc->InitClassesWithNewWrappedGlobal(cx,

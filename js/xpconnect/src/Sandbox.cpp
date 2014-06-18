@@ -208,7 +208,7 @@ CreateXMLHttpRequest(JSContext *cx, unsigned argc, jsval *vp)
     nsCOMPtr<nsIGlobalObject> iglobal = do_QueryInterface(sop);
 
     nsCOMPtr<nsIXMLHttpRequest> xhr = new nsXMLHttpRequest();
-    nsresult rv = xhr->Init(nsContentUtils::GetSubjectPrincipal(), nullptr,
+    nsresult rv = xhr->Init(nsContentUtils::SubjectPrincipal(), nullptr,
                             iglobal, nullptr);
     if (NS_FAILED(rv))
         return false;
@@ -451,6 +451,8 @@ CloneNonReflectors(JSContext *cx, MutableHandleValue val)
         Maybe<JSAutoCompartment> ac;
         if (val.isObject()) {
             ac.construct(cx, &val.toObject());
+        } else if (val.isString() && !JS_WrapValue(cx, val)) {
+            return false;
         }
 
         if (!buffer.write(cx, val,
@@ -507,7 +509,7 @@ EvalInWindow(JSContext *cx, const nsAString &source, HandleObject scope, Mutable
     unsigned lineNo;
     if (!GetFilenameAndLineNumber(cx, filename, lineNo)) {
         // Default values for non-scripted callers.
-        filename.Assign("Unknown");
+        filename.AssignLiteral("Unknown");
         lineNo = 0;
     }
 
@@ -1539,9 +1541,9 @@ AssembleSandboxMemoryReporterName(JSContext *cx, nsCString &sandboxName)
 
         sandboxName.AppendLiteral(" (from: ");
         sandboxName.Append(NS_ConvertUTF16toUTF8(location));
-        sandboxName.AppendLiteral(":");
+        sandboxName.Append(':');
         sandboxName.AppendInt(lineNumber);
-        sandboxName.AppendLiteral(")");
+        sandboxName.Append(')');
     }
 
     return NS_OK;

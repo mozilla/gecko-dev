@@ -201,6 +201,8 @@
   ERROR(NS_ERROR_NET_INTERRUPT,             FAILURE(71)),
   /* The connection attempt to a proxy failed. */
   ERROR(NS_ERROR_PROXY_CONNECTION_REFUSED,  FAILURE(72)),
+  /* A transfer was only partially done when it completed. */
+  ERROR(NS_ERROR_NET_PARTIAL_TRANSFER,      FAILURE(76)),
 
   /* XXX really need to better rationalize these error codes.  are consumers of
    * necko really expected to know how to discern the meaning of these?? */
@@ -487,6 +489,10 @@
   ERROR(NS_ERROR_DOM_ENCODING_NOT_UTF_ERR,         FAILURE(29)),
   ERROR(NS_ERROR_DOM_ENCODING_DECODE_ERR,          FAILURE(30)),
   ERROR(NS_ERROR_DOM_INVALID_POINTER_ERR,          FAILURE(31)),
+  /* WebCrypto API errors from http://www.w3.org/TR/WebCryptoAPI/ */
+  ERROR(NS_ERROR_DOM_UNKNOWN_ERR,                  FAILURE(32)),
+  ERROR(NS_ERROR_DOM_DATA_ERR,                     FAILURE(33)),
+  ERROR(NS_ERROR_DOM_OPERATION_ERR,                FAILURE(34)),
   /* DOM error codes defined by us */
   ERROR(NS_ERROR_DOM_SECMAN_ERR,                   FAILURE(1001)),
   ERROR(NS_ERROR_DOM_WRONG_TYPE_ERR,               FAILURE(1002)),
@@ -807,7 +813,7 @@
 #define MODULE NS_ERROR_MODULE_DOM_FILEHANDLE
   ERROR(NS_ERROR_DOM_FILEHANDLE_UNKNOWN_ERR,              FAILURE(1)),
   ERROR(NS_ERROR_DOM_FILEHANDLE_NOT_ALLOWED_ERR,          FAILURE(2)),
-  ERROR(NS_ERROR_DOM_FILEHANDLE_LOCKEDFILE_INACTIVE_ERR,  FAILURE(3)),
+  ERROR(NS_ERROR_DOM_FILEHANDLE_INACTIVE_ERR,             FAILURE(3)),
   ERROR(NS_ERROR_DOM_FILEHANDLE_ABORT_ERR,                FAILURE(4)),
   ERROR(NS_ERROR_DOM_FILEHANDLE_READ_ONLY_ERR,            FAILURE(5)),
   ERROR(NS_ERROR_DOM_FILEHANDLE_QUOTA_ERR,                FAILURE(6)),

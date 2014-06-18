@@ -1,6 +1,8 @@
-<!-- This Source Code Form is subject to the terms of the Mozilla Public
-   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
-   - You can obtain one at http://mozilla.org/MPL/2.0/.  -->
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+<!-- Privacy panel -->
 
 <script type="application/javascript"
         src="chrome://browser/content/preferences/in-content/privacy.js"/>
@@ -70,13 +72,12 @@
       hidden="true"
       data-category="panePrivacy">
   <image class="header-icon"/>
-  <label class="header-name"
-         value="&panePrivacy.title;"/>
+  <label class="header-name">&panePrivacy.title;</label>
 </hbox>
 
 <!-- Tracking -->
 <groupbox id="trackingGroup" data-category="panePrivacy" hidden="true" align="start">
-  <caption label="&tracking.label;"/>
+  <caption><label>&tracking.label;</label></caption>
   <radiogroup id="doNotTrackSelection" orient="vertical"
               preference="privacy.donottrackheader.value"
               onsynctopreference="return gPrivacyPane.setTrackingPrefs()"
@@ -89,13 +90,14 @@
             accesskey="&dntTrackingNopref.accesskey;" />
   </radiogroup>
   <label class="text-link" id="doNotTrackInfo"
-         href="https://www.mozilla.org/dnt"
-         value="&doNotTrackInfo.label;"/>
+         href="https://www.mozilla.org/dnt">
+    &doNotTrackInfo.label;
+  </label>
 </groupbox>
 
 <!-- History -->
 <groupbox id="historyGroup" data-category="panePrivacy" hidden="true">
-  <caption label="&history.label;"/>
+  <caption><label>&history.label;</label></caption>
   <hbox align="center">
     <label id="historyModeLabel"
            control="historyMode"
@@ -175,7 +177,9 @@
                     label="&cookieExceptions.label;" accesskey="&cookieExceptions.accesskey;"
                     preference="pref.privacy.disable_button.cookie_exceptions"/>
           </hbox>
-          <hbox id="acceptThirdPartyRow" class="indent">
+          <hbox id="acceptThirdPartyRow"
+                class="indent"
+                align="center">
             <label id="acceptThirdPartyLabel" control="acceptThirdPartyMenu"
                    accesskey="&acceptThirdParty.pre.accesskey;">&acceptThirdParty.pre.label;</label>
             <menulist id="acceptThirdPartyMenu" preference="network.cookie.cookieBehavior"
@@ -188,7 +192,9 @@
               </menupopup>
             </menulist>
           </hbox>
-          <hbox id="keepRow" class="indent">
+          <hbox id="keepRow"
+                class="indent"
+                align="center">
             <label id="keepUntil"
                    control="keepCookiesUntil"
                    accesskey="&keepUntil.accesskey;">&keepUntil.label;</label>
@@ -200,14 +206,14 @@
                 <menuitem label="&askEachTime.label;" value="1"/>
               </menupopup>
             </menulist>
-          </hbox>
-          <hbox flex="1">
+            <spacer flex="1"/>
             <button id="showCookiesButton"
                     label="&showCookies.label;" accesskey="&showCookies.accesskey;"
                     oncommand="gPrivacyPane.showCookies();"
                     preference="pref.privacy.disable_button.view_cookies"/>
           </hbox>
-          <hbox id="clearDataBox" align="center">
+          <hbox id="clearDataBox"
+                align="center">
             <checkbox id="alwaysClear" flex="1"
                       preference="privacy.sanitize.sanitizeOnShutdown"
                       label="&clearOnClose.label;"
@@ -224,7 +230,7 @@
 
 <!-- Location Bar -->
 <groupbox id="locationBarGroup" data-category="panePrivacy" hidden="true">
-  <caption label="&locationBar.label;"/>
+  <caption><label>&locationBar.label;</label></caption>
   <hbox align="center">
     <label id="locationBarSuggestionLabel"
            control="locationBarSuggestion"

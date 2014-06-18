@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#ifndef SAMPLE_ITERATOR_H_
+#define SAMPLE_ITERATOR_H_
+
 #include <utils/Vector.h>
 
-namespace android {
+namespace stagefright {
 
 struct SampleTable;
 
@@ -30,6 +33,7 @@ struct SampleIterator {
     off64_t getSampleOffset() const { return mCurrentSampleOffset; }
     size_t getSampleSize() const { return mCurrentSampleSize; }
     uint32_t getSampleTime() const { return mCurrentSampleTime; }
+    uint32_t getSampleDuration() const { return mCurrentSampleDuration; }
 
     status_t getSampleSizeDirect(
             uint32_t sampleIndex, size_t *size);
@@ -61,6 +65,7 @@ private:
     off64_t mCurrentSampleOffset;
     size_t mCurrentSampleSize;
     uint32_t mCurrentSampleTime;
+    uint32_t mCurrentSampleDuration;
 
     void reset();
     status_t findChunkRange(uint32_t sampleIndex);
@@ -71,5 +76,6 @@ private:
     SampleIterator &operator=(const SampleIterator &);
 };
 
-}  // namespace android
+}  // namespace stagefright
 
+#endif

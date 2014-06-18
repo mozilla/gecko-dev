@@ -16,7 +16,7 @@ using namespace js;
 using namespace js::jit;
 
 void
-MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister &dest)
+MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest)
 {
     if (maybeInlineDouble(d, dest))
         return;
@@ -50,7 +50,7 @@ MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister &dest)
 }
 
 void
-MacroAssemblerX64::loadConstantFloat32(float f, const FloatRegister &dest)
+MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest)
 {
     if (maybeInlineFloat(f, dest))
         return;
@@ -121,7 +121,7 @@ MacroAssemblerX64::setupAlignedABICall(uint32_t args)
 }
 
 void
-MacroAssemblerX64::setupUnalignedABICall(uint32_t args, const Register &scratch)
+MacroAssemblerX64::setupUnalignedABICall(uint32_t args, Register scratch)
 {
     setupABICall(args);
     dynamicAlignment_ = true;
@@ -177,13 +177,13 @@ MacroAssemblerX64::passABIArg(const MoveOperand &from, MoveOp::Type type)
 }
 
 void
-MacroAssemblerX64::passABIArg(const Register &reg)
+MacroAssemblerX64::passABIArg(Register reg)
 {
     passABIArg(MoveOperand(reg), MoveOp::GENERAL);
 }
 
 void
-MacroAssemblerX64::passABIArg(const FloatRegister &reg, MoveOp::Type type)
+MacroAssemblerX64::passABIArg(FloatRegister reg, MoveOp::Type type)
 {
     passABIArg(MoveOperand(reg), type);
 }
@@ -366,6 +366,45 @@ MacroAssemblerX64::handleFailureWithHandlerTail()
     mov(ImmWord(BAILOUT_RETURN_OK), rax);
     jmp(Operand(rsp, offsetof(ResumeFromException, target)));
 }
+
+template <typename T>
+void
+MacroAssemblerX64::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const T &dest,
+                                     MIRType slotType)
+{
+    if (valueType == MIRType_Double) {
+        storeDouble(value.reg().typedReg().fpu(), dest);
+        return;
+    }
+
+    // For known integers and booleans, we can just store the unboxed value if
+    // the slot has the same type.
+    if ((valueType == MIRType_Int32 || valueType == MIRType_Boolean) && slotType == valueType) {
+        if (value.constant()) {
+            Value val = value.value();
+            if (valueType == MIRType_Int32)
+                store32(Imm32(val.toInt32()), dest);
+            else
+                store32(Imm32(val.toBoolean() ? 1 : 0), dest);
+        } else {
+            store32(value.reg().typedReg().gpr(), dest);
+        }
+        return;
+    }
+
+    if (value.constant())
+        storeValue(value.value(), dest);
+    else
+        storeValue(ValueTypeFromMIRType(valueType), value.reg().typedReg().gpr(), dest);
+}
+
+template void
+MacroAssemblerX64::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const Address &dest,
+                                     MIRType slotType);
+
+template void
+MacroAssemblerX64::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const BaseIndex &dest,
+                                     MIRType slotType);
 
 #ifdef JSGC_GENERATIONAL
 

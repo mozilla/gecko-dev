@@ -772,7 +772,7 @@ private:
 
     nsRefPtr<MainThreadReleaseRunnable> runnable =
       new MainThreadReleaseRunnable(doomed, hostObjectURIs);
-    if (NS_FAILED(NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL))) {
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
       NS_WARNING("Failed to dispatch, going to leak!");
     }
 
@@ -879,7 +879,11 @@ private:
     }
 
     JSAutoCompartment ac(aCx, global);
-    return scriptloader::LoadWorkerScript(aCx);
+    bool result = scriptloader::LoadWorkerScript(aCx);
+    if (result) {
+      aWorkerPrivate->SetWorkerScriptExecutedSuccessfully();
+    }
+    return result;
   }
 };
 
@@ -3123,26 +3127,10 @@ WorkerPrivateParent<Derived>::BroadcastErrorToSharedWorkers(
 
     size_t actionsIndex = windowActions.LastIndexOf(WindowAction(window));
 
-    // Get the context for this window so that we can report errors correctly.
-    JSContext* cx;
-    rv = NS_OK;
-
-    if (actionsIndex == windowActions.NoIndex) {
-      nsIScriptContext* scx = sharedWorker->GetContextForEventHandlers(&rv);
-      cx = (NS_SUCCEEDED(rv) && scx) ?
-           scx->GetNativeContext() :
-           nsContentUtils::GetSafeJSContext();
-    } else {
-      cx = windowActions[actionsIndex].mJSContext;
-    }
-
-    AutoCxPusher autoPush(cx);
-
-    if (NS_FAILED(rv)) {
-      Throw(cx, rv);
-      JS_ReportPendingException(cx);
-      continue;
-    }
+    nsIGlobalObject* global = sharedWorker->GetParentObject();
+    AutoJSAPIWithErrorsReportedToWindow jsapi(global);
+    JSContext* cx = jsapi.cx();
+    JSAutoCompartment ac(cx, global->GetGlobalJSObject());
 
     RootedDictionary<ErrorEventInit> errorInit(aCx);
     errorInit.mBubbles = false;
@@ -3164,7 +3152,7 @@ WorkerPrivateParent<Derived>::BroadcastErrorToSharedWorkers(
     errorEvent->SetTrusted(true);
 
     bool defaultActionEnabled;
-    rv = sharedWorker->DispatchEvent(errorEvent, &defaultActionEnabled);
+    nsresult rv = sharedWorker->DispatchEvent(errorEvent, &defaultActionEnabled);
     if (NS_FAILED(rv)) {
       Throw(cx, rv);
       JS_ReportPendingException(cx);
@@ -3365,7 +3353,7 @@ WorkerPrivateParent<Derived>::SetBaseURI(nsIURI* aBaseURI)
 
   nsCOMPtr<nsIURL> url(do_QueryInterface(aBaseURI));
   if (url && NS_SUCCEEDED(url->GetQuery(temp)) && !temp.IsEmpty()) {
-    mLocationInfo.mSearch.AssignLiteral("?");
+    mLocationInfo.mSearch.Assign('?');
     mLocationInfo.mSearch.Append(temp);
   }
 
@@ -3378,19 +3366,19 @@ WorkerPrivateParent<Derived>::SetBaseURI(nsIURI* aBaseURI)
       if (NS_SUCCEEDED(aBaseURI->GetOriginCharset(charset)) &&
           NS_SUCCEEDED(converter->UnEscapeURIForUI(charset, temp,
                                                    unicodeRef))) {
-        mLocationInfo.mHash.AssignLiteral("#");
+        mLocationInfo.mHash.Assign('#');
         mLocationInfo.mHash.Append(NS_ConvertUTF16toUTF8(unicodeRef));
       }
     }
 
     if (mLocationInfo.mHash.IsEmpty()) {
-      mLocationInfo.mHash.AssignLiteral("#");
+      mLocationInfo.mHash.Assign('#');
       mLocationInfo.mHash.Append(temp);
     }
   }
 
   if (NS_SUCCEEDED(aBaseURI->GetScheme(mLocationInfo.mProtocol))) {
-    mLocationInfo.mProtocol.AppendLiteral(":");
+    mLocationInfo.mProtocol.Append(':');
   }
   else {
     mLocationInfo.mProtocol.Truncate();
@@ -3401,7 +3389,7 @@ WorkerPrivateParent<Derived>::SetBaseURI(nsIURI* aBaseURI)
     mLocationInfo.mPort.AppendInt(port);
 
     nsAutoCString host(mLocationInfo.mHostname);
-    host.AppendLiteral(":");
+    host.Append(':');
     host.Append(mLocationInfo.mPort);
 
     mLocationInfo.mHost.Assign(host);
@@ -3558,7 +3546,8 @@ WorkerPrivate::WorkerPrivate(JSContext* aCx,
   mRunningExpiredTimeouts(false), mCloseHandlerStarted(false),
   mCloseHandlerFinished(false), mMemoryReporterRunning(false),
   mBlockedForMemoryReporter(false), mCancelAllPendingRunnables(false),
-  mPeriodicGCTimerRunning(false), mIdleGCTimerRunning(false)
+  mPeriodicGCTimerRunning(false), mIdleGCTimerRunning(false),
+  mWorkerScriptExecutedSuccessfully(false)
 #ifdef DEBUG
   , mPRThread(nullptr)
 #endif
@@ -3640,6 +3629,19 @@ WorkerPrivate::Constructor(const GlobalObject& aGlobal,
                            const nsACString& aSharedWorkerName,
                            LoadInfo* aLoadInfo, ErrorResult& aRv)
 {
+  JSContext* cx = aGlobal.Context();
+  return Constructor(cx, aScriptURL, aIsChromeWorker, aWorkerType,
+                     aSharedWorkerName, aLoadInfo, aRv);
+}
+
+// static
+already_AddRefed<WorkerPrivate>
+WorkerPrivate::Constructor(JSContext* aCx,
+                           const nsAString& aScriptURL,
+                           bool aIsChromeWorker, WorkerType aWorkerType,
+                           const nsACString& aSharedWorkerName,
+                           LoadInfo* aLoadInfo, ErrorResult& aRv)
+{
   WorkerPrivate* parent = NS_IsMainThread() ?
                           nullptr :
                           GetCurrentThreadWorkerPrivate();
@@ -3648,8 +3650,6 @@ WorkerPrivate::Constructor(const GlobalObject& aGlobal,
   } else {
     AssertIsOnMainThread();
   }
-
-  JSContext* cx = aGlobal.GetContext();
 
   MOZ_ASSERT_IF(aWorkerType != WorkerTypeDedicated,
                 !aSharedWorkerName.IsVoid());
@@ -3660,10 +3660,10 @@ WorkerPrivate::Constructor(const GlobalObject& aGlobal,
   if (!aLoadInfo) {
     stackLoadInfo.construct();
 
-    nsresult rv = GetLoadInfo(cx, nullptr, parent, aScriptURL,
+    nsresult rv = GetLoadInfo(aCx, nullptr, parent, aScriptURL,
                               aIsChromeWorker, stackLoadInfo.addr());
     if (NS_FAILED(rv)) {
-      scriptloader::ReportLoadError(cx, aScriptURL, rv, !parent);
+      scriptloader::ReportLoadError(aCx, aScriptURL, rv, !parent);
       aRv.Throw(rv);
       return nullptr;
     }
@@ -3679,7 +3679,7 @@ WorkerPrivate::Constructor(const GlobalObject& aGlobal,
   if (!parent) {
     runtimeService = RuntimeService::GetOrCreateService();
     if (!runtimeService) {
-      JS_ReportError(cx, "Failed to create runtime service!");
+      JS_ReportError(aCx, "Failed to create runtime service!");
       aRv.Throw(NS_ERROR_FAILURE);
       return nullptr;
     }
@@ -3691,16 +3691,16 @@ WorkerPrivate::Constructor(const GlobalObject& aGlobal,
   MOZ_ASSERT(runtimeService);
 
   nsRefPtr<WorkerPrivate> worker =
-    new WorkerPrivate(cx, parent, aScriptURL, aIsChromeWorker,
+    new WorkerPrivate(aCx, parent, aScriptURL, aIsChromeWorker,
                       aWorkerType, aSharedWorkerName, *aLoadInfo);
 
-  if (!runtimeService->RegisterWorker(cx, worker)) {
+  if (!runtimeService->RegisterWorker(aCx, worker)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;
   }
 
   nsRefPtr<CompileScriptRunnable> compiler = new CompileScriptRunnable(worker);
-  if (!compiler->Dispatch(cx)) {
+  if (!compiler->Dispatch(aCx)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;
   }
@@ -4294,7 +4294,7 @@ WorkerPrivate::ScheduleDeletion(WorkerRanOrNot aRanOrNot)
   else {
     nsRefPtr<TopLevelWorkerFinishedRunnable> runnable =
       new TopLevelWorkerFinishedRunnable(this);
-    if (NS_FAILED(NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL))) {
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
       NS_WARNING("Failed to dispatch runnable!");
     }
   }
@@ -5771,7 +5771,7 @@ WorkerPrivate::ConnectMessagePort(JSContext* aCx, uint64_t aMessagePortSerial)
   ErrorResult rv;
 
   nsRefPtr<MessageEvent> event =
-    MessageEvent::Constructor(globalObject, aCx,
+    MessageEvent::Constructor(globalObject,
                               NS_LITERAL_STRING("connect"), init, rv);
 
   event->SetTrusted(true);
@@ -5821,8 +5821,9 @@ WorkerPrivate::CreateGlobalScope(JSContext* aCx)
   nsRefPtr<WorkerGlobalScope> globalScope;
   if (IsSharedWorker()) {
     globalScope = new SharedWorkerGlobalScope(this, SharedWorkerName());
-  }
-  else {
+  } else if (IsServiceWorker()) {
+    globalScope = new ServiceWorkerGlobalScope(this, SharedWorkerName());
+  } else {
     globalScope = new DedicatedWorkerGlobalScope(this);
   }
 

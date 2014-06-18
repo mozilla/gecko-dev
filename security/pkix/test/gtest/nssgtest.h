@@ -1,6 +1,13 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* Copyright 2013 Mozilla Foundation
+/* This code is made available to you under your choice of the following sets
+ * of licensing terms:
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+/* Copyright 2013 Mozilla Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +27,10 @@
 
 #include "stdint.h"
 #include "gtest/gtest.h"
+#include "pkix/pkixtypes.h"
+#include "pkixtestutil.h"
 #include "prerror.h"
+#include "prtime.h"
 #include "seccomon.h"
 
 namespace mozilla { namespace pkix { namespace test {
@@ -58,8 +68,6 @@ private:
 ::std::ostream& operator<<(::std::ostream&,
                            SECStatusWithPRErrorCode const&);
 
-} } } // namespace mozilla::pkix::test
-
 #define ASSERT_SECSuccess(rv) \
   ASSERT_EQ(::mozilla::pkix::test::SECStatusWithPRErrorCode(SECSuccess, 0), \
             ::mozilla::pkix::test::SECStatusWithPRErrorCode(rv))
@@ -75,5 +83,21 @@ private:
   EXPECT_EQ(::mozilla::pkix::test::SECStatusWithPRErrorCode(SECFailure, \
                                                             expectedError), \
             ::mozilla::pkix::test::SECStatusWithPRErrorCode(rv))
+
+class NSSTest : public ::testing::Test
+{
+public:
+  static void SetUpTestCase();
+
+protected:
+  NSSTest();
+
+  ScopedPLArenaPool arena;
+  static PRTime now;
+  static PRTime oneDayBeforeNow;
+  static PRTime oneDayAfterNow;
+};
+
+} } } // namespace mozilla::pkix::test
 
 #endif // mozilla_pkix__nssgtest_h

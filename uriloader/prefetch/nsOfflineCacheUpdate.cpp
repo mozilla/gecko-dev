@@ -15,8 +15,6 @@
 #include "nsIApplicationCacheChannel.h"
 #include "nsIApplicationCacheService.h"
 #include "nsICache.h"
-#include "nsICacheService.h"
-#include "nsICacheSession.h"
 #include "nsICachingChannel.h"
 #include "nsIContent.h"
 #include "mozilla/dom/Element.h"
@@ -108,7 +106,7 @@ LogToConsole(const char * message, nsOfflineCacheUpdateItem * item = nullptr)
             nsAutoCString uriSpec;
             item->mURI->GetSpec(uriSpec);
 
-            messageUTF16.Append(NS_LITERAL_STRING(", URL="));
+            messageUTF16.AppendLiteral(", URL=");
             messageUTF16.Append(NS_ConvertUTF8toUTF16(uriSpec));
         }
         consoleService->LogStringMessage(messageUTF16.get());

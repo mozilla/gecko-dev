@@ -11,6 +11,7 @@
 #include "js/OldDebugAPI.h"
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
+#include "nsILoadContext.h"
 #include "nsIServiceManager.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIScriptContext.h"
@@ -28,7 +29,6 @@
 #include "nsError.h"
 #include "nsDOMCID.h"
 #include "nsIXPConnect.h"
-#include "nsIXPCSecurityManager.h"
 #include "nsTextFormatter.h"
 #include "nsIStringBundle.h"
 #include "nsNetUtil.h"
@@ -78,31 +78,9 @@ nsIStringBundle *nsScriptSecurityManager::sStrBundle = nullptr;
 JSRuntime       *nsScriptSecurityManager::sRuntime   = 0;
 bool nsScriptSecurityManager::sStrictFileOriginPolicy = true;
 
-bool
-nsScriptSecurityManager::SubjectIsPrivileged()
-{
-    return nsContentUtils::IsCallerChrome();
-}
-
 ///////////////////////////
 // Convenience Functions //
 ///////////////////////////
-// Result of this function should not be freed.
-static inline const char16_t *
-IDToString(JSContext *cx, jsid id_)
-{
-    JS::RootedId id(cx, id_);
-    if (JSID_IS_STRING(id))
-        return JS_GetInternedStringChars(JSID_TO_STRING(id));
-
-    JS::Rooted<JS::Value> idval(cx);
-    if (!JS_IdToValue(cx, id, &idval))
-        return nullptr;
-    JSString *str = JS::ToString(cx, idval);
-    if(!str)
-        return nullptr;
-    return JS_GetStringCharsZ(cx, str);
-}
 
 class nsAutoInPrincipalDomainOriginSetter {
 public:
@@ -295,11 +273,12 @@ nsScriptSecurityManager::GetChannelPrincipal(nsIChannel* aChannel,
     nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIDocShell> docShell;
-    NS_QueryNotificationCallbacks(aChannel, docShell);
 
-    if (docShell) {
-        return GetDocShellCodebasePrincipal(uri, docShell, aPrincipal);
+    nsCOMPtr<nsILoadContext> loadContext;
+    NS_QueryNotificationCallbacks(aChannel, loadContext);
+
+    if (loadContext) {
+        return GetLoadContextCodebasePrincipal(uri, loadContext, aPrincipal);
     }
 
     return GetCodebasePrincipalInternal(uri, UNKNOWN_APP_ID,
@@ -323,7 +302,6 @@ nsScriptSecurityManager::IsSystemPrincipal(nsIPrincipal* aPrincipal,
 ////////////////////////////////////
 NS_IMPL_ISUPPORTS(nsScriptSecurityManager,
                   nsIScriptSecurityManager,
-                  nsIXPCSecurityManager,
                   nsIChannelEventSink,
                   nsIObserver)
 
@@ -337,7 +315,7 @@ bool
 nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
 {
     MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
-    nsCOMPtr<nsIPrincipal> subjectPrincipal = nsContentUtils::GetSubjectPrincipal();
+    nsCOMPtr<nsIPrincipal> subjectPrincipal = nsContentUtils::SubjectPrincipal();
     nsCOMPtr<nsIContentSecurityPolicy> csp;
     nsresult rv = subjectPrincipal->GetCsp(getter_AddRefs(csp));
     NS_ASSERTION(NS_SUCCEEDED(rv), "CSP: Failed to get CSP from principal.");
@@ -393,7 +371,7 @@ nsScriptSecurityManager::CheckSameOrigin(JSContext* cx,
     MOZ_ASSERT_IF(cx, cx == nsContentUtils::GetCurrentJSContext());
 
     // Get a principal from the context
-    nsIPrincipal* sourcePrincipal = nsContentUtils::GetSubjectPrincipal();
+    nsIPrincipal* sourcePrincipal = nsContentUtils::SubjectPrincipal();
     if (sourcePrincipal == mSystemPrincipal)
     {
         // This is a system (chrome) script, so allow access
@@ -470,7 +448,7 @@ nsScriptSecurityManager::CheckLoadURIFromScript(JSContext *cx, nsIURI *aURI)
 {
     // Get principal of currently executing script.
     MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
-    nsIPrincipal* principal = nsContentUtils::GetSubjectPrincipal();
+    nsIPrincipal* principal = nsContentUtils::SubjectPrincipal();
     nsresult rv = CheckLoadURIWithPrincipal(principal, aURI,
                                             nsIScriptSecurityManager::STANDARD);
     if (NS_SUCCEEDED(rv)) {
@@ -487,7 +465,7 @@ nsScriptSecurityManager::CheckLoadURIFromScript(JSContext *cx, nsIURI *aURI)
         return NS_ERROR_FAILURE;
     if (isFile || isRes)
     {
-        if (SubjectIsPrivileged())
+        if (nsContentUtils::IsCallerChrome())
             return NS_OK;
     }
 
@@ -970,6 +948,22 @@ nsScriptSecurityManager::GetAppCodebasePrincipal(nsIURI* aURI,
 }
 
 NS_IMETHODIMP
+nsScriptSecurityManager::
+  GetLoadContextCodebasePrincipal(nsIURI* aURI,
+                                  nsILoadContext* aLoadContext,
+                                  nsIPrincipal** aPrincipal)
+{
+  uint32_t appId;
+  aLoadContext->GetAppId(&appId);
+  bool isInBrowserElement;
+  aLoadContext->GetIsInBrowserElement(&isInBrowserElement);
+  return GetCodebasePrincipalInternal(aURI,
+                                      appId,
+                                      isInBrowserElement,
+                                      aPrincipal);
+}
+
+NS_IMETHODIMP
 nsScriptSecurityManager::GetDocShellCodebasePrincipal(nsIURI* aURI,
                                                       nsIDocShell* aDocShell,
                                                       nsIPrincipal** aPrincipal)
@@ -1015,10 +1009,6 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj)
     return nsJSPrincipals::get(principals);
 }
 
-////////////////////////////////////////////////
-// Methods implementing nsIXPCSecurityManager //
-////////////////////////////////////////////////
-
 NS_IMETHODIMP
 nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
                                           const nsIID &aIID,
@@ -1033,12 +1023,12 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
     }
 
     // We give remote-XUL whitelisted domains a free pass here. See bug 932906.
-    if (!xpc::AllowXBLScope(js::GetContextCompartment(cx)))
+    if (!xpc::AllowContentXBLScope(js::GetContextCompartment(cx)))
     {
         return NS_OK;
     }
 
-    if (SubjectIsPrivileged())
+    if (nsContentUtils::IsCallerChrome())
     {
         return NS_OK;
     }
@@ -1046,7 +1036,7 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
     //-- Access denied, report an error
     NS_ConvertUTF8toUTF16 strName("CreateWrapperDenied");
     nsAutoCString origin;
-    nsIPrincipal* subjectPrincipal = nsContentUtils::GetSubjectPrincipal();
+    nsIPrincipal* subjectPrincipal = nsContentUtils::SubjectPrincipal();
     GetPrincipalDomainOrigin(subjectPrincipal, origin);
     NS_ConvertUTF8toUTF16 originUnicode(origin);
     NS_ConvertUTF8toUTF16 classInfoName(objClassInfo.GetName());
@@ -1075,7 +1065,7 @@ NS_IMETHODIMP
 nsScriptSecurityManager::CanCreateInstance(JSContext *cx,
                                            const nsCID &aCID)
 {
-    if (SubjectIsPrivileged()) {
+    if (nsContentUtils::IsCallerChrome()) {
         return NS_OK;
     }
 
@@ -1092,7 +1082,7 @@ NS_IMETHODIMP
 nsScriptSecurityManager::CanGetService(JSContext *cx,
                                        const nsCID &aCID)
 {
-    if (SubjectIsPrivileged()) {
+    if (nsContentUtils::IsCallerChrome()) {
         return NS_OK;
     }
 

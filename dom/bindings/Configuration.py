@@ -414,11 +414,36 @@ class Descriptor(DescriptorProvider):
             for attribute in ['implicitJSContext', 'resultNotAddRefed']:
                 addExtendedAttribute(attribute, desc.get(attribute, {}))
 
-        self.binaryNames = desc.get('binaryNames', {})
-        if '__legacycaller' not in self.binaryNames:
-            self.binaryNames["__legacycaller"] = "LegacyCall"
-        if '__stringifier' not in self.binaryNames:
-            self.binaryNames["__stringifier"] = "Stringify"
+        self._binaryNames = desc.get('binaryNames', {})
+        self._binaryNames.setdefault('__legacycaller', 'LegacyCall')
+        self._binaryNames.setdefault('__stringifier', 'Stringify')
+
+        if not self.interface.isExternal():
+            self.permissions = dict()
+
+            # Adds a permission list to this descriptor and returns the index to use.
+            def addPermissions(ifaceOrMember):
+                checkPermissions = ifaceOrMember.getExtendedAttribute("CheckPermissions")
+                if checkPermissions is None:
+                    return None
+
+                # It's a list of whitespace-separated strings
+                assert(len(checkPermissions) is 1)
+                assert(checkPermissions[0] is not None)
+                checkPermissions = checkPermissions[0]
+                permissionsList = checkPermissions.split()
+                if len(permissionsList) == 0:
+                    raise TypeError("Need at least one permission name for CheckPermissions")
+
+                permissionsList = tuple(sorted(set(permissionsList)))
+                return self.permissions.setdefault(permissionsList, len(self.permissions))
+
+            self.checkPermissionsIndex = addPermissions(self.interface)
+            self.checkPermissionsIndicesForMembers = dict()
+            for m in self.interface.members:
+                permissionsIndex = addPermissions(m)
+                if permissionsIndex is not None:
+                    self.checkPermissionsIndicesForMembers[m.identifier.name] = permissionsIndex
 
         # Build the prototype chain.
         self.prototypeChain = []
@@ -428,6 +453,9 @@ class Descriptor(DescriptorProvider):
             parent = parent.parent
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
+
+    def binaryNameFor(self, name):
+        return self._binaryNames.get(name, name)
 
     def hasInterfaceOrInterfacePrototypeObject(self):
 
@@ -496,7 +524,8 @@ class Descriptor(DescriptorProvider):
         return (self.interface.getExtendedAttribute("Pref") or
                 self.interface.getExtendedAttribute("ChromeOnly") or
                 self.interface.getExtendedAttribute("Func") or
-                self.interface.getExtendedAttribute("AvailableIn"))
+                self.interface.getExtendedAttribute("AvailableIn") or
+                self.interface.getExtendedAttribute("CheckPermissions"))
 
     def needsXrayResolveHooks(self):
         """

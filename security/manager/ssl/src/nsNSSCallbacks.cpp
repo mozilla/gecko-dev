@@ -136,6 +136,9 @@ nsHTTPDownloadEvent::Run()
   nsCOMPtr<nsIHttpChannel> hchan = do_QueryInterface(chan);
   NS_ENSURE_STATE(hchan);
 
+  rv = hchan->SetAllowSTS(false);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rv = hchan->SetRequestMethod(mRequestSession->mRequestMethod);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -225,7 +228,7 @@ SECStatus nsNSSHttpRequestSession::createFcn(SEC_HTTP_SERVER_SESSION session,
   rs->mURL.Assign(http_protocol_variant);
   rs->mURL.AppendLiteral("://");
   rs->mURL.Append(hss->mHost);
-  rs->mURL.AppendLiteral(":");
+  rs->mURL.Append(':');
   rs->mURL.AppendInt(hss->mPort);
   rs->mURL.Append(path_and_query_string);
 
@@ -888,6 +891,24 @@ PreliminaryHandshakeDone(PRFileDesc* fd)
   SSLChannelInfo channelInfo;
   if (SSL_GetChannelInfo(fd, &channelInfo, sizeof(channelInfo)) == SECSuccess) {
     infoObject->SetSSLVersionUsed(channelInfo.protocolVersion);
+
+    SSLCipherSuiteInfo cipherInfo;
+    if (SSL_GetCipherSuiteInfo(channelInfo.cipherSuite, &cipherInfo,
+                               sizeof cipherInfo) == SECSuccess) {
+      /* Set the SSL Status information */
+      RefPtr<nsSSLStatus> status(infoObject->SSLStatus());
+      if (!status) {
+        status = new nsSSLStatus();
+        infoObject->SetSSLStatus(status);
+      }
+
+      status->mHaveKeyLengthAndCipher = true;
+      status->mKeyLength = cipherInfo.symKeyBits;
+      status->mSecretKeyLength = cipherInfo.effectiveKeyBits;
+      status->mCipherName.Assign(cipherInfo.cipherSuiteName);
+      infoObject->SetKEAUsed(cipherInfo.keaType);
+      infoObject->SetKEAKeyBits(channelInfo.keaKeyBits);
+    }
   }
 
   // Get the NPN value.
@@ -1189,7 +1210,7 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
 
     nsAutoString msg;
     msg.Append(NS_ConvertASCIItoUTF16(hostName));
-    msg.Append(NS_LITERAL_STRING(" : server does not support RFC 5746, see CVE-2009-3555"));
+    msg.AppendLiteral(" : server does not support RFC 5746, see CVE-2009-3555");
 
     nsContentUtils::LogSimpleConsoleError(msg, "SSL");
   }
@@ -1253,18 +1274,16 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
                                 sizeof cipherInfo);
     MOZ_ASSERT(rv == SECSuccess);
     if (rv == SECSuccess) {
-      status->mHaveKeyLengthAndCipher = true;
-      status->mKeyLength = cipherInfo.symKeyBits;
-      status->mSecretKeyLength = cipherInfo.effectiveKeyBits;
-      status->mCipherName.Assign(cipherInfo.cipherSuiteName);
-
       // keyExchange null=0, rsa=1, dh=2, fortezza=3, ecdh=4
       Telemetry::Accumulate(
         infoObject->IsFullHandshake()
           ? Telemetry::SSL_KEY_EXCHANGE_ALGORITHM_FULL
           : Telemetry::SSL_KEY_EXCHANGE_ALGORITHM_RESUMED,
         cipherInfo.keaType);
-      infoObject->SetKEAUsed(cipherInfo.keaType);
+
+      DebugOnly<int16_t> KEAUsed;
+      MOZ_ASSERT(NS_SUCCEEDED(infoObject->GetKEAUsed(&KEAUsed)) &&
+                 (KEAUsed == cipherInfo.keaType));
 
       if (infoObject->IsFullHandshake()) {
         switch (cipherInfo.keaType) {

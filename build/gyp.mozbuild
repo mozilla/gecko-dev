@@ -7,6 +7,7 @@
 gyp_vars = {
     'build_with_mozilla': 1,
     'build_with_chromium': 0,
+    'use_official_google_api_keys': 0,
     'have_clock_monotonic': 1 if CONFIG['HAVE_CLOCK_MONOTONIC'] else 0,
     'have_ethtool_cmd_speed_hi': 1 if CONFIG['MOZ_WEBRTC_HAVE_ETHTOOL_SPEED_HI'] else 0,
     'include_alsa_audio': 1 if CONFIG['MOZ_ALSA'] else 0,
@@ -26,9 +27,11 @@ gyp_vars = {
     'build_libyuv': 0,
     'libyuv_dir': '/media/libyuv',
     'yuv_disable_avx2': 0 if CONFIG['HAVE_X86_AVX2'] else 1,
+    # don't use openssl
+    'use_openssl': 0,
 
     # saves 4MB when webrtc_trace is off
-    'enable_lazy_trace_alloc': 1,
+    'enable_lazy_trace_alloc': 0,
 
      # turn off mandatory use of NEON and instead use NEON detection
     'arm_neon': 0,
@@ -40,7 +43,7 @@ gyp_vars = {
     # (for vp8) chromium sets to 0 also
     'use_temporal_layers': 0,
     # Creates AEC internal sample dump files in current directory
-    # 'aec_debug_dump': 1,
+    'aec_debug_dump': 1,
 
     # codec enable/disables:
     'include_g711': 1,
@@ -76,7 +79,7 @@ flavors = {
     'Linux': 'linux',
     'Darwin': 'mac' if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa' else 'ios',
     'SunOS': 'solaris',
-    'GNU_kFreeBSD': 'freebsd',
+    'GNU/kFreeBSD': 'freebsd',
     'DragonFly': 'dragonfly',
     'FreeBSD': 'freebsd',
     'NetBSD': 'netbsd',
@@ -86,14 +89,10 @@ gyp_vars['OS'] = flavors[os]
 
 arches = {
     'x86_64': 'x64',
-    'arm': 'arm',
     'x86': 'ia32',
-    'ppc': 'ppc',
-    'ppc64': 'ppc',
-    'ia64': 'ia64',
 }
 
-gyp_vars['target_arch'] = arches[CONFIG['CPU_ARCH']]
+gyp_vars['target_arch'] = arches.get(CONFIG['CPU_ARCH'], CONFIG['CPU_ARCH'])
 
 if CONFIG['ARM_ARCH']:
     if int(CONFIG['ARM_ARCH']) < 7:

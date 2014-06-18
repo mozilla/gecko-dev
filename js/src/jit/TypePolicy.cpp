@@ -416,21 +416,13 @@ ConvertToStringPolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction
     if (in->type() == MIRType_String)
         return true;
 
-    MInstruction *replace;
-    if (in->mightBeType(MIRType_Object)) {
-        if (in->type() != MIRType_Value)
-            in = boxAt(alloc, ins, in);
-
-        replace = MUnbox::New(alloc, in, MIRType_String, MUnbox::Fallible);
-    } else {
-        // TODO remove these two lines once 966957 has landed
-        EnsureOperandNotFloat32(alloc, ins, Op);
-        in = ins->getOperand(Op);
-        replace = MToString::New(alloc, in);
-    }
-
+    MToString *replace = MToString::New(alloc, in);
     ins->block()->insertBefore(ins, replace);
     ins->replaceOperand(Op, replace);
+
+    if (!ToStringPolicy::staticAdjustInputs(alloc, replace))
+        return false;
+
     return true;
 }
 
@@ -614,6 +606,22 @@ ToInt32Policy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
       default:
         break;
     }
+
+    return true;
+}
+
+bool
+ToStringPolicy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
+{
+    JS_ASSERT(ins->isToString());
+
+    if (ins->getOperand(0)->type() == MIRType_Object) {
+        ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
+        return true;
+    }
+
+    // TODO remove the following line once 966957 has landed
+    EnsureOperandNotFloat32(alloc, ins, 0);
 
     return true;
 }
@@ -821,6 +829,37 @@ ClampPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
           ins->replaceOperand(0, boxAt(alloc, ins, in));
         break;
     }
+
+    return true;
+}
+
+bool
+FilterTypeSetPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+{
+    MOZ_ASSERT(ins->numOperands() == 1);
+
+    // Do nothing if already same type.
+    if (ins->type() == ins->getOperand(0)->type())
+        return true;
+
+    // Box input if ouput type is MIRType_Value
+    if (ins->type() == MIRType_Value) {
+        ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
+        return true;
+    }
+
+    // For simplicity just mark output type as MIRType_Value if input type
+    // is MIRType_Value. It should be possible to unbox, but we need to
+    // add extra code for Undefined/Null.
+    if (ins->getOperand(0)->type() == MIRType_Value) {
+        ins->setResultType(MIRType_Value);
+        return true;
+    }
+
+    // In all other cases we will definitely bail, since types don't
+    // correspond. Just box and mark output as MIRType_Value.
+    ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
+    ins->setResultType(MIRType_Value);
 
     return true;
 }

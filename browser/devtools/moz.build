@@ -13,6 +13,7 @@ DIRS += [
     'fontinspector',
     'framework',
     'inspector',
+    'projecteditor',
     'layoutview',
     'markupview',
     'netmonitor',
@@ -27,6 +28,7 @@ DIRS += [
     'tilt',
     'webaudioeditor',
     'webconsole',
+    'webide',
 ]
 
 EXTRA_COMPONENTS += [

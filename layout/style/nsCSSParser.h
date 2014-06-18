@@ -154,6 +154,15 @@ public:
 
   /**
    * Parse aBuffer into a nsCSSValue |aValue|. Will return false
+   * if aBuffer is not a valid font family list.
+   */
+  bool ParseFontFamilyListString(const nsSubstring& aBuffer,
+                                 nsIURI*            aURL,
+                                 uint32_t           aLineNumber,
+                                 nsCSSValue&        aValue);
+
+  /**
+   * Parse aBuffer into a nsCSSValue |aValue|. Will return false
    * if aBuffer is not a valid CSS color specification.
    * One can use nsRuleNode::ComputeColor to compute an nscolor from
    * the returned nsCSSValue.
@@ -254,6 +263,17 @@ public:
                                    nsCSSStyleSheet* aSheet,
                                    uint32_t aLineNumber,
                                    uint32_t aLineOffset);
+
+  bool ParseCounterStyleName(const nsAString& aBuffer,
+                             nsIURI* aURL,
+                             nsAString& aName);
+
+  bool ParseCounterDescriptor(nsCSSCounterDesc aDescID,
+                              const nsAString& aBuffer,
+                              nsIURI* aSheetURL,
+                              nsIURI* aBaseURL,
+                              nsIPrincipal* aSheetPrincipal,
+                              nsCSSValue& aValue);
 
 protected:
   // This is a CSSParserImpl*, but if we expose that type name in this

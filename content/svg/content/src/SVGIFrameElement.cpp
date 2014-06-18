@@ -172,7 +172,7 @@ SVGIFrameElement::GetSrcdoc(DOMString& srcdoc)
   GetAttr(kNameSpaceID_None, nsGkAtoms::srcdoc, srcdoc);
 }
 
-already_AddRefed<nsDOMSettableTokenList>
+nsDOMSettableTokenList*
 SVGIFrameElement::Sandbox()
 {
   return GetTokenList(nsGkAtoms::sandbox);
@@ -275,7 +275,8 @@ SVGIFrameElement::BindToTree(nsIDocument* aDocument,
     NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
                  "Missing a script blocker!");
 
-    PROFILER_LABEL("SVGIFrameElement", "BindToTree");
+    PROFILER_LABEL("SVGIFrameElement", "BindToTree",
+      js::ProfileEntry::Category::OTHER);
 
     // We're in a document now.  Kick off the frame load.
     LoadSrc();

@@ -51,7 +51,6 @@
 #ifdef XP_WIN
 # include "jswin.h"
 #endif
-#include "jsworkers.h"
 #include "jswrapper.h"
 #include "prmjtime.h"
 
@@ -65,6 +64,7 @@
 #include "shell/jsheaptools.h"
 #include "shell/jsoptparse.h"
 #include "vm/ArgumentsObject.h"
+#include "vm/HelperThreads.h"
 #include "vm/Monitor.h"
 #include "vm/Shape.h"
 #include "vm/TypedArrayObject.h"
@@ -221,7 +221,7 @@ class ShellPrincipals: public JSPrincipals {
     }
 
   public:
-    ShellPrincipals(uint32_t bits, int32_t refcount = 0) : bits(bits) {
+    explicit ShellPrincipals(uint32_t bits, int32_t refcount = 0) : bits(bits) {
         this->refcount = refcount;
     }
 
@@ -320,16 +320,6 @@ GetLine(FILE *file, const char * prompt)
     return nullptr;
 }
 
-static char *
-JSStringToUTF8(JSContext *cx, JSString *str)
-{
-    JSLinearString *linear = str->ensureLinear(cx);
-    if (!linear)
-        return nullptr;
-
-    return TwoByteCharsToNewUTF8CharsZ(cx, linear->range()).c_str();
-}
-
 /* State to store as JSContext private. */
 struct JSShellContextData {
     /* Creation timestamp, used by the elapsed() shell builtin. */
@@ -339,10 +329,6 @@ struct JSShellContextData {
 static JSShellContextData *
 NewContextData()
 {
-    /* Prevent creation of new contexts after we have been canceled. */
-    if (gServiceInterrupt)
-        return nullptr;
-
     JSShellContextData *data = (JSShellContextData *)
                                js_calloc(sizeof(JSShellContextData), 1);
     if (!data)
@@ -387,6 +373,10 @@ ShellInterruptCallback(JSContext *cx)
 
     if (!result && gExitCode == 0)
         gExitCode = EXITCODE_TIMEOUT;
+
+    // Reset gServiceInterrupt. CancelExecution or InterruptIf will set it to
+    // true to distinguish watchdog or user triggered interrupts.
+    gServiceInterrupt = false;
 
     return result;
 }
@@ -456,7 +446,7 @@ RunFile(JSContext *cx, Handle<JSObject*> obj, const char *filename, FILE *file, 
     #endif
     if (script && !compileOnly) {
         if (!JS_ExecuteScript(cx, obj, script)) {
-            if (!gQuitting && !gServiceInterrupt)
+            if (!gQuitting && gExitCode != EXITCODE_TIMEOUT)
                 gExitCode = EXITCODE_RUNTIME_ERROR;
         }
         int64_t t2 = PRMJ_Now() - t1;
@@ -492,7 +482,7 @@ EvalAndPrint(JSContext *cx, Handle<JSObject*> global, const char *bytes, size_t 
         if (!str)
             return false;
 
-        char *utf8chars = JSStringToUTF8(cx, str);
+        char *utf8chars = JS_EncodeStringToUTF8(cx, str);
         if (!utf8chars)
             return false;
         fprintf(out, "%s\n", utf8chars);
@@ -755,7 +745,7 @@ CreateMappedArrayBuffer(JSContext *cx, unsigned argc, Value *vp)
             JS_ReportError(cx, "Unable to stat file");
             return false;
         }
-        if (st.st_size < offset) {
+        if (st.st_size < off_t(offset)) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
                                  JSMSG_ARG_INDEX_OUT_OF_RANGE, "2");
             return false;
@@ -800,33 +790,26 @@ Options(JSContext *cx, unsigned argc, jsval *vp)
         else if (strcmp(opt.ptr(), "strict_mode") == 0)
             JS::ContextOptionsRef(cx).toggleStrictMode();
         else {
-            char* msg = JS_sprintf_append(nullptr,
-                                          "unknown option name '%s'."
-                                          " The valid names are strict,"
-                                          " werror, and strict_mode.",
-                                          opt.ptr());
-            if (!msg) {
-                JS_ReportOutOfMemory(cx);
-                return false;
-            }
-
-            JS_ReportError(cx, msg);
-            free(msg);
+            JS_ReportError(cx,
+                           "unknown option name '%s'."
+                           " The valid names are strict,"
+                           " werror, and strict_mode.",
+                           opt.ptr());
             return false;
         }
     }
 
     char *names = strdup("");
     bool found = false;
-    if (!names && oldContextOptions.extraWarnings()) {
+    if (names && oldContextOptions.extraWarnings()) {
         names = JS_sprintf_append(names, "%s%s", found ? "," : "", "strict");
         found = true;
     }
-    if (!names && oldContextOptions.werror()) {
+    if (names && oldContextOptions.werror()) {
         names = JS_sprintf_append(names, "%s%s", found ? "," : "", "werror");
         found = true;
     }
-    if (!names && oldContextOptions.strictMode()) {
+    if (names && oldContextOptions.strictMode()) {
         names = JS_sprintf_append(names, "%s%s", found ? "," : "", "strict_mode");
         found = true;
     }
@@ -1093,7 +1076,7 @@ class AutoSaveFrameChain
     bool saved_;
 
   public:
-    AutoSaveFrameChain(JSContext *cx)
+    explicit AutoSaveFrameChain(JSContext *cx)
       : cx_(cx),
         saved_(false)
     {}
@@ -1445,7 +1428,7 @@ Run(JSContext *cx, unsigned argc, jsval *vp)
     if (!thisobj)
         return false;
 
-    JSString *str = JS::ToString(cx, args[0]);
+    RootedString str(cx, JS::ToString(cx, args[0]));
     if (!str)
         return false;
     args[0].setString(str);
@@ -1453,13 +1436,16 @@ Run(JSContext *cx, unsigned argc, jsval *vp)
     if (!filename)
         return false;
 
-    const jschar *ucbuf = nullptr;
-    size_t buflen;
     str = FileAsString(cx, filename.ptr());
-    if (str)
-        ucbuf = JS_GetStringCharsAndLength(cx, str, &buflen);
-    if (!ucbuf)
+    if (!str)
         return false;
+
+    AutoStableStringChars chars(cx, &str->asLinear());
+    if (!chars.initTwoByte(cx))
+        return false;
+
+    const jschar *ucbuf = chars.twoByteRange().start().get();
+    size_t buflen = str->length();
 
     JS::Anchor<JSString *> a_str(str);
 
@@ -1571,10 +1557,10 @@ PutStr(JSContext *cx, unsigned argc, jsval *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
 
     if (args.length() != 0) {
-        JSString *str = JS::ToString(cx, args[0]);
+        RootedString str(cx, JS::ToString(cx, args[0]));
         if (!str)
             return false;
-        char *bytes = JSStringToUTF8(cx, str);
+        char *bytes = JS_EncodeStringToUTF8(cx, str);
         if (!bytes)
             return false;
         fputs(bytes, gOutFile);
@@ -1599,10 +1585,10 @@ static bool
 PrintInternal(JSContext *cx, const CallArgs &args, FILE *file)
 {
     for (unsigned i = 0; i < args.length(); i++) {
-        JSString *str = JS::ToString(cx, args[i]);
+        RootedString str(cx, JS::ToString(cx, args[i]));
         if (!str)
             return false;
-        char *bytes = JSStringToUTF8(cx, str);
+        char *bytes = JS_EncodeStringToUTF8(cx, str);
         if (!bytes)
             return false;
         fprintf(file, "%s%s", i ? " " : "", bytes);
@@ -2439,7 +2425,7 @@ DumpHeap(JSContext *cx, unsigned argc, jsval *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
 
     JSAutoByteString fileName;
-    if (args.hasDefined(0)) {
+    if (args.hasDefined(0) && !args[0].isNull()) {
         RootedString str(cx, JS::ToString(cx, args[0]));
         if (!str)
             return false;
@@ -2508,20 +2494,6 @@ DumpHeap(JSContext *cx, unsigned argc, jsval *vp)
         JS_ReportOutOfMemory(cx);
 
     return ok;
-}
-
-static bool
-DumpObject(JSContext *cx, unsigned argc, jsval *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    RootedObject arg0(cx);
-    if (!JS_ConvertArguments(cx, args, "o", arg0.address()))
-        return false;
-
-    js_DumpObject(arg0);
-
-    args.rval().setUndefined();
-    return true;
 }
 
 #endif /* DEBUG */
@@ -2908,9 +2880,7 @@ WorkerMain(void *arg)
 {
     WorkerInput *input = (WorkerInput *) arg;
 
-    JSRuntime *rt = JS_NewRuntime(8L * 1024L * 1024L,
-                                  JS_USE_HELPER_THREADS,
-                                  input->runtime);
+    JSRuntime *rt = JS_NewRuntime(8L * 1024L * 1024L, input->runtime);
     if (!rt) {
         js_delete(input);
         return;
@@ -3449,6 +3419,36 @@ InterruptIf(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
+InvokeInterruptCallbackWrapper(JSContext *cx, unsigned argc, jsval *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 1) {
+        JS_ReportError(cx, "Wrong number of arguments");
+        return false;
+    }
+
+    gServiceInterrupt = true;
+    JS_RequestInterruptCallback(cx->runtime());
+    bool interruptRv = CheckForInterrupt(cx);
+
+    // The interrupt handler could have set a pending exception. Since we call
+    // back into JS, don't have it see the pending exception. If we have an
+    // uncatchable exception that's not propagating a debug mode forced
+    // return, return.
+    if (!interruptRv && !cx->isExceptionPending() && !cx->isPropagatingForcedReturn())
+        return false;
+
+    JS::AutoSaveExceptionState savedExc(cx);
+    Value argv[1] = { BooleanValue(interruptRv) };
+    RootedValue rv(cx);
+    if (!Invoke(cx, UndefinedValue(), args[0], 1, argv, &rv))
+        return false;
+
+    args.rval().setUndefined();
+    return interruptRv;
+}
+
+static bool
 SetInterruptCallback(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -3501,14 +3501,15 @@ Parent(JSContext *cx, unsigned argc, jsval *vp)
     }
 
     Rooted<JSObject*> parent(cx, JS_GetParent(&v.toObject()));
-    args.rval().setObjectOrNull(parent);
 
-    /* Outerize if necessary.  Embrace the ugliness! */
+    /* Outerize if necessary. */
     if (parent) {
-        if (js::ObjectOp op = parent->getClass()->ext.outerObject)
-            args.rval().setObjectOrNull(op(cx, parent));
+        parent = GetOuterObject(cx, parent);
+        if (!parent)
+            return false;
     }
 
+    args.rval().setObjectOrNull(parent);
     return true;
 }
 
@@ -3802,7 +3803,7 @@ struct FreeOnReturn
     const char *ptr;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
-    FreeOnReturn(JSContext *cx, const char *ptr = nullptr
+    explicit FreeOnReturn(JSContext *cx, const char *ptr = nullptr
                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : cx(cx), ptr(ptr)
     {
@@ -3956,7 +3957,7 @@ class AutoCStringVector
 {
     Vector<char *> argv_;
   public:
-    AutoCStringVector(JSContext *cx) : argv_(cx) {}
+    explicit AutoCStringVector(JSContext *cx) : argv_(cx) {}
     ~AutoCStringVector() {
         for (size_t i = 0; i < argv_.length(); i++)
             js_free(argv_[i]);
@@ -4367,7 +4368,7 @@ class ShellSourceHook: public SourceHook {
         RootedValue filenameValue(cx, StringValue(str));
 
         RootedValue result(cx);
-        if (!Call(cx, UndefinedHandleValue, fun, filenameValue, &result))
+        if (!Call(cx, UndefinedHandleValue, fun, HandleValueArray(filenameValue), &result))
             return false;
 
         str = JS::ToString(cx, result);
@@ -4447,6 +4448,30 @@ PrintProfilerEvents(JSContext *cx, unsigned argc, Value *vp)
     if (cx->runtime()->spsProfiler.enabled())
         js::RegisterRuntimeProfilingEventMarker(cx->runtime(), &PrintProfilerEvents_Callback);
     args.rval().setUndefined();
+    return true;
+}
+
+static bool
+IsLatin1(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    bool isLatin1 = args.get(0).isString() && args[0].toString()->hasLatin1Chars();
+    args.rval().setBoolean(isLatin1);
+    return true;
+}
+
+static bool
+ToLatin1(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (!args.get(0).isString() || !args[0].toString()->isLinear()) {
+        args.rval().setUndefined();
+        return true;
+    }
+
+    JSLinearString *s = &args[0].toString()->asLinear();
+    s->debugUnsafeConvertToLatin1();
+    args.rval().setString(s);
     return true;
 }
 
@@ -4578,10 +4603,6 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
     JS_FN_HELP("dissrc", DisassWithSrc, 1, 0,
 "dissrc([fun])",
 "  Disassemble functions with source lines."),
-
-    JS_FN_HELP("dumpObject", DumpObject, 1, 0,
-"dumpObject()",
-"  Dump an internal representation of an object."),
 
     JS_FN_HELP("notes", Notes, 1, 0,
 "notes([fun])",
@@ -4730,6 +4751,13 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "  Requests interrupt callback if cond is true. If a callback function is set via\n"
 "  |timeout| or |setInterruptCallback|, it will be called. No-op otherwise."),
 
+    JS_FN_HELP("invokeInterruptCallback", InvokeInterruptCallbackWrapper, 0, 0,
+"invokeInterruptCallback(fun)",
+"  Forcefully set the interrupt flag and invoke the interrupt handler. If a\n"
+"  callback function is set via |timeout| or |setInterruptCallback|, it will\n"
+"  be called. Before returning, fun is called with the return value of the\n"
+"  interrupt handler."),
+
     JS_FN_HELP("setInterruptCallback", SetInterruptCallback, 1, 0,
 "setInterruptCallback(func)",
 "  Sets func as the interrupt callback function.\n"
@@ -4818,6 +4846,10 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "  Register a callback with the profiler that prints javascript profiler events\n"
 "  to stderr.  Callback is only registered if profiling is enabled."),
 
+    JS_FN_HELP("isLatin1", IsLatin1, 1, 0,
+"isLatin1(s)",
+"  Return true iff the string's characters are stored as Latin1."),
+
     JS_FS_HELP_END
 };
 
@@ -4881,6 +4913,10 @@ static const JSFunctionSpecWithHelp fuzzing_unsafe_functions[] = {
     JS_FN_HELP("untrap", Untrap, 2, 0,
 "untrap(fun[, pc])",
 "  Remove a trap."),
+
+    JS_FN_HELP("toLatin1", ToLatin1, 1, 0,
+"toLatin1(s)",
+"  Convert the string's characters to Latin1."),
 
     JS_FN_HELP("withSourceHook", WithSourceHook, 1, 0,
 "withSourceHook(hook, fun)",
@@ -5033,7 +5069,7 @@ my_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 }
 
 static void
-my_OOMCallback(JSContext *cx)
+my_OOMCallback(JSContext *cx, void *data)
 {
     // If a script is running, the engine is about to throw the string "out of
     // memory", which may or may not be caught. Otherwise the engine will just
@@ -5244,7 +5280,8 @@ static const JSJitInfo dom_x_getterinfo = {
     JSVAL_TYPE_UNKNOWN, /* returnType */
     true,     /* isInfallible. False in setters. */
     true,     /* isMovable */
-    false,    /* isInSlot */
+    false,    /* isAlwaysInSlot */
+    false,    /* isLazilyCachedInSlot */
     false,    /* isTypedMethod */
     0         /* slotIndex */
 };
@@ -5258,7 +5295,8 @@ static const JSJitInfo dom_x_setterinfo = {
     JSVAL_TYPE_UNKNOWN, /* returnType */
     false,    /* isInfallible. False in setters. */
     false,    /* isMovable. */
-    false,    /* isInSlot */
+    false,    /* isAlwaysInSlot */
+    false,    /* isLazilyCachedInSlot */
     false,    /* isTypedMethod */
     0         /* slotIndex */
 };
@@ -5272,7 +5310,8 @@ static const JSJitInfo doFoo_methodinfo = {
     JSVAL_TYPE_UNKNOWN, /* returnType */
     false,    /* isInfallible. False in setters. */
     false,    /* isMovable */
-    false,    /* isInSlot */
+    false,    /* isAlwaysInSlot */
+    false,    /* isLazilyCachedInSlot */
     false,    /* isTypedMethod */
     0         /* slotIndex */
 };
@@ -5416,7 +5455,7 @@ dom_constructor(JSContext* cx, unsigned argc, JS::Value *vp)
 }
 
 static bool
-InstanceClassHasProtoAtDepth(JSObject *protoObject, uint32_t protoID, uint32_t depth)
+InstanceClassHasProtoAtDepth(const Class *clasp, uint32_t protoID, uint32_t depth)
 {
     /* There's only a single (fake) DOM object in the shell, so just return true. */
     return true;
@@ -5697,7 +5736,10 @@ NewContext(JSRuntime *rt)
 static void
 DestroyContext(JSContext *cx, bool withGC)
 {
-    JSShellContextData *data = GetContextData(cx);
+    // Don't use GetContextData as |data| could be a nullptr in the case of
+    // destroying a context precisely because we couldn't create its private
+    // data.
+    JSShellContextData *data = (JSShellContextData *) JS_GetContextPrivate(cx);
     JS_SetContextPrivate(cx, nullptr);
     free(data);
     WITH_SIGNALS_DISABLED(withGC ? JS_DestroyContext(cx) : JS_DestroyContextNoGC(cx));
@@ -5863,10 +5905,12 @@ SetRuntimeOptions(JSRuntime *rt, const OptionParser &op)
     bool enableBaseline = !op.getBoolOption("no-baseline");
     bool enableIon = !op.getBoolOption("no-ion");
     bool enableAsmJS = !op.getBoolOption("no-asmjs");
+    bool enableNativeRegExp = !op.getBoolOption("no-native-regexp");
 
     JS::RuntimeOptionsRef(rt).setBaseline(enableBaseline)
                              .setIon(enableIon)
-                             .setAsmJS(enableAsmJS);
+                             .setAsmJS(enableAsmJS)
+                             .setNativeRegExp(enableNativeRegExp);
 
     if (const char *str = op.getStringOption("ion-gvn")) {
         if (strcmp(str, "off") == 0) {
@@ -5971,24 +6015,36 @@ SetRuntimeOptions(JSRuntime *rt, const OptionParser &op)
     if (op.getBoolOption("ion-compile-try-catch"))
         jit::js_JitOptions.compileTryCatch = true;
 
-    bool parallelCompilation = true;
-    if (const char *str = op.getStringOption("ion-parallel-compile")) {
+    bool offthreadCompilation = true;
+    if (const char *str = op.getStringOption("ion-offthread-compile")) {
         if (strcmp(str, "off") == 0)
-            parallelCompilation = false;
+            offthreadCompilation = false;
         else if (strcmp(str, "on") != 0)
-            return OptionFailure("ion-parallel-compile", str);
+            return OptionFailure("ion-offthread-compile", str);
     }
 #ifdef JS_THREADSAFE
-    rt->setParallelIonCompilationEnabled(parallelCompilation);
+    rt->setOffthreadIonCompilationEnabled(offthreadCompilation);
 #endif
+
+    if (op.getStringOption("ion-parallel-compile")) {
+        fprintf(stderr, "--ion-parallel-compile is deprecated. Please use --ion-offthread-compile instead.\n");
+        return false;
+    }
 
 #endif // JS_ION
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR)
     if (op.getBoolOption("arm-sim-icache-checks"))
         jit::Simulator::ICacheCheckingEnabled = true;
 
     int32_t stopAt = op.getIntOption("arm-sim-stop-at");
+    if (stopAt >= 0)
+        jit::Simulator::StopSimAt = stopAt;
+#elif defined(JS_MIPS_SIMULATOR)
+    if (op.getBoolOption("mips-sim-icache-checks"))
+        jit::Simulator::ICacheCheckingEnabled = true;
+
+    int32_t stopAt = op.getIntOption("mips-sim-stop-at");
     if (stopAt >= 0)
         jit::Simulator::StopSimAt = stopAt;
 #endif
@@ -6004,12 +6060,6 @@ SetRuntimeOptions(JSRuntime *rt, const OptionParser &op)
             jsCacheDir = JS_smprintf("%s/%u", jsCacheDir, (unsigned)getpid());
         jsCacheAsmJSPath = JS_smprintf("%s/asmjs.cache", jsCacheDir);
     }
-
-#ifdef JS_THREADSAFE
-    int32_t threadCount = op.getIntOption("thread-count");
-    if (threadCount >= 0)
-        SetFakeCPUCount(threadCount);
-#endif /* JS_THREADSAFE */
 
 #ifdef DEBUG
     dumpEntrainedVariables = op.getBoolOption("dump-entrained-variables");
@@ -6148,6 +6198,7 @@ main(int argc, char **argv, char **envp)
         || !op.addBoolOption('\0', "ion", "Enable IonMonkey (default)")
         || !op.addBoolOption('\0', "no-ion", "Disable IonMonkey")
         || !op.addBoolOption('\0', "no-asmjs", "Disable asm.js compilation")
+        || !op.addBoolOption('\0', "no-native-regexp", "Disable native regexp compilation")
         || !op.addStringOption('\0', "ion-gvn", "[mode]",
                                "Specify Ion global value numbering:\n"
                                "  off: disable GVN\n"
@@ -6177,8 +6228,10 @@ main(int argc, char **argv, char **envp)
                                "  stupid: Simple block local register allocation")
         || !op.addBoolOption('\0', "ion-eager", "Always ion-compile methods (implies --baseline-eager)")
         || !op.addBoolOption('\0', "ion-compile-try-catch", "Ion-compile try-catch statements")
+        || !op.addStringOption('\0', "ion-offthread-compile", "on/off",
+                               "Compile scripts off thread (default: on)")
         || !op.addStringOption('\0', "ion-parallel-compile", "on/off",
-                               "Compile scripts off thread (default: off)")
+                               "--ion-parallel compile is deprecated. Use --ion-offthread-compile.")
         || !op.addBoolOption('\0', "baseline", "Enable baseline compiler (default)")
         || !op.addBoolOption('\0', "no-baseline", "Disable baseline compiler")
         || !op.addBoolOption('\0', "baseline-eager", "Always baseline-compile methods")
@@ -6202,10 +6255,15 @@ main(int argc, char **argv, char **envp)
 #endif
         || !op.addIntOption('\0', "available-memory", "SIZE",
                             "Select GC settings based on available memory (MB)", 0)
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR)
         || !op.addBoolOption('\0', "arm-sim-icache-checks", "Enable icache flush checks in the ARM "
                              "simulator.")
         || !op.addIntOption('\0', "arm-sim-stop-at", "NUMBER", "Stop the ARM simulator after the given "
+                            "NUMBER of instructions.", -1)
+#elif defined(JS_MIPS_SIMULATOR)
+	|| !op.addBoolOption('\0', "mips-sim-icache-checks", "Enable icache flush checks in the MIPS "
+                             "simulator.")
+        || !op.addIntOption('\0', "mips-sim-stop-at", "NUMBER", "Stop the MIPS simulator after the given "
                             "NUMBER of instructions.", -1)
 #endif
     )
@@ -6256,16 +6314,24 @@ main(int argc, char **argv, char **envp)
 
 #endif // DEBUG
 
+#ifdef JS_THREADSAFE
+    // The fake thread count must be set before initializing the Runtime,
+    // which spins up the thread pool.
+    int32_t threadCount = op.getIntOption("thread-count");
+    if (threadCount >= 0)
+        SetFakeCPUCount(threadCount);
+#endif /* JS_THREADSAFE */
+
     // Start the engine.
     if (!JS_Init())
         return 1;
 
     /* Use the same parameters as the browser in xpcjsruntime.cpp. */
-    rt = JS_NewRuntime(32L * 1024L * 1024L, JS_USE_HELPER_THREADS);
+    rt = JS_NewRuntime(32L * 1024L * 1024L);
     if (!rt)
         return 1;
 
-    JS::SetOutOfMemoryCallback(rt, my_OOMCallback);
+    JS::SetOutOfMemoryCallback(rt, my_OOMCallback, nullptr);
     if (!SetRuntimeOptions(rt, op))
         return 1;
 

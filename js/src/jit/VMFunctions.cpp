@@ -12,9 +12,11 @@
 #include "jit/BaselineIC.h"
 #include "jit/IonFrames.h"
 #include "jit/JitCompartment.h"
+#include "jit/mips/Simulator-mips.h"
 #include "vm/ArrayObject.h"
 #include "vm/Debugger.h"
 #include "vm/Interpreter.h"
+#include "vm/TraceLogging.h"
 
 #include "jsinferinlines.h"
 
@@ -120,7 +122,7 @@ CheckOverRecursed(JSContext *cx)
     // has not yet been set to 1. That's okay; it will be set to 1 very shortly,
     // and in the interim we might just fire a few useless calls to
     // CheckOverRecursed.
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, 0, return false);
 #else
     JS_CHECK_RECURSION(cx, return false);
@@ -153,7 +155,7 @@ CheckOverRecursedWithExtra(JSContext *cx, BaselineFrame *frame,
     uint8_t spDummy;
     uint8_t *checkSp = (&spDummy) - extra;
     if (earlyCheck) {
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
         (void)checkSp;
         JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, extra, frame->setOverRecursed());
 #else
@@ -167,7 +169,7 @@ CheckOverRecursedWithExtra(JSContext *cx, BaselineFrame *frame,
     if (frame->overRecursed())
         return false;
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, extra, return false);
 #else
     JS_CHECK_RECURSION_WITH_SP(cx, checkSp, return false);
@@ -683,26 +685,27 @@ GetDynamicName(JSContext *cx, JSObject *scopeChain, JSString *str, Value *vp)
 bool
 FilterArgumentsOrEval(JSContext *cx, JSString *str)
 {
-    // getChars() is fallible, but cannot GC: it can only allocate a character
-    // for the flattened string. If this call fails then the calling Ion code
-    // will bailout, resume in the interpreter and likely fail again when
-    // trying to flatten the string and unwind the stack.
-    const jschar *chars = str->getChars(cx);
-    if (!chars)
+    // ensureLinear() is fallible, but cannot GC: it can only allocate a
+    // character buffer for the flattened string. If this call fails then the
+    // calling Ion code will bailout, resume in Baseline and likely fail again
+    // when trying to flatten the string and unwind the stack.
+    JS::AutoCheckCannotGC nogc;
+    JSLinearString *linear = str->ensureLinear(cx);
+    if (!linear)
         return false;
 
     static const jschar arguments[] = {'a', 'r', 'g', 'u', 'm', 'e', 'n', 't', 's'};
     static const jschar eval[] = {'e', 'v', 'a', 'l'};
 
-    return !StringHasPattern(chars, str->length(), arguments, mozilla::ArrayLength(arguments)) &&
-        !StringHasPattern(chars, str->length(), eval, mozilla::ArrayLength(eval));
+    return !StringHasPattern(linear, arguments, mozilla::ArrayLength(arguments)) &&
+        !StringHasPattern(linear, eval, mozilla::ArrayLength(eval));
 }
 
 #ifdef JSGC_GENERATIONAL
 void
 PostWriteBarrier(JSRuntime *rt, JSObject *obj)
 {
-    JS_ASSERT(!IsInsideNursery(rt, obj));
+    JS_ASSERT(!IsInsideNursery(obj));
     rt->gc.storeBuffer.putWholeCellFromMainThread(obj);
 }
 
@@ -759,6 +762,21 @@ DebugPrologue(JSContext *cx, BaselineFrame *frame, jsbytecode *pc, bool *mustRet
       default:
         MOZ_ASSUME_UNREACHABLE("Invalid trap status");
     }
+}
+
+bool
+DebugEpilogueOnBaselineReturn(JSContext *cx, BaselineFrame *frame, jsbytecode *pc)
+{
+    if (!DebugEpilogue(cx, frame, pc, true)) {
+        // DebugEpilogue popped the frame by updating jitTop, so run the stop event
+        // here before we enter the exception handler.
+        TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+        TraceLogStopEvent(logger, TraceLogger::Baseline);
+        TraceLogStopEvent(logger); // Leave script.
+        return false;
+    }
+
+    return true;
 }
 
 bool
@@ -1153,6 +1171,15 @@ AssertValidValue(JSContext *cx, Value *v)
     }
 }
 #endif
+
+// Definition of the MTypedObjectProto MIR.
+JSObject *
+TypedObjectProto(JSObject *obj)
+{
+    JS_ASSERT(obj->is<TypedObject>());
+    TypedObject &typedObj = obj->as<TypedObject>();
+    return &typedObj.typedProto();
+}
 
 } // namespace jit
 } // namespace js

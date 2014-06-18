@@ -11,8 +11,6 @@
 
 namespace mozilla {
 
-class LoadManager;
-
 /**
  * Minimalistic Audio Codec Config Params
  */
@@ -28,22 +26,19 @@ struct AudioCodecConfig
   int mPacSize;
   int mChannels;
   int mRate;
-  LoadManager* mLoadManager;
 
   /* Default constructor is not provided since as a consumer, we
    * can't decide the default configuration for the codec
    */
   explicit AudioCodecConfig(int type, std::string name,
                             int freq,int pacSize,
-                            int channels, int rate,
-                            LoadManager* load_manager = nullptr)
+                            int channels, int rate)
                                                    : mType(type),
                                                      mName(name),
                                                      mFreq(freq),
                                                      mPacSize(pacSize),
                                                      mChannels(channels),
-                                                     mRate(rate),
-                                                     mLoadManager(load_manager)
+                                                     mRate(rate)
 
   {
   }
@@ -60,53 +55,44 @@ struct VideoCodecConfig
    * The data-types for these properties mimic the
    * corresponding webrtc::VideoCodec data-types.
    */
-  int mType;
+  int mType; // payload type
   std::string mName;
   uint32_t mRtcpFbTypes;
   unsigned int mMaxFrameSize;
   unsigned int mMaxFrameRate;
-  LoadManager* mLoadManager;
+  uint8_t mProfile;
+  uint8_t mConstraints;
+  uint8_t mLevel;
+  uint8_t mPacketizationMode;
+  // TODO: add external negotiated SPS/PPS
 
   VideoCodecConfig(int type,
                    std::string name,
                    int rtcpFbTypes,
-                   LoadManager* load_manager = nullptr) :
+                   uint8_t profile = 0x42,
+                   uint8_t constraints = 0xC0,
+                   uint8_t level = 30,
+                   uint8_t packetization = 0) :
                                      mType(type),
                                      mName(name),
                                      mRtcpFbTypes(rtcpFbTypes),
                                      mMaxFrameSize(0),
                                      mMaxFrameRate(0),
-                                     mLoadManager(load_manager)
-  {
-    // Replace codec name here because  WebRTC.org code has a whitelist of
-    // supported video codec in |webrtc::ViECodecImpl::CodecValid()| and will
-    // reject registration of those not in it.
-    // TODO: bug 995884 to support H.264 in WebRTC.org code.
-    if (mName == "H264_P0")
-      mName = "I420";
-  }
+                                     mProfile(profile),
+                                     mConstraints(constraints),
+                                     mLevel(level),
+                                     mPacketizationMode(packetization) {}
 
   VideoCodecConfig(int type,
                    std::string name,
                    int rtcpFbTypes,
                    unsigned int max_fs,
-                   unsigned int max_fr,
-                   LoadManager* load_manager = nullptr) :
+                   unsigned int max_fr) :
                                          mType(type),
                                          mName(name),
                                          mRtcpFbTypes(rtcpFbTypes),
                                          mMaxFrameSize(max_fs),
-                                         mMaxFrameRate(max_fr),
-                                         mLoadManager(load_manager)
-  {
-    // Replace codec name here because  WebRTC.org code has a whitelist of
-    // supported video codec in |webrtc::ViECodecImpl::CodecValid()| and will
-    // reject registration of those not in it.
-    // TODO: bug 995884 to support H.264 in WebRTC.org code.
-    if (mName == "H264_P0")
-      mName = "I420";
-  }
-
+                                         mMaxFrameRate(max_fr) {}
 
   bool RtcpFbIsSet(sdp_rtcp_fb_nack_type_e type) const
   {
@@ -122,7 +108,6 @@ struct VideoCodecConfig
   {
     return mRtcpFbTypes & sdp_rtcp_fb_ccm_to_bitmap(type);
   }
-
 };
 }
 #endif

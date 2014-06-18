@@ -109,13 +109,13 @@ MediaEngineTabVideoSource::InitRunnable::Run()
 void
 MediaEngineTabVideoSource::GetName(nsAString_internal& aName)
 {
-  aName.Assign(NS_LITERAL_STRING("&getUserMedia.videoDevice.tabShare;"));
+  aName.AssignLiteral(MOZ_UTF16("&getUserMedia.videoSource.tabShare;"));
 }
 
 void
 MediaEngineTabVideoSource::GetUUID(nsAString_internal& aUuid)
 {
-  aUuid.Assign(NS_LITERAL_STRING("uuid"));
+  aUuid.AssignLiteral(MOZ_UTF16("uuid"));
 }
 
 nsresult
@@ -161,7 +161,7 @@ NotifyPull(MediaStreamGraph*, SourceMediaStream* aSource, mozilla::TrackID aID, 
 
   // Note: we're not giving up mImage here
   nsRefPtr<layers::CairoImage> image = mImage;
-  TrackTicks target = TimeToTicksRoundUp(USECS_PER_S, aDesiredTime);
+  TrackTicks target = aSource->TimeToTicksRoundUp(USECS_PER_S, aDesiredTime);
   TrackTicks delta = target - aLastEndTime;
   if (delta > 0) {
     // nullptr images are allowed

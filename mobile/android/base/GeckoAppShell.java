@@ -16,6 +16,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URLConnection;
+import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -349,8 +351,10 @@ public class GeckoAppShell
                 }
             });
 
+        if (!AppConstants.MOZILLA_OFFICIAL) {
+            Log.d(LOGTAG, "GeckoLoader.nativeRun " + combinedArgs);
+        }
         // and go
-        Log.d(LOGTAG, "GeckoLoader.nativeRun " + combinedArgs);
         GeckoLoader.nativeRun(combinedArgs);
 
         // Remove pumpMessageLoop() idle handler
@@ -789,41 +793,19 @@ public class GeckoAppShell
     public static Intent getWebappIntent(String aURI, String aOrigin, String aTitle, Bitmap aIcon) {
         Intent intent;
 
-        if (AppConstants.MOZ_ANDROID_SYNTHAPKS) {
-            Allocator slots = Allocator.getInstance(getContext());
-            int index = slots.getIndexForOrigin(aOrigin);
+        Allocator slots = Allocator.getInstance(getContext());
+        int index = slots.getIndexForOrigin(aOrigin);
 
-            if (index == -1) {
-                return null;
-            }
-            String packageName = slots.getAppForIndex(index);
-            intent = getContext().getPackageManager().getLaunchIntentForPackage(packageName);
-            if (aURI != null) {
-                intent.setData(Uri.parse(aURI));
-            }
-        } else {
-            int index;
-            if (aIcon != null && !TextUtils.isEmpty(aTitle))
-                index = WebappAllocator.getInstance(getContext()).findAndAllocateIndex(aOrigin, aTitle, aIcon);
-            else
-                index = WebappAllocator.getInstance(getContext()).getIndexForApp(aOrigin);
-
-            if (index == -1)
-                return null;
-
-            intent = getWebappIntent(index, aURI);
+        if (index == -1) {
+            return null;
         }
 
-        return intent;
-    }
+        String packageName = slots.getAppForIndex(index);
+        intent = getContext().getPackageManager().getLaunchIntentForPackage(packageName);
+        if (aURI != null) {
+            intent.setData(Uri.parse(aURI));
+        }
 
-    // The old implementation of getWebappIntent.  Not used by MOZ_ANDROID_SYNTHAPKS.
-    public static Intent getWebappIntent(int aIndex, String aURI) {
-        Intent intent = new Intent();
-        intent.setAction(GeckoApp.ACTION_WEBAPP_PREFIX + aIndex);
-        intent.setData(Uri.parse(aURI));
-        intent.setClassName(AppConstants.ANDROID_PACKAGE_NAME,
-                            AppConstants.ANDROID_PACKAGE_NAME + ".WebApps$WebApp" + aIndex);
         return intent;
     }
 
@@ -2716,6 +2698,33 @@ public class GeckoAppShell
                                      getContext().getResources().getString(R.string.share_image_failed),
                                      Toast.LENGTH_SHORT);
         toast.show();
+    }
+
+    @WrapElementForJNI(allowMultithread = true)
+    static InputStream createInputStream(URLConnection connection) throws IOException {
+        return connection.getInputStream();
+    }
+
+    @WrapElementForJNI(allowMultithread = true, narrowChars = true)
+    static URLConnection getConnection(String url) throws MalformedURLException, IOException {
+        String spec;
+        if (url.startsWith("android://")) {
+            spec = url.substring(10);
+        } else {
+            spec = url.substring(8);
+        }
+
+        // if the colon got stripped, put it back
+        int colon = spec.indexOf(':');
+        if (colon == -1 || colon > spec.indexOf('/')) {
+            spec = spec.replaceFirst("/", ":/");
+        }
+        return new URL(spec).openConnection();
+    }
+
+    @WrapElementForJNI(allowMultithread = true, narrowChars = true)
+    static String connectionGetMimeType(URLConnection connection) {
+        return connection.getContentType();
     }
 
 }

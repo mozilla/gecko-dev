@@ -37,6 +37,7 @@
 #  define MOZ_ALWAYS_INLINE     inline
 #endif
 
+#if defined(_MSC_VER)
 /*
  * g++ requires -std=c++0x or -std=gnu++0x to support C++11 functionality
  * without warnings (functionality used by the macros below).  These modes are
@@ -44,8 +45,27 @@
  * standardly, by checking whether __cplusplus has a C++11 or greater value.
  * Current versions of g++ do not correctly set __cplusplus, so we check both
  * for forward compatibility.
+ *
+ * Even though some versions of MSVC support explicit conversion operators, we
+ * don't indicate support for them here, due to
+ * http://stackoverflow.com/questions/20498142/visual-studio-2013-explicit-keyword-bug
  */
-#if defined(__clang__)
+#  if _MSC_VER >= 1800
+#    define MOZ_HAVE_CXX11_DELETE
+#  endif
+#  if _MSC_VER >= 1700
+#    define MOZ_HAVE_CXX11_FINAL         final
+#  else
+#    if defined(__clang__)
+#      error Please do not try to use clang-cl with MSVC10 or below emulation!
+#    endif
+     /* MSVC <= 10 used to spell "final" as "sealed". */
+#    define MOZ_HAVE_CXX11_FINAL         sealed
+#  endif
+#  define MOZ_HAVE_CXX11_OVERRIDE
+#  define MOZ_HAVE_NEVER_INLINE          __declspec(noinline)
+#  define MOZ_HAVE_NORETURN              __declspec(noreturn)
+#elif defined(__clang__)
    /*
     * Per Clang documentation, "Note that marketing version numbers should not
     * be used to check for language features, as different vendors use different
@@ -94,21 +114,6 @@
 #  endif
 #  define MOZ_HAVE_NEVER_INLINE          __attribute__((noinline))
 #  define MOZ_HAVE_NORETURN              __attribute__((noreturn))
-#elif defined(_MSC_VER)
-#  if _MSC_VER >= 1800
-#    define MOZ_HAVE_CXX11_DELETE
-#  endif
-#  if _MSC_VER >= 1700
-#    define MOZ_HAVE_CXX11_FINAL         final
-#  else
-     /* MSVC <= 10 used to spell "final" as "sealed". */
-#    define MOZ_HAVE_CXX11_FINAL         sealed
-#  endif
-#  define MOZ_HAVE_CXX11_OVERRIDE
-#  define MOZ_HAVE_NEVER_INLINE          __declspec(noinline)
-#  define MOZ_HAVE_NORETURN              __declspec(noreturn)
-// Staying away from explicit conversion operators in MSVC for now, see
-// http://stackoverflow.com/questions/20498142/visual-studio-2013-explicit-keyword-bug
 #endif
 
 /*
@@ -150,10 +155,10 @@
  *   template<typename T>
  *   class Ptr
  *   {
- *      T* ptr;
- *      MOZ_EXPLICIT_CONVERSION operator bool() const {
- *        return ptr != nullptr;
- *      }
+ *     T* ptr;
+ *     MOZ_EXPLICIT_CONVERSION operator bool() const {
+ *       return ptr != nullptr;
+ *     }
  *   };
  *
  */
@@ -267,9 +272,9 @@
  *
  *   struct NonCopyable
  *   {
- *     private:
- *       NonCopyable(const NonCopyable& other) MOZ_DELETE;
- *       void operator=(const NonCopyable& other) MOZ_DELETE;
+ *   private:
+ *     NonCopyable(const NonCopyable& other) MOZ_DELETE;
+ *     void operator=(const NonCopyable& other) MOZ_DELETE;
  *   };
  *
  * If MOZ_DELETE can't be implemented for the current compiler, use of the
@@ -295,23 +300,23 @@
  *
  *   class Base
  *   {
- *     public:
- *       virtual void f() = 0;
+ *   public:
+ *     virtual void f() = 0;
  *   };
  *   class Derived1 : public Base
  *   {
- *     public:
- *       virtual void f() MOZ_OVERRIDE;
+ *   public:
+ *     virtual void f() MOZ_OVERRIDE;
  *   };
  *   class Derived2 : public Base
  *   {
- *     public:
- *       virtual void f() MOZ_OVERRIDE = 0;
+ *   public:
+ *     virtual void f() MOZ_OVERRIDE = 0;
  *   };
  *   class Derived3 : public Base
  *   {
- *     public:
- *       virtual void f() MOZ_OVERRIDE { }
+ *   public:
+ *     virtual void f() MOZ_OVERRIDE { }
  *   };
  *
  * In compilers supporting C++11 override controls, MOZ_OVERRIDE *requires* that
@@ -339,16 +344,16 @@
  *
  *   class Base MOZ_FINAL
  *   {
- *     public:
- *       Base();
- *       ~Base();
- *       virtual void f() { }
+ *   public:
+ *     Base();
+ *     ~Base();
+ *     virtual void f() { }
  *   };
  *   // This will be an error in some compilers:
  *   class Derived : public Base
  *   {
- *     public:
- *       ~Derived() { }
+ *   public:
+ *     ~Derived() { }
  *   };
  *
  * One particularly common reason to specify MOZ_FINAL upon a class is to tell
@@ -375,14 +380,14 @@
  *
  *   class Base
  *   {
- *     public:
- *       virtual void f() MOZ_FINAL;
+ *   public:
+ *     virtual void f() MOZ_FINAL;
  *   };
  *   class Derived
  *   {
- *     public:
- *       // This will be an error in some compilers:
- *       virtual void f();
+ *   public:
+ *     // This will be an error in some compilers:
+ *     virtual void f();
  *   };
  *
  * In compilers implementing final controls, it is an error for a derived class
@@ -482,11 +487,16 @@
  * MOZ_HEAP_ALLOCATOR: Applies to any function. This indicates that the return
  *   value is allocated on the heap, and will as a result check such allocations
  *   during MOZ_STACK_CLASS and MOZ_NONHEAP_CLASS annotation checking.
+ * MOZ_IMPLICIT: Applies to constructors. Implicit conversion constructors
+ *   are disallowed by default unless they are marked as MOZ_IMPLICIT. This
+ *   attribute must be used for constructors which intend to provide implicit
+ *   conversions.
  */
 #ifdef MOZ_CLANG_PLUGIN
 #  define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
 #  define MOZ_STACK_CLASS __attribute__((annotate("moz_stack_class")))
 #  define MOZ_NONHEAP_CLASS __attribute__((annotate("moz_nonheap_class")))
+#  define MOZ_IMPLICIT __attribute__((annotate("moz_implicit")))
 /*
  * It turns out that clang doesn't like void func() __attribute__ {} without a
  * warning, so use pragmas to disable the warning. This code won't work on GCC
@@ -501,6 +511,7 @@
 #  define MOZ_MUST_OVERRIDE /* nothing */
 #  define MOZ_STACK_CLASS /* nothing */
 #  define MOZ_NONHEAP_CLASS /* nothing */
+#  define MOZ_IMPLICIT /* nothing */
 #  define MOZ_HEAP_ALLOCATOR /* nothing */
 #endif /* MOZ_CLANG_PLUGIN */
 

@@ -27,6 +27,7 @@
 #include "nsCSSValue.h"
 #include "imgRequestProxy.h"
 #include "Orientation.h"
+#include "CounterStyleManager.h"
 
 class nsIFrame;
 class nsIURI;
@@ -1108,7 +1109,7 @@ protected:
 
 
 struct nsStyleList {
-  nsStyleList(void);
+  nsStyleList(nsPresContext* aPresContext);
   nsStyleList(const nsStyleList& aStyleList);
   ~nsStyleList(void);
 
@@ -1141,9 +1142,28 @@ struct nsStyleList {
       mListStyleImage->LockImage();
   }
 
-  uint8_t   mListStyleType;             // [inherited] See nsStyleConsts.h
+  void GetListStyleType(nsSubstring& aType) const { aType = mListStyleType; }
+  mozilla::CounterStyle* GetCounterStyle() const
+  {
+    return mCounterStyle.get();
+  }
+  void SetListStyleType(const nsSubstring& aType,
+                        mozilla::CounterStyle* aStyle)
+  {
+    mListStyleType = aType;
+    mCounterStyle = aStyle;
+  }
+  void SetListStyleType(const nsSubstring& aType,
+                        nsPresContext* aPresContext)
+  {
+    SetListStyleType(aType, aPresContext->
+                     CounterStyleManager()->BuildCounterStyle(aType));
+  }
+
   uint8_t   mListStylePosition;         // [inherited]
 private:
+  nsString  mListStyleType;             // [inherited]
+  nsRefPtr<mozilla::CounterStyle> mCounterStyle; // [inherited]
   nsRefPtr<imgRequestProxy> mListStyleImage; // [inherited]
   nsStyleList& operator=(const nsStyleList& aOther) MOZ_DELETE;
 public:
@@ -1529,7 +1549,7 @@ struct nsStyleText {
   bool WhiteSpaceIsSignificant() const {
     return mWhiteSpace == NS_STYLE_WHITESPACE_PRE ||
            mWhiteSpace == NS_STYLE_WHITESPACE_PRE_WRAP ||
-           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_DISCARD_NEWLINES;
+           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_SPACE;
   }
 
   bool NewlineIsSignificant() const {
@@ -1538,15 +1558,16 @@ struct nsStyleText {
            mWhiteSpace == NS_STYLE_WHITESPACE_PRE_LINE;
   }
 
-  bool NewlineIsDiscarded() const {
-    return mWhiteSpace == NS_STYLE_WHITESPACE_PRE_DISCARD_NEWLINES;
-  }
-
   bool WhiteSpaceOrNewlineIsSignificant() const {
     return mWhiteSpace == NS_STYLE_WHITESPACE_PRE ||
            mWhiteSpace == NS_STYLE_WHITESPACE_PRE_WRAP ||
            mWhiteSpace == NS_STYLE_WHITESPACE_PRE_LINE ||
-           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_DISCARD_NEWLINES;
+           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_SPACE;
+  }
+
+  bool TabIsSignificant() const {
+    return mWhiteSpace == NS_STYLE_WHITESPACE_PRE ||
+           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_WRAP;
   }
 
   bool WhiteSpaceCanWrapStyle() const {
@@ -1606,6 +1627,10 @@ struct nsStyleImageOrientation {
   bool IsDefault()   const { return mOrientation == 0; }
   bool IsFlipped()   const { return mOrientation & FLIP_MASK; }
   bool IsFromImage() const { return mOrientation & FROM_IMAGE_MASK; }
+  bool SwapsWidthAndHeight() const {
+    uint8_t angle = mOrientation & ORIENTATION_MASK;
+    return (angle == ANGLE_90) || (angle == ANGLE_270);
+  }
 
   mozilla::image::Angle Angle() const {
     switch (mOrientation & ORIENTATION_MASK) {
@@ -1865,7 +1890,7 @@ private:
   uint8_t mDirection;
   uint8_t mFillMode;
   uint8_t mPlayState;
-  float mIterationCount; // NS_IEEEPositiveInfinity() means infinite
+  float mIterationCount; // mozilla::PositiveInfinity<float>() means infinite
 };
 
 struct nsStyleDisplay {

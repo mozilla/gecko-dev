@@ -60,11 +60,9 @@ public:
 
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) MOZ_OVERRIDE;
 
-  virtual TextureClientData* DropTextureData() MOZ_OVERRIDE;
+  virtual void SetRemoveFromCompositableTracker(AsyncTransactionTracker* aTracker) MOZ_OVERRIDE;
 
-  virtual void SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle) MOZ_OVERRIDE;
-
-  virtual void WaitReleaseFence() MOZ_OVERRIDE;
+  virtual void WaitForBufferOwnership() MOZ_OVERRIDE;
 
   void InitWith(MaybeMagicGrallocBufferHandle aDesc, gfx::IntSize aSize);
 
@@ -84,7 +82,7 @@ public:
 
   virtual uint8_t* GetBuffer() const MOZ_OVERRIDE;
 
-  virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() MOZ_OVERRIDE;
+  virtual gfx::DrawTarget* BorrowDrawTarget() MOZ_OVERRIDE;
 
   virtual bool AllocateForSurface(gfx::IntSize aSize,
                                   TextureAllocationFlags aFlags = ALLOC_DEFAULT) MOZ_OVERRIDE;
@@ -121,6 +119,8 @@ protected:
    * Unfortunately, until bug 879681 is fixed we need to use a GrallocBufferActor.
    */
   MaybeMagicGrallocBufferHandle mGrallocHandle;
+
+  RefPtr<AsyncTransactionTracker> mRemoveFromCompositableTracker;
 
   android::sp<android::GraphicBuffer> mGraphicBuffer;
 

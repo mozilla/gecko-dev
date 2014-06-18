@@ -328,6 +328,8 @@ public class BrowserContract {
         // Last modified time for the client's tab record. For remote records, a server
         // timestamp provided by Sync during insertion.
         public static final String LAST_MODIFIED = "last_modified";
+
+        public static final String DEVICE_TYPE = "device_type";
     }
 
     // Data storage for dynamic panels on about:home
@@ -428,9 +430,6 @@ public class BrowserContract {
         public static final String HISTORY_ID = "history_id";
         public static final String DISPLAY = "display";
 
-        public static final String IMAGE_URL = "image_url";
-        public static final String BG_COLOR = "bg_color";
-
         public static final String TYPE = "type";
     }
 
@@ -438,7 +437,6 @@ public class BrowserContract {
     public static final class SuggestedSites implements CommonColumns, URLColumns {
         private SuggestedSites() {}
 
-        public static final String IMAGE_URL = "image_url";
-        public static final String BG_COLOR = "bg_color";
+        public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "suggestedsites");
     }
 }

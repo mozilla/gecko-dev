@@ -24,14 +24,14 @@ namespace js {
 
 struct MatchPair
 {
-    int start;
-    int limit;
+    int32_t start;
+    int32_t limit;
 
     MatchPair()
       : start(-1), limit(-1)
     { }
 
-    MatchPair(int start, int limit)
+    MatchPair(int32_t start, int32_t limit)
       : start(start), limit(limit)
     { }
 
@@ -56,8 +56,11 @@ struct MatchPair
 class MatchPairs
 {
   protected:
-    size_t     pairCount_;   /* Length of pairs_. */
-    MatchPair *pairs_;       /* Raw pointer into an allocated MatchPair buffer. */
+    /* Length of pairs_. */
+    uint32_t pairCount_;
+
+    /* Raw pointer into an allocated MatchPair buffer. */
+    MatchPair *pairs_;
 
   protected:
     /* Not used directly: use ScopedMatchPairs or VectorMatchPairs. */
@@ -81,7 +84,7 @@ class MatchPairs
     void checkAgainst(size_t inputLength) {
 #ifdef DEBUG
         for (size_t i = 0; i < pairCount_; i++) {
-            const MatchPair &p = pair(i);
+            const MatchPair &p = (*this)[i];
             JS_ASSERT(p.check());
             if (p.isUndefined())
                 continue;
@@ -96,18 +99,22 @@ class MatchPairs
     size_t pairCount() const       { JS_ASSERT(pairCount_ > 0); return pairCount_; }
     size_t parenCount() const      { return pairCount_ - 1; }
 
+    static size_t offsetOfPairs() { return offsetof(MatchPairs, pairs_); }
+    static size_t offsetOfPairCount() { return offsetof(MatchPairs, pairCount_); }
+
+    int32_t *pairsRaw() { return reinterpret_cast<int32_t *>(pairs_); }
+
   public:
-    unsigned *rawBuf() const { return reinterpret_cast<unsigned *>(pairs_); }
     size_t length() const { return pairCount_; }
 
-    /* Pair accessors. */
-    const MatchPair &pair(size_t i) const {
-        JS_ASSERT(pairCount_ && i < pairCount_);
-        JS_ASSERT(pairs_);
+    const MatchPair &operator[](size_t i) const {
+        JS_ASSERT(i < pairCount_);
         return pairs_[i];
     }
-
-    const MatchPair &operator[](size_t i) const { return pair(i); }
+    MatchPair &operator[](size_t i) {
+        JS_ASSERT(i < pairCount_);
+        return pairs_[i];
+    }
 };
 
 /* MatchPairs allocated into temporary storage, removed when out of scope. */
@@ -117,11 +124,9 @@ class ScopedMatchPairs : public MatchPairs
 
   public:
     /* Constructs an implicit LifoAllocScope. */
-    ScopedMatchPairs(LifoAlloc *lifoAlloc)
+    explicit ScopedMatchPairs(LifoAlloc *lifoAlloc)
       : lifoScope_(lifoAlloc)
     { }
-
-    const MatchPair &operator[](size_t i) const { return pair(i); }
 
   protected:
     bool allocOrExpandArray(size_t pairCount);
@@ -140,33 +145,9 @@ class VectorMatchPairs : public MatchPairs
         vec_.clear();
     }
 
-    const MatchPair &operator[](size_t i) const { return pair(i); }
-
   protected:
     friend class RegExpStatics;
     bool allocOrExpandArray(size_t pairCount);
-};
-
-/*
- * Passes either MatchPair or MatchPairs through ExecuteRegExp()
- * to avoid duplication of generic code.
- */
-struct MatchConduit
-{
-    union {
-        MatchPair  *pair;
-        MatchPairs *pairs;
-    } u;
-    bool isPair;
-
-    explicit MatchConduit(MatchPair *pair) {
-        isPair = true;
-        u.pair = pair;
-    }
-    explicit MatchConduit(MatchPairs *pairs) {
-        isPair = false;
-        u.pairs = pairs;
-    }
 };
 
 } /* namespace js */

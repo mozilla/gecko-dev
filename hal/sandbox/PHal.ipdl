@@ -10,9 +10,6 @@ include protocol PBrowser;
 include "mozilla/GfxMessageUtils.h";
 
 using mozilla::dom::ScreenOrientation from "mozilla/dom/ScreenOrientation.h";
-using mozilla::hal::FlashMode from "mozilla/HalTypes.h";
-using mozilla::hal::LightType from "mozilla/HalTypes.h";
-using mozilla::hal::LightMode from "mozilla/HalTypes.h";
 using mozilla::hal::SensorType from "mozilla/HalSensor.h";
 using mozilla::hal::SensorAccuracyType from "mozilla/HalSensor.h";
 using mozilla::hal::WakeLockControl from "mozilla/HalTypes.h";
@@ -32,15 +29,6 @@ struct BatteryInformation {
   double level;
   bool   charging;
   double remainingTime;
-};
-
-struct LightConfiguration {
-  LightType light;
-  LightMode mode;
-  FlashMode flash;
-  uint32_t flashOnMS;
-  uint32_t flashOffMS;
-  uint32_t color;
 };
 
 struct SensorData {
@@ -127,13 +115,16 @@ parent:
       returns (NetworkInformation aNetworkInfo);
 
     sync GetScreenEnabled() returns (bool enabled);
-    SetScreenEnabled(bool enabled);
+    SetScreenEnabled(bool aEnabled);
+
+    sync GetKeyLightEnabled() returns (bool enabled);
+    SetKeyLightEnabled(bool aEnabled);
 
     sync GetCpuSleepAllowed() returns (bool allowed);
-    SetCpuSleepAllowed(bool allowed);
+    SetCpuSleepAllowed(bool aAllowed);
 
     sync GetScreenBrightness() returns (double brightness);
-    SetScreenBrightness(double brightness);
+    SetScreenBrightness(double aBrightness);
 
     AdjustSystemClock(int64_t aDeltaMilliseconds);
     SetTimezone(nsCString aTimezoneSpec);
@@ -145,11 +136,6 @@ parent:
     DisableSystemClockChangeNotifications();
     EnableSystemTimezoneChangeNotifications();
     DisableSystemTimezoneChangeNotifications();
-
-    sync SetLight(LightType light, LightConfiguration aConfig)
-      returns (bool status);
-    sync GetLight(LightType light)
-      returns (LightConfiguration aConfig, bool status);
 
     ModifyWakeLock(nsString aTopic,
                    WakeLockControl aLockAdjust,
@@ -172,7 +158,6 @@ parent:
     DisableSwitchNotifications(SwitchDevice aDevice);
     sync GetCurrentSwitchState(SwitchDevice aDevice)
       returns (SwitchState aState);
-    NotifySwitchStateFromInputDevice(SwitchDevice aDevice, SwitchState aState);
 
     FactoryReset();
 

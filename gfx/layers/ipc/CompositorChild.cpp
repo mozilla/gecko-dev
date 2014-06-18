@@ -124,15 +124,15 @@ CompositorChild::RecvInvalidateAll()
 }
 
 bool
-CompositorChild::RecvDidComposite(const uint64_t& aId)
+CompositorChild::RecvDidComposite(const uint64_t& aId, const uint64_t& aTransactionId)
 {
   if (mLayerManager) {
     MOZ_ASSERT(aId == 0);
-    mLayerManager->DidComposite();
+    mLayerManager->DidComposite(aTransactionId);
   } else if (aId != 0) {
     dom::TabChild *child = dom::TabChild::GetFrom(aId);
     if (child) {
-      child->DidComposite();
+      child->DidComposite(aTransactionId);
     }
   }
   return true;
@@ -169,8 +169,10 @@ CompositorChild::ActorDestroy(ActorDestroyReason aWhy)
     NS_RUNTIMEABORT("ActorDestroy by IPC channel failure at CompositorChild");
   }
 #endif
-
-  sCompositor = nullptr;
+  if (sCompositor) {
+    sCompositor->Release();
+    sCompositor = nullptr;
+  }
   // We don't want to release the ref to sCompositor here, during
   // cleanup, because that will cause it to be deleted while it's
   // still being used.  So defer the deletion to after it's not in

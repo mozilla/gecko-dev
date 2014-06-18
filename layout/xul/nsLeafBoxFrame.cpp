@@ -56,10 +56,9 @@ nsLeafBoxFrame::GetBoxName(nsAutoString& aName)
  * Initialize us. This is a good time to get the alignment of the box
  */
 void
-nsLeafBoxFrame::Init(
-              nsIContent*      aContent,
-              nsIFrame*        aParent,
-              nsIFrame*        aPrevInFlow)
+nsLeafBoxFrame::Init(nsIContent*       aContent,
+                     nsContainerFrame* aParent,
+                     nsIFrame*         aPrevInFlow)
 {
   nsLeafFrame::Init(aContent, aParent, aPrevInFlow);
 
@@ -180,7 +179,7 @@ nsLeafBoxFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                   aMargin, aBorder, aPadding, aShrinkWrap);
 }
 
-nsresult
+void
 nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
                      nsHTMLReflowMetrics&     aDesiredSize,
                      const nsHTMLReflowState& aReflowState,
@@ -295,7 +294,7 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   // ok our child could have gotten bigger. So lets get its bounds
   aDesiredSize.Width() = mRect.width;
   aDesiredSize.Height() = mRect.height;
-  aDesiredSize.SetTopAscent(GetBoxAscent(state));
+  aDesiredSize.SetBlockStartAscent(GetBoxAscent(state));
 
   // the overflow rect is set in SetBounds() above
   aDesiredSize.mOverflowAreas = GetOverflowAreas();
@@ -312,8 +311,6 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
 
   }
 #endif
-
-  return NS_OK;
 }
 
 #ifdef DEBUG_FRAME_DUMP

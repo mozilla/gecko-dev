@@ -11,6 +11,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "nscore.h"
+#include "nsDebug.h"
 
 namespace IPC {
 template <typename T> struct ParamTraits;
@@ -113,6 +114,13 @@ public:
     return TimeDuration::FromTicks(mValue * int64_t(aMultiplier));
   }
   TimeDuration operator*(const int64_t aMultiplier) const {
+    return TimeDuration::FromTicks(mValue * aMultiplier);
+  }
+  TimeDuration operator*(const uint64_t aMultiplier) const {
+    if (aMultiplier > INT64_MAX) {
+      NS_WARNING("Out-of-range multiplier when multiplying TimeDuration");
+      return TimeDuration::Forever();
+    }
     return TimeDuration::FromTicks(mValue * int64_t(aMultiplier));
   }
   TimeDuration operator/(const int64_t aDivisor) const {
@@ -120,6 +128,10 @@ public:
   }
   double operator/(const TimeDuration& aOther) const {
     return static_cast<double>(mValue) / aOther.mValue;
+  }
+  TimeDuration operator%(const TimeDuration& aOther) const {
+    MOZ_ASSERT(aOther.mValue != 0, "Division by zero");
+    return TimeDuration::FromTicks(mValue % aOther.mValue);
   }
 
   bool operator<(const TimeDuration& aOther) const {
@@ -136,6 +148,9 @@ public:
   }
   bool operator==(const TimeDuration& aOther) const {
     return mValue == aOther.mValue;
+  }
+  bool operator!=(const TimeDuration& aOther) const {
+    return mValue != aOther.mValue;
   }
 
   // Return a best guess at the system's current timing resolution,
@@ -335,8 +350,8 @@ public:
   // two TimeStamps, or scaling TimeStamps, is nonsense and must never
   // be allowed.
 
-  static NS_HIDDEN_(nsresult) Startup();
-  static NS_HIDDEN_(void) Shutdown();
+  static nsresult Startup();
+  static void Shutdown();
 
 private:
   friend struct IPC::ParamTraits<mozilla::TimeStamp>;

@@ -62,11 +62,25 @@ MozWifiConnectionInfo.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports])
 }
 
+function MozWifiCapabilities(obj) {
+  this.security = obj.security;
+  this.eapMethod = obj.eapMethod;
+  this.eapPhase2 = obj.eapPhase2;
+  this.certificate = obj.certificate;
+}
+
+MozWifiCapabilities.prototype = {
+  classID: Components.ID("08c88ece-8092-481b-863b-5515a52e411a"),
+  contractID: "@mozilla.org/mozwificapabilities;1",
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports])
+}
+
 function DOMWifiManager() {
   this.defineEventHandlerGetterSetter("onstatuschange");
   this.defineEventHandlerGetterSetter("onconnectionInfoUpdate");
   this.defineEventHandlerGetterSetter("onenabled");
   this.defineEventHandlerGetterSetter("ondisabled");
+  this.defineEventHandlerGetterSetter("onstationInfoUpdate");
 }
 
 DOMWifiManager.prototype = {
@@ -85,6 +99,8 @@ DOMWifiManager.prototype = {
     this._connectionStatus = "disconnected";
     this._enabled = false;
     this._lastConnectionInfo = null;
+    this._capabilities = null;
+    this._stationNumber = 0;
 
     const messages = ["WifiManager:getNetworks:Return:OK", "WifiManager:getNetworks:Return:NO",
                       "WifiManager:getKnownNetworks:Return:OK", "WifiManager:getKnownNetworks:Return:NO",
@@ -102,8 +118,8 @@ DOMWifiManager.prototype = {
                       "WifiManager:onconnect", "WifiManager:ondisconnect",
                       "WifiManager:onwpstimeout", "WifiManager:onwpsfail",
                       "WifiManager:onwpsoverlap", "WifiManager:connectionInfoUpdate",
-                      "WifiManager:onauthenticating",
-                      "WifiManager:onconnectingfailed"];
+                      "WifiManager:onauthenticating", "WifiManager:onconnectingfailed",
+                      "WifiManager:stationInfoUpdate"];
     this.initDOMRequestHelper(aWindow, messages);
     this._mm = Cc["@mozilla.org/childprocessmessagemanager;1"].getService(Ci.nsISyncMessageSender);
 
@@ -114,6 +130,7 @@ DOMWifiManager.prototype = {
       this._enabled = state.enabled;
       this._connectionStatus = state.status;
       this._macAddress = state.macAddress;
+      this._capabilities = this._convertWifiCapabilities(state.capabilities);
     } else {
       this._currentNetwork = null;
       this._lastConnectionInfo = null;
@@ -157,6 +174,12 @@ DOMWifiManager.prototype = {
   _convertConnectionInfo: function(aInfo) {
     let info = aInfo ? new MozWifiConnectionInfo(aInfo) : null;
     return info;
+  },
+
+  _convertWifiCapabilities: function(aCapabilities) {
+    let capabilities = aCapabilities ?
+                         new MozWifiCapabilities(aCapabilities) : null;
+    return capabilities;
   },
 
   _genReadonlyPropDesc: function(value) {
@@ -371,6 +394,10 @@ DOMWifiManager.prototype = {
         this._connectionStatus = "authenticating";
         this._fireStatusChangeEvent();
         break;
+      case "WifiManager:stationInfoUpdate":
+        this._stationNumber = msg.station;
+        this._fireStationInfoUpdate(msg);
+        break;
     }
   },
 
@@ -395,6 +422,13 @@ DOMWifiManager.prototype = {
 
   _fireEnabledOrDisabled: function enabledDisabled(enabled) {
     var evt = new this._window.Event(enabled ? "enabled" : "disabled");
+    this.__DOM_IMPL__.dispatchEvent(evt);
+  },
+
+  _fireStationInfoUpdate: function onStationInfoUpdate(info) {
+    var evt = new this._window.MozWifiStationInfoEvent("stationInfoUpdate",
+                                                       { station: this._stationNumber}
+                                                      );
     this.__DOM_IMPL__.dispatchEvent(evt);
   },
 
@@ -495,6 +529,10 @@ DOMWifiManager.prototype = {
     return this._lastConnectionInfo;
   },
 
+  get capabilities() {
+    return this._capabilities;
+  },
+
   defineEventHandlerGetterSetter: function(name) {
     Object.defineProperty(this, name, {
       get: function() {
@@ -508,7 +546,8 @@ DOMWifiManager.prototype = {
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([
-  DOMWifiManager, MozWifiNetwork, MozWifiConnection, MozWifiConnectionInfo
+  DOMWifiManager, MozWifiNetwork, MozWifiConnection, MozWifiCapabilities,
+  MozWifiConnectionInfo
 ]);
 
 let debug;

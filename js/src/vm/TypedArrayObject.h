@@ -31,10 +31,12 @@ class TypedArrayObject : public ArrayBufferViewObject
   protected:
     // Typed array properties stored in slots, beyond those shared by all
     // ArrayBufferViews.
-    static const size_t LENGTH_SLOT    = JS_TYPEDOBJ_SLOT_LENGTH;
-    static const size_t TYPE_SLOT      = JS_TYPEDOBJ_SLOT_TYPE_DESCR;
-    static const size_t RESERVED_SLOTS = JS_TYPEDOBJ_SLOTS;
-    static const size_t DATA_SLOT      = JS_TYPEDOBJ_SLOT_DATA;
+    static const size_t TYPE_SLOT      = JS_TYPEDARR_SLOT_TYPE;
+    static const size_t RESERVED_SLOTS = JS_TYPEDARR_SLOTS;
+    static const size_t DATA_SLOT      = JS_TYPEDARR_SLOT_DATA;
+
+    static_assert(js::detail::TypedArrayLengthSlot == LENGTH_SLOT,
+                  "bad inlined constant in jsfriendapi.h");
 
   public:
     static const Class classes[ScalarTypeDescr::TYPE_MAX];
@@ -57,6 +59,10 @@ class TypedArrayObject : public ArrayBufferViewObject
         return gc::GetGCObjectKind(FIXED_DATA_START + dataSlots);
     }
 
+    ScalarTypeDescr::Type type() const {
+        return (ScalarTypeDescr::Type) getFixedSlot(TYPE_SLOT).toInt32();
+    }
+
     static Value bufferValue(TypedArrayObject *tarr) {
         return tarr->getFixedSlot(BUFFER_SLOT);
     }
@@ -64,7 +70,8 @@ class TypedArrayObject : public ArrayBufferViewObject
         return tarr->getFixedSlot(BYTEOFFSET_SLOT);
     }
     static Value byteLengthValue(TypedArrayObject *tarr) {
-        return tarr->getFixedSlot(BYTELENGTH_SLOT);
+        int32_t size = ScalarTypeDescr::size(tarr->type());
+        return Int32Value(tarr->getFixedSlot(LENGTH_SLOT).toInt32() * size);
     }
     static Value lengthValue(TypedArrayObject *tarr) {
         return tarr->getFixedSlot(LENGTH_SLOT);
@@ -92,10 +99,8 @@ class TypedArrayObject : public ArrayBufferViewObject
         return lengthValue(const_cast<TypedArrayObject*>(this)).toInt32();
     }
 
-    uint32_t type() const {
-        return getFixedSlot(TYPE_SLOT).toInt32();
-    }
     void *viewData() const {
+        // Keep synced with js::Get<Type>ArrayLengthAndData in jsfriendapi.h!
         return static_cast<void*>(getPrivate(DATA_SLOT));
     }
 
@@ -136,6 +141,8 @@ class TypedArrayObject : public ArrayBufferViewObject
 
     static int lengthOffset();
     static int dataOffset();
+
+    static bool isOriginalLengthGetter(ScalarTypeDescr::Type type, Native native);
 };
 
 inline bool
@@ -164,8 +171,9 @@ AsTypedArrayBuffer(HandleValue v);
 // Return value is whether the string is some integer. If the string is an
 // integer which is not representable as a uint64_t, the return value is true
 // and the resulting index is UINT64_MAX.
+template <typename CharT>
 bool
-StringIsTypedArrayIndex(JSLinearString *str, uint64_t *indexp);
+StringIsTypedArrayIndex(const CharT *s, size_t length, uint64_t *indexp);
 
 inline bool
 IsTypedArrayIndex(jsid id, uint64_t *indexp)
@@ -180,13 +188,21 @@ IsTypedArrayIndex(jsid id, uint64_t *indexp)
     if (MOZ_UNLIKELY(!JSID_IS_STRING(id)))
         return false;
 
+    JS::AutoCheckCannotGC nogc;
     JSAtom *atom = JSID_TO_ATOM(id);
+    size_t length = atom->length();
 
-    jschar c = atom->chars()[0];
-    if (!JS7_ISDEC(c) && c != '-')
+    if (atom->hasLatin1Chars()) {
+        const Latin1Char *s = atom->latin1Chars(nogc);
+        if (!JS7_ISDEC(*s) && *s != '-')
+            return false;
+        return StringIsTypedArrayIndex(s, length, indexp);
+    }
+
+    const jschar *s = atom->twoByteChars(nogc);
+    if (!JS7_ISDEC(*s) && *s != '-')
         return false;
-
-    return StringIsTypedArrayIndex(atom, indexp);
+    return StringIsTypedArrayIndex(s, length, indexp);
 }
 
 static inline unsigned
@@ -214,7 +230,7 @@ TypedArrayShift(ArrayBufferView::ViewType viewType)
 class DataViewObject : public ArrayBufferViewObject
 {
     static const size_t RESERVED_SLOTS = JS_DATAVIEW_SLOTS;
-    static const size_t DATA_SLOT      = JS_TYPEDOBJ_SLOT_DATA;
+    static const size_t DATA_SLOT      = JS_DATAVIEW_SLOT_DATA;
 
   private:
     static const Class protoClass;
@@ -222,6 +238,10 @@ class DataViewObject : public ArrayBufferViewObject
     static bool is(HandleValue v) {
         return v.isObject() && v.toObject().hasClass(&class_);
     }
+
+    template <typename NativeType>
+    static uint8_t *
+    getDataPointer(JSContext *cx, Handle<DataViewObject*> obj, uint32_t offset);
 
     template<Value ValueGetter(DataViewObject *view)>
     static bool
@@ -245,7 +265,7 @@ class DataViewObject : public ArrayBufferViewObject
     }
 
     static Value byteLengthValue(DataViewObject *view) {
-        Value v = view->getReservedSlot(BYTELENGTH_SLOT);
+        Value v = view->getReservedSlot(LENGTH_SLOT);
         JS_ASSERT(v.toInt32() >= 0);
         return v;
     }
@@ -329,8 +349,6 @@ class DataViewObject : public ArrayBufferViewObject
 
     static bool initClass(JSContext *cx);
     static void neuter(JSObject *view);
-    static bool getDataPointer(JSContext *cx, Handle<DataViewObject*> obj,
-                               CallArgs args, size_t typeSize, uint8_t **data);
     template<typename NativeType>
     static bool read(JSContext *cx, Handle<DataViewObject*> obj,
                      CallArgs &args, NativeType *val, const char *method);
@@ -367,8 +385,7 @@ template <>
 inline bool
 JSObject::is<js::ArrayBufferViewObject>() const
 {
-    return is<js::DataViewObject>() || is<js::TypedArrayObject>() ||
-           IsTypedObjectClass(getClass());
+    return is<js::DataViewObject>() || is<js::TypedArrayObject>();
 }
 
 #endif /* vm_TypedArrayObject_h */

@@ -301,8 +301,12 @@ nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
   if (NS_FAILED(rv))
     return rv;
 
-  nsIFrame *frame = aFrame->GetContentInsertionFrame();
-  NS_ASSERTION(frame, "We should not be in the middle of reflow");
+  nsIFrame* frame = aFrame->GetContentInsertionFrame();
+  if (!frame) {
+    frame = aFrame;
+  }
+  NS_ASSERTION(!(frame->GetStateBits() & NS_FRAME_IN_REFLOW),
+               "We should not be in the middle of reflow");
   nscoord baseline = frame->GetCaretBaseline();
   nscoord ascent = 0, descent = 0;
   nsRefPtr<nsFontMetrics> fm;
@@ -407,22 +411,6 @@ void nsCaret::SetVisibilityDuringSelection(bool aVisibility)
   mShowDuringSelection = aVisibility;
 }
 
-static
-nsFrameSelection::HINT GetHintForPosition(nsIDOMNode* aNode, int32_t aOffset)
-{
-  nsFrameSelection::HINT hint = nsFrameSelection::HINTLEFT;
-  nsCOMPtr<nsIContent> node = do_QueryInterface(aNode);
-  if (!node || aOffset < 1) {
-    return hint;
-  }
-  const nsTextFragment* text = node->GetText();
-  if (text && text->CharAt(aOffset - 1) == '\n') {
-    // Attach the caret to the next line if needed
-    hint = nsFrameSelection::HINTRIGHT;
-  }
-  return hint;
-}
-
 nsresult nsCaret::DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset)
 {
   NS_ENSURE_ARG(aNode);
@@ -438,8 +426,9 @@ nsresult nsCaret::DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset)
   // ourselves, our consumer will take care of that.
   mBlinkRate = 0;
 
+  nsCOMPtr<nsIContent> node = do_QueryInterface(aNode);
   nsresult rv = DrawAtPositionWithHint(aNode, aOffset,
-                                       GetHintForPosition(aNode, aOffset),
+                                       nsFrameSelection::GetHintForPosition(node, aOffset),
                                        bidiLevel, true)
     ?  NS_OK : NS_ERROR_FAILURE;
   ToggleDrawnStatus();

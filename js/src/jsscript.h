@@ -266,13 +266,13 @@ class Bindings
         return !callObjShape_->isEmptyShape();
     }
 
+    static js::ThingRootKind rootKind() { return js::THING_ROOT_BINDINGS; }
     void trace(JSTracer *trc);
 };
 
 template <>
 struct GCMethods<Bindings> {
     static Bindings initial();
-    static ThingRootKind kind() { return THING_ROOT_BINDINGS; }
     static bool poisoned(const Bindings &bindings) {
         return IsPoisonedPtr(static_cast<Shape *>(bindings.callObjShape()));
     }
@@ -1904,7 +1904,7 @@ struct ScriptBytecodeHasher
         jsbytecode          *code;
         uint32_t            length;
 
-        Lookup(SharedScriptData *ssd) : code(ssd->data), length(ssd->length) {}
+        explicit Lookup(SharedScriptData *ssd) : code(ssd->data), length(ssd->length) {}
     };
     static HashNumber hash(const Lookup &l) { return mozilla::HashBytes(l.code, l.length); }
     static bool match(SharedScriptData *entry, const Lookup &lookup) {
@@ -1926,6 +1926,21 @@ SweepScriptData(JSRuntime *rt);
 
 extern void
 FreeScriptData(JSRuntime *rt);
+
+struct ScriptAndCounts
+{
+    /* This structure is stored and marked from the JSRuntime. */
+    JSScript *script;
+    ScriptCounts scriptCounts;
+
+    PCCounts &getPCCounts(jsbytecode *pc) const {
+        return scriptCounts.pcCountsVector[script->pcToOffset(pc)];
+    }
+
+    jit::IonScriptCounts *getIonCounts() const {
+        return scriptCounts.ionCounts;
+    }
+};
 
 struct GSNCache;
 

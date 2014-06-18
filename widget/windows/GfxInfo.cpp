@@ -592,7 +592,7 @@ NS_IMETHODIMP
 GfxInfo::GetAdapterRAM2(nsAString & aAdapterRAM)
 {
   if (!mHasDualGPU) {
-    aAdapterRAM.AssignLiteral("");
+    aAdapterRAM.Truncate();
   } else if (NS_FAILED(GetKeyValue(mDeviceKey2.get(), L"HardwareInformation.MemorySize", aAdapterRAM, REG_DWORD))) {
     aAdapterRAM = L"Unknown";
   }
@@ -613,7 +613,7 @@ NS_IMETHODIMP
 GfxInfo::GetAdapterDriver2(nsAString & aAdapterDriver)
 {
   if (!mHasDualGPU) {
-    aAdapterDriver.AssignLiteral("");
+    aAdapterDriver.Truncate();
   } else if (NS_FAILED(GetKeyValue(mDeviceKey2.get(), L"InstalledDisplayDrivers", aAdapterDriver, REG_MULTI_SZ))) {
     aAdapterDriver = L"Unknown";
   }
@@ -738,19 +738,19 @@ GfxInfo::AddCrashReportAnnotations()
    * can go away after we store the above in the socorro db */
   nsAutoCString note;
   /* AppendPrintf only supports 32 character strings, mrghh. */
-  note.Append("AdapterVendorID: ");
+  note.AppendLiteral("AdapterVendorID: ");
   note.Append(narrowVendorID);
-  note.Append(", AdapterDeviceID: ");
+  note.AppendLiteral(", AdapterDeviceID: ");
   note.Append(narrowDeviceID);
   note.AppendPrintf(", AdapterSubsysID: %08x, ", mAdapterSubsysID);
-  note.Append("AdapterDriverVersion: ");
+  note.AppendLiteral("AdapterDriverVersion: ");
   note.Append(NS_LossyConvertUTF16toASCII(adapterDriverVersionString));
 
   if (vendorID == GfxDriverInfo::GetDeviceVendor(VendorAll)) {
     /* if we didn't find a valid vendorID lets append the mDeviceID string to try to find out why */
-    note.Append(", ");
+    note.AppendLiteral(", ");
     LossyAppendUTF16toASCII(mDeviceID, note);
-    note.Append(", ");
+    note.AppendLiteral(", ");
     LossyAppendUTF16toASCII(mDeviceKeyDebug, note);
     LossyAppendUTF16toASCII(mDeviceKeyDebug, note);
   }
@@ -767,9 +767,9 @@ GfxInfo::AddCrashReportAnnotations()
     GetAdapterVendorID2(vendorID2);
     CopyUTF16toUTF8(vendorID2, narrowVendorID2);
     GetAdapterDriverVersion2(adapterDriverVersionString2);
-    note.Append("AdapterVendorID2: ");
+    note.AppendLiteral("AdapterVendorID2: ");
     note.Append(narrowVendorID2);
-    note.Append(", AdapterDeviceID2: ");
+    note.AppendLiteral(", AdapterDeviceID2: ");
     note.Append(narrowDeviceID2);
     note.AppendPrintf(", AdapterSubsysID2: %08x, ", mAdapterSubsysID2);
     note.AppendPrintf("AdapterDriverVersion2: ");
@@ -944,6 +944,18 @@ GfxInfo::GetGfxDriverInfo()
         (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorIntel), (GfxDeviceFamily*) GfxDriverInfo::GetDeviceFamily(IntelMobileHDGraphics),
       nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
       DRIVER_LESS_THAN_OR_EQUAL, V(8,15,10,2302) );
+
+    /* Disable D2D on AMD Catalyst 14.4 until 14.6
+     * See bug 984488
+     */
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE( DRIVER_OS_ALL,
+        (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorATI), GfxDriverInfo::allDevices,
+      nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
+      DRIVER_BETWEEN_INCLUSIVE_START, V(14,1,0,0), V(14,2,0,0), "ATI Catalyst 14.6+");
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE( DRIVER_OS_ALL,
+        (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAMD), GfxDriverInfo::allDevices,
+      nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
+      DRIVER_BETWEEN_INCLUSIVE_START, V(14,1,0,0), V(14,2,0,0), "ATI Catalyst 14.6+");
 
     /* Disable D3D9 layers on NVIDIA 6100/6150/6200 series due to glitches
      * whilst scrolling. See bugs: 612007, 644787 & 645872.

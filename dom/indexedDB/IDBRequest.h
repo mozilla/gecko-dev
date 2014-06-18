@@ -131,8 +131,15 @@ public:
     return GetOwner();
   }
 
-  JS::Value
-  GetResult(JSContext* aCx, ErrorResult& aRv) const;
+  void
+  GetResult(JS::MutableHandle<JS::Value> aResult, ErrorResult& aRv) const;
+
+  void
+  GetResult(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+            ErrorResult& aRv) const
+  {
+    GetResult(aResult, aRv);
+  }
 
   IDBTransaction*
   GetTransaction() const

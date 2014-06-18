@@ -267,6 +267,7 @@ private:
 
   uint32_t mDOMKeyCode;
   KeyNameIndex mKeyNameIndex;
+  CodeNameIndex mCodeNameIndex;
 
   ModifierKeyState mModKeyState;
 
@@ -382,6 +383,11 @@ private:
   bool GetFollowingCharMessage(MSG& aCharMsg) const;
 
   /**
+   * Whether the key event can compute virtual keycode from the scancode value.
+   */
+  bool CanComputeVirtualKeyCodeFromScanCode() const;
+
+  /**
    * Wraps MapVirtualKeyEx() with MAPVK_VSC_TO_VK.
    */
   uint8_t ComputeVirtualKeyCodeFromScanCode() const;
@@ -390,6 +396,11 @@ private:
    * Wraps MapVirtualKeyEx() with MAPVK_VSC_TO_VK_EX.
    */
   uint8_t ComputeVirtualKeyCodeFromScanCodeEx() const;
+
+  /**
+   * Wraps MapVirtualKeyEx() with MAPVK_VK_TO_VSC_EX or MAPVK_VK_TO_VSC.
+   */
+  uint16_t ComputeScanCodeExFromVirtualKeyCode(UINT aVirtualKeyCode) const;
 
   /**
    * Wraps MapVirtualKeyEx() with MAPVK_VSC_TO_VK and MAPVK_VK_TO_CHAR.
@@ -559,6 +570,13 @@ public:
    * non-printable keys (except some special keys like space key).
    */
   KeyNameIndex ConvertNativeKeyCodeToKeyNameIndex(uint8_t aVirtualKey) const;
+
+  /**
+   * ConvertScanCodeToCodeNameIndex() returns CodeNameIndex value for
+   * the given scan code.  aScanCode can be over 0xE000 since this method
+   * doesn't use Windows API.
+   */
+  static CodeNameIndex ConvertScanCodeToCodeNameIndex(UINT aScanCode);
 
   HKL GetLayout() const
   {

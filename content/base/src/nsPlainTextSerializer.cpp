@@ -182,13 +182,8 @@ nsPlainTextSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
     }
   }
 
-  // XXX We should let the caller pass this in.
-  if (Preferences::GetBool("browser.frames.enabled")) {
-    mFlags &= ~nsIDocumentEncoder::OutputNoFramesContent;
-  }
-  else {
-    mFlags |= nsIDocumentEncoder::OutputNoFramesContent;
-  }
+  // XXX We should let the caller decide whether to do this or not
+  mFlags &= ~nsIDocumentEncoder::OutputNoFramesContent;
 
   return NS_OK;
 }
@@ -1394,7 +1389,7 @@ nsPlainTextSerializer::EndLine(bool aSoftlinebreak, bool aBreakBySpace)
     // If breaker character is ASCII space with RFC 3676 support (delsp=yes),
     // add twice space.
     if ((mFlags & nsIDocumentEncoder::OutputFormatDelSp) && aBreakBySpace)
-      mCurrentLine.Append(NS_LITERAL_STRING("  "));
+      mCurrentLine.AppendLiteral("  ");
     else
       mCurrentLine.Append(char16_t(' '));
   }
@@ -1608,7 +1603,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
         }
       }
 
-      mCurrentLine.AssignLiteral("");
+      mCurrentLine.Truncate();
       if (mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
         if ((outputLineBreak || !spacesOnly) && // bugs 261467,125928
             !stringpart.EqualsLiteral("-- ") &&

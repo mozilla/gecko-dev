@@ -17,9 +17,10 @@ class nsTableCaptionFrame : public nsBlockFrame
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
-  // nsISupports
+  friend nsTableCaptionFrame* NS_NewTableCaptionFrame(nsIPresShell* aPresShell,
+                                                      nsStyleContext*  aContext);
+  // nsIFrame
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
-  friend nsIFrame* NS_NewTableCaptionFrame(nsIPresShell* aPresShell, nsStyleContext*  aContext);
 
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
@@ -42,12 +43,8 @@ protected:
 };
 
 
-/* TODO
-1. decide if we'll allow subclassing.  If so, decide which methods really need to be virtual.
-*/
-
 /**
- * main frame for an nsTable content object, 
+ * Primary frame for a table element,
  * the nsTableOuterFrame contains 0 or one caption frame, and a nsTableFrame
  * pseudo-frame (referred to as the "inner frame').
  */
@@ -64,29 +61,27 @@ public:
     *
     * @return           the frame that was created
     */
-  friend nsIFrame* NS_NewTableOuterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  friend nsTableOuterFrame* NS_NewTableOuterFrame(nsIPresShell* aPresShell,
+                                                  nsStyleContext* aContext);
   
   // nsIFrame overrides - see there for a description
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
 
-  virtual nsresult SetInitialChildList(ChildListID     aListID,
-                                       nsFrameList&    aChildList) MOZ_OVERRIDE;
- 
   virtual const nsFrameList& GetChildList(ChildListID aListID) const MOZ_OVERRIDE;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const MOZ_OVERRIDE;
 
-  virtual nsresult AppendFrames(ChildListID     aListID,
-                                nsFrameList&    aFrameList) MOZ_OVERRIDE;
+  virtual void SetInitialChildList(ChildListID     aListID,
+                                   nsFrameList&    aChildList) MOZ_OVERRIDE;
+  virtual void AppendFrames(ChildListID     aListID,
+                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+  virtual void InsertFrames(ChildListID     aListID,
+                            nsIFrame*       aPrevFrame,
+                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+  virtual void RemoveFrame(ChildListID     aListID,
+                           nsIFrame*       aOldFrame) MOZ_OVERRIDE;
 
-  virtual nsresult InsertFrames(ChildListID     aListID,
-                                nsIFrame*       aPrevFrame,
-                                nsFrameList&    aFrameList) MOZ_OVERRIDE;
-
-  virtual nsresult RemoveFrame(ChildListID     aListID,
-                               nsIFrame*       aOldFrame) MOZ_OVERRIDE;
-
-  virtual nsIFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
+  virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
   }
 
@@ -102,7 +97,7 @@ public:
                                      const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists);
 
-  virtual nscoord GetBaseline() const MOZ_OVERRIDE;
+  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
 
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
@@ -114,10 +109,10 @@ public:
   /** process a reflow command for the table.
     * This involves reflowing the caption and the inner table.
     * @see nsIFrame::Reflow */
-  virtual nsresult Reflow(nsPresContext*          aPresContext,
-                          nsHTMLReflowMetrics&     aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext*           aPresContext,
+                      nsHTMLReflowMetrics&     aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
 
   /**
    * Get the "type" of the frame
@@ -257,11 +252,11 @@ protected:
                              void*                    aChildRSSpace,
                              nscoord                  aAvailWidth);
 
-  nsresult OuterDoReflowChild(nsPresContext*           aPresContext,
-                              nsIFrame*                aChildFrame,
-                              const nsHTMLReflowState& aChildRS,
-                              nsHTMLReflowMetrics&     aMetrics,
-                              nsReflowStatus&          aStatus);
+  void OuterDoReflowChild(nsPresContext*           aPresContext,
+                          nsIFrame*                aChildFrame,
+                          const nsHTMLReflowState& aChildRS,
+                          nsHTMLReflowMetrics&     aMetrics,
+                          nsReflowStatus&          aStatus);
 
   // Set the reflow metrics
   void UpdateReflowMetrics(uint8_t              aCaptionSide,

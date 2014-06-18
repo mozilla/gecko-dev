@@ -11,7 +11,13 @@ Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import("resource://gre/modules/RemoteAddonsChild.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 
-let SyncHandler = {
+#ifdef MOZ_CRASHREPORTER
+XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
+                                   "@mozilla.org/xre/app-info;1",
+                                   "nsICrashReporter");
+#endif
+
+let FocusSyncHandler = {
   init: function() {
     sendAsyncMessage("SetSyncHandler", {}, {handler: this});
   },
@@ -25,7 +31,7 @@ let SyncHandler = {
   },
 };
 
-SyncHandler.init();
+FocusSyncHandler.init();
 
 let WebProgressListener = {
   init: function() {
@@ -122,8 +128,6 @@ let WebProgressListener = {
 WebProgressListener.init();
 
 let WebNavigation =  {
-  _webNavigation: docShell.QueryInterface(Ci.nsIWebNavigation),
-
   init: function() {
     addMessageListener("WebNavigation:GoBack", this);
     addMessageListener("WebNavigation:GoForward", this);
@@ -132,8 +136,13 @@ let WebNavigation =  {
     addMessageListener("WebNavigation:Reload", this);
     addMessageListener("WebNavigation:Stop", this);
 
-    // Send a CPOW for the sessionHistory object.
-    let history = this._webNavigation.sessionHistory;
+    this._webNavigation = docShell.QueryInterface(Ci.nsIWebNavigation);
+    this._sessionHistory = this._webNavigation.sessionHistory;
+
+    // Send a CPOW for the sessionHistory object. We need to make sure
+    // it stays alive as long as the content script since CPOWs are
+    // weakly held.
+    let history = this._sessionHistory;
     sendAsyncMessage("WebNavigation:setHistory", {}, {history: history});
   },
 
@@ -175,6 +184,10 @@ let WebNavigation =  {
   },
 
   loadURI: function(uri, flags) {
+#ifdef MOZ_CRASHREPORTER
+    if (CrashReporter.enabled)
+      CrashReporter.annotateCrashReport("URL", uri);
+#endif
     this._webNavigation.loadURI(uri, flags, null, null, null);
   },
 

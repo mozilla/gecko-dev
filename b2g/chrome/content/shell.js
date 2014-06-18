@@ -30,6 +30,7 @@ Cu.import('resource://gre/modules/FxAccountsMgmtService.jsm');
 #endif
 
 Cu.import('resource://gre/modules/DownloadsAPI.jsm');
+Cu.import('resource://gre/modules/MobileIdentityManager.jsm');
 
 XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
                                   "resource://gre/modules/SystemAppProxy.jsm");
@@ -221,11 +222,11 @@ var shell = {
         return homeSrc;
     } catch (e) {}
 
-    return Services.prefs.getCharPref('browser.homescreenURL');
+    return Services.prefs.getCharPref('b2g.system_startup_url');
   },
 
   get manifestURL() {
-    return Services.prefs.getCharPref('browser.manifestURL');
+    return Services.prefs.getCharPref('b2g.system_manifest_url');
   },
 
   _started: false,
@@ -358,9 +359,6 @@ var shell = {
     ppmm.addMessageListener("sms-handler", this);
     ppmm.addMessageListener("mail-handler", this);
     ppmm.addMessageListener("file-picker", this);
-    ppmm.addMessageListener("getProfD", function(message) {
-      return Services.dirsvc.get("ProfD", Ci.nsIFile).path;
-    });
   },
 
   stop: function shell_stop() {
@@ -373,10 +371,6 @@ var shell = {
     window.removeEventListener('sizemodechange', this);
     this.contentBrowser.removeEventListener('mozbrowserloadstart', this, true);
     ppmm.removeMessageListener("content-handler", this);
-    if (this.timer) {
-      this.timer.cancel();
-      this.timer = null;
-    }
 
     UserAgentOverrides.uninit();
     IndexedDBPromptHelper.uninit();
@@ -478,9 +472,6 @@ var shell = {
   },
 
   lastHardwareButtonEventType: null, // property for the hack above
-  needBufferOpenAppReq: true,
-  bufferedOpenAppReqs: [],
-  timer: null,
   visibleNormalAudioActive: false,
 
   handleEvent: function shell_handleEvent(evt) {
@@ -594,22 +585,7 @@ var shell = {
       return;
     }
 
-    this.sendEvent(getContentWindow(), "mozChromeEvent",
-                   Cu.cloneInto(details, getContentWindow()));
-  },
-
-  openAppForSystemMessage: function shell_openAppForSystemMessage(msg) {
-    let payload = {
-      url: msg.pageURL,
-      manifestURL: msg.manifestURL,
-      isActivity: (msg.type == 'activity'),
-      onlyShowApp: msg.onlyShowApp,
-      showApp: msg.showApp,
-      target: msg.target,
-      expectingSystemMessage: true,
-      extra: msg.extra
-    }
-    this.sendCustomEvent('open-app', payload);
+    this.sendCustomEvent("mozChromeEvent", details);
   },
 
   receiveMessage: function shell_receiveMessage(message) {
@@ -680,27 +656,6 @@ var shell = {
   }
 };
 
-// Listen for the request of opening app and relay them to Gaia.
-Services.obs.addObserver(function onSystemMessageOpenApp(subject, topic, data) {
-  let msg = JSON.parse(data);
-  // Buffer non-activity request until content starts to load for 10 seconds.
-  // We'll revisit this later if new kind of requests don't need to be cached.
-  if (shell.needBufferOpenAppReq && msg.type !== 'activity') {
-    shell.bufferedOpenAppReqs.push(msg);
-    return;
-  }
-  shell.openAppForSystemMessage(msg);
-}, 'system-messages-open-app', false);
-
-Services.obs.addObserver(function onInterAppCommConnect(subject, topic, data) {
-  data = JSON.parse(data);
-  shell.sendChromeEvent({ type: "inter-app-comm-permission",
-                          chromeEventID: data.callerID,
-                          manifestURL: data.manifestURL,
-                          keyword: data.keyword,
-                          peers: data.appsToSelect });
-}, 'inter-app-comm-select-app', false);
-
 Services.obs.addObserver(function onFullscreenOriginChange(subject, topic, data) {
   shell.sendChromeEvent({ type: "fullscreenoriginchange",
                           fullscreenorigin: data });
@@ -729,21 +684,6 @@ var CustomEventManager = {
     window.addEventListener("ContentStart", (function(evt) {
       let content = shell.contentBrowser.contentWindow;
       content.addEventListener("mozContentEvent", this, false, true);
-
-      // After content starts to load for 10 seconds, send and
-      // clean up the buffered open-app requests if there is any.
-      //
-      // TODO: Bug 793420 - Remove the waiting timer for the 'open-app'
-      //                    mozChromeEvents requested by System Message
-      shell.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      shell.timer.initWithCallback(function timerCallback() {
-        shell.bufferedOpenAppReqs.forEach(function bufferOpenAppReq(msg) {
-          shell.openAppForSystemMessage(msg);
-        });
-        shell.bufferedOpenAppReqs.length = 0;
-        shell.needBufferOpenAppReq = false;
-        shell.timer = null;
-      }, 10000, Ci.nsITimer.TYPE_ONE_SHOT);
     }).bind(this), false);
   },
 
@@ -767,13 +707,6 @@ var CustomEventManager = {
         break;
       case 'captive-portal-login-cancel':
         CaptivePortalLoginHelper.handleEvent(detail);
-        break;
-      case 'inter-app-comm-permission':
-        Services.obs.notifyObservers(null, 'inter-app-comm-select-app-result',
-          JSON.stringify({ callerID: detail.chromeEventID,
-                           keyword: detail.keyword,
-                           manifestURL: detail.manifestURL,
-                           selectedApps: detail.peers }));
         break;
       case 'inputmethod-update-layouts':
         KeyboardHelper.handleEvent(detail);
@@ -826,16 +759,11 @@ var WebappsHelper = {
 
           let manifest = new ManifestHelper(aManifest, json.origin);
           let payload = {
-            __exposedProps__: {
-              timestamp: "r",
-              url: "r",
-              manifestURL: "r"
-            },
             timestamp: json.timestamp,
             url: manifest.fullLaunchPath(json.startPoint),
             manifestURL: json.manifestURL
-          }
-          shell.sendEvent(getContentWindow(), "webapps-launch", payload);
+          };
+          shell.sendCustomEvent("webapps-launch", payload);
         });
         break;
       case "webapps-ask-install":
@@ -847,11 +775,9 @@ var WebappsHelper = {
         });
         break;
       case "webapps-close":
-        shell.sendEvent(getContentWindow(), "webapps-close",
-          {
-            __exposedProps__: { "manifestURL": "r" },
-            "manifestURL": json.manifestURL
-          });
+        shell.sendCustomEvent("webapps-close", {
+          "manifestURL": json.manifestURL
+        });
         break;
     }
   }
@@ -968,7 +894,9 @@ let RemoteDebugger = {
             deviceActor: DebuggerServer.globalActorFactories.deviceActor,
           } : DebuggerServer.globalActorFactories
         };
-        let root = new DebuggerServer.RootActor(connection, parameters);
+        let devtools = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
+        let { RootActor } = devtools.require("devtools/server/actors/root");
+        let root = new RootActor(connection, parameters);
         root.applicationType = "operating-system";
         return root;
       };
@@ -1048,11 +976,7 @@ window.addEventListener('ContentStart', function ss_onContentStart() {
       context.drawWindow(window, 0, 0, width, height,
                          'rgb(255,255,255)', flags);
 
-      // I can't use sendChromeEvent() here because it doesn't wrap
-      // the blob in the detail object correctly. So I use __exposedProps__
-      // instead to safely send the chrome detail object to content.
-      shell.sendEvent(getContentWindow(), 'mozChromeEvent', {
-        __exposedProps__: { type: 'r', file: 'r' },
+      shell.sendChromeEvent({
         type: 'take-screenshot-success',
         file: canvas.mozGetAsFile('screenshot', 'image/png')
       });
@@ -1080,6 +1004,7 @@ var CaptivePortalLoginHelper = {
   init: function init() {
     Services.obs.addObserver(this, 'captive-portal-login', false);
     Services.obs.addObserver(this, 'captive-portal-login-abort', false);
+    Services.obs.addObserver(this, 'captive-portal-login-success', false);
   },
   handleEvent: function handleEvent(detail) {
     Services.captivePortalDetector.cancelLogin(detail.id);

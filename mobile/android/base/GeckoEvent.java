@@ -82,7 +82,6 @@ public class GeckoEvent {
         SENSOR_EVENT(3),
         LOCATION_EVENT(5),
         IME_EVENT(6),
-        DRAW(7),
         SIZE_CHANGED(8),
         APP_BACKGROUNDING(9),
         APP_FOREGROUNDING(10),
@@ -205,6 +204,7 @@ public class GeckoEvent {
     private int mMetaState;
     private int mFlags;
     private int mKeyCode;
+    private int mScanCode;
     private int mUnicodeChar;
     private int mBaseUnicodeChar; // mUnicodeChar without meta states applied
     private int mDOMPrintableKeyValue;
@@ -294,6 +294,7 @@ public class GeckoEvent {
         mMetaState = k.getMetaState() | metaState;
         mFlags = k.getFlags();
         mKeyCode = k.getKeyCode();
+        mScanCode = k.getScanCode();
         mUnicodeChar = k.getUnicodeChar(mMetaState);
         // e.g. for Ctrl+A, Android returns 0 for mUnicodeChar,
         // but Gecko expects 'a', so we return that in mBaseUnicodeChar
@@ -654,12 +655,6 @@ public class GeckoEvent {
         event.mRangeForeColor = rangeForeColor;
         event.mRangeBackColor = rangeBackColor;
         event.mRangeLineColor = rangeLineColor;
-        return event;
-    }
-
-    public static GeckoEvent createDrawEvent(Rect rect) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.DRAW);
-        event.mRect = rect;
         return event;
     }
 

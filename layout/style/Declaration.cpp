@@ -343,14 +343,14 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue,
         AppendValueToString(eCSSProperty_border_image_slice, aValue,
                             aSerialization);
         if (!widthDefault || !outsetDefault) {
-          aValue.Append(NS_LITERAL_STRING(" /"));
+          aValue.AppendLiteral(" /");
           if (!widthDefault) {
             aValue.Append(char16_t(' '));
             AppendValueToString(eCSSProperty_border_image_width, aValue,
                                 aSerialization);
           }
           if (!outsetDefault) {
-            aValue.Append(NS_LITERAL_STRING(" / "));
+            aValue.AppendLiteral(" / ");
             AppendValueToString(eCSSProperty_border_image_outset, aValue,
                                 aSerialization);
           }
@@ -715,15 +715,15 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue,
       break;
     }
     case eCSSProperty_list_style:
-      if (AppendValueToString(eCSSProperty_list_style_type, aValue,
-                              aSerialization)) {
-        aValue.Append(char16_t(' '));
-      }
       if (AppendValueToString(eCSSProperty_list_style_position, aValue,
                               aSerialization)) {
         aValue.Append(char16_t(' '));
       }
-      AppendValueToString(eCSSProperty_list_style_image, aValue,
+      if (AppendValueToString(eCSSProperty_list_style_image, aValue,
+                              aSerialization)) {
+        aValue.Append(char16_t(' '));
+      }
+      AppendValueToString(eCSSProperty_list_style_type, aValue,
                           aSerialization);
       break;
     case eCSSProperty_overflow: {
@@ -1068,10 +1068,10 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue,
 
         } else if (unit == eCSSUnit_List || unit == eCSSUnit_ListDep) {
           // Non-empty <line-names>
-          aValue.AppendLiteral("(");
+          aValue.Append('(');
           rowsItem->mValue.AppendToString(eCSSProperty_grid_template_rows,
                                           aValue, aSerialization);
-          aValue.AppendLiteral(")");
+          aValue.Append(')');
 
         } else {
           nsStyleUtil::AppendEscapedCSSString(areas->mTemplates[row++], aValue);

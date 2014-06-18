@@ -89,7 +89,7 @@ class ABIArgGenerator
 
     uint32_t stackBytesConsumedSoFar() const {
         if (usedArgSlots_ <= 4)
-            return 4 * sizeof(intptr_t);
+            return ShadowStackSpace;
 
         return usedArgSlots_ * sizeof(intptr_t);
     }
@@ -114,6 +114,21 @@ static MOZ_CONSTEXPR_VAR FloatRegister SecondScratchFloatReg = { FloatRegisters:
 
 static MOZ_CONSTEXPR_VAR FloatRegister NANReg = { FloatRegisters::f30 };
 
+// Registers used in the GenerateFFIIonExit Enable Activation block.
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegCallee = t0;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE0 = a0;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE1 = a1;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE2 = a2;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE3 = a3;
+
+// Registers used in the GenerateFFIIonExit Disable Activation block.
+// None of these may be the second scratch register (t8).
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegReturnData = JSReturnReg_Data;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegReturnType = JSReturnReg_Type;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD0 = a0;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD1 = a1;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD2 = a2;
+
 static MOZ_CONSTEXPR_VAR FloatRegister f0  = {FloatRegisters::f0};
 static MOZ_CONSTEXPR_VAR FloatRegister f2  = {FloatRegisters::f2};
 static MOZ_CONSTEXPR_VAR FloatRegister f4  = {FloatRegisters::f4};
@@ -136,10 +151,12 @@ static MOZ_CONSTEXPR_VAR FloatRegister f30 = {FloatRegisters::f30};
 static const uint32_t StackAlignment = 8;
 static const uint32_t CodeAlignment = 4;
 static const bool StackKeptAligned = true;
-// NativeFrameSize is the size of return adress on stack in AsmJS functions.
-static const uint32_t NativeFrameSize = sizeof(void*);
-static const uint32_t AlignmentAtPrologue = 0;
-static const uint32_t AlignmentMidPrologue = NativeFrameSize;
+
+// As an invariant across architectures, within asm.js code:
+//    $sp % StackAlignment = (AsmJSSizeOfRetAddr + masm.framePushed) % StackAlignment
+// To achieve this on MIPS, the first instruction of the asm.js prologue pushes
+// ra without incrementing masm.framePushed.
+static const uint32_t AsmJSSizeOfRetAddr = sizeof(void*);
 
 static const Scale ScalePointer = TimesFour;
 
@@ -179,6 +196,20 @@ static const uint32_t Imm26Bits = 26;
 static const uint32_t Imm28Shift = 0;
 static const uint32_t Imm28Bits = 28;
 static const uint32_t ImmFieldShift = 2;
+static const uint32_t FRBits = 5;
+static const uint32_t FRShift = 21;
+static const uint32_t FSShift = 11;
+static const uint32_t FSBits = 5;
+static const uint32_t FTShift = 16;
+static const uint32_t FTBits = 5;
+static const uint32_t FDShift = 6;
+static const uint32_t FDBits = 5;
+static const uint32_t FCccShift = 8;
+static const uint32_t FCccBits = 3;
+static const uint32_t FBccShift = 18;
+static const uint32_t FBccBits = 3;
+static const uint32_t FBtrueShift = 16;
+static const uint32_t FBtrueBits = 1;
 static const uint32_t FccMask = 0x7;
 static const uint32_t FccShift = 2;
 
@@ -285,6 +316,7 @@ enum RSField {
     rs_s     = 16 << RSShift,
     rs_d     = 17 << RSShift,
     rs_w     = 20 << RSShift,
+    rs_l     = 21 << RSShift,
     rs_ps    = 22 << RSShift
 };
 
@@ -333,6 +365,13 @@ enum FunctionField {
     ff_slt         = 42,
     ff_sltu        = 43,
 
+    ff_tge         = 48,
+    ff_tgeu        = 49,
+    ff_tlt         = 50,
+    ff_tltu        = 51,
+    ff_teq         = 52,
+    ff_tne         = 54,
+
     // special2 encoding of function field.
     ff_mul         = 2,
     ff_clz         = 32,
@@ -352,6 +391,11 @@ enum FunctionField {
     ff_mov_fmt     = 6,
     ff_neg_fmt     = 7,
 
+    ff_round_l_fmt = 8,
+    ff_trunc_l_fmt = 9,
+    ff_ceil_l_fmt  = 10,
+    ff_floor_l_fmt = 11,
+
     ff_round_w_fmt = 12,
     ff_trunc_w_fmt = 13,
     ff_ceil_w_fmt  = 14,
@@ -360,6 +404,8 @@ enum FunctionField {
     ff_cvt_s_fmt   = 32,
     ff_cvt_d_fmt   = 33,
     ff_cvt_w_fmt   = 36,
+    ff_cvt_l_fmt   = 37,
+    ff_cvt_ps_s    = 38,
 
     ff_c_f_fmt     = 48,
     ff_c_un_fmt    = 49,
@@ -369,6 +415,11 @@ enum FunctionField {
     ff_c_ult_fmt   = 53,
     ff_c_ole_fmt   = 54,
     ff_c_ule_fmt   = 55,
+
+    ff_madd_s      = 32,
+    ff_madd_d      = 33,
+
+    ff_null        = 0
 };
 
 class MacroAssemblerMIPS;
@@ -676,14 +727,11 @@ class Assembler : public AssemblerShared
     CompactBufferWriter relocations_;
     CompactBufferWriter preBarriers_;
 
-    bool enoughMemory_;
-
     MIPSBuffer m_buffer;
 
   public:
     Assembler()
-      : enoughMemory_(true),
-        m_buffer(),
+      : m_buffer(),
         isFinished(false)
     { }
 
@@ -698,7 +746,7 @@ class Assembler : public AssemblerShared
 
     // As opposed to x86/x64 version, the data relocation has to be executed
     // before to recover the pointer, and not after.
-    void writeDataRelocation(const ImmGCPtr &ptr) {
+    void writeDataRelocation(ImmGCPtr ptr) {
         if (ptr.value)
             dataRelocations_.writeUnsigned(nextOffset().getOffset());
     }
@@ -891,6 +939,7 @@ class Assembler : public AssemblerShared
 
     BufferOffset as_abss(FloatRegister fd, FloatRegister fs);
     BufferOffset as_absd(FloatRegister fd, FloatRegister fs);
+    BufferOffset as_negs(FloatRegister fd, FloatRegister fs);
     BufferOffset as_negd(FloatRegister fd, FloatRegister fs);
 
     BufferOffset as_muls(FloatRegister fd, FloatRegister fs, FloatRegister ft);
@@ -983,6 +1032,9 @@ class Assembler : public AssemblerShared
     static void patchDataWithValueCheck(CodeLocationLabel label, ImmPtr newValue,
                                         ImmPtr expectedValue);
     static void patchWrite_Imm32(CodeLocationLabel label, Imm32 imm);
+
+    static void patchInstructionImmediate(uint8_t *code, PatchedImmPtr imm);
+
     static uint32_t alignDoubleArg(uint32_t offset) {
         return (offset + 1U) &~ 1U;
     }
@@ -996,20 +1048,21 @@ class Assembler : public AssemblerShared
 
     static void updateBoundsCheck(uint32_t logHeapSize, Instruction *inst);
     void processCodeLabels(uint8_t *rawCode);
+    static int32_t extractCodeLabelOffset(uint8_t *code);
 
     bool bailed() {
         return m_buffer.bail();
     }
 }; // Assembler
 
+// sll zero, zero, 0
+const uint32_t NopInst = 0x00000000;
+
 // An Instruction is a structure for both encoding and decoding any and all
 // MIPS instructions.
 class Instruction
 {
   protected:
-    // sll zero, zero, 0
-    static const uint32_t NopInst = 0x00000000;
-
     uint32_t data;
 
     // Standard constructor

@@ -74,9 +74,12 @@ public:
   GLuint GetTexture();
   void DeleteTextureIfPresent();
   gl::GLContext* gl() const;
+  void BindEGLImage(GLuint aTarget, EGLImage aImage);
+  void ClearBoundEGLImage(EGLImage aImage);
 protected:
   RefPtr<CompositorOGL> mCompositor;
   GLuint mTexture;
+  EGLImage mBoundEGLImage;
 };
 
 inline void ApplyFilterToBoundTexture(gl::GLContext* aGL,
@@ -169,8 +172,19 @@ public:
    */
   virtual android::sp<android::Fence> GetAndResetReleaseFence();
 
+  virtual void SetAcquireFence(const android::sp<android::Fence>& aAcquireFence);
+
+  /**
+   * Return a acquireFence's Fence and clear a reference to the Fence.
+   */
+  virtual android::sp<android::Fence> GetAndResetAcquireFence();
+
+  virtual void WaitAcquireFenceSyncComplete();
+
 protected:
   android::sp<android::Fence> mReleaseFence;
+
+  android::sp<android::Fence> mAcquireFence;
 
   /**
    * Hold previous ReleaseFence to prevent Fence delivery failure via gecko IPC.

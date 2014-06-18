@@ -50,6 +50,7 @@ void
 ThebesLayerD3D9::InvalidateRegion(const nsIntRegion &aRegion)
 {
   mInvalidRegion.Or(mInvalidRegion, aRegion);
+  mInvalidRegion.SimplifyOutward(20);
   mValidRegion.Sub(mValidRegion, mInvalidRegion);
 }
 
@@ -93,11 +94,6 @@ ThebesLayerD3D9::CopyRegion(IDirect3DTexture9* aSrc, const nsIntPoint &aSrcOffse
 
   // Areas which were valid and were retained are still valid
   aValidRegion->And(*aValidRegion, retainedRegion);
-}
-
-static uint64_t RectArea(const nsIntRect& aRect)
-{
-  return aRect.width*uint64_t(aRect.height);
 }
 
 void

@@ -15,20 +15,23 @@ class nsISocketTransport;
 
 namespace mozilla { namespace net {
 
+class nsHttpConnectionInfo;
+
 class ASpdySession : public nsAHttpTransaction
 {
 public:
-  virtual bool AddStream(nsAHttpTransaction *, int32_t) = 0;
+  ASpdySession();
+  virtual ~ASpdySession();
+
+  virtual bool AddStream(nsAHttpTransaction *, int32_t,
+                         bool, nsIInterfaceRequestor *) = 0;
   virtual bool CanReuse() = 0;
   virtual bool RoomForMoreStreams() = 0;
   virtual PRIntervalTime IdleTime() = 0;
   virtual uint32_t ReadTimeoutTick(PRIntervalTime now) = 0;
   virtual void DontReuse() = 0;
 
-  static ASpdySession *NewSpdySession(uint32_t version,
-                                      nsAHttpTransaction *,
-                                      nsISocketTransport *,
-                                      int32_t);
+  static ASpdySession *NewSpdySession(uint32_t version, nsISocketTransport *);
 
   virtual void PrintDiagnostics (nsCString &log) = 0;
 
@@ -49,7 +52,7 @@ public:
   {
     return (code == NS_BASE_STREAM_CLOSED || code == NS_BINDING_FAILED ||
             code == NS_BINDING_ABORTED || code == NS_BINDING_REDIRECTED ||
-            code == NS_BINDING_RETARGETED);
+            code == NS_BINDING_RETARGETED || code == NS_ERROR_CORRUPTED_CONTENT);
   }
 };
 

@@ -12,7 +12,8 @@
 
 #include "nsIUUIDGenerator.h"
 
-class nsUUIDGenerator MOZ_FINAL : public nsIUUIDGenerator {
+class nsUUIDGenerator MOZ_FINAL : public nsIUUIDGenerator
+{
 public:
   nsUUIDGenerator();
 
@@ -28,9 +29,9 @@ private:
 protected:
 
   mozilla::Mutex mLock;
-#if !defined(XP_WIN) && !defined(XP_MACOSX) && !defined(ANDROID)
+#if !defined(XP_WIN) && !defined(XP_MACOSX) && !defined(HAVE_ARC4RANDOM)
   char mState[128];
-  char *mSavedState;
+  char* mSavedState;
   uint8_t mRBytes;
 #endif
 };

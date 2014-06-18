@@ -120,6 +120,7 @@ public:
   NS_IMETHOD              SetFocus(bool aRaise);
   NS_IMETHOD              GetBounds(nsIntRect &aRect);
   NS_IMETHOD              GetScreenBounds(nsIntRect &aRect);
+  NS_IMETHOD              GetRestoredBounds(nsIntRect &aRect) MOZ_OVERRIDE;
   NS_IMETHOD              GetClientBounds(nsIntRect &aRect);
   virtual nsIntPoint      GetClientOffset();
   void                    SetBackgroundColor(const nscolor &aColor);
@@ -151,7 +152,6 @@ public:
                                           LayersBackend aBackendHint = mozilla::layers::LayersBackend::LAYERS_NONE,
                                           LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
                                           bool* aAllowRetaining = nullptr);
-  gfxASurface             *GetThebesSurface();
   NS_IMETHOD              OnDefaultButtonLoaded(const nsIntRect &aButtonRect);
   NS_IMETHOD              OverrideSystemMouseScrollSpeed(double aOriginalDeltaX,
                                                          double aOriginalDeltaY,
@@ -197,6 +197,7 @@ public:
   virtual void            EndRemoteDrawing() MOZ_OVERRIDE;
 
   virtual void            UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries) MOZ_OVERRIDE;
+  virtual uint32_t        GetMaxTouchPoints() const MOZ_OVERRIDE;
 
   /**
    * Event helpers
@@ -373,6 +374,8 @@ protected:
   static bool             ConvertStatus(nsEventStatus aStatus);
   static void             PostSleepWakeNotification(const bool aIsSleepMode);
   int32_t                 ClientMarginHitTestPoint(int32_t mx, int32_t my);
+  static TimeStamp        GetMessageTimeStamp(LONG aEventTime);
+  static void             UpdateFirstEventTime(DWORD aEventTime);
 
   /**
    * Event handlers
@@ -576,6 +579,11 @@ protected:
   POINT mCachedHitTestPoint;
   TimeStamp mCachedHitTestTime;
   int32_t mCachedHitTestResult;
+
+  // For converting native event times to timestamps we record the time of the
+  // first received event in each time scale.
+  static DWORD     sFirstEventTime;
+  static TimeStamp sFirstEventTimeStamp;
 
   static bool sNeedsToInitMouseWheelSettings;
   static void InitMouseWheelScrollData();

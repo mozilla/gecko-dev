@@ -11,6 +11,10 @@ const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
+Cu.import("resource://gre/modules/AppsUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "DOMApplicationRegistry",
+  "resource://gre/modules/Webapps.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "ActivitiesServiceFilter",
   "resource://gre/modules/ActivitiesServiceFilter.jsm");
@@ -203,13 +207,14 @@ let Activities = {
   startActivity: function activities_startActivity(aMsg) {
     debug("StartActivity: " + JSON.stringify(aMsg));
 
+    let self = this;
     let successCb = function successCb(aResults) {
       debug(JSON.stringify(aResults));
 
       function getActivityChoice(aResultType, aResult) {
         switch(aResultType) {
           case Ci.nsIActivityUIGlueCallback.NATIVE_ACTIVITY: {
-            Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireSuccess", {
+            self.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireSuccess", {
               "id": aMsg.id,
               "result": aResult
             });
@@ -222,21 +227,19 @@ let Activities = {
             // Don't do this check until we have passed to UIGlue so the glue can choose to launch
             // its own activity if needed.
             if (aResults.options.length === 0) {
-              Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireError", {
+              self.trySendAndCleanup(aMsg.id, "Activity:FireError", {
                 "id": aMsg.id,
                 "error": "NO_PROVIDER"
               });
-              delete Activities.callers[aMsg.id];
               return;
             }
 
             // The user has cancelled the choice, fire an error.
             if (aResult === -1) {
-              Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireError", {
+              self.trySendAndCleanup(aMsg.id, "Activity:FireError", {
                 "id": aMsg.id,
                 "error": "ActivityCanceled"
               });
-              delete Activities.callers[aMsg.id];
               return;
             }
 
@@ -244,7 +247,7 @@ let Activities = {
                           .getService(Ci.nsISystemMessagesInternal);
             if (!sysmm) {
               // System message is not present, what should we do?
-              delete Activities.callers[aMsg.id];
+              delete self.callers[aMsg.id];
               return;
             }
 
@@ -258,27 +261,60 @@ let Activities = {
               Services.io.newURI(result.description.href, null, null),
               Services.io.newURI(result.manifest, null, null),
               {
-                "manifestURL": Activities.callers[aMsg.id].manifestURL,
-                "pageURL": Activities.callers[aMsg.id].pageURL
+                "manifestURL": self.callers[aMsg.id].manifestURL,
+                "pageURL": self.callers[aMsg.id].pageURL
               });
 
             if (!result.description.returnValue) {
-              Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireSuccess", {
+              // No need to notify observers, since we don't want the caller
+              // to be raised on the foreground that quick.
+              self.trySendAndCleanup(aMsg.id, "Activity:FireSuccess", {
                 "id": aMsg.id,
                 "result": null
               });
-              // No need to notify observers, since we don't want the caller
-              // to be raised on the foreground that quick.
-              delete Activities.callers[aMsg.id];
             }
             break;
           }
         }
       };
 
-      let glue = Cc["@mozilla.org/dom/activities/ui-glue;1"]
-                   .createInstance(Ci.nsIActivityUIGlue);
-      glue.chooseActivity(aMsg.options, aResults.options, getActivityChoice);
+      let caller = Activities.callers[aMsg.id];
+      if (aMsg.getFilterResults === true &&
+          caller.mm.assertAppHasStatus(Ci.nsIPrincipal.APP_STATUS_CERTIFIED)) {
+        // Certified apps can ask to just get the picker data.
+
+        // We want to return the manifest url, icon url and app name.
+        // The app name needs to be picked up from the localized manifest.
+        let reg = DOMApplicationRegistry;
+        let ids = aResults.options.map((aItem) => {
+          return { id: reg._appIdForManifestURL(aItem.manifest) }
+        });
+
+        reg._readManifests(ids).then((aManifests) => {
+          let results = [];
+          aManifests.forEach((aManifest, i) => {
+            let manifestURL = aResults.options[i].manifest;
+            let helper = new ManifestHelper(aManifest.manifest, manifestURL);
+            results.push({
+              manifestURL: manifestURL,
+              iconURL: aResults.options[i].icon,
+              appName: helper.name
+            });
+          });
+
+          // Now fire success with the array of choices.
+          caller.mm.sendAsyncMessage("Activity:FireSuccess",
+            {
+              "id": aMsg.id,
+              "result": results
+            });
+          delete Activities.callers[aMsg.id];
+        });
+      } else {
+        let glue = Cc["@mozilla.org/dom/activities/ui-glue;1"]
+                     .createInstance(Ci.nsIActivityUIGlue);
+        glue.chooseActivity(aMsg.options, aResults.options, getActivityChoice);
+      }
     };
 
     let errorCb = function errorCb(aError) {
@@ -292,6 +328,14 @@ let Activities = {
     };
 
     this.db.find(aMsg, successCb, errorCb, matchFunc);
+  },
+
+  trySendAndCleanup: function activities_trySendAndCleanup(aId, aName, aPayload) {
+    try {
+      this.callers[aId].mm.sendAsyncMessage(aName, aPayload);
+    } finally {
+      delete this.callers[aId];
+    }
   },
 
   receiveMessage: function activities_receiveMessage(aMessage) {
@@ -327,12 +371,10 @@ let Activities = {
         break;
 
       case "Activity:PostResult":
-        caller.mm.sendAsyncMessage("Activity:FireSuccess", msg);
-        delete this.callers[msg.id];
+        this.trySendAndCleanup(msg.id, "Activity:FireSuccess", msg);
         break;
       case "Activity:PostError":
-        caller.mm.sendAsyncMessage("Activity:FireError", msg);
-        delete this.callers[msg.id];
+        this.trySendAndCleanup(msg.id, "Activity:FireError", msg);
         break;
 
       case "Activities:Register":
@@ -344,10 +386,6 @@ let Activities = {
             msg.forEach(function(aActivity) {
               self.updateContentTypeList(aActivity, res);
             });
-            if (res.length) {
-              ppmm.broadcastAsyncMessage("Activities:RegisterContentTypes",
-                                         { contentTypes: res });
-            }
           },
           function onError(aEvent) {
             msg.error = "REGISTER_ERROR";
@@ -360,22 +398,14 @@ let Activities = {
         msg.forEach(function(aActivity) {
           this.updateContentTypeList(aActivity, res);
         }, this);
-        if (res.length) {
-          ppmm.broadcastAsyncMessage("Activities:UnregisterContentTypes",
-                                     { contentTypes: res });
-        }
-        break;
-      case "Activities:GetContentTypes":
-        this.sendContentTypes(mm);
         break;
       case "child-process-shutdown":
         for (let id in this.callers) {
           if (this.callers[id].childMM == mm) {
-            this.callers[id].mm.sendAsyncMessage("Activity:FireError", {
+            this.trySendAndCleanup(id, "Activity:FireError", {
               "id": id,
               "error": "ActivityCanceled"
             });
-            delete this.callers[id];
             break;
           }
         }
@@ -404,24 +434,6 @@ let Activities = {
         aResult.push(contentType);
       }
     });
-  },
-
-  sendContentTypes: function sendContentTypes(aMm) {
-    let res = [];
-    let self = this;
-    this.db.find({ options: { name: "view" } },
-      function() { // Success callback.
-        if (res.length) {
-          aMm.sendAsyncMessage("Activities:RegisterContentTypes",
-                               { contentTypes: res });
-        }
-      },
-      null, // Error callback.
-      function(aActivity) { // Matching callback.
-        self.updateContentTypeList(aActivity, res)
-        return false;
-      }
-    );
   }
 }
 

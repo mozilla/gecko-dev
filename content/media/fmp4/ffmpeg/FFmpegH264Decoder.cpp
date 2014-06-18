@@ -29,7 +29,6 @@ FFmpegH264Decoder::FFmpegH264Decoder(
   const mp4_demuxer::VideoDecoderConfig &aConfig,
   ImageContainer* aImageContainer)
   : FFmpegDataDecoder(aTaskQueue, AV_CODEC_ID_H264)
-  , mConfig(aConfig)
   , mCallback(aCallback)
   , mImageContainer(aImageContainer)
 {
@@ -53,9 +52,8 @@ FFmpegH264Decoder::DecodeFrame(mp4_demuxer::MP4Sample* aSample)
   AVPacket packet;
   av_init_packet(&packet);
 
-  packet.data = &(*aSample->data)[0];
-  packet.size = aSample->data->size();
-  packet.dts = aSample->decode_timestamp;
+  packet.data = aSample->data;
+  packet.size = aSample->size;
   packet.pts = aSample->composition_timestamp;
   packet.flags = aSample->is_sync_point ? AV_PKT_FLAG_KEY : 0;
   packet.pos = aSample->byte_offset;
@@ -73,32 +71,30 @@ FFmpegH264Decoder::DecodeFrame(mp4_demuxer::MP4Sample* aSample)
     return;
   }
 
-  if (!decoded) {
-    // The decoder doesn't have enough data to decode a frame yet.
-    return;
-  }
+  // If we've decoded a frame then we need to output it
+  if (decoded) {
+    nsAutoPtr<VideoData> data;
 
-  nsAutoPtr<VideoData> data;
+    VideoInfo info;
+    info.mDisplay = nsIntSize(mCodecContext.width, mCodecContext.height);
+    info.mStereoMode = StereoMode::MONO;
+    info.mHasVideo = true;
 
-  VideoInfo info;
-  info.mDisplay = nsIntSize(mCodecContext.width, mCodecContext.height);
-  info.mStereoMode = StereoMode::MONO;
-  info.mHasVideo = true;
+    data = VideoData::CreateFromImage(
+      info, mImageContainer, aSample->byte_offset, aSample->composition_timestamp,
+      aSample->duration, mCurrentImage, aSample->is_sync_point, -1,
+      gfx::IntRect(0, 0, mCodecContext.width, mCodecContext.height));
 
-  data = VideoData::CreateFromImage(
-    info, mImageContainer, aSample->byte_offset, aSample->composition_timestamp,
-    aSample->duration, mCurrentImage, aSample->is_sync_point, -1,
-    gfx::IntRect(0, 0, mCodecContext.width, mCodecContext.height));
+    // Insert the frame into the heap for reordering.
+    mDelayedFrames.Push(data.forget());
 
-  // Insert the frame into the heap for reordering.
-  mDelayedFrames.Push(data.forget());
-
-  // Reorder video frames from decode order to presentation order. The minimum
-  // size of the heap comes from one P frame + |max_b_frames| B frames, which
-  // is the maximum number of frames in a row which will be out-of-order.
-  if (mDelayedFrames.Length() > (uint32_t)mCodecContext.max_b_frames + 1) {
-    VideoData* d = mDelayedFrames.Pop();
-    mCallback->Output(d);
+    // Reorder video frames from decode order to presentation order. The minimum
+    // size of the heap comes from one P frame + |max_b_frames| B frames, which
+    // is the maximum number of frames in a row which will be out-of-order.
+    if (mDelayedFrames.Length() > (uint32_t)mCodecContext.max_b_frames + 1) {
+      VideoData* d = mDelayedFrames.Pop();
+      mCallback->Output(d);
+    }
   }
 
   if (mTaskQueue->IsEmpty()) {
@@ -238,11 +234,7 @@ FFmpegH264Decoder::Drain()
   for (int32_t i = 0; i <= mCodecContext.max_b_frames; i++) {
     // An empty frame tells FFmpeg to decode the next delayed frame it has in
     // its queue, if it has any.
-    nsAutoPtr<MP4Sample> empty(new MP4Sample(0 /* dts */, 0 /* cts */,
-                                              0 /* duration */, 0 /* offset */,
-                                              new std::vector<uint8_t>(),
-                                              mp4_demuxer::kVideo, nullptr,
-                                              false));
+    nsAutoPtr<MP4Sample> empty(new MP4Sample());
 
     nsresult rv = Input(empty.forget());
     NS_ENSURE_SUCCESS(rv, rv);

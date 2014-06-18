@@ -75,8 +75,7 @@ const MMI_MAX_LENGTH_SHORT_CODE = 2;
 
 const MMI_END_OF_USSD = "#";
 
-// Should match the value we set in dom/telephony/TelephonyCommon.h
-const OUTGOING_PLACEHOLDER_CALL_INDEX = 0xffffffff;
+const GET_CURRENT_CALLS_RETRY_MAX = 3;
 
 let RILQUIRKS_CALLSTATE_EXTRA_UINT32;
 // This may change at runtime since in RIL v6 and later, we get the version
@@ -205,6 +204,134 @@ BufObject.prototype = {
   }
 })();
 
+const TELEPHONY_REQUESTS = [
+  REQUEST_GET_CURRENT_CALLS,
+  REQUEST_ANSWER,
+  REQUEST_CONFERENCE,
+  REQUEST_DIAL,
+  REQUEST_DIAL_EMERGENCY_CALL,
+  REQUEST_HANGUP,
+  REQUEST_HANGUP_WAITING_OR_BACKGROUND,
+  REQUEST_SEPARATE_CONNECTION,
+  REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE,
+  REQUEST_UDUB
+];
+
+function TelephonyRequestEntry(request, action, options) {
+  this.request = request;
+  this.action = action;
+  this.options = options;
+}
+
+function TelephonyRequestQueue(ril) {
+  this.ril = ril;
+  this.currentQueue = null;  // Point to the current running queue.
+
+  this.queryQueue = [];
+  this.controlQueue = [];
+}
+TelephonyRequestQueue.prototype = {
+  ril: null,
+
+  _getQueue: function(request) {
+    return (request === REQUEST_GET_CURRENT_CALLS) ? this.queryQueue
+                                                   : this.controlQueue;
+  },
+
+  _getAnotherQueue: function(queue) {
+    return (this.queryQueue === queue) ? this.controlQueue : this.queryQueue;
+  },
+
+  _find: function(queue, request) {
+    for (let i = 0; i < queue.length; ++i) {
+      if (queue[i].request === request) {
+        return i;
+      }
+    }
+    return -1;
+  },
+
+  _startQueue: function(queue) {
+    if (queue.length === 0) {
+      return;
+    }
+
+    // We only need to keep one entry for queryQueue.
+    if (queue === this.queryQueue) {
+      queue.splice(1, queue.length - 1);
+    }
+
+    this.currentQueue = queue;
+    for (let entry of queue) {
+      this._executeEntry(entry);
+    }
+  },
+
+  _executeEntry: function(entry) {
+    if (DEBUG) this.debug("execute " + this._getRequestName(entry.request));
+    entry.action.call(this.ril, entry.options);
+  },
+
+  _getRequestName: function(request) {
+    let method = this.ril[request];
+    return (typeof method === 'function') ? method.name : "";
+  },
+
+  debug: function(msg) {
+    this.ril.context.debug("[TeleQ] " + msg);
+  },
+
+  isValidRequest: function(request) {
+    return TELEPHONY_REQUESTS.indexOf(request) !== -1;
+  },
+
+  push: function(request, action, options) {
+    if (!this.isValidRequest(request)) {
+      if (DEBUG) {
+        this.debug("Error: " + this._getRequestName(request) +
+                   " is not a telephony request");
+      }
+      return;
+    }
+
+    if (DEBUG) this.debug("push " + this._getRequestName(request));
+    let entry = new TelephonyRequestEntry(request, action, options);
+    let queue = this._getQueue(request);
+    queue.push(entry);
+
+    // Try to run the request.
+    if (this.currentQueue === queue) {
+      this._executeEntry(entry);
+    } else if (!this.currentQueue) {
+      this._startQueue(queue);
+    }
+  },
+
+  pop: function(request) {
+    if (!this.isValidRequest(request)) {
+      if (DEBUG) {
+        this.debug("Error: " + this._getRequestName(request) +
+                   " is not a telephony request");
+      }
+      return;
+    }
+
+    if (DEBUG) this.debug("pop " + this._getRequestName(request));
+    let queue = this._getQueue(request);
+    let index = this._find(queue, request);
+    if (index === -1) {
+      throw new Error("Cannot find the request in telephonyRequestQueue.");
+    } else {
+      queue.splice(index, 1);
+    }
+
+    if (queue.length === 0) {
+      this.currentQueue = null;
+      this._startQueue(this._getAnotherQueue(queue));
+    }
+  }
+};
+
 /**
  * The RIL state machine.
  *
@@ -215,18 +342,20 @@ BufObject.prototype = {
 function RilObject(aContext) {
   this.context = aContext;
 
+  this.telephonyRequestQueue = new TelephonyRequestQueue(this);
   this.currentCalls = {};
   this.currentConference = {state: null, participants: {}};
   this.currentDataCalls = {};
   this._pendingSentSmsMap = {};
   this.pendingNetworkType = {};
   this._receivedSmsCbPagesMap = {};
+  this._getCurrentCallsRetryCount = 0;
 
   // Init properties that are only initialized once.
   this.v5Legacy = RILQUIRKS_V5_LEGACY;
   this.cellBroadcastDisabled = RIL_CELLBROADCAST_DISABLED;
 
-  this._hasHangUpPendingOutgoingCall = false;
+  this.pendingMO = null;
 }
 RilObject.prototype = {
   context: null,
@@ -252,12 +381,6 @@ RilObject.prototype = {
    * Outgoing messages waiting for SMS-STATUS-REPORT.
    */
   _pendingSentSmsMap: null,
-
-  /**
-   * Index of the RIL_PREFERRED_NETWORK_TYPE_TO_GECKO. Its value should be
-   * preserved over rild reset.
-   */
-  preferredNetworkType: null,
 
   /**
    * Marker object.
@@ -418,9 +541,10 @@ RilObject.prototype = {
     this.mergedCellBroadcastConfig = null;
 
     /**
-     * True if the pending outgoing call is hung up by user.
+     * A successful dialing request.
+     * { options: options of the corresponding dialing request }
      */
-    this._hasHangUpPendingOutgoingCall = false;
+    this.pendingMO = null;
   },
 
   /**
@@ -1110,8 +1234,7 @@ RilObject.prototype = {
    * the called party when originating a call.
    *
    * @param options.clirMode
-   *        Is one of the CLIR_* constants in
-   *        nsIDOMMozMobileConnection interface.
+   *        One of the CLIR_* constants.
    */
   setCLIR: function(options) {
     let Buf = this.context.Buf;
@@ -1154,23 +1277,21 @@ RilObject.prototype = {
   /**
    * Set the preferred network type.
    *
-   * @param options An object contains a valid index of
-   *                RIL_PREFERRED_NETWORK_TYPE_TO_GECKO as its `networkType`
-   *                attribute, or undefined to set current preferred network
-   *                type.
+   * @param options An object contains a valid value of
+   *                RIL_PREFERRED_NETWORK_TYPE_TO_GECKO as its `type` attribute.
    */
   setPreferredNetworkType: function(options) {
-    if (options) {
-      this.preferredNetworkType = options.networkType;
-    }
-    if (this.preferredNetworkType == null) {
+    let networkType = RIL_PREFERRED_NETWORK_TYPE_TO_GECKO.indexOf(options.type);
+    if (networkType < 0) {
+      options.errorMsg = GECKO_ERROR_INVALID_PARAMETER;
+      this.sendChromeMessage(options);
       return;
     }
 
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_SET_PREFERRED_NETWORK_TYPE, options);
     Buf.writeInt32(1);
-    Buf.writeInt32(this.preferredNetworkType);
+    Buf.writeInt32(networkType);
     Buf.sendParcel();
   },
 
@@ -1370,6 +1491,11 @@ RilObject.prototype = {
    * Get current calls.
    */
   getCurrentCalls: function() {
+    this.telephonyRequestQueue.push(REQUEST_GET_CURRENT_CALLS,
+                                    this.sendRilRequestGetCurrentCalls, null);
+  },
+
+  sendRilRequestGetCurrentCalls: function() {
     this.context.Buf.simpleRequest(REQUEST_GET_CURRENT_CALLS);
   },
 
@@ -1515,11 +1641,11 @@ RilObject.prototype = {
   },
 
   sendDialRequest: function(options) {
-    // Always succeed.
-    options.success = true;
-    this.sendChromeMessage(options);
-    this._createPendingOutgoingCall(options);
+    this.telephonyRequestQueue.push(options.request, this.sendRilRequestDial,
+                                    options);
+  },
 
+  sendRilRequestDial: function(options) {
     let Buf = this.context.Buf;
     Buf.newParcel(options.request, options);
     Buf.writeString(options.number);
@@ -1561,24 +1687,20 @@ RilObject.prototype = {
       return;
     }
 
-    let callIndex = call.callIndex;
-    if (callIndex === OUTGOING_PLACEHOLDER_CALL_INDEX) {
-      if (DEBUG) this.context.debug("Hang up pending outgoing call.");
-      this._hasHangUpPendingOutgoingCall = true;
-      this._removeVoiceCall(call, GECKO_CALL_ERROR_NORMAL_CALL_CLEARING);
-      return;
-    }
-
     call.hangUpLocal = true;
-
     if (call.state === CALL_STATE_HOLDING) {
-      this.sendHangUpBackgroundRequest(callIndex);
+      this.sendHangUpBackgroundRequest();
     } else {
-      this.sendHangUpRequest(callIndex);
+      this.sendHangUpRequest(call.callIndex);
     }
   },
 
   sendHangUpRequest: function(callIndex) {
+    this.telephonyRequestQueue.push(REQUEST_HANGUP, this.sendRilRequestHangUp,
+                                    callIndex);
+  },
+
+  sendRilRequestHangUp: function(callIndex) {
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_HANGUP);
     Buf.writeInt32(1);
@@ -1586,9 +1708,13 @@ RilObject.prototype = {
     Buf.sendParcel();
   },
 
-  sendHangUpBackgroundRequest: function(callIndex) {
-    let Buf = this.context.Buf;
-    Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND);
+  sendHangUpBackgroundRequest: function() {
+    this.telephonyRequestQueue.push(REQUEST_HANGUP_WAITING_OR_BACKGROUND,
+                                   this.sendRilRequestHangUpWaiting, null);
+  },
+
+  sendRilRequestHangUpWaiting: function() {
+    this.context.Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND);
   },
 
   /**
@@ -1621,16 +1747,29 @@ RilObject.prototype = {
       return;
     }
 
-    let Buf = this.context.Buf;
     switch (call.state) {
       case CALL_STATE_INCOMING:
-        Buf.simpleRequest(REQUEST_ANSWER);
+        this.telephonyRequestQueue.push(REQUEST_ANSWER, this.sendRilRequestAnswer,
+                                        null);
         break;
       case CALL_STATE_WAITING:
         // Answer the waiting (second) call, and hold the first call.
-        Buf.simpleRequest(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE);
+        this.sendSwitchWaitingRequest();
         break;
     }
+  },
+
+  sendRilRequestAnswer: function() {
+    this.context.Buf.simpleRequest(REQUEST_ANSWER);
+  },
+
+  sendSwitchWaitingRequest: function() {
+    this.telephonyRequestQueue.push(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE,
+                                    this.sendRilRequestSwitch, null);
+  },
+
+  sendRilRequestSwitch: function() {
+    this.context.Buf.simpleRequest(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE);
   },
 
   /**
@@ -1651,22 +1790,26 @@ RilObject.prototype = {
 
     call.hangUpLocal = true;
 
-    let Buf = this.context.Buf;
     if (this._isCdma) {
       // AT+CHLD=0 means "release held or UDUB."
-      Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND);
+      this.sendHangUpBackgroundRequest();
       return;
     }
 
     switch (call.state) {
       case CALL_STATE_INCOMING:
-        Buf.simpleRequest(REQUEST_UDUB);
+        this.telephonyRequestQueue.push(REQUEST_UDUB, this.sendRilRequestUdub,
+                                        null);
         break;
       case CALL_STATE_WAITING:
         // Reject the waiting (second) call, and remain the first call.
-        Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND);
+        this.sendHangUpBackgroundRequest();
         break;
     }
+  },
+
+  sendRilRequestUdub: function() {
+    this.context.Buf.simpleRequest(REQUEST_UDUB);
   },
 
   holdCall: function(options) {
@@ -1683,7 +1826,7 @@ RilObject.prototype = {
       options.featureStr = "";
       this.sendCdmaFlashCommand(options);
     } else if (call.state == CALL_STATE_ACTIVE) {
-      Buf.simpleRequest(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE, options);
+      this.sendSwitchWaitingRequest();
     }
  },
 
@@ -1701,7 +1844,7 @@ RilObject.prototype = {
       options.featureStr = "";
       this.sendCdmaFlashCommand(options);
     } else if (call.state == CALL_STATE_HOLDING) {
-      Buf.simpleRequest(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE, options);
+      this.sendSwitchWaitingRequest();
     }
   },
 
@@ -1709,14 +1852,18 @@ RilObject.prototype = {
   _hasConferenceRequest: false,
 
   conferenceCall: function(options) {
-    let Buf = this.context.Buf;
     if (this._isCdma) {
       options.featureStr = "";
       this.sendCdmaFlashCommand(options);
     } else {
       this._hasConferenceRequest = true;
-      Buf.simpleRequest(REQUEST_CONFERENCE, options);
+      this.telephonyRequestQueue.push(REQUEST_CONFERENCE,
+                                      this.sendRilRequestConference, options);
     }
+  },
+
+  sendRilRequestConference: function(options) {
+    this.context.Buf.simpleRequest(REQUEST_CONFERENCE, options);
   },
 
   separateCall: function(options) {
@@ -1729,24 +1876,30 @@ RilObject.prototype = {
       return;
     }
 
-    let Buf = this.context.Buf;
     if (this._isCdma) {
       options.featureStr = "";
       this.sendCdmaFlashCommand(options);
     } else {
-      Buf.newParcel(REQUEST_SEPARATE_CONNECTION, options);
-      Buf.writeInt32(1);
-      Buf.writeInt32(options.callIndex);
-      Buf.sendParcel();
+      this.telephonyRequestQueue.push(REQUEST_SEPARATE_CONNECTION,
+                                     this.sendRilRequestSeparateConnection,
+                                     options);
     }
  },
+
+  sendRilRequestSeparateConnection: function(options) {
+    let Buf = this.context.Buf;
+    Buf.newParcel(REQUEST_SEPARATE_CONNECTION, options);
+    Buf.writeInt32(1);
+    Buf.writeInt32(options.callIndex);
+    Buf.sendParcel();
+  },
 
   holdConference: function() {
     if (this._isCdma) {
       return;
     }
 
-    this.context.Buf.simpleRequest(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE);
+    this.sendSwitchWaitingRequest();
   },
 
   resumeConference: function() {
@@ -1754,7 +1907,7 @@ RilObject.prototype = {
       return;
     }
 
-    this.context.Buf.simpleRequest(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE);
+    this.sendSwitchWaitingRequest();
   },
 
   /**
@@ -2113,9 +2266,6 @@ RilObject.prototype = {
     Buf.writeString(options.cid);
     Buf.writeString(options.reason || DATACALL_DEACTIVATE_NO_REASON);
     Buf.sendParcel();
-
-    datacall.state = GECKO_NETWORK_STATE_DISCONNECTING;
-    this.sendChromeMessage(datacall);
   },
 
   /**
@@ -2601,7 +2751,7 @@ RilObject.prototype = {
    * Queries current call forward rules.
    *
    * @param reason
-   *        One of nsIDOMMozMobileCFInfo.CALL_FORWARD_REASON_* constants.
+   *        One of CALL_FORWARD_REASON_* constants.
    * @param serviceClass
    *        One of ICC_SERVICE_CLASS_* constants.
    * @param number
@@ -2624,9 +2774,9 @@ RilObject.prototype = {
    * Configures call forward rule.
    *
    * @param action
-   *        One of nsIDOMMozMobileCFInfo.CALL_FORWARD_ACTION_* constants.
+   *        One of CALL_FORWARD_ACTION_* constants.
    * @param reason
-   *        One of nsIDOMMozMobileCFInfo.CALL_FORWARD_REASON_* constants.
+   *        One of CALL_FORWARD_REASON_* constants.
    * @param serviceClass
    *        One of ICC_SERVICE_CLASS_* constants.
    * @param number
@@ -2650,7 +2800,7 @@ RilObject.prototype = {
    * Queries current call barring rules.
    *
    * @param program
-   *        One of nsIDOMMozMobileConnection.CALL_BARRING_PROGRAM_* constants.
+   *        One of CALL_BARRING_PROGRAM_* constants.
    * @param serviceClass
    *        One of ICC_SERVICE_CLASS_* constants.
    */
@@ -2664,7 +2814,7 @@ RilObject.prototype = {
    * Configures call barring rule.
    *
    * @param program
-   *        One of nsIDOMMozMobileConnection.CALL_BARRING_PROGRAM_* constants.
+   *        One of CALL_BARRING_PROGRAM_* constants.
    * @param enabled
    *        Enable or disable the call barring.
    * @param password
@@ -3212,7 +3362,14 @@ RilObject.prototype = {
                                iccStatus.gsmUmtsSubscriptionAppIndex;
 
     if (RILQUIRKS_SUBSCRIPTION_CONTROL && index === -1) {
-      // Should enable uicc scription.
+      // Should enable uicc scription if index is not valid.
+      if (this.radioState !== GECKO_RADIOSTATE_READY) {
+        // Note: setUiccSubscription works abnormally when RADIO is OFF,
+        // which causes SMS function broken in Flame.
+        // See bug 1008557 for detailed info.
+        return;
+      }
+
       for (let i = 0; i < iccStatus.apps.length; i++) {
         this.setUiccSubscription({appIndex: i, enabled: true});
       }
@@ -3774,17 +3931,11 @@ RilObject.prototype = {
   _processCalls: function(newCalls) {
     let conferenceChanged = false;
     let clearConferenceRequest = false;
-    let pendingOutgoingCall = null;
 
     // Go through the calls we currently have on file and see if any of them
     // changed state. Remove them from the newCalls map as we deal with them
     // so that only new calls remain in the map after we're done.
     for each (let currentCall in this.currentCalls) {
-      if (currentCall.callIndex == OUTGOING_PLACEHOLDER_CALL_INDEX) {
-        pendingOutgoingCall = currentCall;
-        continue;
-      }
-
       let newCall;
       if (newCalls) {
         newCall = newCalls[currentCall.callIndex];
@@ -3888,14 +4039,30 @@ RilObject.prototype = {
       }
     }
 
-    if (pendingOutgoingCall) {
-      if (!newCalls || Object.keys(newCalls).length === 0) {
-        // We don't get a successful call for pendingOutgoingCall.
-        this._removePendingOutgoingCall(GECKO_CALL_ERROR_UNSPECIFIED);
+    // We have a successful dialing request. Check whether we could find a new
+    // call for it.
+    if (this.pendingMO) {
+      let options = this.pendingMO.options;
+      this.pendingMO = null;
+
+      // Find the callIndex of the new outgoing call.
+      let callIndex = -1;
+      for (let i in newCalls) {
+        if (newCalls[i].state !== CALL_STATE_INCOMING) {
+          callIndex = newCalls[i].callIndex;
+          break;
+        }
+      }
+
+      if (callIndex === -1) {
+        // The call doesn't exist.
+        options.success = false;
+        options.errorMsg = GECKO_CALL_ERROR_UNSPECIFIED;
+        this.sendChromeMessage(options);
       } else {
-        // Only remove it from currentCalls map. Will use the new call to
-        // replace the placeholder.
-        delete this.currentCalls[OUTGOING_PLACEHOLDER_CALL_INDEX];
+        options.success = true;
+        options.callIndex = callIndex;
+        this.sendChromeMessage(options);
       }
     }
 
@@ -3909,19 +4076,8 @@ RilObject.prototype = {
         conferenceChanged = true;
       }
 
-      if (this._hasHangUpPendingOutgoingCall &&
-          (newCall.state === CALL_STATE_DIALING ||
-           newCall.state === CALL_STATE_ALERTING)) {
-        // Receive a new outgoing call which is already hung up by user.
-        if (DEBUG) this.context.debug("Pending outgoing call is hung up by user.");
-        this._hasHangUpPendingOutgoingCall = false;
-        this.sendHangUpRequest(newCall.callIndex);
-      } else {
-        this._addNewVoiceCall(newCall);
-      }
+      this._addNewVoiceCall(newCall);
     }
-
-    this._hasHangUpPendingOutgoingCall = false;
 
     if (clearConferenceRequest) {
       this._hasConferenceRequest = false;
@@ -3980,25 +4136,6 @@ RilObject.prototype = {
         }).bind(this, removedCall));
       }
     }
-  },
-
-  _createPendingOutgoingCall: function(options) {
-    if (DEBUG) this.context.debug("Create a pending outgoing call.");
-    this._addNewVoiceCall({
-      number: options.number,
-      state: CALL_STATE_DIALING,
-      callIndex: OUTGOING_PLACEHOLDER_CALL_INDEX
-    });
-  },
-
-  _removePendingOutgoingCall: function(failCause) {
-    let call = this.currentCalls[OUTGOING_PLACEHOLDER_CALL_INDEX];
-    if (!call) {
-      return;
-    }
-
-    if (DEBUG) this.context.debug("Remove pending outgoing call.");
-    this._removeVoiceCall(call, failCause);
   },
 
   _ensureConference: function() {
@@ -4136,14 +4273,6 @@ RilObject.prototype = {
           currentDataCall.rilMessageType = "datacallstatechange";
           this.sendChromeMessage(currentDataCall);
         }
-        continue;
-      }
-
-      if (updatedDataCall && !updatedDataCall.ifname) {
-        delete this.currentDataCalls[currentDataCall.cid];
-        currentDataCall.state = GECKO_NETWORK_STATE_UNKNOWN;
-        currentDataCall.rilMessageType = "datacallstatechange";
-        this.sendChromeMessage(currentDataCall);
         continue;
       }
 
@@ -4296,6 +4425,19 @@ RilObject.prototype = {
                    active: active,
                    timeoutMs: EMERGENCY_CB_MODE_TIMEOUT_MS};
     this.sendChromeMessage(message);
+  },
+
+  _updateNetworkSelectionMode: function(mode) {
+    if (this.networkSelectionMode === mode) {
+      return;
+    }
+
+    let options = {
+      rilMessageType: "networkselectionmodechange",
+      mode: mode
+    };
+    this.networkSelectionMode = mode;
+    this._sendNetworkInfoMessage(NETWORK_INFO_NETWORK_SELECTION_MODE, options);
   },
 
   _processNetworks: function() {
@@ -5271,6 +5413,10 @@ RilObject.prototype = {
       if (DEBUG) this.context.debug("Handling parcel as " + method.name);
       method.call(this, length, options);
     }
+
+    if (this.telephonyRequestQueue.isValidRequest(request_type)) {
+      this.telephonyRequestQueue.pop(request_type);
+    }
   }
 };
 
@@ -5340,9 +5486,15 @@ RilObject.prototype[REQUEST_ENTER_NETWORK_DEPERSONALIZATION_CODE] =
   this._processEnterAndChangeICCResponses(length, options);
 };
 RilObject.prototype[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length, options) {
-  if (options.rilRequestError) {
+  // Retry getCurrentCalls several times when error occurs.
+  if (options.rilRequestError &&
+      this._getCurrentCallsRetryCount < GET_CURRENT_CALLS_RETRY_MAX) {
+    this._getCurrentCallsRetryCount++;
+    this.getCurrentCalls();
     return;
   }
+
+  this._getCurrentCallsRetryCount = 0;
 
   let Buf = this.context.Buf;
   let calls_length = 0;
@@ -5397,15 +5549,19 @@ RilObject.prototype[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CA
   this._processCalls(calls);
 };
 RilObject.prototype[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
-  // We already return a successful response before. Don't respond it again!
-  if (options.rilRequestError) {
-    this.getFailCauseCode((function(failCause) {
-      this._removePendingOutgoingCall(failCause);
-      this._hasHangUpPendingOutgoingCall = false;
-    }).bind(this));
+  if (options.rilRequestError === 0) {
+    this.pendingMO = {options: options};
+  } else {
+    this.getFailCauseCode((function(options, failCause) {
+      options.success = false;
+      options.errorMsg = failCause;
+      this.sendChromeMessage(options);
+    }).bind(this, options));
   }
 };
-RilObject.prototype[REQUEST_DIAL_EMERGENCY_CALL] = RilObject.prototype[REQUEST_DIAL];
+RilObject.prototype[REQUEST_DIAL_EMERGENCY_CALL] = function REQUEST_DIAL_EMERGENCY_CALL(length, options) {
+  RilObject.prototype[REQUEST_DIAL](length, options);
+};
 RilObject.prototype[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length, options) {
   if (options.rilRequestError) {
     return;
@@ -5434,6 +5590,7 @@ RilObject.prototype[REQUEST_HANGUP_WAITING_OR_BACKGROUND] = function REQUEST_HAN
 
   this.getCurrentCalls();
 };
+// TODO Bug 1012599: This one is not used.
 RilObject.prototype[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND(length, options) {
   if (options.rilRequestError) {
     return;
@@ -5442,14 +5599,10 @@ RilObject.prototype[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQU
   this.getCurrentCalls();
 };
 RilObject.prototype[REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE(length, options) {
-  options.success = (options.rilRequestError === 0);
-  if (!options.success) {
-    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-    this.sendChromeMessage(options);
+  if (options.rilRequestError) {
     return;
   }
 
-  this.sendChromeMessage(options);
   this.getCurrentCalls();
 };
 RilObject.prototype[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, options) {
@@ -5464,7 +5617,8 @@ RilObject.prototype[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, op
 
   this.sendChromeMessage(options);
 };
-RilObject.prototype[REQUEST_UDUB] = null;
+RilObject.prototype[REQUEST_UDUB] = function REQUEST_UDUB(length, options) {
+};
 RilObject.prototype[REQUEST_LAST_CALL_FAIL_CAUSE] = function REQUEST_LAST_CALL_FAIL_CAUSE(length, options) {
   let Buf = this.context.Buf;
   let num = length ? Buf.readInt32() : 0;
@@ -5781,7 +5935,7 @@ RilObject.prototype[REQUEST_QUERY_CALL_FORWARD_STATUS] =
   if (options.rilMessageType === "sendMMI") {
     options.statusMessage = MMI_SM_KS_SERVICE_INTERROGATED;
     // MMI query call forwarding options request returns a set of rules that
-    // will be exposed in the form of an array of nsIDOMMozMobileCFInfo
+    // will be exposed in the form of an array of MozCallForwardingOptions
     // instances.
     options.additionalInformation = rules;
   }
@@ -5870,7 +6024,8 @@ RilObject.prototype[REQUEST_GET_IMEISV] = function REQUEST_GET_IMEISV(length, op
 
   this.IMEISV = this.context.Buf.readString();
 };
-RilObject.prototype[REQUEST_ANSWER] = null;
+RilObject.prototype[REQUEST_ANSWER] = function REQUEST_ANSWER(length, options) {
+};
 RilObject.prototype[REQUEST_DEACTIVATE_DATA_CALL] = function REQUEST_DEACTIVATE_DATA_CALL(length, options) {
   if (options.rilRequestError) {
     return;
@@ -5878,7 +6033,7 @@ RilObject.prototype[REQUEST_DEACTIVATE_DATA_CALL] = function REQUEST_DEACTIVATE_
 
   let datacall = this.currentDataCalls[options.cid];
   delete this.currentDataCalls[options.cid];
-  datacall.state = GECKO_NETWORK_STATE_UNKNOWN;
+  datacall.state = GECKO_NETWORK_STATE_DISCONNECTED;
   datacall.rilMessageType = "datacallstatechange";
   this.sendChromeMessage(datacall);
 };
@@ -6012,15 +6167,13 @@ RilObject.prototype[REQUEST_QUERY_NETWORK_SELECTION_MODE] = function REQUEST_QUE
       break;
   }
 
-  if (this.networkSelectionMode != selectionMode) {
-    this.networkSelectionMode = options.mode = selectionMode;
-    options.rilMessageType = "networkselectionmodechange";
-    this._sendNetworkInfoMessage(NETWORK_INFO_NETWORK_SELECTION_MODE, options);
-  }
+  this._updateNetworkSelectionMode(selectionMode);
 };
 RilObject.prototype[REQUEST_SET_NETWORK_SELECTION_AUTOMATIC] = function REQUEST_SET_NETWORK_SELECTION_AUTOMATIC(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  } else {
+    this._updateNetworkSelectionMode(GECKO_NETWORK_SELECTION_AUTOMATIC);
   }
 
   this.sendChromeMessage(options);
@@ -6028,6 +6181,8 @@ RilObject.prototype[REQUEST_SET_NETWORK_SELECTION_AUTOMATIC] = function REQUEST_
 RilObject.prototype[REQUEST_SET_NETWORK_SELECTION_MANUAL] = function REQUEST_SET_NETWORK_SELECTION_MANUAL(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  } else {
+    this._updateNetworkSelectionMode(GECKO_NETWORK_SELECTION_MANUAL);
   }
 
   this.sendChromeMessage(options);
@@ -6217,31 +6372,20 @@ RilObject.prototype[REQUEST_STK_SEND_TERMINAL_RESPONSE] = null;
 RilObject.prototype[REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM] = null;
 RilObject.prototype[REQUEST_EXPLICIT_CALL_TRANSFER] = null;
 RilObject.prototype[REQUEST_SET_PREFERRED_NETWORK_TYPE] = function REQUEST_SET_PREFERRED_NETWORK_TYPE(length, options) {
-  if (options.networkType == null) {
-    // The request was made by ril_worker itself automatically. Don't report.
-    return;
-  }
-
   if (options.rilRequestError) {
-    options.success = false;
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-  } else {
-    options.success = true;
   }
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_GET_PREFERRED_NETWORK_TYPE] = function REQUEST_GET_PREFERRED_NETWORK_TYPE(length, options) {
   if (options.rilRequestError) {
-    options.success = false;
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     this.sendChromeMessage(options);
     return;
   }
 
-  let results = this.context.Buf.readInt32List();
-  options.networkType = this.preferredNetworkType = results[0];
-  options.success = true;
-
+  let networkType = this.context.Buf.readInt32List()[0];
+  options.type = RIL_PREFERRED_NETWORK_TYPE_TO_GECKO[networkType];
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_GET_NEIGHBORING_CELL_IDS] = null;
@@ -6409,7 +6553,12 @@ RilObject.prototype[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TEC
   let radioTech = this.context.Buf.readInt32List();
   this._processRadioTech(radioTech[0]);
 };
-RilObject.prototype[REQUEST_SET_UICC_SUBSCRIPTION] = null;
+RilObject.prototype[REQUEST_SET_UICC_SUBSCRIPTION] = function REQUEST_SET_UICC_SUBSCRIPTION(length, options) {
+  // Resend data subscription after uicc subscription.
+  if (this._attachDataRegistration) {
+    this.setDataRegistration({attach: true});
+  }
+};
 RilObject.prototype[REQUEST_SET_DATA_SUBSCRIPTION] = null;
 RilObject.prototype[REQUEST_GET_UICC_SUBSCRIPTION] = null;
 RilObject.prototype[REQUEST_GET_DATA_SUBSCRIPTION] = null;
@@ -6480,7 +6629,6 @@ RilObject.prototype[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLIC
     }
     this.getBasebandVersion();
     this.updateCellBroadcastConfig();
-    this.setPreferredNetworkType();
     if ((RILQUIRKS_DATA_REGISTRATION_ON_DEMAND ||
          RILQUIRKS_SUBSCRIPTION_CONTROL) &&
         this._attachDataRegistration) {
@@ -11616,6 +11764,7 @@ ICCFileHelperObject.prototype = {
       case ICC_EF_ICCID:
         return EF_PATH_MF_SIM;
       case ICC_EF_ADN:
+      case ICC_EF_SDN: // Fall through.
         return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM;
       case ICC_EF_PBR:
         return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM + EF_PATH_DF_PHONEBOOK;
@@ -12669,9 +12818,17 @@ SimRecordHelperObject.prototype = {
 
       let ICCUtilsHelper = this.context.ICCUtilsHelper;
       let RIL = this.context.RIL;
+      // TS 31.102, clause 4.2.18 EFAD
+      let mncLength = 0;
+      if (ad && ad[3]) {
+        mncLength = ad[3] & 0x0f;
+        if (mncLength != 0x02 && mncLength != 0x03) {
+           mncLength = 0;
+        }
+      }
       // The 4th byte of the response is the length of MNC.
       let mccMnc = ICCUtilsHelper.parseMccMncFromImsi(RIL.iccInfoPrivate.imsi,
-                                                      ad && ad[3]);
+                                                      mncLength);
       if (mccMnc) {
         RIL.iccInfo.mcc = mccMnc.mcc;
         RIL.iccInfo.mnc = mccMnc.mnc;
@@ -14008,6 +14165,7 @@ ICCUtilsHelperObject.prototype = {
    *        The imsi of icc.
    * @param mncLength [optional]
    *        The length of mnc.
+   *        Zero indicates we haven't got a valid mnc length.
    *
    * @return An object contains the parsing result of mcc and mnc.
    *         Or null if any error occurred.
@@ -14020,9 +14178,16 @@ ICCUtilsHelperObject.prototype = {
     // MCC is the first 3 digits of IMSI.
     let mcc = imsi.substr(0,3);
     if (!mncLength) {
-      // Check the MCC table to decide the length of MNC.
-      let index = MCC_TABLE_FOR_MNC_LENGTH_IS_3.indexOf(mcc);
-      mncLength = (index !== -1) ? 3 : 2;
+      // Check the MCC/MNC table for MNC length = 3 first for the case we don't
+      // have the 4th byte data from EF_AD.
+      if (PLMN_HAVING_3DIGITS_MNC[mcc] &&
+          PLMN_HAVING_3DIGITS_MNC[mcc].indexOf(imsi.substr(3, 3)) !== -1) {
+        mncLength = 3;
+      } else {
+        // Check the MCC table to decide the length of MNC.
+        let index = MCC_TABLE_FOR_MNC_LENGTH_IS_3.indexOf(mcc);
+        mncLength = (index !== -1) ? 3 : 2;
+      }
     }
     let mnc = imsi.substr(3, mncLength);
     if (DEBUG) {
@@ -14080,6 +14245,9 @@ ICCContactHelperObject.prototype = {
         break;
       case "fdn":
         ICCRecordHelper.readADNLike(ICC_EF_FDN, onsuccess, onerror);
+        break;
+      case "sdn":
+        ICCRecordHelper.readADNLike(ICC_EF_SDN, onsuccess, onerror);
         break;
       default:
         if (DEBUG) {
@@ -14749,6 +14917,10 @@ let ContextPool = {
     RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD = quirks.sendStkProfileDownload;
     RILQUIRKS_DATA_REGISTRATION_ON_DEMAND = quirks.dataRegistrationOnDemand;
     RILQUIRKS_SUBSCRIPTION_CONTROL = quirks.subscriptionControl;
+  },
+
+  setDebugFlag: function(aOptions) {
+    DEBUG = DEBUG_WORKER || aOptions.debug;
   },
 
   registerClient: function(aOptions) {

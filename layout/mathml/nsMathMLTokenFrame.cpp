@@ -92,59 +92,41 @@ nsMathMLTokenFrame::MarkTextFramesAsTokenMathML()
   }
 }
 
-nsresult
+void
 nsMathMLTokenFrame::SetInitialChildList(ChildListID     aListID,
                                         nsFrameList&    aChildList)
 {
   // First, let the base class do its work
-  nsresult rv = nsMathMLContainerFrame::SetInitialChildList(aListID, aChildList);
-  if (NS_FAILED(rv))
-    return rv;
-
+  nsMathMLContainerFrame::SetInitialChildList(aListID, aChildList);
   MarkTextFramesAsTokenMathML();
-
-  return rv;
 }
 
-nsresult
+void
 nsMathMLTokenFrame::AppendFrames(ChildListID aListID,
                                  nsFrameList& aChildList)
 {
-  nsresult rv = nsMathMLContainerFrame::AppendFrames(aListID, aChildList);
-  if (NS_FAILED(rv))
-    return rv;
-
+  nsMathMLContainerFrame::AppendFrames(aListID, aChildList);
   MarkTextFramesAsTokenMathML();
-
-  return rv;
 }
 
-nsresult
+void
 nsMathMLTokenFrame::InsertFrames(ChildListID aListID,
                                  nsIFrame* aPrevFrame,
                                  nsFrameList& aChildList)
 {
-  nsresult rv = nsMathMLContainerFrame::InsertFrames(aListID, aPrevFrame,
-                                                     aChildList);
-  if (NS_FAILED(rv))
-    return rv;
-
+  nsMathMLContainerFrame::InsertFrames(aListID, aPrevFrame, aChildList);
   MarkTextFramesAsTokenMathML();
-
-  return rv;
 }
 
-nsresult
+void
 nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
-  nsresult rv = NS_OK;
-
   // initializations needed for empty markup like <mtag></mtag>
   aDesiredSize.Width() = aDesiredSize.Height() = 0;
-  aDesiredSize.SetTopAscent(0);
+  aDesiredSize.SetBlockStartAscent(0);
   aDesiredSize.mBoundingMetrics = nsBoundingMetrics();
 
   nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
@@ -156,28 +138,20 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
                                          | NS_REFLOW_CALC_BOUNDING_METRICS);
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
-    rv = ReflowChild(childFrame, aPresContext, childDesiredSize,
-                     childReflowState, aStatus);
+    ReflowChild(childFrame, aPresContext, childDesiredSize,
+                childReflowState, aStatus);
     //NS_ASSERTION(NS_FRAME_IS_COMPLETE(aStatus), "bad status");
-    if (NS_FAILED(rv)) {
-      // Call DidReflow() for the child frames we successfully did reflow.
-      DidReflowChildren(GetFirstPrincipalChild(), childFrame);
-      return rv;
-    }
-
     SaveReflowAndBoundingMetricsFor(childFrame, childDesiredSize,
                                     childDesiredSize.mBoundingMetrics);
 
     childFrame = childFrame->GetNextSibling();
   }
 
-
   // place and size children
   FinalizeReflow(*aReflowState.rendContext, aDesiredSize);
 
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return NS_OK;
 }
 
 // For token elements, mBoundingMetrics is computed at the ReflowToken
@@ -205,8 +179,8 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
 
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
   aDesiredSize.Width() = mBoundingMetrics.width;
-  aDesiredSize.SetTopAscent(std::max(mBoundingMetrics.ascent, ascent));
-  aDesiredSize.Height() = aDesiredSize.TopAscent() +
+  aDesiredSize.SetBlockStartAscent(std::max(mBoundingMetrics.ascent, ascent));
+  aDesiredSize.Height() = aDesiredSize.BlockStartAscent() +
                         std::max(mBoundingMetrics.descent, descent);
 
   if (aPlaceOrigin) {
@@ -218,13 +192,13 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
                                      childSize.mBoundingMetrics);
 
       // place and size the child; (dx,0) makes the caret happy - bug 188146
-      dy = childSize.Height() == 0 ? 0 : aDesiredSize.TopAscent() - childSize.TopAscent();
+      dy = childSize.Height() == 0 ? 0 : aDesiredSize.BlockStartAscent() - childSize.BlockStartAscent();
       FinishReflowChild(childFrame, PresContext(), childSize, nullptr, dx, dy, 0);
       dx += childSize.Width();
     }
   }
 
-  SetReference(nsPoint(0, aDesiredSize.TopAscent()));
+  SetReference(nsPoint(0, aDesiredSize.BlockStartAscent()));
 
   return NS_OK;
 }

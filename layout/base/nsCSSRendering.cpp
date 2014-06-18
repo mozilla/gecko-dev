@@ -31,6 +31,7 @@
 #include "nsCSSRendering.h"
 #include "nsCSSColorUtils.h"
 #include "nsITheme.h"
+#include "nsThemeConstants.h"
 #include "nsLayoutUtils.h"
 #include "nsBlockFrame.h"
 #include "gfxContext.h"
@@ -575,7 +576,9 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
                             nsStyleContext* aStyleContext,
                             int aSkipSides)
 {
-  PROFILER_LABEL("nsCSSRendering", "PaintBorder");
+  PROFILER_LABEL("nsCSSRendering", "PaintBorder",
+    js::ProfileEntry::Category::GRAPHICS);
+
   nsStyleContext *styleIfVisited = aStyleContext->GetStyleIfVisited();
   const nsStyleBorder *styleBorder = aStyleContext->StyleBorder();
   // Don't check RelevantLinkVisited here, since we want to take the
@@ -766,11 +769,14 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
 
   // Get our style context's color struct.
   const nsStyleOutline* ourOutline = aStyleContext->StyleOutline();
+  MOZ_ASSERT(ourOutline != NS_STYLE_BORDER_STYLE_NONE,
+             "shouldn't have created nsDisplayOutline item");
 
+  uint8_t outlineStyle = ourOutline->GetOutlineStyle();
   nscoord width;
   ourOutline->GetOutlineWidth(width);
 
-  if (width == 0) {
+  if (width == 0 && outlineStyle != NS_STYLE_BORDER_STYLE_AUTO) {
     // Empty outline
     return;
   }
@@ -821,11 +827,24 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   gfxCornerSizes outlineRadii;
   ComputePixelRadii(twipsRadii, twipsPerPixel, &outlineRadii);
 
-  uint8_t outlineStyle = ourOutline->GetOutlineStyle();
-  uint8_t outlineStyles[4] = { outlineStyle,
-                               outlineStyle,
-                               outlineStyle,
-                               outlineStyle };
+  if (outlineStyle == NS_STYLE_BORDER_STYLE_AUTO) {
+    nsITheme* theme = aPresContext->GetTheme();
+    if (theme && theme->ThemeSupportsWidget(aPresContext, aForFrame,
+                                            NS_THEME_FOCUS_OUTLINE)) {
+      theme->DrawWidgetBackground(&aRenderingContext, aForFrame,
+                                  NS_THEME_FOCUS_OUTLINE, innerRect,
+                                  aDirtyRect);
+      return;
+    } else if (width == 0) {
+      return; // empty outline
+    }
+    // http://dev.w3.org/csswg/css-ui/#outline
+    // "User agents may treat 'auto' as 'solid'."
+    outlineStyle = NS_STYLE_BORDER_STYLE_SOLID;
+  }
+
+  uint8_t outlineStyles[4] = { outlineStyle, outlineStyle,
+                               outlineStyle, outlineStyle };
 
   // This handles treating the initial color as 'currentColor'; if we
   // ever want 'invert' back we'll need to do a bit of work here too.
@@ -1551,7 +1570,9 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
                                 nsRect* aBGClipRect,
                                 int32_t aLayer)
 {
-  PROFILER_LABEL("nsCSSRendering", "PaintBackground");
+  PROFILER_LABEL("nsCSSRendering", "PaintBackground",
+    js::ProfileEntry::Category::GRAPHICS);
+
   NS_PRECONDITION(aForFrame,
                   "Frame is expected to be provided to PaintBackground");
 
@@ -1581,14 +1602,17 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
 }
 
 void
-nsCSSRendering::PaintBackgroundColor(nsPresContext* aPresContext,
+nsCSSRendering::PaintBackgroundColor(gfxRGBA aColor,
+                                     nsPresContext* aPresContext,
                                      nsRenderingContext& aRenderingContext,
                                      nsIFrame* aForFrame,
                                      const nsRect& aDirtyRect,
                                      const nsRect& aBorderArea,
                                      uint32_t aFlags)
 {
-  PROFILER_LABEL("nsCSSRendering", "PaintBackgroundColor");
+  PROFILER_LABEL("nsCSSRendering", "PaintBackgroundColor",
+    js::ProfileEntry::Category::GRAPHICS);
+
   NS_PRECONDITION(aForFrame,
                   "Frame is expected to be provided to PaintBackground");
 
@@ -1611,7 +1635,7 @@ nsCSSRendering::PaintBackgroundColor(nsPresContext* aPresContext,
     sc = aForFrame->StyleContext();
   }
 
-  PaintBackgroundColorWithSC(aPresContext, aRenderingContext, aForFrame,
+  PaintBackgroundColorWithSC(aColor, aPresContext, aRenderingContext, aForFrame,
                              aDirtyRect, aBorderArea, sc,
                              *aForFrame->StyleBorder(), aFlags);
 }
@@ -2156,6 +2180,68 @@ FindTileStart(nscoord aDirtyCoord, nscoord aTilePos, nscoord aTileDim)
   return NSToCoordRound(multiples*aTileDim + aTilePos);
 }
 
+static gfxFloat
+LinearGradientStopPositionForPoint(const gfxPoint& aGradientStart,
+                                   const gfxPoint& aGradientEnd,
+                                   const gfxPoint& aPoint)
+{
+  gfxPoint d = aGradientEnd - aGradientStart;
+  gfxPoint p = aPoint - aGradientStart;
+  /**
+   * Compute a parameter t such that a line perpendicular to the
+   * d vector, passing through aGradientStart + d*t, also
+   * passes through aPoint.
+   *
+   * t is given by
+   *   (p.x - d.x*t)*d.x + (p.y - d.y*t)*d.y = 0
+   *
+   * Solving for t we get
+   *   numerator = d.x*p.x + d.y*p.y
+   *   denominator = d.x^2 + d.y^2
+   *   t = numerator/denominator
+   *
+   * In nsCSSRendering::PaintGradient we know the length of d
+   * is not zero.
+   */
+  double numerator = d.x * p.x + d.y * p.y;
+  double denominator = d.x * d.x + d.y * d.y;
+  return numerator / denominator;
+}
+
+static bool
+RectIsBeyondLinearGradientEdge(const gfxRect& aRect,
+                               const gfxMatrix& aPatternMatrix,
+                               const nsTArray<ColorStop>& aStops,
+                               const gfxPoint& aGradientStart,
+                               const gfxPoint& aGradientEnd,
+                               gfxRGBA* aOutEdgeColor)
+{
+  gfxFloat topLeft = LinearGradientStopPositionForPoint(
+    aGradientStart, aGradientEnd, aPatternMatrix.Transform(aRect.TopLeft()));
+  gfxFloat topRight = LinearGradientStopPositionForPoint(
+    aGradientStart, aGradientEnd, aPatternMatrix.Transform(aRect.TopRight()));
+  gfxFloat bottomLeft = LinearGradientStopPositionForPoint(
+    aGradientStart, aGradientEnd, aPatternMatrix.Transform(aRect.BottomLeft()));
+  gfxFloat bottomRight = LinearGradientStopPositionForPoint(
+    aGradientStart, aGradientEnd, aPatternMatrix.Transform(aRect.BottomRight()));
+
+  const ColorStop& firstStop = aStops[0];
+  if (topLeft < firstStop.mPosition && topRight < firstStop.mPosition &&
+      bottomLeft < firstStop.mPosition && bottomRight < firstStop.mPosition) {
+    *aOutEdgeColor = firstStop.mColor;
+    return true;
+  }
+
+  const ColorStop& lastStop = aStops.LastElement();
+  if (topLeft >= lastStop.mPosition && topRight >= lastStop.mPosition &&
+      bottomLeft >= lastStop.mPosition && bottomRight >= lastStop.mPosition) {
+    *aOutEdgeColor = lastStop.mColor;
+    return true;
+  }
+
+  return false;
+}
+
 void
 nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
                               nsRenderingContext& aRenderingContext,
@@ -2166,7 +2252,9 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
                               const CSSIntRect& aSrc,
                               const nsSize& aIntrinsicSize)
 {
-  PROFILER_LABEL("nsCSSRendering", "PaintGradient");
+  PROFILER_LABEL("nsCSSRendering", "PaintGradient",
+    js::ProfileEntry::Category::GRAPHICS);
+
   Telemetry::AutoTimer<Telemetry::GRADIENT_DURATION, Telemetry::Microsecond> gradientTimer;
   if (aDest.IsEmpty() || aFillArea.IsEmpty()) {
     return;
@@ -2362,11 +2450,13 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   nsRefPtr<gfxPattern> gradientPattern;
   bool forceRepeatToCoverTiles = false;
   gfxMatrix matrix;
+  gfxPoint gradientStart;
+  gfxPoint gradientEnd;
   if (aGradient->mShape == NS_STYLE_GRADIENT_SHAPE_LINEAR) {
     // Compute the actual gradient line ends we need to pass to cairo after
     // stops have been normalized.
-    gfxPoint gradientStart = lineStart + (lineEnd - lineStart)*stopOrigin;
-    gfxPoint gradientEnd = lineStart + (lineEnd - lineStart)*stopEnd;
+    gradientStart = lineStart + (lineEnd - lineStart)*stopOrigin;
+    gradientEnd = lineStart + (lineEnd - lineStart)*stopEnd;
     gfxPoint gradientStopStart = lineStart + (lineEnd - lineStart)*firstStop;
     gfxPoint gradientStopEnd = lineStart + (lineEnd - lineStart)*lastStop;
 
@@ -2488,6 +2578,9 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
 
   gfxRect areaToFill =
     nsLayoutUtils::RectToGfxRect(aFillArea, appUnitsPerDevPixel);
+  gfxRect dirtyAreaToFill = nsLayoutUtils::RectToGfxRect(dirty, appUnitsPerDevPixel);
+  dirtyAreaToFill.RoundOut();
+
   gfxMatrix ctm = ctx->CurrentMatrix();
   bool isCTMPreservingAxisAlignedRectangles = ctm.PreservesAxisAlignedRectangles();
 
@@ -2535,8 +2628,18 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
       }
       ctx->NewPath();
       ctx->Rectangle(fillRect);
-      ctx->Translate(tileRect.TopLeft());
-      ctx->SetPattern(gradientPattern);
+
+      gfxRect dirtyFillRect = fillRect.Intersect(dirtyAreaToFill);
+      gfxRect fillRectRelativeToTile = dirtyFillRect - tileRect.TopLeft();
+      gfxRGBA edgeColor;
+      if (aGradient->mShape == NS_STYLE_GRADIENT_SHAPE_LINEAR && !isRepeat &&
+          RectIsBeyondLinearGradientEdge(fillRectRelativeToTile, matrix, stops,
+                                         gradientStart, gradientEnd, &edgeColor)) {
+        ctx->SetColor(edgeColor);
+      } else {
+        ctx->Translate(tileRect.TopLeft());
+        ctx->SetPattern(gradientPattern);
+      }
       ctx->Fill();
       ctx->SetMatrix(ctm);
     }
@@ -2771,7 +2874,8 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
 }
 
 void
-nsCSSRendering::PaintBackgroundColorWithSC(nsPresContext* aPresContext,
+nsCSSRendering::PaintBackgroundColorWithSC(gfxRGBA aColor,
+                                           nsPresContext* aPresContext,
                                            nsRenderingContext& aRenderingContext,
                                            nsIFrame* aForFrame,
                                            const nsRect& aDirtyRect,
@@ -2801,11 +2905,11 @@ nsCSSRendering::PaintBackgroundColorWithSC(nsPresContext* aPresContext,
   // background colors.
   bool drawBackgroundImage;
   bool drawBackgroundColor;
-  nscolor bgColor = DetermineBackgroundColor(aPresContext,
-                                             aBackgroundSC,
-                                             aForFrame,
-                                             drawBackgroundImage,
-                                             drawBackgroundColor);
+  DetermineBackgroundColor(aPresContext,
+                           aBackgroundSC,
+                           aForFrame,
+                           drawBackgroundImage,
+                           drawBackgroundColor);
 
   NS_ASSERTION(drawBackgroundImage || drawBackgroundColor,
                "Should not be trying to paint a background if we don't have one");
@@ -2849,7 +2953,7 @@ nsCSSRendering::PaintBackgroundColorWithSC(nsPresContext* aPresContext,
                     aDirtyRect, haveRoundedCorners, bgRadii, appUnitsPerPixel,
                     &clipState);
 
-  ctx->SetColor(gfxRGBA(bgColor));
+  ctx->SetColor(aColor);
 
   gfxContextAutoSaveRestore autoSR;
   DrawBackgroundColor(clipState, ctx, haveRoundedCorners, appUnitsPerPixel);
@@ -4925,6 +5029,10 @@ nsImageRenderer::DrawBorderImageComponent(nsPresContext*       aPresContext,
     RefPtr<DrawTarget> srcSlice = gfxPlatform::GetPlatform()->
       CreateOffscreenContentDrawTarget(IntSize(srcRect.width, srcRect.height),
                              SurfaceFormat::B8G8R8A8);
+    if (!srcSlice) {
+      NS_ERROR("Could not create DrawTarget for element");
+      return;
+    }
     nsRefPtr<gfxContext> ctx = new gfxContext(srcSlice);
 
     // grab the entire source

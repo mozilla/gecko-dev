@@ -928,6 +928,7 @@ struct RuleCascadeData {
       mStateSelectors(),
       mSelectorDocumentStates(0),
       mKeyframesRuleTable(16),
+      mCounterStyleRuleTable(16),
       mCacheKey(aMedium),
       mNext(nullptr),
       mQuirksMode(aQuirksMode)
@@ -988,8 +989,10 @@ struct RuleCascadeData {
   nsTArray<nsCSSKeyframesRule*> mKeyframesRules;
   nsTArray<nsCSSFontFeatureValuesRule*> mFontFeatureValuesRules;
   nsTArray<nsCSSPageRule*> mPageRules;
+  nsTArray<nsCSSCounterStyleRule*> mCounterStyleRules;
 
   nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRuleTable;
+  nsDataHashtable<nsStringHashKey, nsCSSCounterStyleRule*> mCounterStyleRuleTable;
 
   // Looks up or creates the appropriate list in |mAttributeSelectors|.
   // Returns null only on allocation failure.
@@ -1006,6 +1009,22 @@ SizeOfSelectorsEntry(PLDHashEntryHdr* aHdr, MallocSizeOf aMallocSizeOf, void *)
 {
   AtomSelectorEntry* entry = static_cast<AtomSelectorEntry*>(aHdr);
   return entry->mSelectors.SizeOfExcludingThis(aMallocSizeOf);
+}
+
+static size_t
+SizeOfKeyframesRuleEntryExcludingThis(nsStringHashKey::KeyType aKey,
+                                      nsCSSKeyframesRule* const& aData,
+                                      mozilla::MallocSizeOf aMallocSizeOf,
+                                      void* aUserArg)
+{
+  // We don't own the nsCSSKeyframesRule objects so we don't count them. We do
+  // care about the size of the keys' nsAString members' buffers though.
+  //
+  // Note that we depend on nsStringHashKey::GetKey() returning a reference,
+  // since otherwise aKey would be a copy of the string key and we would not be
+  // measuring the right object here.
+
+  return aKey.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
 }
 
 size_t
@@ -1042,6 +1061,10 @@ RuleCascadeData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
   n += mKeyframesRules.SizeOfExcludingThis(aMallocSizeOf);
   n += mFontFeatureValuesRules.SizeOfExcludingThis(aMallocSizeOf);
   n += mPageRules.SizeOfExcludingThis(aMallocSizeOf);
+  n += mCounterStyleRules.SizeOfExcludingThis(aMallocSizeOf);
+  n += mKeyframesRuleTable.SizeOfExcludingThis(SizeOfKeyframesRuleEntryExcludingThis,
+                                               aMallocSizeOf,
+                                               nullptr);
 
   return n;
 }
@@ -1171,6 +1194,11 @@ InitSystemMetrics()
   rv = LookAndFeel::GetInt(LookAndFeel::eIntID_MacLionTheme, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(nsGkAtoms::mac_lion_theme);
+  }
+
+  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_MacYosemiteTheme, &metricResult);
+  if (NS_SUCCEEDED(rv) && metricResult) {
+    sSystemMetrics->AppendElement(nsGkAtoms::mac_yosemite_theme);
   }
 
   rv = LookAndFeel::GetInt(LookAndFeel::eIntID_DWMCompositor, &metricResult);
@@ -2754,7 +2782,7 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
   // rules we might stop matching; if the after change notification, the
   // ones we might have started matching.
   if (cascade) {
-    if (aData->mAttribute == aData->mElement->GetIDAttributeName()) {
+    if (aData->mAttribute == nsGkAtoms::id) {
       nsIAtom* id = aData->mElement->GetID();
       if (id) {
         AtomSelectorEntry *entry =
@@ -2769,7 +2797,7 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
       EnumerateSelectors(cascade->mPossiblyNegatedIDSelectors, &data);
     }
     
-    if (aData->mAttribute == aData->mElement->GetClassAttributeName()) {
+    if (aData->mAttribute == nsGkAtoms::_class) {
       const nsAttrValue* elementClasses = aData->mElement->GetClasses();
       if (elementClasses) {
         int32_t atomCount = elementClasses->GetAtomCount();
@@ -2860,6 +2888,19 @@ nsCSSRuleProcessor::KeyframesRuleForName(nsPresContext* aPresContext,
 
   if (cascade) {
     return cascade->mKeyframesRuleTable.Get(aName);
+  }
+
+  return nullptr;
+}
+
+nsCSSCounterStyleRule*
+nsCSSRuleProcessor::CounterStyleRuleForName(nsPresContext* aPresContext,
+                                            const nsAString& aName)
+{
+  RuleCascadeData* cascade = GetRuleCascade(aPresContext);
+
+  if (cascade) {
+    return cascade->mCounterStyleRuleTable.Get(aName);
   }
 
   return nullptr;
@@ -3205,6 +3246,7 @@ struct CascadeEnumData {
                   nsTArray<nsCSSKeyframesRule*>& aKeyframesRules,
                   nsTArray<nsCSSFontFeatureValuesRule*>& aFontFeatureValuesRules,
                   nsTArray<nsCSSPageRule*>& aPageRules,
+                  nsTArray<nsCSSCounterStyleRule*>& aCounterStyleRules,
                   nsMediaQueryResultCacheKey& aKey,
                   uint8_t aSheetType)
     : mPresContext(aPresContext),
@@ -3212,6 +3254,7 @@ struct CascadeEnumData {
       mKeyframesRules(aKeyframesRules),
       mFontFeatureValuesRules(aFontFeatureValuesRules),
       mPageRules(aPageRules),
+      mCounterStyleRules(aCounterStyleRules),
       mCacheKey(aKey),
       mSheetType(aSheetType)
   {
@@ -3236,6 +3279,7 @@ struct CascadeEnumData {
   nsTArray<nsCSSKeyframesRule*>& mKeyframesRules;
   nsTArray<nsCSSFontFeatureValuesRule*>& mFontFeatureValuesRules;
   nsTArray<nsCSSPageRule*>& mPageRules;
+  nsTArray<nsCSSCounterStyleRule*>& mCounterStyleRules;
   nsMediaQueryResultCacheKey& mCacheKey;
   PLArenaPool mArena;
   // Hooray, a manual PLDHashTable since nsClassHashtable doesn't
@@ -3255,6 +3299,7 @@ struct CascadeEnumData {
  *  (4) add any @font-feature-value rules, in order,
  *      into data->mFontFeatureValuesRules.
  *  (5) add any @page rules, in order, into data->mPageRules.
+ *  (6) add any @counter-style rules, in order, into data->mCounterStyleRules.
  */
 static bool
 CascadeRuleEnumFunc(css::Rule* aRule, void* aData)
@@ -3317,6 +3362,13 @@ CascadeRuleEnumFunc(css::Rule* aRule, void* aData)
   else if (css::Rule::PAGE_RULE == type) {
     nsCSSPageRule* pageRule = static_cast<nsCSSPageRule*>(aRule);
     if (!data->mPageRules.AppendElement(pageRule)) {
+      return false;
+    }
+  }
+  else if (css::Rule::COUNTER_STYLE_RULE == type) {
+    nsCSSCounterStyleRule* counterStyleRule =
+      static_cast<nsCSSCounterStyleRule*>(aRule);
+    if (!data->mCounterStyleRules.AppendElement(counterStyleRule)) {
       return false;
     }
   }
@@ -3424,6 +3476,7 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
                            newCascade->mKeyframesRules,
                            newCascade->mFontFeatureValuesRules,
                            newCascade->mPageRules,
+                           newCascade->mCounterStyleRules,
                            newCascade->mCacheKey,
                            mSheetType);
       if (!data.mRulesByWeight.ops)
@@ -3460,6 +3513,13 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
              iEnd = newCascade->mKeyframesRules.Length(); i < iEnd; ++i) {
         nsCSSKeyframesRule* rule = newCascade->mKeyframesRules[i];
         newCascade->mKeyframesRuleTable.Put(rule->GetName(), rule);
+      }
+
+      // Build mCounterStyleRuleTable
+      for (nsTArray<nsCSSCounterStyleRule*>::size_type i = 0,
+           iEnd = newCascade->mCounterStyleRules.Length(); i < iEnd; ++i) {
+        nsCSSCounterStyleRule* rule = newCascade->mCounterStyleRules[i];
+        newCascade->mCounterStyleRuleTable.Put(rule->GetName(), rule);
       }
 
       // Ensure that the current one is always mRuleCascades.
@@ -3509,22 +3569,18 @@ TreeMatchContext::InitAncestors(Element *aElement)
   mAncestorFilter.mFilter = new AncestorFilter::Filter();
 
   if (MOZ_LIKELY(aElement)) {
-    MOZ_ASSERT(aElement->IsInDoc(),
-               "aElement must be in the document for the assumption that "
-               "GetParentNode() is non-null on all element ancestors of "
-               "aElement to be true");
+    MOZ_ASSERT(aElement->GetCurrentDoc() ||
+               aElement->HasFlag(NODE_IS_IN_SHADOW_TREE),
+               "aElement must be in the document or in shadow tree "
+               "for the assumption that GetParentNode() is non-null "
+               "on all element ancestors of aElement to be true");
     // Collect up the ancestors
     nsAutoTArray<Element*, 50> ancestors;
     Element* cur = aElement;
     do {
       ancestors.AppendElement(cur);
-      nsINode* parent = cur->GetParentNode();
-      if (!parent->IsElement()) {
-        break;
-      }
-
-      cur = parent->AsElement();
-    } while (true);
+      cur = cur->GetParentElementCrossingShadowRoot();
+    } while (cur);
 
     // Now push them in reverse order.
     for (uint32_t i = ancestors.Length(); i-- != 0; ) {
@@ -3545,13 +3601,8 @@ TreeMatchContext::InitStyleScopes(Element* aElement)
     Element* cur = aElement;
     do {
       ancestors.AppendElement(cur);
-      nsINode* parent = cur->GetParentNode();
-      if (!parent || !parent->IsElement()) {
-        break;
-      }
-
-      cur = parent->AsElement();
-    } while (true);
+      cur = cur->GetParentElementCrossingShadowRoot();
+    } while (cur);
 
     // Now push them in reverse order.
     for (uint32_t i = ancestors.Length(); i-- != 0; ) {
@@ -3615,10 +3666,22 @@ AncestorFilter::PopAncestor()
 void
 AncestorFilter::AssertHasAllAncestors(Element *aElement) const
 {
-  nsINode* cur = aElement->GetParentNode();
-  while (cur && cur->IsElement()) {
+  Element* cur = aElement->GetParentElementCrossingShadowRoot();
+  while (cur) {
     MOZ_ASSERT(mElements.Contains(cur));
-    cur = cur->GetParentNode();
+    cur = cur->GetParentElementCrossingShadowRoot();
+  }
+}
+
+void
+TreeMatchContext::AssertHasAllStyleScopes(Element* aElement) const
+{
+  Element* cur = aElement->GetParentElementCrossingShadowRoot();
+  while (cur) {
+    if (cur->IsScopedStyleRoot()) {
+      MOZ_ASSERT(mStyleScopes.Contains(cur));
+    }
+    cur = cur->GetParentElementCrossingShadowRoot();
   }
 }
 #endif

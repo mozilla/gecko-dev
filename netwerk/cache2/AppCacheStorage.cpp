@@ -10,7 +10,7 @@
 
 #include "nsICacheEntryDoomCallback.h"
 
-#include "nsICacheService.h"
+#include "nsCacheService.h"
 #include "nsIApplicationCache.h"
 #include "nsIApplicationCacheService.h"
 #include "nsIURI.h"
@@ -94,9 +94,9 @@ NS_IMETHODIMP AppCacheStorage::AsyncDoomURI(nsIURI *aURI, const nsACString & aId
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  // TODO - remove entry from app cache
-  // I think no one is using this...
-  return NS_ERROR_NOT_IMPLEMENTED;
+  nsRefPtr<_OldStorage> old = new _OldStorage(
+    LoadInfo(), WriteToDisk(), LookupAppCache(), true, mAppCache);
+  return old->AsyncDoomURI(aURI, aIdExtension, aCallback);
 }
 
 NS_IMETHODIMP AppCacheStorage::AsyncEvictStorage(nsICacheEntryDoomCallback* aCallback)
@@ -119,7 +119,7 @@ NS_IMETHODIMP AppCacheStorage::AsyncEvictStorage(nsICacheEntryDoomCallback* aCal
           do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = serv->EvictEntries(nsICache::STORE_OFFLINE);
+      rv = nsCacheService::GlobalInstance()->EvictEntriesInternal(nsICache::STORE_OFFLINE);
       NS_ENSURE_SUCCESS(rv, rv);
     }
     else {
@@ -131,12 +131,12 @@ NS_IMETHODIMP AppCacheStorage::AsyncEvictStorage(nsICacheEntryDoomCallback* aCal
   }
   else {
     // Discard the group
-    nsAutoCString groupID;
-    rv = mAppCache->GetGroupID(groupID);
+    nsRefPtr<_OldStorage> old = new _OldStorage(
+      LoadInfo(), WriteToDisk(), LookupAppCache(), true, mAppCache);
+    rv = old->AsyncEvictStorage(aCallback);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = appCacheService->DeactivateGroup(groupID);
-    NS_ENSURE_SUCCESS(rv, rv);
+    return NS_OK;
   }
 
   if (aCallback)
@@ -161,7 +161,7 @@ NS_IMETHODIMP AppCacheStorage::AsyncVisitStorage(nsICacheStorageVisitor* aVisito
 
   nsRefPtr<_OldVisitCallbackWrapper> cb = new _OldVisitCallbackWrapper(
     "offline", aVisitor, aVisitEntries, LoadInfo());
-  rv = serv->VisitEntries(cb);
+  rv = nsCacheService::GlobalInstance()->VisitEntriesInternal(cb);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

@@ -41,6 +41,7 @@
 #include "ScopedNSSTypes.h"
 #include "nsProxyRelease.h"
 #include "mozilla/Base64.h"
+#include "NSSCertDBTrustDomain.h"
 
 #include "nspr.h"
 #include "certdb.h"
@@ -257,6 +258,7 @@ GetKeyUsagesString(CERTCertificate* cert, nsINSSComponent* nssComponent,
 
   SECItem keyUsageItem;
   keyUsageItem.data = nullptr;
+  keyUsageItem.len = 0;
 
   SECStatus srv;
 
@@ -272,8 +274,11 @@ GetKeyUsagesString(CERTCertificate* cert, nsINSSComponent* nssComponent,
     else
       return NS_ERROR_FAILURE;
   }
+  unsigned char keyUsage = 0;
+  if (keyUsageItem.len) {
+    keyUsage = keyUsageItem.data[0];
+  }
 
-  unsigned char keyUsage = keyUsageItem.data[0];
   nsAutoString local;
   nsresult rv;
   const char16_t comma = ',';
@@ -524,32 +529,39 @@ nsNSSCertificate::GetDbKey(char** aDbKey)
 }
 
 NS_IMETHODIMP
-nsNSSCertificate::GetWindowTitle(char** aWindowTitle)
+nsNSSCertificate::GetWindowTitle(nsAString& aWindowTitle)
 {
   nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
+  if (isAlreadyShutDown()) {
     return NS_ERROR_NOT_AVAILABLE;
-
-  NS_ENSURE_ARG(aWindowTitle);
-  if (mCert) {
-    if (mCert->nickname) {
-      *aWindowTitle = PL_strdup(mCert->nickname);
-    } else {
-      *aWindowTitle = CERT_GetCommonName(&mCert->subject);
-      if (!*aWindowTitle) {
-        if (mCert->subjectName) {
-          *aWindowTitle = PL_strdup(mCert->subjectName);
-        } else if (mCert->emailAddr) {
-          *aWindowTitle = PL_strdup(mCert->emailAddr);
-        } else {
-          *aWindowTitle = PL_strdup("");
-        }
-      }
-    }
-  } else {
-    NS_ERROR("Somehow got nullptr for mCertificate in nsNSSCertificate.");
-    *aWindowTitle = nullptr;
   }
+
+  aWindowTitle.Truncate();
+
+  if (!mCert) {
+    NS_ERROR("Somehow got nullptr for mCert in nsNSSCertificate.");
+    return NS_ERROR_FAILURE;
+  }
+
+  mozilla::pkix::ScopedPtr<char, mozilla::psm::PORT_Free_string>
+    commonName(CERT_GetCommonName(&mCert->subject));
+
+  const char* titleOptions[] = {
+    mCert->nickname,
+    commonName.get(),
+    mCert->subjectName,
+    mCert->emailAddr
+  };
+
+  nsAutoCString titleOption;
+  for (size_t i = 0; i < ArrayLength(titleOptions); i++) {
+    titleOption = titleOptions[i];
+    if (titleOption.Length() > 0 && IsUTF8(titleOption)) {
+      CopyUTF8toUTF16(titleOption, aWindowTitle);
+      return NS_OK;
+    }
+  }
+
   return NS_OK;
 }
 
@@ -997,52 +1009,43 @@ nsNSSCertificate::GetSerialNumber(nsAString& _serialNumber)
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP
-nsNSSCertificate::GetSha1Fingerprint(nsAString& _sha1Fingerprint)
+nsresult
+nsNSSCertificate::GetCertificateHash(nsAString& aFingerprint, SECOidTag aHashAlg)
 {
   nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
+  if (isAlreadyShutDown()) {
     return NS_ERROR_NOT_AVAILABLE;
-
-  _sha1Fingerprint.Truncate();
-  unsigned char fingerprint[20];
-  SECItem fpItem;
-  memset(fingerprint, 0, sizeof fingerprint);
-  PK11_HashBuf(SEC_OID_SHA1, fingerprint,
-               mCert->derCert.data, mCert->derCert.len);
-  fpItem.data = fingerprint;
-  fpItem.len = SHA1_LENGTH;
-  char* fpStr = CERT_Hexify(&fpItem, 1);
-  if (fpStr) {
-    _sha1Fingerprint = NS_ConvertASCIItoUTF16(fpStr);
-    PORT_Free(fpStr);
-    return NS_OK;
   }
-  return NS_ERROR_FAILURE;
+
+  aFingerprint.Truncate();
+  Digest digest;
+  nsresult rv = digest.DigestBuf(aHashAlg, mCert->derCert.data,
+                                 mCert->derCert.len);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  // CERT_Hexify's second argument is an int that is interpreted as a boolean
+  char* fpStr = CERT_Hexify(const_cast<SECItem*>(&digest.get()), 1);
+  if (!fpStr) {
+    return NS_ERROR_FAILURE;
+  }
+
+  aFingerprint.AssignASCII(fpStr);
+  PORT_Free(fpStr);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSCertificate::GetMd5Fingerprint(nsAString& _md5Fingerprint)
+nsNSSCertificate::GetSha256Fingerprint(nsAString& aSha256Fingerprint)
 {
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
-    return NS_ERROR_NOT_AVAILABLE;
+  return GetCertificateHash(aSha256Fingerprint, SEC_OID_SHA256);
+}
 
-  _md5Fingerprint.Truncate();
-  unsigned char fingerprint[20];
-  SECItem fpItem;
-  memset(fingerprint, 0, sizeof fingerprint);
-  PK11_HashBuf(SEC_OID_MD5, fingerprint,
-               mCert->derCert.data, mCert->derCert.len);
-  fpItem.data = fingerprint;
-  fpItem.len = MD5_LENGTH;
-  char* fpStr = CERT_Hexify(&fpItem, 1);
-  if (fpStr) {
-    _md5Fingerprint = NS_ConvertASCIItoUTF16(fpStr);
-    PORT_Free(fpStr);
-    return NS_OK;
-  }
-  return NS_ERROR_FAILURE;
+NS_IMETHODIMP
+nsNSSCertificate::GetSha1Fingerprint(nsAString& _sha1Fingerprint)
+{
+  return GetCertificateHash(_sha1Fingerprint, SEC_OID_SHA1);
 }
 
 NS_IMETHODIMP
@@ -1353,70 +1356,18 @@ nsNSSCertificate::GetUsagesString(bool localOnly, uint32_t* _verified,
   NS_ENSURE_SUCCESS(rv,rv);
   _usages.Truncate();
   for (uint32_t i=0; i<tmpCount; i++) {
-    if (i>0) _usages.AppendLiteral(",");
+    if (i>0) _usages.Append(',');
     _usages.Append(tmpUsages[i]);
     nsMemory::Free(tmpUsages[i]);
   }
   return NS_OK;
 }
 
-#if defined(DEBUG_javi) || defined(DEBUG_jgmyers)
-void
-DumpASN1Object(nsIASN1Object* object, unsigned int level)
-{
-  nsAutoString dispNameU, dispValU;
-  unsigned int i;
-  nsCOMPtr<nsIMutableArray> asn1Objects;
-  nsCOMPtr<nsISupports> isupports;
-  nsCOMPtr<nsIASN1Object> currObject;
-  bool processObjects;
-  uint32_t numObjects;
-
-  for (i=0; i<level; i++)
-    printf ("  ");
-
-  object->GetDisplayName(dispNameU);
-  nsCOMPtr<nsIASN1Sequence> sequence(do_QueryInterface(object));
-  if (sequence) {
-    printf ("%s ", NS_ConvertUTF16toUTF8(dispNameU).get());
-    sequence->GetIsValidContainer(&processObjects);
-    if (processObjects) {
-      printf("\n");
-      sequence->GetASN1Objects(getter_AddRefs(asn1Objects));
-      asn1Objects->GetLength(&numObjects);
-      for (i=0; i<numObjects;i++) {
-        asn1Objects->QueryElementAt(i, NS_GET_IID(nsISupports),
-                                    getter_AddRefs(currObject));
-        DumpASN1Object(currObject, level+1);
-      }
-    } else {
-      object->GetDisplayValue(dispValU);
-      printf("= %s\n", NS_ConvertUTF16toUTF8(dispValU).get());
-    }
-  } else {
-    object->GetDisplayValue(dispValU);
-    printf("%s = %s\n",NS_ConvertUTF16toUTF8(dispNameU).get(),
-                       NS_ConvertUTF16toUTF8(dispValU).get());
-  }
-}
-#endif
-
 NS_IMETHODIMP
 nsNSSCertificate::GetASN1Structure(nsIASN1Object** aASN1Structure)
 {
-  nsNSSShutDownPreventionLock locker;
-  nsresult rv = NS_OK;
   NS_ENSURE_ARG_POINTER(aASN1Structure);
-  // First create the recursive structure os ASN1Objects
-  // which tells us the layout of the cert.
-  rv = CreateASN1Struct(aASN1Structure);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-#ifdef DEBUG_javi
-  DumpASN1Object(*aASN1Structure, 0);
-#endif
-  return rv;
+  return CreateASN1Struct(aASN1Structure);
 }
 
 NS_IMETHODIMP
@@ -1782,15 +1733,19 @@ nsNSSCertListEnumerator::GetNext(nsISupports** _retval)
   return NS_OK;
 }
 
+// NB: This serialization must match that of nsNSSCertificateFakeTransport.
 NS_IMETHODIMP
 nsNSSCertificate::Write(nsIObjectOutputStream* aStream)
 {
   NS_ENSURE_STATE(mCert);
-  nsresult rv = aStream->Write32(mCert->derCert.len);
+  nsresult rv = aStream->Write32(static_cast<uint32_t>(mCachedEVStatus));
   if (NS_FAILED(rv)) {
     return rv;
   }
-
+  rv = aStream->Write32(mCert->derCert.len);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
   return aStream->WriteByteArray(mCert->derCert.data, mCert->derCert.len);
 }
 
@@ -1799,8 +1754,23 @@ nsNSSCertificate::Read(nsIObjectInputStream* aStream)
 {
   NS_ENSURE_STATE(!mCert);
 
+  uint32_t cachedEVStatus;
+  nsresult rv = aStream->Read32(&cachedEVStatus);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  if (cachedEVStatus == static_cast<uint32_t>(ev_status_unknown)) {
+    mCachedEVStatus = ev_status_unknown;
+  } else if (cachedEVStatus == static_cast<uint32_t>(ev_status_valid)) {
+    mCachedEVStatus = ev_status_valid;
+  } else if (cachedEVStatus == static_cast<uint32_t>(ev_status_invalid)) {
+    mCachedEVStatus = ev_status_invalid;
+  } else {
+    return NS_ERROR_UNEXPECTED;
+  }
+
   uint32_t len;
-  nsresult rv = aStream->Read32(&len);
+  rv = aStream->Read32(&len);
   if (NS_FAILED(rv)) {
     return rv;
   }

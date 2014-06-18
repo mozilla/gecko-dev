@@ -22,10 +22,10 @@
 #define LOG(args...) __android_log_print(ANDROID_LOG_INFO, "SBMChild", ## args)
 #endif
 
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace layers {
+
+using namespace mozilla::gfx;
 
 // Singleton
 SharedBufferManagerChild* SharedBufferManagerChild::sSharedBufferManagerChildSingleton = nullptr;
@@ -267,8 +267,9 @@ SharedBufferManagerChild::AllocGrallocBufferNow(const IntSize& aSize,
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
   mozilla::layers::MaybeMagicGrallocBufferHandle handle;
   SendAllocateGrallocBuffer(aSize, aFormat, aUsage, &handle);
-  if (handle.type() != mozilla::layers::MaybeMagicGrallocBufferHandle::TMagicGrallocBufferHandle)
+  if (handle.type() != mozilla::layers::MaybeMagicGrallocBufferHandle::TMagicGrallocBufferHandle) {
     return false;
+  }
   *aHandle = handle.get_MagicGrallocBufferHandle().mRef;
 
   {
@@ -285,6 +286,13 @@ SharedBufferManagerChild::AllocGrallocBufferNow(const IntSize& aSize,
 void
 SharedBufferManagerChild::DeallocGrallocBuffer(const mozilla::layers::MaybeMagicGrallocBufferHandle& aBuffer)
 {
+#ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
+  NS_ASSERTION(aBuffer.type() != mozilla::layers::MaybeMagicGrallocBufferHandle::TMagicGrallocBufferHandle, "We shouldn't try to do IPC with real buffer");
+  if (aBuffer.type() != mozilla::layers::MaybeMagicGrallocBufferHandle::TGrallocBufferRef) {
+    return;
+  }
+#endif
+
   if (InSharedBufferManagerChildThread()) {
     return SharedBufferManagerChild::DeallocGrallocBufferNow(aBuffer);
   }
@@ -297,7 +305,7 @@ void
 SharedBufferManagerChild::DeallocGrallocBufferNow(const mozilla::layers::MaybeMagicGrallocBufferHandle& aBuffer)
 {
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
-  NS_ASSERTION(aBuffer.type() != mozilla::layers::MaybeMagicGrallocBufferHandle::TMagicGrallocBufferHandle, "We shouldn't trying to do IPC with real buffer");
+  NS_ASSERTION(aBuffer.type() != mozilla::layers::MaybeMagicGrallocBufferHandle::TMagicGrallocBufferHandle, "We shouldn't try to do IPC with real buffer");
 
   {
     MutexAutoLock lock(mBufferMutex);
@@ -317,7 +325,7 @@ bool SharedBufferManagerChild::RecvDropGrallocBuffer(const mozilla::layers::Mayb
 
   {
     MutexAutoLock lock(mBufferMutex);
-    NS_ASSERTION(mBuffers.count(bufferKey) != 0, "Not my buffer");
+    NS_ASSERTION(mBuffers.count(bufferKey) != 0, "No such buffer");
     mBuffers.erase(bufferKey);
   }
 #endif

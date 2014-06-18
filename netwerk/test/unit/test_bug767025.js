@@ -22,8 +22,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 const kNS_OFFLINECACHEUPDATESERVICE_CONTRACTID =
   "@mozilla.org/offlinecacheupdate-service;1";
-const kNS_CACHESERVICE_CONTRACTID =
-  "@mozilla.org/network/cache-service;1";
+const kNS_CACHESTORAGESERVICE_CONTRACTID =
+  "@mozilla.org/netwerk/cache-storage-service;1";
 const kNS_APPLICATIONCACHESERVICE_CONTRACTID =
   "@mozilla.org/network/application-cache-service;1";
 
@@ -85,9 +85,10 @@ function init_http_server() {
 }
 
 function clean_app_cache() {
-  let cache_service = Cc[kNS_CACHESERVICE_CONTRACTID].
-    getService(Ci.nsICacheService);
-  cache_service.evictEntries(Ci.nsICache.STORE_OFFLINE);
+  let cache_service = Cc[kNS_CACHESTORAGESERVICE_CONTRACTID].
+    getService(Ci.nsICacheStorageService);
+  let storage = cache_service.appCacheStorage(LoadContextInfo.default, null);
+  storage.asyncEvictStorage(null);
 }
 
 function do_app_cache(manifestURL, pageURL) {
@@ -154,7 +155,7 @@ function start_cache_nonpinned_app() {
                               break;
                             }
                           },
-                          function (appcahe) {
+                          function (appcache) {
                             do_print("app avail " + appcache + "\n");
                           });
 }
@@ -201,7 +202,7 @@ function check_evict_cache(appcache) {
     kHttpLocation + "pages/foo3",
     "appcache", Ci.nsICacheStorage.OPEN_READONLY, null,
     function(status, entry, appcache) {
-      hold_entry_foo3 = entry;
+      var hold_entry_foo3 = entry;
 
       // evict all documents.
       let storage = get_cache_service().appCacheStorage(LoadContextInfo.default, appcache);
@@ -254,20 +255,13 @@ function check_evict_cache(appcache) {
         do_check_eq(file.exists(), false);
 
         httpServer.stop(do_test_finished);
-      });
+      }, true /* force even with the new cache back end */);
     },
     appcache
   );
 }
 
 function run_test() {
-  if (newCacheBackEndUsed()) {
-    // times out on storage.asyncDoomURI @ check_bug because that method is not implemented for appcache
-    // either revert the test changes or implement the method (former seems more reasonable)
-    do_check_true(true, "This test doesn't run with the new cache backend, the test or the cache needs to be fixed");
-    return;
-  }
-
   if (typeof _XPCSHELL_PROCESS == "undefined" ||
       _XPCSHELL_PROCESS != "child") {
     init_profile();

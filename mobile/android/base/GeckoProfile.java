@@ -7,6 +7,8 @@ package org.mozilla.gecko;
 
 import org.mozilla.gecko.GeckoProfileDirectories.NoMozillaDirectoryException;
 import org.mozilla.gecko.GeckoProfileDirectories.NoSuchProfileException;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.util.INIParser;
 import org.mozilla.gecko.util.INISection;
 
@@ -489,8 +491,9 @@ public final class GeckoProfile {
                 } else {
                     // this really shouldn't be the case, but handle it anyway
                     parser.removeSection(mName);
-                    return true;
                 }
+
+                break;
             }
 
             parser.write();
@@ -577,6 +580,11 @@ public final class GeckoProfile {
             // only set as default if this is the first non-webapp
             // profile we're creating
             profileSection.setProperty("Default", 1);
+
+            // We have no intention of stopping this session. The FIRSTRUN session
+            // ends when the browsing session/activity has ended. All events
+            // during firstrun will be tagged as FIRSTRUN.
+            Telemetry.startUISession(TelemetryContract.Session.FIRSTRUN);
         }
 
         parser.addSection(profileSection);

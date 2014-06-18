@@ -38,6 +38,7 @@
 #include "nsRuleProcessorData.h"
 #include "nsCSSRuleProcessor.h"
 #include "mozilla/dom/InspectorUtilsBinding.h"
+#include "mozilla/dom/ToJSValue.h"
 #include "nsCSSProps.h"
 #include "nsColor.h"
 #include "nsStyleSet.h"
@@ -651,7 +652,7 @@ inDOMUtils::ColorNameToRGB(const nsAString& aColorName, JSContext* aCx,
   triple.mG = NS_GET_G(color);
   triple.mB = NS_GET_B(color);
 
-  if (!triple.ToObject(aCx, aValue)) {
+  if (!ToJSValue(aCx, triple, aValue)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -877,4 +878,23 @@ inDOMUtils::ParseStyleSheet(nsIDOMCSSStyleSheet *aSheet,
   NS_ENSURE_ARG_POINTER(sheet);
 
   return sheet->ParseSheet(aInput);
+}
+
+NS_IMETHODIMP
+inDOMUtils::ScrollElementIntoView(nsIDOMElement *aElement)
+{
+  nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
+  NS_ENSURE_ARG_POINTER(content);
+
+  nsIPresShell* presShell = content->OwnerDoc()->GetShell();
+  if (!presShell) {
+    return NS_OK;
+  }
+
+  presShell->ScrollContentIntoView(content,
+                                   nsIPresShell::ScrollAxis(),
+                                   nsIPresShell::ScrollAxis(),
+                                   nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
+
+  return NS_OK;
 }

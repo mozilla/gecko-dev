@@ -177,7 +177,6 @@ class OsiIndex
 // < highest - - - - - - - - - - - - - - lowest >
 static const uintptr_t FRAMESIZE_SHIFT = 4;
 static const uintptr_t FRAMETYPE_BITS = 4;
-static const uintptr_t FRAMETYPE_MASK = (1 << FRAMETYPE_BITS) - 1;
 
 // Ion frames have a few important numbers associated with them:
 //      Local depth:    The number of bytes required to spill local variables.
@@ -265,7 +264,7 @@ void HandleParallelFailure(ResumeFromException *rfe);
 
 void EnsureExitFrame(IonCommonFrameLayout *frame);
 
-void MarkJitActivations(JSRuntime *rt, JSTracer *trc);
+void MarkJitActivations(PerThreadData *ptd, JSTracer *trc);
 void MarkIonCompilerRoots(JSTracer *trc);
 
 JSCompartment *
@@ -273,6 +272,7 @@ TopmostIonActivationCompartment(JSRuntime *rt);
 
 #ifdef JSGC_GENERATIONAL
 void UpdateJitActivationsForMinorGC(JSRuntime *rt, JSTracer *trc);
+void UpdateJitActivationsForMinorGC(PerThreadData *ptd, JSTracer *trc);
 #endif
 
 static inline uint32_t
@@ -464,7 +464,7 @@ class IonExitFrameLayout : public IonCommonFrameLayout
   public:
     // Pushed for "bare" fake exit frames that have no GC things on stack to be
     // marked.
-    static JitCode *const BareToken() { return (JitCode *)0xFF; }
+    static JitCode *BareToken() { return (JitCode *)0xFF; }
 
     static inline size_t Size() {
         return sizeof(IonExitFrameLayout);
@@ -518,7 +518,7 @@ class IonNativeExitFrameLayout
     uint32_t hiCalleeResult_;
 
   public:
-    static JitCode *const Token() { return (JitCode *)0x0; }
+    static JitCode *Token() { return (JitCode *)0x0; }
 
     static inline size_t Size() {
         return sizeof(IonNativeExitFrameLayout);
@@ -556,7 +556,7 @@ class IonOOLNativeExitFrameLayout
     uint32_t hiThis_;
 
   public:
-    static JitCode *const Token() { return (JitCode *)0x4; }
+    static JitCode *Token() { return (JitCode *)0x4; }
 
     static inline size_t Size(size_t argc) {
         // The frame accounts for the callee/result and |this|, so we only need args.
@@ -602,7 +602,7 @@ class IonOOLPropertyOpExitFrameLayout
     JitCode *stubCode_;
 
   public:
-    static JitCode *const Token() { return (JitCode *)0x5; }
+    static JitCode *Token() { return (JitCode *)0x5; }
 
     static inline size_t Size() {
         return sizeof(IonOOLPropertyOpExitFrameLayout);
@@ -654,7 +654,7 @@ class IonOOLProxyExitFrameLayout
     JitCode *stubCode_;
 
   public:
-    static JitCode *const Token() { return (JitCode *)0x6; }
+    static JitCode *Token() { return (JitCode *)0x6; }
 
     static inline size_t Size() {
         return sizeof(IonOOLProxyExitFrameLayout);
@@ -694,8 +694,8 @@ class IonDOMExitFrameLayout
     uint32_t hiCalleeResult_;
 
   public:
-    static JitCode *const GetterToken() { return (JitCode *)0x1; }
-    static JitCode *const SetterToken() { return (JitCode *)0x2; }
+    static JitCode *GetterToken() { return (JitCode *)0x1; }
+    static JitCode *SetterToken() { return (JitCode *)0x2; }
 
     static inline size_t Size() {
         return sizeof(IonDOMExitFrameLayout);
@@ -734,7 +734,7 @@ class IonDOMMethodExitFrameLayout
     friend struct IonDOMMethodExitFrameLayoutTraits;
 
   public:
-    static JitCode *const Token() { return (JitCode *)0x3; }
+    static JitCode *Token() { return (JitCode *)0x3; }
 
     static inline size_t Size() {
         return sizeof(IonDOMMethodExitFrameLayout);
@@ -837,6 +837,12 @@ class InvalidationBailoutStack
     }
     uint8_t *osiPointReturnAddress() const {
         return osiPointReturnAddress_;
+    }
+    static size_t offsetOfFpRegs() {
+        return offsetof(InvalidationBailoutStack, fpregs_);
+    }
+    static size_t offsetOfRegs() {
+        return offsetof(InvalidationBailoutStack, regs_);
     }
 
     void checkInvariants() const;

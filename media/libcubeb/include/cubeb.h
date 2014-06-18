@@ -109,7 +109,7 @@ typedef enum {
     CUBEB_STREAM_TYPE_ALARM = 4,
     CUBEB_STREAM_TYPE_NOTIFICATION = 5,
     CUBEB_STREAM_TYPE_BLUETOOTH_SCO = 6,
-    CUBEB_STREAM_TYPE_ENFORCED_AUDIBLE = 7,
+    CUBEB_STREAM_TYPE_SYSTEM_ENFORCED = 7,
     CUBEB_STREAM_TYPE_DTMF = 8,
     CUBEB_STREAM_TYPE_TTS = 9,
     CUBEB_STREAM_TYPE_FM = 10,
@@ -256,7 +256,7 @@ int cubeb_stream_get_position(cubeb_stream * stream, uint64_t * position);
     between the time cubeb acquires the data in the callback and the listener
     can hear the sound.
     @param stream
-    @param latency Current approximate stream latency in ms
+    @param latency Current approximate stream latency in frames.
     @retval CUBEB_OK
     @retval CUBEB_ERROR */
 int cubeb_stream_get_latency(cubeb_stream * stream, uint32_t * latency);

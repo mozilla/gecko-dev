@@ -67,6 +67,7 @@ protected:
   virtual void UpdateReferenceSet(int32_t delta);
   virtual void IncrementReferenceSetIndices();
   virtual void MakeRoom(uint32_t amount) = 0;
+  virtual void DumpState();
 
   nsAutoTArray<uint32_t, 64> mReferenceSet; // list of indicies
 
@@ -164,7 +165,7 @@ public:
   nsresult EncodeHeaderBlock(const nsCString &nvInput,
                              const nsACString &method, const nsACString &path,
                              const nsACString &host, const nsACString &scheme,
-                             nsACString &output);
+                             bool connectForm, nsACString &output);
 
   int64_t GetParsedContentLength() { return mParsedContentLength; } // -1 on not found
 
@@ -176,6 +177,7 @@ protected:
   virtual void UpdateReferenceSet(int32_t delta) MOZ_OVERRIDE;
   virtual void IncrementReferenceSetIndices() MOZ_OVERRIDE;
   virtual void MakeRoom(uint32_t amount) MOZ_OVERRIDE;
+  virtual void DumpState() MOZ_OVERRIDE;
 
 private:
   enum outputCode {
@@ -190,7 +192,8 @@ private:
   void DoOutput(Http2Compressor::outputCode code,
                 const class nvPair *pair, uint32_t index);
   void EncodeInteger(uint32_t prefixLen, uint32_t val);
-  void ProcessHeader(const nvPair inputPair, bool neverIndex);
+  void ProcessHeader(const nvPair inputPair, bool noLocalIndex,
+                     bool neverIndex);
   void HuffmanAppend(const nsCString &value);
   void EncodeTableSizeChange(uint32_t newMaxSize);
 

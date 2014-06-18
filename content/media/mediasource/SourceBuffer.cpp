@@ -250,12 +250,16 @@ SourceBuffer::SetAppendWindowEnd(double aAppendWindowEnd, ErrorResult& aRv)
 void
 SourceBuffer::AppendBuffer(const ArrayBuffer& aData, ErrorResult& aRv)
 {
+  aData.ComputeLengthAndData();
+
   AppendData(aData.Data(), aData.Length(), aRv);
 }
 
 void
 SourceBuffer::AppendBuffer(const ArrayBufferView& aData, ErrorResult& aRv)
 {
+  aData.ComputeLengthAndData();
+
   AppendData(aData.Data(), aData.Length(), aRv);
 }
 
@@ -489,6 +493,8 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   // Schedule the state machine thread to ensure playback starts
   // if required when data is appended.
   mMediaSource->GetDecoder()->ScheduleStateMachineThread();
+
+  mMediaSource->NotifyGotData();
 }
 
 void

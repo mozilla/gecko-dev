@@ -7,7 +7,9 @@
 #define nsCycleCollector_h__
 
 class nsICycleCollectorListener;
+class nsICycleCollectorLogSink;
 class nsISupports;
+template<class T> struct already_AddRefed;
 
 #include "nsError.h"
 #include "nsID.h"
@@ -17,8 +19,8 @@ namespace mozilla {
 class CycleCollectedJSRuntime;
 
 // See the comments in nsContentUtils.h for explanations of these functions.
-typedef void* (*DeferredFinalizeAppendFunction)(void* pointers, void* thing);
-typedef bool (*DeferredFinalizeFunction)(uint32_t slice, void* data);
+typedef void* (*DeferredFinalizeAppendFunction)(void* aPointers, void* aThing);
+typedef bool (*DeferredFinalizeFunction)(uint32_t aSlice, void* aData);
 
 }
 
@@ -43,7 +45,9 @@ void nsCycleCollector_finishAnyCurrentCollection();
 void nsCycleCollector_dispatchDeferredDeletion(bool aContinuation = false);
 bool nsCycleCollector_doDeferredDeletion();
 
-void nsCycleCollector_collect(nsICycleCollectorListener *aManualListener);
+already_AddRefed<nsICycleCollectorLogSink> nsCycleCollector_createLogSink();
+
+void nsCycleCollector_collect(nsICycleCollectorListener* aManualListener);
 
 // If aSliceTime is negative, the CC will run to completion. Otherwise,
 // aSliceTime will be used as the time budget for the slice, in ms.
@@ -57,7 +61,7 @@ uint32_t nsCycleCollector_suspectedCount();
 void nsCycleCollector_shutdown();
 
 // Helpers for interacting with JS
-void nsCycleCollector_registerJSRuntime(mozilla::CycleCollectedJSRuntime *aRt);
+void nsCycleCollector_registerJSRuntime(mozilla::CycleCollectedJSRuntime* aRt);
 void nsCycleCollector_forgetJSRuntime();
 
 #define NS_CYCLE_COLLECTOR_LOGGER_CID \
@@ -65,9 +69,9 @@ void nsCycleCollector_forgetJSRuntime();
 { 0x94, 0xea, 0xae, 0xde, 0x2c, 0x62, 0x08, 0xd3 } }
 
 extern nsresult
-nsCycleCollectorLoggerConstructor(nsISupports* outer,
+nsCycleCollectorLoggerConstructor(nsISupports* aOuter,
                                   const nsIID& aIID,
-                                  void* *aInstancePtr);
+                                  void** aInstancePtr);
 
 namespace mozilla {
 namespace cyclecollector {

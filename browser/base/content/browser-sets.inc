@@ -110,10 +110,12 @@
      oncommand="Cc['@mozilla.org/browser/browserglue;1'].getService(Ci.nsIBrowserGlue).sanitize(window);"/>
     <command id="Tools:PrivateBrowsing"
       oncommand="OpenBrowserWindow({private: true});"/>
+#ifdef E10S_TESTING_ONLY
     <command id="Tools:RemoteWindow"
       oncommand="OpenBrowserWindow({remote: true});"/>
     <command id="Tools:NonRemoteWindow"
       oncommand="OpenBrowserWindow({remote: false});"/>
+#endif
     <command id="History:UndoCloseTab" oncommand="undoCloseTab();"/>
     <command id="History:UndoCloseWindow" oncommand="undoCloseWindow();"/>
     <command id="Social:SharePage" oncommand="SocialShare.sharePage();" disabled="true"/>
@@ -423,8 +425,8 @@
     <key id="key_sanitize" command="Tools:Sanitize" keycode="VK_DELETE" modifiers="accel,shift"/>
 #ifdef XP_MACOSX
     <key id="key_sanitize_mac" command="Tools:Sanitize" keycode="VK_BACK" modifiers="accel,shift"/>
-#endif
-#ifdef XP_UNIX
+    <key id="key_quitApplication" key="&quitApplicationCmdUnix.key;" modifiers="accel"/>
+#elifdef XP_UNIX
     <key id="key_quitApplication" key="&quitApplicationCmdUnix.key;" command="cmd_quitApplication" modifiers="accel"/>
 #endif
 

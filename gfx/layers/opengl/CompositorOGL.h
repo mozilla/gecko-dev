@@ -31,7 +31,6 @@
 #include "nsThreadUtils.h"              // for nsRunnable
 #include "nsXULAppAPI.h"                // for XRE_GetProcessType
 #include "nscore.h"                     // for NS_IMETHOD
-#include "VBOArena.h"                   // for gl::VBOArena
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>
 #endif
@@ -204,18 +203,7 @@ public:
                         const gfx::Rect& aClipRect,
                         const EffectChain &aEffectChain,
                         gfx::Float aOpacity,
-                        const gfx::Matrix4x4 &aTransform) MOZ_OVERRIDE
-  {
-    DrawQuadInternal(aRect, aClipRect, aEffectChain,
-                     aOpacity, aTransform, LOCAL_GL_TRIANGLE_STRIP);
-  }
-
-  virtual void DrawLines(const std::vector<gfx::Point>& aLines,
-                         const gfx::Rect& aClipRect,
-                         const gfx::Color& aColor,
-                         gfx::Float aOpacity,
-                         const gfx::Matrix4x4 &aTransform) MOZ_OVERRIDE;
-
+                        const gfx::Matrix4x4 &aTransform) MOZ_OVERRIDE;
 
   virtual void EndFrame() MOZ_OVERRIDE;
   virtual void SetFBAcquireFence(Layer* aLayer) MOZ_OVERRIDE;
@@ -245,11 +233,6 @@ public:
   }
 
   virtual void MakeCurrent(MakeCurrentFlags aFlags = 0) MOZ_OVERRIDE;
-
-  virtual void SetTargetContext(gfx::DrawTarget* aTarget) MOZ_OVERRIDE
-  {
-    mTarget = aTarget;
-  }
 
   virtual void PrepareViewport(const gfx::IntSize& aSize,
                                const gfx::Matrix& aWorldTransform) MOZ_OVERRIDE;
@@ -285,22 +268,10 @@ public:
     return mProjMatrix;
   }
 private:
-  virtual void DrawQuadInternal(const gfx::Rect& aRect,
-                                const gfx::Rect& aClipRect,
-                                const EffectChain &aEffectChain,
-                                gfx::Float aOpacity,
-                                const gfx::Matrix4x4 &aTransformi,
-                                GLuint aDrawMode);
-
   virtual gfx::IntSize GetWidgetSize() const MOZ_OVERRIDE
   {
     return gfx::ToIntSize(mWidgetSize);
   }
-
-  /**
-   * Context target, nullptr when drawing directly to our swap chain.
-   */
-  RefPtr<gfx::DrawTarget> mTarget;
 
   /** Widget associated with this compositor */
   nsIWidget *mWidget;
@@ -329,11 +300,6 @@ private:
    * coords and texcoords.
    */
   GLuint mQuadVBO;
-
-  /**
-   * When we can't use mQuadVBO, we allocate VBOs from this arena instead.
-   */
-  gl::VBOArena mVBOs;
 
   bool mHasBGRA;
 
@@ -380,19 +346,21 @@ private:
                             GLuint aSourceFrameBuffer,
                             GLuint *aFBO, GLuint *aTexture);
 
-  GLintptr QuadVBOVertexOffset() { return 0; }
-  GLintptr QuadVBOTexCoordOffset() { return sizeof(float)*4*2; }
-
-  void BindQuadVBO();
-  void QuadVBOVerticesAttrib(GLuint aAttribIndex);
-  void QuadVBOTexCoordsAttrib(GLuint aAttribIndex);
-  void BindAndDrawQuad(GLuint aVertAttribIndex,
-                       GLuint aTexCoordAttribIndex,
-                       GLuint aDrawMode = LOCAL_GL_TRIANGLE_STRIP);
+  void BindAndDrawQuads(ShaderProgramOGL *aProg,
+                        int aQuads,
+                        const gfx::Rect* aLayerRect,
+                        const gfx::Rect* aTextureRect);
   void BindAndDrawQuad(ShaderProgramOGL *aProg,
-                       GLuint aDrawMode = LOCAL_GL_TRIANGLE_STRIP);
+                       const gfx::Rect& aLayerRect,
+                       const gfx::Rect& aTextureRect = gfx::Rect(0.0f, 0.0f, 1.0f, 1.0f)) {
+    gfx::Rect layerRects[4];
+    gfx::Rect textureRects[4];
+    layerRects[0] = aLayerRect;
+    textureRects[0] = aTextureRect;
+    BindAndDrawQuads(aProg, 1, layerRects, textureRects);
+  }
   void BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
-                                      const gfx3DMatrix& aTextureTransform,
+                                      const gfx::Rect& aRect,
                                       const gfx::Rect& aTexCoordRect,
                                       TextureSource *aTexture);
 
@@ -402,7 +370,7 @@ private:
    * Copies the content of our backbuffer to the set transaction target.
    * Does not restore the target FBO, so only call from EndFrame.
    */
-  void CopyToTarget(gfx::DrawTarget* aTarget, const gfx::Matrix& aWorldMatrix);
+  void CopyToTarget(gfx::DrawTarget* aTarget, const nsIntPoint& aTopLeft, const gfx::Matrix& aWorldMatrix);
 
   /**
    * Implements the flipping of the y-axis to convert from layers/compositor

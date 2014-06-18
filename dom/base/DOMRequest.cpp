@@ -12,6 +12,7 @@
 #include "DOMCursor.h"
 #include "nsIDOMEvent.h"
 
+using mozilla::dom::DOMError;
 using mozilla::dom::DOMRequest;
 using mozilla::dom::DOMRequestService;
 using mozilla::dom::DOMCursor;
@@ -82,7 +83,7 @@ DOMRequest::GetReadyState(nsAString& aReadyState)
 NS_IMETHODIMP
 DOMRequest::GetResult(JS::MutableHandle<JS::Value> aResult)
 {
-  aResult.set(Result());
+  GetResult(nullptr, aResult);
   return NS_OK;
 }
 
@@ -136,7 +137,7 @@ DOMRequest::FireError(nsresult aError)
 }
 
 void
-DOMRequest::FireDetailedError(nsISupports* aError)
+DOMRequest::FireDetailedError(DOMError* aError)
 {
   NS_ASSERTION(!mDone, "mDone shouldn't have been set to true already!");
   NS_ASSERTION(!mError, "mError shouldn't have been set!");
@@ -225,7 +226,9 @@ DOMRequestService::FireDetailedError(nsIDOMDOMRequest* aRequest,
                                      nsISupports* aError)
 {
   NS_ENSURE_STATE(aRequest);
-  static_cast<DOMRequest*>(aRequest)->FireDetailedError(aError);
+  nsCOMPtr<DOMError> err = do_QueryInterface(aError);
+  NS_ENSURE_STATE(err);
+  static_cast<DOMRequest*>(aRequest)->FireDetailedError(err);
 
   return NS_OK;
 }

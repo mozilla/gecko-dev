@@ -19,8 +19,8 @@ enum DownloadState {
 
 //
 // XXXTODO: When we have a generic way to do feature detection in marketplace
-//          we will *STOP* using the pref and use the function like DOMDownload
-//          and DownloadEvent.
+//          we will *STOP* using the pref and use CheckPermissions like 
+//          DOMDownload and DownloadEvent.
 //
 [NoInterfaceObject,
  NavigatorProperty="mozDownloadManager",
@@ -43,7 +43,8 @@ interface DOMDownloadManager : EventTarget {
 };
 
 [JSImplementation="@mozilla.org/downloads/download;1",
- Func="Navigator::HasDownloadsSupport"]
+ Pref="dom.mozDownloads.enabled",
+ CheckPermissions="downloads"]
 interface DOMDownload : EventTarget {
   // The full size of the resource.
   readonly attribute long long totalBytes;
@@ -54,9 +55,16 @@ interface DOMDownload : EventTarget {
   // The url of the resource.
   readonly attribute DOMString url;
 
-  // The path in local storage where the file will end up once the download
+  // The full path in local storage where the file will end up once the download
   // is complete.
   readonly attribute DOMString path;
+
+  // The DeviceStorage volume name on which the file is being downloaded.
+  readonly attribute DOMString storageName;
+
+  // The DeviceStorage path on the volume with 'storageName' of the file being
+  // downloaded.
+  readonly attribute DOMString storagePath;
 
   // The state of the download.
   readonly attribute DownloadState state;

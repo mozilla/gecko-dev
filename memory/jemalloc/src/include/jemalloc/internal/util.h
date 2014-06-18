@@ -14,7 +14,7 @@
  * Wrap a cpp argument that contains commas such that it isn't broken up into
  * multiple arguments.
  */
-#define JEMALLOC_CONCAT(...) __VA_ARGS__
+#define	JEMALLOC_ARG_CONCAT(...) __VA_ARGS__
 
 /*
  * Silence compiler warnings due to uninitialized values.  This is used
@@ -42,12 +42,6 @@
 } while (0)
 #endif
 
-/* Use to assert a particular configuration, e.g., cassert(config_debug). */
-#define	cassert(c) do {							\
-	if ((c) == false)						\
-		assert(false);						\
-} while (0)
-
 #ifndef not_reached
 #define	not_reached() do {						\
 	if (config_debug) {						\
@@ -69,9 +63,17 @@
 } while (0)
 #endif
 
+#ifndef assert_not_implemented
 #define	assert_not_implemented(e) do {					\
 	if (config_debug && !(e))					\
 		not_implemented();					\
+} while (0)
+#endif
+
+/* Use to assert a particular configuration, e.g., cassert(config_debug). */
+#define	cassert(c) do {							\
+	if ((c) == false)						\
+		not_reached();						\
 } while (0)
 
 #endif /* JEMALLOC_H_TYPES */
@@ -82,8 +84,9 @@
 /******************************************************************************/
 #ifdef JEMALLOC_H_EXTERNS
 
-int	buferror(char *buf, size_t buflen);
-uintmax_t	malloc_strtoumax(const char *nptr, char **endptr, int base);
+int	buferror(int err, char *buf, size_t buflen);
+uintmax_t	malloc_strtoumax(const char *restrict nptr,
+    char **restrict endptr, int base);
 void	malloc_write(const char *s);
 
 /*
@@ -106,13 +109,34 @@ void	malloc_printf(const char *format, ...)
 #ifdef JEMALLOC_H_INLINES
 
 #ifndef JEMALLOC_ENABLE_INLINE
+int	jemalloc_ffsl(long bitmap);
+int	jemalloc_ffs(int bitmap);
 size_t	pow2_ceil(size_t x);
-void	malloc_write(const char *s);
 void	set_errno(int errnum);
 int	get_errno(void);
 #endif
 
 #if (defined(JEMALLOC_ENABLE_INLINE) || defined(JEMALLOC_UTIL_C_))
+
+/* Sanity check: */
+#if !defined(JEMALLOC_INTERNAL_FFSL) || !defined(JEMALLOC_INTERNAL_FFS)
+#  error Both JEMALLOC_INTERNAL_FFSL && JEMALLOC_INTERNAL_FFS should have been defined by configure
+#endif
+
+JEMALLOC_ALWAYS_INLINE int
+jemalloc_ffsl(long bitmap)
+{
+
+        return (JEMALLOC_INTERNAL_FFSL(bitmap));
+}
+
+JEMALLOC_ALWAYS_INLINE int
+jemalloc_ffs(int bitmap)
+{
+
+        return (JEMALLOC_INTERNAL_FFS(bitmap));
+}
+
 /* Compute the smallest power of 2 that is >= x. */
 JEMALLOC_INLINE size_t
 pow2_ceil(size_t x)

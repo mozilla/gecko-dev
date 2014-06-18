@@ -364,7 +364,7 @@
     <style name="TextAppearance.Widget.Home.ItemTitle" parent="TextAppearance.Medium"/>
 
     <style name="TextAppearance.Widget.Home.ItemDescription" parent="TextAppearance.Micro">
-        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:textColor">#AFB1B3</item>
     </style>
 
     <style name="TextAppearance.Widget.HomeBanner" parent="TextAppearance.Small">
@@ -448,6 +448,97 @@
          <item name="android:groupIndicator">@android:color/transparent</item>
     </style>
 
+    <!-- Tabs panel -->
+    <style name="TabsPanelFrameBase">
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingTop">32dp</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="TabsPanelFrame" parent="TabsPanelFrameBase">
+        <!-- We set values in landscape. -->
+    </style>
+
+    <style name="TabsPanelFrame.PrivateTabs">
+        <!-- We set values on tablet. -->
+    </style>
+
+    <style name="TabsPanelSectionBase">
+        <item name="android:orientation">vertical</item>
+        <item name="android:layout_marginLeft">16dp</item>
+        <item name="android:layout_marginRight">16dp</item>
+    </style>
+
+    <style name="TabsPanelSection" parent="TabsPanelSectionBase">
+        <!-- We set values in landscape. -->
+    </style>
+
+    <style name="TabsPanelSection.PrivateTabs">
+        <!-- We set values on tablet. -->
+    </style>
+
+    <style name="TabsPanelSection.PrivateTabs.Header">
+        <!-- We set values on landscape and tablet. -->
+    </style>
+
+    <style name="TabsPanelItemBase">
+        <item name="android:layout_marginBottom">28dp</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="TabsPanelItem" parent="TabsPanelItemBase">
+        <!-- We set values in landscape. -->
+    </style>
+
+    <style name="TabsPanelItem.ButtonBase">
+        <item name="android:background">@drawable/remote_tabs_setup_button_background</item>
+        <item name="android:textColor">#FFFEFF</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="TabsPanelItem.Button" parent="TabsPanelItem.ButtonBase">
+        <item name="android:paddingTop">18dp</item>
+        <item name="android:paddingBottom">18dp</item>
+        <item name="android:paddingLeft">9dp</item>
+        <item name="android:paddingRight">9dp</item>
+        <item name="android:layout_marginLeft">24dp</item>
+        <item name="android:layout_marginRight">24dp</item>
+    </style>
+
+    <style name="TabsPanelItem.TextAppearance">
+        <item name="android:textColor">#C0C9D0</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="TabsPanelItem.TextAppearance.Header">
+        <item name="android:textSize">20sp</item>
+    </style>
+
+    <style name="TabsPanelItem.TextAppearance.Header.FXAccounts">
+        <!-- We change these values on landscape. -->
+    </style>
+
+    <style name="TabsPanelItem.TextAppearance.Header.PrivateTabs">
+        <!-- We change these values on landscape and tablet. -->
+    </style>
+
+    <style name="TabsPanelItem.TextAppearance.Linkified">
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:textColor">#0292D6</item>
+    </style>
+
+    <style name="TabsPanelItem.TextAppearance.Linkified.LearnMore">
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="TabsPanelItem.TextAppearance.Linkified.Resend">
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
     <!-- TabsTray Row -->
     <style name="TabRowTextAppearance">
         <item name="android:textColor">#FFFFFFFF</item>
@@ -518,58 +609,74 @@
         <item name="@android:windowExitAnimation">@anim/popup_hide</item>
     </style>
 
-    <style name="Toast">
+    <style name="ToastBase">
+        <item name="android:background">@drawable/toast_background</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_alignParentBottom">true</item>
-        <item name="android:layout_gravity">bottom</item>
-        <item name="android:layout_marginLeft">8dp</item>
-        <item name="android:layout_marginRight">8dp</item>
+        <item name="android:layout_centerHorizontal">true</item>
+        <item name="android:layout_gravity">bottom|center_horizontal</item>
         <item name="android:layout_marginBottom">64dp</item>
         <item name="android:layout_marginTop">0dp</item>
         <item name="android:orientation">horizontal</item>
-        <item name="android:background">@drawable/toast</item>
         <item name="android:clickable">true</item>
-        <item name="android:showDividers">middle</item>
-        <item name="android:dividerPadding">16dp</item>
-
-        <item name="android:paddingTop">0dp</item>
-        <item name="android:paddingBottom">0dp</item>
-        <item name="android:paddingLeft">0dp</item>
-        <item name="android:paddingRight">0dp</item>
     </style>
 
-    <style name="ToastDivider">
-        <item name="android:src">@drawable/toast_divider</item>
-        <item name="android:layout_width">wrap_content</item>
+    <style name="Toast" parent="ToastBase">
+        <item name="android:layout_marginLeft">16dp</item>
+        <item name="android:layout_marginRight">16dp</item>
+    </style>
+
+    <style name="ToastElementBase">
+        <item name="android:background">@null</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:paddingTop">11dp</item>
+        <item name="android:paddingBottom">11dp</item>
+    </style>
+
+    <style name="ToastDividerBase">
+        <item name="android:background">@color/toast_button_divider</item>
+        <item name="android:layout_width">1dp</item>
         <item name="android:layout_height">match_parent</item>
     </style>
 
-    <style name="ToastMessage">
+    <style name="ToastMessageBase" parent="ToastElementBase">
+        <item name="android:textColor">@color/toast_button_text</item>
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_weight">1</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_gravity">center_vertical</item>
-        <item name="android:textColor">#fff</item>
-        <item name="android:textAppearance">?android:textAppearanceSmall</item>
-        <item name="android:paddingTop">0dp</item>
-        <item name="android:paddingBottom">0dp</item>
-        <item name="android:paddingLeft">@dimen/toast_button_padding</item>
-        <item name="android:paddingRight">0dp</item>
-        <item name="android:layout_marginTop">0dp</item>
-        <item name="android:layout_marginBottom">0dp</item>
-        <item name="android:layout_marginLeft">8dp</item>
-        <item name="android:layout_marginRight">0dp</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:clickable">false</item>
+        <item name="android:focusable">false</item>
     </style>
 
-    <style name="ToastButton">
-        <item name="android:background">@drawable/toast_button</item>
-        <item name="android:textAppearance">?android:textAppearanceSmall</item>
+    <style name="ToastButtonBase" parent="ToastElementBase">
+        <item name="android:background">@drawable/toast_button_background</item>
+        <item name="android:textColor">@color/toast_button_text</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:minWidth">0dp</item>
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:maxWidth">160dp</item>
-        <item name="android:textColor">#fff</item>
         <item name="android:layout_gravity">center_vertical</item>
+        <item name="android:drawablePadding">12dp</item>
+        <item name="android:maxWidth">160dp</item>
+    </style>
+
+    <style name="ToastDivider" parent="ToastDividerBase">
+        <item name="android:layout_marginTop">14dp</item>
+        <item name="android:layout_marginBottom">14dp</item>
+    </style>
+
+    <style name="ToastMessage" parent="ToastMessageBase">
+        <item name="android:textAppearance">?android:textAppearanceSmall</item>
+    </style>
+
+    <style name="ToastButton" parent="ToastButtonBase">
+        <item name="android:textAppearance">?android:textAppearanceSmall</item>
+        <item name="android:textStyle">bold</item>
     </style>
 
     <style name="GeckoActionBar">
@@ -615,6 +722,10 @@
         <item name="android:background">@drawable/tabs_panel_indicator</item>
         <item name="android:gravity">center</item>
         <item name="android:minHeight">@dimen/menu_item_row_height</item>
+    </style>
+
+    <style name="FloatingHintEditText" parent="android:style/Widget.EditText">
+        <item name="android:paddingTop">0dp</item>
     </style>
 
 </resources>

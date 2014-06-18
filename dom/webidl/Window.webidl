@@ -52,13 +52,14 @@ typedef any Transferable;
   // other browsing contexts
   [Replaceable, Throws, CrossOriginReadable] readonly attribute WindowProxy frames;
   [Replaceable, CrossOriginReadable] readonly attribute unsigned long length;
-  [Unforgeable, Throws, CrossOriginReadable] readonly attribute WindowProxy top;
-  [Throws, CrossOriginReadable] attribute WindowProxy? opener;
+  //[Unforgeable, Throws, CrossOriginReadable] readonly attribute WindowProxy top;
+  [Unforgeable, Throws, CrossOriginReadable] readonly attribute WindowProxy? top;
+  [Throws, CrossOriginReadable] attribute any opener;
   //[Throws] readonly attribute WindowProxy parent;
   [Replaceable, Throws, CrossOriginReadable] readonly attribute WindowProxy? parent;
   [Throws] readonly attribute Element? frameElement;
-  //[Throws] WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank", optional DOMString features = "", optional boolean replace = false);
-  [Throws] WindowProxy? open(optional DOMString url = "", optional DOMString target = "", optional DOMString features = "");
+  //[Throws] WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank", [TreatNullAs=EmptyString] optional DOMString features = "", optional boolean replace = false);
+  [Throws] WindowProxy? open(optional DOMString url = "", optional DOMString target = "", [TreatNullAs=EmptyString] optional DOMString features = "");
   // We think the indexed getter is a bug in the spec, it actually needs to live
   // on the WindowProxy
   //getter WindowProxy (unsigned long index);
@@ -72,7 +73,8 @@ typedef any Transferable;
   [Throws] readonly attribute ApplicationCache applicationCache;
 
   // user prompts
-  [Throws] void alert(optional DOMString message = "");
+  [Throws] void alert();
+  [Throws] void alert(DOMString message);
   [Throws] boolean confirm(optional DOMString message = "");
   [Throws] DOMString? prompt(optional DOMString message = "", optional DOMString default = "");
   [Throws] void print();
@@ -283,6 +285,8 @@ partial interface Window {
   // XXX Shouldn't this be in nsIDOMChromeWindow?
   [ChromeOnly, Replaceable, Throws] readonly attribute MozControllers controllers;
 
+  [ChromeOnly, Throws] readonly attribute Element? realFrameElement;
+
   [Throws] readonly attribute float               mozInnerScreenX;
   [Throws] readonly attribute float               mozInnerScreenY;
   [Throws] readonly attribute float               devicePixelRatio;
@@ -294,9 +298,9 @@ partial interface Window {
 
   [Throws] attribute boolean                            fullScreen;
 
-  [Throws] void             back();
-  [Throws] void             forward();
-  [Throws] void             home();
+  [Throws, ChromeOnly] void             back();
+  [Throws, ChromeOnly] void             forward();
+  [Throws, ChromeOnly] void             home();
 
   // XXX Should this be in nsIDOMChromeWindow?
   void                      updateCommands(DOMString action);
@@ -430,6 +434,13 @@ interface ChromeWindow {
 
   [Throws, Func="nsGlobalWindow::IsChromeWindow"]
   readonly attribute nsIMessageBroadcaster messageManager;
+
+  /**
+   * Returns the message manager identified by the given group name that
+   * manages all frame loaders belonging to that group.
+   */
+  [Throws, Func="nsGlobalWindow::IsChromeWindow"]
+  nsIMessageBroadcaster getGroupMessageManager(DOMString aGroup);
 
   /**
    * On some operating systems, we must allow the window manager to

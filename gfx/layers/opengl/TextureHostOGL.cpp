@@ -5,6 +5,7 @@
 
 #include "TextureHostOGL.h"
 #include "GLContext.h"                  // for GLContext, etc
+#include "GLLibraryEGL.h"               // for GLLibraryEGL
 #include "GLSharedHandleHelpers.h"
 #include "GLUploadHelpers.h"
 #include "GLReadTexImageHelper.h"
@@ -116,19 +117,9 @@ FlagsToGLFlags(TextureFlags aFlags)
   return static_cast<gl::TextureImage::Flags>(result);
 }
 
-static GLenum
-WrapMode(gl::GLContext *aGl, TextureFlags aFlags)
-{
-  if ((aFlags & TextureFlags::ALLOW_REPEAT) &&
-      (aGl->IsExtensionSupported(GLContext::ARB_texture_non_power_of_two) ||
-       aGl->IsExtensionSupported(GLContext::OES_texture_npot))) {
-    return LOCAL_GL_REPEAT;
-  }
-  return LOCAL_GL_CLAMP_TO_EDGE;
-}
-
 CompositableDataGonkOGL::CompositableDataGonkOGL()
  : mTexture(0)
+ , mBoundEGLImage(EGL_NO_IMAGE)
 {
 }
 CompositableDataGonkOGL::~CompositableDataGonkOGL()
@@ -171,6 +162,25 @@ CompositableDataGonkOGL::DeleteTextureIfPresent()
       gl()->fDeleteTextures(1, &mTexture);
     }
     mTexture = 0;
+    mBoundEGLImage = EGL_NO_IMAGE;
+  }
+}
+
+void
+CompositableDataGonkOGL::BindEGLImage(GLuint aTarget, EGLImage aImage)
+{
+  if (mBoundEGLImage != aImage) {
+    gl()->fEGLImageTargetTexture2D(aTarget, aImage);
+    mBoundEGLImage = aImage;
+  }
+}
+
+void
+CompositableDataGonkOGL::ClearBoundEGLImage(EGLImage aImage)
+{
+  if (mBoundEGLImage == aImage) {
+    DeleteTextureIfPresent();
+    mBoundEGLImage = EGL_NO_IMAGE;
   }
 }
 
@@ -211,6 +221,59 @@ TextureHostOGL::GetAndResetReleaseFence()
   mReleaseFence = android::Fence::NO_FENCE;
   return mPrevReleaseFence;
 }
+
+void
+TextureHostOGL::SetAcquireFence(const android::sp<android::Fence>& aAcquireFence)
+{
+  mAcquireFence = aAcquireFence;
+}
+
+android::sp<android::Fence>
+TextureHostOGL::GetAndResetAcquireFence()
+{
+  android::sp<android::Fence> fence = mAcquireFence;
+  // Reset current AcquireFence.
+  mAcquireFence = android::Fence::NO_FENCE;
+  return fence;
+}
+
+void
+TextureHostOGL::WaitAcquireFenceSyncComplete()
+{
+  if (!mAcquireFence.get() || !mAcquireFence->isValid()) {
+    return;
+  }
+
+  int fenceFd = mAcquireFence->dup();
+  if (fenceFd == -1) {
+    NS_WARNING("failed to dup fence fd");
+    return;
+  }
+
+  EGLint attribs[] = {
+              LOCAL_EGL_SYNC_NATIVE_FENCE_FD_ANDROID, fenceFd,
+              LOCAL_EGL_NONE
+          };
+
+  EGLSync sync = sEGLLibrary.fCreateSync(EGL_DISPLAY(),
+                                         LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID,
+                                         attribs);
+  if (!sync) {
+    NS_WARNING("failed to create native fence sync");
+    return;
+  }
+
+  EGLint status = sEGLLibrary.fClientWaitSync(EGL_DISPLAY(),
+                                              sync,
+                                              0,
+                                              LOCAL_EGL_FOREVER);
+  if (status != LOCAL_EGL_CONDITION_SATISFIED) {
+    NS_WARNING("failed to wait native fence sync");
+  }
+  MOZ_ALWAYS_TRUE( sEGLLibrary.fDestroySync(EGL_DISPLAY(), sync) );
+  mAcquireFence = nullptr;
+}
+
 #endif
 
 bool
@@ -230,9 +293,18 @@ TextureImageTextureSourceOGL::Update(gfx::DataSourceSurface* aSurface,
       (mTexImage->GetSize() != size && !aSrcOffset) ||
       mTexImage->GetContentType() != gfx::ContentForFormat(aSurface->GetFormat())) {
     if (mFlags & TextureFlags::DISALLOW_BIGIMAGE) {
+      GLint maxTextureSize;
+      mGL->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+      if (size.width > maxTextureSize || size.height > maxTextureSize) {
+        NS_WARNING("Texture exceeds maximum texture size, refusing upload");
+        return false;
+      }
+      // Explicitly use CreateBasicTextureImage instead of CreateTextureImage,
+      // because CreateTextureImage might still choose to create a tiled
+      // texture image.
       mTexImage = CreateBasicTextureImage(mGL, size,
                                           gfx::ContentForFormat(aSurface->GetFormat()),
-                                          WrapMode(mGL, mFlags),
+                                          LOCAL_GL_CLAMP_TO_EDGE,
                                           FlagsToGLFlags(mFlags),
                                           SurfaceFormatToImageFormat(aSurface->GetFormat()));
     } else {
@@ -243,7 +315,7 @@ TextureImageTextureSourceOGL::Update(gfx::DataSourceSurface* aSurface,
       mTexImage = CreateTextureImage(mGL,
                                      size,
                                      gfx::ContentForFormat(aSurface->GetFormat()),
-                                     WrapMode(mGL, mFlags),
+                                     LOCAL_GL_CLAMP_TO_EDGE,
                                      FlagsToGLFlags(mFlags),
                                      SurfaceFormatToImageFormat(aSurface->GetFormat()));
     }
@@ -268,7 +340,7 @@ TextureImageTextureSourceOGL::EnsureBuffer(const nsIntSize& aSize,
     mTexImage = CreateTextureImage(mGL,
                                    aSize.ToIntSize(),
                                    aContentType,
-                                   WrapMode(mGL, mFlags),
+                                   LOCAL_GL_CLAMP_TO_EDGE,
                                    FlagsToGLFlags(mFlags));
   }
   mTexImage->Resize(aSize.ToIntSize());
@@ -316,8 +388,11 @@ TextureImageTextureSourceOGL::GetSize() const
 gfx::SurfaceFormat
 TextureImageTextureSourceOGL::GetFormat() const
 {
-  MOZ_ASSERT(mTexImage);
-  return mTexImage->GetTextureFormat();
+  if (mTexImage) {
+    return mTexImage->GetTextureFormat();
+  }
+  NS_WARNING("Trying to query the format of an empty TextureSource.");
+  return gfx::SurfaceFormat::UNKNOWN;
 }
 
 nsIntRect TextureImageTextureSourceOGL::GetTileRect()

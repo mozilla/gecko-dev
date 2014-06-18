@@ -154,6 +154,18 @@ PowerManager::SetScreenEnabled(bool aEnabled)
   hal::SetScreenEnabled(aEnabled);
 }
 
+bool
+PowerManager::KeyLightEnabled()
+{
+  return hal::GetKeyLightEnabled();
+}
+
+void
+PowerManager::SetKeyLightEnabled(bool aEnabled)
+{
+  hal::SetKeyLightEnabled(aEnabled);
+}
+
 double
 PowerManager::ScreenBrightness()
 {
@@ -180,19 +192,6 @@ void
 PowerManager::SetCpuSleepAllowed(bool aAllowed)
 {
   hal::SetCpuSleepAllowed(aAllowed);
-}
-
-bool
-PowerManager::CheckPermission(nsPIDOMWindow* aWindow)
-{
-  nsCOMPtr<nsIPermissionManager> permMgr =
-    services::GetPermissionManager();
-  NS_ENSURE_TRUE(permMgr, false);
-
-  uint32_t permission = nsIPermissionManager::DENY_ACTION;
-  permMgr->TestPermissionFromWindow(aWindow, "power", &permission);
-
-  return permission == nsIPermissionManager::ALLOW_ACTION;
 }
 
 already_AddRefed<PowerManager>

@@ -122,14 +122,15 @@ public:
     *
     * @return           the frame that was created
     */
-  friend nsIFrame* NS_NewTableFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  friend nsTableFrame* NS_NewTableFrame(nsIPresShell* aPresShell,
+                                        nsStyleContext* aContext);
 
   /** sets defaults for table-specific style.
     * @see nsIFrame::Init 
     */
-  virtual void Init(nsIContent*      aContent,
-                    nsIFrame*        aParent,
-                    nsIFrame*        aPrevInFlow) MOZ_OVERRIDE;
+  virtual void Init(nsIContent*       aContent,
+                    nsContainerFrame* aParent,
+                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
 
   static float GetTwipsToPixels(nsPresContext* aPresContext);
 
@@ -173,13 +174,15 @@ public:
   /** @see nsIFrame::DidSetStyleContext */
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
 
-  virtual nsresult AppendFrames(ChildListID     aListID,
-                                nsFrameList&    aFrameList) MOZ_OVERRIDE;
-  virtual nsresult InsertFrames(ChildListID     aListID,
-                                nsIFrame*       aPrevFrame,
-                                nsFrameList&    aFrameList) MOZ_OVERRIDE;
-  virtual nsresult RemoveFrame(ChildListID     aListID,
-                               nsIFrame*       aOldFrame) MOZ_OVERRIDE;
+  virtual void SetInitialChildList(ChildListID     aListID,
+                                   nsFrameList&    aChildList) MOZ_OVERRIDE;
+  virtual void AppendFrames(ChildListID     aListID,
+                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+  virtual void InsertFrames(ChildListID     aListID,
+                            nsIFrame*       aPrevFrame,
+                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+  virtual void RemoveFrame(ChildListID     aListID,
+                           nsIFrame*       aOldFrame) MOZ_OVERRIDE;
 
   virtual nsMargin GetUsedBorder() const MOZ_OVERRIDE;
   virtual nsMargin GetUsedPadding() const MOZ_OVERRIDE;
@@ -232,12 +235,6 @@ public:
     * (header, footer, or body)
     */
   bool IsRowGroup(int32_t aDisplayType) const;
-
-  /** Initialize the table frame with a set of children.
-    * @see nsIFrame::SetInitialChildList 
-    */
-  virtual nsresult SetInitialChildList(ChildListID     aListID,
-                                       nsFrameList&    aChildList) MOZ_OVERRIDE;
 
   virtual const nsFrameList& GetChildList(ChildListID aListID) const MOZ_OVERRIDE;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const MOZ_OVERRIDE;
@@ -338,16 +335,16 @@ public:
     *
     * @see nsIFrame::Reflow
     */
-  virtual nsresult Reflow(nsPresContext*          aPresContext,
-                          nsHTMLReflowMetrics&     aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext*           aPresContext,
+                      nsHTMLReflowMetrics&     aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
 
-  nsresult ReflowTable(nsHTMLReflowMetrics&     aDesiredSize,
-                       const nsHTMLReflowState& aReflowState,
-                       nscoord                  aAvailHeight,
-                       nsIFrame*&               aLastChildReflowed,
-                       nsReflowStatus&          aStatus);
+  void ReflowTable(nsHTMLReflowMetrics&     aDesiredSize,
+                   const nsHTMLReflowState& aReflowState,
+                   nscoord                  aAvailHeight,
+                   nsIFrame*&               aLastChildReflowed,
+                   nsReflowStatus&          aStatus);
 
   nsFrameList& GetColGroups();
 
@@ -382,7 +379,7 @@ public:
   /** helper to get the cell spacing Y style value */
   nscoord GetCellSpacingY();
  
-  virtual nscoord GetBaseline() const MOZ_OVERRIDE;
+  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
   /** return the row span of a cell, taking into account row span magic at the bottom
     * of a table. The row span equals the number of rows spanned by aCell starting at
     * aStartRowIndex, and can be smaller if aStartRowIndex is greater than the row
@@ -542,10 +539,10 @@ protected:
                                   nsTableRowGroupFrame* aFrame,
                                   nscoord* aDesiredHeight);
 
-  nsresult ReflowChildren(nsTableReflowState&  aReflowState,
-                          nsReflowStatus&      aStatus,
-                          nsIFrame*&           aLastChildReflowed,
-                          nsOverflowAreas&     aOverflowAreas);
+  void ReflowChildren(nsTableReflowState&  aReflowState,
+                      nsReflowStatus&      aStatus,
+                      nsIFrame*&           aLastChildReflowed,
+                      nsOverflowAreas&     aOverflowAreas);
 
   // This calls the col group and column reflow methods, which do two things:
   //  (1) set all the dimensions to 0

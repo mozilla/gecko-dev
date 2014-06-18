@@ -35,10 +35,10 @@
 #include "jit/arm/Simulator-arm.h"
 #include "jit/AsmJSSignalHandlers.h"
 #include "jit/JitCompartment.h"
+#include "jit/mips/Simulator-mips.h"
 #include "jit/PcScriptCache.h"
 #include "js/MemoryMetrics.h"
 #include "js/SliceBudget.h"
-#include "yarr/BumpPointerAllocator.h"
 
 #include "jscntxtinlines.h"
 #include "jsgcinlines.h"
@@ -77,12 +77,16 @@ PerThreadData::PerThreadData(JSRuntime *runtime)
 #endif
     activation_(nullptr),
     asmJSActivationStack_(nullptr),
-#ifdef JS_ARM_SIMULATOR
+    autoFlushICache_(nullptr),
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     simulator_(nullptr),
     simulatorStackLimit_(0),
 #endif
     dtoaState(nullptr),
     suppressGC(0),
+#ifdef DEBUG
+    ionCompiling(false),
+#endif
     activeCompilations(0)
 {}
 
@@ -91,7 +95,7 @@ PerThreadData::~PerThreadData()
     if (dtoaState)
         js_DestroyDtoaState(dtoaState);
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     js_delete(simulator_);
 #endif
 }
@@ -103,6 +107,9 @@ PerThreadData::init()
     if (!dtoaState)
         return false;
 
+    if (!regexpStack.init())
+        return false;
+
     return true;
 }
 
@@ -111,7 +118,7 @@ static const JSWrapObjectCallbacks DefaultWrapObjectCallbacks = {
     nullptr
 };
 
-JSRuntime::JSRuntime(JSRuntime *parentRuntime, JSUseHelperThreads useHelperThreads)
+JSRuntime::JSRuntime(JSRuntime *parentRuntime)
   : JS::shadow::Runtime(
 #ifdef JSGC_GENERATIONAL
         &gc.storeBuffer
@@ -145,7 +152,6 @@ JSRuntime::JSRuntime(JSRuntime *parentRuntime, JSUseHelperThreads useHelperThrea
     tempLifoAlloc(TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
     freeLifoAlloc(TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
     execAlloc_(nullptr),
-    bumpAlloc_(nullptr),
     jitRuntime_(nullptr),
     selfHostingGlobal_(nullptr),
     nativeStackBase(0),
@@ -167,9 +173,10 @@ JSRuntime::JSRuntime(JSRuntime *parentRuntime, JSUseHelperThreads useHelperThrea
 #endif
     gc(thisFromCtor()),
     gcInitialized(false),
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     simulatorRuntime_(nullptr),
 #endif
+    scriptAndCountsVector(nullptr),
     NaNValue(DoubleNaNValue()),
     negativeInfinityValue(DoubleValue(NegativeInfinity<double>())),
     positiveInfinityValue(DoubleValue(PositiveInfinity<double>())),
@@ -212,10 +219,8 @@ JSRuntime::JSRuntime(JSRuntime *parentRuntime, JSUseHelperThreads useHelperThrea
     defaultJSContextCallback(nullptr),
     ctypesActivityCallback(nullptr),
     forkJoinWarmup(0),
-    useHelperThreads_(useHelperThreads),
-    parallelIonCompilationEnabled_(true),
+    offthreadIonCompilationEnabled_(true),
     parallelParsingEnabled_(true),
-    isWorkerRuntime_(false),
 #ifdef DEBUG
     enteredPolicy(nullptr),
 #endif
@@ -262,10 +267,6 @@ JSRuntime::init(uint32_t maxbytes)
     if (!interruptLock)
         return false;
 
-    gc.lock = PR_NewLock();
-    if (!gc.lock)
-        return false;
-
     exclusiveAccessLock = PR_NewLock();
     if (!exclusiveAccessLock)
         return false;
@@ -287,7 +288,7 @@ JSRuntime::init(uint32_t maxbytes)
         SetMarkStackLimit(this, atoi(size));
 
     ScopedJSDeletePtr<Zone> atomsZone(new_<Zone>(this));
-    if (!atomsZone)
+    if (!atomsZone || !atomsZone->init())
         return false;
 
     JS::CompartmentOptions options;
@@ -319,7 +320,7 @@ JSRuntime::init(uint32_t maxbytes)
 
     dateTimeInfo.updateTimeZoneAdjustment();
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     simulatorRuntime_ = js::jit::CreateSimulatorRuntime();
     if (!simulatorRuntime_)
         return false;
@@ -429,13 +430,7 @@ JSRuntime::~JSRuntime()
     gc.finish();
     atomsCompartment_ = nullptr;
 
-#ifdef JS_THREADSAFE
-    if (gc.lock)
-        PR_DestroyLock(gc.lock);
-#endif
-
     js_free(defaultLocale);
-    js_delete(bumpAlloc_);
     js_delete(mathCache_);
 #ifdef JS_ION
     js_delete(jitRuntime_);
@@ -449,7 +444,7 @@ JSRuntime::~JSRuntime()
     gc.nursery.disable();
 #endif
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     js::jit::DestroySimulatorRuntime(simulatorRuntime_);
 #endif
 
@@ -464,16 +459,18 @@ JSRuntime::~JSRuntime()
 void
 NewObjectCache::clearNurseryObjects(JSRuntime *rt)
 {
+#ifdef JSGC_GENERATIONAL
     for (unsigned i = 0; i < mozilla::ArrayLength(entries); ++i) {
         Entry &e = entries[i];
         JSObject *obj = reinterpret_cast<JSObject *>(&e.templateObject);
-        if (IsInsideNursery(rt, e.key) ||
-            IsInsideNursery(rt, obj->slots) ||
-            IsInsideNursery(rt, obj->elements))
+        if (IsInsideNursery(e.key) ||
+            rt->gc.nursery.isInside(obj->slots) ||
+            rt->gc.nursery.isInside(obj->elements))
         {
             PodZero(&e);
         }
     }
+#endif
 }
 
 void
@@ -482,7 +479,7 @@ JSRuntime::resetJitStackLimit()
     AutoLockForInterrupt lock(this);
     mainThread.setJitStackLimit(mainThread.nativeStackLimit[js::StackForUntrustedScript]);
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     mainThread.setJitStackLimit(js::jit::Simulator::StackLimit());
 #endif
  }
@@ -509,8 +506,6 @@ JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::Runtim
     rtSizes->dtoa += mallocSizeOf(mainThread.dtoaState);
 
     rtSizes->temporary += tempLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
-
-    rtSizes->regexpData += bumpAlloc_ ? bumpAlloc_->sizeOfNonHeapData() : 0;
 
     rtSizes->interpreterStack += interpreterStack_.sizeOfExcludingThis(mallocSizeOf);
 
@@ -594,18 +589,6 @@ JSRuntime::createExecutableAllocator(JSContext *cx)
     return execAlloc_;
 }
 
-WTF::BumpPointerAllocator *
-JSRuntime::createBumpPointerAllocator(JSContext *cx)
-{
-    JS_ASSERT(!bumpAlloc_);
-    JS_ASSERT(cx->runtime() == this);
-
-    bumpAlloc_ = js_new<WTF::BumpPointerAllocator>();
-    if (!bumpAlloc_)
-        js_ReportOutOfMemory(cx);
-    return bumpAlloc_;
-}
-
 MathCache *
 JSRuntime::createMathCache(JSContext *cx)
 {
@@ -685,19 +668,6 @@ JSRuntime::triggerActivityCallback(bool active)
 }
 
 void
-JSRuntime::setGCMaxMallocBytes(size_t value)
-{
-    /*
-     * For compatibility treat any value that exceeds PTRDIFF_T_MAX to
-     * mean that value.
-     */
-    gc.maxMallocBytes = (ptrdiff_t(value) >= 0) ? value : size_t(-1) >> 1;
-    resetGCMallocBytes();
-    for (ZonesIter zone(this, WithAtoms); !zone.done(); zone.next())
-        zone->setGCMaxMallocBytes(value);
-}
-
-void
 JSRuntime::updateMallocCounter(size_t nbytes)
 {
     updateMallocCounter(nullptr, nbytes);
@@ -706,22 +676,13 @@ JSRuntime::updateMallocCounter(size_t nbytes)
 void
 JSRuntime::updateMallocCounter(JS::Zone *zone, size_t nbytes)
 {
-    /* We tolerate any thread races when updating gcMallocBytes. */
-    gc.mallocBytes -= ptrdiff_t(nbytes);
-    if (MOZ_UNLIKELY(gc.mallocBytes <= 0))
-        onTooMuchMalloc();
-    else if (zone)
-        zone->updateMallocCounter(nbytes);
+    gc.updateMallocCounter(zone, nbytes);
 }
 
 JS_FRIEND_API(void)
 JSRuntime::onTooMuchMalloc()
 {
-    if (!CurrentThreadCanAccessRuntime(this))
-        return;
-
-    if (!gc.mallocGCTriggered)
-        gc.mallocGCTriggered = TriggerGC(this, JS::gcreason::TOO_MUCH_MALLOC);
+    gc.onTooMuchMalloc();
 }
 
 JS_FRIEND_API(void *)
@@ -741,18 +702,27 @@ JSRuntime::onOutOfMemory(void *p, size_t nbytes, JSContext *cx)
      * all the allocations and released the empty GC chunks.
      */
     JS::ShrinkGCBuffers(this);
-    gc.helperThread.waitBackgroundSweepOrAllocEnd();
+    gc.waitBackgroundSweepOrAllocEnd();
     if (!p)
         p = js_malloc(nbytes);
     else if (p == reinterpret_cast<void *>(1))
         p = js_calloc(nbytes);
     else
-      p = js_realloc(p, nbytes);
+        p = js_realloc(p, nbytes);
     if (p)
         return p;
     if (cx)
         js_ReportOutOfMemory(cx);
     return nullptr;
+}
+
+void *
+JSRuntime::onOutOfMemoryCanGC(void *p, size_t bytes)
+{
+    if (!largeAllocationFailureCallback || bytes < LARGE_ALLOCATION)
+        return nullptr;
+    largeAllocationFailureCallback(largeAllocationFailureCallbackData);
+    return onOutOfMemory(p, bytes);
 }
 
 bool
@@ -831,12 +801,12 @@ JSRuntime::assertCanLock(RuntimeLock which)
     switch (which) {
       case ExclusiveAccessLock:
         JS_ASSERT(exclusiveAccessOwner != PR_GetCurrentThread());
-      case WorkerThreadStateLock:
-        JS_ASSERT(!WorkerThreadState().isLocked());
+      case HelperThreadStateLock:
+        JS_ASSERT(!HelperThreadState().isLocked());
       case InterruptLock:
         JS_ASSERT(!currentThreadOwnsInterruptLock());
       case GCLock:
-        JS_ASSERT(gc.lockOwner != PR_GetCurrentThread());
+        gc.assertCanLock();
         break;
       default:
         MOZ_CRASH();

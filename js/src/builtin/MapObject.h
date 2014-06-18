@@ -42,12 +42,12 @@ class HashableValue {
     Value get() const { return value.get(); }
 };
 
-class AutoHashableValueRooter : private AutoGCRooter
+class AutoHashableValueRooter : private JS::AutoGCRooter
 {
   public:
     explicit AutoHashableValueRooter(JSContext *cx
                                      MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoGCRooter(cx, HASHABLEVALUE)
+        : JS::AutoGCRooter(cx, HASHABLEVALUE)
         {
             MOZ_GUARD_OBJECT_NOTIFIER_INIT;
         }
@@ -60,7 +60,9 @@ class AutoHashableValueRooter : private AutoGCRooter
         return value;
     }
 
-    friend void AutoGCRooter::trace(JSTracer *trc);
+    Value get() const { return value.get(); }
+
+    friend void JS::AutoGCRooter::trace(JSTracer *trc);
     void trace(JSTracer *trc);
 
   private:

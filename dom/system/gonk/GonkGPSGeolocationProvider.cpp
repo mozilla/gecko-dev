@@ -32,7 +32,8 @@
 
 #ifdef MOZ_B2G_RIL
 #include "nsIDOMIccInfo.h"
-#include "nsIDOMMobileConnection.h"
+#include "nsIMobileConnectionInfo.h"
+#include "nsIMobileCellInfo.h"
 #include "nsIRadioInterfaceLayer.h"
 #endif
 
@@ -500,10 +501,10 @@ GonkGPSGeolocationProvider::SetReferenceLocation()
         location.u.cellID.mnc = 0;
       }
     }
-    nsCOMPtr<nsIDOMMozMobileConnectionInfo> voice;
+    nsCOMPtr<nsIMobileConnectionInfo> voice;
     rilCtx->GetVoice(getter_AddRefs(voice));
     if (voice) {
-      nsCOMPtr<nsIDOMMozMobileCellInfo> cell;
+      nsCOMPtr<nsIMobileCellInfo> cell;
       voice->GetCell(getter_AddRefs(cell));
       if (cell) {
         int32_t lac;
@@ -670,17 +671,48 @@ GonkGPSGeolocationProvider::NetworkLocationUpdate::Update(nsIDOMGeoPosition *pos
     return NS_ERROR_FAILURE;
   }
 
-  // if we haven't seen anything from the GPS device for 1s,
-  // use this network derived location.
-  int64_t diff = PR_Now() - provider->mLastGPSDerivedLocationTime;
-  if (provider->mLocationCallback && diff > kDefaultPeriod) {
-    provider->mLocationCallback->Update(position);
-  }
-
   double lat, lon, acc;
   coords->GetLatitude(&lat);
   coords->GetLongitude(&lon);
   coords->GetAccuracy(&acc);
+
+  double delta = MAXFLOAT;
+
+  static double sLastMLSPosLat = 0;
+  static double sLastMLSPosLon = 0;
+
+  if (0 != sLastMLSPosLon || 0 != sLastMLSPosLat) {
+    // Use spherical law of cosines to calculate difference
+    // Not quite as correct as the Haversine but simpler and cheaper
+    // Should the following be a utility function? Others might need this calc.
+    const double radsInDeg = 3.14159265 / 180.0;
+    const double rNewLat = lat * radsInDeg;
+    const double rNewLon = lon * radsInDeg;
+    const double rOldLat = sLastMLSPosLat * radsInDeg;
+    const double rOldLon = sLastMLSPosLon * radsInDeg;
+    // WGS84 equatorial radius of earth = 6378137m
+    delta = acos( (sin(rNewLat) * sin(rOldLat)) +
+                  (cos(rNewLat) * cos(rOldLat) * cos(rOldLon - rNewLon)) )
+                  * 6378137;
+  }
+
+  sLastMLSPosLat = lat;
+  sLastMLSPosLon = lon;
+
+  // if the MLS coord change is smaller than this arbitrarily small value
+  // assume the MLS coord is unchanged, and stick with the GPS location
+  const double kMinMLSCoordChangeInMeters = 10;
+
+  // if we haven't seen anything from the GPS device for 10s,
+  // use this network derived location.
+  const int kMaxGPSDelayBeforeConsideringMLS = 10000;
+  int64_t diff = PR_Now() - provider->mLastGPSDerivedLocationTime;
+  if (provider->mLocationCallback && diff > kMaxGPSDelayBeforeConsideringMLS
+      && delta > kMinMLSCoordChangeInMeters)
+  {
+    provider->mLocationCallback->Update(position);
+  }
+
   provider->InjectLocation(lat, lon, acc);
   return NS_OK;
 }

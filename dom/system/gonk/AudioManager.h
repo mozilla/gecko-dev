@@ -42,12 +42,11 @@ class AudioManager : public nsIAudioManager
                    , public nsIObserver
 {
 public:
+  static already_AddRefed<AudioManager> GetInstance();
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIAUDIOMANAGER
   NS_DECL_NSIOBSERVER
-
-  AudioManager();
-  ~AudioManager();
 
   // When audio backend is dead, recovery task needs to read all volume
   // settings then set back into audio backend.
@@ -73,6 +72,10 @@ private:
   void HandleBluetoothStatusChanged(nsISupports* aSubject,
                                     const char* aTopic,
                                     const nsCString aAddress);
+  void HandleAudioChannelProcessChanged();
+
+  AudioManager();
+  ~AudioManager();
 };
 
 } /* namespace gonk */

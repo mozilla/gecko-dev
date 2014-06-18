@@ -22,10 +22,10 @@
 #include "ScopedGLHelpers.h"
 #include "gfx2DGlue.h"
 
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace gl {
+
+using namespace mozilla::gfx;
 
 GLScreenBuffer*
 GLScreenBuffer::Create(GLContext* gl,
@@ -409,6 +409,9 @@ GLScreenBuffer::Attach(SharedSurface* surface, const gfx::IntSize& size)
         if (!drawOk || !readOk) {
             delete draw;
             delete read;
+
+            surf->UnlockProd();
+
             return false;
         }
 

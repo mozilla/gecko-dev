@@ -52,8 +52,34 @@ Subfields for all messages:
       thread - name for the thread emitting the message
       pid - id of the python process in which the logger is running
       source - name for the source emitting the message
+      component - name of the subcomponent emitting the message
 """
 
+_default_logger_name = None
+
+def get_default_logger(component=None):
+    """Gets the default logger if available, optionally tagged with component
+    name. Will return None if not yet set
+
+    :param component: The component name to tag log messages with
+    """
+    global _default_logger_name
+
+    if not _default_logger_name:
+        return None
+
+    return StructuredLogger(_default_logger_name, component=component)
+
+def set_default_logger(default_logger):
+    """Sets the default logger to logger.
+
+    It can then be retrieved with :py:func:`get_default_logger`
+
+    :param default_logger: The logger to set to default.
+    """
+    global _default_logger_name
+
+    _default_logger_name = default_logger.name
 
 log_levels = dict((k.upper(), v) for v, k in
                   enumerate(["critical", "error", "warning", "info", "debug"]))
@@ -67,8 +93,9 @@ class StructuredLogger(object):
     :param name: The name of the logger.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, component=None):
         self.name = name
+        self.component = component
 
     def add_handler(self, handler):
         """Add a handler to the current logger"""
@@ -101,6 +128,8 @@ class StructuredLogger(object):
                     "thread": current_thread().name,
                     "pid": current_process().pid,
                     "source": self.name}
+        if self.component:
+            all_data['component'] = self.component
         all_data.update(data)
         return all_data
 
@@ -167,7 +196,7 @@ class StructuredLogger(object):
                 "status": status.upper()}
         if message is not None:
             data["message"] = message
-        if expected != data["status"]:
+        if expected != data["status"] and status != "SKIP":
             data["expected"] = expected
         if extra is not None:
             data["extra"] = extra
@@ -234,53 +263,3 @@ class StructuredLogFileLike(object):
     def flush(self):
         pass
 
-
-_wrapper_cls = None
-
-
-def std_logging_adapter(logger):
-    """
-    Adapter for stdlib logging so that it produces structured
-    messages rather than standard logging messages
-
-    :param logger: logging.Logger to wrap
-    """
-    global _wrapper_cls
-    import logging
-
-    if _wrapper_cls is not None:
-        return _wrapper_cls(logger)
-
-    class UnstructuredHandler(logging.Handler):
-        def __init__(self, name=None, level=logging.NOTSET):
-            self.structured = StructuredLogger(name)
-            logging.Handler.__init__(self, level=level)
-
-        def emit(self, record):
-            if record.levelname in log_levels:
-                log_func = getattr(self.structured, record.levelname.lower())
-            else:
-                log_func = self.logger.debug
-            log_func(record.msg)
-
-        def handle(self, record):
-            self.emit(record)
-
-    class LoggingWrapper(object):
-        def __init__(self, wrapped):
-            self.wrapped = wrapped
-            self.wrapped.addHandler(UnstructuredHandler(self.wrapped.name,
-                                                        logging.getLevelName(self.wrapped.level)))
-
-        def add_handler(self, handler):
-            self.addHandler(handler)
-
-        def remove_handler(self, handler):
-            self.removeHandler(handler)
-
-        def __getattr__(self, name):
-            return getattr(self.wrapped, name)
-
-    _wrapper_cls = LoggingWrapper
-
-    return LoggingWrapper(logger)

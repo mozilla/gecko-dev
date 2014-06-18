@@ -494,6 +494,9 @@ def environment(xrePath, env=None, crashreporter=True, debugger=False, dmdPath=N
   else:
     env['MOZ_CRASHREPORTER_DISABLE'] = '1'
 
+  # Crash on non-local network connections.
+  env['MOZ_DISABLE_NONLOCAL_CONNECTIONS'] = '1'
+
   # Set WebRTC logging in case it is not set yet
   env.setdefault('NSPR_LOG_MODULES', 'signaling:5,mtransport:5,datachannel:5')
   env.setdefault('R_LOG_LEVEL', '6')
@@ -508,7 +511,9 @@ def environment(xrePath, env=None, crashreporter=True, debugger=False, dmdPath=N
       llvmsym = os.path.join(xrePath, "llvm-symbolizer")
       if os.path.isfile(llvmsym):
         env["ASAN_SYMBOLIZER_PATH"] = llvmsym
-        log.info("ASan using symbolizer at %s", llvmsym)
+        log.info("INFO | runtests.py | ASan using symbolizer at %s", llvmsym)
+      else:
+        log.info("TEST-UNEXPECTED-FAIL | runtests.py | Failed to find ASan symbolizer at %s", llvmsym)
 
       totalMemory = systemMemory()
 

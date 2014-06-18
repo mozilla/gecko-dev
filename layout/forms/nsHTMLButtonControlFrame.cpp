@@ -19,7 +19,7 @@
 
 using namespace mozilla;
 
-nsIFrame*
+nsContainerFrame*
 NS_NewHTMLButtonControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   return new (aPresShell) nsHTMLButtonControlFrame(aContext);
@@ -44,10 +44,9 @@ nsHTMLButtonControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 }
 
 void
-nsHTMLButtonControlFrame::Init(
-              nsIContent*      aContent,
-              nsIFrame*        aParent,
-              nsIFrame*        aPrevInFlow)
+nsHTMLButtonControlFrame::Init(nsIContent*       aContent,
+                               nsContainerFrame* aParent,
+                               nsIFrame*         aPrevInFlow)
 {
   nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
   mRenderer.SetFrame(this, PresContext());
@@ -162,7 +161,7 @@ nsHTMLButtonControlFrame::GetPrefWidth(nsRenderingContext* aRenderingContext)
   return result;
 }
 
-nsresult 
+void
 nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
                                nsHTMLReflowMetrics& aDesiredSize,
                                const nsHTMLReflowState& aReflowState,
@@ -205,7 +204,6 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
                                  aReflowState, aStatus);
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return NS_OK;
 }
 
 // Helper-function that lets us clone the button's reflow state, but with its
@@ -333,8 +331,10 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
                     xoffset, yoffset, 0);
 
   // Make sure we have a useful 'ascent' value for the child
-  if (contentsDesiredSize.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
-    contentsDesiredSize.SetTopAscent(aFirstKid->GetBaseline());
+  if (contentsDesiredSize.BlockStartAscent() ==
+      nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+    WritingMode wm = aButtonReflowState.GetWritingMode();
+    contentsDesiredSize.SetBlockStartAscent(aFirstKid->GetLogicalBaseline(wm));
   }
 
   // OK, we're done with the child frame.
@@ -348,7 +348,8 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
 
   //  * Button's ascent is its child's ascent, plus the child's y-offset
   // within our frame:
-  aButtonDesiredSize.SetTopAscent(contentsDesiredSize.TopAscent() + yoffset);
+  aButtonDesiredSize.SetBlockStartAscent(contentsDesiredSize.BlockStartAscent() +
+                                         yoffset);
 
   aButtonDesiredSize.SetOverflowAreasToDesiredBounds();
 }
@@ -375,27 +376,26 @@ nsHTMLButtonControlFrame::SetAdditionalStyleContext(int32_t aIndex,
   mRenderer.SetStyleContext(aIndex, aStyleContext);
 }
 
-nsresult 
+#ifdef DEBUG
+void
 nsHTMLButtonControlFrame::AppendFrames(ChildListID     aListID,
                                        nsFrameList&    aFrameList)
 {
-  NS_NOTREACHED("unsupported operation");
-  return NS_ERROR_UNEXPECTED;
+  MOZ_CRASH("unsupported operation");
 }
 
-nsresult
+void
 nsHTMLButtonControlFrame::InsertFrames(ChildListID     aListID,
                                        nsIFrame*       aPrevFrame,
                                        nsFrameList&    aFrameList)
 {
-  NS_NOTREACHED("unsupported operation");
-  return NS_ERROR_UNEXPECTED;
+  MOZ_CRASH("unsupported operation");
 }
 
-nsresult
+void
 nsHTMLButtonControlFrame::RemoveFrame(ChildListID     aListID,
                                       nsIFrame*       aOldFrame)
 {
-  NS_NOTREACHED("unsupported operation");
-  return NS_ERROR_UNEXPECTED;
+  MOZ_CRASH("unsupported operation");
 }
+#endif

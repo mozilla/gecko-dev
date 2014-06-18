@@ -5,6 +5,8 @@ let Promise = SpecialPowers.Cu.import("resource://gre/modules/Promise.jsm").Prom
 let telephony;
 let conference;
 
+const kPrefRilDebuggingEnabled = "ril.debugging.enabled";
+
 /**
  * Emulator helper.
  */
@@ -20,6 +22,7 @@ let emulator = (function() {
   function run(cmd, callback) {
     pendingCmdCount++;
     originalRunEmulatorCmd(cmd, function(result) {
+      is(result[result.length - 1], "OK", "emulator command should be OK.");
       pendingCmdCount--;
       if (callback && typeof callback === "function") {
         callback(result);
@@ -48,40 +51,27 @@ let emulator = (function() {
   };
 }());
 
-// Delay 1s before each telephony.dial()
-// The workaround here should be removed after bug 1005816.
-
-let originalDial;
-
-function delayTelephonyDial() {
-  originalDial = telephony.dial;
-  telephony.dial = function(number, serviceId) {
-    let deferred = Promise.defer();
-
-    let startTime = Date.now();
-    waitFor(function() {
-      originalDial.call(telephony, number, serviceId).then(call => {
-        deferred.resolve(call);
-      }, cause => {
-        deferred.reject(cause);
-      });
-    }, function() {
-      duration = Date.now() - startTime;
-      return (duration >= 1000);
-    });
-
-    return deferred.promise;
-  };
-}
-
-function restoreTelephonyDial() {
-  telephony.dial = originalDial;
-}
-
 /**
  * Telephony related helper functions.
  */
 (function() {
+  /**
+   * @return Promise
+   */
+  function delay(ms) {
+    let deferred = Promise.defer();
+
+    let startTime = Date.now();
+    waitFor(function() {
+      deferred.resolve();
+    },function() {
+      let duration = Date.now() - startTime;
+      return (duration >= ms);
+    });
+
+    return deferred.promise;
+  }
+
   /**
    * @return Promise
    */
@@ -1043,6 +1033,7 @@ function restoreTelephonyDial() {
    * Public members.
    */
 
+  this.gDelay = delay;
   this.gCheckInitialState = checkInitialState;
   this.gClearCalls = clearCalls;
   this.gOutCallStrPool = outCallStrPool;
@@ -1080,13 +1071,21 @@ function _startTest(permissions, test) {
     }
   }
 
+  let debugPref;
+
   function setUp() {
     log("== Test SetUp ==");
+
+    // Turn on debugging pref.
+    debugPref = SpecialPowers.getBoolPref(kPrefRilDebuggingEnabled);
+    SpecialPowers.setBoolPref(kPrefRilDebuggingEnabled, true);
+    log("Set debugging pref: " + debugPref + " => true");
+
     permissionSetUp();
+
     // Make sure that we get the telephony after adding permission.
     telephony = window.navigator.mozTelephony;
     ok(telephony);
-    delayTelephonyDial();
     conference = telephony.conferenceGroup;
     ok(conference);
     return gClearCalls().then(gCheckInitialState);
@@ -1098,9 +1097,14 @@ function _startTest(permissions, test) {
 
     function tearDown() {
       log("== Test TearDown ==");
-      restoreTelephonyDial();
       emulator.waitFinish()
-        .then(permissionTearDown)
+        .then(() => {
+          permissionTearDown();
+
+          // Restore debugging pref.
+          SpecialPowers.setBoolPref(kPrefRilDebuggingEnabled, debugPref);
+          log("Set debugging pref: true => " + debugPref);
+        })
         .then(function() {
           originalFinish.apply(this, arguments);
         });

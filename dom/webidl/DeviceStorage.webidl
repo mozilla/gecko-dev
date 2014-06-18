@@ -15,6 +15,20 @@ interface DeviceStorage : EventTarget {
   [Throws]
   DOMRequest? addNamed(Blob? aBlob, DOMString aName);
 
+  /**
+   * Append data to a given file.
+   * If the file doesn't exist, a "NotFoundError" event will be dispatched.
+   * In the same time, it is a request.onerror case.
+   * If the file exists, it will be opened with the following permission:
+   *                                                "PR_WRONLY|PR_CREATE_FILE|PR_APPEND".
+   * The function will return null when blob file is null and other unexpected situations.
+   * @parameter aBlob: A Blob object representing the data to append
+   * @parameter aName: A string representing the full name (path + file name) of the file
+   *                   to append data to.
+   */
+  [Throws]
+  DOMRequest? appendNamed(Blob? aBlob, DOMString aName);
+
   [Throws]
   DOMRequest get(DOMString aName);
   [Throws]
@@ -51,6 +65,18 @@ interface DeviceStorage : EventTarget {
   // Note that the storageName is just a name (like sdcard), and doesn't
   // include any path information.
   readonly attribute DOMString storageName;
+
+  // Indicates if the storage area denoted by storageName is capable of
+  // being mounted and unmounted.
+  readonly attribute boolean canBeMounted;
+
+  // Indicates if the storage area denoted by storageName is capable of
+  // being shared and unshared.
+  readonly attribute boolean canBeShared;
+
+  // Indicates if the storage area denoted by storageName is capable of
+  // being formatted.
+  readonly attribute boolean canBeFormatted;
 
   // Determines if this storage area is the one which will be used by default
   // for storing new files.

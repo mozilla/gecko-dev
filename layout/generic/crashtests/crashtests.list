@@ -483,7 +483,7 @@ skip-if(Android) load 784600.html
 load 786740-1.html
 asserts(0-4) test-pref(font.size.inflation.emPerLine,15) load 791601.xhtml # 3 counts of bug 871327, 1 bug 367185
 test-pref(font.size.inflation.minTwips,120) load 794693.html
-asserts(8) load 798020-1.html
+asserts-if(!Android,8) load 798020-1.html
 load 798235-1.html
 load 799207-1.html
 load 799207-2.html
@@ -507,7 +507,7 @@ load 842132-1.html
 load 844529-1.html
 load 847130.xhtml
 load 847208.html
-asserts(4) load 847209.html # bug 847368
+asserts-if(Android,2) asserts-if(!Android,4) load 847209.html # bug 847368
 load 847211-1.html
 load 849603.html
 load 851396-1.html
@@ -523,10 +523,14 @@ test-pref(layout.css.sticky.enabled,true) load 914891.html
 test-pref(layout.css.sticky.enabled,true) load 915475.xhtml
 load 927558.html
 load 943509-1.html
-asserts(4-8) load 944909-1.html
+asserts(3-6) load 944909-1.html
 test-pref(layout.css.sticky.enabled,true) load 949932.html
 load 973701-1.xhtml
 load 973701-2.xhtml
 load 986899.html
+load 1001233.html
 load 1001258-1.html
+pref(layout.css.grid.enabled,true) load 1015562.html
+asserts(1-2) load 1015563-1.html
+asserts(1-2) load 1015563-2.html
 load outline-on-frameset.xhtml

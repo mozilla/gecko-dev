@@ -10,6 +10,7 @@
 #include "jit/BaselineJIT.h"
 #include "jit/CompileInfo.h"
 #include "jit/IonSpewer.h"
+#include "jit/mips/Simulator-mips.h"
 #include "jit/Recover.h"
 #include "jit/RematerializedFrame.h"
 
@@ -1261,6 +1262,10 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
                           bool invalidate, BaselineBailoutInfo **bailoutInfo,
                           const ExceptionBailoutInfo *excInfo)
 {
+    // The Baseline frames we will reconstruct on the heap are not rooted, so GC
+    // must be suppressed here.
+    JS_ASSERT(cx->mainThread().suppressGC);
+
     JS_ASSERT(bailoutInfo != nullptr);
     JS_ASSERT(*bailoutInfo == nullptr);
 
@@ -1341,6 +1346,10 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
 
     if (!snapIter.initIntructionResults(instructionResults))
         return BAILOUT_RETURN_FATAL_ERROR;
+
+#ifdef TRACK_SNAPSHOTS
+    snapIter.spewBailingFrom();
+#endif
 
     RootedFunction callee(cx, iter.maybeCallee());
     RootedScript scr(cx, iter.script());
@@ -1445,7 +1454,7 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
     bool overRecursed = false;
     BaselineBailoutInfo *info = builder.info();
     uint8_t *newsp = info->incomingStack - (info->copyStackTop - info->copyStackBottom);
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     if (Simulator::Current()->overRecursed(uintptr_t(newsp)))
         overRecursed = true;
 #else
@@ -1663,22 +1672,50 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
             (unsigned) bailoutKind);
 
     switch (bailoutKind) {
-      case Bailout_Normal:
+      // Normal bailouts.
+      case Bailout_Inevitable:
+      case Bailout_DuringVMCall:
+      case Bailout_NonJSFunctionCallee:
+      case Bailout_DynamicNameNotFound:
+      case Bailout_StringArgumentsEval:
+      case Bailout_Overflow:
+      case Bailout_Round:
+      case Bailout_NonPrimitiveInput:
+      case Bailout_PrecisionLoss:
+      case Bailout_TypeBarrierO:
+      case Bailout_TypeBarrierV:
+      case Bailout_MonitorTypes:
+      case Bailout_Hole:
+      case Bailout_NegativeIndex:
+      case Bailout_ObjectIdentityOrTypeGuard:
+      case Bailout_NonInt32Input:
+      case Bailout_NonNumericInput:
+      case Bailout_NonBooleanInput:
+      case Bailout_NonObjectInput:
+      case Bailout_NonStringInput:
+      case Bailout_GuardThreadExclusive:
+      case Bailout_InitialState:
         // Do nothing.
         break;
+
+      // Invalid assumption based on baseline code.
+      case Bailout_OverflowInvalidate:
+      case Bailout_NonStringInputInvalidate:
+      case Bailout_DoubleOutput:
+        if (!HandleBaselineInfoBailout(cx, outerScript, innerScript))
+            return false;
+        break;
+
       case Bailout_ArgumentCheck:
         // Do nothing, bailout will resume before the argument monitor ICs.
         break;
       case Bailout_BoundsCheck:
+      case Bailout_Neutered:
         if (!HandleBoundsCheckFailure(cx, outerScript, innerScript))
             return false;
         break;
       case Bailout_ShapeGuard:
         if (!HandleShapeGuardFailure(cx, outerScript, innerScript))
-            return false;
-        break;
-      case Bailout_BaselineInfo:
-        if (!HandleBaselineInfoBailout(cx, outerScript, innerScript))
             return false;
         break;
       case Bailout_IonExceptionDebugMode:

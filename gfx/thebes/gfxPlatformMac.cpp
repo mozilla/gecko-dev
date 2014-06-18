@@ -105,59 +105,11 @@ gfxPlatformMac::CreateOffscreenSurface(const IntSize& size,
     return newSurface.forget();
 }
 
-already_AddRefed<gfxASurface>
-gfxPlatformMac::CreateOffscreenImageSurface(const gfxIntSize& aSize,
-                                            gfxContentType aContentType)
-{
-    nsRefPtr<gfxASurface> surface =
-        CreateOffscreenSurface(aSize.ToIntSize(), aContentType);
-#ifdef DEBUG
-    nsRefPtr<gfxImageSurface> imageSurface = surface->GetAsImageSurface();
-    NS_ASSERTION(imageSurface, "Surface cannot be converted to a gfxImageSurface");
-#endif
-    return surface.forget();
-}
-
-
-already_AddRefed<gfxASurface>
-gfxPlatformMac::OptimizeImage(gfxImageSurface *aSurface,
-                              gfxImageFormat format)
-{
-    const gfxIntSize& surfaceSize = aSurface->GetSize();
-    nsRefPtr<gfxImageSurface> isurf = aSurface;
-
-    if (format != aSurface->Format()) {
-        isurf = new gfxImageSurface (surfaceSize, format);
-        if (!isurf->CopyFrom (aSurface)) {
-            // don't even bother doing anything more
-            nsRefPtr<gfxASurface> ret = aSurface;
-            return ret.forget();
-        }
-    }
-
-    return nullptr;
-}
-
 TemporaryRef<ScaledFont>
 gfxPlatformMac::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
 {
     gfxMacFont *font = static_cast<gfxMacFont*>(aFont);
     return font->GetScaledFont(aTarget);
-}
-
-nsresult
-gfxPlatformMac::ResolveFontName(const nsAString& aFontName,
-                                FontResolverCallback aCallback,
-                                void *aClosure, bool& aAborted)
-{
-    nsAutoString resolvedName;
-    if (!gfxPlatformFontList::PlatformFontList()->
-             ResolveFontName(aFontName, resolvedName)) {
-        aAborted = false;
-        return NS_OK;
-    }
-    aAborted = !(*aCallback)(resolvedName, aClosure);
-    return NS_OK;
 }
 
 nsresult
@@ -168,11 +120,11 @@ gfxPlatformMac::GetStandardFamilyName(const nsAString& aFontName, nsAString& aFa
 }
 
 gfxFontGroup *
-gfxPlatformMac::CreateFontGroup(const nsAString &aFamilies,
+gfxPlatformMac::CreateFontGroup(const FontFamilyList& aFontFamilyList,
                                 const gfxFontStyle *aStyle,
                                 gfxUserFontSet *aUserFontSet)
 {
-    return new gfxFontGroup(aFamilies, aStyle, aUserFontSet);
+    return new gfxFontGroup(aFontFamilyList, aStyle, aUserFontSet);
 }
 
 // these will move to gfxPlatform once all platforms support the fontlist
@@ -462,12 +414,6 @@ gfxPlatformMac::UseAcceleratedCanvas()
 {
   // Lion or later is required
   return nsCocoaFeatures::OnLionOrLater() && Preferences::GetBool("gfx.canvas.azure.accelerated", false);
-}
-
-bool
-gfxPlatformMac::SupportsOffMainThreadCompositing()
-{
-  return true;
 }
 
 void

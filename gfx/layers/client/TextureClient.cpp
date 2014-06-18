@@ -58,11 +58,12 @@
 #define RECYCLE_LOG(...) do { } while (0)
 #endif
 
-using namespace mozilla::gl;
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace layers {
+
+using namespace mozilla::ipc;
+using namespace mozilla::gl;
+using namespace mozilla::gfx;
 
 /**
  * TextureChild is the content-side incarnation of the PTexture IPDL actor.
@@ -82,7 +83,6 @@ public:
 
   TextureChild()
   : mForwarder(nullptr)
-  , mTextureData(nullptr)
   , mTextureClient(nullptr)
   , mIPCOpen(false)
   {
@@ -103,18 +103,6 @@ public:
     RECYCLE_LOG("Wait for recycle %p\n", mWaitForRecycle.get());
     SendClientRecycle();
   }
-
-  /**
-   * Only used during the deallocation phase iff we need synchronization between
-   * the client and host side for deallocation (that is, when the data is going
-   * to be deallocated or recycled on the client side).
-   */
-  void SetTextureData(TextureClientData* aData)
-  {
-    mTextureData = aData;
-  }
-
-  void DeleteTextureData();
 
   CompositableForwarder* GetForwarder() { return mForwarder; }
 
@@ -143,28 +131,15 @@ private:
 
   RefPtr<CompositableForwarder> mForwarder;
   RefPtr<TextureClient> mWaitForRecycle;
-  TextureClientData* mTextureData;
   TextureClient* mTextureClient;
   bool mIPCOpen;
 
   friend class TextureClient;
 };
 
-void
-TextureChild::DeleteTextureData()
-{
-  mWaitForRecycle = nullptr;
-  if (mTextureData) {
-    mTextureData->DeallocateSharedData(GetAllocator());
-    delete mTextureData;
-    mTextureData = nullptr;
-  }
-}
-
 bool
 TextureChild::Recv__delete__()
 {
-  DeleteTextureData();
   return true;
 }
 
@@ -309,7 +284,7 @@ TextureClient::CreateTextureClientForDrawing(ISurfaceAllocator* aAllocator,
       type == gfxSurfaceType::Xlib &&
       !(aTextureFlags & TextureFlags::ALLOC_FALLBACK))
   {
-    result = new TextureClientX11(aFormat, aTextureFlags);
+    result = new TextureClientX11(aAllocator, aFormat, aTextureFlags);
   }
 #ifdef GL_PROVIDER_GLX
   if (parentBackend == LayersBackend::LAYERS_OPENGL &&
@@ -318,7 +293,7 @@ TextureClient::CreateTextureClientForDrawing(ISurfaceAllocator* aAllocator,
       aFormat != SurfaceFormat::A8 &&
       gl::sGLXLibrary.UseTextureFromPixmap())
   {
-    result = new TextureClientX11(aFormat, aTextureFlags);
+    result = new TextureClientX11(aAllocator, aFormat, aTextureFlags);
   }
 #endif
 #endif
@@ -350,7 +325,7 @@ TextureClient::CreateBufferTextureClient(ISurfaceAllocator* aAllocator,
                                          TextureFlags aTextureFlags,
                                          gfx::BackendType aMoz2DBackend)
 {
-  if (gfxPlatform::GetPlatform()->PreferMemoryOverShmem()) {
+  if (aAllocator->IsSameProcess()) {
     RefPtr<BufferTextureClient> result = new MemoryTextureClient(aAllocator, aFormat,
                                                                  aMoz2DBackend,
                                                                  aTextureFlags);
@@ -360,80 +335,6 @@ TextureClient::CreateBufferTextureClient(ISurfaceAllocator* aAllocator,
                                                               aMoz2DBackend,
                                                               aTextureFlags);
   return result.forget();
-}
-
-
-class ShmemTextureClientData : public TextureClientData
-{
-public:
-  ShmemTextureClientData(ipc::Shmem& aShmem)
-  : mShmem(aShmem)
-  {
-    MOZ_COUNT_CTOR(ShmemTextureClientData);
-  }
-
-  ~ShmemTextureClientData()
-  {
-    MOZ_COUNT_CTOR(ShmemTextureClientData);
-  }
-
-  virtual void DeallocateSharedData(ISurfaceAllocator* allocator)
-  {
-    allocator->DeallocShmem(mShmem);
-    mShmem = ipc::Shmem();
-  }
-
-private:
-  ipc::Shmem mShmem;
-};
-
-class MemoryTextureClientData : public TextureClientData
-{
-public:
-  MemoryTextureClientData(uint8_t* aBuffer)
-  : mBuffer(aBuffer)
-  {
-    MOZ_COUNT_CTOR(MemoryTextureClientData);
-  }
-
-  ~MemoryTextureClientData()
-  {
-    MOZ_ASSERT(!mBuffer, "Forgot to deallocate the shared texture data?");
-    MOZ_COUNT_DTOR(MemoryTextureClientData);
-  }
-
-  virtual void DeallocateSharedData(ISurfaceAllocator*)
-  {
-    delete[] mBuffer;
-    mBuffer = nullptr;
-  }
-
-private:
-  uint8_t* mBuffer;
-};
-
-TextureClientData*
-MemoryTextureClient::DropTextureData()
-{
-  if (!mBuffer) {
-    return nullptr;
-  }
-  TextureClientData* result = new MemoryTextureClientData(mBuffer);
-  MarkInvalid();
-  mBuffer = nullptr;
-  return result;
-}
-
-TextureClientData*
-ShmemTextureClient::DropTextureData()
-{
-  if (!mShmem.IsReadable()) {
-    return nullptr;
-  }
-  TextureClientData* result = new ShmemTextureClientData(mShmem);
-  MarkInvalid();
-  mShmem = ipc::Shmem();
-  return result;
 }
 
 TextureClient::TextureClient(TextureFlags aFlags)
@@ -452,11 +353,10 @@ void TextureClient::ForceRemove()
 {
   if (mValid && mActor) {
     if (GetFlags() & TextureFlags::DEALLOCATE_CLIENT) {
-      mActor->SetTextureData(DropTextureData());
       if (mActor->IPCOpen()) {
-        mActor->SendRemoveTextureSync();
+        mActor->SendClearTextureHostSync();
+        mActor->SendRemoveTexture();
       }
-      mActor->DeleteTextureData();
     } else {
       if (mActor->IPCOpen()) {
         mActor->SendRemoveTexture();
@@ -477,15 +377,13 @@ bool TextureClient::CopyToTextureClient(TextureClient* aTarget,
     return false;
   }
 
-  RefPtr<DrawTarget> destinationTarget = aTarget->GetAsDrawTarget();
-  RefPtr<DrawTarget> sourceTarget = GetAsDrawTarget();
+  DrawTarget* destinationTarget = aTarget->BorrowDrawTarget();
+  DrawTarget* sourceTarget = BorrowDrawTarget();
   RefPtr<gfx::SourceSurface> source = sourceTarget->Snapshot();
   destinationTarget->CopySurface(source,
                                  aRect ? *aRect : gfx::IntRect(gfx::IntPoint(0, 0), GetSize()),
                                  aPoint ? *aPoint : gfx::IntPoint(0, 0));
-  destinationTarget = nullptr;
   source = nullptr;
-  sourceTarget = nullptr;
 
   return true;
 }
@@ -518,9 +416,10 @@ TextureClient::ShouldDeallocateInDestructor() const
   }
 
   // If we're meant to be deallocated by the host,
-  // but we haven't been shared yet, then we should
+  // but we haven't been shared yet or
+  // TextureFlags::DEALLOCATE_CLIENT is set, then we should
   // deallocate on the client instead.
-  return !IsSharedWithCompositor();
+  return !IsSharedWithCompositor() || (GetFlags() & TextureFlags::DEALLOCATE_CLIENT);
 }
 
 bool
@@ -540,7 +439,7 @@ bool
 ShmemTextureClient::Allocate(uint32_t aSize)
 {
   MOZ_ASSERT(mValid);
-  ipc::SharedMemory::SharedMemoryType memType = OptimalShmemType();
+  SharedMemory::SharedMemoryType memType = OptimalShmemType();
   mAllocated = GetAllocator()->AllocUnsafeShmem(aSize, memType, &mShmem);
   return mAllocated;
 }
@@ -675,11 +574,11 @@ BufferTextureClient::AllocateForSurface(gfx::IntSize aSize, TextureAllocationFla
   return true;
 }
 
-TemporaryRef<gfx::DrawTarget>
-BufferTextureClient::GetAsDrawTarget()
+gfx::DrawTarget*
+BufferTextureClient::BorrowDrawTarget()
 {
   MOZ_ASSERT(IsValid());
-  MOZ_ASSERT(mLocked, "GetAsDrawTarget should be called on locked textures only");
+  MOZ_ASSERT(mLocked, "BorrowDrawTarget should be called on locked textures only");
 
   if (mDrawTarget) {
     return mDrawTarget;
@@ -718,7 +617,7 @@ BufferTextureClient::Unlock()
     return;
   }
 
-  // see the comment on TextureClient::GetAsDrawTarget.
+  // see the comment on TextureClient::BorrowDrawTarget.
   // This DrawTarget is internal to the TextureClient and is only exposed to the
   // outside world between Lock() and Unlock(). This assertion checks that no outside
   // reference remains by the time Unlock() is called.

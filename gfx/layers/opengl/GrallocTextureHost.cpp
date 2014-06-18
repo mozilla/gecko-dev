@@ -90,9 +90,11 @@ TextureTargetForAndroidPixelFormat(android::PixelFormat aFormat)
 }
 
 GrallocTextureSourceOGL::GrallocTextureSourceOGL(CompositorOGL* aCompositor,
+                                                 GrallocTextureHostOGL* aTextureHost,
                                                  android::GraphicBuffer* aGraphicBuffer,
                                                  gfx::SurfaceFormat aFormat)
   : mCompositor(aCompositor)
+  , mTextureHost(aTextureHost)
   , mGraphicBuffer(aGraphicBuffer)
   , mEGLImage(0)
   , mFormat(aFormat)
@@ -138,10 +140,17 @@ GrallocTextureSourceOGL::BindTexture(GLenum aTextureUnit, gfx::Filter aFilter)
     if (!mEGLImage) {
       mEGLImage = EGLImageCreateFromNativeBuffer(gl(), mGraphicBuffer->getNativeBuffer());
     }
-    gl()->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
+    BindEGLImage();
   }
 
   ApplyFilterToBoundTexture(gl(), aFilter, textureTarget);
+
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+  if (mTextureHost) {
+    // Wait until it's ready.
+    mTextureHost->WaitAcquireFenceSyncComplete();
+  }
+#endif
 }
 
 void GrallocTextureSourceOGL::Lock()
@@ -212,8 +221,9 @@ void
 GrallocTextureSourceOGL::SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData)
 {
   if (!aBackendData) {
-    mCompositableBackendData = nullptr;
     DeallocateDeviceData();
+    // Update mCompositableBackendData after calling DeallocateDeviceData().
+    mCompositableBackendData = nullptr;
     return;
   }
 
@@ -228,18 +238,20 @@ GrallocTextureSourceOGL::SetCompositableBackendSpecificData(CompositableBackendS
     GLuint textureTarget = GetTextureTarget();
     gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
     gl()->fBindTexture(textureTarget, tex);
-    gl()->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
+    BindEGLImage();
     return;
   }
 
-  mCompositableBackendData = aBackendData;
-
   if (!mCompositor) {
+    mCompositableBackendData = aBackendData;
     return;
   }
 
   // delete old EGLImage
   DeallocateDeviceData();
+
+  // Update mCompositableBackendData after calling DeallocateDeviceData().
+  mCompositableBackendData = aBackendData;
 
   gl()->MakeCurrent();
   GLuint tex = GetGLTexture();
@@ -249,7 +261,7 @@ GrallocTextureSourceOGL::SetCompositableBackendSpecificData(CompositableBackendS
   gl()->fBindTexture(textureTarget, tex);
   // create new EGLImage
   mEGLImage = EGLImageCreateFromNativeBuffer(gl(), mGraphicBuffer->getNativeBuffer());
-  gl()->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
+  BindEGLImage();
   mNeedsReset = false;
 }
 
@@ -269,6 +281,10 @@ GrallocTextureSourceOGL::DeallocateDeviceData()
   if (mEGLImage) {
     MOZ_ASSERT(gl());
     gl()->MakeCurrent();
+    if (mCompositableBackendData) {
+      CompositableDataGonkOGL* backend = static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get());
+      backend->ClearBoundEGLImage(mEGLImage);
+    }
     EGLImageDestroy(gl(), mEGLImage);
     mEGLImage = EGL_NO_IMAGE;
   }
@@ -278,19 +294,22 @@ GrallocTextureHostOGL::GrallocTextureHostOGL(TextureFlags aFlags,
                                              const NewSurfaceDescriptorGralloc& aDescriptor)
   : TextureHost(aFlags)
 {
+  gfx::SurfaceFormat format = gfx::SurfaceFormat::UNKNOWN;
   mGrallocHandle = aDescriptor;
 
   android::GraphicBuffer* graphicBuffer = GetGraphicBufferFromDesc(mGrallocHandle).get();
-  if (!graphicBuffer) {
-	  NS_RUNTIMEABORT("Invalid SurfaceDescriptor passed in");
-  }
+  MOZ_ASSERT(graphicBuffer);
 
   mSize = aDescriptor.size();
-  gfx::SurfaceFormat format =
-    SurfaceFormatForAndroidPixelFormat(graphicBuffer->getPixelFormat(),
-                                       aFlags & TextureFlags::RB_SWAPPED);
-
+  if (graphicBuffer) {
+    format =
+      SurfaceFormatForAndroidPixelFormat(graphicBuffer->getPixelFormat(),
+                                         aFlags & TextureFlags::RB_SWAPPED);
+  } else {
+    NS_WARNING("gralloc buffer is nullptr");
+  }
   mTextureSource = new GrallocTextureSourceOGL(nullptr,
+                                               this,
                                                graphicBuffer,
                                                format);
 }
@@ -407,7 +426,7 @@ GrallocTextureSourceOGL::GetAsSurface() {
   if (!mEGLImage) {
     mEGLImage = EGLImageCreateFromNativeBuffer(gl(), mGraphicBuffer->getNativeBuffer());
   }
-  gl()->fEGLImageTargetTexture2D(GetTextureTarget(), mEGLImage);
+  BindEGLImage();
 
   RefPtr<gfx::DataSourceSurface> surf =
     IsValid() ? ReadBackSurface(gl(), tex, false, GetFormat())
@@ -429,16 +448,22 @@ GrallocTextureSourceOGL::GetGLTexture()
 }
 
 void
+GrallocTextureSourceOGL::BindEGLImage()
+{
+  if (mCompositableBackendData) {
+    CompositableDataGonkOGL* backend = static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get());
+    backend->BindEGLImage(GetTextureTarget(), mEGLImage);
+  } else {
+    gl()->fEGLImageTargetTexture2D(GetTextureTarget(), mEGLImage);
+  }
+}
+
+void
 GrallocTextureHostOGL::SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData)
 {
   mCompositableBackendData = aBackendData;
   if (mTextureSource) {
     mTextureSource->SetCompositableBackendSpecificData(aBackendData);
-  }
-  // Register this object to CompositableBackendSpecificData
-  // as current TextureHost.
-  if (aBackendData) {
-    aBackendData->SetCurrentReleaseFenceTexture(this);
   }
 }
 

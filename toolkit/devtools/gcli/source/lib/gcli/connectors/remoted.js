@@ -18,7 +18,7 @@
 
 'use strict';
 
-var promise = require('../util/promise');
+var Promise = require('../util/promise').Promise;
 var host = require('../util/host');
 var fileparser = require('../util/fileparser');
 
@@ -130,7 +130,7 @@ Remoter.prototype.exposed = {
     return this.requisition.update(typed).then(function() {
       var assignment = this.requisition.getAssignment(param);
 
-      return promise.resolve(assignment.predictions).then(function(predictions) {
+      return Promise.resolve(assignment.predictions).then(function(predictions) {
         return {
           status: assignment.getStatus().toString(),
           message: assignment.message,
@@ -227,7 +227,7 @@ Remoter.prototype.exposed = {
    * @return a promise of a string containing the output of the command
    */
   system: method(function(cmd, args, cwd, env) {
-    return host.exec({ cmd: cmd, args: args, cwd: cwd, env: env });
+    return host.spawn({ cmd: cmd, args: args, cwd: cwd, env: env });
   }, {
     request: {
       cmd: Arg(0, "string"), // The executable to call

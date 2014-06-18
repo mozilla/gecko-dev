@@ -11,7 +11,7 @@
 == rotatex-perspective-1c.html rotatex-1-ref.html
 == rotatex-perspective-3a.html rotatex-perspective-3-ref.html
 == scalez-1a.html scalez-1-ref.html
-== preserve3d-1a.html preserve3d-1-ref.html
+random-if(B2G&&browserIsRemote) == preserve3d-1a.html preserve3d-1-ref.html # Bug 988766
 == preserve3d-1b.html about:blank
 == preserve3d-clipped.html about:blank 
 == preserve3d-2a.html preserve3d-2-ref.html
@@ -20,7 +20,7 @@
 == preserve3d-2d.html preserve3d-2-ref.html
 == preserve3d-3a.html preserve3d-3-ref.html
 skip-if(B2G) == preserve3d-4a.html green-rect.html
-fuzzy-if(Android&&AndroidVersion>=15,4,300) == preserve3d-5a.html preserve3d-5-ref.html
+fuzzy-if(Android&&AndroidVersion>=15,4,300) random-if(B2G&&browserIsRemote) == preserve3d-5a.html preserve3d-5-ref.html # Bug 988767
 == scale3d-z.html scalez-1-ref.html
 fuzzy-if(winWidget,102,580) fuzzy-if(d2d,143,681) fuzzy-if(OSX==10.8,224,924) fuzzy-if(OSX==10.9,224,924) == scale3d-all.html scale3d-1-ref.html # subpixel AA
 fuzzy-if(winWidget,102,580) fuzzy-if(d2d,143,681) fuzzy-if(OSX==10.8,224,924) fuzzy-if(OSX==10.9,224,924) == scale3d-all-separate.html scale3d-1-ref.html # subpixel AA
@@ -37,7 +37,7 @@ fuzzy-if(winWidget,102,580) fuzzy-if(d2d,143,681) fuzzy-if(OSX==10.8,224,924) fu
 == backface-visibility-1c.html about:blank
 == backface-visibility-2.html backface-visibility-2-ref.html
 != perspective-origin-1a.html rotatex-perspective-1a.html
-== perspective-origin-1b.html perspective-origin-1a.html
+random-if(Android&&AndroidVersion==17) == perspective-origin-1b.html perspective-origin-1a.html
 random-if(Android&&!browserIsRemote) == perspective-origin-2a.html perspective-origin-2-ref.html # bug 732568
 == perspective-origin-3a.html perspective-origin-3-ref.html
 == perspective-origin-4a.html perspective-origin-4-ref.html

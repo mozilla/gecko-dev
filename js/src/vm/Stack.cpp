@@ -437,14 +437,13 @@ MarkInterpreterActivation(JSTracer *trc, InterpreterActivation *act)
 }
 
 void
-js::MarkInterpreterActivations(JSRuntime *rt, JSTracer *trc)
+js::MarkInterpreterActivations(PerThreadData *ptd, JSTracer *trc)
 {
-    for (ActivationIterator iter(rt); !iter.done(); ++iter) {
+    for (ActivationIterator iter(ptd); !iter.done(); ++iter) {
         Activation *act = iter.activation();
         if (act->isInterpreter())
             MarkInterpreterActivation(trc, act->asInterpreter());
     }
-
 }
 
 /*****************************************************************************/
@@ -559,7 +558,6 @@ FrameIter::settleOnActivation()
         if (data_.principals_) {
             JSContext *cx = data_.cx_->asJSContext();
             if (JSSubsumesOp subsumes = cx->runtime()->securityCallbacks->subsumes) {
-                JS::AutoAssertNoGC nogc;
                 if (!subsumes(data_.principals_, activation->compartment()->principals)) {
                     ++data_.activations_;
                     continue;

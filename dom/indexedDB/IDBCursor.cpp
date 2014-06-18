@@ -610,14 +610,16 @@ IDBCursor::GetSource(OwningIDBObjectStoreOrIDBIndex& aSource) const
   }
 }
 
-JS::Value
-IDBCursor::GetKey(JSContext* aCx, ErrorResult& aRv)
+void
+IDBCursor::GetKey(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+                  ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mKey.IsUnset() || !mHaveValue);
 
   if (!mHaveValue) {
-    return JSVAL_VOID;
+    aResult.setUndefined();
+    return;
   }
 
   if (!mHaveCachedKey) {
@@ -627,21 +629,26 @@ IDBCursor::GetKey(JSContext* aCx, ErrorResult& aRv)
     }
 
     aRv = mKey.ToJSVal(aCx, mCachedKey);
-    ENSURE_SUCCESS(aRv, JSVAL_VOID);
+    if (NS_WARN_IF(aRv.Failed())) {
+      return;
+    }
 
     mHaveCachedKey = true;
   }
 
-  return mCachedKey;
+  JS::ExposeValueToActiveJS(mCachedKey);
+  aResult.set(mCachedKey);
 }
 
-JS::Value
-IDBCursor::GetPrimaryKey(JSContext* aCx, ErrorResult& aRv)
+void
+IDBCursor::GetPrimaryKey(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+                         ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!mHaveValue) {
-    return JSVAL_VOID;
+    aResult.setUndefined();
+    return;
   }
 
   if (!mHaveCachedPrimaryKey) {
@@ -655,22 +662,27 @@ IDBCursor::GetPrimaryKey(JSContext* aCx, ErrorResult& aRv)
     MOZ_ASSERT(!key.IsUnset());
 
     aRv = key.ToJSVal(aCx, mCachedPrimaryKey);
-    ENSURE_SUCCESS(aRv, JSVAL_VOID);
+    if (NS_WARN_IF(aRv.Failed())) {
+      return;
+    }
 
     mHaveCachedPrimaryKey = true;
   }
 
-  return mCachedPrimaryKey;
+  JS::ExposeValueToActiveJS(mCachedPrimaryKey);
+  aResult.set(mCachedPrimaryKey);
 }
 
-JS::Value
-IDBCursor::GetValue(JSContext* aCx, ErrorResult& aRv)
+void
+IDBCursor::GetValue(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+                    ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mType == OBJECTSTORE || mType == INDEXOBJECT);
 
   if (!mHaveValue) {
-    return JSVAL_VOID;
+    aResult.setUndefined();
+    return;
   }
 
   if (!mHaveCachedValue) {
@@ -682,7 +694,7 @@ IDBCursor::GetValue(JSContext* aCx, ErrorResult& aRv)
     JS::Rooted<JS::Value> val(aCx);
     if (!IDBObjectStore::DeserializeValue(aCx, mCloneReadInfo, &val)) {
       aRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
-      return JSVAL_VOID;
+      return;
     }
 
     mCloneReadInfo.mCloneBuffer.clear();
@@ -691,7 +703,8 @@ IDBCursor::GetValue(JSContext* aCx, ErrorResult& aRv)
     mHaveCachedValue = true;
   }
 
-  return mCachedValue;
+  JS::ExposeValueToActiveJS(mCachedValue);
+  aResult.set(mCachedValue);
 }
 
 void
@@ -983,7 +996,8 @@ CursorHelper::Dispatch(nsIEventTarget* aDatabaseThread)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  PROFILER_MAIN_THREAD_LABEL("IndexedDB", "CursorHelper::Dispatch");
+  PROFILER_MAIN_THREAD_LABEL("CursorHelper", "Dispatch",
+    js::ProfileEntry::Category::STORAGE);
 
   if (IndexedDatabaseManager::IsMainProcess()) {
     return AsyncConnectionHelper::Dispatch(aDatabaseThread);
@@ -1019,7 +1033,8 @@ ContinueHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
 
-  PROFILER_LABEL("IndexedDB", "ContinueHelper::DoDatabaseWork");
+  PROFILER_LABEL("ContinueHelper", "DoDatabaseWork",
+    js::ProfileEntry::Category::STORAGE);
 
   // We need to pick a query based on whether or not the cursor's mContinueToKey
   // is set. If it is unset then othing was passed to continue so we'll grab the
@@ -1101,8 +1116,8 @@ ContinueHelper::PackArgumentsForParentProcess(CursorRequestParams& aParams)
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(!IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
 
-  PROFILER_MAIN_THREAD_LABEL("IndexedDB",
-                             "ContinueHelper::PackArgumentsForParentProcess");
+  PROFILER_MAIN_THREAD_LABEL("ContinueHelper", "PackArgumentsForParentProcess",
+    js::ProfileEntry::Category::STORAGE);
 
   ContinueParams params;
 
@@ -1119,8 +1134,8 @@ ContinueHelper::SendResponseToChildProcess(nsresult aResultCode)
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
 
-  PROFILER_MAIN_THREAD_LABEL("IndexedDB",
-                             "ContinueHelper::SendResponseToChildProcess");
+  PROFILER_MAIN_THREAD_LABEL("ContinueHelper", "SendResponseToChildProcess",
+    js::ProfileEntry::Category::STORAGE);
 
   IndexedDBRequestParentBase* actor = mRequest->GetActorParent();
   NS_ASSERTION(actor, "How did we get this far without an actor?");
@@ -1131,7 +1146,7 @@ ContinueHelper::SendResponseToChildProcess(nsresult aResultCode)
     IDBDatabase* database = mTransaction->Database();
     NS_ASSERTION(database, "This should never be null!");
 
-    ContentParent* contentParent = database->GetContentParent();
+    nsIContentParent* contentParent = database->GetContentParent();
     NS_ASSERTION(contentParent, "This should never be null!");
 
     FileManager* fileManager = database->Manager();

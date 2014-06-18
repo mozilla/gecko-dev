@@ -93,7 +93,7 @@ TiledContentClient::TiledContentClient(ClientTiledThebesLayer* aThebesLayer,
   mLowPrecisionTiledBuffer = ClientTiledLayerBuffer(aThebesLayer, this, aManager,
                                                     &mSharedFrameMetricsHelper);
 
-  mLowPrecisionTiledBuffer.SetResolution(gfxPrefs::LowPrecisionResolution()/1000.f);
+  mLowPrecisionTiledBuffer.SetResolution(gfxPrefs::LowPrecisionResolution());
 }
 
 void
@@ -527,7 +527,7 @@ TileClient::GetBackBuffer(const nsIntRegion& aDirtyRegion, TextureClientPool *aP
     }
     mBackBuffer = aPool->GetTextureClient();
     // Create a lock for our newly created back-buffer.
-    if (gfxPlatform::GetPlatform()->PreferMemoryOverShmem()) {
+    if (mManager->AsShadowForwarder()->IsSameProcess()) {
       // If our compositor is in the same process, we can save some cycles by not
       // using shared memory.
       mBackLock = new gfxMemorySharedReadLock();
@@ -658,7 +658,9 @@ ClientTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
 
     const nsIntRect bounds = aPaintRegion.GetBounds();
     {
-      PROFILER_LABEL("ClientTiledLayerBuffer", "PaintThebesSingleBufferAlloc");
+      PROFILER_LABEL("ClientTiledLayerBuffer", "PaintThebesSingleBufferAlloc",
+        js::ProfileEntry::Category::GRAPHICS);
+
       gfxImageFormat format =
         gfxPlatform::GetPlatform()->OptimalFormatForContent(
           GetContentType());
@@ -686,7 +688,8 @@ ClientTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
     }
     start = PR_IntervalNow();
 #endif
-    PROFILER_LABEL("ClientTiledLayerBuffer", "PaintThebesSingleBufferDraw");
+    PROFILER_LABEL("ClientTiledLayerBuffer", "PaintThebesSingleBufferDraw",
+      js::ProfileEntry::Category::GRAPHICS);
 
     mCallback(mThebesLayer, ctxt, aPaintRegion, DrawRegionClip::CLIP_NONE, nsIntRegion(), mCallbackData);
   }
@@ -706,7 +709,9 @@ ClientTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
   start = PR_IntervalNow();
 #endif
 
-  PROFILER_LABEL("ClientTiledLayerBuffer", "PaintThebesUpdate");
+  PROFILER_LABEL("ClientTiledLayerBuffer", "PaintThebesUpdate",
+    js::ProfileEntry::Category::GRAPHICS);
+
   Update(aNewValidRegion, aPaintRegion);
 
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
@@ -727,7 +732,8 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
                                     const nsIntPoint& aTileOrigin,
                                     const nsIntRegion& aDirtyRegion)
 {
-  PROFILER_LABEL("ClientTiledLayerBuffer", "ValidateTile");
+  PROFILER_LABEL("ClientTiledLayerBuffer", "ValidateTile",
+    js::ProfileEntry::Category::GRAPHICS);
 
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
   if (aDirtyRegion.IsComplex()) {
@@ -766,7 +772,7 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   // We must not keep a reference to the DrawTarget after it has been unlocked,
   // make sure these are null'd before unlocking as destruction of the context
   // may cause the target to be flushed.
-  RefPtr<DrawTarget> drawTarget = backBuffer->GetAsDrawTarget();
+  RefPtr<DrawTarget> drawTarget = backBuffer->BorrowDrawTarget();
   drawTarget->SetTransform(Matrix());
 
   RefPtr<gfxContext> ctxt = new gfxContext(drawTarget);
@@ -883,28 +889,29 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   return aTile;
 }
 
-static LayoutDeviceRect
+static LayerRect
 TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
                            const CSSToParentLayerScale& aZoom,
                            const ParentLayerPoint& aScrollOffset,
                            const CSSToParentLayerScale& aResolution,
-                           const gfx3DMatrix& aTransformParentLayerToLayoutDevice)
+                           const gfx3DMatrix& aTransformDisplayPortToLayer)
 {
-  // Transform the current composition bounds into ParentLayer coordinates
-  // by compensating for the difference in resolution and subtracting the
+  // Transform the composition bounds from the space of the displayport ancestor
+  // layer into the Layer space of this layer. Do this by
+  // compensating for the difference in resolution and subtracting the
   // old composition bounds origin.
   ParentLayerRect offsetViewportRect = (aCompositionBounds / aZoom) * aResolution;
   offsetViewportRect.MoveBy(-aScrollOffset);
 
   gfxRect transformedViewport =
-    aTransformParentLayerToLayoutDevice.TransformBounds(
+    aTransformDisplayPortToLayer.TransformBounds(
       gfxRect(offsetViewportRect.x, offsetViewportRect.y,
               offsetViewportRect.width, offsetViewportRect.height));
 
-  return LayoutDeviceRect(transformedViewport.x,
-                          transformedViewport.y,
-                          transformedViewport.width,
-                          transformedViewport.height);
+  return LayerRect(transformedViewport.x,
+                   transformedViewport.y,
+                   transformedViewport.width,
+                   transformedViewport.height);
 }
 
 bool
@@ -961,35 +968,35 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
     // non-low-precision paint, as in that situation, we're about to override
     // front-end's page/viewport metrics.
     if (!aPaintData->mFirstPaint || drawingLowPrecision) {
-      PROFILER_LABEL("ContentClient", "Abort painting");
+      PROFILER_LABEL("ClientTiledLayerBuffer", "ComputeProgressiveUpdateRegion",
+        js::ProfileEntry::Category::GRAPHICS);
+
       aRegionToPaint.SetEmpty();
       return aIsRepeated;
     }
   }
 
-  // Transform the composition bounds, which is in the ParentLayer coordinates
-  // of the nearest ContainerLayer with a valid displayport to LayoutDevice
-  // coordinates relative to this layer.
-  LayoutDeviceRect transformedCompositionBounds =
+  LayerRect transformedCompositionBounds =
     TransformCompositionBounds(compositionBounds, zoom, aPaintData->mScrollOffset,
-                               aPaintData->mResolution, aPaintData->mTransformParentLayerToLayoutDevice);
+                               aPaintData->mResolution, aPaintData->mTransformDisplayPortToLayer);
 
   // Paint tiles that have stale content or that intersected with the screen
   // at the time of issuing the draw command in a single transaction first.
   // This is to avoid rendering glitches on animated page content, and when
   // layers change size/shape.
-  LayoutDeviceRect typedCoherentUpdateRect =
+  LayerRect typedCoherentUpdateRect =
     transformedCompositionBounds.Intersect(aPaintData->mCompositionBounds);
 
   // Offset by the viewport origin, as the composition bounds are stored in
   // Layer space and not LayoutDevice space.
+  // TODO(kats): does this make sense?
   typedCoherentUpdateRect.MoveBy(aPaintData->mViewport.TopLeft());
 
   // Convert to untyped to intersect with the invalid region.
-  nsIntRect roundedCoherentUpdateRect =
-    LayoutDeviceIntRect::ToUntyped(RoundedOut(typedCoherentUpdateRect));
+  nsIntRect untypedCoherentUpdateRect(LayerIntRect::ToUntyped(
+    RoundedOut(typedCoherentUpdateRect)));
 
-  aRegionToPaint.And(aInvalidRegion, roundedCoherentUpdateRect);
+  aRegionToPaint.And(aInvalidRegion, untypedCoherentUpdateRect);
   aRegionToPaint.Or(aRegionToPaint, staleRegion);
   bool drawingStale = !aRegionToPaint.IsEmpty();
   if (!drawingStale) {
@@ -998,8 +1005,8 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
 
   // Prioritise tiles that are currently visible on the screen.
   bool paintVisible = false;
-  if (aRegionToPaint.Intersects(roundedCoherentUpdateRect)) {
-    aRegionToPaint.And(aRegionToPaint, roundedCoherentUpdateRect);
+  if (aRegionToPaint.Intersects(untypedCoherentUpdateRect)) {
+    aRegionToPaint.And(aRegionToPaint, untypedCoherentUpdateRect);
     paintVisible = true;
   }
 
@@ -1057,13 +1064,10 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
     // sure it happens in the same transaction by requesting this work be
     // repeated immediately.
     // If this is unnecessary, the remaining work will be done tile-by-tile in
-    // subsequent transactions.
-    if (!drawingLowPrecision && paintInSingleTransaction) {
-      return true;
-    }
-
-    mManager->SetRepeatTransaction();
-    return false;
+    // subsequent transactions. The caller code is responsible for scheduling
+    // the subsequent transactions as long as we don't set the mPaintFinished
+    // flag to true.
+    return (!drawingLowPrecision && paintInSingleTransaction);
   }
 
   // We're not repeating painting and we've not requested a repeat transaction,

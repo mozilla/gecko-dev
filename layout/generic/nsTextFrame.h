@@ -51,9 +51,9 @@ public:
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
-  virtual void Init(nsIContent*      aContent,
-                    nsIFrame*        aParent,
-                    nsIFrame*        aPrevInFlow) MOZ_OVERRIDE;
+  virtual void Init(nsIContent*       aContent,
+                    nsContainerFrame* aParent,
+                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
   
@@ -171,7 +171,7 @@ public:
   
   virtual bool IsEmpty() MOZ_OVERRIDE;
   virtual bool IsSelfEmpty() MOZ_OVERRIDE { return IsEmpty(); }
-  virtual nscoord GetBaseline() const MOZ_OVERRIDE;
+  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
   
   virtual bool HasSignificantTerminalNewline() const MOZ_OVERRIDE;
 
@@ -215,10 +215,10 @@ public:
   virtual nsresult GetPrefWidthTightBounds(nsRenderingContext* aContext,
                                            nscoord* aX,
                                            nscoord* aXMost) MOZ_OVERRIDE;
-  virtual nsresult Reflow(nsPresContext* aPresContext,
-                          nsHTMLReflowMetrics& aMetrics,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus& aStatus) MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext* aPresContext,
+                      nsHTMLReflowMetrics& aMetrics,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus& aStatus) MOZ_OVERRIDE;
   virtual bool CanContinueTextRun() const MOZ_OVERRIDE;
   // Method that is called for a text frame that is logically
   // adjacent to the end of the line (i.e. followed only by empty text frames,
@@ -468,6 +468,10 @@ public:
   gfxTextRun* GetUninflatedTextRun();
   void SetTextRun(gfxTextRun* aTextRun, TextRunType aWhichTextRun,
                   float aInflation);
+  bool IsInTextRunUserData() const {
+    return GetStateBits() &
+      (TEXT_IN_TEXTRUN_USER_DATA | TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA);
+  }
   /**
    * Notify the frame that it should drop its pointer to a text run.
    * Returns whether the text run was removed (i.e., whether it was
@@ -491,6 +495,11 @@ public:
       ClearTextRun(nullptr, nsTextFrame::eNotInflated);
     }
   }
+
+  /**
+   * Wipe out references to textrun(s) without deleting the textruns.
+   */
+  void DisconnectTextRuns();
 
   // Get the DOM content range mapped by this frame after excluding
   // whitespace subject to start-of-line and end-of-line trimming.

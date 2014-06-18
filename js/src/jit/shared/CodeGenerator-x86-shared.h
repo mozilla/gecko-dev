@@ -75,14 +75,27 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
         masm.test32(lhs, rhs);
         return bailoutIf(c, snapshot);
     }
+    bool bailoutCvttsd2si(FloatRegister src, Register dest, LSnapshot *snapshot) {
+        // cvttsd2si returns 0x80000000 on failure. Test for it by
+        // subtracting 1 and testing overflow. The other possibility is to test
+        // equality for INT_MIN after a comparison, but 1 costs fewer bytes to
+        // materialize.
+        masm.cvttsd2si(src, dest);
+        masm.cmp32(dest, Imm32(1));
+        return bailoutIf(Assembler::Overflow, snapshot);
+    }
+    bool bailoutCvttss2si(FloatRegister src, Register dest, LSnapshot *snapshot) {
+        // Same trick as explained in the above comment.
+        masm.cvttss2si(src, dest);
+        masm.cmp32(dest, Imm32(1));
+        return bailoutIf(Assembler::Overflow, snapshot);
+    }
 
   protected:
     bool generatePrologue();
     bool generateAsmJSPrologue(Label *stackOverflowLabe);
     bool generateEpilogue();
     bool generateOutOfLineCode();
-
-    Operand createArrayElementOperand(Register elements, const LAllocation *index);
 
     void emitCompare(MCompare::CompareType type, const LAllocation *left, const LAllocation *right);
 
@@ -105,7 +118,7 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
         emitBranch(cond, ifTrue, ifFalse);
     }
 
-    bool emitTableSwitchDispatch(MTableSwitch *mir, const Register &index, const Register &base);
+    bool emitTableSwitchDispatch(MTableSwitch *mir, Register index, Register base);
 
   public:
     CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm);
@@ -149,6 +162,8 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     virtual bool visitMathF(LMathF *math);
     virtual bool visitFloor(LFloor *lir);
     virtual bool visitFloorF(LFloorF *lir);
+    virtual bool visitCeil(LCeil *lir);
+    virtual bool visitCeilF(LCeilF *lir);
     virtual bool visitRound(LRound *lir);
     virtual bool visitRoundF(LRoundF *lir);
     virtual bool visitGuardShape(LGuardShape *guard);
@@ -180,7 +195,7 @@ class OutOfLineBailout : public OutOfLineCodeBase<CodeGeneratorX86Shared>
     LSnapshot *snapshot_;
 
   public:
-    OutOfLineBailout(LSnapshot *snapshot)
+    explicit OutOfLineBailout(LSnapshot *snapshot)
       : snapshot_(snapshot)
     { }
 

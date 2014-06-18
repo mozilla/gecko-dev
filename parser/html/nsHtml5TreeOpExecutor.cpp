@@ -338,7 +338,9 @@ class nsHtml5FlushLoopGuard
 void
 nsHtml5TreeOpExecutor::RunFlushLoop()
 {
-  PROFILER_LABEL("html5", "RunFlushLoop");
+  PROFILER_LABEL("nsHtml5TreeOpExecutor", "RunFlushLoop",
+    js::ProfileEntry::Category::OTHER);
+
   if (mRunFlushLoopOnStack) {
     // There's already a RunFlushLoop() on the call stack.
     return;
@@ -427,8 +429,6 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
     BeginDocUpdate();
 
     uint32_t numberOfOpsToFlush = mOpQueue.Length();
-
-    SetAppendBatchCapacity(numberOfOpsToFlush * 2);
 
     const nsHtml5TreeOperation* first = mOpQueue.Elements();
     const nsHtml5TreeOperation* last = first + numberOfOpsToFlush - 1;
@@ -531,8 +531,6 @@ nsHtml5TreeOpExecutor::FlushDocumentWrite()
   BeginDocUpdate();
 
   uint32_t numberOfOpsToFlush = mOpQueue.Length();
-
-  SetAppendBatchCapacity(numberOfOpsToFlush * 2);
 
   const nsHtml5TreeOperation* start = mOpQueue.Elements();
   const nsHtml5TreeOperation* end = start + numberOfOpsToFlush;

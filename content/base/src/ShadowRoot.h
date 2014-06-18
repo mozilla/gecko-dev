@@ -113,6 +113,9 @@ public:
   static ShadowRoot* FromNode(nsINode* aNode);
   static bool IsShadowInsertionPoint(nsIContent* aContent);
 
+  static void RemoveDestInsertionPoint(nsIContent* aInsertionPoint,
+                                       nsTArray<nsIContent*>& aDestInsertionPoints);
+
   // WebIDL methods.
   Element* GetElementById(const nsAString& aElementId);
   already_AddRefed<nsContentList>
@@ -124,8 +127,8 @@ public:
     GetElementsByClassName(const nsAString& aClasses);
   void GetInnerHTML(nsAString& aInnerHTML);
   void SetInnerHTML(const nsAString& aInnerHTML, ErrorResult& aError);
+  void StyleSheetChanged();
 protected:
-  void Restyle();
 
   // The pool host is the parent of the nodes that will be distributed
   // into the insertion points in this ShadowRoot. See |ChangeShadowRoot|.

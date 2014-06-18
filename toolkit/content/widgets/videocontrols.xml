@@ -477,7 +477,7 @@
                     this.adjustControlSize();
 
                     // Preserve Statistics when toggling fullscreen mode due to bug 714071.
-                    if (XPCNativeWrapper.unwrap(this.video).mozMediaStatisticsShowing)
+                    if (this.video.mozMediaStatisticsShowing)
                         this.showStatistics(true);
 
                     this._handleCustomEventsBound = this.handleCustomEvents.bind(this);
@@ -1152,15 +1152,13 @@
                         this.statsInterval = null;
                     }
 
-                    let unwrappedVideo = XPCNativeWrapper.unwrap(this.video);
                     if (shouldShow) {
-                        unwrappedVideo.mozMediaStatisticsShowing = true;
-
+                        this.video.mozMediaStatisticsShowing = true;
                         this.statsOverlay.hidden = false;
                         this.statsInterval = setInterval(this.updateStats.bind(this), this.STATS_INTERVAL_MS);
                         this.updateStats();
                     } else {
-                        delete unwrappedVideo.mozMediaStatisticsShowing;
+                        this.video.mozMediaStatisticsShowing = false;
                         this.statsOverlay.hidden = true;
                     }
                 },
@@ -1673,27 +1671,19 @@
             },
 
             isVideoCasting : function () {
-              let unwrappedVideo = XPCNativeWrapper.unwrap(this.video);
-              if (unwrappedVideo.mozIsCasting)
+              if (this.video.mozIsCasting)
                 return true;
               return false;
             },
 
             updateCasting : function (eventDetail) {
-              let unwrappedVideo = XPCNativeWrapper.unwrap(this.video);
               let castingData = JSON.parse(eventDetail);
               if ("allow" in castingData) {
-                if (castingData.allow)
-                  unwrappedVideo.mozAllowCasting = true;
-                else
-                  delete unwrappedVideo.mozAllowCasting;
+                this.video.mozAllowCasting = !!castingData.allow;
               }
 
               if ("active" in castingData) {
-                if (castingData.active)
-                  unwrappedVideo.mozIsCasting = true;
-                else
-                  delete unwrappedVideo.mozIsCasting;
+                this.video.mozIsCasting = !!castingData.active;
               }
               this.setCastButtonState();
             },
@@ -1703,13 +1693,12 @@
             },
 
             setCastButtonState : function () {
-              let unwrappedVideo = XPCNativeWrapper.unwrap(this.video);
-              if (this.isAudioOnly || !unwrappedVideo.mozAllowCasting) {
+              if (this.isAudioOnly || !this.video.mozAllowCasting) {
                 this.castingButton.hidden = true;
                 return;
               }
 
-              if (unwrappedVideo.mozIsCasting) {
+              if (this.video.mozIsCasting) {
                 this.castingButton.setAttribute("active", "true");
               } else {
                 this.castingButton.removeAttribute("active");

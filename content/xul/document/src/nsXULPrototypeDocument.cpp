@@ -26,15 +26,12 @@
 #include "nsDOMCID.h"
 #include "nsNodeInfoManager.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsDOMJSUtils.h" // for GetScriptContextFromJSContext
 #include "xpcpublic.h"
 #include "mozilla/dom/BindingUtils.h"
 
 using mozilla::dom::DestroyProtoAndIfaceCache;
-using mozilla::AutoPushJSContext;
-using mozilla::AutoSafeJSContext;
 using mozilla::dom::XULDocument;
 
 uint32_t nsXULPrototypeDocument::gRefCnt;
@@ -72,7 +69,7 @@ nsXULPrototypeDocument::~nsXULPrototypeDocument()
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsXULPrototypeDocument)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsXULPrototypeDocument)
-    tmp->mPrototypeWaiters.Clear();
+    NS_IMPL_CYCLE_COLLECTION_UNLINK(mPrototypeWaiters)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULPrototypeDocument)
     if (nsCCUncollectableMarker::InGeneration(cb, tmp->mCCGeneration)) {
@@ -80,10 +77,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULPrototypeDocument)
     }
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRoot)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNodeInfoManager)
-    for (uint32_t i = 0; i < tmp->mPrototypeWaiters.Length(); ++i) {
-        NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mPrototypeWaiters[i]");
-        cb.NoteXPCOMChild(static_cast<nsINode*>(tmp->mPrototypeWaiters[i].get()));
-    }
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPrototypeWaiters)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXULPrototypeDocument)

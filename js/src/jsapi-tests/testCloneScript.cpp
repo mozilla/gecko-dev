@@ -7,6 +7,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "jsfriendapi.h"
 #include "js/OldDebugAPI.h"
 #include "jsapi-tests/tests.h"
 
@@ -137,7 +138,7 @@ BEGIN_TEST(test_cloneScriptWithPrincipals)
 
         JS::RootedValue v(cx);
         JS::RootedValue arg(cx, JS::Int32Value(1));
-        CHECK(JS_CallFunctionValue(cx, B, clonedValue, arg, &v));
+        CHECK(JS_CallFunctionValue(cx, B, clonedValue, JS::HandleValueArray(arg), &v));
         CHECK(v.isObject());
 
         JSObject *funobj = &v.toObject();

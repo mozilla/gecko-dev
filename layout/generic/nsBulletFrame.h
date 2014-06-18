@@ -65,10 +65,10 @@ public:
 #endif
 
   // nsIHTMLReflow
-  virtual nsresult Reflow(nsPresContext* aPresContext,
-                          nsHTMLReflowMetrics& aMetrics,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus& aStatus) MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext* aPresContext,
+                      nsHTMLReflowMetrics& aMetrics,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus& aStatus) MOZ_OVERRIDE;
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
 
@@ -76,27 +76,17 @@ public:
   int32_t SetListItemOrdinal(int32_t aNextOrdinal, bool* aChanged,
                              int32_t aIncrement);
 
+  /* get list item text, with prefix & suffix */
+  void GetListItemText(nsAString& aResult);
 
-  /* get list item text, without '.' */
-  static void AppendCounterText(int32_t aListStyleType,
-                                int32_t aOrdinal,
-                                nsString& aResult,
-                                bool& aIsRTL);
-
-  /* get suffix of list item */
-  static void GetListItemSuffix(int32_t aListStyleType,
-                                nsString& aResult,
-                                bool& aSuppressPadding);
-
-  /* get list item text, with '.' */
-  void GetListItemText(const nsStyleList& aStyleList, nsString& aResult);
+  void GetSpokenText(nsAString& aText);
                          
   void PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
                    const nsRect& aDirtyRect, uint32_t aFlags);
   
   virtual bool IsEmpty() MOZ_OVERRIDE;
   virtual bool IsSelfEmpty() MOZ_OVERRIDE;
-  virtual nscoord GetBaseline() const MOZ_OVERRIDE;
+  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
 
   float GetFontSizeInflation() const;
   bool HasFontSizeInflation() const {
@@ -111,6 +101,7 @@ public:
 protected:
   nsresult OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
 
+  void AppendSpacingToPadding(nsFontMetrics* aFontMetrics);
   void GetDesiredSize(nsPresContext* aPresContext,
                       nsRenderingContext *aRenderingContext,
                       nsHTMLReflowMetrics& aMetrics,
@@ -124,13 +115,6 @@ protected:
 
   nsSize mIntrinsicSize;
   int32_t mOrdinal;
-  bool mTextIsRTL;
-
-  // If set to true, any padding of bullet defined in the UA style sheet will
-  // be suppressed.  This is used for some CJK numbering styles where extra
-  // space after the suffix is not desired.  Note that, any author-specified
-  // padding overriding the default style will NOT be suppressed.
-  bool mSuppressPadding;
 
 private:
 

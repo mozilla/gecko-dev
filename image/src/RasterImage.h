@@ -176,8 +176,8 @@ public:
   /* The total number of frames in this image. */
   uint32_t GetNumFrames() const;
 
-  virtual size_t HeapSizeOfSourceWithComputedFallback(mozilla::MallocSizeOf aMallocSizeOf) const;
-  virtual size_t HeapSizeOfDecodedWithComputedFallback(mozilla::MallocSizeOf aMallocSizeOf) const;
+  virtual size_t HeapSizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const;
+  virtual size_t HeapSizeOfDecodedWithComputedFallback(MallocSizeOf aMallocSizeOf) const;
   virtual size_t NonHeapSizeOfDecoded() const;
   virtual size_t OutOfProcessSizeOfDecoded() const;
 
@@ -206,7 +206,7 @@ public:
    */
   nsresult EnsureFrame(uint32_t aFramenum, int32_t aX, int32_t aY,
                        int32_t aWidth, int32_t aHeight,
-                       gfxImageFormat aFormat,
+                       gfx::SurfaceFormat aFormat,
                        uint8_t aPaletteDepth,
                        uint8_t** imageData,
                        uint32_t* imageLength,
@@ -220,7 +220,7 @@ public:
    */
   nsresult EnsureFrame(uint32_t aFramenum, int32_t aX, int32_t aY,
                        int32_t aWidth, int32_t aHeight,
-                       gfxImageFormat aFormat,
+                       gfx::SurfaceFormat aFormat,
                        uint8_t** imageData,
                        uint32_t* imageLength,
                        imgFrame** aFrame);
@@ -487,6 +487,9 @@ private:
 
       NS_IMETHOD Run();
 
+    protected:
+      virtual ~DecodeJob();
+
     private:
       nsRefPtr<DecodeRequest> mRequest;
       nsRefPtr<RasterImage> mImage;
@@ -497,7 +500,7 @@ private:
     // mThreadPoolMutex protects mThreadPool. For all RasterImages R,
     // R::mDecodingMonitor must be acquired before mThreadPoolMutex
     // if both are acquired; the other order may cause deadlock.
-    mozilla::Mutex            mThreadPoolMutex;
+    Mutex                     mThreadPoolMutex;
     nsCOMPtr<nsIThreadPool>   mThreadPool;
   };
 
@@ -557,9 +560,8 @@ private:
                                     const nsIntRect &aSubimage,
                                     uint32_t aFlags);
 
-  nsresult CopyFrame(uint32_t aWhichFrame,
-                     uint32_t aFlags,
-                     gfxImageSurface **_retval);
+  TemporaryRef<gfx::SourceSurface> CopyFrame(uint32_t aWhichFrame,
+                                             uint32_t aFlags);
 
   /**
    * Deletes and nulls out the frame in mFrames[framenum].
@@ -578,7 +580,7 @@ private:
   uint32_t GetCurrentImgFrameIndex() const;
 
   size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
-                                                 mozilla::MallocSizeOf aMallocSizeOf) const;
+                                                 MallocSizeOf aMallocSizeOf) const;
 
   void EnsureAnimExists();
 
@@ -587,7 +589,7 @@ private:
                                   uint32_t **paletteData, uint32_t *paletteLength,
                                   imgFrame** aRetFrame);
   nsresult InternalAddFrame(uint32_t framenum, int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
-                            gfxImageFormat aFormat, uint8_t aPaletteDepth,
+                            gfx::SurfaceFormat aFormat, uint8_t aPaletteDepth,
                             uint8_t **imageData, uint32_t *imageLength,
                             uint32_t **paletteData, uint32_t *paletteLength,
                             imgFrame** aRetFrame);
@@ -661,10 +663,10 @@ private: // data
   int                        mRequestedSampleSize;
 
   // Cached value for GetImageContainer.
-  nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;
+  nsRefPtr<layers::ImageContainer> mImageContainer;
 
   // If not cached in mImageContainer, this might have our image container
-  WeakPtr<mozilla::layers::ImageContainer> mImageContainerCache;
+  WeakPtr<layers::ImageContainer> mImageContainerCache;
 
 #ifdef DEBUG
   uint32_t                       mFramesNotified;
@@ -674,7 +676,7 @@ private: // data
   // at once, and hence need to be locked by mDecodingMonitor.
 
   // BEGIN LOCKED MEMBER VARIABLES
-  mozilla::ReentrantMonitor  mDecodingMonitor;
+  ReentrantMonitor           mDecodingMonitor;
 
   FallibleTArray<char>       mSourceData;
 

@@ -16,6 +16,7 @@
 #include "mozilla/RefPtr.h"             // for RefPtr
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/ContentHost.h"  // for ContentHostBase
+#include "mozilla/layers/ImageBridgeParent.h" // for ImageBridgeParent
 #include "mozilla/layers/SharedBufferManagerParent.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
@@ -113,8 +114,6 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
         OpContentBufferSwap(op.compositableParent(), nullptr, frontUpdatedRegion));
 
       RenderTraceInvalidateEnd(thebes, "FF00FF");
-      // return texure data to client if necessary
-      ReturnTextureDataIfNecessary(compositable, replyv, op.compositableParent());
       break;
     }
     case CompositableOperation::TOpPaintTextureIncremental: {
@@ -159,8 +158,8 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
 
       MOZ_ASSERT(tex.get());
       compositable->RemoveTextureHost(tex);
-      // return texure data to client if necessary
-      ReturnTextureDataIfNecessary(compositable, replyv, op.compositableParent());
+      // send FenceHandle if present.
+      TextureHost::SendFenceHandleIfPresent(op.textureParent());
       break;
     }
     case CompositableOperation::TOpRemoveTextureAsync: {
@@ -170,12 +169,30 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
 
       MOZ_ASSERT(tex.get());
       compositable->RemoveTextureHost(tex);
-      // send FenceHandle if present.
-      TextureHost::SendFenceHandleIfPresent(op.textureParent());
 
-      ReplyRemoveTexture(OpReplyRemoveTexture(op.transactionId(),
-                                              op.compositableParent(), nullptr,
-                                              tex->GetIPDLActor(), nullptr));
+      if (!IsAsync() && GetChildProcessId()) {
+        // send FenceHandle if present via ImageBridge.
+        ImageBridgeParent::SendFenceHandleToTrackerIfPresent(
+                             GetChildProcessId(),
+                             op.holderId(),
+                             op.transactionId(),
+                             op.textureParent());
+
+        // If the message is recievied via PLayerTransaction,
+        // Send message back via PImageBridge.
+        ImageBridgeParent::ReplyRemoveTexture(
+                             GetChildProcessId(),
+                             OpReplyRemoveTexture(true, // isMain
+                                                  op.holderId(),
+                                                  op.transactionId()));
+      } else {
+        // send FenceHandle if present.
+        TextureHost::SendFenceHandleIfPresent(op.textureParent());
+
+        ReplyRemoveTexture(OpReplyRemoveTexture(false, // isMain
+                                                op.holderId(),
+                                                op.transactionId()));
+      }
       break;
     }
     case CompositableOperation::TOpUseTexture: {
@@ -194,8 +211,6 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
           compositable->GetLayer()->SetInvalidRectToVisibleRegion();
         }
       }
-      // return texure data to client if necessary
-      ReturnTextureDataIfNecessary(compositable, replyv, op.compositableParent());
       break;
     }
     case CompositableOperation::TOpUseComponentAlphaTextures: {
@@ -210,8 +225,6 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       if (IsAsync()) {
         ScheduleComposition(op);
       }
-      // return texure data to client if necessary
-      ReturnTextureDataIfNecessary(compositable, replyv, op.compositableParent());
       break;
     }
     case CompositableOperation::TOpUpdateTexture: {
@@ -231,59 +244,6 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
   }
 
   return true;
-}
-
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-void
-CompositableParentManager::ReturnTextureDataIfNecessary(CompositableHost* aCompositable,
-                                                        EditReplyVector& replyv,
-                                                        PCompositableParent* aParent)
-{
-  if (!aCompositable || !aCompositable->GetCompositableBackendSpecificData()) {
-    return;
-  }
-
-  const std::vector< RefPtr<TextureHost> > textureList =
-        aCompositable->GetCompositableBackendSpecificData()->GetPendingReleaseFenceTextureList();
-  // Return pending Texture data
-  for (size_t i = 0; i < textureList.size(); i++) {
-    // File descriptor number is limited to 4 per IPC message.
-    // See Bug 986253
-    if (mPrevFenceHandles.size() >= 4) {
-      break;
-    }
-    TextureHostOGL* hostOGL = textureList[i]->AsHostOGL();
-    PTextureParent* actor = textureList[i]->GetIPDLActor();
-    if (!hostOGL || !actor) {
-      continue;
-    }
-    android::sp<android::Fence> fence = hostOGL->GetAndResetReleaseFence();
-    if (fence.get() && fence->isValid()) {
-      FenceHandle handle = FenceHandle(fence);
-      replyv.push_back(ReturnReleaseFence(aParent, nullptr, actor, nullptr, handle));
-      // Hold fence handle to prevent fence's file descriptor is closed before IPC happens.
-      mPrevFenceHandles.push_back(handle);
-    }
-  }
-  aCompositable->GetCompositableBackendSpecificData()->ClearPendingReleaseFenceTextureList();
-}
-#else
-void
-CompositableParentManager::ReturnTextureDataIfNecessary(CompositableHost* aCompositable,
-                                                       EditReplyVector& replyv,
-                                                       PCompositableParent* aParent)
-{
-  if (!aCompositable || !aCompositable->GetCompositableBackendSpecificData()) {
-    return;
-  }
-  aCompositable->GetCompositableBackendSpecificData()->ClearPendingReleaseFenceTextureList();
-}
-#endif
-
-void
-CompositableParentManager::ClearPrevFenceHandles()
-{
-  mPrevFenceHandles.clear();
 }
 
 } // namespace

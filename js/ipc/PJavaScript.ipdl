@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PContent;
+include protocol PContentBridge;
 include DOMTypes;
 include JavaScriptTypes;
 
@@ -16,10 +17,10 @@ namespace jsipc {
 
 intr protocol PJavaScript
 {
-    manager PContent;
+    manager PContent or PContentBridge;
 
-child:
-    // The parent process no longer holds any references to the child object.
+both:
+    // Sent when a CPOW has been finalized and table entries can be freed up.
     async DropObject(uint64_t objId);
 
     // These roughly map to the ProxyHandler hooks that CPOWs need.

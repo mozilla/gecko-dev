@@ -43,11 +43,11 @@
 #include "nsCocoaFeatures.h"
 #endif
 
-using namespace mozilla::gfx;
-using namespace mozilla::layers;
-
 namespace mozilla {
 namespace gl {
+
+using namespace mozilla::gfx;
+using namespace mozilla::layers;
 
 #ifdef DEBUG
 unsigned GLContext::sCurrentGLContextTLS = -1;
@@ -70,6 +70,7 @@ static const char *sExtensionNames[] = {
     "GL_OES_depth32",
     "GL_OES_stencil8",
     "GL_OES_texture_npot",
+    "GL_IMG_texture_npot",
     "GL_ARB_depth_texture",
     "GL_OES_depth_texture",
     "GL_OES_packed_depth_stencil",
@@ -584,7 +585,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
                 "PowerVR SGX 540",
                 "NVIDIA Tegra",
                 "Android Emulator",
-                "Gallium 0.4 on llvmpipe"
+                "Gallium 0.4 on llvmpipe",
+                "Intel HD Graphics 3000 OpenGL Engine",
         };
 
         mRenderer = GLRenderer::Other;
@@ -1183,11 +1185,9 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
                                  0, nullptr,
                                  true);
         }
-    }
 
-    if (mInitialized)
         reporter.SetSuccessful();
-    else {
+    } else {
         // if initialization fails, ensure all symbols are zero, to avoid hard-to-understand bugs
         mSymbols.Zero();
         NS_WARNING("InitWithPrefix failed!");
@@ -1331,6 +1331,20 @@ GLContext::InitExtensions()
         MarkExtensionUnsupported(ANGLE_texture_compression_dxt3);
         MarkExtensionUnsupported(ANGLE_texture_compression_dxt5);
     }
+
+#ifdef XP_MACOSX
+    // Bug 1009642: On OSX Mavericks (10.9), the driver for Intel HD
+    // 3000 appears to be buggy WRT updating sub-images of S3TC
+    // textures with glCompressedTexSubImage2D. Works on Intel HD 4000
+    // and Intel HD 5000/Iris that I tested.
+    if (WorkAroundDriverBugs() &&
+        nsCocoaFeatures::OSXVersionMajor() == 10 &&
+        nsCocoaFeatures::OSXVersionMinor() == 9 &&
+        Renderer() == GLRenderer::IntelHD3000)
+    {
+        MarkExtensionUnsupported(EXT_texture_compression_s3tc);
+    }
+#endif
 
 #ifdef DEBUG
     firstRun = false;

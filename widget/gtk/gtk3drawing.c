@@ -746,6 +746,30 @@ moz_gtk_radio_get_metrics(gint* indicator_size, gint* indicator_spacing)
 }
 
 gint
+moz_gtk_get_focus_outline_size(gint* focus_h_width, gint* focus_v_width)
+{
+    ensure_entry_widget();
+    GtkWidget* w = gEntryWidget;
+    gboolean interior_focus;
+    gint focus_width = 0;
+    gtk_widget_style_get(w,
+                         "interior-focus", &interior_focus,
+                         "focus-line-width", &focus_width,
+                         NULL);
+    if (interior_focus) {
+        GtkBorder border;
+        GtkStyleContext *style = gtk_widget_get_style_context(w);
+        gtk_style_context_get_border(style, 0, &border);
+        *focus_h_width = border.left + focus_width;
+        *focus_v_width = border.top + focus_width;
+    } else {
+        *focus_h_width = focus_width;
+        *focus_v_width = focus_width;
+    }
+    return MOZ_GTK_SUCCESS;
+}
+
+gint
 moz_gtk_widget_get_focus(GtkWidget* widget, gboolean* interior_focus,
                          gint* focus_width, gint* focus_pad) 
 {
@@ -1415,6 +1439,7 @@ moz_gtk_entry_paint(cairo_t *cr, GdkRectangle* rect,
     GtkStyleContext* style;
     gboolean interior_focus;
     gint focus_width;
+    int draw_focus_outline_only = state->depressed; // NS_THEME_FOCUS_OUTLINE
 
     gtk_widget_set_direction(widget, direction);
 
@@ -1424,6 +1449,18 @@ moz_gtk_entry_paint(cairo_t *cr, GdkRectangle* rect,
                          "interior-focus", &interior_focus,
                          "focus-line-width", &focus_width,
                          NULL);
+
+    if (draw_focus_outline_only) {
+        // Inflate the given 'rect' with the focus outline size.
+        gint h, v;
+        moz_gtk_get_focus_outline_size(&h, &v);
+        rect->x -= h;
+        rect->width += 2 * h;
+        rect->y -= v;
+        rect->height += 2 * v;
+        width = rect->width;
+        height = rect->height;
+    }
 
     /* gtkentry.c uses two windows, one for the entire widget and one for the
      * text area inside it. The background of both windows is set to the "base"
@@ -1458,7 +1495,9 @@ moz_gtk_entry_paint(cairo_t *cr, GdkRectangle* rect,
         gtk_style_context_set_state(style, GTK_STATE_FLAG_INSENSITIVE);
     }
 
-    gtk_render_background(style, cr, x, y, width, height);
+    if (!draw_focus_outline_only) {
+        gtk_render_background(style, cr, x, y, width, height);
+    }
     gtk_render_frame(style, cr, x, y, width, height);
 
     if (state->focused && !state->disabled) {
@@ -1687,7 +1726,7 @@ moz_gtk_arrow_paint(cairo_t *cr, GdkRectangle* rect,
     GtkStyleContext* style;
     GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
     GdkRectangle arrow_rect;
-    gdouble arrow_angle = ARROW_UP;
+    gdouble arrow_angle;
 
     ensure_button_arrow_widget();
     style = gtk_widget_get_style_context(gButtonArrowWidget);
@@ -1699,12 +1738,22 @@ moz_gtk_arrow_paint(cairo_t *cr, GdkRectangle* rect,
                          direction);
 
     if (direction == GTK_TEXT_DIR_RTL) {
-        if (arrow_type == GTK_ARROW_LEFT)
-            arrow_angle = ARROW_RIGHT;
-        else if (arrow_type == GTK_ARROW_RIGHT)
-            arrow_angle = ARROW_LEFT;
-    } else if (arrow_type == GTK_ARROW_DOWN) {
+        arrow_type = (arrow_type == GTK_ARROW_LEFT) ?
+                         GTK_ARROW_RIGHT : GTK_ARROW_LEFT;
+    }
+    switch (arrow_type) {
+    case GTK_ARROW_LEFT:
+        arrow_angle = ARROW_LEFT;
+        break;
+    case GTK_ARROW_RIGHT:
+        arrow_angle = ARROW_RIGHT;
+        break;
+    case GTK_ARROW_DOWN:
         arrow_angle = ARROW_DOWN;
+        break;
+    default:
+        arrow_angle = ARROW_UP;
+        break;
     }
     if (arrow_type != GTK_ARROW_NONE)
         gtk_render_arrow(style, cr, arrow_angle,

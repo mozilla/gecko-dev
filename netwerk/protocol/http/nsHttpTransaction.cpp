@@ -123,6 +123,7 @@ nsHttpTransaction::nsHttpTransaction()
     , mPreserveStream(false)
     , mDispatchedAsBlocking(false)
     , mResponseTimeoutEnabled(true)
+    , mDontRouteViaWildCard(false)
     , mReportedStart(false)
     , mReportedResponseHeader(false)
     , mForTakeResponseHead(nullptr)
@@ -866,6 +867,16 @@ nsHttpTransaction::Close(nsresult reason)
         }
     }
 
+    if ((mChunkedDecoder || (mContentLength >= int64_t(0))) &&
+        (mHttpVersion >= NS_HTTP_VERSION_1_1)) {
+
+        if (NS_SUCCEEDED(reason) && !mResponseIsComplete) {
+            reason = NS_ERROR_NET_PARTIAL_TRANSFER;
+            LOG(("Partial transfer, incomplete HTTP responese received: %s",
+                 mChunkedDecoder ? "broken chunk" : "c-l underrun"));
+        }
+    }
+
     bool relConn = true;
     if (NS_SUCCEEDED(reason)) {
         if (!mResponseIsComplete) {
@@ -936,6 +947,12 @@ nsHttpTransaction::Close(nsresult reason)
 
     MOZ_EVENT_TRACER_DONE(static_cast<nsAHttpTransaction*>(this),
                           "net::http::transaction");
+}
+
+nsHttpConnectionInfo *
+nsHttpTransaction::ConnectionInfo()
+{
+    return mConnInfo;
 }
 
 nsresult
@@ -1058,6 +1075,7 @@ nsHttpTransaction::Restart()
     }
 
     LOG(("restarting transaction @%p\n", this));
+    SetDontRouteViaWildCard(false);
 
     // rewind streams in case we already wrote out the request
     nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mRequestStream);

@@ -37,38 +37,6 @@
 /*----------------------------------------------------------------------*/
 /* Import/export defines */
 
-/**
- * Using the visibility("hidden") attribute allows the compiler to use
- * PC-relative addressing to call this function.  If a function does not
- * access any global data, and does not call any methods which are not either
- * file-local or hidden, then on ELF systems we avoid loading the address of
- * the PLT into a register at the start of the function, which reduces code
- * size and frees up a register for general use.
- *
- * As a general rule, this should be used for any non-exported symbol
- * (including virtual method implementations).  NS_IMETHOD uses this by
- * default; if you need to have your NS_IMETHOD functions exported, you can
- * wrap your class as follows:
- *
- * #undef  IMETHOD_VISIBILITY
- * #define IMETHOD_VISIBILITY NS_VISIBILITY_DEFAULT
- *
- * class Foo {
- * ...
- * };
- *
- * #undef  IMETHOD_VISIBILITY
- * #define IMETHOD_VISIBILITY NS_VISIBILITY_HIDDEN
- *
- * Don't forget to change the visibility back to hidden before the end
- * of a header!
- *
- * Other examples:
- *
- * NS_HIDDEN_(int) someMethod();
- * SomeCtor() NS_HIDDEN;
- */
-
 #ifdef HAVE_VISIBILITY_HIDDEN_ATTRIBUTE
 #define NS_VISIBILITY_HIDDEN   __attribute__ ((visibility ("hidden")))
 #else
@@ -90,7 +58,7 @@
 #define NS_EXTERNAL_VIS     NS_VISIBILITY_DEFAULT
 
 #undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY  NS_VISIBILITY_HIDDEN
+#define IMETHOD_VISIBILITY
 
 /**
  * Mark a function as using a potentially non-standard function calling
@@ -288,7 +256,7 @@
 #ifdef NS_NO_VTABLE
 #undef NS_NO_VTABLE
 #endif
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 #define NS_NO_VTABLE __declspec(novtable)
 #else
 #define NS_NO_VTABLE
@@ -306,9 +274,9 @@ typedef MozRefCountType nsrefcnt;
  * Use these macros to do 64bit safe pointer conversions.
  */
 
-#define NS_PTR_TO_INT32(x)  ((int32_t)  (intptr_t) (x))
-#define NS_PTR_TO_UINT32(x) ((uint32_t) (intptr_t) (x))
-#define NS_INT32_TO_PTR(x)  ((void *)   (intptr_t) (x))
+#define NS_PTR_TO_INT32(x) ((int32_t)(intptr_t)(x))
+#define NS_PTR_TO_UINT32(x) ((uint32_t)(intptr_t)(x))
+#define NS_INT32_TO_PTR(x) ((void*)(intptr_t)(x))
 
 /*
  * Use NS_STRINGIFY to form a string literal from the value of a macro.

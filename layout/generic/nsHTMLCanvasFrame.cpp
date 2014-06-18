@@ -92,9 +92,9 @@ NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 NS_IMPL_FRAMEARENA_HELPERS(nsHTMLCanvasFrame)
 
 void
-nsHTMLCanvasFrame::Init(nsIContent* aContent,
-                        nsIFrame*   aParent,
-                        nsIFrame*   aPrevInFlow)
+nsHTMLCanvasFrame::Init(nsIContent*       aContent,
+                        nsContainerFrame* aParent,
+                        nsIFrame*         aPrevInFlow)
 {
   nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
@@ -171,7 +171,7 @@ nsHTMLCanvasFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                             aMargin, aBorder, aPadding);
 }
 
-nsresult
+void
 nsHTMLCanvasFrame::Reflow(nsPresContext*           aPresContext,
                           nsHTMLReflowMetrics&     aMetrics,
                           const nsHTMLReflowState& aReflowState,
@@ -222,8 +222,6 @@ nsHTMLCanvasFrame::Reflow(nsPresContext*           aPresContext,
                   ("exit nsHTMLCanvasFrame::Reflow: size=%d,%d",
                   aMetrics.Width(), aMetrics.Height()));
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
-
-  return NS_OK;
 }
 
 // FIXME taken from nsImageFrame, but then had splittable frame stuff

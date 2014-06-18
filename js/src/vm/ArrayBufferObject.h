@@ -237,16 +237,16 @@ class ArrayBufferViewObject : public JSObject
 {
   protected:
     /* Offset of view in underlying ArrayBufferObject */
-    static const size_t BYTEOFFSET_SLOT  = JS_TYPEDOBJ_SLOT_BYTEOFFSET;
+    static const size_t BYTEOFFSET_SLOT  = JS_BUFVIEW_SLOT_BYTEOFFSET;
 
     /* Byte length of view */
-    static const size_t BYTELENGTH_SLOT  = JS_TYPEDOBJ_SLOT_BYTELENGTH;
+    static const size_t LENGTH_SLOT      = JS_BUFVIEW_SLOT_LENGTH;
 
     /* Underlying ArrayBufferObject */
-    static const size_t BUFFER_SLOT      = JS_TYPEDOBJ_SLOT_OWNER;
+    static const size_t BUFFER_SLOT      = JS_BUFVIEW_SLOT_OWNER;
 
     /* ArrayBufferObjects point to a linked list of views, chained through this slot */
-    static const size_t NEXT_VIEW_SLOT   = JS_TYPEDOBJ_SLOT_NEXT_VIEW;
+    static const size_t NEXT_VIEW_SLOT   = JS_BUFVIEW_SLOT_NEXT_VIEW;
 
   public:
     static ArrayBufferObject *bufferObject(JSContext *cx, Handle<ArrayBufferViewObject *> obj);
@@ -275,7 +275,7 @@ PostBarrierTypedArrayObject(JSObject *obj)
 #ifdef JSGC_GENERATIONAL
     JS_ASSERT(obj);
     JSRuntime *rt = obj->runtimeFromMainThread();
-    if (!rt->isHeapBusy() && !IsInsideNursery(rt, obj))
+    if (!rt->isHeapBusy() && !IsInsideNursery(JS::AsCell(obj)))
         rt->gc.storeBuffer.putWholeCellFromMainThread(obj);
 #endif
 }
@@ -321,13 +321,13 @@ struct uint8_clamped {
     uint8_clamped(const uint8_clamped& other) : val(other.val) { }
 
     // invoke our assignment helpers for constructor conversion
-    uint8_clamped(uint8_t x)    { *this = x; }
-    uint8_clamped(uint16_t x)   { *this = x; }
-    uint8_clamped(uint32_t x)   { *this = x; }
-    uint8_clamped(int8_t x)     { *this = x; }
-    uint8_clamped(int16_t x)    { *this = x; }
-    uint8_clamped(int32_t x)    { *this = x; }
-    uint8_clamped(double x)     { *this = x; }
+    explicit uint8_clamped(uint8_t x)    { *this = x; }
+    explicit uint8_clamped(uint16_t x)   { *this = x; }
+    explicit uint8_clamped(uint32_t x)   { *this = x; }
+    explicit uint8_clamped(int8_t x)     { *this = x; }
+    explicit uint8_clamped(int16_t x)    { *this = x; }
+    explicit uint8_clamped(int32_t x)    { *this = x; }
+    explicit uint8_clamped(double x)     { *this = x; }
 
     uint8_clamped& operator=(const uint8_clamped& x) {
         val = x.val;
@@ -388,14 +388,14 @@ struct uint8_clamped {
 };
 
 /* Note that we can't use std::numeric_limits here due to uint8_clamped. */
-template<typename T> inline const bool TypeIsFloatingPoint() { return false; }
-template<> inline const bool TypeIsFloatingPoint<float>() { return true; }
-template<> inline const bool TypeIsFloatingPoint<double>() { return true; }
+template<typename T> inline bool TypeIsFloatingPoint() { return false; }
+template<> inline bool TypeIsFloatingPoint<float>() { return true; }
+template<> inline bool TypeIsFloatingPoint<double>() { return true; }
 
-template<typename T> inline const bool TypeIsUnsigned() { return false; }
-template<> inline const bool TypeIsUnsigned<uint8_t>() { return true; }
-template<> inline const bool TypeIsUnsigned<uint16_t>() { return true; }
-template<> inline const bool TypeIsUnsigned<uint32_t>() { return true; }
+template<typename T> inline bool TypeIsUnsigned() { return false; }
+template<> inline bool TypeIsUnsigned<uint8_t>() { return true; }
+template<> inline bool TypeIsUnsigned<uint16_t>() { return true; }
+template<> inline bool TypeIsUnsigned<uint32_t>() { return true; }
 
 } // namespace js
 

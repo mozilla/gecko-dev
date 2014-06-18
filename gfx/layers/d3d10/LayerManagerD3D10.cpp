@@ -31,12 +31,11 @@
 #include "DXGI1_2.h"
 #endif
 
-using namespace std;
-using namespace mozilla::dom;
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace layers {
+
+using namespace std;
+using namespace mozilla::gfx;
 
 struct Vertex
 {
@@ -433,11 +432,6 @@ LayerManagerD3D10::CreateReadbackLayer()
 {
   nsRefPtr<ReadbackLayer> layer = new ReadbackLayerD3D10(this);
   return layer.forget();
-}
-
-static void ReleaseTexture(void *texture)
-{
-  static_cast<ID3D10Texture2D*>(texture)->Release();
 }
 
 TemporaryRef<DrawTarget>

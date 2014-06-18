@@ -79,7 +79,7 @@ MozNDEFRecord::Constructor(const GlobalObject& aGlobal,
     return nullptr;
   }
 
-  nsRefPtr<MozNDEFRecord> ndefrecord = new MozNDEFRecord(aGlobal.GetContext(),
+  nsRefPtr<MozNDEFRecord> ndefrecord = new MozNDEFRecord(aGlobal.Context(),
                                                          win, aTnf, aType, aId,
                                                          aPayload);
   if (!ndefrecord) {
@@ -99,14 +99,17 @@ MozNDEFRecord::MozNDEFRecord(JSContext* aCx, nsPIDOMWindow* aWindow,
   mWindow = aWindow; // For GetParentObject()
 
   if (aType.WasPassed()) {
+    aType.Value().ComputeLengthAndData();
     mType = Uint8Array::Create(aCx, this, aType.Value().Length(), aType.Value().Data());
   }
 
   if (aId.WasPassed()) {
+    aId.Value().ComputeLengthAndData();
     mId = Uint8Array::Create(aCx, this, aId.Value().Length(), aId.Value().Data());
   }
 
   if (aPayload.WasPassed()) {
+    aPayload.Value().ComputeLengthAndData();
     mPayload = Uint8Array::Create(aCx, this, aPayload.Value().Length(), aPayload.Value().Data());
   }
 

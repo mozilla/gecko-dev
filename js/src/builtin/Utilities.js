@@ -28,8 +28,13 @@
 // Remove unsafe builtin functions.
 Object.defineProperty = null; // See bug 988416.
 
-// Cache builtin functions so using them doesn't require cloning the whole object they're 
+// Cache builtin functions so using them doesn't require cloning the whole object they're
 // installed on.
+//
+// WARNING: Do not make std_ references to builtin constructors (like Array and
+// Object) below. Setting `var std_Array = Array;`, for instance, would cause
+// the entire Array constructor, including its prototype and methods, to be
+// cloned into content compartments.
 var std_isFinite = isFinite;
 var std_isNaN = isNaN;
 var std_Array_indexOf = ArrayIndexOf;
@@ -50,6 +55,7 @@ var std_Function_apply = Function.prototype.apply;
 var std_Math_floor = Math.floor;
 var std_Math_max = Math.max;
 var std_Math_min = Math.min;
+var std_Math_abs = Math.abs;
 var std_Math_imul = Math.imul;
 var std_Math_log2 = Math.log2;
 var std_Number_valueOf = Number.prototype.valueOf;
@@ -58,7 +64,6 @@ var std_Object_create = Object.create;
 var std_Object_getOwnPropertyNames = Object.getOwnPropertyNames;
 var std_Object_hasOwnProperty = Object.prototype.hasOwnProperty;
 var std_RegExp_test = RegExp.prototype.test;
-var Std_String = String;
 var std_String_fromCharCode = String.fromCharCode;
 var std_String_charCodeAt = String.prototype.charCodeAt;
 var std_String_indexOf = String.prototype.indexOf;
@@ -129,13 +134,6 @@ function ToBoolean(v) {
 /* Spec: ECMAScript Language Specification, 5.1 edition, 9.3 and 11.4.6 */
 function ToNumber(v) {
     return +v;
-}
-
-
-/* Spec: ECMAScript Language Specification, 5.1 edition, 9.8 and 15.2.1.1 */
-function ToString(v) {
-    assert(arguments.length > 0, "__toString");
-    return Std_String(v);
 }
 
 

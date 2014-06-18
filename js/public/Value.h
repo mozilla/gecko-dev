@@ -15,9 +15,11 @@
 
 #include <limits> /* for std::numeric_limits */
 
+#include "js-config.h"
 #include "jstypes.h"
 
 #include "js/Anchor.h"
+#include "js/GCAPI.h"
 #include "js/RootingAPI.h"
 #include "js/Utility.h"
 
@@ -46,7 +48,7 @@ namespace JS { class Value; }
 # define JSVAL_ALIGNMENT
 #endif
 
-#if JS_BITS_PER_WORD == 64
+#if defined(JS_PUNBOX64)
 # define JSVAL_TAG_SHIFT 47
 #endif
 
@@ -84,7 +86,7 @@ JS_ENUM_HEADER(JSValueType, uint8_t)
 
 JS_STATIC_ASSERT(sizeof(JSValueType) == 1);
 
-#if JS_BITS_PER_WORD == 32
+#if defined(JS_NUNBOX32)
 
 /* Remember to propagate changes to the C defines below. */
 JS_ENUM_HEADER(JSValueTag, uint32_t)
@@ -101,7 +103,7 @@ JS_ENUM_HEADER(JSValueTag, uint32_t)
 
 JS_STATIC_ASSERT(sizeof(JSValueTag) == 4);
 
-#elif JS_BITS_PER_WORD == 64
+#elif defined(JS_PUNBOX64)
 
 /* Remember to propagate changes to the C defines below. */
 JS_ENUM_HEADER(JSValueTag, uint32_t)
@@ -147,7 +149,7 @@ typedef uint8_t JSValueType;
 #define JSVAL_TYPE_OBJECT            ((uint8_t)0x07)
 #define JSVAL_TYPE_UNKNOWN           ((uint8_t)0x20)
 
-#if JS_BITS_PER_WORD == 32
+#if defined(JS_NUNBOX32)
 
 typedef uint32_t JSValueTag;
 #define JSVAL_TAG_CLEAR              ((uint32_t)(0xFFFFFF80))
@@ -159,7 +161,7 @@ typedef uint32_t JSValueTag;
 #define JSVAL_TAG_NULL               ((uint32_t)(JSVAL_TAG_CLEAR | JSVAL_TYPE_NULL))
 #define JSVAL_TAG_OBJECT             ((uint32_t)(JSVAL_TAG_CLEAR | JSVAL_TYPE_OBJECT))
 
-#elif JS_BITS_PER_WORD == 64
+#elif defined(JS_PUNBOX64)
 
 typedef uint32_t JSValueTag;
 #define JSVAL_TAG_MAX_DOUBLE         ((uint32_t)(0x1FFF0))
@@ -181,7 +183,7 @@ typedef uint64_t JSValueShiftedTag;
 #define JSVAL_SHIFTED_TAG_NULL       (((uint64_t)JSVAL_TAG_NULL)       << JSVAL_TAG_SHIFT)
 #define JSVAL_SHIFTED_TAG_OBJECT     (((uint64_t)JSVAL_TAG_OBJECT)     << JSVAL_TAG_SHIFT)
 
-#endif  /* JS_BITS_PER_WORD */
+#endif  /* JS_PUNBOX64 */
 #endif  /* !defined(__SUNPRO_CC) && !defined(__xlC__) */
 
 #define JSVAL_LOWER_INCL_TYPE_OF_OBJ_OR_NULL_SET        JSVAL_TYPE_NULL
@@ -189,7 +191,7 @@ typedef uint64_t JSValueShiftedTag;
 #define JSVAL_UPPER_INCL_TYPE_OF_NUMBER_SET             JSVAL_TYPE_INT32
 #define JSVAL_LOWER_INCL_TYPE_OF_PTR_PAYLOAD_SET        JSVAL_TYPE_MAGIC
 
-#if JS_BITS_PER_WORD == 32
+#if defined(JS_NUNBOX32)
 
 #define JSVAL_TYPE_TO_TAG(type)      ((JSValueTag)(JSVAL_TAG_CLEAR | (type)))
 
@@ -198,7 +200,7 @@ typedef uint64_t JSValueShiftedTag;
 #define JSVAL_UPPER_INCL_TAG_OF_NUMBER_SET              JSVAL_TAG_INT32
 #define JSVAL_LOWER_INCL_TAG_OF_GCTHING_SET             JSVAL_TAG_STRING
 
-#elif JS_BITS_PER_WORD == 64
+#elif defined(JS_PUNBOX64)
 
 #define JSVAL_PAYLOAD_MASK           0x00007FFFFFFFFFFFLL
 #define JSVAL_TAG_MASK               0xFFFF800000000000LL
@@ -215,7 +217,7 @@ typedef uint64_t JSValueShiftedTag;
 #define JSVAL_UPPER_EXCL_SHIFTED_TAG_OF_NUMBER_SET       JSVAL_SHIFTED_TAG_UNDEFINED
 #define JSVAL_LOWER_INCL_SHIFTED_TAG_OF_GCTHING_SET      JSVAL_SHIFTED_TAG_STRING
 
-#endif /* JS_BITS_PER_WORD */
+#endif /* JS_PUNBOX64 */
 
 typedef enum JSWhyMagic
 {
@@ -242,7 +244,7 @@ typedef enum JSWhyMagic
 } JSWhyMagic;
 
 #if defined(IS_LITTLE_ENDIAN)
-# if JS_BITS_PER_WORD == 32
+# if defined(JS_NUNBOX32)
 typedef union jsval_layout
 {
     uint64_t asBits;
@@ -253,6 +255,7 @@ typedef union jsval_layout
             uint32_t       boo;     // Don't use |bool| -- it must be four bytes.
             JSString       *str;
             JSObject       *obj;
+            js::gc::Cell   *cell;
             void           *ptr;
             JSWhyMagic     why;
             size_t         word;
@@ -263,7 +266,7 @@ typedef union jsval_layout
     double asDouble;
     void *asPtr;
 } JSVAL_ALIGNMENT jsval_layout;
-# elif JS_BITS_PER_WORD == 64
+# elif defined(JS_PUNBOX64)
 typedef union jsval_layout
 {
     uint64_t asBits;
@@ -286,9 +289,9 @@ typedef union jsval_layout
     size_t asWord;
     uintptr_t asUIntPtr;
 } JSVAL_ALIGNMENT jsval_layout;
-# endif  /* JS_BITS_PER_WORD */
+# endif  /* JS_PUNBOX64 */
 #else   /* defined(IS_LITTLE_ENDIAN) */
-# if JS_BITS_PER_WORD == 32
+# if defined(JS_NUNBOX32)
 typedef union jsval_layout
 {
     uint64_t asBits;
@@ -300,6 +303,7 @@ typedef union jsval_layout
             uint32_t       boo;     // Don't use |bool| -- it must be four bytes.
             JSString       *str;
             JSObject       *obj;
+            js::gc::Cell   *cell;
             void           *ptr;
             JSWhyMagic     why;
             size_t         word;
@@ -309,7 +313,7 @@ typedef union jsval_layout
     double asDouble;
     void *asPtr;
 } JSVAL_ALIGNMENT jsval_layout;
-# elif JS_BITS_PER_WORD == 64
+# elif defined(JS_PUNBOX64)
 typedef union jsval_layout
 {
     uint64_t asBits;
@@ -330,7 +334,7 @@ typedef union jsval_layout
     size_t asWord;
     uintptr_t asUIntPtr;
 } JSVAL_ALIGNMENT jsval_layout;
-# endif /* JS_BITS_PER_WORD */
+# endif /* JS_PUNBOX64 */
 #endif  /* defined(IS_LITTLE_ENDIAN) */
 
 JS_STATIC_ASSERT(sizeof(jsval_layout) == 8);
@@ -378,7 +382,7 @@ JS_STATIC_ASSERT(sizeof(jsval_layout) == 8);
 #  define JS_VALUE_CONSTEXPR_VAR const
 #endif
 
-#if JS_BITS_PER_WORD == 32
+#if defined(JS_NUNBOX32)
 
 /*
  * N.B. GCC, in some but not all cases, chooses to emit signed comparison of
@@ -560,10 +564,10 @@ JSVAL_IS_GCTHING_IMPL(jsval_layout l)
     return (uint32_t)l.s.tag >= (uint32_t)JSVAL_LOWER_INCL_TAG_OF_GCTHING_SET;
 }
 
-static inline void *
+static inline js::gc::Cell *
 JSVAL_TO_GCTHING_IMPL(jsval_layout l)
 {
-    return l.s.payload.ptr;
+    return l.s.payload.cell;
 }
 
 static inline bool
@@ -623,7 +627,7 @@ JSVAL_EXTRACT_NON_DOUBLE_TYPE_IMPL(jsval_layout l)
     return (JSValueType)type;
 }
 
-#elif JS_BITS_PER_WORD == 64
+#elif defined(JS_PUNBOX64)
 
 static inline JS_VALUE_CONSTEXPR jsval_layout
 BUILD_JSVAL(JSValueTag tag, uint64_t payload)
@@ -776,12 +780,12 @@ JSVAL_IS_GCTHING_IMPL(jsval_layout l)
     return l.asBits >= JSVAL_LOWER_INCL_SHIFTED_TAG_OF_GCTHING_SET;
 }
 
-static inline void *
+static inline js::gc::Cell *
 JSVAL_TO_GCTHING_IMPL(jsval_layout l)
 {
     uint64_t ptrBits = l.asBits & JSVAL_PAYLOAD_MASK;
     MOZ_ASSERT((ptrBits & 0x7) == 0);
-    return (void *)ptrBits;
+    return reinterpret_cast<js::gc::Cell *>(ptrBits);
 }
 
 static inline bool
@@ -858,7 +862,7 @@ JSVAL_EXTRACT_NON_DOUBLE_TYPE_IMPL(jsval_layout l)
    return (JSValueType)type;
 }
 
-#endif  /* JS_BITS_PER_WORD */
+#endif  /* JS_PUNBOX64 */
 
 static inline jsval_layout JSVAL_TO_IMPL(JS::Value v);
 static inline JS_VALUE_CONSTEXPR JS::Value IMPL_TO_JSVAL(jsval_layout l);
@@ -1159,7 +1163,7 @@ class Value
         return JSVAL_TO_OBJECT_IMPL(data);
     }
 
-    void *toGCThing() const {
+    js::gc::Cell *toGCThing() const {
         MOZ_ASSERT(isGCThing());
         return JSVAL_TO_GCTHING_IMPL(data);
     }
@@ -1224,17 +1228,17 @@ class Value
     }
 
     const size_t *payloadWord() const {
-#if JS_BITS_PER_WORD == 32
+#if defined(JS_NUNBOX32)
         return &data.s.payload.word;
-#elif JS_BITS_PER_WORD == 64
+#elif defined(JS_PUNBOX64)
         return &data.asWord;
 #endif
     }
 
     const uintptr_t *payloadUIntPtr() const {
-#if JS_BITS_PER_WORD == 32
+#if defined(JS_NUNBOX32)
         return &data.s.payload.uintptr;
-#elif JS_BITS_PER_WORD == 64
+#elif defined(JS_PUNBOX64)
         return &data.asUIntPtr;
 #endif
     }
@@ -1250,7 +1254,7 @@ class Value
 
   private:
 #if defined(JS_VALUE_IS_CONSTEXPR)
-    JS_VALUE_CONSTEXPR Value(jsval_layout layout) : data(layout) {}
+    MOZ_IMPLICIT JS_VALUE_CONSTEXPR Value(jsval_layout layout) : data(layout) {}
 #endif
 
     void staticAssertions() {
@@ -1283,6 +1287,13 @@ IsOptimizedPlaceholderMagicValue(const Value &v)
         return true;
     }
     return false;
+}
+
+static MOZ_ALWAYS_INLINE void
+ExposeValueToActiveJS(const Value &v)
+{
+    if (v.isMarkable())
+        ExposeGCThingToActiveJS(v.toGCThing(), v.gcKind());
 }
 
 /************************************************************************/
@@ -1547,14 +1558,12 @@ namespace js {
 template <> struct GCMethods<const JS::Value>
 {
     static JS::Value initial() { return JS::UndefinedValue(); }
-    static ThingRootKind kind() { return THING_ROOT_VALUE; }
     static bool poisoned(const JS::Value &v) { return JS::IsPoisonedValue(v); }
 };
 
 template <> struct GCMethods<JS::Value>
 {
     static JS::Value initial() { return JS::UndefinedValue(); }
-    static ThingRootKind kind() { return THING_ROOT_VALUE; }
     static bool poisoned(const JS::Value &v) { return JS::IsPoisonedValue(v); }
     static bool needsPostBarrier(const JS::Value &v) {
         return v.isObject() && gc::IsInsideNursery(reinterpret_cast<gc::Cell*>(&v.toObject()));

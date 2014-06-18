@@ -410,6 +410,8 @@ public:
 
   js::ExpandoAndGeneration mExpandoAndGeneration;
 
+  void RequestAutocomplete();
+
 protected:
   virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
@@ -426,7 +428,7 @@ protected:
 
     NS_IMETHOD Run() MOZ_OVERRIDE
     {
-      static_cast<HTMLFormElement*>(mEventNode.get())->EventHandled();
+      static_cast<HTMLFormElement*>(mTarget.get())->EventHandled();
       return AsyncEventDispatcher::Run();
     }
   };

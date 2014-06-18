@@ -13,6 +13,7 @@
 # include "LayerManagerD3D9.h"
 #endif //MOZ_ENABLE_D3D9_LAYER
 #include "mozilla/BrowserElementParent.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/TabParent.h"
 #include "mozilla/layers/APZCTreeManager.h"
 #include "mozilla/layers/CompositorParent.h"
@@ -737,18 +738,23 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
     }
   }
 
-  if (CompositorParent::CompositorLoop()) {
+  if (gfxPlatform::UsesOffMainThreadCompositing()) {
     // Our remote frame will push layers updates to the compositor,
     // and we'll keep an indirect reference to that tree.
     *aId = mLayersId = CompositorParent::AllocateLayerTreeId();
     if (lm && lm->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
-      ClientLayerManager *clientManager = static_cast<ClientLayerManager*>(lm.get());
+      ClientLayerManager *clientManager =
+        static_cast<ClientLayerManager*>(lm.get());
       clientManager->GetRemoteRenderer()->SendNotifyChildCreated(mLayersId);
     }
     if (aScrollingBehavior == ASYNC_PAN_ZOOM) {
       mContentController = new RemoteContentController(this);
       CompositorParent::SetControllerForLayerTree(mLayersId, mContentController);
     }
+  } else if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    ContentChild::GetSingleton()->SendAllocateLayerTreeId(aId);
+    mLayersId = *aId;
+    CompositorChild::Get()->SendNotifyChildCreated(mLayersId);
   }
   // Set a default RenderFrameParent
   mFrameLoader->SetCurrentRemoteFrame(this);
@@ -809,9 +815,11 @@ RenderFrameParent::ContentViewScaleChanged(nsContentView* aView)
 
 void
 RenderFrameParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
+                                       const uint64_t& aTransactionId,
                                        const TargetConfig& aTargetConfig,
                                        bool aIsFirstPaint,
-                                       bool aScheduleComposite)
+                                       bool aScheduleComposite,
+                                       uint32_t aPaintSequenceNumber)
 {
   // View map must only contain views that are associated with the current
   // shadow layer tree. We must always update the map when shadow layers
@@ -930,20 +938,25 @@ RenderFrameParent::OwnerContentChanged(nsIContent* aContent)
   BuildViewMap();
 }
 
-void
+nsEventStatus
 RenderFrameParent::NotifyInputEvent(WidgetInputEvent& aEvent,
                                     ScrollableLayerGuid* aOutTargetGuid)
 {
   if (GetApzcTreeManager()) {
-    GetApzcTreeManager()->ReceiveInputEvent(aEvent, aOutTargetGuid);
+    return GetApzcTreeManager()->ReceiveInputEvent(aEvent, aOutTargetGuid);
   }
+  return nsEventStatus_eIgnore;
 }
 
 void
 RenderFrameParent::ActorDestroy(ActorDestroyReason why)
 {
   if (mLayersId != 0) {
-    CompositorParent::DeallocateLayerTreeId(mLayersId);
+    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+      ContentChild::GetSingleton()->SendDeallocateLayerTreeId(mLayersId);
+    } else {
+      CompositorParent::DeallocateLayerTreeId(mLayersId);
+    }
     if (mContentController) {
       // Stop our content controller from requesting repaints of our
       // content.
@@ -992,7 +1005,7 @@ RenderFrameParent::AllocPLayerTransactionParent()
     return nullptr;
   }
   nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
-  LayerTransactionParent* result = new LayerTransactionParent(lm->AsLayerManagerComposite(), this, 0);
+  LayerTransactionParent* result = new LayerTransactionParent(lm->AsLayerManagerComposite(), this, 0, 0);
   result->AddIPDLReference();
   return result;
 }

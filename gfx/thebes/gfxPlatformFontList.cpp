@@ -423,22 +423,6 @@ gfxPlatformFontList::PreloadNamesList()
 
 }
 
-void 
-gfxPlatformFontList::SetFixedPitch(const nsAString& aFamilyName)
-{
-    gfxFontFamily *family = FindFamily(aFamilyName);
-    if (!family) return;
-
-    family->FindStyleVariations();
-    nsTArray<nsRefPtr<gfxFontEntry> >& fontlist = family->GetFontList();
-
-    uint32_t i, numFonts = fontlist.Length();
-
-    for (i = 0; i < numFonts; i++) {
-        fontlist[i]->mFixedPitch = 1;
-    }
-}
-
 void
 gfxPlatformFontList::LoadBadUnderlineList()
 {
@@ -450,17 +434,6 @@ gfxPlatformFontList::LoadBadUnderlineList()
         GenerateFontListKey(blacklist[i], key);
         mBadUnderlineFamilyNames.PutEntry(key);
     }
-}
-
-bool 
-gfxPlatformFontList::ResolveFontName(const nsAString& aFontName, nsAString& aResolvedFontName)
-{
-    gfxFontFamily *family = FindFamily(aFontName);
-    if (family) {
-        aResolvedFontName = family->Name();
-        return true;
-    }
-    return false;
 }
 
 static PLDHashOperator
@@ -867,8 +840,12 @@ bool
 gfxPlatformFontList::GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName)
 {
     aFamilyName.Truncate();
-    ResolveFontName(aFontName, aFamilyName);
-    return !aFamilyName.IsEmpty();
+    gfxFontFamily *ff = FindFamily(aFontName);
+    if (!ff) {
+        return false;
+    }
+    aFamilyName.Assign(ff->Name());
+    return true;
 }
 
 gfxCharacterMap*

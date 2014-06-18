@@ -66,38 +66,61 @@ LayerTransactionChild::DeallocPCompositableChild(PCompositableChild* actor)
 }
 
 bool
-LayerTransactionChild::RecvParentAsyncMessage(const mozilla::layers::AsyncParentMessageData& aMessage)
+LayerTransactionChild::RecvParentAsyncMessages(const InfallibleTArray<AsyncParentMessageData>& aMessages)
 {
-  switch (aMessage.type()) {
-    case AsyncParentMessageData::TOpDeliverFence: {
-      const OpDeliverFence& op = aMessage.get_OpDeliverFence();
-      FenceHandle fence = op.fence();
-      PTextureChild* child = op.textureChild();
+  for (AsyncParentMessageArray::index_type i = 0; i < aMessages.Length(); ++i) {
+    const AsyncParentMessageData& message = aMessages[i];
 
-      RefPtr<TextureClient> texture = TextureClient::AsTextureClient(child);
-      if (texture) {
-        texture->SetReleaseFenceHandle(fence);
+    switch (message.type()) {
+      case AsyncParentMessageData::TOpDeliverFence: {
+        const OpDeliverFence& op = message.get_OpDeliverFence();
+        FenceHandle fence = op.fence();
+        PTextureChild* child = op.textureChild();
+
+        RefPtr<TextureClient> texture = TextureClient::AsTextureClient(child);
+        if (texture) {
+          texture->SetReleaseFenceHandle(fence);
+        }
+        if (mForwarder) {
+          mForwarder->HoldTransactionsToRespond(op.transactionId());
+        } else {
+          // Send back a response.
+          InfallibleTArray<AsyncChildMessageData> replies;
+          replies.AppendElement(OpReplyDeliverFence(op.transactionId()));
+          SendChildAsyncMessages(replies);
+        }
+        break;
       }
-      if (mForwarder) {
-        mForwarder->HoldTransactionsToRespond(op.transactionId());
-      } else {
-        // Send back a response.
-        InfallibleTArray<AsyncChildMessageData> replies;
-        replies.AppendElement(OpReplyDeliverFence(op.transactionId()));
-        SendChildAsyncMessages(replies);
+      case AsyncParentMessageData::TOpReplyDeliverFence: {
+        const OpReplyDeliverFence& op = message.get_OpReplyDeliverFence();
+        TransactionCompleteted(op.transactionId());
+        break;
       }
-      break;
+      default:
+        NS_ERROR("unknown AsyncParentMessageData type");
+        return false;
     }
-    default:
-      NS_ERROR("unknown AsyncParentMessageData type");
-      return false;
   }
   return true;
 }
 
 void
+LayerTransactionChild::SendFenceHandle(AsyncTransactionTracker* aTracker,
+                                       PTextureChild* aTexture,
+                                       const FenceHandle& aFence)
+{
+  HoldUntilComplete(aTracker);
+  InfallibleTArray<AsyncChildMessageData> messages;
+  messages.AppendElement(OpDeliverFenceFromChild(aTracker->GetId(),
+                                                 nullptr, aTexture,
+                                                 FenceHandleFromChild(aFence)));
+  SendChildAsyncMessages(messages);
+}
+
+void
 LayerTransactionChild::ActorDestroy(ActorDestroyReason why)
 {
+  DestroyAsyncTransactionTrackersHolder();
 #ifdef MOZ_B2G
   // Due to poor lifetime management of gralloc (and possibly shmems) we will
   // crash at some point in the future when we get destroyed due to abnormal

@@ -51,10 +51,11 @@ public:
     NotAKnownUniform = -1,
 
     LayerTransform = 0,
-    MaskQuadTransform,
-    LayerQuadTransform,
+    MaskTransform,
+    LayerRects,
     MatrixProj,
     TextureTransform,
+    TextureRects,
     RenderTargetOffset,
     LayerOpacity,
     Texture,
@@ -217,39 +218,13 @@ struct ProgramProfileOGL
    */
   static ProgramProfileOGL GetProfileFor(ShaderConfigOGL aConfig);
 
-  /**
-   * These two methods lookup the location of a uniform and attribute,
-   * respectively. Returns -1 if the named uniform/attribute does not
-   * have a location for the shaders represented by this profile.
-   */
-  GLint LookupAttributeLocation(const char* aName)
-  {
-    for (uint32_t i = 0; i < mAttributes.Length(); ++i) {
-      if (strcmp(mAttributes[i].mName, aName) == 0) {
-        return mAttributes[i].mLocation;
-      }
-    }
-
-    return -1;
-  }
-
-  // represents the name and location of a uniform or attribute
-  struct Argument
-  {
-    Argument(const char* aName) :
-      mName(aName) {}
-    const char* mName;
-    GLint mLocation;
-  };
-
   // the source code for the program's shaders
   std::string mVertexShaderString;
   std::string mFragmentShaderString;
 
   KnownUniform mUniforms[KnownUniform::KnownUniformCount];
-  nsTArray<Argument> mAttributes;
   nsTArray<const char *> mDefines;
-  uint32_t mTextureCount;
+  size_t mTextureCount;
 
   ProgramProfileOGL() :
     mTextureCount(0)
@@ -302,13 +277,6 @@ public:
                      const char *aFragmentShaderString);
 
   /**
-   * Lookup the location of an attribute
-   */
-  GLint AttribLocation(const char* aName) {
-    return mProfile.LookupAttributeLocation(aName);
-  }
-
-  /**
    * The following set of methods set a uniform argument to the shader program.
    * Not all uniforms may be set for all programs, and such uses will throw
    * an assertion.
@@ -318,25 +286,15 @@ public:
   }
 
   void SetMaskLayerTransform(const gfx::Matrix4x4& aMatrix) {
-    SetMatrixUniform(KnownUniform::MaskQuadTransform, aMatrix);
+    SetMatrixUniform(KnownUniform::MaskTransform, aMatrix);
   }
 
-  void SetLayerQuadRect(const nsIntRect& aRect) {
-    gfx3DMatrix m;
-    m._11 = float(aRect.width);
-    m._22 = float(aRect.height);
-    m._41 = float(aRect.x);
-    m._42 = float(aRect.y);
-    SetMatrixUniform(KnownUniform::LayerQuadTransform, m);
-  }
-
-  void SetLayerQuadRect(const gfx::Rect& aRect) {
-    gfx3DMatrix m;
-    m._11 = aRect.width;
-    m._22 = aRect.height;
-    m._41 = aRect.x;
-    m._42 = aRect.y;
-    SetMatrixUniform(KnownUniform::LayerQuadTransform, m);
+  void SetLayerRects(const gfx::Rect* aRects) {
+    float vals[16] = { aRects[0].x, aRects[0].y, aRects[0].width, aRects[0].height,
+                       aRects[1].x, aRects[1].y, aRects[1].width, aRects[1].height,
+                       aRects[2].x, aRects[2].y, aRects[2].width, aRects[2].height,
+                       aRects[3].x, aRects[3].y, aRects[3].width, aRects[3].height };
+    SetUniform(KnownUniform::LayerRects, 16, vals);
   }
 
   void SetProjectionMatrix(const gfx::Matrix4x4& aMatrix) {
@@ -346,6 +304,14 @@ public:
   // sets this program's texture transform, if it uses one
   void SetTextureTransform(const gfx::Matrix4x4& aMatrix) {
     SetMatrixUniform(KnownUniform::TextureTransform, aMatrix);
+  }
+
+  void SetTextureRects(const gfx::Rect* aRects) {
+    float vals[16] = { aRects[0].x, aRects[0].y, aRects[0].width, aRects[0].height,
+                       aRects[1].x, aRects[1].y, aRects[1].width, aRects[1].height,
+                       aRects[2].x, aRects[2].y, aRects[2].width, aRects[2].height,
+                       aRects[3].x, aRects[3].y, aRects[3].width, aRects[3].height };
+    SetUniform(KnownUniform::TextureRects, 16, vals);
   }
 
   void SetRenderOffset(const nsIntPoint& aOffset) {
@@ -415,9 +381,9 @@ public:
     SetUniform(KnownUniform::TexturePass2, aFlag ? 1 : 0);
   }
 
-  // the names of attributes
-  static const char* const VertexCoordAttrib;
-  static const char* const TexCoordAttrib;
+  size_t GetTextureCount() const {
+    return mProfile.mTextureCount;
+  }
 
 protected:
   RefPtr<GLContext> mGL;
@@ -478,6 +444,7 @@ protected:
       case 2: mGL->fUniform2fv(ku.mLocation, 1, ku.mValue.f16v); break;
       case 3: mGL->fUniform3fv(ku.mLocation, 1, ku.mValue.f16v); break;
       case 4: mGL->fUniform4fv(ku.mLocation, 1, ku.mValue.f16v); break;
+      case 16: mGL->fUniform4fv(ku.mLocation, 4, ku.mValue.f16v); break;
       default:
         NS_NOTREACHED("Bogus aLength param");
       }

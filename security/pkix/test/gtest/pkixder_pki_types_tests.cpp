@@ -1,6 +1,13 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* Copyright 2013 Mozilla Foundation
+/* This code is made available to you under your choice of the following sets
+ * of licensing terms:
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+/* Copyright 2013 Mozilla Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +63,7 @@ TEST_F(pkixder_pki_types_tests, AlgorithmIdentifierNoParams)
   ASSERT_EQ(0, memcmp(algorithmID.algorithm.data, expectedAlgorithmID,
                       sizeof expectedAlgorithmID));
 
-  ASSERT_EQ(0, algorithmID.parameters.len);
+  ASSERT_EQ(0u, algorithmID.parameters.len);
   ASSERT_FALSE(algorithmID.parameters.data);
 }
 
@@ -72,11 +79,8 @@ TEST_F(pkixder_pki_types_tests, AlgorithmIdentifierNullParams)
   ASSERT_EQ(Success, input.Init(DER_ALGORITHM_IDENTIFIER_NULL_PARAMS,
                                 sizeof DER_ALGORITHM_IDENTIFIER_NULL_PARAMS));
 
-  uint16_t length;
-  ASSERT_EQ(Success, ExpectTagAndGetLength(input, SEQUENCE, length));
-
   Input nested;
-  ASSERT_EQ(Success, input.Skip(length, nested));
+  ASSERT_EQ(Success, ExpectTagAndGetValue(input, SEQUENCE, nested));
 
   const uint8_t expectedAlgorithmID[] = {
     0xde, 0xad, 0xbe, 0xef

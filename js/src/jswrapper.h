@@ -27,8 +27,8 @@ class MOZ_STACK_CLASS WrapperOptions : public ProxyOptions {
                        proto_()
     {}
 
-    WrapperOptions(JSContext *cx) : ProxyOptions(false, nullptr),
-                                    proto_()
+    explicit WrapperOptions(JSContext *cx) : ProxyOptions(false, nullptr),
+                                             proto_()
     {
         proto_.construct(cx);
     }
@@ -103,7 +103,7 @@ WrapperOptions::proto() const
 class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
 {
   public:
-    CrossCompartmentWrapper(unsigned flags, bool hasPrototype = false);
+    explicit CrossCompartmentWrapper(unsigned flags, bool hasPrototype = false);
 
     virtual ~CrossCompartmentWrapper();
 
@@ -167,7 +167,7 @@ template <class Base>
 class JS_FRIEND_API(SecurityWrapper) : public Base
 {
   public:
-    SecurityWrapper(unsigned flags);
+    explicit SecurityWrapper(unsigned flags);
 
     virtual bool isExtensible(JSContext *cx, HandleObject wrapper, bool *extensible) MOZ_OVERRIDE;
     virtual bool preventExtensions(JSContext *cx, HandleObject wrapper) MOZ_OVERRIDE;
@@ -245,8 +245,7 @@ class JS_FRIEND_API(DeadObjectProxy) : public BaseProxyHandler
 
 extern JSObject *
 TransparentObjectWrapper(JSContext *cx, HandleObject existing, HandleObject obj,
-                         HandleObject wrappedProto, HandleObject parent,
-                         unsigned flags);
+                         HandleObject parent, unsigned flags);
 
 // Proxy family for wrappers. Public so that IsWrapper() can be fully inlined by
 // jsfriendapi users.
@@ -321,8 +320,8 @@ RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
 struct JS_FRIEND_API(AutoMaybeTouchDeadZones)
 {
     // The version that takes an object just uses it for its runtime.
-    AutoMaybeTouchDeadZones(JSContext *cx);
-    AutoMaybeTouchDeadZones(JSObject *obj);
+    explicit AutoMaybeTouchDeadZones(JSContext *cx);
+    explicit AutoMaybeTouchDeadZones(JSObject *obj);
     ~AutoMaybeTouchDeadZones();
 
   private:

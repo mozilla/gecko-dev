@@ -17,8 +17,10 @@
 #include ../services/manifests/HealthReportAndroidManifest_permissions.xml.in
 #include ../services/manifests/SyncAndroidManifest_permissions.xml.in
 
+#ifndef RELEASE_BUILD
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+#endif
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -72,16 +74,24 @@
     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
 
     <application android:label="@string/moz_app_displayname"
-		 android:icon="@drawable/icon"
+                 android:icon="@drawable/icon"
                  android:name="org.mozilla.gecko.GeckoApplication"
-		 android:hardwareAccelerated="true"
-#ifdef MOZILLA_OFFICIAL
-		 android:debuggable="false">
+                 android:hardwareAccelerated="true"
+# The preprocessor does not yet support arbitrary parentheses, so this cannot
+# be parenthesized thus to clarify that the logical AND operator has precedence:
+#   !defined(MOZILLA_OFFICIAL) || (defined(NIGHTLY_BUILD) && defined(MOZ_DEBUG))
+#if !defined(MOZILLA_OFFICIAL) || defined(NIGHTLY_BUILD) && defined(MOZ_DEBUG)
+                 android:debuggable="true">
 #else
-		 android:debuggable="true">
+                 android:debuggable="false">
 #endif
 
         <meta-data android:name="com.sec.android.support.multiwindow" android:value="true"/>
+
+#ifdef GOOGLE_PLAY_SERVICES
+        <!-- This resources comes from Google Play Services. Required for casting support. -->
+        <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
+#endif
 
         <!-- If the windowSoftInputMode adjust* flag changes below, the
              setSoftInputMode call in BrowserSearch#onStop must also be updated. -->
@@ -89,7 +99,7 @@
                   android:label="@string/moz_app_displayname"
                   android:taskAffinity="@ANDROID_PACKAGE_NAME@.BROWSER"
                   android:alwaysRetainTaskState="true"
-                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|screenSize"
+                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|screenSize|locale|layoutDirection"
                   android:windowSoftInputMode="stateUnspecified|adjustResize"
                   android:launchMode="singleTask"
                   android:theme="@style/Gecko.App">
@@ -188,7 +198,6 @@
             </intent-filter>
         </activity>
 
-#ifdef MOZ_ANDROID_SYNTHAPKS
         <activity android:name="org.mozilla.gecko.webapp.Dispatcher"
             android:noHistory="true" >
             <intent-filter>
@@ -212,7 +221,6 @@
              <category android:name="android.intent.category.DEFAULT" />
           </intent-filter>
         </receiver>
-#endif
 
         <activity android:name=".Webapp"
                   android:label="@string/webapp_generic_name"
@@ -289,11 +297,11 @@
           <intent-filter>
             <action android:name="org.mozilla.gecko.reportCrash" />
           </intent-filter>
-	</activity>
+  </activity>
 #endif
 
         <activity android:name="org.mozilla.gecko.VideoPlayer"
-                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation"
+                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|locale|layoutDirection"
                   android:theme="@android:style/Theme.NoTitleBar">
             <intent-filter>
                 <action android:name="org.mozilla.gecko.PLAY_VIDEO" />
@@ -302,8 +310,7 @@
 
         <activity android:name="org.mozilla.gecko.preferences.GeckoPreferences"
                   android:theme="@style/Gecko.Preferences"
-                  android:label="@string/settings_title"
-                  android:configChanges="orientation|screenSize"
+                  android:configChanges="orientation|screenSize|locale|layoutDirection"
                   android:excludeFromRecents="true"/>
 
         <activity android:name="org.mozilla.gecko.home.HomePanelPicker"

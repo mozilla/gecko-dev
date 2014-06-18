@@ -92,6 +92,7 @@ class ImageLoader;
 } // namespace css
 
 namespace dom {
+class AnimationTimeline;
 class Attr;
 class CDATASection;
 class Comment;
@@ -105,6 +106,7 @@ struct ElementRegistrationOptions;
 class Event;
 class EventTarget;
 class FrameRequestCallback;
+class ImportManager;
 class OverfillCallback;
 class HTMLBodyElement;
 struct LifecycleCallbackArgs;
@@ -114,6 +116,7 @@ class NodeFilter;
 class NodeIterator;
 class ProcessingInstruction;
 class StyleSheetList;
+class SVGDocument;
 class Touch;
 class TouchList;
 class TreeWalker;
@@ -128,17 +131,15 @@ typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
 } // namespace mozilla
 
 #define NS_IDOCUMENT_IID \
-{ 0x906d05e7, 0x39af, 0x4ff0, \
-  { 0xbc, 0xcd, 0x30, 0x0c, 0x7f, 0xeb, 0x86, 0x21 } }
-
-// Flag for AddStyleSheet().
-#define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
+{ 0x0300e2e0, 0x24c9, 0x4ecf, \
+  { 0x81, 0xec, 0x64, 0x26, 0x9a, 0x4b, 0xef, 0x18 } }
 
 // Enum for requesting a particular type of document when creating a doc
 enum DocumentFlavor {
   DocumentFlavorLegacyGuess, // compat with old code until made HTML5-compliant
   DocumentFlavorHTML, // HTMLDocument with HTMLness bit set to true
-  DocumentFlavorSVG // SVGDocument
+  DocumentFlavorSVG, // SVGDocument
+  DocumentFlavorPlain, // Just a Document
 };
 
 // Document states
@@ -759,7 +760,29 @@ public:
    */
 
   /**
-   * Get the number of stylesheets
+   * These exists to allow us to on-demand load user-agent style sheets that
+   * would otherwise be loaded by nsDocumentViewer::CreateStyleSet. This allows
+   * us to keep the memory used by a document's rule cascade data (the stuff in
+   * its nsStyleSet's nsCSSRuleProcessors) - which can be considerable - lower
+   * than it would be if we loaded all built-in user-agent style sheets up
+   * front.
+   *
+   * By "built-in" user-agent style sheets we mean the user-agent style sheets
+   * that gecko itself supplies (such as html.css and svg.css) as opposed to
+   * user-agent level style sheets inserted by add-ons or the like.
+   *
+   * This function prepends the given style sheet to the document's style set
+   * in order to make sure that it does not override user-agent style sheets
+   * supplied by add-ons or by the app (Firefox OS or Firefox Mobile, for
+   * example), since their sheets should override built-in sheets.
+   *
+   * TODO We can get rid of the whole concept of delayed loading if we fix
+   * bug 77999.
+   */
+  virtual void EnsureOnDemandBuiltInUASheet(nsCSSStyleSheet* aSheet) = 0;
+
+  /**
+   * Get the number of (document) stylesheets
    *
    * @return the number of stylesheets
    * @throws no exceptions
@@ -818,15 +841,6 @@ public:
    */
   virtual void SetStyleSheetApplicableState(nsIStyleSheet* aSheet,
                                             bool aApplicable) = 0;  
-
-  /**
-   * Just like the style sheet API, but for "catalog" sheets,
-   * extra sheets inserted at the UA level.
-   */
-  virtual int32_t GetNumberOfCatalogStyleSheets() const = 0;
-  virtual nsIStyleSheet* GetCatalogStyleSheetAt(int32_t aIndex) const = 0;
-  virtual void AddCatalogStyleSheet(nsCSSStyleSheet* aSheet) = 0;
-  virtual void EnsureCatalogStyleSheet(const char *aStyleSheetURI) = 0;
 
   enum additionalSheetType {
     eAgentSheet,
@@ -1201,13 +1215,39 @@ public:
                                  nsAString& aEncoding,
                                  nsAString& Standalone) = 0;
 
+  /**
+   * Returns true if this is what HTML 5 calls an "HTML document" (for example
+   * regular HTML document with Content-Type "text/html", image documents and
+   * media documents).  Returns false for XHTML and any other documents parsed
+   * by the XML parser.
+   */
   bool IsHTML() const
   {
-    return mIsRegularHTML;
+    return mType == eHTML;
+  }
+  bool IsHTMLOrXHTML() const
+  {
+    return mType == eHTML || mType == eXHTML;
+  }
+  bool IsXML() const
+  {
+    return !IsHTML();
+  }
+  bool IsSVG() const
+  {
+    return mType == eSVG;
   }
   bool IsXUL() const
   {
-    return mIsXUL;
+    return mType == eXUL;
+  }
+  bool IsUnstyledDocument()
+  {
+    return IsLoadedAsData() || IsLoadedAsInteractiveData();
+  }
+  bool LoadsFullXULStyleSheetUpFront()
+  {
+    return IsXUL() || AllowXULXBL();
   }
 
   virtual bool IsScriptEnabled() = 0;
@@ -1859,6 +1899,8 @@ public:
 
   virtual already_AddRefed<mozilla::dom::UndoManager> GetUndoManager() = 0;
 
+  virtual mozilla::dom::AnimationTimeline* Timeline() = 0;
+
   typedef mozilla::dom::CallbackObjectHolder<
     mozilla::dom::FrameRequestCallback,
     nsIFrameRequestCallback> FrameRequestCallbackHolder;
@@ -2045,9 +2087,10 @@ public:
                                     const nsAString& aTypeExtension,
                                     uint32_t aNamespaceID,
                                     mozilla::ErrorResult& rv) = 0;
-  virtual JSObject*
+  virtual void
     RegisterElement(JSContext* aCx, const nsAString& aName,
                     const mozilla::dom::ElementRegistrationOptions& aOptions,
+                    JS::MutableHandle<JSObject*> aRetval,
                     mozilla::ErrorResult& rv) = 0;
 
   /**
@@ -2249,8 +2292,16 @@ public:
   uint32_t ChildElementCount();
 
   virtual nsHTMLDocument* AsHTMLDocument() { return nullptr; }
+  virtual mozilla::dom::SVGDocument* AsSVGDocument() { return nullptr; }
 
   virtual JSObject* WrapObject(JSContext *aCx) MOZ_OVERRIDE;
+
+  // Each import tree has exactly one master document which is
+  // the root of the tree, and owns the browser context.
+  virtual already_AddRefed<nsIDocument> MasterDocument() = 0;
+  virtual void SetMasterDocument(nsIDocument* master) = 0;
+  virtual bool IsMasterDocument() = 0;
+  virtual already_AddRefed<mozilla::dom::ImportManager> ImportManager() = 0;
 
 private:
   uint64_t mWarnedAbout;
@@ -2363,15 +2414,6 @@ protected:
   // document in it.
   bool mIsInitialDocumentInWindow;
 
-  bool mIsRegularHTML;
-  bool mIsXUL;
-
-  enum {
-    eTriUnset = 0,
-    eTriFalse,
-    eTriTrue
-  } mAllowXULXBL;
-
   // True if we're loaded as data and therefor has any dangerous stuff, such
   // as scripts and plugins, disabled.
   bool mLoadedAsData;
@@ -2475,6 +2517,27 @@ protected:
   bool mIsLinkUpdateRegistrationsForbidden;
 #endif
 
+  enum Type {
+    eUnknown, // should never be used
+    eHTML,
+    eXHTML,
+    eGenericXML,
+    eSVG,
+    eXUL
+  };
+
+  uint8_t mType;
+
+  uint8_t mDefaultElementType;
+
+  enum {
+    eTriUnset = 0,
+    eTriFalse,
+    eTriTrue
+  };
+
+  uint8_t mAllowXULXBL;
+
   // The document's script global object, the object from which the
   // document can get its script context and scope. This is the
   // *inner* window object.
@@ -2557,8 +2620,6 @@ protected:
   nsCOMPtr<nsIStructuredCloneContainer> mStateObjectContainer;
   nsCOMPtr<nsIVariant> mStateObjectCached;
 
-  uint8_t mDefaultElementType;
-
   uint32_t mInSyncOperationCount;
 
   nsRefPtr<mozilla::dom::XPathEvaluator> mXPathEvaluator;
@@ -2626,7 +2687,8 @@ nsresult
 NS_NewHTMLDocument(nsIDocument** aInstancePtrResult, bool aLoadedAsData = false);
 
 nsresult
-NS_NewXMLDocument(nsIDocument** aInstancePtrResult, bool aLoadedAsData = false);
+NS_NewXMLDocument(nsIDocument** aInstancePtrResult, bool aLoadedAsData = false,
+                  bool aIsPlainDocument = false);
 
 nsresult
 NS_NewSVGDocument(nsIDocument** aInstancePtrResult);

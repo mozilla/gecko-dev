@@ -21,6 +21,7 @@
 #include "mozilla/layers/CompositorTypes.h"  // for DiagnosticFlags::CONTAINER
 #include "mozilla/layers/Effects.h"     // for Effect, EffectChain, etc
 #include "mozilla/layers/TextureHost.h"  // for CompositingRenderTarget
+#include "mozilla/layers/AsyncPanZoomController.h"  // for AsyncPanZoomController
 #include "mozilla/mozalloc.h"           // for operator delete, etc
 #include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsDebug.h"                    // for NS_ASSERTION
@@ -35,6 +36,8 @@
 
 namespace mozilla {
 namespace layers {
+
+using namespace gfx;
 
 /**
  * Returns a rectangle of content painted opaquely by aLayer. Very consertative;
@@ -204,35 +207,46 @@ static void DrawVelGraph(const nsIntRect& aClipRect,
 
   aManager->SetDebugOverlayWantsNextFrame(true);
 
-  const gfx::Matrix4x4& transform = aLayer->GetEffectiveTransform();
+  const Matrix4x4& transform = aLayer->GetEffectiveTransform();
   nsIntRect bounds = aLayer->GetEffectiveVisibleRegion().GetBounds();
-  gfx::Rect graphBounds = gfx::Rect(bounds.x, bounds.y,
-                                    bounds.width, bounds.height);
-  gfx::Rect graphRect = gfx::Rect(bounds.x, bounds.y, 200, 100);
+  IntSize graphSize = IntSize(200, 100);
+  Rect graphRect = Rect(bounds.x, bounds.y, graphSize.width, graphSize.height);
 
-  float opacity = 1.0;
-  EffectChain effects;
-  effects.mPrimaryEffect = new EffectSolidColor(gfx::Color(0.2f,0,0,1));
-  compositor->DrawQuad(graphRect,
-                       clipRect,
-                       effects,
-                       opacity,
-                       transform);
+  RefPtr<DrawTarget> dt = aManager->CreateDrawTarget(graphSize, SurfaceFormat::B8G8R8A8);
+  dt->FillRect(Rect(0, 0, graphSize.width, graphSize.height),
+               ColorPattern(Color(0.2f,0,0,1)));
 
-  std::vector<gfx::Point> graph;
   int yScaleFactor = 3;
+  Point prev = Point(0,0);
+  bool first = true;
   for (int32_t i = (int32_t)velocityData->mData.size() - 2; i >= 0; i--) {
     const gfx::Point& p1 = velocityData->mData[i+1].mPoint;
     const gfx::Point& p2 = velocityData->mData[i].mPoint;
     int vel = sqrt((p1.x - p2.x) * (p1.x - p2.x) +
                    (p1.y - p2.y) * (p1.y - p2.y));
-    graph.push_back(
-      gfx::Point(bounds.x + graphRect.width / circularBufferSize * i,
-                 graphBounds.y + graphRect.height - vel/yScaleFactor));
+    Point next = Point(graphRect.width / circularBufferSize * i,
+                       graphRect.height - vel/yScaleFactor);
+    if (first) {
+      first = false;
+    } else {
+      dt->StrokeLine(prev, next, ColorPattern(Color(0,1,0,1)));
+    }
+    prev = next;
   }
 
-  compositor->DrawLines(graph, clipRect, gfx::Color(0,1,0,1),
-                        opacity, transform);
+  RefPtr<DataTextureSource> textureSource = compositor->CreateDataTextureSource();
+  RefPtr<SourceSurface> snapshot = dt->Snapshot();
+  RefPtr<DataSourceSurface> data = snapshot->GetDataSurface();
+  textureSource->Update(data);
+
+  EffectChain effectChain;
+  effectChain.mPrimaryEffect = CreateTexturedEffect(SurfaceFormat::B8G8R8A8, textureSource, Filter::POINT);
+
+  compositor->DrawQuad(graphRect,
+                       clipRect,
+                       effectChain,
+                       1.0f,
+                       transform);
 }
 
 // ContainerRender is shared between RefLayer and ContainerLayer
@@ -302,6 +316,28 @@ ContainerRender(ContainerT* aContainer,
 
   nsAutoTArray<Layer*, 12> children;
   aContainer->SortChildrenBy3DZOrder(children);
+
+  // If this is a scrollable container layer, and it's overscrolled, the layer's
+  // contents are transformed in a way that would leave blank regions in the
+  // composited area. If the layer has a background color, fill these areas
+  // with the background color by drawing a rectangle of the background color
+  // over the entire composited area before drawing the container contents.
+  if (AsyncPanZoomController* apzc = aContainer->GetAsyncPanZoomController()) {
+    if (apzc->IsOverscrolled()) {
+      gfxRGBA color = aContainer->GetBackgroundColor();
+      // If the background is completely transparent, there's no point in
+      // drawing anything for it. Hopefully the layers behind, if any, will
+      // provide suitable content for the overscroll effect.
+      if (color.a != 0.0) {
+        EffectChain effectChain(aContainer);
+        effectChain.mPrimaryEffect = new EffectSolidColor(ToColor(color));
+        gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
+        Compositor* compositor = aManager->GetCompositor();
+        compositor->DrawQuad(compositor->ClipRectInLayersCoordinates(clipRect),
+            clipRect, effectChain, opacity, Matrix4x4());
+      }
+    }
+  }
 
   /**
    * Render this container's contents.
@@ -377,7 +413,9 @@ ContainerRender(ContainerT* aContainer,
 #ifdef MOZ_DUMP_PAINTING
     if (gfxUtils::sDumpPainting) {
       RefPtr<gfx::DataSourceSurface> surf = surface->Dump(aManager->GetCompositor());
-      WriteSnapshotToDumpFile(aContainer, surf);
+      if (surf) {
+        WriteSnapshotToDumpFile(aContainer, surf);
+      }
     }
 #endif
 

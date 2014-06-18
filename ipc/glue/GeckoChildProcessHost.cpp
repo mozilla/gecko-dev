@@ -65,7 +65,6 @@ static const bool kLowRightsSubprocesses =
   ;
 
 mozilla::StaticRefPtr<nsIFile> GeckoChildProcessHost::sGreDir;
-mozilla::DebugOnly<bool> GeckoChildProcessHost::sGreDirCached;
 
 static bool
 ShouldHaveDirectoryService()
@@ -130,7 +129,7 @@ void
 GeckoChildProcessHost::GetPathToBinary(FilePath& exePath)
 {
   if (ShouldHaveDirectoryService()) {
-    MOZ_ASSERT(sGreDirCached);
+    MOZ_ASSERT(sGreDir);
     if (sGreDir) {
 #ifdef OS_WIN
       nsString path;
@@ -267,10 +266,9 @@ GeckoChildProcessHost::PrepareLaunch()
 void
 GeckoChildProcessHost::CacheGreDir()
 {
-  // PerformAysncLaunchInternal/GetPathToBinary may be called on the IO thread,
-  // and they want to use the directory service, which needs to happen on the
-  // main thread (in the event that its implemented in JS). So we grab
-  // NS_GRE_DIR here and stash it.
+  if (sGreDir) {
+    return;
+  }
 
 #ifdef MOZ_WIDGET_GONK
   // Apparently, this ASSERT should be present on all platforms. Currently,
@@ -295,7 +293,6 @@ GeckoChildProcessHost::CacheGreDir()
       }
     }
   }
-  sGreDirCached = true;
 }
 
 #ifdef XP_WIN
@@ -313,7 +310,7 @@ void GeckoChildProcessHost::InitWindowsGroupID()
     if (isSupported && NS_SUCCEEDED(taskbarInfo->GetDefaultGroupId(appId))) {
       mGroupId.Append(appId);
     } else {
-      mGroupId.AssignLiteral("-");
+      mGroupId.Assign('-');
     }
   }
 }
@@ -559,7 +556,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   // since LD_LIBRARY_PATH is already set correctly in subprocesses
   // (meaning that we don't need to set that up in the environment).
   if (ShouldHaveDirectoryService()) {
-    MOZ_ASSERT(sGreDirCached);
+    MOZ_ASSERT(sGreDir);
     if (sGreDir) {
       nsCString path;
       MOZ_ALWAYS_TRUE(NS_SUCCEEDED(sGreDir->GetNativePath(path)));
@@ -571,12 +568,30 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
       nsCString new_ld_lib_path;
       if (ld_library_path && *ld_library_path) {
           new_ld_lib_path.Assign(path.get());
-          new_ld_lib_path.AppendLiteral(":");
+          new_ld_lib_path.Append(':');
           new_ld_lib_path.Append(ld_library_path);
           newEnvVars["LD_LIBRARY_PATH"] = new_ld_lib_path.get();
       } else {
           newEnvVars["LD_LIBRARY_PATH"] = path.get();
       }
+
+#  if (MOZ_WIDGET_GTK == 3)
+      if (mProcessType == GeckoProcessType_Plugin) {
+          const char *ld_preload = PR_GetEnv("LD_PRELOAD");
+          nsCString new_ld_preload;
+
+          new_ld_preload.Assign(path.get());
+          new_ld_preload.AppendLiteral("/" DLL_PREFIX "mozgtk2" DLL_SUFFIX);
+
+          if (ld_preload && *ld_preload) {
+              new_ld_preload.AppendLiteral(":");
+              new_ld_preload.Append(ld_preload);
+          }
+          newEnvVars["LD_PRELOAD"] = new_ld_preload.get();
+      }
+#  endif // MOZ_WIDGET_GTK
+
+
 # elif OS_MACOSX
       newEnvVars["DYLD_LIBRARY_PATH"] = path.get();
       // XXX DYLD_INSERT_LIBRARIES should only be set when launching a plugin
@@ -593,7 +608,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
       nsCString interpose;
       if (prevInterpose) {
         interpose.Assign(prevInterpose);
-        interpose.AppendLiteral(":");
+        interpose.Append(':');
       }
       interpose.Append(path.get());
       interpose.AppendLiteral("/libplugin_child_interpose.dylib");

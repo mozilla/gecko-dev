@@ -45,8 +45,8 @@ class JS_PUBLIC_API(AutoCheckRequestDepth)
 {
     JSContext *cx;
   public:
-    AutoCheckRequestDepth(JSContext *cx);
-    AutoCheckRequestDepth(js::ContextFriendFields *cx);
+    explicit AutoCheckRequestDepth(JSContext *cx);
+    explicit AutoCheckRequestDepth(js::ContextFriendFields *cx);
     ~AutoCheckRequestDepth();
 };
 
@@ -74,66 +74,6 @@ inline void AssertArgumentsAreSane(JSContext *cx, JS::HandleValue v) {
 }
 #endif /* JS_DEBUG */
 
-class JS_PUBLIC_API(AutoGCRooter) {
-  public:
-    AutoGCRooter(JSContext *cx, ptrdiff_t tag);
-    AutoGCRooter(js::ContextFriendFields *cx, ptrdiff_t tag);
-
-    ~AutoGCRooter() {
-        JS_ASSERT(this == *stackTop);
-        *stackTop = down;
-    }
-
-    /* Implemented in gc/RootMarking.cpp. */
-    inline void trace(JSTracer *trc);
-    static void traceAll(JSTracer *trc);
-    static void traceAllWrappers(JSTracer *trc);
-
-  protected:
-    AutoGCRooter * const down;
-
-    /*
-     * Discriminates actual subclass of this being used.  If non-negative, the
-     * subclass roots an array of values of the length stored in this field.
-     * If negative, meaning is indicated by the corresponding value in the enum
-     * below.  Any other negative value indicates some deeper problem such as
-     * memory corruption.
-     */
-    ptrdiff_t tag_;
-
-    enum {
-        VALARRAY =     -2, /* js::AutoValueArray */
-        PARSER =       -3, /* js::frontend::Parser */
-        SHAPEVECTOR =  -4, /* js::AutoShapeVector */
-        IDARRAY =      -6, /* js::AutoIdArray */
-        DESCRIPTORS =  -7, /* js::AutoPropDescArrayRooter */
-        VALVECTOR =   -10, /* js::AutoValueVector */
-        IDVECTOR =    -13, /* js::AutoIdVector */
-        OBJVECTOR =   -14, /* js::AutoObjectVector */
-        STRINGVECTOR =-15, /* js::AutoStringVector */
-        SCRIPTVECTOR =-16, /* js::AutoScriptVector */
-        NAMEVECTOR =  -17, /* js::AutoNameVector */
-        HASHABLEVALUE=-18, /* js::HashableValue */
-        IONMASM =     -19, /* js::jit::MacroAssembler */
-        IONALLOC =    -20, /* js::jit::AutoTempAllocatorRooter */
-        WRAPVECTOR =  -21, /* js::AutoWrapperVector */
-        WRAPPER =     -22, /* js::AutoWrapperRooter */
-        OBJOBJHASHMAP=-23, /* js::AutoObjectObjectHashMap */
-        OBJU32HASHMAP=-24, /* js::AutoObjectUnsigned32HashMap */
-        OBJHASHSET =  -25, /* js::AutoObjectHashSet */
-        JSONPARSER =  -26, /* js::JSONParser */
-        CUSTOM =      -27, /* js::CustomAutoRooter */
-        FUNVECTOR =   -28  /* js::AutoFunctionVector */
-    };
-
-  private:
-    AutoGCRooter ** const stackTop;
-
-    /* No copy or assignment semantics. */
-    AutoGCRooter(AutoGCRooter &ida) MOZ_DELETE;
-    void operator=(AutoGCRooter &ida) MOZ_DELETE;
-};
-
 /* AutoValueArray roots an internal fixed-size array of Values. */
 template <size_t N>
 class AutoValueArray : public AutoGCRooter
@@ -142,8 +82,8 @@ class AutoValueArray : public AutoGCRooter
     Value elements_[N];
 
   public:
-    AutoValueArray(JSContext *cx
-                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit AutoValueArray(JSContext *cx
+                            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, VALARRAY), length_(N)
     {
         /* Always initialize in case we GC before assignment. */
@@ -569,7 +509,7 @@ class AutoScriptVector : public AutoVectorRooter<JSScript *>
 };
 
 /*
- * Cutsom rooting behavior for internal and external clients.
+ * Custom rooting behavior for internal and external clients.
  */
 class JS_PUBLIC_API(CustomAutoRooter) : private AutoGCRooter
 {
@@ -591,6 +531,43 @@ class JS_PUBLIC_API(CustomAutoRooter) : private AutoGCRooter
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
+/*
+ * RootedGeneric<T> allows a class to instantiate its own Rooted type by
+ * including the method:
+ *
+ *    void trace(JSTracer *trc);
+ *
+ * The trace() method must trace all of the class's fields.
+ */
+template <class T>
+class RootedGeneric : private CustomAutoRooter
+{
+  public:
+    template <typename CX>
+    explicit RootedGeneric(CX *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : CustomAutoRooter(cx)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    template <typename CX>
+    explicit RootedGeneric(CX *cx, const T& initial MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : CustomAutoRooter(cx), value(initial)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    operator const T&() const { return value; }
+    T operator->() const { return value; }
+
+  private:
+    virtual void trace(JSTracer *trc) { value->trace(trc); }
+
+    T value;
+
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 /* A handle to an array of rooted values. */
 class HandleValueArray
 {
@@ -600,16 +577,16 @@ class HandleValueArray
     HandleValueArray(size_t len, const Value *elements) : length_(len), elements_(elements) {}
 
   public:
-    HandleValueArray(const RootedValue& value) : length_(1), elements_(value.address()) {}
+    explicit HandleValueArray(const RootedValue& value) : length_(1), elements_(value.address()) {}
 
-    HandleValueArray(const AutoValueVector& values)
+    MOZ_IMPLICIT HandleValueArray(const AutoValueVector& values)
       : length_(values.length()), elements_(values.begin()) {}
 
     template <size_t N>
     HandleValueArray(const AutoValueArray<N>& values) : length_(N), elements_(values.begin()) {}
 
     /* CallArgs must already be rooted somewhere up the stack. */
-    HandleValueArray(const JS::CallArgs& args) : length_(args.length()), elements_(args.array()) {}
+    MOZ_IMPLICIT HandleValueArray(const JS::CallArgs& args) : length_(args.length()), elements_(args.array()) {}
 
     /* Use with care! Only call this if the data is guaranteed to be marked. */
     static HandleValueArray fromMarkedLocation(size_t len, const Value *elements) {
@@ -643,7 +620,7 @@ struct JSFreeOp {
     JSRuntime   *runtime_;
 
   protected:
-    JSFreeOp(JSRuntime *rt)
+    explicit JSFreeOp(JSRuntime *rt)
       : runtime_(rt) { }
 
   public:
@@ -708,7 +685,7 @@ typedef enum JSFinalizeStatus {
 } JSFinalizeStatus;
 
 typedef void
-(* JSFinalizeCallback)(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartment);
+(* JSFinalizeCallback)(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartment, void *data);
 
 typedef bool
 (* JSInterruptCallback)(JSContext *cx);
@@ -781,8 +758,7 @@ typedef bool
  */
 typedef JSObject *
 (* JSWrapObjectCallback)(JSContext *cx, JS::HandleObject existing, JS::HandleObject obj,
-                         JS::HandleObject proto, JS::HandleObject parent,
-                         unsigned flags);
+                         JS::HandleObject parent, unsigned flags);
 
 /*
  * Callback used by the wrap hook to ask the embedding to prepare an object
@@ -1247,12 +1223,6 @@ JS_IsBuiltinFunctionConstructor(JSFunction *fun);
  * See: http://developer.mozilla.org/en/docs/Category:JSAPI_Reference
  */
 
-typedef enum JSUseHelperThreads
-{
-    JS_NO_HELPER_THREADS,
-    JS_USE_HELPER_THREADS
-} JSUseHelperThreads;
-
 /**
  * Initialize SpiderMonkey, returning true only if initialization succeeded.
  * Once this method has succeeded, it is safe to call JS_NewRuntime and other
@@ -1290,8 +1260,7 @@ extern JS_PUBLIC_API(void)
 JS_ShutDown(void);
 
 extern JS_PUBLIC_API(JSRuntime *)
-JS_NewRuntime(uint32_t maxbytes, JSUseHelperThreads useHelperThreads,
-              JSRuntime *parentRuntime = nullptr);
+JS_NewRuntime(uint32_t maxbytes, JSRuntime *parentRuntime = nullptr);
 
 extern JS_PUBLIC_API(void)
 JS_DestroyRuntime(JSRuntime *rt);
@@ -1342,8 +1311,8 @@ AssertHeapIsIdle(JSContext *cx);
 class JSAutoRequest
 {
   public:
-    JSAutoRequest(JSContext *cx
-                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit JSAutoRequest(JSContext *cx
+                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : mContext(cx)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -1367,8 +1336,8 @@ class JSAutoRequest
 class JSAutoCheckRequest
 {
   public:
-    JSAutoCheckRequest(JSContext *cx
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit JSAutoCheckRequest(JSContext *cx
+                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     {
 #if defined JS_THREADSAFE && defined JS_DEBUG
         mContext = cx;
@@ -1446,7 +1415,8 @@ class JS_PUBLIC_API(RuntimeOptions) {
     RuntimeOptions()
       : baseline_(false),
         ion_(false),
-        asmJS_(false)
+        asmJS_(false),
+        nativeRegExp_(false)
     {
     }
 
@@ -1480,10 +1450,17 @@ class JS_PUBLIC_API(RuntimeOptions) {
         return *this;
     }
 
+    bool nativeRegExp() const { return nativeRegExp_; }
+    RuntimeOptions &setNativeRegExp(bool flag) {
+        nativeRegExp_ = flag;
+        return *this;
+    }
+
   private:
     bool baseline_ : 1;
     bool ion_ : 1;
     bool asmJS_ : 1;
+    bool nativeRegExp_ : 1;
 };
 
 JS_PUBLIC_API(RuntimeOptions &)
@@ -1614,7 +1591,7 @@ ContextOptionsRef(JSContext *cx);
 
 class JS_PUBLIC_API(AutoSaveContextOptions) {
   public:
-    AutoSaveContextOptions(JSContext *cx)
+    explicit AutoSaveContextOptions(JSContext *cx)
       : cx_(cx),
         oldOptions_(ContextOptionsRef(cx_))
     {
@@ -1727,7 +1704,7 @@ class JS_PUBLIC_API(JSAutoNullCompartment)
     JSContext *cx_;
     JSCompartment *oldCompartment_;
   public:
-    JSAutoNullCompartment(JSContext *cx);
+    explicit JSAutoNullCompartment(JSContext *cx);
     ~JSAutoNullCompartment();
 };
 
@@ -2066,8 +2043,11 @@ JS_MaybeGC(JSContext *cx);
 extern JS_PUBLIC_API(void)
 JS_SetGCCallback(JSRuntime *rt, JSGCCallback cb, void *data);
 
+extern JS_PUBLIC_API(bool)
+JS_AddFinalizeCallback(JSRuntime *rt, JSFinalizeCallback cb, void *data);
+
 extern JS_PUBLIC_API(void)
-JS_SetFinalizeCallback(JSRuntime *rt, JSFinalizeCallback cb);
+JS_RemoveFinalizeCallback(JSRuntime *rt, JSFinalizeCallback cb);
 
 extern JS_PUBLIC_API(bool)
 JS_IsGCMarkingTracer(JSTracer *trc);
@@ -2874,6 +2854,8 @@ struct JSPropertyDescriptor {
     {}
 
     void trace(JSTracer *trc);
+
+    static js::ThingRootKind rootKind() { return js::THING_ROOT_PROPERTY_DESCRIPTOR; }
 };
 
 namespace JS {
@@ -2891,6 +2873,7 @@ class PropertyDescriptorOperations
     bool hasGetterObject() const { return desc()->attrs & JSPROP_GETTER; }
     bool hasSetterObject() const { return desc()->attrs & JSPROP_SETTER; }
     bool hasGetterOrSetterObject() const { return desc()->attrs & (JSPROP_GETTER | JSPROP_SETTER); }
+    bool hasGetterOrSetter() const { return desc()->getter || desc()->setter; }
     bool isShared() const { return desc()->attrs & JSPROP_SHARED; }
     bool isIndex() const { return desc()->attrs & JSPROP_INDEX; }
     bool hasAttributes(unsigned attrs) const { return desc()->attrs & attrs; }
@@ -2931,6 +2914,14 @@ class MutablePropertyDescriptorOperations : public PropertyDescriptorOperations<
         value().setUndefined();
     }
 
+    void assign(JSPropertyDescriptor &other) {
+        object().set(other.obj);
+        setAttributes(other.attrs);
+        setGetter(other.getter);
+        setSetter(other.setter);
+        value().set(other.value);
+    }
+
     JS::MutableHandleObject object() {
         return JS::MutableHandleObject::fromMarkedLocation(&desc()->obj);
     }
@@ -2957,7 +2948,6 @@ namespace js {
 template <>
 struct GCMethods<JSPropertyDescriptor> {
     static JSPropertyDescriptor initial() { return JSPropertyDescriptor(); }
-    static ThingRootKind kind() { return THING_ROOT_PROPERTY_DESCRIPTOR; }
     static bool poisoned(const JSPropertyDescriptor &desc) {
         return (desc.obj && JS::IsPoisonedPtr(desc.obj)) ||
                (desc.attrs & JSPROP_GETTER && desc.getter && JS::IsPoisonedPtr(desc.getter)) ||
@@ -4271,7 +4261,7 @@ class JSAutoByteString
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
-    JSAutoByteString(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
+    explicit JSAutoByteString(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
       : mBytes(nullptr)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -4656,6 +4646,7 @@ class JS_PUBLIC_API(AutoSaveExceptionState)
 {
   private:
     JSContext *context;
+    bool wasPropagatingForcedReturn;
     bool wasThrowing;
     RootedValue exceptionValue;
 
@@ -4677,6 +4668,7 @@ class JS_PUBLIC_API(AutoSaveExceptionState)
      * If this is called, the destructor is a no-op.
      */
     void drop() {
+        wasPropagatingForcedReturn = false;
         wasThrowing = false;
         exceptionValue.setUndefined();
     }
@@ -4762,14 +4754,14 @@ extern JS_PUBLIC_API(void)
 JS_SetParallelParsingEnabled(JSRuntime *rt, bool enabled);
 
 extern JS_PUBLIC_API(void)
-JS_SetParallelIonCompilationEnabled(JSRuntime *rt, bool enabled);
+JS_SetOffthreadIonCompilationEnabled(JSRuntime *rt, bool enabled);
 
 #define JIT_COMPILER_OPTIONS(Register)                                  \
     Register(BASELINE_USECOUNT_TRIGGER, "baseline.usecount.trigger")    \
     Register(ION_USECOUNT_TRIGGER, "ion.usecount.trigger")              \
     Register(ION_ENABLE, "ion.enable")                                  \
     Register(BASELINE_ENABLE, "baseline.enable")                        \
-    Register(PARALLEL_COMPILATION_ENABLE, "parallel-compilation.enable")
+    Register(OFFTHREAD_COMPILATION_ENABLE, "offthread-compilation.enable")
 
 typedef enum JSJitCompilerOption {
 #define JIT_COMPILER_DECLARE(key, str) \
@@ -4863,8 +4855,8 @@ UnhideScriptedCaller(JSContext *cx);
 class AutoHideScriptedCaller
 {
   public:
-    AutoHideScriptedCaller(JSContext *cx
-                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit AutoHideScriptedCaller(JSContext *cx
+                                    MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : mContext(cx)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -5003,7 +4995,7 @@ class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
     ForOfIterator &operator=(const ForOfIterator &) MOZ_DELETE;
 
   public:
-    ForOfIterator(JSContext *cx) : cx_(cx), iterator(cx_), index(NOT_ARRAY) { }
+    explicit ForOfIterator(JSContext *cx) : cx_(cx), iterator(cx_), index(NOT_ARRAY) { }
 
     enum NonIterableBehavior {
         ThrowOnNonIterable,
@@ -5018,6 +5010,13 @@ class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
      */
     bool init(JS::HandleValue iterable,
               NonIterableBehavior nonIterableBehavior = ThrowOnNonIterable);
+
+    /*
+     * This method assumes that |iterator| is already an iterator.  It will not
+     * check for, and call @@iterator.  Callers should make sure that the passed
+     * in value is in fact an iterator.
+     */
+    bool initWithIterator(JS::HandleValue aIterator);
 
     /*
      * Get the next value from the iterator.  If false *done is true
@@ -5048,10 +5047,10 @@ class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
  */
 
 typedef void
-(* LargeAllocationFailureCallback)();
+(* LargeAllocationFailureCallback)(void *data);
 
 extern JS_PUBLIC_API(void)
-SetLargeAllocationFailureCallback(JSRuntime *rt, LargeAllocationFailureCallback afc);
+SetLargeAllocationFailureCallback(JSRuntime *rt, LargeAllocationFailureCallback afc, void *data);
 
 /*
  * Unlike the error reporter, which is only called if the exception for an OOM
@@ -5065,10 +5064,10 @@ SetLargeAllocationFailureCallback(JSRuntime *rt, LargeAllocationFailureCallback 
  */
 
 typedef void
-(* OutOfMemoryCallback)(JSContext *cx);
+(* OutOfMemoryCallback)(JSContext *cx, void *data);
 
 extern JS_PUBLIC_API(void)
-SetOutOfMemoryCallback(JSRuntime *rt, OutOfMemoryCallback cb);
+SetOutOfMemoryCallback(JSRuntime *rt, OutOfMemoryCallback cb, void *data);
 
 } /* namespace JS */
 

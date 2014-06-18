@@ -14,12 +14,13 @@
 class NetworkParams;
 class CommandChain;
 
-using namespace mozilla::dom;
-
-typedef void (*CommandCallback)(CommandChain*, bool, NetworkResultOptions& aResult);
-typedef void (*CommandFunc)(CommandChain*, CommandCallback, NetworkResultOptions& aResult);
-typedef void (*MessageCallback)(NetworkResultOptions& aResult);
-typedef void (*ErrorCallback)(NetworkParams& aOptions, NetworkResultOptions& aResult);
+typedef void (*CommandCallback)(CommandChain*, bool,
+                                mozilla::dom::NetworkResultOptions& aResult);
+typedef void (*CommandFunc)(CommandChain*, CommandCallback,
+                            mozilla::dom::NetworkResultOptions& aResult);
+typedef void (*MessageCallback)(mozilla::dom::NetworkResultOptions& aResult);
+typedef void (*ErrorCallback)(NetworkParams& aOptions,
+                              mozilla::dom::NetworkResultOptions& aResult);
 
 class NetworkParams
 {
@@ -73,7 +74,7 @@ public:
     mThreshold = aOther.mThreshold;
   }
 
-  NetworkParams(const NetworkCommandOptions& aOther) {
+  NetworkParams(const mozilla::dom::NetworkCommandOptions& aOther) {
 
 #define COPY_SEQUENCE_FIELD(prop, type)                                                      \
     if (aOther.prop.WasPassed()) {                                                           \
@@ -288,6 +289,7 @@ private:
   static CommandFunc sWifiEnableChain[];
   static CommandFunc sWifiDisableChain[];
   static CommandFunc sWifiFailChain[];
+  static CommandFunc sWifiRetryChain[];
   static CommandFunc sWifiOperationModeChain[];
   static CommandFunc sUSBEnableChain[];
   static CommandFunc sUSBDisableChain[];
@@ -304,7 +306,8 @@ private:
   /**
    * Individual netd command stored in command chain.
    */
-#define PARAMS CommandChain* aChain, CommandCallback aCallback, NetworkResultOptions& aResult
+#define PARAMS CommandChain* aChain, CommandCallback aCallback, \
+               mozilla::dom::NetworkResultOptions& aResult
   static void wifiFirmwareReload(PARAMS);
   static void startAccessPointDriver(PARAMS);
   static void stopAccessPointDriver(PARAMS);
@@ -313,6 +316,7 @@ private:
   static void createUpStream(PARAMS);
   static void startSoftAP(PARAMS);
   static void stopSoftAP(PARAMS);
+  static void clearWifiTetherParms(PARAMS);
   static void getRxBytes(PARAMS);
   static void getTxBytes(PARAMS);
   static void enableAlarm(PARAMS);
@@ -346,7 +350,8 @@ private:
   /**
    * Error callback function executed when a command is fail.
    */
-#define PARAMS NetworkParams& aOptions, NetworkResultOptions& aResult
+#define PARAMS NetworkParams& aOptions, \
+               mozilla::dom::NetworkResultOptions& aResult
   static void wifiTetheringFail(PARAMS);
   static void wifiOperationModeFail(PARAMS);
   static void usbTetheringFail(PARAMS);
@@ -360,7 +365,8 @@ private:
   /**
    * Command chain processing functions.
    */
-  static void next(CommandChain* aChain, bool aError, NetworkResultOptions& aResult);
+  static void next(CommandChain* aChain, bool aError,
+                   mozilla::dom::NetworkResultOptions& aResult);
   static void nextNetdCommand();
   static void doCommand(const char* aCommand, CommandChain* aChain, CommandCallback aCallback);
 

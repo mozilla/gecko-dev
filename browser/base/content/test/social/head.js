@@ -63,11 +63,14 @@ function checkProviderPrefsEmpty(isError) {
 }
 
 function defaultFinishChecks() {
+  PopupNotifications.transitionsEnabled = true;
   checkProviderPrefsEmpty(true);
   finish();
 }
 
 function runSocialTestWithProvider(manifest, callback, finishcallback) {
+  PopupNotifications.transitionsEnabled = false;
+
   let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
 
   let manifests = Array.isArray(manifest) ? manifest : [manifest];
@@ -157,6 +160,8 @@ function runSocialTests(tests, cbPreTest, cbPostTest, cbFinish) {
   let testIter = Iterator(tests);
   let providersAtStart = Social.providers.length;
   info("runSocialTests: start test run with " + providersAtStart + " providers");
+
+  PopupNotifications.transitionsEnabled = false;
 
   if (cbPreTest === undefined) {
     cbPreTest = function(cb) {cb()};
@@ -543,17 +548,18 @@ function resizeAndCheckWidths(first, second, third, checks, cb) {
         }
         ok(true, count + ": " + "correct number of chats visible");
         info(">> Check " + count);
-        resizeAndCheckWidths(first, second, third, checks, cb);
-        return true;
+        executeSoon(function() {
+          resizeAndCheckWidths(first, second, third, checks, cb);
+        });
       }
-      return false;
     }
-    if (!collapsedObserver()) {
-      let m = new MutationObserver(collapsedObserver);
-      m.observe(first, {attributes: true });
-      m.observe(second, {attributes: true });
-      m.observe(third, {attributes: true });
-    }
+    let m = new MutationObserver(collapsedObserver);
+    m.observe(first, {attributes: true });
+    m.observe(second, {attributes: true });
+    m.observe(third, {attributes: true });
+    // and just in case we are already at the right size, explicitly call the
+    // observer.
+    collapsedObserver(undefined, m);
   }, count);
 }
 

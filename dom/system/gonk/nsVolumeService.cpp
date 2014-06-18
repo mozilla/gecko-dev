@@ -224,7 +224,7 @@ nsVolumeService::GetVolumeByPath(const nsAString& aPath, nsIVolume **aResult)
   for (volIndex = 0; volIndex < numVolumes; volIndex++) {
     nsRefPtr<nsVolume> vol = mVolumeArray[volIndex];
     NS_ConvertUTF16toUTF8 volMountPointSlash(vol->MountPoint());
-    volMountPointSlash.Append(NS_LITERAL_CSTRING("/"));
+    volMountPointSlash.Append('/');
     nsDependentCSubstring testStr(realPathBuf, volMountPointSlash.Length());
     if (volMountPointSlash.Equals(testStr)) {
       vol.forget(aResult);
@@ -249,7 +249,8 @@ nsVolumeService::CreateOrGetVolumeByPath(const nsAString& aPath, nsIVolume** aRe
                                          -1    /* generation */,
                                          true  /* isMediaPresent*/,
                                          false /* isSharing */,
-                                         false /* isFormatting */);
+                                         false /* isFormatting */,
+                                         true  /* isFake */);
   vol.forget(aResult);
   return NS_OK;
 }
@@ -382,8 +383,8 @@ nsVolumeService::CreateFakeVolume(const nsAString& name, const nsAString& path)
                                           -1    /* mountGeneration */,
                                           true  /* isMediaPresent */,
                                           false /* isSharing */,
-                                          false /* isFormatting */);
-    vol->SetIsFake(true);
+                                          false /* isFormatting */,
+                                          true  /* isFake */);
     vol->LogState();
     UpdateVolume(vol.get());
     return NS_OK;

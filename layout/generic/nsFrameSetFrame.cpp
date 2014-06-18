@@ -97,7 +97,7 @@ public:
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
-  virtual nsresult Reflow(nsPresContext*           aPresContext,
+  virtual void Reflow(nsPresContext*           aPresContext,
                           nsHTMLReflowMetrics&     aDesiredSize,
                           const nsHTMLReflowState& aReflowState,
                           nsReflowStatus&          aStatus) MOZ_OVERRIDE;
@@ -147,7 +147,7 @@ public:
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
-  virtual nsresult Reflow(nsPresContext*           aPresContext,
+  virtual void Reflow(nsPresContext*           aPresContext,
                           nsHTMLReflowMetrics&     aDesiredSize,
                           const nsHTMLReflowState& aReflowState,
                           nsReflowStatus&          aStatus) MOZ_OVERRIDE;
@@ -241,9 +241,9 @@ nsHTMLFramesetFrame::FrameResizePrefCallback(const char* aPref, void* aClosure)
 }
 
 void
-nsHTMLFramesetFrame::Init(nsIContent*      aContent,
-                          nsIFrame*        aParent,
-                          nsIFrame*        aPrevInFlow)
+nsHTMLFramesetFrame::Init(nsIContent*       aContent,
+                          nsContainerFrame* aParent,
+                          nsIFrame*         aPrevInFlow)
 {
   nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
   // find the highest ancestor that is a frameset
@@ -392,7 +392,7 @@ nsHTMLFramesetFrame::Init(nsIContent*      aContent,
   mNonBorderChildCount = mChildCount;
 }
 
-nsresult
+void
 nsHTMLFramesetFrame::SetInitialChildList(ChildListID  aListID,
                                          nsFrameList& aChildList)
 {
@@ -401,10 +401,10 @@ nsHTMLFramesetFrame::SetInitialChildList(ChildListID  aListID,
   // and null list name after the frame constructor is done creating us.  So
   // just ignore that call.
   if (aListID == kPrincipalList && aChildList.IsEmpty()) {
-    return NS_OK;
+    return;
   }
 
-  return nsContainerFrame::SetInitialChildList(aListID, aChildList);
+  nsContainerFrame::SetInitialChildList(aListID, aChildList);
 }
 
 // XXX should this try to allocate twips based on an even pixel boundary?
@@ -839,7 +839,7 @@ nscolor nsHTMLFramesetFrame::GetBorderColor(nsIContent* aContent)
   return GetBorderColor();
 }
 
-nsresult
+void
 nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
                             nsHTMLReflowMetrics&     aDesiredSize,
                             const nsHTMLReflowState& aReflowState,
@@ -850,7 +850,7 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
   nsIPresShell *shell = aPresContext->PresShell();
   nsStyleSet *styleSet = shell->StyleSet();
 
-  mParent->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+  GetParent()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
 
   //printf("FramesetFrame2::Reflow %X (%d,%d) \n", this, aReflowState.AvailableWidth(), aReflowState.AvailableHeight());
   // Always get the size so that the caller knows how big we are
@@ -893,7 +893,7 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
     aStatus = NS_FRAME_COMPLETE;
     mDrag.UnSet();
     NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-    return NS_OK;
+    return;
   }
 
   CalculateRowCol(aPresContext, width, mNumCols, colSpecs, mColSizes);
@@ -913,18 +913,14 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
     PR_STATIC_ASSERT(NS_MAX_FRAMESET_SPEC_COUNT < UINT_MAX / sizeof(nscolor));
 
     verBordersVis = new bool[mNumCols];
-    NS_ENSURE_TRUE(verBordersVis, NS_ERROR_OUT_OF_MEMORY);
     verBorderColors = new nscolor[mNumCols];
-    NS_ENSURE_TRUE(verBorderColors, NS_ERROR_OUT_OF_MEMORY);
     for (int verX  = 0; verX < mNumCols; verX++) {
       verBordersVis[verX] = false;
       verBorderColors[verX] = NO_COLOR;
     }
 
     horBordersVis = new bool[mNumRows];
-    NS_ENSURE_TRUE(horBordersVis, NS_ERROR_OUT_OF_MEMORY);
     horBorderColors = new nscolor[mNumRows];
-    NS_ENSURE_TRUE(horBorderColors, NS_ERROR_OUT_OF_MEMORY);
     for (int horX = 0; horX < mNumRows; horX++) {
       horBordersVis[horX] = false;
       horBorderColors[horX] = NO_COLOR;
@@ -1140,7 +1136,6 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
   FinishAndStoreOverflow(&aDesiredSize);
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return NS_OK;
 }
 
 nsIAtom*
@@ -1437,7 +1432,7 @@ void nsHTMLFramesetBorderFrame::SetColor(nscolor aColor)
 }
 
 
-nsresult
+void
 nsHTMLFramesetBorderFrame::Reflow(nsPresContext*           aPresContext,
                                   nsHTMLReflowMetrics&     aDesiredSize,
                                   const nsHTMLReflowState& aReflowState,
@@ -1452,7 +1447,6 @@ nsHTMLFramesetBorderFrame::Reflow(nsPresContext*           aPresContext,
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
   aStatus = NS_FRAME_COMPLETE;
-  return NS_OK;
 }
 
 class nsDisplayFramesetBorder : public nsDisplayItem {
@@ -1645,7 +1639,7 @@ nscoord nsHTMLFramesetBlankFrame::GetIntrinsicHeight()
   return 0;
 }
 
-nsresult
+void
 nsHTMLFramesetBlankFrame::Reflow(nsPresContext*           aPresContext,
                                  nsHTMLReflowMetrics&     aDesiredSize,
                                  const nsHTMLReflowState& aReflowState,
@@ -1659,7 +1653,6 @@ nsHTMLFramesetBlankFrame::Reflow(nsPresContext*           aPresContext,
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
   aStatus = NS_FRAME_COMPLETE;
-  return NS_OK;
 }
 
 class nsDisplayFramesetBlank : public nsDisplayItem {

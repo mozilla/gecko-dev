@@ -1,10 +1,15 @@
 from marionette import Actions
-def press_release(marionette, wait_for_condition, expected):
+def press_release(marionette, times, wait_for_condition, expected):
     testAction = marionette.absolute_url("testAction.html")
     marionette.navigate(testAction)
     action = Actions(marionette)
     button = marionette.find_element("id", "button1")
-    action.press(button).release().perform()
+    action.press(button).release()
+    # Insert wait between each press and release chain.
+    for _ in range(times-1):
+        action.wait(0.1)
+        action.press(button).release()
+    action.perform()
     wait_for_condition(lambda m: expected in m.execute_script("return document.getElementById('button1').innerHTML;"))
 
 def move_element(marionette, wait_for_condition, expected1, expected2):
@@ -83,6 +88,19 @@ def long_press_action(marionette, wait_for_condition, expected):
     button = marionette.find_element("id", "button1")
     action = Actions(marionette)
     action.long_press(button, 5).perform()
+    wait_for_condition(lambda m: expected in m.execute_script("return document.getElementById('button1').innerHTML;"))
+
+def long_press_on_xy_action(marionette, wait_for_condition, expected):
+    testAction = marionette.absolute_url("testAction.html")
+    marionette.navigate(testAction)
+    html = marionette.find_element("tag name", "html")
+    button = marionette.find_element("id", "button1")
+    action = Actions(marionette)
+
+    # Press the center of the button with respect to html.
+    x = button.location['x'] + button.size['width'] / 2.0
+    y = button.location['y'] + button.size['height'] / 2.0
+    action.long_press(html, 5, x, y).perform()
     wait_for_condition(lambda m: expected in m.execute_script("return document.getElementById('button1').innerHTML;"))
 
 def single_tap(marionette, wait_for_condition, expected):

@@ -29,11 +29,15 @@
 #include <errno.h>
 #include <math.h>
 
+#include "ThreadResponsiveness.h"
 #include "nsThreadUtils.h"
 
 #include "platform.h"
 #include "TableTicker.h"
 #include "UnwinderThread2.h"  /* uwt__register_thread_for_profiling */
+
+// Memory profile
+#include "nsMemoryReporterManager.h"
 
 // this port is based off of v8 svn revision 9837
 
@@ -202,6 +206,7 @@ class SamplerThread : public Thread {
         mozilla::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
         std::vector<ThreadInfo*> threads =
           SamplerRegistry::sampler->GetRegisteredThreads();
+        bool isFirstProfiledThread = true;
         for (uint32_t i = 0; i < threads.size(); i++) {
           ThreadInfo* info = threads[i];
 
@@ -217,21 +222,36 @@ class SamplerThread : public Thread {
             continue;
           }
 
+          info->Profile()->GetThreadResponsiveness()->Update();
+
           ThreadProfile* thread_profile = info->Profile();
 
-          SampleContext(SamplerRegistry::sampler, thread_profile);
+          SampleContext(SamplerRegistry::sampler, thread_profile,
+                        isFirstProfiledThread);
+          isFirstProfiledThread = false;
         }
       }
       OS::SleepMicro(intervalMicro_);
     }
   }
 
-  void SampleContext(Sampler* sampler, ThreadProfile* thread_profile) {
+  void SampleContext(Sampler* sampler, ThreadProfile* thread_profile,
+                     bool isFirstProfiledThread)
+  {
     thread_act_t profiled_thread =
       thread_profile->GetPlatformData()->profiled_thread();
 
     TickSample sample_obj;
     TickSample* sample = &sample_obj;
+
+    if (isFirstProfiledThread && Sampler::GetActiveSampler()->ProfileMemory()) {
+      sample->rssMemory = nsMemoryReporterManager::ResidentFast();
+    } else {
+      sample->rssMemory = 0;
+    }
+
+    // Unique Set Size is not supported on Mac.
+    sample->ussMemory = 0;
 
     if (KERN_SUCCESS != thread_suspend(profiled_thread)) return;
 
@@ -266,6 +286,7 @@ class SamplerThread : public Thread {
       sample->fp = reinterpret_cast<Address>(state.REGISTER_FIELD(bp));
       sample->timestamp = mozilla::TimeStamp::Now();
       sample->threadProfile = thread_profile;
+
       sampler->Tick(sample);
     }
     thread_resume(profiled_thread);

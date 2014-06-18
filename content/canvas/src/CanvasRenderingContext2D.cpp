@@ -70,6 +70,7 @@
 #include "mozilla/Alignment.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CheckedInt.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ImageData.h"
 #include "mozilla/dom/PBrowserParent.h"
@@ -92,6 +93,7 @@
 #include "mozilla/dom/HTMLVideoElement.h"
 #include "mozilla/dom/TextMetrics.h"
 #include "mozilla/dom/UnionTypes.h"
+#include "mozilla/dom/SVGMatrix.h"
 #include "nsGlobalWindow.h"
 #include "GLContext.h"
 #include "GLContextProvider.h"
@@ -261,7 +263,8 @@ public:
         mode = ExtendMode::REPEAT;
       }
       mPattern = new (mSurfacePattern.addr())
-        SurfacePattern(state.patternStyles[aStyle]->mSurface, mode);
+        SurfacePattern(state.patternStyles[aStyle]->mSurface, mode,
+                       state.patternStyles[aStyle]->mTransform);
     }
 
     return *mPattern;
@@ -382,6 +385,12 @@ private:
 };
 
 void
+CanvasPattern::SetTransform(SVGMatrix& aMatrix)
+{
+  mTransform = ToMatrix(aMatrix.GetMatrix());
+}
+
+void
 CanvasGradient::AddColorStop(float offset, const nsAString& colorstr, ErrorResult& rv)
 {
   if (offset < 0.0 || offset > 1.0) {
@@ -483,6 +492,12 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(CanvasRenderingContext2D)
     ImplCycleCollectionUnlink(tmp->mStyleStack[i].gradientStyles[Style::STROKE]);
     ImplCycleCollectionUnlink(tmp->mStyleStack[i].gradientStyles[Style::FILL]);
   }
+  for (size_t x = 0 ; x < tmp->mHitRegionsOptions.Length(); x++) {
+    RegionInfo& info = tmp->mHitRegionsOptions[x];
+    if (info.mElement) {
+      ImplCycleCollectionUnlink(info.mElement);
+    }
+  }
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -493,6 +508,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(CanvasRenderingContext2D)
     ImplCycleCollectionTraverse(cb, tmp->mStyleStack[i].patternStyles[Style::FILL], "Fill CanvasPattern");
     ImplCycleCollectionTraverse(cb, tmp->mStyleStack[i].gradientStyles[Style::STROKE], "Stroke CanvasGradient");
     ImplCycleCollectionTraverse(cb, tmp->mStyleStack[i].gradientStyles[Style::FILL], "Fill CanvasGradient");
+  }
+  for (size_t x = 0 ; x < tmp->mHitRegionsOptions.Length(); x++) {
+    RegionInfo& info = tmp->mHitRegionsOptions[x];
+    if (info.mElement) {
+      ImplCycleCollectionTraverse(cb, info.mElement, "Hit region fallback element");
+    }
   }
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
@@ -606,15 +627,6 @@ CanvasRenderingContext2D::ParseColor(const nsAString& aString,
   return true;
 }
 
-#ifdef ACCESSIBILITY
-PLDHashOperator
-CanvasRenderingContext2D::RemoveHitRegionProperty(RegionInfo* aEntry, void*)
-{
-  aEntry->mElement->DeleteProperty(nsGkAtoms::hitregion);
-  return PL_DHASH_NEXT;
-}
-#endif
-
 nsresult
 CanvasRenderingContext2D::Reset()
 {
@@ -632,10 +644,7 @@ CanvasRenderingContext2D::Reset()
   mStream = nullptr;
 
   // reset hit regions
-#ifdef ACCESSIBILITY
-  mHitRegionsOptions.EnumerateEntries(RemoveHitRegionProperty, nullptr);
-#endif
-  mHitRegionsOptions.Clear();
+  mHitRegionsOptions.ClearAndRetainStorage();
 
   // Since the target changes the backing texture will change, and this will
   // no longer be valid.
@@ -1122,6 +1131,17 @@ CanvasRenderingContext2D::GetImageBuffer(uint8_t** aImageBuffer,
   *aFormat = imgIEncoder::INPUT_FORMAT_HOSTARGB;
 }
 
+nsString CanvasRenderingContext2D::GetHitRegion(const mozilla::gfx::Point& aPoint)
+{
+  for (size_t x = 0 ; x < mHitRegionsOptions.Length(); x++) {
+    RegionInfo& info = mHitRegionsOptions[x];
+    if (info.mPath->ContainsPoint(aPoint, Matrix())) {
+      return info.mId;
+    }
+  }
+  return nsString();
+}
+
 NS_IMETHODIMP
 CanvasRenderingContext2D::GetInputStream(const char *aMimeType,
                                          const char16_t *aEncoderOptions,
@@ -1255,8 +1275,9 @@ CanvasRenderingContext2D::SetTransform(double m11, double m12,
   mTarget->SetTransform(matrix);
 }
 
-JSObject*
-MatrixToJSObject(JSContext* cx, const Matrix& matrix, ErrorResult& error)
+static void
+MatrixToJSObject(JSContext* cx, const Matrix& matrix,
+                 JS::MutableHandle<JSObject*> result, ErrorResult& error)
 {
   double elts[6] = { matrix._11, matrix._12,
                      matrix._21, matrix._22,
@@ -1266,10 +1287,9 @@ MatrixToJSObject(JSContext* cx, const Matrix& matrix, ErrorResult& error)
   JS::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, elts, &val)) {
     error.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return nullptr;
+  } else {
+    result.set(&val.toObject());
   }
-
-  return &val.toObject();
 }
 
 static bool
@@ -1322,11 +1342,13 @@ CanvasRenderingContext2D::SetMozCurrentTransform(JSContext* cx,
   }
 }
 
-JSObject*
+void
 CanvasRenderingContext2D::GetMozCurrentTransform(JSContext* cx,
+                                                 JS::MutableHandle<JSObject*> result,
                                                  ErrorResult& error) const
 {
-  return MatrixToJSObject(cx, mTarget ? mTarget->GetTransform() : Matrix(), error);
+  MatrixToJSObject(cx, mTarget ? mTarget->GetTransform() : Matrix(),
+                   result, error);
 }
 
 void
@@ -1349,12 +1371,14 @@ CanvasRenderingContext2D::SetMozCurrentTransformInverse(JSContext* cx,
   }
 }
 
-JSObject*
+void
 CanvasRenderingContext2D::GetMozCurrentTransformInverse(JSContext* cx,
+                                                        JS::MutableHandle<JSObject*> result,
                                                         ErrorResult& error) const
 {
   if (!mTarget) {
-    return MatrixToJSObject(cx, Matrix(), error);
+    MatrixToJSObject(cx, Matrix(), result, error);
+    return;
   }
 
   Matrix ctm = mTarget->GetTransform();
@@ -1364,7 +1388,7 @@ CanvasRenderingContext2D::GetMozCurrentTransformInverse(JSContext* cx,
     ctm = Matrix(NaN, NaN, NaN, NaN, NaN, NaN);
   }
 
-  return MatrixToJSObject(cx, ctm, error);
+  MatrixToJSObject(cx, ctm, result, error);
 }
 
 //
@@ -2302,13 +2326,14 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
                      fontStyle->mFont.sizeAdjust,
                      fontStyle->mFont.systemFont,
                      printerFont,
+                     fontStyle->mFont.variant == NS_STYLE_FONT_VARIANT_SMALL_CAPS,
                      fontStyle->mFont.languageOverride);
 
   fontStyle->mFont.AddFontFeaturesToStyle(&style);
 
   nsPresContext *c = presShell->GetPresContext();
   CurrentState().fontGroup =
-      gfxPlatform::GetPlatform()->CreateFontGroup(fontStyle->mFont.name,
+      gfxPlatform::GetPlatform()->CreateFontGroup(fontStyle->mFont.fontlist,
                                                   &style,
                                                   c->GetUserFontSet());
   NS_ASSERTION(CurrentState().fontGroup, "Could not get font group");
@@ -2450,22 +2475,6 @@ CanvasRenderingContext2D::MeasureText(const nsAString& rawText,
 void
 CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& options, ErrorResult& error)
 {
-  // remove old hit region first
-  RemoveHitRegion(options.mId);
-
-  // for now, we require a fallback element
-  if (options.mControl == NULL) {
-    error.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-    return;
-  }
-
-  // check if the control is a descendant of our canvas
-  HTMLCanvasElement* canvas = GetCanvas();
-  bool isDescendant = true;
-  if (!canvas || !nsContentUtils::ContentIsDescendantOf(options.mControl, canvas)) {
-    isDescendant = false;
-  }
-
   // check if the path is valid
   EnsureUserSpacePath(CanvasWindingRule::Nonzero);
   if(!mPath) {
@@ -2481,35 +2490,66 @@ CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& options, ErrorRes
     return;
   }
 
-#ifdef ACCESSIBILITY
-  if (isDescendant) {
-    nsRect* nsBounds = new nsRect();
-    gfxRect rect(bounds.x, bounds.y, bounds.width, bounds.height);
-    *nsBounds = nsLayoutUtils::RoundGfxRectToAppRect(rect, AppUnitsPerCSSPixel());
-    options.mControl->DeleteProperty(nsGkAtoms::hitregion);
-    options.mControl->SetProperty(nsGkAtoms::hitregion, nsBounds,
-                                  nsINode::DeleteProperty<nsRect>);
-  }
-#endif
+  // remove old hit region first
+  RemoveHitRegion(options.mId);
 
-  // finally, add the region to the list if it has an ID
-  if (options.mId.Length() != 0) {
-    mHitRegionsOptions.PutEntry(options.mId)->mElement = options.mControl;
+  if (options.mControl) {
+    // also remove regions with this control
+    for (size_t x = 0; x < mHitRegionsOptions.Length(); x++) {
+      RegionInfo& info = mHitRegionsOptions[x];
+      if (info.mElement == options.mControl) {
+        mHitRegionsOptions.RemoveElementAt(x);
+        break;
+      }
+    }
+#ifdef ACCESSIBILITY
+  options.mControl->SetProperty(nsGkAtoms::hitregion, new bool(true),
+                                nsINode::DeleteProperty<bool>);
+#endif
   }
+  
+  // finally, add the region to the list
+  RegionInfo info;
+  info.mId = options.mId;
+  info.mElement = options.mControl;
+  RefPtr<PathBuilder> pathBuilder = mPath->TransformedCopyToBuilder(mTarget->GetTransform());
+  info.mPath = pathBuilder->Finish();
+
+  mHitRegionsOptions.InsertElementAt(0, info);
 }
 
 void
 CanvasRenderingContext2D::RemoveHitRegion(const nsAString& id)
 {
-  RegionInfo* info = mHitRegionsOptions.GetEntry(id);
-  if (!info) {
-    return;
+  if (id.Length() == 0) {
+     return;
+   }
+
+  for (size_t x = 0; x < mHitRegionsOptions.Length(); x++) {
+    RegionInfo& info = mHitRegionsOptions[x];
+    if (info.mId == id) {
+      mHitRegionsOptions.RemoveElementAt(x);
+
+      return;
+    }
+  }
+}
+
+bool
+CanvasRenderingContext2D::GetHitRegionRect(Element* aElement, nsRect& aRect)
+{
+  for (unsigned int x = 0; x < mHitRegionsOptions.Length(); x++) {
+    RegionInfo& info = mHitRegionsOptions[x];
+    if (info.mElement == aElement) {
+      mgfx::Rect bounds(info.mPath->GetBounds());
+      gfxRect rect(bounds.x, bounds.y, bounds.width, bounds.height);
+      aRect = nsLayoutUtils::RoundGfxRectToAppRect(rect, AppUnitsPerCSSPixel());
+
+      return true;
+    }
   }
 
-#ifdef ACCESSIBILITY
-  info->mElement->DeleteProperty(nsGkAtoms::hitregion);
-#endif
-  mHitRegionsOptions.RemoveEntry(id);
+  return false;
 }
 
 /**
@@ -2970,7 +3010,7 @@ gfxFontGroup *CanvasRenderingContext2D::GetCurrentFontStyle()
       gfxFontStyle style;
       style.size = kDefaultFontSize;
       CurrentState().fontGroup =
-        gfxPlatform::GetPlatform()->CreateFontGroup(NS_LITERAL_STRING("sans-serif"),
+        gfxPlatform::GetPlatform()->CreateFontGroup(FontFamilyList(eFamily_sans_serif),
                                                     &style,
                                                     nullptr);
       if (CurrentState().fontGroup) {
@@ -3083,10 +3123,12 @@ CanvasRenderingContext2D::SetMozDash(JSContext* cx,
   }
 }
 
-JS::Value
-CanvasRenderingContext2D::GetMozDash(JSContext* cx, ErrorResult& error)
+void
+CanvasRenderingContext2D::GetMozDash(JSContext* cx,
+                                     JS::MutableHandle<JS::Value> retval,
+                                     ErrorResult& error)
 {
-  return DashArrayToJSVal(CurrentState().dash, cx, error);
+  DashArrayToJSVal(CurrentState().dash, cx, retval, error);
 }
 
 void
@@ -3101,10 +3143,14 @@ CanvasRenderingContext2D::SetMozDashOffset(double mozDashOffset)
 void
 CanvasRenderingContext2D::SetLineDash(const Sequence<double>& aSegments)
 {
-  FallibleTArray<mozilla::gfx::Float>& dash = CurrentState().dash;
-  dash.Clear();
+  FallibleTArray<mozilla::gfx::Float> dash;
 
   for (uint32_t x = 0; x < aSegments.Length(); x++) {
+    if (aSegments[x] < 0.0) {
+      // Pattern elements must be finite "numbers" >= 0, with "finite"
+      // taken care of by WebIDL
+      return;
+    }
     dash.AppendElement(aSegments[x]);
   }
   if (aSegments.Length() % 2) { // If the number of elements is odd, concatenate again
@@ -3112,6 +3158,8 @@ CanvasRenderingContext2D::SetLineDash(const Sequence<double>& aSegments)
       dash.AppendElement(aSegments[x]);
     }
   }
+
+  CurrentState().dash = dash;
 }
 
 void
@@ -3694,8 +3742,13 @@ CanvasRenderingContext2D::AsyncDrawXULElement(nsXULElement& elem,
 
   PBrowserParent *child = frameloader->GetRemoteBrowser();
   if (!child) {
-    nsCOMPtr<nsIDOMWindow> window =
-      do_GetInterface(frameloader->GetExistingDocShell());
+    nsIDocShell* docShell = frameLoader->GetExistingDocShell();
+    if (!docShell) {
+      error.Throw(NS_ERROR_FAILURE);
+      return;
+    }
+
+    nsCOMPtr<nsIDOMWindow> window = docShell->GetWindow();
     if (!window) {
       error.Throw(NS_ERROR_FAILURE);
       return;
@@ -3968,11 +4021,13 @@ void
 CanvasRenderingContext2D::PutImageData(ImageData& imageData, double dx,
                                        double dy, ErrorResult& error)
 {
-  dom::Uint8ClampedArray arr(imageData.GetDataObject());
+  dom::Uint8ClampedArray arr;
+  DebugOnly<bool> inited = arr.Init(imageData.GetDataObject());
+  MOZ_ASSERT(inited);
 
   error = PutImageData_explicit(JS_DoubleToInt32(dx), JS_DoubleToInt32(dy),
                                 imageData.Width(), imageData.Height(),
-                                arr.Data(), arr.Length(), false, 0, 0, 0, 0);
+                                &arr, false, 0, 0, 0, 0);
 }
 
 void
@@ -3982,11 +4037,13 @@ CanvasRenderingContext2D::PutImageData(ImageData& imageData, double dx,
                                        double dirtyHeight,
                                        ErrorResult& error)
 {
-  dom::Uint8ClampedArray arr(imageData.GetDataObject());
+  dom::Uint8ClampedArray arr;
+  DebugOnly<bool> inited = arr.Init(imageData.GetDataObject());
+  MOZ_ASSERT(inited);
 
   error = PutImageData_explicit(JS_DoubleToInt32(dx), JS_DoubleToInt32(dy),
                                 imageData.Width(), imageData.Height(),
-                                arr.Data(), arr.Length(), true,
+                                &arr, true,
                                 JS_DoubleToInt32(dirtyX),
                                 JS_DoubleToInt32(dirtyY),
                                 JS_DoubleToInt32(dirtyWidth),
@@ -3998,12 +4055,12 @@ CanvasRenderingContext2D::PutImageData(ImageData& imageData, double dx,
 
 nsresult
 CanvasRenderingContext2D::PutImageData_explicit(int32_t x, int32_t y, uint32_t w, uint32_t h,
-                                                unsigned char *aData, uint32_t aDataLen,
+                                                dom::Uint8ClampedArray* aArray,
                                                 bool hasDirtyRect, int32_t dirtyX, int32_t dirtyY,
                                                 int32_t dirtyWidth, int32_t dirtyHeight)
 {
   if (w == 0 || h == 0) {
-    return NS_ERROR_DOM_SYNTAX_ERR;
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
   IntRect dirtyRect;
@@ -4051,9 +4108,13 @@ CanvasRenderingContext2D::PutImageData_explicit(int32_t x, int32_t y, uint32_t w
     return NS_OK;
   }
 
+  aArray->ComputeLengthAndData();
+
+  uint32_t dataLen = aArray->Length();
+
   uint32_t len = w * h * 4;
-  if (aDataLen != len) {
-    return NS_ERROR_DOM_SYNTAX_ERR;
+  if (dataLen != len) {
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
   nsRefPtr<gfxImageSurface> imgsurf = new gfxImageSurface(gfxIntSize(w, h),
@@ -4063,7 +4124,7 @@ CanvasRenderingContext2D::PutImageData_explicit(int32_t x, int32_t y, uint32_t w
     return NS_ERROR_FAILURE;
   }
 
-  uint8_t *src = aData;
+  uint8_t *src = aArray->Data();
   uint8_t *dst = imgsurf->Data();
 
   for (uint32_t j = 0; j < h; j++) {
@@ -4255,6 +4316,7 @@ CanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
   }
 
   data.mSize = nsIntSize(mWidth, mHeight);
+  data.mHasAlpha = !mOpaque;
 
   canvasLayer->Initialize(data);
   uint32_t flags = mOpaque ? Layer::CONTENT_OPAQUE : 0;
@@ -4286,16 +4348,18 @@ CanvasRenderingContext2D::ShouldForceInactiveLayer(LayerManager *aManager)
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(CanvasPath, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(CanvasPath, Release)
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(CanvasPath)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(CanvasPath, mParent)
 
-CanvasPath::CanvasPath(nsCOMPtr<nsISupports> aParent) : mParent(aParent)
+CanvasPath::CanvasPath(nsISupports* aParent)
+  : mParent(aParent)
 {
   SetIsDOMBinding();
 
   mPathBuilder = gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget()->CreatePathBuilder();
 }
 
-CanvasPath::CanvasPath(nsCOMPtr<nsISupports> aParent, RefPtr<PathBuilder> aPathBuilder): mParent(aParent), mPathBuilder(aPathBuilder)
+CanvasPath::CanvasPath(nsISupports* aParent, TemporaryRef<PathBuilder> aPathBuilder)
+  : mParent(aParent), mPathBuilder(aPathBuilder)
 {
   SetIsDOMBinding();
 
@@ -4391,6 +4455,8 @@ CanvasPath::ArcTo(double x1, double y1, double x2, double y2, double radius,
     return;
   }
 
+  EnsurePathBuilder();
+
   // Current point in user space!
   Point p0 = mPathBuilder->CurrentPoint();
   Point p1(x1, y1);
@@ -4466,6 +4532,8 @@ CanvasPath::Arc(double x, double y, double radius,
     return;
   }
 
+  EnsurePathBuilder();
+
   ArcToBezier(this, Point(x, y), Size(radius, radius), startAngle, endAngle, anticlockwise);
 }
 
@@ -4487,8 +4555,8 @@ CanvasPath::BezierTo(const gfx::Point& aCP1,
   mPathBuilder->BezierTo(aCP1, aCP2, aCP3);
 }
 
-RefPtr<gfx::Path>
-CanvasPath::GetPath(const CanvasWindingRule& winding, const mozilla::RefPtr<mozilla::gfx::DrawTarget>& mTarget) const
+TemporaryRef<gfx::Path>
+CanvasPath::GetPath(const CanvasWindingRule& winding, const DrawTarget* aTarget) const
 {
   FillRule fillRule = FillRule::FILL_WINDING;
   if (winding == CanvasWindingRule::Evenodd) {
@@ -4496,7 +4564,7 @@ CanvasPath::GetPath(const CanvasWindingRule& winding, const mozilla::RefPtr<mozi
   }
 
   if (mPath &&
-      (mPath->GetBackendType() == mTarget->GetType()) &&
+      (mPath->GetBackendType() == aTarget->GetType()) &&
       (mPath->GetFillRule() == fillRule)) {
     return mPath;
   }
@@ -4512,8 +4580,8 @@ CanvasPath::GetPath(const CanvasWindingRule& winding, const mozilla::RefPtr<mozi
   }
 
   // retarget our backend if we're used with a different backend
-  if (mPath->GetBackendType() != mTarget->GetType()) {
-    RefPtr<PathBuilder> tmpPathBuilder = mTarget->CreatePathBuilder(fillRule);
+  if (mPath->GetBackendType() != aTarget->GetType()) {
+    RefPtr<PathBuilder> tmpPathBuilder = aTarget->CreatePathBuilder(fillRule);
     mPath->StreamToSink(tmpPathBuilder);
     mPath = tmpPathBuilder->Finish();
   } else if (mPath->GetFillRule() != fillRule) {

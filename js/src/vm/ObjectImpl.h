@@ -30,6 +30,10 @@ class ObjectImpl;
 class Nursery;
 class Shape;
 
+namespace gc {
+class ForkJoinNursery;
+}
+
 /*
  * To really poison a set of values, using 'magic' or 'undefined' isn't good
  * enough since often these will just be ignored by buggy code (see bug 629974)
@@ -177,6 +181,7 @@ class ObjectElements
     friend class ObjectImpl;
     friend class ArrayObject;
     friend class Nursery;
+    friend class gc::ForkJoinNursery;
 
     template <ExecutionMode mode>
     friend bool
@@ -445,6 +450,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
   private:
     friend class Nursery;
+    friend class gc::ForkJoinNursery;
 
     /*
      * Get internal pointers to the range of values starting at start and
@@ -570,6 +576,10 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
     uint32_t numFixedSlots() const {
         return reinterpret_cast<const shadow::Object *>(this)->numFixedSlots();
+    }
+    uint32_t numUsedFixedSlots() const {
+        uint32_t nslots = lastProperty()->slotSpan(getClass());
+        return Min(nslots, numFixedSlots());
     }
 
     /*

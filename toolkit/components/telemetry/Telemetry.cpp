@@ -1069,7 +1069,7 @@ public:
     nsCOMPtr<nsIRunnable> e =
       NS_NewRunnableMethod(this, &nsFetchTelemetryData::MainThread);
     NS_ENSURE_STATE(e);
-    NS_DispatchToMainThread(e, NS_DISPATCH_NORMAL);
+    NS_DispatchToMainThread(e);
     return NS_OK;
   }
 
@@ -1483,7 +1483,7 @@ AddonHistogramName(const nsACString &id, const nsACString &name,
                    nsACString &ret)
 {
   ret.Append(id);
-  ret.Append(NS_LITERAL_CSTRING(":"));
+  ret.Append(':');
   ret.Append(name);
 }
 

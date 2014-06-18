@@ -28,47 +28,49 @@ namespace mozilla {
 class JSGCThingParticipant: public nsCycleCollectionParticipant
 {
 public:
-  NS_IMETHOD_(void) Root(void *n)
+  NS_IMETHOD_(void) Root(void* aPtr)
   {
   }
 
-  NS_IMETHOD_(void) Unlink(void *n)
+  NS_IMETHOD_(void) Unlink(void* aPtr)
   {
   }
 
-  NS_IMETHOD_(void) Unroot(void *n)
+  NS_IMETHOD_(void) Unroot(void* aPtr)
   {
   }
 
-  NS_IMETHOD_(void) DeleteCycleCollectable(void *n)
+  NS_IMETHOD_(void) DeleteCycleCollectable(void* aPtr)
   {
   }
 
-  NS_IMETHOD Traverse(void *n, nsCycleCollectionTraversalCallback &cb);
+  NS_IMETHOD Traverse(void* aPtr, nsCycleCollectionTraversalCallback& aCb);
 };
 
 class JSZoneParticipant : public nsCycleCollectionParticipant
 {
 public:
-  MOZ_CONSTEXPR JSZoneParticipant(): nsCycleCollectionParticipant() {}
-
-  NS_IMETHOD_(void) Root(void *p)
+  MOZ_CONSTEXPR JSZoneParticipant(): nsCycleCollectionParticipant()
   {
   }
 
-  NS_IMETHOD_(void) Unlink(void *p)
+  NS_IMETHOD_(void) Root(void* aPtr)
   {
   }
 
-  NS_IMETHOD_(void) Unroot(void *p)
+  NS_IMETHOD_(void) Unlink(void* aPtr)
   {
   }
 
-  NS_IMETHOD_(void) DeleteCycleCollectable(void *n)
+  NS_IMETHOD_(void) Unroot(void* aPtr)
   {
   }
 
-  NS_IMETHOD Traverse(void *p, nsCycleCollectionTraversalCallback &cb);
+  NS_IMETHOD_(void) DeleteCycleCollectable(void* aPtr)
+  {
+  }
+
+  NS_IMETHOD Traverse(void* aPtr, nsCycleCollectionTraversalCallback& aCb);
 };
 
 class IncrementalFinalizeRunnable;
@@ -112,17 +114,28 @@ class CycleCollectedJSRuntime
   friend class IncrementalFinalizeRunnable;
 protected:
   CycleCollectedJSRuntime(JSRuntime* aParentRuntime,
-                          uint32_t aMaxbytes,
-                          JSUseHelperThreads aUseHelperThreads);
+                          uint32_t aMaxbytes);
   virtual ~CycleCollectedJSRuntime();
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
   void UnmarkSkippableJSHolders();
 
-  virtual void TraverseAdditionalNativeRoots(nsCycleCollectionNoteRootCallback& aCb) {}
-  virtual void TraceAdditionalNativeGrayRoots(JSTracer* aTracer) {}
+  virtual void TraverseAdditionalNativeRoots(nsCycleCollectionNoteRootCallback& aCb)
+  {
+  }
+  virtual void TraceAdditionalNativeGrayRoots(JSTracer* aTracer)
+  {
+  }
 
-  virtual void CustomGCCallback(JSGCStatus aStatus) {}
+  virtual void CustomGCCallback(JSGCStatus aStatus)
+  {
+  }
+  virtual void CustomOutOfMemoryCallback()
+  {
+  }
+  virtual void CustomLargeAllocationFailureCallback()
+  {
+  }
   virtual bool CustomContextCallback(JSContext* aCx, unsigned aOperation)
   {
     return true; // Don't block context creation.
@@ -177,6 +190,8 @@ private:
   static void TraceBlackJS(JSTracer* aTracer, void* aData);
   static void TraceGrayJS(JSTracer* aTracer, void* aData);
   static void GCCallback(JSRuntime* aRuntime, JSGCStatus aStatus, void* aData);
+  static void OutOfMemoryCallback(JSContext *aContext, void *aData);
+  static void LargeAllocationFailureCallback(void *aData);
   static bool ContextCallback(JSContext* aCx, unsigned aOperation,
                               void* aData);
 
@@ -190,7 +205,44 @@ private:
 
   void FinalizeDeferredThings(DeferredFinalizeType aType);
 
+public:
+  // Two conditions, JSOutOfMemory and JSLargeAllocationFailure, are noted in
+  // crash reports. Here are the values that can appear in the reports:
+  MOZ_BEGIN_NESTED_ENUM_CLASS(OOMState, uint32_t)
+    // The condition has never happened. No entry appears in the crash report.
+    OK,
+
+    // We are currently reporting the given condition.
+    // 
+    // Suppose a crash report contains "JSLargeAllocationFailure:
+    // Reporting". This means we crashed while executing memory-pressure
+    // observers, trying to shake loose some memory. The large allocation in
+    // question did not return null: it is still on the stack. Had we not
+    // crashed, it would have been retried.
+    Reporting,
+
+    // The condition has been reported since the last GC.
+    //
+    // If a crash report contains "JSOutOfMemory: Reported", that means a small
+    // allocation failed, and then we crashed, probably due to buggy
+    // error-handling code that ran after allocation returned null.
+    //
+    // This contrasts with "Reporting" which means that no error-handling code
+    // had executed yet.
+    Reported,
+
+    // The condition has happened, but a GC cycle ended since then.
+    //
+    // GC is taken as a proxy for "we've been banging on the heap a good bit
+    // now and haven't crashed; the OOM was probably handled correctly".
+    Recovered
+  MOZ_END_NESTED_ENUM_CLASS(OOMState)
+
+private:
+  void AnnotateAndSetOutOfMemory(OOMState *aStatePtr, OOMState aNewState);
   void OnGC(JSGCStatus aStatus);
+  void OnOutOfMemory();
+  void OnLargeAllocationFailure();
 
 public:
   void AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer);
@@ -206,11 +258,11 @@ public:
   nsCycleCollectionParticipant* GCThingParticipant();
   nsCycleCollectionParticipant* ZoneParticipant();
 
-  nsresult TraverseRoots(nsCycleCollectionNoteRootCallback &aCb);
+  nsresult TraverseRoots(nsCycleCollectionNoteRootCallback& aCb);
   bool UsefulToMergeZones() const;
   void FixWeakMappingGrayBits() const;
   bool AreGCGrayBitsValid() const;
-  void GarbageCollect(uint32_t reason) const;
+  void GarbageCollect(uint32_t aReason) const;
 
   void DeferredFinalize(DeferredFinalizeAppendFunction aAppendFunc,
                         DeferredFinalizeFunction aFunc,
@@ -221,7 +273,7 @@ public:
 
   virtual void PrepareForForgetSkippable() = 0;
   virtual void BeginCycleCollectionCallback() = 0;
-  virtual void EndCycleCollectionCallback(CycleCollectorResults &aResults) = 0;
+  virtual void EndCycleCollectionCallback(CycleCollectorResults& aResults) = 0;
   virtual void DispatchDeferredDeletion(bool aContinuation) = 0;
 
   JSRuntime* Runtime() const
@@ -251,7 +303,14 @@ private:
   nsRefPtr<IncrementalFinalizeRunnable> mFinalizeRunnable;
 
   nsCOMPtr<nsIException> mPendingException;
+
+  OOMState mOutOfMemoryState;
+  OOMState mLargeAllocationFailureState;
 };
+
+MOZ_FINISH_NESTED_ENUM_CLASS(CycleCollectedJSRuntime::OOMState)
+
+void TraceScriptHolder(nsISupports* aHolder, JSTracer* aTracer);
 
 } // namespace mozilla
 

@@ -1,12 +1,16 @@
 package org.mozilla.gecko.tests;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.mozilla.gecko.Actions;
 import org.mozilla.gecko.Element;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.util.StringUtils;
 
 public class testBookmarksPanel extends AboutHomeTest {
     public void testBookmarksPanel() {
         final String BOOKMARK_URL = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        JSONObject data = null;
 
         // Add a mobile bookmark
         mDatabaseHelper.addOrUpdateMobileBookmark(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, BOOKMARK_URL);
@@ -18,30 +22,51 @@ public class testBookmarksPanel extends AboutHomeTest {
             isBookmarkDisplayed(url);
         }
 
-        // Open the context menu for the first bookmark in the list
-        openBookmarkContextMenu(StringHelper.DEFAULT_BOOKMARKS_URLS[0]);
+        assertAllContextMenuOptionsArePresent(StringHelper.DEFAULT_BOOKMARKS_URLS[1],
+                StringHelper.DEFAULT_BOOKMARKS_URLS[0]);
 
-        // Test that the options are all displayed
-        for (String contextMenuOption : StringHelper.BOOKMARK_CONTEXT_MENU_ITEMS) {
-            mAsserter.ok(mSolo.searchText(contextMenuOption), "Checking that the context menu option is present", contextMenuOption + " is present");
-        }
+        openBookmarkContextMenu(StringHelper.DEFAULT_BOOKMARKS_URLS[0]);
 
         // Test that "Open in New Tab" works
         final Element tabCount = mDriver.findElement(getActivity(), R.id.tabs_counter);
         final int tabCountInt = Integer.parseInt(tabCount.getText());
         Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
         mSolo.clickOnText(StringHelper.BOOKMARK_CONTEXT_MENU_ITEMS[0]);
-        tabEventExpecter.blockForEvent();
+        try {
+            data = new JSONObject(tabEventExpecter.blockForEventData());
+        } catch (JSONException e) {
+            mAsserter.ok(false, "exception getting event data", e.toString());
+        }
         tabEventExpecter.unregisterListener();
         mAsserter.ok(mSolo.searchText(StringHelper.TITLE_PLACE_HOLDER), "Checking that the tab is not changed", "The tab was not changed");
+        // extra check here on the Tab:Added message to be sure the right tab opened
+        int tabID = 0;
+        try {
+            mAsserter.is(StringHelper.ABOUT_FIREFOX_URL, data.getString("uri"), "Checking tab uri");
+            tabID = data.getInt("tabID");
+        } catch (JSONException e) {
+            mAsserter.ok(false, "exception accessing event data", e.toString());
+        }
+        // close tab so about:firefox can be selected again
+        closeTab(tabID);
 
         // Test that "Open in Private Tab" works
-        openBookmarkContextMenu(StringHelper.DEFAULT_BOOKMARKS_URLS[1]);
+        openBookmarkContextMenu(StringHelper.DEFAULT_BOOKMARKS_URLS[0]);
         tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
         mSolo.clickOnText(StringHelper.BOOKMARK_CONTEXT_MENU_ITEMS[1]);
-        tabEventExpecter.blockForEvent();
+        try {
+            data = new JSONObject(tabEventExpecter.blockForEventData());
+        } catch (JSONException e) {
+            mAsserter.ok(false, "exception getting event data", e.toString());
+        }
         tabEventExpecter.unregisterListener();
         mAsserter.ok(mSolo.searchText(StringHelper.TITLE_PLACE_HOLDER), "Checking that the tab is not changed", "The tab was not changed");
+        // extra check here on the Tab:Added message to be sure the right tab opened, again
+        try {
+            mAsserter.is(StringHelper.ABOUT_FIREFOX_URL, data.getString("uri"), "Checking tab uri");
+        } catch (JSONException e) {
+            mAsserter.ok(false, "exception accessing event data", e.toString());
+        }
 
         // Test that "Edit" works
         String[] editedBookmarkValues = new String[] { "New bookmark title", "www.NewBookmark.url", "newBookmarkKeyword" };
@@ -53,6 +78,44 @@ public class testBookmarksPanel extends AboutHomeTest {
         mSolo.clickOnText(StringHelper.BOOKMARK_CONTEXT_MENU_ITEMS[3]);
         waitForText("Bookmark removed");
         mAsserter.ok(!mDatabaseHelper.isBookmark(editedBookmarkValues[1]), "Checking that the bookmark was removed", "The bookmark was removed");
+    }
+
+    /**
+     * Asserts that all context menu items are present on the given links. For one link,
+     * the context menu is expected to not have the "Share" context menu item.
+     *
+     * @param shareableURL A URL that is expected to have the "Share" context menu item
+     * @param nonShareableURL A URL that is expected not to have the "Share" context menu item.
+     */
+    private void assertAllContextMenuOptionsArePresent(final String shareableURL,
+            final String nonShareableURL) {
+        mAsserter.ok(StringUtils.isShareableUrl(shareableURL), "Ensuring url is shareable", "");
+        mAsserter.ok(!StringUtils.isShareableUrl(nonShareableURL), "Ensuring url is not shareable", "");
+
+        openBookmarkContextMenu(shareableURL);
+        for (String contextMenuOption : StringHelper.BOOKMARK_CONTEXT_MENU_ITEMS) {
+            mAsserter.ok(mSolo.searchText(contextMenuOption),
+                    "Checking that the context menu option is present",
+                    contextMenuOption + " is present");
+        }
+
+        // Close the menu.
+        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+
+        openBookmarkContextMenu(nonShareableURL);
+        for (String contextMenuOption : StringHelper.BOOKMARK_CONTEXT_MENU_ITEMS) {
+            // This link is not shareable: skip the "Share" option.
+            if ("Share".equals(contextMenuOption)) {
+                continue;
+            }
+
+            mAsserter.ok(mSolo.searchText(contextMenuOption),
+                    "Checking that the context menu option is present",
+                    contextMenuOption + " is present");
+        }
+
+        // Close the menu.
+        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
     }
 
    /**

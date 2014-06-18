@@ -54,6 +54,15 @@ this.Utils = {
     return this._win.get();
   },
 
+  get winUtils() {
+    let win = this.win;
+    if (!win) {
+      return null;
+    }
+    return win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(
+      Ci.nsIDOMWindowUtils);
+  },
+
   get AccRetrieval() {
     if (!this._AccRetrieval) {
       this._AccRetrieval = Cc['@mozilla.org/accessibleRetrieval;1'].
@@ -142,8 +151,19 @@ this.Utils = {
   get AllMessageManagers() {
     let messageManagers = [];
 
-    for (let i = 0; i < this.win.messageManager.childCount; i++)
-      messageManagers.push(this.win.messageManager.getChildAt(i));
+    function collectLeafMessageManagers(mm) {
+      for (let i = 0; i < mm.childCount; i++) {
+        let childMM = mm.getChildAt(i);
+
+        if ("sendAsyncMessage" in childMM) {
+          messageManagers.push(childMM);
+        } else {
+          collectLeafMessageManagers(childMM);
+        }
+      }
+    }
+
+    collectLeafMessageManagers(this.win.messageManager);
 
     let document = this.CurrentContentDoc;
 
@@ -181,7 +201,6 @@ this.Utils = {
       return aBrowser.QueryInterface(Ci.nsIFrameLoaderOwner).
          frameLoader.messageManager;
     } catch (x) {
-      Logger.logException(x);
       return null;
     }
   },
@@ -252,8 +271,7 @@ this.Utils = {
    */
   get dpi() {
     delete this.dpi;
-    this.dpi = this.win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(
-      Ci.nsIDOMWindowUtils).displayDPI;
+    this.dpi = this.winUtils.displayDPI;
     return this.dpi;
   },
 

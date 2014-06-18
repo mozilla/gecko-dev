@@ -36,6 +36,7 @@
 #include "nsFrameManager.h"
 #include "GeckoProfiler.h"
 #include "nsIStatefulFrame.h"
+#include "nsContainerFrame.h"
 
   #ifdef DEBUG
     //#define DEBUG_UNDISPLAYED_MAP
@@ -83,21 +84,21 @@ static const PLDHashTableOps PlaceholderMapOps = {
 
 class nsFrameManagerBase::UndisplayedMap {
 public:
-  UndisplayedMap(uint32_t aNumBuckets = 16) NS_HIDDEN;
-  ~UndisplayedMap(void) NS_HIDDEN;
+  UndisplayedMap(uint32_t aNumBuckets = 16);
+  ~UndisplayedMap(void);
 
-  NS_HIDDEN_(UndisplayedNode*) GetFirstNode(nsIContent* aParentContent);
+  UndisplayedNode* GetFirstNode(nsIContent* aParentContent);
 
-  NS_HIDDEN_(nsresult) AddNodeFor(nsIContent* aParentContent,
+  nsresult AddNodeFor(nsIContent* aParentContent,
                                   nsIContent* aChild, nsStyleContext* aStyle);
 
-  NS_HIDDEN_(void) RemoveNodeFor(nsIContent* aParentContent,
+  void RemoveNodeFor(nsIContent* aParentContent,
                                  UndisplayedNode* aNode);
 
-  NS_HIDDEN_(void) RemoveNodesFor(nsIContent* aParentContent);
+  void RemoveNodesFor(nsIContent* aParentContent);
 
   // Removes all entries from the hash table
-  NS_HIDDEN_(void)  Clear(void);
+  void  Clear(void);
 
 protected:
   /**
@@ -105,8 +106,8 @@ protected:
    * is a <xbl:children> element, |**aParentContent| is set to
    * the parent of the children element.
    */
-  NS_HIDDEN_(PLHashEntry**) GetEntryFor(nsIContent** aParentContent);
-  NS_HIDDEN_(void)          AppendNodeFor(UndisplayedNode* aNode,
+  PLHashEntry** GetEntryFor(nsIContent** aParentContent);
+  void          AppendNodeFor(UndisplayedNode* aNode,
                                           nsIContent* aParentContent);
 
   PLHashTable*  mTable;
@@ -347,25 +348,25 @@ nsFrameManager::ClearAllUndisplayedContentIn(nsIContent* aParentContent)
 }
 
 //----------------------------------------------------------------------
-nsresult
-nsFrameManager::AppendFrames(nsIFrame*       aParentFrame,
-                             ChildListID     aListID,
-                             nsFrameList&    aFrameList)
+void
+nsFrameManager::AppendFrames(nsContainerFrame* aParentFrame,
+                             ChildListID       aListID,
+                             nsFrameList&      aFrameList)
 {
   if (aParentFrame->IsAbsoluteContainer() &&
       aListID == aParentFrame->GetAbsoluteListID()) {
-    return aParentFrame->GetAbsoluteContainingBlock()->
-           AppendFrames(aParentFrame, aListID, aFrameList);
+    aParentFrame->GetAbsoluteContainingBlock()->
+      AppendFrames(aParentFrame, aListID, aFrameList);
   } else {
-    return aParentFrame->AppendFrames(aListID, aFrameList);
+    aParentFrame->AppendFrames(aListID, aFrameList);
   }
 }
 
-nsresult
-nsFrameManager::InsertFrames(nsIFrame*       aParentFrame,
-                             ChildListID     aListID,
-                             nsIFrame*       aPrevFrame,
-                             nsFrameList&    aFrameList)
+void
+nsFrameManager::InsertFrames(nsContainerFrame* aParentFrame,
+                             ChildListID       aListID,
+                             nsIFrame*         aPrevFrame,
+                             nsFrameList&      aFrameList)
 {
   NS_PRECONDITION(!aPrevFrame || (!aPrevFrame->GetNextContinuation()
                   || (((aPrevFrame->GetNextContinuation()->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER))
@@ -374,14 +375,14 @@ nsFrameManager::InsertFrames(nsIFrame*       aParentFrame,
 
   if (aParentFrame->IsAbsoluteContainer() &&
       aListID == aParentFrame->GetAbsoluteListID()) {
-    return aParentFrame->GetAbsoluteContainingBlock()->
-           InsertFrames(aParentFrame, aListID, aPrevFrame, aFrameList);
+    aParentFrame->GetAbsoluteContainingBlock()->
+      InsertFrames(aParentFrame, aListID, aPrevFrame, aFrameList);
   } else {
-    return aParentFrame->InsertFrames(aListID, aPrevFrame, aFrameList);
+    aParentFrame->InsertFrames(aListID, aPrevFrame, aFrameList);
   }
 }
 
-nsresult
+void
 nsFrameManager::RemoveFrame(ChildListID     aListID,
                             nsIFrame*       aOldFrame)
 {
@@ -403,19 +404,16 @@ nsFrameManager::RemoveFrame(ChildListID     aListID,
   NS_ASSERTION(!(aOldFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW &&
                  GetPlaceholderFrameFor(aOldFrame)),
                "Must call RemoveFrame on placeholder for out-of-flows.");
-  nsresult rv = NS_OK;
-  nsIFrame* parentFrame = aOldFrame->GetParent();
+  nsContainerFrame* parentFrame = aOldFrame->GetParent();
   if (parentFrame->IsAbsoluteContainer() &&
       aListID == parentFrame->GetAbsoluteListID()) {
     parentFrame->GetAbsoluteContainingBlock()->
       RemoveFrame(parentFrame, aListID, aOldFrame);
   } else {
-    rv = parentFrame->RemoveFrame(aListID, aOldFrame);
+    parentFrame->RemoveFrame(aListID, aOldFrame);
   }
 
   mIsDestroyingFrames = wasDestroyingFrames;
-
-  return rv;
 }
 
 //----------------------------------------------------------------------

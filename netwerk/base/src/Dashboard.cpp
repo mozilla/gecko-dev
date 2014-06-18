@@ -3,6 +3,7 @@
  * file, You can obtain one at http:mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/NetDashboardBinding.h"
+#include "mozilla/dom/ToJSValue.h"
 #include "mozilla/net/Dashboard.h"
 #include "mozilla/net/HttpInfo.h"
 #include "nsCxPusher.h"
@@ -20,6 +21,7 @@
 
 using mozilla::AutoSafeJSContext;
 using mozilla::dom::Sequence;
+using mozilla::dom::ToJSValue;
 
 namespace mozilla {
 namespace net {
@@ -191,7 +193,7 @@ ConnectionData::Notify(nsITimer *aTimer)
 
     mTimer = nullptr;
 
-    mStatus.Assign(NS_LITERAL_STRING("NS_ERROR_NET_TIMEOUT"));
+    mStatus.AssignLiteral(MOZ_UTF16("NS_ERROR_NET_TIMEOUT"));
     nsCOMPtr<nsIRunnable> event =
         NS_NewRunnableMethodWithArg<nsRefPtr<ConnectionData> >
         (mDashboard, &Dashboard::GetConnectionStatus, this);
@@ -318,7 +320,7 @@ LookupHelper::ConstructAnswer(LookupArgument *aArgument)
     }
 
     JS::RootedValue val(cx);
-    if (!dict.ToObject(cx, &val)) {
+    if (!ToJSValue(cx, dict, &val)) {
         return NS_ERROR_FAILURE;
     }
 
@@ -402,7 +404,7 @@ Dashboard::GetSockets(SocketData *aSocketData)
     dict.mSent += socketData->mTotalSent;
     dict.mReceived += socketData->mTotalRecv;
     JS::RootedValue val(cx);
-    if (!dict.ToObject(cx, &val))
+    if (!ToJSValue(cx, dict, &val))
         return NS_ERROR_FAILURE;
     socketData->mCallback->OnDashboardDataAvailable(val);
 
@@ -502,7 +504,7 @@ Dashboard::GetHttpConnections(HttpData *aHttpData)
     }
 
     JS::RootedValue val(cx);
-    if (!dict.ToObject(cx, &val)) {
+    if (!ToJSValue(cx, dict, &val)) {
         return NS_ERROR_FAILURE;
     }
 
@@ -630,7 +632,7 @@ Dashboard::GetWebSocketConnections(WebSocketRequest *aWsRequest)
     }
 
     JS::RootedValue val(cx);
-    if (!dict.ToObject(cx, &val)) {
+    if (!ToJSValue(cx, dict, &val)) {
         return NS_ERROR_FAILURE;
     }
     wsRequest->mCallback->OnDashboardDataAvailable(val);
@@ -718,7 +720,7 @@ Dashboard::GetDNSCacheEntries(DnsData *dnsData)
     }
 
     JS::RootedValue val(cx);
-    if (!dict.ToObject(cx, &val)) {
+    if (!ToJSValue(cx, dict, &val)) {
         return NS_ERROR_FAILURE;
     }
     dnsData->mCallback->OnDashboardDataAvailable(val);
@@ -754,19 +756,19 @@ HttpConnInfo::SetHTTP1ProtocolVersion(uint8_t pv)
 {
     switch (pv) {
     case NS_HTTP_VERSION_0_9:
-        protocolVersion.Assign(NS_LITERAL_STRING("http/0.9"));
+        protocolVersion.AssignLiteral(MOZ_UTF16("http/0.9"));
         break;
     case NS_HTTP_VERSION_1_0:
-        protocolVersion.Assign(NS_LITERAL_STRING("http/1.0"));
+        protocolVersion.AssignLiteral(MOZ_UTF16("http/1.0"));
         break;
     case NS_HTTP_VERSION_1_1:
-        protocolVersion.Assign(NS_LITERAL_STRING("http/1.1"));
+        protocolVersion.AssignLiteral(MOZ_UTF16("http/1.1"));
         break;
     case NS_HTTP_VERSION_2_0:
-        protocolVersion.Assign(NS_LITERAL_STRING("http/2.0"));
+        protocolVersion.AssignLiteral(MOZ_UTF16("http/2.0"));
         break;
     default:
-        protocolVersion.Assign(NS_LITERAL_STRING("unknown protocol version"));
+        protocolVersion.AssignLiteral(MOZ_UTF16("unknown protocol version"));
     }
 }
 
@@ -774,9 +776,9 @@ void
 HttpConnInfo::SetHTTP2ProtocolVersion(uint8_t pv)
 {
     if (pv == SPDY_VERSION_3) {
-        protocolVersion.Assign(NS_LITERAL_STRING("spdy/3"));
+        protocolVersion.AssignLiteral(MOZ_UTF16("spdy/3"));
     } else if (pv == SPDY_VERSION_31) {
-        protocolVersion.Assign(NS_LITERAL_STRING("spdy/3.1"));
+        protocolVersion.AssignLiteral(MOZ_UTF16("spdy/3.1"));
     } else {
         MOZ_ASSERT (pv == NS_HTTP2_DRAFT_VERSION);
         protocolVersion.Assign(NS_LITERAL_STRING(NS_HTTP2_DRAFT_TOKEN));
@@ -822,7 +824,7 @@ Dashboard::GetConnectionStatus(ConnectionData *aConnectionData)
     dict.mStatus = connectionData->mStatus;
 
     JS::RootedValue val(cx);
-    if (!dict.ToObject(cx, &val))
+    if (!ToJSValue(cx, dict, &val))
         return NS_ERROR_FAILURE;
 
     connectionData->mCallback->OnDashboardDataAvailable(val);

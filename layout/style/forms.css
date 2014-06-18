@@ -664,6 +664,7 @@ input[type="submit"]:disabled {
   cursor: inherit; 
 }
 
+button:disabled:active, button:disabled,
 input[type="reset"]:disabled:active,
 input[type="reset"]:disabled,
 input[type="button"]:disabled:active,
@@ -924,6 +925,7 @@ input[type=number]::-moz-number-text {
    */
   text-align: inherit;
   flex: 1;
+  min-width: 0;
   padding: 0;
   border: 0;
   margin: 0;

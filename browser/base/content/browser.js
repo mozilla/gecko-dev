@@ -172,6 +172,9 @@ let gInitialPages = [
 #include browser-feeds.js
 #include browser-fullScreen.js
 #include browser-fullZoom.js
+#ifdef MOZ_LOOP
+#include browser-loop.js
+#endif
 #include browser-places.js
 #include browser-plugins.js
 #include browser-safebrowsing.js
@@ -784,7 +787,8 @@ var gBrowserInit = {
     gPageStyleMenu.init();
     LanguageDetectionListener.init();
 
-    messageManager.loadFrameScript("chrome://browser/content/content.js", true);
+    let mm = window.getGroupMessageManager("browsers");
+    mm.loadFrameScript("chrome://browser/content/content.js", true);
 
     // initialize observers and listeners
     // and give C++ access to gBrowser
@@ -947,6 +951,8 @@ var gBrowserInit = {
     }
 #endif
 
+    ToolbarIconColor.init();
+
     // Wait until chrome is painted before executing code not critical to making the window visible
     this._boundDelayedStartup = this._delayedStartup.bind(this, mustLoadSidebar);
     window.addEventListener("MozAfterPaint", this._boundDelayedStartup);
@@ -1026,10 +1032,6 @@ var gBrowserInit = {
       // Note: loadOneOrMoreURIs *must not* be called if window.arguments.length >= 3.
       // Such callers expect that window.arguments[0] is handled as a single URI.
       else {
-        if (uriToLoad == "about:newtab" &&
-            Services.prefs.getBoolPref("browser.newtabpage.enabled")) {
-          Services.telemetry.getHistogramById("NEWTAB_PAGE_SHOWN").add(true);
-        }
         loadOneOrMoreURIs(uriToLoad);
       }
     }
@@ -1130,6 +1132,18 @@ var gBrowserInit = {
       }
     }, 10000);
 
+    // Load the Login Manager data from disk off the main thread, some time
+    // after startup.  If the data is required before the timeout, for example
+    // because a restored page contains a password field, it will be loaded on
+    // the main thread, and this initialization request will be ignored.
+    setTimeout(function() {
+      try {
+        Services.logins;
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+    }, 3000);
+
     // The object handling the downloads indicator is also initialized here in the
     // delayed startup function, but the actual indicator element is not loaded
     // unless there are downloads to be displayed.
@@ -1171,6 +1185,10 @@ var gBrowserInit = {
     gDataNotificationInfoBar.init();
 #endif
 
+#ifdef MOZ_LOOP
+    LoopUI.initialize();
+#endif
+
     gBrowserThumbnails.init();
 
     // Add Devtools menuitems and listeners
@@ -1208,6 +1226,23 @@ var gBrowserInit = {
 
       SocialUI.init();
       TabView.init();
+
+      // Telemetry for master-password - we do this after 5 seconds as it
+      // can cause IO if NSS/PSM has not already initialized.
+      setTimeout(() => {
+        if (window.closed) {
+          return;
+        }
+        let secmodDB = Cc["@mozilla.org/security/pkcs11moduledb;1"]
+                       .getService(Ci.nsIPKCS11ModuleDB);
+        let slot = secmodDB.findSlotByName("");
+        let mpEnabled = slot &&
+                        slot.status != Ci.nsIPKCS11Slot.SLOT_UNINITIALIZED &&
+                        slot.status != Ci.nsIPKCS11Slot.SLOT_READY;
+        if (mpEnabled) {
+          Services.telemetry.getHistogramById("MASTER_PASSWORD_ENABLED").add(mpEnabled);
+        }
+      }, 5000);
     });
     this.delayedStartupFinished = true;
 
@@ -1282,6 +1317,8 @@ var gBrowserInit = {
     BookmarkingUI.uninit();
 
     TabsInTitlebar.uninit();
+
+    ToolbarIconColor.uninit();
 
     var enumerator = Services.wm.getEnumerator(null);
     enumerator.getNext();
@@ -2055,10 +2092,23 @@ function BrowserViewSourceOfDocument(aDocument)
   // view-source to access the cached copy of the content rather than
   // refetching it from the network...
   //
-  try{
-    var PageLoader = webNav.QueryInterface(Components.interfaces.nsIWebPageDescriptor);
+  try {
 
-    pageCookie = PageLoader.currentDescriptor;
+#ifdef E10S_TESTING_ONLY
+    // Workaround for bug 988133, which causes a crash if we attempt to load
+    // the document from the cache when the document is a CPOW (which occurs
+    // if we're using remote tabs). This causes us to reload the document from
+    // the network in this case, so it's not a permanent solution, hence hiding
+    // it behind the E10S_TESTING_ONLY ifdef. This is just a band-aid fix until
+    // we can find something better - see bug 1025146.
+    if (!Cu.isCrossProcessWrapper(aDocument)) {
+#endif
+      var PageLoader = webNav.QueryInterface(Components.interfaces.nsIWebPageDescriptor);
+
+      pageCookie = PageLoader.currentDescriptor;
+#ifdef E10S_TESTING_ONLY
+    }
+#endif
   } catch(err) {
     // If no page descriptor is available, just use the view-source URL...
   }
@@ -2408,7 +2458,8 @@ let BrowserOnClick = {
         TabCrashReporter.submitCrashReport(browser);
       }
 #endif
-      openUILinkIn(button.getAttribute("url"), "current");
+
+      TabCrashReporter.reloadCrashedTabs();
     }
   },
 
@@ -4296,6 +4347,8 @@ function setToolbarVisibility(toolbar, isVisible, persist=true) {
   PlacesToolbarHelper.init();
   BookmarkingUI.onToolbarVisibilityChange();
   gBrowser.updateWindowResizers();
+  if (isVisible)
+    ToolbarIconColor.inferFromText();
 }
 
 var TabsInTitlebar = {
@@ -4426,7 +4479,8 @@ var TabsInTitlebar = {
 
       // Get the full height of the tabs toolbar:
       let tabsToolbar = $("TabsToolbar");
-      let fullTabsHeight = rect(tabsToolbar).height;
+      let tabsStyles = window.getComputedStyle(tabsToolbar);
+      let fullTabsHeight = rect(tabsToolbar).height + verticalMargins(tabsStyles);
       // Buttons first:
       let captionButtonsBoxWidth = rect($("titlebar-buttonbox-container")).width;
 
@@ -4435,21 +4489,12 @@ var TabsInTitlebar = {
       // No need to look up the menubar stuff on OS X:
       let menuHeight = 0;
       let fullMenuHeight = 0;
-      // Instead, look up the titlebar padding:
-      let titlebarPadding = parseInt(window.getComputedStyle(titlebar).paddingTop, 10);
 #else
       // Otherwise, get the height and margins separately for the menubar
       let menuHeight = rect(menubar).height;
       let menuStyles = window.getComputedStyle(menubar);
       let fullMenuHeight = verticalMargins(menuStyles) + menuHeight;
-      let tabsStyles = window.getComputedStyle(tabsToolbar);
-      fullTabsHeight += verticalMargins(tabsStyles);
 #endif
-
-      // If the navbar overlaps the tabbar using negative margins, we need to take those into
-      // account so we don't overlap it
-      let navbarMarginTop = parseFloat(window.getComputedStyle($("nav-bar")).marginTop);
-      navbarMarginTop = Math.min(navbarMarginTop, 0);
 
       // And get the height of what's in the titlebar:
       let titlebarContentHeight = rect(titlebarContent).height;
@@ -4491,10 +4536,6 @@ var TabsInTitlebar = {
         // We need to increase the titlebar content's outer height (ie including margins)
         // to match the tab and menu height:
         let extraMargin = tabAndMenuHeight - titlebarContentHeight;
-        // We need to reduce the height by the amount of navbar overlap
-        // (this value is 0 or negative):
-        extraMargin += navbarMarginTop;
-        // On non-OSX, we can just use bottom margin:
 #ifndef XP_MACOSX
         titlebarContent.style.marginBottom = extraMargin + "px";
 #endif
@@ -4539,6 +4580,11 @@ var TabsInTitlebar = {
       titlebarContent.style.marginBottom = "";
       titlebar.style.marginBottom = "";
       menubar.style.paddingBottom = "";
+    }
+
+    ToolbarIconColor.inferFromText();
+    if (CustomizationHandler.isCustomizing()) {
+      gCustomizeMode.updateLWTStyling();
     }
   },
 
@@ -5302,8 +5348,8 @@ function setStyleDisabled(disabled) {
 
 var LanguageDetectionListener = {
   init: function() {
-    window.messageManager.addMessageListener("LanguageDetection:Result", msg => {
-      Translation.languageDetected(msg.target, msg.data);
+    window.messageManager.addMessageListener("Translation:DocumentState", msg => {
+      Translation.documentStateReceived(msg.target, msg.data);
     });
   }
 };
@@ -6053,7 +6099,7 @@ function GetSearchFieldBookmarkData(node) {
 
 
 function AddKeywordForSearchField() {
-  bookmarkData = GetSearchFieldBookmarkData(gContextMenu.target);
+  let bookmarkData = GetSearchFieldBookmarkData(gContextMenu.target);
 
   PlacesUIUtils.showBookmarkDialog({ action: "add"
                                    , type: "bookmark"
@@ -6956,7 +7002,7 @@ var TabContextMenu = {
     for (let menuItem of menuItems)
       menuItem.disabled = disabled;
 
-#ifdef NIGHTLY_BUILD
+#ifdef E10S_TESTING_ONLY
     menuItems = aPopupMenu.getElementsByAttribute("tbattr", "tabbrowser-remote");
     for (let menuItem of menuItems)
       menuItem.hidden = !gMultiProcessBrowser;
@@ -7190,5 +7236,73 @@ function BrowserOpenNewTabOrWindow(event) {
     OpenBrowserWindow();
   } else {
     BrowserOpenTab();
+  }
+}
+
+let ToolbarIconColor = {
+  init: function () {
+    this._initialized = true;
+
+    window.addEventListener("activate", this);
+    window.addEventListener("deactivate", this);
+    Services.obs.addObserver(this, "lightweight-theme-styling-update", false);
+
+    // If the window isn't active now, we assume that it has never been active
+    // before and will soon become active such that inferFromText will be
+    // called from the initial activate event.
+    if (Services.focus.activeWindow == window)
+      this.inferFromText();
+  },
+
+  uninit: function () {
+    this._initialized = false;
+
+    window.removeEventListener("activate", this);
+    window.removeEventListener("deactivate", this);
+    Services.obs.removeObserver(this, "lightweight-theme-styling-update");
+  },
+
+  handleEvent: function (event) {
+    switch (event.type) {
+      case "activate":
+      case "deactivate":
+        this.inferFromText();
+        break;
+    }
+  },
+
+  observe: function (aSubject, aTopic, aData) {
+    switch (aTopic) {
+      case "lightweight-theme-styling-update":
+        // inferFromText needs to run after LightweightThemeConsumer.jsm's
+        // lightweight-theme-styling-update observer.
+        setTimeout(() => { this.inferFromText(); }, 0);
+        break;
+    }
+  },
+
+  inferFromText: function () {
+    if (!this._initialized)
+      return;
+
+    function parseRGB(aColorString) {
+      let rgb = aColorString.match(/^rgba?\((\d+), (\d+), (\d+)/);
+      rgb.shift();
+      return rgb.map(x => parseInt(x));
+    }
+
+    let toolbarSelector = "#navigator-toolbox > toolbar:not([collapsed=true]):not(#addon-bar)";
+#ifdef XP_MACOSX
+    toolbarSelector += ":not([type=menubar])";
+#endif
+
+    for (let toolbar of document.querySelectorAll(toolbarSelector)) {
+      let [r, g, b] = parseRGB(getComputedStyle(toolbar).color);
+      let luminance = 0.2125 * r + 0.7154 * g + 0.0721 * b;
+      if (luminance <= 110)
+        toolbar.removeAttribute("brighttext");
+      else
+        toolbar.setAttribute("brighttext", "true");
+    }
   }
 }

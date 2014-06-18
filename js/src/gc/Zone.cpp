@@ -24,26 +24,25 @@ using namespace js::gc;
 JS::Zone::Zone(JSRuntime *rt)
   : JS::shadow::Zone(rt, &rt->gc.marker),
     allocator(this),
-    ionUsingBarriers_(false),
-    active(false),
-    gcScheduled(false),
-    gcState(NoGC),
-    gcPreserveCode(false),
+    types(this),
+    compartments(),
+    gcGrayRoots(),
+    gcHeapGrowthFactor(3.0),
+    gcMallocBytes(0),
+    gcMallocGCTriggered(false),
     gcBytes(0),
     gcTriggerBytes(0),
-    gcHeapGrowthFactor(3.0),
+    data(nullptr),
     isSystem(false),
     usedByExclusiveThread(false),
     scheduledForDestruction(false),
     maybeAlive(true),
-    gcMallocBytes(0),
-    gcMallocGCTriggered(false),
-    gcGrayRoots(),
-    data(nullptr),
-    types(this)
-#ifdef JS_ION
-    , jitZone_(nullptr)
-#endif
+    active(false),
+    jitZone_(nullptr),
+    gcState_(NoGC),
+    gcScheduled_(false),
+    gcPreserveCode_(false),
+    ionUsingBarriers_(false)
 {
     /* Ensure that there are no vtables to mess us up here. */
     JS_ASSERT(reinterpret_cast<JS::shadow::Zone *>(this) ==
@@ -61,6 +60,11 @@ Zone::~Zone()
 #ifdef JS_ION
     js_delete(jitZone_);
 #endif
+}
+
+bool Zone::init()
+{
+    return gcZoneGroupEdges.init();
 }
 
 void
@@ -154,10 +158,10 @@ Zone::sweepBreakpoints(FreeOp *fop)
             Breakpoint *nextbp;
             for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = nextbp) {
                 nextbp = bp->nextInSite();
-                HeapPtrObject& dbgobj = bp->debugger->toJSObjectRef();
-                JS_ASSERT(dbgobj->zone()->isGCSweeping());
+                HeapPtrObject &dbgobj = bp->debugger->toJSObjectRef();
+                JS_ASSERT_IF(dbgobj->zone()->isCollecting(), dbgobj->zone()->isGCSweeping());
                 bool dying = scriptGone || IsObjectAboutToBeFinalized(&dbgobj);
-                JS_ASSERT_IF(!dying, bp->getHandler()->isMarked());
+                JS_ASSERT_IF(!dying, !IsAboutToBeFinalized(&bp->getHandlerRef()));
                 if (dying)
                     bp->destroy(fop);
             }
@@ -199,7 +203,7 @@ Zone::discardJitCode(FreeOp *fop)
             // well to preserve them.
             if (script->hasParallelIonScript()) {
                 if (jit::ShouldPreserveParallelJITCode(runtimeFromMainThread(), script)) {
-                    script->parallelIonScript()->purgeCaches(this);
+                    script->parallelIonScript()->purgeCaches();
                     script->baselineScript()->setActive();
                 } else {
                     jit::FinishInvalidation<ParallelExecution>(fop, script);
@@ -263,6 +267,18 @@ Zone::hasMarkedCompartments()
     return false;
 }
 
+bool
+Zone::canCollect()
+{
+    // Zones cannot be collected while in use by other threads.
+    if (usedByExclusiveThread)
+        return false;
+    JSRuntime *rt = runtimeFromAnyThread();
+    if (rt->isAtomsZone(this) && rt->exclusiveThreadsPresent())
+        return false;
+    return true;
+}
+
 JS::Zone *
 js::ZoneOfValue(const JS::Value &value)
 {
@@ -270,4 +286,10 @@ js::ZoneOfValue(const JS::Value &value)
     if (value.isObject())
         return value.toObject().zone();
     return static_cast<js::gc::Cell *>(value.toGCThing())->tenuredZone();
+}
+
+bool
+js::ZonesIter::atAtomsZone(JSRuntime *rt)
+{
+    return rt->isAtomsZone(*it);
 }

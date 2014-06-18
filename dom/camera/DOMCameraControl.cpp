@@ -424,57 +424,6 @@ nsDOMCameraControl::SetFocusAreas(const Optional<Sequence<CameraRegion> >& aFocu
             mCurrentConfiguration->mMaxFocusAreas);
 }
 
-static nsresult
-GetSize(JSContext* aCx, JS::Value* aValue, const ICameraControl::Size& aSize)
-{
-  JS::Rooted<JSObject*> o(aCx, JS_NewObject(aCx, nullptr, JS::NullPtr(), JS::NullPtr()));
-  if (!o) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  JS::Rooted<JS::Value> v(aCx);
-
-  v = INT_TO_JSVAL(aSize.width);
-  if (!JS_SetProperty(aCx, o, "width", v)) {
-    return NS_ERROR_FAILURE;
-  }
-  v = INT_TO_JSVAL(aSize.height);
-  if (!JS_SetProperty(aCx, o, "height", v)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  *aValue = JS::ObjectValue(*o);
-  return NS_OK;
-}
-
-/* attribute any pictureSize, deprecated */
-JS::Value
-nsDOMCameraControl::GetPictureSize(JSContext* cx, ErrorResult& aRv)
-{
-  JS::Rooted<JS::Value> value(cx);
-
-  ICameraControl::Size size;
-  aRv = mCameraControl->Get(CAMERA_PARAM_PICTURE_SIZE, size);
-  if (aRv.Failed()) {
-    return value;
-  }
-
-  aRv = GetSize(cx, value.address(), size);
-  return value;
-}
-void
-nsDOMCameraControl::SetPictureSize(JSContext* aCx, JS::Handle<JS::Value> aSize, ErrorResult& aRv)
-{
-  CameraSize size;
-  if (!size.Init(aCx, aSize)) {
-    aRv = NS_ERROR_FAILURE;
-    return;
-  }
-
-  ICameraControl::Size s = { size.mWidth, size.mHeight };
-  aRv = mCameraControl->Set(CAMERA_PARAM_PICTURE_SIZE, s);
-}
-
 void
 nsDOMCameraControl::GetPictureSize(CameraSize& aSize, ErrorResult& aRv)
 {
@@ -487,39 +436,12 @@ nsDOMCameraControl::GetPictureSize(CameraSize& aSize, ErrorResult& aRv)
   aSize.mWidth = size.width;
   aSize.mHeight = size.height;
 }
+
 void
 nsDOMCameraControl::SetPictureSize(const CameraSize& aSize, ErrorResult& aRv)
 {
   ICameraControl::Size s = { aSize.mWidth, aSize.mHeight };
   aRv = mCameraControl->Set(CAMERA_PARAM_PICTURE_SIZE, s);
-}
-
-/* attribute any thumbnailSize, deprecated */
-JS::Value
-nsDOMCameraControl::GetThumbnailSize(JSContext* aCx, ErrorResult& aRv)
-{
-  JS::Rooted<JS::Value> value(aCx);
-
-  ICameraControl::Size size;
-  aRv = mCameraControl->Get(CAMERA_PARAM_THUMBNAILSIZE, size);
-  if (aRv.Failed()) {
-    return value;
-  }
-
-  aRv = GetSize(aCx, value.address(), size);
-  return value;
-}
-void
-nsDOMCameraControl::SetThumbnailSize(JSContext* aCx, JS::Handle<JS::Value> aSize, ErrorResult& aRv)
-{
-  CameraSize size;
-  if (!size.Init(aCx, aSize)) {
-    aRv = NS_ERROR_FAILURE;
-    return;
-  }
-
-  ICameraControl::Size s = { size.mWidth, size.mHeight };
-  aRv = mCameraControl->Set(CAMERA_PARAM_THUMBNAILSIZE, s);
 }
 
 void
@@ -534,6 +456,7 @@ nsDOMCameraControl::GetThumbnailSize(CameraSize& aSize, ErrorResult& aRv)
   aSize.mWidth = size.width;
   aSize.mHeight = size.height;
 }
+
 void
 nsDOMCameraControl::SetThumbnailSize(const CameraSize& aSize, ErrorResult& aRv)
 {
@@ -582,17 +505,10 @@ nsDOMCameraControl::GetFocusDistanceFar(ErrorResult& aRv)
 }
 
 void
-nsDOMCameraControl::SetExposureCompensation(const Optional<double>& aCompensation, ErrorResult& aRv)
+nsDOMCameraControl::SetExposureCompensation(double aCompensation, ErrorResult& aRv)
 {
   MOZ_ASSERT(mCameraControl);
-
-  if (!aCompensation.WasPassed()) {
-    // use NaN to switch the camera back into auto mode
-    aRv = mCameraControl->Set(CAMERA_PARAM_EXPOSURECOMPENSATION, NAN);
-    return;
-  }
-
-  aRv = mCameraControl->Set(CAMERA_PARAM_EXPOSURECOMPENSATION, aCompensation.Value());
+  aRv = mCameraControl->Set(CAMERA_PARAM_EXPOSURECOMPENSATION, aCompensation);
 }
 
 double
@@ -872,18 +788,12 @@ nsDOMCameraControl::AutoFocus(CameraAutoFocusCallback& aOnSuccess,
 {
   MOZ_ASSERT(mCameraControl);
 
-  nsRefPtr<CameraAutoFocusCallback> cb = mAutoFocusOnSuccessCb;
-  if (cb) {
-    if (aOnError.WasPassed()) {
-      // There is already a call to AutoFocus() in progress, abort this new one
-      // and invoke the error callback (if one was passed in).
-      NS_DispatchToMainThread(new ImmediateErrorCallback(&aOnError.Value(),
-                              NS_LITERAL_STRING("AutoFocusAlreadyInProgress")));
-    } else {
-      // Only throw if no error callback was passed in.
-      aRv = NS_ERROR_FAILURE;
-    }
-    return;
+  nsRefPtr<CameraErrorCallback> ecb = mAutoFocusOnErrorCb.forget();
+  if (ecb) {
+    // There is already a call to AutoFocus() in progress, cancel it and
+    // invoke the error callback (if one was passed in).
+    NS_DispatchToMainThread(new ImmediateErrorCallback(ecb,
+                            NS_LITERAL_STRING("AutoFocusInterrupted")));
   }
 
   mAutoFocusOnSuccessCb = &aOnSuccess;
@@ -1308,6 +1218,24 @@ nsDOMCameraControl::OnUserError(CameraControlListener::UserContext aContext, nsr
       mStartRecordingOnSuccessCb = nullptr;
       errorCb = mStartRecordingOnErrorCb.forget();
       break;
+
+    case CameraControlListener::kInStartFaceDetection:
+      // This method doesn't have any callbacks, so all we can do is log the
+      // failure. This only happens after the hardware has been released.
+      NS_WARNING("Failed to start face detection");
+      return;
+
+    case CameraControlListener::kInStopFaceDetection:
+      // This method doesn't have any callbacks, so all we can do is log the
+      // failure. This only happens after the hardware has been released.
+      NS_WARNING("Failed to stop face detection");
+      return;
+
+    case CameraControlListener::kInResumeContinuousFocus:
+      // This method doesn't have any callbacks, so all we can do is log the
+      // failure. This only happens after the hardware has been released.
+      NS_WARNING("Failed to resume continuous focus");
+      return;
 
     case CameraControlListener::kInStopRecording:
       // This method doesn't have any callbacks, so all we can do is log the

@@ -43,17 +43,22 @@
 #include "nsObjectFrame.h"
 #include "nsTransitionManager.h"
 #include "nsAnimationManager.h"
+#include "CounterStyleManager.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/Element.h"
 #include "nsIMessageManager.h"
 #include "mozilla/dom/MediaQueryList.h"
 #include "nsSMILAnimationController.h"
 #include "mozilla/css/ImageLoader.h"
+#include "mozilla/dom/PBrowserParent.h"
 #include "mozilla/dom/TabChild.h"
+#include "mozilla/dom/TabParent.h"
 #include "nsRefreshDriver.h"
 #include "Layers.h"
 #include "nsIDOMEvent.h"
 #include "gfxPrefs.h"
+#include "nsIDOMChromeWindow.h"
+#include "nsFrameLoader.h"
 
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
@@ -234,6 +239,8 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
   NS_ASSERTION(mDocument, "Null document");
   mUserFontSet = nullptr;
   mUserFontSetDirty = true;
+
+  mCounterStylesDirty = true;
 
   // if text perf logging enabled, init stats struct
   PRLogModuleInfo *log = gfxPlatform::GetLog(eGfxLog_textperf);
@@ -496,10 +503,10 @@ nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
     Preferences::GetCString("font.size.unit");
 
   if (!cvalue.IsEmpty()) {
-    if (cvalue.Equals("px")) {
+    if (cvalue.EqualsLiteral("px")) {
       unit = eUnit_px;
     }
-    else if (cvalue.Equals("pt")) {
+    else if (cvalue.EqualsLiteral("pt")) {
       unit = eUnit_pt;
     }
     else {
@@ -553,13 +560,23 @@ nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
 
       nsAdoptingString value = Preferences::GetString(pref.get());
       if (!value.IsEmpty()) {
-        prefs->mDefaultVariableFont.name.Assign(value);
+        FontFamilyName defaultVariableName = FontFamilyName::Convert(value);
+        FontFamilyType defaultType = defaultVariableName.mType;
+        NS_ASSERTION(defaultType == eFamily_serif ||
+                     defaultType == eFamily_sans_serif,
+                     "default type must be serif or sans-serif");
+        prefs->mDefaultVariableFont.fontlist = FontFamilyList(defaultType);
       }
       else {
         MAKE_FONT_PREF_KEY(pref, "font.default.", langGroup);
         value = Preferences::GetString(pref.get());
         if (!value.IsEmpty()) {
-          prefs->mDefaultVariableFont.name.Assign(value);
+          FontFamilyName defaultVariableName = FontFamilyName::Convert(value);
+          FontFamilyType defaultType = defaultVariableName.mType;
+          NS_ASSERTION(defaultType == eFamily_serif ||
+                       defaultType == eFamily_sans_serif,
+                       "default type must be serif or sans-serif");
+          prefs->mDefaultVariableFont.fontlist = FontFamilyList(defaultType);
         }
       }
     }
@@ -768,11 +785,11 @@ nsPresContext::GetUserPreferences()
   // * image animation
   const nsAdoptingCString& animatePref =
     Preferences::GetCString("image.animation_mode");
-  if (animatePref.Equals("normal"))
+  if (animatePref.EqualsLiteral("normal"))
     mImageAnimationModePref = imgIContainer::kNormalAnimMode;
-  else if (animatePref.Equals("none"))
+  else if (animatePref.EqualsLiteral("none"))
     mImageAnimationModePref = imgIContainer::kDontAnimMode;
-  else if (animatePref.Equals("once"))
+  else if (animatePref.EqualsLiteral("once"))
     mImageAnimationModePref = imgIContainer::kLoopOnceAnimMode;
   else // dynamic change to invalid value should act like it does initially
     mImageAnimationModePref = imgIContainer::kNormalAnimMode;
@@ -950,8 +967,11 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
 
   mAnimationManager = new nsAnimationManager(this);
 
-  // FIXME: Why is mozilla:: needed?
+  // Since there are methods in nsPresContext have the same name as the
+  // classes, it is necessary to prefix them with the namespace here.
   mRestyleManager = new mozilla::RestyleManager(this);
+
+  mCounterStyleManager = new mozilla::CounterStyleManager(this);
 
   if (mDocument->GetDisplayDocument()) {
     NS_ASSERTION(mDocument->GetDisplayDocument()->GetShell() &&
@@ -1127,6 +1147,10 @@ nsPresContext::SetShell(nsIPresShell* aShell)
     if (mRestyleManager) {
       mRestyleManager->Disconnect();
       mRestyleManager = nullptr;
+    }
+    if (mCounterStyleManager) {
+      mCounterStyleManager->Disconnect();
+      mCounterStyleManager = nullptr;
     }
 
     if (IsRoot()) {
@@ -1638,7 +1662,11 @@ nsPresContext::IsTopLevelWindowInactive()
 
   nsCOMPtr<nsIDocShellTreeItem> rootItem;
   treeItem->GetRootTreeItem(getter_AddRefs(rootItem));
-  nsCOMPtr<nsPIDOMWindow> domWindow(do_GetInterface(rootItem));
+  if (!rootItem) {
+    return false;
+  }
+
+  nsCOMPtr<nsPIDOMWindow> domWindow = rootItem->GetWindow();
 
   return domWindow && !domWindow->IsActive();
 }
@@ -1768,8 +1796,50 @@ nsPresContext::UIResolutionChangedInternal()
     AppUnitsPerDevPixelChanged();
   }
 
+  nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(mDocument->GetWindow()));
+  nsCOMPtr<nsIMessageBroadcaster> windowMM;
+  if (chromeWindow) {
+    chromeWindow->GetMessageManager(getter_AddRefs(windowMM));
+  }
+  if (windowMM) {
+    NotifyUIResolutionChanged(windowMM);
+  }
+
   mDocument->EnumerateSubDocuments(UIResolutionChangedSubdocumentCallback,
                                    nullptr);
+}
+
+void
+nsPresContext::NotifyUIResolutionChanged(nsIMessageBroadcaster* aManager)
+{
+  uint32_t tabChildCount = 0;
+  aManager->GetChildCount(&tabChildCount);
+  for (uint32_t j = 0; j < tabChildCount; ++j) {
+    nsCOMPtr<nsIMessageListenerManager> childMM;
+    aManager->GetChildAt(j, getter_AddRefs(childMM));
+    if (!childMM) {
+      continue;
+    }
+
+    nsCOMPtr<nsIMessageBroadcaster> nonLeafMM = do_QueryInterface(childMM);
+    if (nonLeafMM) {
+      NotifyUIResolutionChanged(nonLeafMM);
+      continue;
+    }
+
+    nsCOMPtr<nsIMessageSender> tabMM = do_QueryInterface(childMM);
+
+    mozilla::dom::ipc::MessageManagerCallback* cb =
+     static_cast<nsFrameMessageManager*>(tabMM.get())->GetCallback();
+    if (cb) {
+      nsFrameLoader* fl = static_cast<nsFrameLoader*>(cb);
+      PBrowserParent* remoteBrowser = fl->GetRemoteBrowser();
+      TabParent* remote = static_cast<TabParent*>(remoteBrowser);
+      if (remote) {
+        remote->UIResolutionChanged();
+      }
+    }
+  }
 }
 
 void
@@ -1807,6 +1877,7 @@ nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint)
   mUsesRootEMUnits = false;
   mUsesViewportUnits = false;
   RebuildUserFontSet();
+  RebuildCounterStyles();
 
   RestyleManager()->RebuildAllStyleData(aExtraHint);
 }
@@ -2139,6 +2210,46 @@ nsPresContext::UserFontSetUpdated()
   //      reuse of cached data even when no style rules have changed.
 
   PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW);
+}
+
+void
+nsPresContext::FlushCounterStyles()
+{
+  if (!mShell) {
+    return; // we've been torn down
+  }
+  if (mCounterStyleManager->IsInitial()) {
+    // Still in its initial state, no need to clean.
+    return;
+  }
+
+  if (mCounterStylesDirty) {
+    bool changed = mCounterStyleManager->NotifyRuleChanged();
+    if (changed) {
+      PresShell()->NotifyCounterStylesAreDirty();
+      PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW);
+    }
+    mCounterStylesDirty = false;
+  }
+}
+
+void
+nsPresContext::RebuildCounterStyles()
+{
+  if (mCounterStyleManager->IsInitial()) {
+    // Still in its initial state, no need to reset.
+    return;
+  }
+
+  mCounterStylesDirty = true;
+  mDocument->SetNeedStyleFlush();
+  if (!mPostedFlushCounterStyles) {
+    nsCOMPtr<nsIRunnable> ev =
+      NS_NewRunnableMethod(this, &nsPresContext::HandleRebuildCounterStyles);
+    if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
+      mPostedFlushCounterStyles = true;
+    }
+  }
 }
 
 void

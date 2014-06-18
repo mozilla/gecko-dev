@@ -22,6 +22,7 @@
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layout/RenderFrameParent.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/net/NeckoChild.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
@@ -61,6 +62,11 @@
 #include "TabChild.h"
 #include "LoadContext.h"
 #include "nsNetCID.h"
+#include "nsIAuthInformation.h"
+#include "nsIAuthPromptCallback.h"
+#include "nsAuthInformationHolder.h"
+#include "nsICancelable.h"
+#include "gfxPrefs.h"
 #include <algorithm>
 
 using namespace mozilla::dom;
@@ -168,7 +174,7 @@ private:
 
         mFD = fd;
 
-        if (NS_FAILED(NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL))) {
+        if (NS_FAILED(NS_DispatchToMainThread(this))) {
             NS_WARNING("Failed to dispatch to main thread!");
 
             CloseFile();
@@ -199,9 +205,13 @@ TabParent* sEventCapturer;
 
 TabParent *TabParent::mIMETabParent = nullptr;
 
-NS_IMPL_ISUPPORTS(TabParent, nsITabParent, nsIAuthPromptProvider, nsISecureBrowserUI)
+NS_IMPL_ISUPPORTS(TabParent,
+                  nsITabParent,
+                  nsIAuthPromptProvider,
+                  nsISecureBrowserUI,
+                  nsISupportsWeakReference)
 
-TabParent::TabParent(ContentParent* aManager, const TabContext& aContext, uint32_t aChromeFlags)
+TabParent::TabParent(nsIContentParent* aManager, const TabContext& aContext, uint32_t aChromeFlags)
   : TabContext(aContext)
   , mFrameElement(nullptr)
   , mIMESelectionAnchor(0)
@@ -225,6 +235,7 @@ TabParent::TabParent(ContentParent* aManager, const TabContext& aContext, uint32
   , mAppPackageFileDescriptorSent(false)
   , mChromeFlags(aChromeFlags)
 {
+  MOZ_ASSERT(aManager);
 }
 
 TabParent::~TabParent()
@@ -294,14 +305,18 @@ TabParent::Destroy()
   }
   mIsDestroyed = true;
 
-  Manager()->NotifyTabDestroying(this);
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    Manager()->AsContentParent()->NotifyTabDestroying(this);
+  }
   mMarkedDestroying = true;
 }
 
 bool
 TabParent::Recv__delete__()
 {
-  Manager()->NotifyTabDestroyed(this, mMarkedDestroying);
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    Manager()->AsContentParent()->NotifyTabDestroyed(this, mMarkedDestroying);
+  }
   return true;
 }
 
@@ -510,6 +525,17 @@ TabParent::UpdateFrame(const FrameMetrics& aFrameMetrics)
 }
 
 void
+TabParent::UIResolutionChanged()
+{
+  if (!mIsDestroyed) {
+    // TryCacheDPIAndScale()'s cache is keyed off of
+    // mDPI being greater than 0, so this invalidates it.
+    mDPI = -1;
+    unused << SendUIResolutionChanged();
+  }
+}
+
+void
 TabParent::AcknowledgeScrollUpdate(const ViewID& aScrollId, const uint32_t& aScrollGeneration)
 {
   if (!mIsDestroyed) {
@@ -711,8 +737,9 @@ bool TabParent::SendRealMouseEvent(WidgetMouseEvent& event)
   if (mIsDestroyed) {
     return false;
   }
-  MaybeForwardEventToRenderFrame(event, nullptr);
-  if (!MapEventCoordinatesForChildProcess(&event)) {
+  nsEventStatus status = MaybeForwardEventToRenderFrame(event, nullptr);
+  if (status == nsEventStatus_eConsumeNoDefault ||
+      !MapEventCoordinatesForChildProcess(&event)) {
     return false;
   }
   return PBrowserParent::SendRealMouseEvent(event);
@@ -778,8 +805,9 @@ bool TabParent::SendMouseWheelEvent(WidgetWheelEvent& event)
   if (mIsDestroyed) {
     return false;
   }
-  MaybeForwardEventToRenderFrame(event, nullptr);
-  if (!MapEventCoordinatesForChildProcess(&event)) {
+  nsEventStatus status = MaybeForwardEventToRenderFrame(event, nullptr);
+  if (status == nsEventStatus_eConsumeNoDefault ||
+      !MapEventCoordinatesForChildProcess(&event)) {
     return false;
   }
   return PBrowserParent::SendMouseWheelEvent(event);
@@ -899,9 +927,9 @@ bool TabParent::SendRealTouchEvent(WidgetTouchEvent& event)
   }
 
   ScrollableLayerGuid guid;
-  MaybeForwardEventToRenderFrame(event, &guid);
+  nsEventStatus status = MaybeForwardEventToRenderFrame(event, &guid);
 
-  if (mIsDestroyed) {
+  if (status == nsEventStatus_eConsumeNoDefault || mIsDestroyed) {
     return false;
   }
 
@@ -954,15 +982,18 @@ TabParent::RecvSyncMessage(const nsString& aMessage,
                            const IPC::Principal& aPrincipal,
                            InfallibleTArray<nsString>* aJSONRetVal)
 {
+  // FIXME Permission check for TabParent in Content process
   nsIPrincipal* principal = aPrincipal;
-  ContentParent* parent = static_cast<ContentParent*>(Manager());
-  if (!Preferences::GetBool("dom.testing.ignore_ipc_principal", false) &&
-      principal && !AssertAppPrincipal(parent, principal)) {
-    return false;
+  if (Manager()->IsContentParent()) {
+    ContentParent* parent = Manager()->AsContentParent();
+    if (!ContentParent::IgnoreIPCPrincipal() &&
+        parent && principal && !AssertAppPrincipal(parent, principal)) {
+      return false;
+    }
   }
 
   StructuredCloneData cloneData = ipc::UnpackClonedMessageDataForParent(aData);
-  CpowIdHolder cpows(parent->GetCPOWManager(), aCpows);
+  CpowIdHolder cpows(Manager()->GetCPOWManager(), aCpows);
   return ReceiveMessage(aMessage, true, &cloneData, &cpows, aPrincipal, aJSONRetVal);
 }
 
@@ -973,15 +1004,18 @@ TabParent::AnswerRpcMessage(const nsString& aMessage,
                             const IPC::Principal& aPrincipal,
                             InfallibleTArray<nsString>* aJSONRetVal)
 {
+  // FIXME Permission check for TabParent in Content process
   nsIPrincipal* principal = aPrincipal;
-  ContentParent* parent = static_cast<ContentParent*>(Manager());
-  if (!Preferences::GetBool("dom.testing.ignore_ipc_principal", false) &&
-      principal && !AssertAppPrincipal(parent, principal)) {
-    return false;
+  if (Manager()->IsContentParent()) {
+    ContentParent* parent = Manager()->AsContentParent();
+    if (!ContentParent::IgnoreIPCPrincipal() &&
+        parent && principal && !AssertAppPrincipal(parent, principal)) {
+      return false;
+    }
   }
 
   StructuredCloneData cloneData = ipc::UnpackClonedMessageDataForParent(aData);
-  CpowIdHolder cpows(parent->GetCPOWManager(), aCpows);
+  CpowIdHolder cpows(Manager()->GetCPOWManager(), aCpows);
   return ReceiveMessage(aMessage, true, &cloneData, &cpows, aPrincipal, aJSONRetVal);
 }
 
@@ -991,23 +1025,29 @@ TabParent::RecvAsyncMessage(const nsString& aMessage,
                             const InfallibleTArray<CpowEntry>& aCpows,
                             const IPC::Principal& aPrincipal)
 {
+  // FIXME Permission check for TabParent in Content process
   nsIPrincipal* principal = aPrincipal;
-  ContentParent* parent = static_cast<ContentParent*>(Manager());
-  if (!Preferences::GetBool("dom.testing.ignore_ipc_principal", false) &&
-      principal && !AssertAppPrincipal(parent, principal)) {
-    return false;
+  if (Manager()->IsContentParent()) {
+    ContentParent* parent = Manager()->AsContentParent();
+    if (!ContentParent::IgnoreIPCPrincipal() &&
+        parent && principal && !AssertAppPrincipal(parent, principal)) {
+      return false;
+    }
   }
 
   StructuredCloneData cloneData = ipc::UnpackClonedMessageDataForParent(aData);
-  CpowIdHolder cpows(parent->GetCPOWManager(), aCpows);
+  CpowIdHolder cpows(Manager()->GetCPOWManager(), aCpows);
   return ReceiveMessage(aMessage, false, &cloneData, &cpows, aPrincipal, nullptr);
 }
 
 bool
-TabParent::RecvSetCursor(const uint32_t& aCursor)
+TabParent::RecvSetCursor(const uint32_t& aCursor, const bool& aForce)
 {
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (widget) {
+    if (aForce) {
+      widget->ClearCachedCursor();
+    }
     widget->SetCursor((nsCursor) aCursor);
   }
   return true;
@@ -1681,11 +1721,10 @@ TabParent::RecvPIndexedDBConstructor(PIndexedDBParent* aActor,
     return true;
   }
 
-  ContentParent* contentParent = Manager();
-  NS_ASSERTION(contentParent, "Null manager?!");
+  NS_ASSERTION(Manager(), "Null manager?!");
 
   nsRefPtr<IDBFactory> factory;
-  rv = IDBFactory::Create(window, aGroup, aASCIIOrigin, contentParent,
+  rv = IDBFactory::Create(window, aGroup, aASCIIOrigin, Manager(),
                           getter_AddRefs(factory));
   NS_ENSURE_SUCCESS(rv, false);
 
@@ -1872,19 +1911,18 @@ bool
 TabParent::UseAsyncPanZoom()
 {
   bool usingOffMainThreadCompositing = !!CompositorParent::CompositorLoop();
-  bool asyncPanZoomEnabled =
-    Preferences::GetBool("layers.async-pan-zoom.enabled", false);
-  return (usingOffMainThreadCompositing && asyncPanZoomEnabled &&
+  return (usingOffMainThreadCompositing && gfxPrefs::AsyncPanZoomEnabled() &&
           GetScrollingBehavior() == ASYNC_PAN_ZOOM);
 }
 
-void
+nsEventStatus
 TabParent::MaybeForwardEventToRenderFrame(WidgetInputEvent& aEvent,
                                           ScrollableLayerGuid* aOutTargetGuid)
 {
   if (RenderFrameParent* rfp = GetRenderFrame()) {
-    rfp->NotifyInputEvent(aEvent, aOutTargetGuid);
+    return rfp->NotifyInputEvent(aEvent, aOutTargetGuid);
   }
+  return nsEventStatus_eIgnore;
 }
 
 bool
@@ -1995,10 +2033,26 @@ TabParent::InjectTouchEvent(const nsAString& aType,
   event.modifiers = aModifiers;
   event.time = PR_IntervalNow();
 
+  nsCOMPtr<nsIContent> content = do_QueryInterface(mFrameElement);
+  if (!content || !content->OwnerDoc()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsIDocument* doc = content->OwnerDoc();
+  if (!doc || !doc->GetShell()) {
+    return NS_ERROR_FAILURE;
+  }
+  nsPresContext* presContext = doc->GetShell()->GetPresContext();
+
   event.touches.SetCapacity(aCount);
   for (uint32_t i = 0; i < aCount; ++i) {
+    LayoutDeviceIntPoint pt =
+      LayoutDeviceIntPoint::FromAppUnitsRounded(
+        CSSPoint::ToAppUnits(CSSPoint(aXs[i], aYs[i])),
+        presContext->AppUnitsPerDevPixel());
+
     nsRefPtr<Touch> t = new Touch(aIdentifiers[i],
-                                  nsIntPoint(aXs[i], aYs[i]),
+                                  LayoutDeviceIntPoint::ToUntyped(pt),
                                   nsIntPoint(aRxs[i], aRys[i]),
                                   aRotationAngles[i],
                                   aForces[i]);
@@ -2032,6 +2086,146 @@ TabParent::SetIsDocShellActive(bool isActive)
   unused << SendSetIsDocShellActive(isActive);
   return NS_OK;
 }
+
+class FakeChannel MOZ_FINAL : public nsIChannel,
+                              public nsIAuthPromptCallback,
+                              public nsIInterfaceRequestor,
+                              public nsILoadContext
+{
+public:
+  FakeChannel(const nsCString& aUri, uint64_t aCallbackId, Element* aElement)
+    : mCallbackId(aCallbackId)
+    , mElement(aElement)
+  {
+    NS_NewURI(getter_AddRefs(mUri), aUri);
+  }
+
+  NS_DECL_ISUPPORTS
+#define NO_IMPL { return NS_ERROR_NOT_IMPLEMENTED; }
+  NS_IMETHOD GetName(nsACString&) NO_IMPL
+  NS_IMETHOD IsPending(bool*) NO_IMPL
+  NS_IMETHOD GetStatus(nsresult*) NO_IMPL
+  NS_IMETHOD Cancel(nsresult) NO_IMPL
+  NS_IMETHOD Suspend() NO_IMPL
+  NS_IMETHOD Resume() NO_IMPL
+  NS_IMETHOD GetLoadGroup(nsILoadGroup**) NO_IMPL
+  NS_IMETHOD SetLoadGroup(nsILoadGroup*) NO_IMPL
+  NS_IMETHOD SetLoadFlags(nsLoadFlags) NO_IMPL
+  NS_IMETHOD GetLoadFlags(nsLoadFlags*) NO_IMPL
+  NS_IMETHOD GetOriginalURI(nsIURI**) NO_IMPL
+  NS_IMETHOD SetOriginalURI(nsIURI*) NO_IMPL
+  NS_IMETHOD GetURI(nsIURI** aUri)
+  {
+    NS_IF_ADDREF(mUri);
+    *aUri = mUri;
+    return NS_OK;
+  }
+  NS_IMETHOD GetOwner(nsISupports**) NO_IMPL
+  NS_IMETHOD SetOwner(nsISupports*) NO_IMPL
+  NS_IMETHOD GetNotificationCallbacks(nsIInterfaceRequestor** aRequestor)
+  {
+    NS_ADDREF(*aRequestor = this);
+    return NS_OK;
+  }
+  NS_IMETHOD SetNotificationCallbacks(nsIInterfaceRequestor*) NO_IMPL
+  NS_IMETHOD GetSecurityInfo(nsISupports**) NO_IMPL
+  NS_IMETHOD GetContentType(nsACString&) NO_IMPL
+  NS_IMETHOD SetContentType(const nsACString&) NO_IMPL
+  NS_IMETHOD GetContentCharset(nsACString&) NO_IMPL
+  NS_IMETHOD SetContentCharset(const nsACString&) NO_IMPL
+  NS_IMETHOD GetContentLength(int64_t*) NO_IMPL
+  NS_IMETHOD SetContentLength(int64_t) NO_IMPL
+  NS_IMETHOD Open(nsIInputStream**) NO_IMPL
+  NS_IMETHOD AsyncOpen(nsIStreamListener*, nsISupports*) NO_IMPL
+  NS_IMETHOD GetContentDisposition(uint32_t*) NO_IMPL
+  NS_IMETHOD SetContentDisposition(uint32_t) NO_IMPL
+  NS_IMETHOD GetContentDispositionFilename(nsAString&) NO_IMPL
+  NS_IMETHOD SetContentDispositionFilename(const nsAString&) NO_IMPL
+  NS_IMETHOD GetContentDispositionHeader(nsACString&) NO_IMPL
+  NS_IMETHOD OnAuthAvailable(nsISupports *aContext, nsIAuthInformation *aAuthInfo);
+  NS_IMETHOD OnAuthCancelled(nsISupports *aContext, bool userCancel);
+  NS_IMETHOD GetInterface(const nsIID & uuid, void **result)
+  {
+    return QueryInterface(uuid, result);
+  }
+  NS_IMETHOD GetAssociatedWindow(nsIDOMWindow**) NO_IMPL
+  NS_IMETHOD GetTopWindow(nsIDOMWindow**) NO_IMPL
+  NS_IMETHOD GetTopFrameElement(nsIDOMElement** aElement)
+  {
+    nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(mElement);
+    elem.forget(aElement);
+    return NS_OK;
+  }
+  NS_IMETHOD GetNestedFrameId(uint64_t*) NO_IMPL
+  NS_IMETHOD IsAppOfType(uint32_t, bool*) NO_IMPL
+  NS_IMETHOD GetIsContent(bool*) NO_IMPL
+  NS_IMETHOD GetUsePrivateBrowsing(bool*) NO_IMPL
+  NS_IMETHOD SetUsePrivateBrowsing(bool) NO_IMPL
+  NS_IMETHOD SetPrivateBrowsing(bool) NO_IMPL
+  NS_IMETHOD GetIsInBrowserElement(bool*) NO_IMPL
+  NS_IMETHOD GetAppId(uint32_t*) NO_IMPL
+  NS_IMETHOD GetUseRemoteTabs(bool*) NO_IMPL
+  NS_IMETHOD SetRemoteTabs(bool) NO_IMPL
+#undef NO_IMPL
+
+protected:
+  nsCOMPtr<nsIURI> mUri;
+  uint64_t mCallbackId;
+  nsCOMPtr<Element> mElement;
+};
+
+NS_IMPL_ISUPPORTS(FakeChannel, nsIChannel, nsIAuthPromptCallback,
+                  nsIRequest, nsIInterfaceRequestor, nsILoadContext);
+
+bool
+TabParent::RecvAsyncAuthPrompt(const nsCString& aUri,
+                               const nsString& aRealm,
+                               const uint64_t& aCallbackId)
+{
+  nsCOMPtr<nsIAuthPrompt2> authPrompt;
+  GetAuthPrompt(nsIAuthPromptProvider::PROMPT_NORMAL,
+                NS_GET_IID(nsIAuthPrompt2),
+                getter_AddRefs(authPrompt));
+  nsRefPtr<FakeChannel> channel = new FakeChannel(aUri, aCallbackId, mFrameElement);
+  uint32_t promptFlags = nsIAuthInformation::AUTH_HOST;
+
+  nsRefPtr<nsAuthInformationHolder> holder =
+    new nsAuthInformationHolder(promptFlags, aRealm,
+                                EmptyCString());
+
+  uint32_t level = nsIAuthPrompt2::LEVEL_NONE;
+  nsCOMPtr<nsICancelable> dummy;
+  nsresult rv =
+    authPrompt->AsyncPromptAuth(channel, channel, nullptr,
+                                level, holder, getter_AddRefs(dummy));
+
+  return rv == NS_OK;
+}
+
+NS_IMETHODIMP
+FakeChannel::OnAuthAvailable(nsISupports *aContext, nsIAuthInformation *aAuthInfo)
+{
+  nsAuthInformationHolder* holder =
+    static_cast<nsAuthInformationHolder*>(aAuthInfo);
+
+  if (!net::gNeckoChild->SendOnAuthAvailable(mCallbackId,
+                                             holder->User(),
+                                             holder->Password(),
+                                             holder->Domain())) {
+    return NS_ERROR_FAILURE;
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+FakeChannel::OnAuthCancelled(nsISupports *aContext, bool userCancel)
+{
+  if (!net::gNeckoChild->SendOnAuthCancelled(mCallbackId, userCancel)) {
+    return NS_ERROR_FAILURE;
+  }
+  return NS_OK;
+}
+
 
 } // namespace tabs
 } // namespace mozilla

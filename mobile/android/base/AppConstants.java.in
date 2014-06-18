@@ -121,6 +121,13 @@ public class AppConstants {
     false;
 #endif
 
+    public static final boolean MOZ_LOCALE_SWITCHER =
+#ifdef MOZ_LOCALE_SWITCHER
+    true;
+#else
+    false;
+#endif
+
     public static final boolean MOZ_UPDATER =
 #ifdef MOZ_UPDATER
     true;
@@ -137,13 +144,6 @@ public class AppConstants {
 
     public static final boolean MOZ_ANDROID_BEAM =
 #ifdef MOZ_ANDROID_BEAM
-    true;
-#else
-    false;
-#endif
-
-    public static final boolean MOZ_ANDROID_SYNTHAPKS =
-#ifdef MOZ_ANDROID_SYNTHAPKS
     true;
 #else
     false;

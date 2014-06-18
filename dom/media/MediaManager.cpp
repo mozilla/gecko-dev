@@ -41,12 +41,11 @@
 #include "nsDOMFile.h"
 #include "nsGlobalWindow.h"
 
-#include "mozilla/Preferences.h"
-
 /* Using WebRTC backend on Desktops (Mac, Windows, Linux), otherwise default */
 #include "MediaEngineDefault.h"
 #if defined(MOZ_WEBRTC)
 #include "MediaEngineWebRTC.h"
+#include "browser_logging/WebRtcLog.h"
 #endif
 
 #ifdef MOZ_B2G
@@ -62,12 +61,12 @@
 // XXX Workaround for bug 986974 to maintain the existing broken semantics
 template<>
 struct nsIMediaDevice::COMTypeInfo<mozilla::VideoDevice, void> {
-  static const nsIID kIID NS_HIDDEN;
+  static const nsIID kIID;
 };
 const nsIID nsIMediaDevice::COMTypeInfo<mozilla::VideoDevice, void>::kIID = NS_IMEDIADEVICE_IID;
 template<>
 struct nsIMediaDevice::COMTypeInfo<mozilla::AudioDevice, void> {
-  static const nsIID kIID NS_HIDDEN;
+  static const nsIID kIID;
 };
 const nsIID nsIMediaDevice::COMTypeInfo<mozilla::AudioDevice, void>::kIID = NS_IMEDIADEVICE_IID;
 
@@ -331,14 +330,14 @@ MediaDevice::GetType(nsAString& aType)
 NS_IMETHODIMP
 VideoDevice::GetType(nsAString& aType)
 {
-  aType.Assign(NS_LITERAL_STRING("video"));
+  aType.AssignLiteral(MOZ_UTF16("video"));
   return NS_OK;
 }
 
 NS_IMETHODIMP
 AudioDevice::GetType(nsAString& aType)
 {
-  aType.Assign(NS_LITERAL_STRING("audio"));
+  aType.AssignLiteral(MOZ_UTF16("audio"));
   return NS_OK;
 }
 
@@ -1499,14 +1498,6 @@ MediaManager::GetUserMedia(bool aPrivileged,
       rv = permManager->TestExactPermissionFromPrincipal(
         aWindow->GetExtantDoc()->NodePrincipal(), "microphone", &audioPerm);
       NS_ENSURE_SUCCESS(rv, rv);
-      if (audioPerm == nsIPermissionManager::PROMPT_ACTION) {
-        audioPerm = nsIPermissionManager::UNKNOWN_ACTION;
-      }
-      if (audioPerm == nsIPermissionManager::ALLOW_ACTION) {
-        if (!isHTTPS) {
-          audioPerm = nsIPermissionManager::UNKNOWN_ACTION;
-        }
-      }
     }
 
     uint32_t videoPerm = nsIPermissionManager::UNKNOWN_ACTION;
@@ -1514,33 +1505,11 @@ MediaManager::GetUserMedia(bool aPrivileged,
       rv = permManager->TestExactPermissionFromPrincipal(
         aWindow->GetExtantDoc()->NodePrincipal(), "camera", &videoPerm);
       NS_ENSURE_SUCCESS(rv, rv);
-      if (videoPerm == nsIPermissionManager::PROMPT_ACTION) {
-        videoPerm = nsIPermissionManager::UNKNOWN_ACTION;
-      }
-      if (videoPerm == nsIPermissionManager::ALLOW_ACTION) {
-        if (!isHTTPS) {
-          videoPerm = nsIPermissionManager::UNKNOWN_ACTION;
-        }
-      }
     }
 
-    if ((!IsOn(c.mAudio) || audioPerm != nsIPermissionManager::UNKNOWN_ACTION) &&
-        (!IsOn(c.mVideo) || videoPerm != nsIPermissionManager::UNKNOWN_ACTION)) {
-      // All permissions we were about to request already have a saved value.
-      if (IsOn(c.mAudio) && audioPerm == nsIPermissionManager::DENY_ACTION) {
-        c.mAudio.SetAsBoolean() = false;
-        runnable->SetContraints(c);
-      }
-      if (IsOn(c.mVideo) && videoPerm == nsIPermissionManager::DENY_ACTION) {
-        c.mVideo.SetAsBoolean() = false;
-        runnable->SetContraints(c);
-      }
-
-      if (!IsOn(c.mAudio) && !IsOn(c.mVideo)) {
-        return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
-      }
-
-      return mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+    if ((!IsOn(c.mAudio) || audioPerm == nsIPermissionManager::DENY_ACTION) &&
+        (!IsOn(c.mVideo) || videoPerm == nsIPermissionManager::DENY_ACTION)) {
+      return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
     }
 
     // Ask for user permission, and dispatch runnable (or not) when a response
@@ -1576,6 +1545,10 @@ MediaManager::GetUserMedia(bool aPrivileged,
                                                                 callID, c, isHTTPS);
     obs->NotifyObservers(req, "getUserMedia:request", nullptr);
   }
+
+#ifdef MOZ_WEBRTC
+  EnableWebRtcLog();
+#endif
 
   return NS_OK;
 }
@@ -1777,7 +1750,13 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
       mActiveCallbacks.Clear();
       mCallIds.Clear();
       LOG(("Releasing MediaManager singleton and thread"));
+      // Note: won't be released immediately as the Observer has a ref to us
       sSingleton = nullptr;
+      if (mMediaThread) {
+        mMediaThread->Shutdown();
+        mMediaThread = nullptr;
+      }
+      mBackend = nullptr;
     }
 
     return NS_OK;
@@ -1834,7 +1813,7 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
       MOZ_ASSERT(msg);
       msg->GetData(errorMessage);
       if (errorMessage.IsEmpty())
-        errorMessage.Assign(NS_LITERAL_STRING("UNKNOWN_ERROR"));
+        errorMessage.AssignLiteral(MOZ_UTF16("UNKNOWN_ERROR"));
     }
 
     nsString key(aData);
@@ -1860,7 +1839,10 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
 #ifdef MOZ_WIDGET_GONK
   else if (!strcmp(aTopic, "phone-state-changed")) {
     nsString state(aData);
-    if (atoi((const char*)state.get()) == nsIAudioManager::PHONE_STATE_IN_CALL) {
+    nsresult rv;
+    uint32_t phoneState = state.ToInteger(&rv);
+
+    if (NS_SUCCEEDED(rv) && phoneState == nsIAudioManager::PHONE_STATE_IN_CALL) {
       StopMediaStreams();
     }
     return NS_OK;
@@ -1983,7 +1965,7 @@ MediaManager::MediaCaptureWindowStateInternal(nsIDOMWindow* aWindow, bool* aVide
       for (i = 0; i < count; ++i) {
         nsCOMPtr<nsIDocShellTreeItem> item;
         docShell->GetChildAt(i, getter_AddRefs(item));
-        nsCOMPtr<nsPIDOMWindow> win = do_GetInterface(item);
+        nsCOMPtr<nsPIDOMWindow> win = item ? item->GetWindow() : nullptr;
 
         MediaCaptureWindowStateInternal(win, aVideo, aAudio);
         if (*aAudio && *aVideo) {

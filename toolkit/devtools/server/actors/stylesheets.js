@@ -74,6 +74,9 @@ let StyleSheetsActor = protocol.ActorClass({
 
     this.parentActor = tabActor;
 
+    // so we can get events when stylesheets and rules are added
+    this.document.styleSheetChangeEventsEnabled = true;
+
     // keep a map of sheets-to-actors so we don't create two actors for one sheet
     this._sheets = new Map();
   },
@@ -276,6 +279,122 @@ let StyleSheetsFront = protocol.FrontClass(StyleSheetsActor, {
 });
 
 /**
+ * A MediaRuleActor lives on the server and provides access to properties
+ * of a DOM @media rule and emits events when it changes.
+ */
+let MediaRuleActor = protocol.ActorClass({
+  typeName: "mediarule",
+
+  events: {
+    "matches-change" : {
+      type: "matchesChange",
+      matches: Arg(0, "boolean"),
+    }
+  },
+
+  get window() this.parentActor.window,
+
+  get document() this.window.document,
+
+  get matches() {
+    return this.mql ? this.mql.matches : null;
+  },
+
+  initialize: function(aMediaRule, aParentActor) {
+    protocol.Actor.prototype.initialize.call(this, null);
+
+    this.rawRule = aMediaRule;
+    this.parentActor = aParentActor;
+    this.conn = this.parentActor.conn;
+
+    this._matchesChange = this._matchesChange.bind(this);
+
+    this.line = 0;
+    this.column = 0;
+
+    // We can't get the line of the @media rule itself, so get the line of
+    // the first rule in the media block. See bug 591303.
+    let firstRule = this.rawRule.cssRules[0];
+    if (firstRule && firstRule instanceof Ci.nsIDOMCSSStyleRule) {
+      this.line = DOMUtils.getRuleLine(firstRule);
+      this.column = DOMUtils.getRuleColumn(firstRule);
+    }
+
+    try {
+      this.mql = this.window.matchMedia(aMediaRule.media.mediaText);
+    } catch(e) {
+    }
+
+    if (this.mql) {
+      this.mql.addListener(this._matchesChange);
+    }
+  },
+
+  destroy: function()
+  {
+    if (this.mql) {
+      this.mql.removeListener(this._matchesChange);
+    }
+  },
+
+  form: function(detail) {
+    if (detail === "actorid") {
+      return this.actorID;
+    }
+
+    let form = {
+      actor: this.actorID,  // actorID is set when this is added to a pool
+      mediaText: this.rawRule.media.mediaText,
+      conditionText: this.rawRule.conditionText,
+      matches: this.matches,
+      line: this.line,
+      column: this.column,
+      parentStyleSheet: this.parentActor.actorID
+    };
+
+    return form;
+  },
+
+  _matchesChange: function() {
+    events.emit(this, "matches-change", this.matches);
+  }
+});
+
+/**
+ * Cooresponding client-side front for a MediaRuleActor.
+ */
+let MediaRuleFront = protocol.FrontClass(MediaRuleActor, {
+  initialize: function(client, form) {
+    protocol.Front.prototype.initialize.call(this, client, form);
+
+    this._onMatchesChange = this._onMatchesChange.bind(this);
+    events.on(this, "matches-change", this._onMatchesChange);
+  },
+
+  _onMatchesChange: function(matches) {
+    this._form.matches = matches;
+  },
+
+  form: function(form, detail) {
+    if (detail === "actorid") {
+      this.actorID = form;
+      return;
+    }
+    this.actorID = form.actor;
+    this._form = form;
+  },
+
+  get mediaText() this._form.mediaText,
+  get conditionText() this._form.conditionText,
+  get matches() this._form.matches,
+  get line() this._form.line || -1,
+  get column() this._form.column || -1,
+  get parentStyleSheet() {
+    return this.conn.getActor(this._form.parentStyleSheet);
+  }
+});
+
+/**
  * A StyleSheetActor represents a stylesheet on the server.
  */
 let StyleSheetActor = protocol.ActorClass({
@@ -289,6 +408,10 @@ let StyleSheetActor = protocol.ActorClass({
     },
     "style-applied" : {
       type: "styleApplied"
+    },
+    "media-rules-changed" : {
+      type: "mediaRulesChanged",
+      rules: Arg(0, "array:mediarule")
     }
   },
 
@@ -308,6 +431,16 @@ let StyleSheetActor = protocol.ActorClass({
    * Document of target.
    */
   get document() this.window.document,
+
+  /**
+   * Browser for the target.
+   */
+  get browser() {
+    if (this.parentActor.parentActor) {
+      return this.parentActor.parentActor.browser;
+    }
+    return null;
+  },
 
   /**
    * URL of underlying stylesheet.
@@ -346,6 +479,24 @@ let StyleSheetActor = protocol.ActorClass({
     this._styleSheetIndex = -1;
 
     this._transitionRefCount = 0;
+
+    this._onRuleAddedOrRemoved = this._onRuleAddedOrRemoved.bind(this);
+
+    if (this.browser) {
+      this.browser.addEventListener("StyleRuleAdded", this._onRuleAddedOrRemoved, true);
+      this.browser.addEventListener("StyleRuleRemoved", this._onRuleAddedOrRemoved, true);
+    }
+  },
+
+  _onRuleAddedOrRemoved: function(event) {
+    if (event.target != this.document || event.stylesheet != this.rawSheet) {
+      return;
+    }
+    if (event.rule && event.rule.type == Ci.nsIDOMCSSRule.MEDIA_RULE) {
+      this._getMediaRules().then((rules) => {
+        events.emit(this, "media-rules-changed", rules);
+      });
+    }
   },
 
   /**
@@ -378,11 +529,11 @@ let StyleSheetActor = protocol.ActorClass({
 
     let deferred = promise.defer();
 
-    let onSheetLoaded = function(event) {
+    let onSheetLoaded = (event) => {
       ownerNode.removeEventListener("load", onSheetLoaded, false);
 
       deferred.resolve(this.rawSheet.cssRules);
-    }.bind(this);
+    };
 
     ownerNode.addEventListener("load", onSheetLoaded, false);
 
@@ -664,6 +815,41 @@ let StyleSheetActor = protocol.ActorClass({
   }),
 
   /**
+   * Protocol method to get the media rules for the stylesheet.
+   */
+  getMediaRules: method(function() {
+    return this._getMediaRules();
+  }, {
+    request: {},
+    response: {
+      mediaRules: RetVal("nullable:array:mediarule")
+    }
+  }),
+
+  /**
+   * Get all the @media rules in this stylesheet.
+   *
+   * @return {promise}
+   *         A promise that resolves with an array of MediaRuleActors.
+   */
+  _getMediaRules: function() {
+    return this.getCSSRules().then((rules) => {
+      let mediaRules = [];
+      for (let i = 0; i < rules.length; i++) {
+        let rule = rules[i];
+        if (rule.type != Ci.nsIDOMCSSRule.MEDIA_RULE) {
+          continue;
+        }
+        let actor = new MediaRuleActor(rule, this);
+        this.manage(actor);
+
+        mediaRules.push(actor);
+      }
+      return mediaRules;
+    });
+  },
+
+  /**
    * Get the charset of the stylesheet according to the character set rules
    * defined in <http://www.w3.org/TR/CSS2/syndata.html#charset>.
    *
@@ -777,6 +963,53 @@ let StyleSheetActor = protocol.ActorClass({
     events.emit(this, "style-applied");
   }
 })
+
+/**
+ * Find the line/column for a rule.
+ * This is like DOMUtils.getRule[Line|Column] except for inline <style> sheets,
+ * the line number returned here is relative to the <style> tag rather than the
+ * containing HTML document (which is what DOMUtils does).
+ * This is hacky, but we don't know of a better implementation right now.
+ */
+const getRuleLocation = exports.getRuleLocation = function(rule) {
+  let reply = {
+    line: DOMUtils.getRuleLine(rule),
+    column: DOMUtils.getRuleColumn(rule)
+  };
+
+  let sheet = rule.parentStyleSheet;
+  if (sheet.ownerNode && sheet.ownerNode.localName === "style") {
+     // For inline sheets, the line is relative to HTML not the stylesheet, so
+     // Get the location of the first { to know the line num of the first rule,
+     // relative to this sheet, to get the offset
+     let text = sheet.ownerNode.textContent;
+     // Hacky for now, because this will fail if { appears in a comment before
+     // but better than nothing, and faster than parsing the whole text
+     let start = text.substring(0, text.indexOf("{"));
+     let relativeStartLine = start.split("\n").length;
+
+     let absoluteStartLine;
+     let i = 0;
+     while (absoluteStartLine == null) {
+       let irule = sheet.cssRules[i];
+       if (irule instanceof Ci.nsIDOMCSSStyleRule) {
+         absoluteStartLine = DOMUtils.getRuleLine(irule);
+       }
+       else if (irule == null) {
+         break;
+       }
+
+       i++;
+     }
+
+     if (absoluteStartLine != null) {
+       let offset = absoluteStartLine - relativeStartLine;
+       reply.line -= offset;
+     }
+  }
+
+  return reply;
+};
 
 /**
  * StyleSheetFront is the client-side counterpart to a StyleSheetActor.

@@ -50,7 +50,7 @@ let inputTests = [
   {
     input: "testDOMException()",
     output: 'DOMException [SyntaxError: "An invalid or illegal string was specified"',
-    printOutput: '[object XrayWrapper [object DOMException]]"',
+    printOutput: '"SyntaxError: An invalid or illegal string was specified"',
     inspectable: true,
     variablesViewLabel: "SyntaxError",
   },
@@ -110,11 +110,10 @@ let inputTests = [
 ];
 
 function test() {
-  addTab(TEST_URI);
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    openConsole().then((hud) => {
-      return checkOutputForInputs(hud, inputTests);
-    }).then(finishTest);
-  }, true);
+  Task.spawn(function*() {
+    const {tab} = yield loadTab(TEST_URI);
+    const hud = yield openConsole(tab);
+    yield checkOutputForInputs(hud, inputTests);
+    inputTests = null;
+  }).then(finishTest);
 }

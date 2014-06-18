@@ -85,7 +85,6 @@
 #endif
 #ifdef XP_WIN32
 @BINPATH@/plugin-hang-ui@BIN_SUFFIX@
-#ifndef MOZ_DEBUG
 #if MOZ_MSVC_REDIST == 1600
 @BINPATH@/msvcp100.dll
 @BINPATH@/msvcr100.dll
@@ -97,19 +96,12 @@
 @BINPATH@/msvcr120.dll
 #endif
 #endif
-#endif
 #ifndef MOZ_NATIVE_ICU
 #ifdef MOZ_SHARED_ICU
 #ifdef XP_WIN
-#ifdef MOZ_DEBUG
-@BINPATH@/icudtd@MOZ_ICU_VERSION@.dll
-@BINPATH@/icuind@MOZ_ICU_VERSION@.dll
-@BINPATH@/icuucd@MOZ_ICU_VERSION@.dll
-#else
-@BINPATH@/icudt@MOZ_ICU_VERSION@.dll
-@BINPATH@/icuin@MOZ_ICU_VERSION@.dll
-@BINPATH@/icuuc@MOZ_ICU_VERSION@.dll
-#endif
+@BINPATH@/icudt@MOZ_ICU_DBG_SUFFIX@@MOZ_ICU_VERSION@.dll
+@BINPATH@/icuin@MOZ_ICU_DBG_SUFFIX@@MOZ_ICU_VERSION@.dll
+@BINPATH@/icuuc@MOZ_ICU_DBG_SUFFIX@@MOZ_ICU_VERSION@.dll
 #elif defined(XP_MACOSX)
 @BINPATH@/libicudata.@MOZ_ICU_VERSION@.dylib
 @BINPATH@/libicui18n.@MOZ_ICU_VERSION@.dylib
@@ -120,6 +112,15 @@
 @BINPATH@/libicuuc.so.@MOZ_ICU_VERSION@
 #endif
 #endif
+#endif
+#ifdef MOZ_REPLACE_MALLOC
+#ifndef MOZ_JEMALLOC3
+@BINPATH@/@DLL_PREFIX@replace_jemalloc@DLL_SUFFIX@
+#endif
+#endif
+#ifdef MOZ_GTK3
+@BINPATH@/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
+@BINPATH@/@DLL_PREFIX@mozgtk2@DLL_SUFFIX@
 #endif
 
 [browser]
@@ -371,6 +372,7 @@
 @BINPATH@/browser/components/devtools-clhandler.js
 @BINPATH@/browser/components/Experiments.manifest
 @BINPATH@/browser/components/ExperimentsService.js
+@BINPATH@/browser/components/translation.manifest
 @BINPATH@/components/Downloads.manifest
 @BINPATH@/components/DownloadLegacy.js
 @BINPATH@/components/BrowserPageThumbs.manifest
@@ -385,7 +387,7 @@
 @BINPATH@/components/nsLoginInfo.js
 @BINPATH@/components/nsLoginManager.js
 @BINPATH@/components/nsLoginManagerPrompter.js
-@BINPATH@/components/storage-mozStorage.js
+@BINPATH@/components/storage-json.js
 @BINPATH@/components/crypto-SDR.js
 @BINPATH@/components/jsconsole-clhandler.manifest
 @BINPATH@/components/jsconsole-clhandler.js
@@ -407,6 +409,7 @@
 @BINPATH@/components/extensions.manifest
 @BINPATH@/components/addonManager.js
 @BINPATH@/components/amContentHandler.js
+@BINPATH@/components/amInstallTrigger.js
 @BINPATH@/components/amWebInstallListener.js
 @BINPATH@/components/nsBlocklistService.js
 #ifdef MOZ_UPDATER
@@ -452,6 +455,8 @@
 @BINPATH@/components/nsFormHistory.js
 @BINPATH@/components/FormHistoryStartup.js
 @BINPATH@/components/nsInputListAutoComplete.js
+@BINPATH@/components/formautofill.manifest
+@BINPATH@/components/AutofillController.js
 @BINPATH@/components/contentSecurityPolicy.manifest
 @BINPATH@/components/contentSecurityPolicy.js
 @BINPATH@/components/contentAreaDropListener.manifest
@@ -529,6 +534,9 @@
 @BINPATH@/components/Push.js
 @BINPATH@/components/Push.manifest
 @BINPATH@/components/PushServiceLauncher.js
+
+@BINPATH@/components/SlowScriptDebug.manifest
+@BINPATH@/components/SlowScriptDebug.js
 
 #ifndef RELEASE_BUILD
 @BINPATH@/components/InterAppComm.manifest
@@ -629,6 +637,11 @@
 @BINPATH@/browser/chrome/icons/default/default32.png
 @BINPATH@/browser/chrome/icons/default/default48.png
 #endif
+
+; [Webide Files]
+@BINPATH@/browser/chrome/webide@JAREXT@
+@BINPATH@/browser/chrome/webide.manifest
+@BINPATH@/browser/@PREF_DIR@/webide-prefs.js
 
 ; shell icons
 #ifdef XP_UNIX
@@ -773,6 +786,7 @@ bin/libfreebl_32int64_3.so
 #ifdef MOZ_CRASHREPORTER
 @BINPATH@/components/CrashService.manifest
 @BINPATH@/components/CrashService.js
+@BINPATH@/components/toolkit_crashservice.xpt
 #ifdef XP_MACOSX
 @BINPATH@/crashreporter.app/
 #else
@@ -844,10 +858,12 @@ bin/libfreebl_32int64_3.so
 #endif
 
 @BINPATH@/components/DataStore.manifest
-@BINPATH@/components/DataStoreService.js
+@BINPATH@/components/DataStoreImpl.js
 @BINPATH@/components/dom_datastore.xpt
 
 
 #ifdef MOZ_ASAN
+#ifdef CLANG_CXX
 @BINPATH@/llvm-symbolizer
+#endif
 #endif

@@ -45,11 +45,13 @@ class MarionetteTransport(object):
         """
         assert(self.sock)
         response = self.sock.recv(10)
+        initial_size = len(response)
         sep = response.find(':')
         length = response[0:sep]
         if length != '':
             response = response[sep + 1:]
-            response += self._recv_n_bytes(int(length) + 1 + len(length) - 10)
+            remaining_size = int(length) + 1 + len(length) - initial_size
+            response += self._recv_n_bytes(remaining_size)
             return json.loads(response)
         else:
             raise IOError(self.connection_lost_msg)
@@ -91,7 +93,7 @@ class MarionetteTransport(object):
                 self.sock.send(packet)
             except IOError as e:
                 if e.errno == errno.EPIPE:
-                    raise IOError("%s: %s" % (str(e)), self.connection_lost_msg)
+                    raise IOError("%s: %s" % (str(e), self.connection_lost_msg))
                 else:
                     raise e
 
@@ -101,5 +103,6 @@ class MarionetteTransport(object):
     def close(self):
         """ Close the socket.
         """
-        self.sock.close()
+        if self.sock:
+            self.sock.close()
         self.sock = None

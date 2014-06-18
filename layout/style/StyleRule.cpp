@@ -473,10 +473,19 @@ int32_t nsCSSSelector::CalcWeightWithoutNegations() const
 {
   int32_t weight = 0;
 
-  MOZ_ASSERT(!IsPseudoElement() ||
-             mPseudoType >= nsCSSPseudoElements::ePseudo_PseudoElementCount ||
-             (!mIDList && !mClassList && !mAttrList),
-             "if pseudo-elements can have ID, class or attribute selectors "
+#ifdef MOZ_XUL
+  MOZ_ASSERT(!(IsPseudoElement() &&
+               PseudoType() != nsCSSPseudoElements::ePseudo_XULTree &&
+               mClassList),
+             "If non-XUL-tree pseudo-elements can have class selectors "
+             "after them, specificity calculation must be updated");
+#else
+  MOZ_ASSERT(!(IsPseudoElement() && mClassList),
+             "If pseudo-elements can have class selectors "
+             "after them, specificity calculation must be updated");
+#endif
+  MOZ_ASSERT(!(IsPseudoElement() && (mIDList || mAttrList)),
+             "If pseudo-elements can have id or attribute selectors "
              "after them, specificity calculation must be updated");
 
   if (nullptr != mCasedTag) {
@@ -488,6 +497,13 @@ int32_t nsCSSSelector::CalcWeightWithoutNegations() const
     list = list->mNext;
   }
   list = mClassList;
+#ifdef MOZ_XUL
+  // XUL tree pseudo-elements abuse mClassList to store some private
+  // data; ignore that.
+  if (PseudoType() == nsCSSPseudoElements::ePseudo_XULTree) {
+    list = nullptr;
+  }
+#endif
   while (nullptr != list) {
     weight += 0x000100;
     list = list->mNext;
@@ -1456,7 +1472,7 @@ StyleRule::List(FILE* out, int32_t aIndent) const
   if (mSelector)
     mSelector->ToString(buffer, GetStyleSheet());
 
-  buffer.AppendLiteral(" ");
+  buffer.Append(' ');
   fputs(NS_LossyConvertUTF16toASCII(buffer).get(), out);
   if (nullptr != mDeclaration) {
     mDeclaration->List(out);

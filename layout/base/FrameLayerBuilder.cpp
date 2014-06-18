@@ -1446,69 +1446,85 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aAnimatedGeometryRoot
   // We need a new thebes layer
   nsRefPtr<ThebesLayer> layer;
   ThebesDisplayItemLayerUserData* data;
+  bool layerRecycled = false;
 #ifndef MOZ_ANDROID_OMTC
   bool didResetScrollPositionForLayerPixelAlignment = false;
 #endif
+
+  // Check whether the layer will be scrollable. This is used as a hint to
+  // influence whether tiled layers are used or not.
+  LayerManager::ThebesLayerCreationHint creationHint = LayerManager::NONE;
+  nsIFrame* animatedGeometryRootParent = aAnimatedGeometryRoot->GetParent();
+  if (animatedGeometryRootParent &&
+      animatedGeometryRootParent->GetType() == nsGkAtoms::scrollFrame) {
+    creationHint = LayerManager::SCROLLABLE;
+  }
+
   if (mNextFreeRecycledThebesLayer < mRecycledThebesLayers.Length()) {
-    // Recycle a layer
+    // Try to recycle a layer
     layer = mRecycledThebesLayers[mNextFreeRecycledThebesLayer];
     ++mNextFreeRecycledThebesLayer;
-    // Clear clip rect and mask layer so we don't accidentally stay clipped.
-    // We will reapply any necessary clipping.
-    layer->SetMaskLayer(nullptr);
 
-    data = static_cast<ThebesDisplayItemLayerUserData*>
-        (layer->GetUserData(&gThebesDisplayItemLayerUserData));
-    NS_ASSERTION(data, "Recycled ThebesLayers must have user data");
+    // Check if the layer hint has changed and whether or not the layer should
+    // be recreated because of it.
+    if (mManager->IsOptimizedFor(layer->AsThebesLayer(), creationHint)) {
+      layerRecycled = true;
 
-    // This gets called on recycled ThebesLayers that are going to be in the
-    // final layer tree, so it's a convenient time to invalidate the
-    // content that changed where we don't know what ThebesLayer it belonged
-    // to, or if we need to invalidate the entire layer, we can do that.
-    // This needs to be done before we update the ThebesLayer to its new
-    // transform. See nsGfxScrollFrame::InvalidateInternal, where
-    // we ensure that mInvalidThebesContent is updated according to the
-    // scroll position as of the most recent paint.
-    if (!FuzzyEqual(data->mXScale, mParameters.mXScale, 0.00001f) ||
-        !FuzzyEqual(data->mYScale, mParameters.mYScale, 0.00001f) ||
-        data->mAppUnitsPerDevPixel != mAppUnitsPerDevPixel) {
-      InvalidateEntireThebesLayer(layer, aAnimatedGeometryRoot);
+      // Clear clip rect and mask layer so we don't accidentally stay clipped.
+      // We will reapply any necessary clipping.
+      layer->SetMaskLayer(nullptr);
+
+      data = static_cast<ThebesDisplayItemLayerUserData*>
+          (layer->GetUserData(&gThebesDisplayItemLayerUserData));
+      NS_ASSERTION(data, "Recycled ThebesLayers must have user data");
+
+      // This gets called on recycled ThebesLayers that are going to be in the
+      // final layer tree, so it's a convenient time to invalidate the
+      // content that changed where we don't know what ThebesLayer it belonged
+      // to, or if we need to invalidate the entire layer, we can do that.
+      // This needs to be done before we update the ThebesLayer to its new
+      // transform. See nsGfxScrollFrame::InvalidateInternal, where
+      // we ensure that mInvalidThebesContent is updated according to the
+      // scroll position as of the most recent paint.
+      if (!FuzzyEqual(data->mXScale, mParameters.mXScale, 0.00001f) ||
+          !FuzzyEqual(data->mYScale, mParameters.mYScale, 0.00001f) ||
+          data->mAppUnitsPerDevPixel != mAppUnitsPerDevPixel) {
+#ifdef MOZ_DUMP_PAINTING
+      if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+        printf_stderr("Recycled layer %p changed scale\n", layer.get());
+      }
+#endif
+        InvalidateEntireThebesLayer(layer, aAnimatedGeometryRoot);
 #ifndef MOZ_ANDROID_OMTC
-      didResetScrollPositionForLayerPixelAlignment = true;
+        didResetScrollPositionForLayerPixelAlignment = true;
 #endif
-    }
-    if (!data->mRegionToInvalidate.IsEmpty()) {
-#ifdef MOZ_DUMP_PAINTING
-      if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
-        printf_stderr("Invalidating deleted frame content from layer %p\n", layer.get());
       }
-#endif
-      layer->InvalidateRegion(data->mRegionToInvalidate);
+      if (!data->mRegionToInvalidate.IsEmpty()) {
 #ifdef MOZ_DUMP_PAINTING
-      if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
-        nsAutoCString str;
-        AppendToString(str, data->mRegionToInvalidate);
-        printf_stderr("Invalidating layer %p: %s\n", layer.get(), str.get());
-      }
+        if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+          printf_stderr("Invalidating deleted frame content from layer %p\n", layer.get());
+        }
 #endif
-      data->mRegionToInvalidate.SetEmpty();
-    }
+        layer->InvalidateRegion(data->mRegionToInvalidate);
+#ifdef MOZ_DUMP_PAINTING
+        if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+          nsAutoCString str;
+          AppendToString(str, data->mRegionToInvalidate);
+          printf_stderr("Invalidating layer %p: %s\n", layer.get(), str.get());
+        }
+#endif
+        data->mRegionToInvalidate.SetEmpty();
+      }
 
-    // We do not need to Invalidate these areas in the widget because we
-    // assume the caller of InvalidateThebesLayerContents has ensured
-    // the area is invalidated in the widget.
-  } else {
-    // Check whether the layer will be scrollable. This is used as a hint to
-    // influence whether tiled layers are used or not.
-    bool canScroll = false;
-    nsIFrame* animatedGeometryRootParent = aAnimatedGeometryRoot->GetParent();
-    if (animatedGeometryRootParent &&
-        animatedGeometryRootParent->GetType() == nsGkAtoms::scrollFrame) {
-      canScroll = true;
+      // We do not need to Invalidate these areas in the widget because we
+      // assume the caller of InvalidateThebesLayerContents has ensured
+      // the area is invalidated in the widget.
     }
+  }
+
+  if (!layerRecycled) {
     // Create a new thebes layer
-    layer = mManager->CreateThebesLayerWithHint(canScroll ? LayerManager::SCROLLABLE :
-                                                            LayerManager::NONE);
+    layer = mManager->CreateThebesLayerWithHint(creationHint);
     if (!layer)
       return nullptr;
     // Mark this layer as being used for Thebes-painting display items
@@ -1667,6 +1683,10 @@ ContainerState::FindOpaqueBackgroundColorFor(int32_t aThebesLayerIndex)
 
         if (!bounds.Contains(appUnitRect))
           break;
+      }
+
+      if (item->IsInvisibleInRect(appUnitRect)) {
+        continue;
       }
 
       nscolor color;
@@ -1835,6 +1855,9 @@ AddTransformedBoundsToRegion(const nsIntRegion& aRegion,
                              nsIntRegion* aDest)
 {
   nsIntRect bounds = aRegion.GetBounds();
+  if (bounds.IsEmpty()) {
+    return;
+  }
   gfxRect transformed =
     aTransform.TransformBounds(gfxRect(bounds.x, bounds.y, bounds.width, bounds.height));
   transformed.RoundOut();
@@ -2237,7 +2260,7 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
     ThebesLayerData* data = mThebesLayerDataStack[i];
     // Give up if there is content drawn above (in z-order) this layer that
     // intersects aItem's visible region; aItem must be placed in a
-    // layer this layer.
+    // layer above this layer.
     if (data->DrawAboveRegionIntersects(aVisibleRect)) {
       ++i;
       break;
@@ -2302,7 +2325,7 @@ static void
 DumpPaintedImage(nsDisplayItem* aItem, gfxASurface* aSurf)
 {
   nsCString string(aItem->Name());
-  string.Append("-");
+  string.Append('-');
   string.AppendInt((uint64_t)aItem);
   fprintf_stderr(gfxUtils::sDumpPaintFile, "array[\"%s\"]=\"", string.BeginReading());
   aSurf->DumpAsDataURL(gfxUtils::sDumpPaintFile);
@@ -2408,7 +2431,8 @@ void
 ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
                                     uint32_t aFlags)
 {
-  PROFILER_LABEL("ContainerState", "ProcessDisplayItems");
+  PROFILER_LABEL("ContainerState", "ProcessDisplayItems",
+    js::ProfileEntry::Category::GRAPHICS);
 
   const nsIFrame* lastAnimatedGeometryRoot = mContainerReferenceFrame;
   nsPoint topLeft(0,0);
@@ -3107,7 +3131,9 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     // Set any matrix entries close to integers to be those exact integers.
     // This protects against floating-point inaccuracies causing problems
     // in the checks below.
-    transform.NudgeToIntegers();
+    // We use the fixed epsilon version here because we don't want the nudging
+    // to depend on the scroll position.
+    transform.NudgeToIntegersFixedEpsilon();
   }
   gfxMatrix transform2d;
   if (aContainerFrame &&
@@ -3762,7 +3788,8 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
                                    const nsIntRegion& aRegionToInvalidate,
                                    void* aCallbackData)
 {
-  PROFILER_LABEL("gfx", "DrawThebesLayer");
+  PROFILER_LABEL("FrameLayerBuilder", "DrawThebesLayer",
+    js::ProfileEntry::Category::GRAPHICS);
 
   nsDisplayListBuilder* builder = static_cast<nsDisplayListBuilder*>
     (aCallbackData);
@@ -3847,6 +3874,14 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
   }
 
   if (presContext->GetPaintFlashing()) {
+    gfxContextAutoSaveRestore save(aContext);
+    if (shouldDrawRectsSeparately) {
+      if (aClip == DrawRegionClip::DRAW_SNAPPED) {
+        gfxUtils::ClipToRegionSnapped(aContext, aRegionToDraw);
+      } else if (aClip == DrawRegionClip::DRAW) {
+        gfxUtils::ClipToRegion(aContext, aRegionToDraw);
+      }
+    }
     FlashPaint(aContext);
   }
 

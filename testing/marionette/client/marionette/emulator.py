@@ -75,7 +75,6 @@ class Emulator(object):
         self._tmp_sdcard = None
         self._tmp_userdata = None
         self._adb_started = False
-        self.remote_user_js = '/data/local/user.js'
         self.logcat_dir = logcat_dir
         self.logcat_proc = None
         self.arch = arch
@@ -314,13 +313,6 @@ waitFor(
         self.dm = devicemanagerADB.DeviceManagerADB(adbPath=self.adb,
                                                     deviceSerial='emulator-%d' % self.port)
 
-    def add_prefs_to_profile(self, prefs=()):
-        local_user_js = tempfile.mktemp(prefix='localuserjs')
-        self.dm.getFile(self.remote_user_js, local_user_js)
-        with open(local_user_js, 'a') as f:
-            f.write('%s\n' % '\n'.join(prefs))
-        self.dm.pushFile(local_user_js, self.remote_user_js)
-
     def start(self):
         self._check_for_b2g()
         self.start_adb()
@@ -538,7 +530,7 @@ window.addEventListener('mozbrowserloadend', function loaded(aEvent) {
                 sock.connect(('localhost', self.marionette_port))
                 data = sock.recv(16)
                 sock.close()
-                if '"from"' in data:
+                if ':' in data:
                     return True
             except:
                 import traceback

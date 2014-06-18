@@ -52,7 +52,6 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool lowerBitOp(JSOp op, MInstruction *ins);
     bool lowerShiftOp(JSOp op, MShiftInstruction *ins);
     bool lowerBinaryV(JSOp op, MBinaryInstruction *ins);
-    bool precreatePhi(LBlock *block, MPhi *phi);
     bool definePhis();
 
     bool lowerCallArguments(MCall *call);
@@ -119,6 +118,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitRsh(MRsh *ins);
     bool visitUrsh(MUrsh *ins);
     bool visitFloor(MFloor *ins);
+    bool visitCeil(MCeil *ins);
     bool visitRound(MRound *ins);
     bool visitMinMax(MMinMax *ins);
     bool visitAbs(MAbs *ins);
@@ -141,6 +141,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitStart(MStart *start);
     bool visitOsrEntry(MOsrEntry *entry);
     bool visitNop(MNop *nop);
+    bool visitLimitedTruncate(MLimitedTruncate *nop);
     bool visitOsrValue(MOsrValue *value);
     bool visitOsrScopeChain(MOsrScopeChain *object);
     bool visitOsrReturnValue(MOsrReturnValue *value);
@@ -158,7 +159,6 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitLambda(MLambda *ins);
     bool visitLambdaArrow(MLambdaArrow *ins);
     bool visitLambdaPar(MLambdaPar *ins);
-    bool visitImplicitThis(MImplicitThis *ins);
     bool visitSlots(MSlots *ins);
     bool visitElements(MElements *ins);
     bool visitConstantElements(MConstantElements *ins);
@@ -182,6 +182,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitNeuterCheck(MNeuterCheck *lir);
     bool visitTypedObjectElements(MTypedObjectElements *ins);
     bool visitSetTypedObjectOffset(MSetTypedObjectOffset *ins);
+    bool visitTypedObjectProto(MTypedObjectProto *ins);
     bool visitInitializedLength(MInitializedLength *ins);
     bool visitSetInitializedLength(MSetInitializedLength *ins);
     bool visitNot(MNot *ins);

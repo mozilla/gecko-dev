@@ -10,11 +10,12 @@
 #define nsCSSRules_h_
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Move.h"
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/css/GroupRule.h"
-#include "mozilla/Preferences.h"
 #include "nsIDOMCSSConditionRule.h"
+#include "nsIDOMCSSCounterStyleRule.h"
 #include "nsIDOMCSSFontFaceRule.h"
 #include "nsIDOMCSSFontFeatureValuesRule.h"
 #include "nsIDOMCSSGroupingRule.h"
@@ -318,8 +319,8 @@ public:
   // nsIDOMCSSFontFaceRule interface
   NS_DECL_NSIDOMCSSFONTFEATUREVALUESRULE
 
-  const nsTArray<nsString>& GetFamilyList() { return mFamilyList; }
-  void SetFamilyList(const nsAString& aFamilyList, bool& aContainsGeneric);
+  const mozilla::FontFamilyList& GetFamilyList() { return mFamilyList; }
+  void SetFamilyList(const mozilla::FontFamilyList& aFamilyList);
 
   void AddValueList(int32_t aVariantAlternate,
                     nsTArray<gfxFontFeatureValueSet::ValueList>& aValueList);
@@ -341,7 +342,7 @@ public:
   }
 
 protected:
-  nsTArray<nsString> mFamilyList;
+  mozilla::FontFamilyList mFamilyList;
   nsTArray<gfxFontFeatureValueSet::FeatureValues> mFeatureValues;
 };
 
@@ -421,8 +422,8 @@ class nsCSSKeyframeRule MOZ_FINAL : public mozilla::css::Rule,
 public:
   // WARNING: Steals the contents of aKeys *and* aDeclaration
   nsCSSKeyframeRule(InfallibleTArray<float>& aKeys,
-                    nsAutoPtr<mozilla::css::Declaration> aDeclaration)
-    : mDeclaration(aDeclaration)
+                    nsAutoPtr<mozilla::css::Declaration>&& aDeclaration)
+    : mDeclaration(mozilla::Move(aDeclaration))
   {
     mKeys.SwapElements(aKeys);
   }
@@ -548,8 +549,8 @@ class nsCSSPageRule MOZ_FINAL : public mozilla::css::Rule,
 {
 public:
   // WARNING: Steals the contents of aDeclaration
-  nsCSSPageRule(nsAutoPtr<mozilla::css::Declaration> aDeclaration)
-    : mDeclaration(aDeclaration),
+  nsCSSPageRule(nsAutoPtr<mozilla::css::Declaration>&& aDeclaration)
+    : mDeclaration(mozilla::Move(aDeclaration)),
       mImportantRule(nullptr)
   {
   }
@@ -634,16 +635,81 @@ public:
 
   virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-  static bool PrefEnabled()
-  {
-    return Preferences::GetBool("layout.css.supports-rule.enabled");
-  }
-
 protected:
   bool mUseGroup;
   nsString mCondition;
 };
 
 } // namespace mozilla
+
+class nsCSSCounterStyleRule MOZ_FINAL : public mozilla::css::Rule,
+                                        public nsIDOMCSSCounterStyleRule
+{
+public:
+  explicit nsCSSCounterStyleRule(const nsAString& aName)
+    : mName(aName),
+      mGeneration(0)
+  {
+  }
+
+private:
+  nsCSSCounterStyleRule(const nsCSSCounterStyleRule& aCopy);
+  ~nsCSSCounterStyleRule();
+
+public:
+  NS_DECL_ISUPPORTS
+
+  // nsIStyleRule methods
+#ifdef DEBUG
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+#endif
+
+  // Rule methods
+  DECL_STYLE_RULE_INHERIT
+  virtual int32_t GetType() const MOZ_OVERRIDE;
+  virtual already_AddRefed<mozilla::css::Rule> Clone() const;
+
+  // nsIDOMCSSRule interface
+  NS_DECL_NSIDOMCSSRULE
+
+  // nsIDOMCSSCounterStyleRule
+  NS_DECL_NSIDOMCSSCOUNTERSTYLERULE
+
+  // This function is only used to check whether a non-empty value, which has
+  // been accepted by parser, is valid for the given system and descriptor.
+  static bool CheckDescValue(int32_t aSystem,
+                             nsCSSCounterDesc aDescID,
+                             const nsCSSValue& aValue);
+
+  const nsString& GetName() const { return mName; }
+
+  uint32_t GetGeneration() const { return mGeneration; }
+
+  int32_t GetSystem() const;
+  const nsCSSValue& GetSystemArgument() const;
+
+  const nsCSSValue& GetDesc(nsCSSCounterDesc aDescID) const
+  {
+    NS_ABORT_IF_FALSE(aDescID >= 0 && aDescID < eCSSCounterDesc_COUNT,
+                      "descriptor ID out of range");
+    return mValues[aDescID];
+  }
+
+  void SetDesc(nsCSSCounterDesc aDescID, const nsCSSValue& aValue);
+
+  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
+
+private:
+  typedef NS_STDCALL_FUNCPROTO(nsresult, Getter, nsCSSCounterStyleRule,
+                               GetSymbols, (nsAString&));
+  static const Getter kGetters[];
+
+  nsresult GetDescriptor(nsCSSCounterDesc aDescID, nsAString& aValue);
+  nsresult SetDescriptor(nsCSSCounterDesc aDescID, const nsAString& aValue);
+
+  nsString   mName;
+  nsCSSValue mValues[eCSSCounterDesc_COUNT];
+  uint32_t   mGeneration;
+};
 
 #endif /* !defined(nsCSSRules_h_) */

@@ -42,7 +42,10 @@
 
 using namespace js;
 using namespace js::gc;
+
 using mozilla::Maybe;
+
+using JS::AutoGCRooter;
 
 namespace js {
 namespace frontend {
@@ -147,7 +150,7 @@ ParseContext<FullParseHandler>::define(TokenStream &ts,
     switch (kind) {
       case Definition::ARG:
         JS_ASSERT(sc->isFunctionBox());
-        dn->setOp(JSOP_GETARG);
+        dn->setOp((js_CodeSpec[dn->getOp()].format & JOF_SET) ? JSOP_SETARG : JSOP_GETARG);
         dn->pn_dflags |= PND_BOUND;
         if (!dn->pn_cookie.set(ts, staticLevel, args_.length()))
             return false;
@@ -166,7 +169,7 @@ ParseContext<FullParseHandler>::define(TokenStream &ts,
       case Definition::CONST:
       case Definition::VAR:
         if (sc->isFunctionBox()) {
-            dn->setOp(JSOP_GETLOCAL);
+            dn->setOp((js_CodeSpec[dn->getOp()].format & JOF_SET) ? JSOP_SETLOCAL : JSOP_GETLOCAL);
             dn->pn_dflags |= PND_BOUND;
             if (!dn->pn_cookie.set(ts, staticLevel, vars_.length()))
                 return false;
@@ -182,7 +185,7 @@ ParseContext<FullParseHandler>::define(TokenStream &ts,
         break;
 
       case Definition::LET:
-        dn->setOp(JSOP_GETLOCAL);
+        dn->setOp((js_CodeSpec[dn->getOp()].format & JOF_SET) ? JSOP_SETLOCAL : JSOP_GETLOCAL);
         dn->pn_dflags |= (PND_LET | PND_BOUND);
         JS_ASSERT(dn->pn_cookie.level() == staticLevel); /* see bindLet */
         if (!decls_.addShadow(name, dn))
@@ -1202,7 +1205,7 @@ Parser<FullParseHandler>::makeDefIntoUse(Definition *dn, ParseNode *pn, JSAtom *
 template <typename ParseHandler>
 struct BindData
 {
-    BindData(ExclusiveContext *cx) : let(cx) {}
+    explicit BindData(ExclusiveContext *cx) : let(cx) {}
 
     typedef bool
     (*Binder)(BindData *data, HandlePropertyName name, Parser<ParseHandler> *parser);
@@ -1214,7 +1217,7 @@ struct BindData
     Binder          binder;     /* binder, discriminates u */
 
     struct LetData {
-        LetData(ExclusiveContext *cx) : blockObj(cx) {}
+        explicit LetData(ExclusiveContext *cx) : blockObj(cx) {}
         VarContext varContext;
         RootedStaticBlockObject blockObj;
         unsigned   overflow;
@@ -3227,7 +3230,7 @@ struct AddLetDecl
 {
     uint32_t blockid;
 
-    AddLetDecl(uint32_t blockid) : blockid(blockid) {}
+    explicit AddLetDecl(uint32_t blockid) : blockid(blockid) {}
 
     bool operator()(TokenStream &ts, ParseContext<FullParseHandler> *pc,
                     HandleStaticBlockObject blockObj, const Shape &shape, JSAtom *)
@@ -6914,7 +6917,7 @@ Parser<ParseHandler>::newRegExp()
     if (!res)
         return null();
 
-    reobj = RegExpObject::create(context, res, chars, length, flags, &tokenStream);
+    reobj = RegExpObject::create(context, res, chars, length, flags, &tokenStream, alloc);
     if (!reobj)
         return null();
 
@@ -7195,7 +7198,7 @@ Parser<ParseHandler>::objectLiteral()
                 if (!abortIfSyntaxParser())
                     return null();
                 tokenStream.ungetToken();
-                if (!tokenStream.checkForKeyword(atom->charsZ(), atom->length(), nullptr))
+                if (!tokenStream.checkForKeyword(atom, nullptr))
                     return null();
                 PropertyName *name = handler.isName(propname);
                 JS_ASSERT(atom);
@@ -7301,6 +7304,9 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
       case TOK_LP:
         return parenExprOrGeneratorComprehension();
 
+#ifdef JS_HAS_TEMPLATE_STRINGS
+      case TOK_TEMPLATE_STRING:
+#endif
       case TOK_STRING:
         return stringLiteral();
 

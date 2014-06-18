@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko.db;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.mozilla.gecko.db.BrowserContract.ExpirePriority;
@@ -17,6 +18,7 @@ import android.content.ContentValues;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.Color;
 
 public class BrowserDB {
     private static boolean sAreContentProvidersEnabled = true;
@@ -151,6 +153,10 @@ public class BrowserDB {
         sSuggestedSites = suggestedSites;
     }
 
+    public static boolean hideSuggestedSite(String url) {
+        return sSuggestedSites.hideSite(url);
+    }
+
     public static void invalidateCachedState() {
         sDb.invalidateCachedState();
     }
@@ -160,6 +166,13 @@ public class BrowserDB {
         return sDb.filter(cr, constraint, limit);
     }
 
+    private static void appendUrlsFromCursor(List<String> urls, Cursor c) {
+        c.moveToPosition(-1);
+        while (c.moveToNext()) {
+            urls.add(c.getString(c.getColumnIndex(URLColumns.URL)));
+        };
+    }
+
     public static Cursor getTopSites(ContentResolver cr, int minLimit, int maxLimit) {
         // Note this is not a single query anymore, but actually returns a mixture
         // of two queries, one for topSites and one for pinned sites.
@@ -167,12 +180,17 @@ public class BrowserDB {
 
         int pinnedCount = pinnedSites.getCount();
         Cursor topSites = sDb.getTopSites(cr, maxLimit - pinnedCount);
+        int topCount = topSites.getCount();
 
         Cursor suggestedSites = null;
         if (sSuggestedSites != null) {
-            final int count = minLimit - pinnedCount - topSites.getCount();
+            final int count = minLimit - pinnedCount - topCount;
             if (count > 0) {
-                suggestedSites = sSuggestedSites.get(count);
+                final List<String> excludeUrls = new ArrayList<String>(pinnedCount + topCount);
+                appendUrlsFromCursor(excludeUrls, pinnedSites);
+                appendUrlsFromCursor(excludeUrls, topSites);
+
+                suggestedSites = sSuggestedSites.get(count, excludeUrls);
             }
         }
 
@@ -371,5 +389,22 @@ public class BrowserDB {
 
     public static void setEnableContentProviders(boolean enableContentProviders) {
         sAreContentProvidersEnabled = enableContentProviders;
+    }
+
+    public static boolean hasSuggestedImageUrl(String url) {
+        return sSuggestedSites.contains(url);
+    }
+
+    public static String getSuggestedImageUrlForUrl(String url) {
+        return sSuggestedSites.getImageUrlForUrl(url);
+    }
+
+    public static int getSuggestedBackgroundColorForUrl(String url) {
+        final String bgColor = sSuggestedSites.getBackgroundColorForUrl(url);
+        if (bgColor != null) {
+            return Color.parseColor(bgColor);
+        }
+
+        return 0;
     }
 }

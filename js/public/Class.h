@@ -232,10 +232,7 @@ typedef bool
 (* PropertyAttributesOp)(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
                          unsigned *attrsp);
 typedef bool
-(* DeletePropertyOp)(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
-                     bool *succeeded);
-typedef bool
-(* DeleteElementOp)(JSContext *cx, JS::HandleObject obj, uint32_t index, bool *succeeded);
+(* DeleteGenericOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool *succeeded);
 
 typedef bool
 (* WatchOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
@@ -292,6 +289,7 @@ struct ClassSpec
     ClassObjectCreationOp createPrototype;
     const JSFunctionSpec *constructorFunctions;
     const JSFunctionSpec *prototypeFunctions;
+    const JSPropertySpec *prototypeProperties;
     FinishClassInitOp finishInit;
     bool defined() const { return !!createConstructor; }
 };
@@ -322,7 +320,7 @@ struct ClassExtension
     JSWeakmapKeyDelegateOp weakmapKeyDelegateOp;
 };
 
-#define JS_NULL_CLASS_SPEC  {nullptr,nullptr,nullptr,nullptr,nullptr}
+#define JS_NULL_CLASS_SPEC  {nullptr,nullptr,nullptr,nullptr,nullptr,nullptr}
 #define JS_NULL_CLASS_EXT   {nullptr,nullptr,nullptr,false,nullptr}
 
 struct ObjectOps
@@ -341,20 +339,18 @@ struct ObjectOps
     StrictElementIdOp   setElement;
     GenericAttributesOp getGenericAttributes;
     GenericAttributesOp setGenericAttributes;
-    DeletePropertyOp    deleteProperty;
-    DeleteElementOp     deleteElement;
+    DeleteGenericOp     deleteGeneric;
     WatchOp             watch;
     UnwatchOp           unwatch;
     SliceOp             slice; // Optimized slice, can be null.
-
     JSNewEnumerateOp    enumerate;
     ObjectOp            thisObject;
 };
 
 #define JS_NULL_OBJECT_OPS                                                    \
-    {nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr, \
-     nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr, \
-     nullptr,nullptr}
+    {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,  \
+     nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,  \
+     nullptr, nullptr, nullptr}
 
 } // namespace js
 
@@ -427,7 +423,7 @@ struct JSClass {
 // the beginning of every global object's slots for use by the
 // application.
 #define JSCLASS_GLOBAL_APPLICATION_SLOTS 3
-#define JSCLASS_GLOBAL_SLOT_COUNT      (JSCLASS_GLOBAL_APPLICATION_SLOTS + JSProto_LIMIT * 3 + 31)
+#define JSCLASS_GLOBAL_SLOT_COUNT      (JSCLASS_GLOBAL_APPLICATION_SLOTS + JSProto_LIMIT * 3 + 30)
 #define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                                    \
     (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))
 #define JSCLASS_GLOBAL_FLAGS                                                  \

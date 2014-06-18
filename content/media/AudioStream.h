@@ -45,13 +45,17 @@ public:
   void UpdateWritePosition(uint32_t aCount);
   // Get the read position of the stream, in microseconds.
   // Called on the state machine thead.
-  uint64_t GetPosition();
+  // Assumes the AudioStream lock is held and thus calls Unlocked versions
+  // of AudioStream funcs.
+  uint64_t GetPositionUnlocked();
   // Get the read position of the stream, in frames.
   // Called on the state machine thead.
   uint64_t GetPositionInFrames();
   // Set the playback rate.
   // Called on the audio thread.
-  void SetPlaybackRate(double aPlaybackRate);
+  // Assumes the AudioStream lock is held and thus calls Unlocked versions
+  // of AudioStream funcs.
+  void SetPlaybackRateUnlocked(double aPlaybackRate);
   // Get the current playback rate.
   // Called on the audio thread.
   double GetPlaybackRate();
@@ -61,8 +65,6 @@ public:
   // Get the current pitch preservation state.
   // Called on the audio thread.
   bool GetPreservesPitch();
-  // Get the number of frames written to the backend.
-  int64_t GetWritten();
 private:
   // This AudioStream holds a strong reference to this AudioClock. This
   // pointer is garanteed to always be valid.
@@ -279,8 +281,6 @@ public:
   int GetChannels() { return mChannels; }
   int GetOutChannels() { return mOutChannels; }
 
-  // This should be called before attempting to use the time stretcher.
-  nsresult EnsureTimeStretcherInitialized();
   // Set playback rate as a multiple of the intrinsic playback rate. This is to
   // be called only with aPlaybackRate > 0.0.
   nsresult SetPlaybackRate(double aPlaybackRate);
@@ -288,6 +288,13 @@ public:
   nsresult SetPreservesPitch(bool aPreservesPitch);
 
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
+
+protected:
+  friend class AudioClock;
+
+  // Shared implementation of underflow adjusted position calculation.
+  // Caller must own the monitor.
+  int64_t GetPositionInFramesUnlocked();
 
 private:
   friend class AudioInitTask;
@@ -300,6 +307,7 @@ private:
 
   static void PrefChanged(const char* aPref, void* aClosure);
   static double GetVolumeScale();
+  static bool GetFirstStream();
   static cubeb* GetCubebContext();
   static cubeb* GetCubebContextUnlocked();
   static uint32_t GetCubebLatency();
@@ -324,10 +332,6 @@ private:
   long GetUnprocessed(void* aBuffer, long aFrames, int64_t &aTime);
   long GetTimeStretched(void* aBuffer, long aFrames, int64_t &aTime);
   long GetUnprocessedWithSilencePadding(void* aBuffer, long aFrames, int64_t &aTime);
-
-  // Shared implementation of underflow adjusted position calculation.
-  // Caller must own the monitor.
-  int64_t GetPositionInFramesUnlocked();
 
   int64_t GetLatencyInFrames();
   void GetBufferInsertTime(int64_t &aTimeMs);
@@ -367,9 +371,14 @@ private:
   };
   nsAutoTArray<Inserts, 8> mInserts;
 
-  // Sum of silent frames written when DataCallback requests more frames
-  // than are available in mBuffer.
-  uint64_t mLostFrames;
+  // Suppose we have received DataCallback for N times, |mWrittenFramesPast|
+  // and |mLostFramesPast| are the sum of frames written to the backend from
+  // 1st to |N-1|th DataCallbacks.
+  uint64_t mWrittenFramesPast; // non-silent frames
+  uint64_t mLostFramesPast;    // silent frames
+  // Frames written to the backend in Nth DataCallback.
+  uint64_t mWrittenFramesLast; // non-silent frames
+  uint64_t mLostFramesLast;    // silent frames
 
   // Output file for dumping audio
   FILE* mDumpFile;
@@ -415,6 +424,7 @@ private:
 
   StreamState mState;
   bool mNeedsStart; // needed in case Start() is called before cubeb is open
+  bool mIsFirst;
 
   // This mutex protects the static members below.
   static StaticMutex sMutex;

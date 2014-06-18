@@ -16,6 +16,10 @@ let ALLOW_LIST = 0;
 let BLOCK_LIST = 1;
 let NO_LIST = 2;
 
+let whitelistedURI = createURI("http://foo:bar@whitelisted.com/index.htm#junk");
+let exampleURI = createURI("http://user:password@example.com/i.html?foo=bar");
+let blocklistedURI = createURI("http://baz:qux@blocklisted.com?xyzzy");
+
 function readFileToString(aFilename) {
   let f = do_get_file(aFilename);
   let stream = Cc["@mozilla.org/network/file-input-stream;1"]
@@ -64,11 +68,15 @@ function run_test() {
     Services.prefs.clearUserPref("browser.safebrowsing.malware.enabled");
   });
 
-  // Set download_block_table explicitly.
+  // Set block and allow tables explicitly, since the allowlist is normally
+  // disabled on non-Windows platforms.
   Services.prefs.setCharPref("urlclassifier.downloadBlockTable",
                              "goog-badbinurl-shavar");
+  Services.prefs.setCharPref("urlclassifier.downloadAllowTable",
+                             "goog-downloadwhite-digest256");
   do_register_cleanup(function() {
     Services.prefs.clearUserPref("urlclassifier.downloadBlockTable");
+    Services.prefs.clearUserPref("urlclassifier.downloadAllowTable");
   });
 
   gHttpServ = new HttpServer();
@@ -93,9 +101,13 @@ function check_telemetry(aCount,
                 .getService(Ci.nsITelemetry)
                 .getHistogramById("APPLICATION_REPUTATION_LOCAL")
                 .snapshot();
-  do_check_eq(local.counts[ALLOW_LIST], aListCounts[ALLOW_LIST]);
-  do_check_eq(local.counts[BLOCK_LIST], aListCounts[BLOCK_LIST]);
-  do_check_eq(local.counts[NO_LIST], aListCounts[NO_LIST]);
+  do_check_eq(local.counts[ALLOW_LIST], aListCounts[ALLOW_LIST],
+              "Allow list counts don't match");
+  do_check_eq(local.counts[BLOCK_LIST], aListCounts[BLOCK_LIST],
+              "Block list counts don't match");
+  do_check_eq(local.counts[NO_LIST], aListCounts[NO_LIST],
+              "No list counts don't match");
+
   let shouldBlock = Cc["@mozilla.org/base/telemetry;1"]
                 .getService(Ci.nsITelemetry)
                 .getHistogramById("APPLICATION_REPUTATION_SHOULD_BLOCK")
@@ -196,9 +208,9 @@ add_test(function test_local_list() {
   streamUpdater.updateUrl = "http://localhost:4444/downloads";
 
   // Load up some update chunks for the safebrowsing server to serve.
-  // This chunk contains the hash of whitelisted.com/.
-  registerTableUpdate("goog-badbinurl-shavar", "data/block_digest.chunk");
   // This chunk contains the hash of blocklisted.com/.
+  registerTableUpdate("goog-badbinurl-shavar", "data/block_digest.chunk");
+  // This chunk contains the hash of whitelisted.com/.
   registerTableUpdate("goog-downloadwhite-digest256", "data/digest.chunk");
 
   // Download some updates, and don't continue until the downloads are done.
@@ -226,7 +238,26 @@ add_test(function test_unlisted() {
   let listCounts = counts.listCounts;
   listCounts[NO_LIST]++;
   gAppRep.queryReputation({
-    sourceURI: createURI("http://example.com"),
+    sourceURI: exampleURI,
+    fileSize: 12,
+  }, function onComplete(aShouldBlock, aStatus) {
+    do_check_eq(Cr.NS_OK, aStatus);
+    do_check_false(aShouldBlock);
+    check_telemetry(counts.total + 1, counts.shouldBlock, listCounts);
+    run_next_test();
+  });
+});
+
+add_test(function test_non_uri() {
+  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
+                             "http://localhost:4444/download");
+  let counts = get_telemetry_counts();
+  let listCounts = counts.listCounts;
+  // No listcount is incremented, since the sourceURI is not an nsIURL
+  let source = NetUtil.newURI("data:application/octet-stream,ABC");
+  do_check_false(source instanceof Ci.nsIURL);
+  gAppRep.queryReputation({
+    sourceURI: source,
     fileSize: 12,
   }, function onComplete(aShouldBlock, aStatus) {
     do_check_eq(Cr.NS_OK, aStatus);
@@ -243,7 +274,7 @@ add_test(function test_local_blacklist() {
   let listCounts = counts.listCounts;
   listCounts[BLOCK_LIST]++;
   gAppRep.queryReputation({
-    sourceURI: createURI("http://blocklisted.com"),
+    sourceURI: blocklistedURI,
     fileSize: 12,
   }, function onComplete(aShouldBlock, aStatus) {
     do_check_eq(Cr.NS_OK, aStatus);
@@ -260,8 +291,8 @@ add_test(function test_referer_blacklist() {
   let listCounts = counts.listCounts;
   listCounts[BLOCK_LIST]++;
   gAppRep.queryReputation({
-    sourceURI: createURI("http://example.com"),
-    referrerURI: createURI("http://blocklisted.com"),
+    sourceURI: exampleURI,
+    referrerURI: blocklistedURI,
     fileSize: 12,
   }, function onComplete(aShouldBlock, aStatus) {
     do_check_eq(Cr.NS_OK, aStatus);
@@ -278,8 +309,37 @@ add_test(function test_blocklist_trumps_allowlist() {
   let listCounts = counts.listCounts;
   listCounts[BLOCK_LIST]++;
   gAppRep.queryReputation({
-    sourceURI: createURI("http://whitelisted.com"),
-    referrerURI: createURI("http://blocklisted.com"),
+    sourceURI: whitelistedURI,
+    referrerURI: blocklistedURI,
+    fileSize: 12,
+  }, function onComplete(aShouldBlock, aStatus) {
+    do_check_eq(Cr.NS_OK, aStatus);
+    do_check_true(aShouldBlock);
+    check_telemetry(counts.total + 1, counts.shouldBlock + 1, listCounts);
+    run_next_test();
+  });
+});
+
+add_test(function test_redirect_on_blocklist() {
+  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
+                             "http://localhost:4444/download");
+  let counts = get_telemetry_counts();
+  let listCounts = counts.listCounts;
+  listCounts[BLOCK_LIST]++;
+  listCounts[ALLOW_LIST]++;
+  let secman = Services.scriptSecurityManager;
+  let badRedirects = Cc["@mozilla.org/array;1"]
+                       .createInstance(Ci.nsIMutableArray);
+  badRedirects.appendElement(secman.getNoAppCodebasePrincipal(exampleURI),
+                             false);
+  badRedirects.appendElement(secman.getNoAppCodebasePrincipal(blocklistedURI),
+                             false);
+  badRedirects.appendElement(secman.getNoAppCodebasePrincipal(whitelistedURI),
+                             false);
+  gAppRep.queryReputation({
+    sourceURI: whitelistedURI,
+    referrerURI: exampleURI,
+    redirects: badRedirects,
     fileSize: 12,
   }, function onComplete(aShouldBlock, aStatus) {
     do_check_eq(Cr.NS_OK, aStatus);

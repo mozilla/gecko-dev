@@ -52,6 +52,7 @@ enum {
   CAMERA_PARAM_ISOMODE,
   CAMERA_PARAM_LUMINANCE,
   CAMERA_PARAM_SCENEMODE_HDR_RETURNNORMALPICTURE,
+  CAMERA_PARAM_RECORDINGHINT,
 
   // supported features
   CAMERA_PARAM_SUPPORTED_PREVIEWSIZES,
@@ -132,8 +133,8 @@ public:
 
   struct StartRecordingOptions {
     uint32_t  rotation;
-    uint32_t  maxFileSizeBytes;
-    uint32_t  maxVideoLengthMs;
+    uint64_t  maxFileSizeBytes;
+    uint64_t  maxVideoLengthMs;
     bool      autoEnableLowLightTorch;
   };
 

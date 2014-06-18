@@ -39,6 +39,7 @@
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLTemplateElement.h"
 #include "mozilla/dom/HTMLContentElement.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/TextDecoder.h"
 #include "mozilla/dom/TouchEvent.h"
 #include "mozilla/dom/ShadowRoot.h"
@@ -113,7 +114,7 @@
 #include "nsIFormControl.h"
 #include "nsIForm.h"
 #include "nsIFragmentContentSink.h"
-#include "nsIFrame.h"
+#include "nsContainerFrame.h"
 #include "nsIHTMLDocument.h"
 #include "nsIIdleService.h"
 #include "nsIImageLoadingContent.h"
@@ -196,6 +197,7 @@ const char kLoadAsData[] = "loadAsData";
 nsIXPConnect *nsContentUtils::sXPConnect;
 nsIScriptSecurityManager *nsContentUtils::sSecurityManager;
 nsIPrincipal *nsContentUtils::sSystemPrincipal;
+nsIPrincipal *nsContentUtils::sNullSubjectPrincipal;
 nsIParserService *nsContentUtils::sParserService = nullptr;
 nsNameSpaceManager *nsContentUtils::sNameSpaceManager;
 nsIIOService *nsContentUtils::sIOService;
@@ -233,9 +235,9 @@ bool nsContentUtils::sInitialized = false;
 bool nsContentUtils::sIsFullScreenApiEnabled = false;
 bool nsContentUtils::sTrustedFullScreenOnly = true;
 bool nsContentUtils::sFullscreenApiIsContentOnly = false;
-bool nsContentUtils::sIsIdleObserverAPIEnabled = false;
 bool nsContentUtils::sIsPerformanceTimingEnabled = false;
 bool nsContentUtils::sIsResourceTimingEnabled = false;
+bool nsContentUtils::sIsExperimentalAutocompleteEnabled = false;
 
 uint32_t nsContentUtils::sHandlingInputTimeout = 1000;
 
@@ -247,6 +249,161 @@ bool nsContentUtils::sFragmentParsingActive = false;
 #if !(defined(DEBUG) || defined(MOZ_ENABLE_JS_DUMP))
 bool nsContentUtils::sDOMWindowDumpEnabled;
 #endif
+
+// Subset of http://www.whatwg.org/specs/web-apps/current-work/#autofill-field-name
+enum AutocompleteFieldName
+{
+  eAutocompleteFieldName_OFF,
+  eAutocompleteFieldName_ON,
+
+  // Name types
+  eAutocompleteFieldName_NAME,
+  //eAutocompleteFieldName_HONORIFIC_PREFIX,
+  eAutocompleteFieldName_GIVEN_NAME,
+  eAutocompleteFieldName_ADDITIONAL_NAME,
+  eAutocompleteFieldName_FAMILY_NAME,
+  //eAutocompleteFieldName_HONORIFIC_SUFFIX,
+  //eAutocompleteFieldName_NICKNAME,
+  //eAutocompleteFieldName_ORGANIZATION_TITLE,
+
+  // Login types
+  eAutocompleteFieldName_USERNAME,
+  eAutocompleteFieldName_NEW_PASSWORD,
+  eAutocompleteFieldName_CURRENT_PASSWORD,
+
+  // Address types
+  eAutocompleteFieldName_ORGANIZATION,
+  eAutocompleteFieldName_STREET_ADDRESS,
+  eAutocompleteFieldName_ADDRESS_LINE1,
+  eAutocompleteFieldName_ADDRESS_LINE2,
+  eAutocompleteFieldName_ADDRESS_LINE3,
+  eAutocompleteFieldName_ADDRESS_LEVEL4,
+  eAutocompleteFieldName_ADDRESS_LEVEL3,
+  eAutocompleteFieldName_ADDRESS_LEVEL2,
+  eAutocompleteFieldName_ADDRESS_LEVEL1,
+  eAutocompleteFieldName_COUNTRY,
+  eAutocompleteFieldName_COUNTRY_NAME,
+  eAutocompleteFieldName_POSTAL_CODE,
+
+  // Credit card types
+  /*
+  eAutocompleteFieldName_CC_NAME,
+  eAutocompleteFieldName_CC_GIVEN_NAME,
+  eAutocompleteFieldName_CC_ADDITIONAL_NAME,
+  eAutocompleteFieldName_CC_FAMILY_NAME,
+  eAutocompleteFieldName_CC_NUMBER,
+  eAutocompleteFieldName_CC_EXP,
+  eAutocompleteFieldName_CC_EXP_MONTH,
+  eAutocompleteFieldName_CC_EXP_YEAR,
+  eAutocompleteFieldName_CC_CSC,
+  eAutocompleteFieldName_CC_TYPE
+  */
+
+  // Additional field types
+  /*
+  eAutocompleteFieldName_LANGUAGE,
+  eAutocompleteFieldName_BDAY,
+  eAutocompleteFieldName_BDAY_DAY,
+  eAutocompleteFieldName_BDAY_MONTH,
+  eAutocompleteFieldName_BDAY_YEAR,
+  eAutocompleteFieldName_SEX,
+  eAutocompleteFieldName_URL,
+  eAutocompleteFieldName_PHOTO,
+  */
+
+  // Contact category types
+  eAutocompleteFieldName_TEL,
+  eAutocompleteFieldName_TEL_COUNTRY_CODE,
+  eAutocompleteFieldName_TEL_NATIONAL,
+  eAutocompleteFieldName_TEL_AREA_CODE,
+  eAutocompleteFieldName_TEL_LOCAL,
+  eAutocompleteFieldName_TEL_LOCAL_PREFIX,
+  eAutocompleteFieldName_TEL_LOCAL_SUFFIX,
+  eAutocompleteFieldName_TEL_EXTENSION,
+  eAutocompleteFieldName_EMAIL,
+  //eAutocompleteFieldName_IMPP,
+
+  eAutocompleteFieldName_last, // Dummy to check table sizes
+};
+
+enum AutocompleteFieldHint
+{
+  eAutocompleteFieldHint_SHIPPING,
+  eAutocompleteFieldHint_BILLING,
+  eAutocompleteFieldHint_last, // Dummy to check table sizes
+};
+
+enum AutocompleteFieldContactHint
+{
+  eAutocompleteFieldContactHint_HOME,
+  eAutocompleteFieldContactHint_WORK,
+  eAutocompleteFieldContactHint_MOBILE,
+  eAutocompleteFieldContactHint_FAX,
+  //eAutocompleteFieldContactHint_PAGER,
+  eAutocompleteFieldContactHint_last, // Dummy to check table sizes
+};
+
+enum AutocompleteCategory
+{
+  eAutocompleteCategory_NORMAL,
+  eAutocompleteCategory_CONTACT,
+};
+
+static const nsAttrValue::EnumTable kAutocompleteFieldNameTable[] = {
+  { "off", eAutocompleteFieldName_OFF },
+  { "on", eAutocompleteFieldName_ON },
+
+  { "name", eAutocompleteFieldName_NAME },
+  { "given-name", eAutocompleteFieldName_GIVEN_NAME },
+  { "additional-name", eAutocompleteFieldName_ADDITIONAL_NAME },
+  { "family-name", eAutocompleteFieldName_FAMILY_NAME },
+
+  { "username", eAutocompleteFieldName_USERNAME },
+  { "new-password", eAutocompleteFieldName_NEW_PASSWORD },
+  { "current-password", eAutocompleteFieldName_CURRENT_PASSWORD },
+
+  { "organization", eAutocompleteFieldName_ORGANIZATION },
+  { "street-address", eAutocompleteFieldName_STREET_ADDRESS },
+  { "address-line1", eAutocompleteFieldName_ADDRESS_LINE1 },
+  { "address-line2", eAutocompleteFieldName_ADDRESS_LINE2 },
+  { "address-line3", eAutocompleteFieldName_ADDRESS_LINE3 },
+  { "address-level4", eAutocompleteFieldName_ADDRESS_LEVEL4 },
+  { "address-level3", eAutocompleteFieldName_ADDRESS_LEVEL3 },
+  { "address-level2", eAutocompleteFieldName_ADDRESS_LEVEL2 },
+  { "address-level1", eAutocompleteFieldName_ADDRESS_LEVEL1 },
+  { "country", eAutocompleteFieldName_COUNTRY },
+  { "country-name", eAutocompleteFieldName_COUNTRY_NAME },
+  { "postal-code", eAutocompleteFieldName_POSTAL_CODE },
+  { 0 }
+};
+
+static const nsAttrValue::EnumTable kAutocompleteContactFieldNameTable[] = {
+  { "tel", eAutocompleteFieldName_TEL },
+  { "tel-country-code", eAutocompleteFieldName_TEL_COUNTRY_CODE },
+  { "tel-national", eAutocompleteFieldName_TEL_NATIONAL },
+  { "tel-area-code", eAutocompleteFieldName_TEL_AREA_CODE },
+  { "tel-local", eAutocompleteFieldName_TEL_LOCAL },
+  { "tel-local-prefix", eAutocompleteFieldName_TEL_LOCAL_PREFIX },
+  { "tel-local-suffix", eAutocompleteFieldName_TEL_LOCAL_SUFFIX },
+  { "tel-extension", eAutocompleteFieldName_TEL_EXTENSION },
+
+  { "email", eAutocompleteFieldName_EMAIL },
+  { 0 }
+};
+
+static const nsAttrValue::EnumTable kAutocompleteFieldHintTable[] = {
+  { "shipping", eAutocompleteFieldHint_SHIPPING },
+  { "billing", eAutocompleteFieldHint_BILLING },
+  { 0 }
+};
+
+static const nsAttrValue::EnumTable kAutocompleteContactFieldHintTable[] = {
+  { "home", eAutocompleteFieldContactHint_HOME },
+  { "work", eAutocompleteFieldContactHint_WORK },
+  { "mobile", eAutocompleteFieldContactHint_MOBILE },
+  { "fax", eAutocompleteFieldContactHint_FAX },
+  { 0 }
+};
 
 namespace {
 
@@ -367,6 +524,12 @@ nsContentUtils::Init()
     return NS_OK;
   }
 
+  // Check that all the entries in the autocomplete enums are handled in EnumTables
+  MOZ_ASSERT(eAutocompleteFieldName_last == ArrayLength(kAutocompleteFieldNameTable)
+             + ArrayLength(kAutocompleteContactFieldNameTable) - 2);
+  MOZ_ASSERT(eAutocompleteFieldHint_last == ArrayLength(kAutocompleteFieldHintTable) - 1);
+  MOZ_ASSERT(eAutocompleteFieldContactHint_last == ArrayLength(kAutocompleteContactFieldHintTable) - 1);
+
   sNameSpaceManager = nsNameSpaceManager::GetInstance();
   NS_ENSURE_TRUE(sNameSpaceManager, NS_ERROR_OUT_OF_MEMORY);
 
@@ -379,6 +542,7 @@ nsContentUtils::Init()
 
   sSecurityManager->GetSystemPrincipal(&sSystemPrincipal);
   MOZ_ASSERT(sSystemPrincipal);
+  NS_ADDREF(sNullSubjectPrincipal = new nsNullPrincipal());
 
   nsresult rv = CallGetService(NS_IOSERVICE_CONTRACTID, &sIOService);
   if (NS_FAILED(rv)) {
@@ -432,13 +596,14 @@ nsContentUtils::Init()
   Preferences::AddBoolVarCache(&sTrustedFullScreenOnly,
                                "full-screen-api.allow-trusted-requests-only");
 
-  sIsIdleObserverAPIEnabled = Preferences::GetBool("dom.idle-observers-api.enabled", true);
-
   Preferences::AddBoolVarCache(&sIsPerformanceTimingEnabled,
                                "dom.enable_performance", true);
 
   Preferences::AddBoolVarCache(&sIsResourceTimingEnabled,
                                "dom.enable_resource_timing", true);
+
+  Preferences::AddBoolVarCache(&sIsExperimentalAutocompleteEnabled,
+                               "dom.forms.autocomplete.experimental", false);
 
   Preferences::AddUintVarCache(&sHandlingInputTimeout,
                                "dom.event.handling-user-input-time-limit",
@@ -685,7 +850,122 @@ nsContentUtils::IsAutocompleteEnabled(nsIDOMHTMLInputElement* aInput)
     form->GetAutocomplete(autocomplete);
   }
 
-  return autocomplete.EqualsLiteral("on");
+  return !autocomplete.EqualsLiteral("off");
+}
+
+nsContentUtils::AutocompleteAttrState
+nsContentUtils::SerializeAutocompleteAttribute(const nsAttrValue* aAttr,
+                                           nsAString& aResult)
+{
+  AutocompleteAttrState state = InternalSerializeAutocompleteAttribute(aAttr, aResult);
+  if (state == eAutocompleteAttrState_Valid) {
+    ASCIIToLower(aResult);
+  } else {
+    aResult.Truncate();
+  }
+  return state;
+}
+
+/**
+ * Helper to validate the @autocomplete tokens.
+ *
+ * @return {AutocompleteAttrState} The state of the attribute (invalid/valid).
+ */
+nsContentUtils::AutocompleteAttrState
+nsContentUtils::InternalSerializeAutocompleteAttribute(const nsAttrValue* aAttrVal,
+                                                   nsAString& aResult)
+{
+  // No sandbox attribute so we are done
+  if (!aAttrVal) {
+    return eAutocompleteAttrState_Invalid;
+  }
+
+  uint32_t numTokens = aAttrVal->GetAtomCount();
+  if (!numTokens) {
+    return eAutocompleteAttrState_Invalid;
+  }
+
+  uint32_t index = numTokens - 1;
+  nsString tokenString = nsDependentAtomString(aAttrVal->AtomAt(index));
+  AutocompleteCategory category;
+  nsAttrValue enumValue;
+
+  bool result = enumValue.ParseEnumValue(tokenString, kAutocompleteFieldNameTable, false);
+  if (result) {
+    // Off/Automatic/Normal categories.
+    if (enumValue.Equals(NS_LITERAL_STRING("off"), eIgnoreCase) ||
+        enumValue.Equals(NS_LITERAL_STRING("on"), eIgnoreCase)) {
+      if (numTokens > 1) {
+        return eAutocompleteAttrState_Invalid;
+      }
+      enumValue.ToString(aResult);
+      return eAutocompleteAttrState_Valid;
+    }
+
+    // Only allow on/off if experimental @autocomplete values aren't enabled.
+    if (!sIsExperimentalAutocompleteEnabled) {
+      return eAutocompleteAttrState_Invalid;
+    }
+
+    // Normal category
+    if (numTokens > 2) {
+      return eAutocompleteAttrState_Invalid;
+    }
+    category = eAutocompleteCategory_NORMAL;
+  } else { // Check if the last token is of the contact category instead.
+    // Only allow on/off if experimental @autocomplete values aren't enabled.
+    if (!sIsExperimentalAutocompleteEnabled) {
+      return eAutocompleteAttrState_Invalid;
+    }
+
+    result = enumValue.ParseEnumValue(tokenString, kAutocompleteContactFieldNameTable, false);
+    if (!result || numTokens > 3) {
+      return eAutocompleteAttrState_Invalid;
+    }
+
+    category = eAutocompleteCategory_CONTACT;
+  }
+
+  enumValue.ToString(aResult);
+
+  // We are done if this was the only token.
+  if (numTokens == 1) {
+    return eAutocompleteAttrState_Valid;
+  }
+
+  --index;
+  tokenString = nsDependentAtomString(aAttrVal->AtomAt(index));
+
+  if (category == eAutocompleteCategory_CONTACT) {
+    nsAttrValue contactFieldHint;
+    result = contactFieldHint.ParseEnumValue(tokenString, kAutocompleteContactFieldHintTable, false);
+    if (result) {
+      aResult.Insert(' ', 0);
+      nsAutoString contactFieldHintString;
+      contactFieldHint.ToString(contactFieldHintString);
+      aResult.Insert(contactFieldHintString, 0);
+      if (index == 0) {
+        return eAutocompleteAttrState_Valid;
+      }
+      --index;
+      tokenString = nsDependentAtomString(aAttrVal->AtomAt(index));
+    }
+  }
+
+  // Check for billing/shipping tokens
+  nsAttrValue fieldHint;
+  if (fieldHint.ParseEnumValue(tokenString, kAutocompleteFieldHintTable, false)) {
+    aResult.Insert(' ', 0);
+    nsString fieldHintString;
+    fieldHint.ToString(fieldHintString);
+    aResult.Insert(fieldHintString, 0);
+    if (index == 0) {
+      return eAutocompleteAttrState_Valid;
+    }
+    --index;
+  }
+
+  return eAutocompleteAttrState_Invalid;
 }
 
 #define SKIP_WHITESPACE(iter, end_iter, end_res)                 \
@@ -1436,6 +1716,7 @@ nsContentUtils::Shutdown()
   sXPConnect = nullptr;
   NS_IF_RELEASE(sSecurityManager);
   NS_IF_RELEASE(sSystemPrincipal);
+  NS_IF_RELEASE(sNullSubjectPrincipal);
   NS_IF_RELEASE(sParserService);
   NS_IF_RELEASE(sIOService);
   NS_IF_RELEASE(sLineBreaker);
@@ -1573,7 +1854,7 @@ nsContentUtils::CanCallerAccess(nsIDOMNode *aNode)
 bool
 nsContentUtils::CanCallerAccess(nsINode* aNode)
 {
-  return CanCallerAccess(GetSubjectPrincipal(), aNode->NodePrincipal());
+  return CanCallerAccess(SubjectPrincipal(), aNode->NodePrincipal());
 }
 
 // static
@@ -1585,7 +1866,7 @@ nsContentUtils::CanCallerAccess(nsPIDOMWindow* aWindow)
                       aWindow->GetCurrentInnerWindow() : aWindow);
   NS_ENSURE_TRUE(scriptObject, false);
 
-  return CanCallerAccess(GetSubjectPrincipal(), scriptObject->GetPrincipal());
+  return CanCallerAccess(SubjectPrincipal(), scriptObject->GetPrincipal());
 }
 
 //static
@@ -1687,7 +1968,7 @@ bool
 nsContentUtils::IsCallerChrome()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  if (GetSubjectPrincipal() == sSystemPrincipal) {
+  if (SubjectPrincipal() == sSystemPrincipal) {
     return true;
   }
 
@@ -1713,7 +1994,7 @@ nsContentUtils::ThreadsafeIsCallerChrome()
 }
 
 bool
-nsContentUtils::IsCallerXBL()
+nsContentUtils::IsCallerContentXBL()
 {
     JSContext *cx = GetCurrentJSContext();
     if (!cx)
@@ -1723,12 +2004,12 @@ nsContentUtils::IsCallerXBL()
 
     // For remote XUL, we run XBL in the XUL scope. Given that we care about
     // compat and not security for remote XUL, just always claim to be XBL.
-    if (!xpc::AllowXBLScope(c)) {
+    if (!xpc::AllowContentXBLScope(c)) {
       MOZ_ASSERT(nsContentUtils::AllowXULXBLForPrincipal(xpc::GetCompartmentPrincipal(c)));
       return true;
     }
 
-    return xpc::IsXBLScope(c);
+    return xpc::IsContentXBLScope(c);
 }
 
 
@@ -2315,23 +2596,50 @@ nsContentUtils::GenerateStateKey(nsIContent* aContent,
 
 // static
 nsIPrincipal*
-nsContentUtils::GetSubjectPrincipal()
+nsContentUtils::SubjectPrincipal()
 {
   JSContext* cx = GetCurrentJSContext();
   if (!cx) {
     return GetSystemPrincipal();
   }
 
-  JSCompartment* compartment = js::GetContextCompartment(cx);
-  MOZ_ASSERT(compartment);
-  JSPrincipals* principals = JS_GetCompartmentPrincipals(compartment);
+  JSCompartment *compartment = js::GetContextCompartment(cx);
+
+  // When an AutoJSAPI is instantiated, we are in a null compartment until the
+  // first JSAutoCompartment, which is kind of a purgatory as far as permissions
+  // go. It would be nice to just hard-abort if somebody does a security check
+  // in this purgatory zone, but that would be too fragile, since it could be
+  // triggered by random IsCallerChrome() checks 20-levels deep.
+  //
+  // So we want to return _something_ here - and definitely not the System
+  // Principal, since that would make an AutoJSAPI a very dangerous thing to
+  // instantiate.
+  //
+  // The natural thing to return is a null principal. Ideally, we'd return a
+  // different null principal each time, to avoid any unexpected interactions
+  // when the principal accidentally gets inherited somewhere. But
+  // GetSubjectPrincipal doesn't return strong references, so there's no way to
+  // sanely manage the lifetime of multiple null principals.
+  //
+  // So we use a singleton null principal. To avoid it being accidentally
+  // inherited and becoming a "real" subject or object principal, we do a
+  // release-mode assert during compartment creation against using this
+  // principal on an actual global.
+  if (!compartment) {
+    return sNullSubjectPrincipal;
+  }
+
+  JSPrincipals *principals = JS_GetCompartmentPrincipals(compartment);
   return nsJSPrincipals::get(principals);
 }
 
 // static
 nsIPrincipal*
-nsContentUtils::GetObjectPrincipal(JSObject* aObj)
+nsContentUtils::ObjectPrincipal(JSObject* aObj)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(JS_GetObjectRuntime(aObj) == CycleCollectedJSRuntime::Get()->Runtime());
+
   // This is duplicated from nsScriptSecurityManager. We don't call through there
   // because the API unnecessarily requires a JSContext for historical reasons.
   JSCompartment *compartment = js::GetObjectCompartment(aObj);
@@ -3861,7 +4169,7 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
           content->GetAttr(kNameSpaceID_XMLNS, name->LocalName(), uriStr);
 
           // really want something like nsXMLContentSerializer::SerializeAttr
-          tagName.Append(NS_LITERAL_STRING(" xmlns")); // space important
+          tagName.AppendLiteral(" xmlns"); // space important
           if (name->GetPrefix()) {
             tagName.Append(char16_t(':'));
             name->LocalName()->ToString(nameStr);
@@ -3869,8 +4177,9 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
           } else {
             setDefaultNamespace = true;
           }
-          tagName.Append(NS_LITERAL_STRING("=\"") + uriStr +
-            NS_LITERAL_STRING("\""));
+          tagName.AppendLiteral("=\"");
+          tagName.Append(uriStr);
+          tagName.Append('"');
         }
       }
     }
@@ -3883,8 +4192,9 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
         // default namespace attr in, so that our kids will be in our
         // namespace.
         info->GetNamespaceURI(uriStr);
-        tagName.Append(NS_LITERAL_STRING(" xmlns=\"") + uriStr +
-                       NS_LITERAL_STRING("\""));
+        tagName.AppendLiteral(" xmlns=\"");
+        tagName.Append(uriStr);
+        tagName.Append('"');
       }
     }
 
@@ -4609,6 +4919,16 @@ nsContentUtils::GetAccelKeyCandidates(nsIDOMKeyEvent* aDOMKeyEvent,
         aCandidates.AppendElement(key);
       }
     }
+
+    // Special case for "Space" key.  With some keyboard layouts, "Space" with
+    // or without Shift key causes non-ASCII space.  For such keyboard layouts,
+    // we should guarantee that the key press works as an ASCII white space key
+    // press.
+    if (nativeKeyEvent->mCodeNameIndex == CODE_NAME_INDEX_Space &&
+        nativeKeyEvent->charCode != static_cast<uint32_t>(' ')) {
+      nsShortcutCandidate spaceKey(static_cast<uint32_t>(' '), false);
+      aCandidates.AppendElement(spaceKey);
+    }
   } else {
     uint32_t charCode;
     aDOMKeyEvent->GetCharCode(&charCode);
@@ -4650,6 +4970,14 @@ nsContentUtils::GetAccessKeyCandidates(WidgetKeyboardEvent* aNativeKeyEvent,
       if (aCandidates.IndexOf(ch[j]) == aCandidates.NoIndex)
         aCandidates.AppendElement(ch[j]);
     }
+  }
+  // Special case for "Space" key.  With some keyboard layouts, "Space" with
+  // or without Shift key causes non-ASCII space.  For such keyboard layouts,
+  // we should guarantee that the key press works as an ASCII white space key
+  // press.
+  if (aNativeKeyEvent->mCodeNameIndex == CODE_NAME_INDEX_Space &&
+      aNativeKeyEvent->charCode != static_cast<uint32_t>(' ')) {
+    aCandidates.AppendElement(static_cast<uint32_t>(' '));
   }
   return;
 }
@@ -5024,8 +5352,12 @@ nsContentUtils::CheckForSubFrameDrop(nsIDragSession* aDragSession,
   }
   
   nsIDocument* targetDoc = target->OwnerDoc();
-  nsCOMPtr<nsIWebNavigation> twebnav = do_GetInterface(targetDoc->GetWindow());
-  nsCOMPtr<nsIDocShellTreeItem> tdsti = do_QueryInterface(twebnav);
+  nsPIDOMWindow* targetWin = targetDoc->GetWindow();
+  if (!targetWin) {
+    return true;
+  }
+
+  nsCOMPtr<nsIDocShellTreeItem> tdsti = targetWin->GetDocShell();
   if (!tdsti) {
     return true;
   }
@@ -5551,7 +5883,7 @@ nsContentTypeParser::GetParameter(const char* aParameterName, nsAString& aResult
 bool
 nsContentUtils::CanAccessNativeAnon()
 {
-  return IsCallerChrome() || IsCallerXBL();
+  return IsCallerChrome() || IsCallerContentXBL();
 }
 
 /* static */ nsresult
@@ -5596,6 +5928,8 @@ nsContentUtils::WrapNative(JSContext *cx, nsISupports *native,
                            nsWrapperCache *cache, const nsIID* aIID,
                            JS::MutableHandle<JS::Value> vp, bool aAllowWrapping)
 {
+  MOZ_ASSERT(cx == GetCurrentJSContext());
+
   if (!native) {
     vp.setNull();
 
@@ -5615,8 +5949,7 @@ nsContentUtils::WrapNative(JSContext *cx, nsISupports *native,
 
   nsresult rv = NS_OK;
   JS::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
-  AutoPushJSContext context(cx);
-  rv = sXPConnect->WrapNativeToJSVal(context, scope, native, cache, aIID,
+  rv = sXPConnect->WrapNativeToJSVal(cx, scope, native, cache, aIID,
                                      aAllowWrapping, vp);
   return rv;
 }
@@ -5867,7 +6200,7 @@ nsContentUtils::FlushLayoutForTree(nsIDOMWindow* aWindow)
         for (; i < i_end; ++i) {
             nsCOMPtr<nsIDocShellTreeItem> item;
             docShell->GetChildAt(i, getter_AddRefs(item));
-            nsCOMPtr<nsIDOMWindow> win = do_GetInterface(item);
+            nsCOMPtr<nsIDOMWindow> win = item->GetWindow();
             if (win) {
                 FlushLayoutForTree(win);
             }
@@ -6062,7 +6395,7 @@ nsContentUtils::GetContentSecurityPolicy(JSContext* aCx,
   MOZ_ASSERT(aCx == GetCurrentJSContext());
 
   nsCOMPtr<nsIContentSecurityPolicy> csp;
-  nsresult rv = GetSubjectPrincipal()->GetCsp(getter_AddRefs(csp));
+  nsresult rv = SubjectPrincipal()->GetCsp(getter_AddRefs(csp));
   if (NS_FAILED(rv)) {
     NS_ERROR("CSP: Failed to get CSP from principal.");
     return false;
@@ -6078,15 +6411,19 @@ nsContentUtils::IsPatternMatching(nsAString& aValue, nsAString& aPattern,
                                   nsIDocument* aDocument)
 {
   NS_ASSERTION(aDocument, "aDocument should be a valid pointer (not null)");
-  nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(aDocument->GetWindow());
-  NS_ENSURE_TRUE(sgo, true);
+  nsCOMPtr<nsIGlobalObject> globalObject =
+    do_QueryInterface(aDocument->GetWindow());
+  if (NS_WARN_IF(!globalObject)) {
+    return true;
+  }
 
-  AutoPushJSContext cx(sgo->GetContext()->GetNativeContext());
-  NS_ENSURE_TRUE(cx, true);
+  AutoJSAPI jsapi;
+  JSContext* cx = jsapi.cx();
+  JSAutoCompartment ac(cx, globalObject->GetGlobalJSObject());
 
   // The pattern has to match the entire value.
   aPattern.Insert(NS_LITERAL_STRING("^(?:"), 0);
-  aPattern.Append(NS_LITERAL_STRING(")$"));
+  aPattern.AppendLiteral(")$");
 
   JS::Rooted<JSObject*> re(cx,
     JS_NewUCRegExpObjectNoStatics(cx,

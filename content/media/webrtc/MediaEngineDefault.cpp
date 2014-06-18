@@ -51,14 +51,14 @@ MediaEngineDefaultVideoSource::~MediaEngineDefaultVideoSource()
 void
 MediaEngineDefaultVideoSource::GetName(nsAString& aName)
 {
-  aName.Assign(NS_LITERAL_STRING("Default Video Device"));
+  aName.AssignLiteral(MOZ_UTF16("Default Video Device"));
   return;
 }
 
 void
 MediaEngineDefaultVideoSource::GetUUID(nsAString& aUUID)
 {
-  aUUID.Assign(NS_LITERAL_STRING("1041FCBD-3F12-4F7B-9E9B-1EC556DD5676"));
+  aUUID.AssignLiteral(MOZ_UTF16("1041FCBD-3F12-4F7B-9E9B-1EC556DD5676"));
   return;
 }
 
@@ -283,7 +283,7 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 
   // Note: we're not giving up mImage here
   nsRefPtr<layers::Image> image = mImage;
-  TrackTicks target = TimeToTicksRoundUp(USECS_PER_S, aDesiredTime);
+  TrackTicks target = aSource->TimeToTicksRoundUp(USECS_PER_S, aDesiredTime);
   TrackTicks delta = target - aLastEndTime;
 
   if (delta > 0) {
@@ -362,14 +362,14 @@ MediaEngineDefaultAudioSource::~MediaEngineDefaultAudioSource()
 void
 MediaEngineDefaultAudioSource::GetName(nsAString& aName)
 {
-  aName.Assign(NS_LITERAL_STRING("Default Audio Device"));
+  aName.AssignLiteral(MOZ_UTF16("Default Audio Device"));
   return;
 }
 
 void
 MediaEngineDefaultAudioSource::GetUUID(nsAString& aUUID)
 {
-  aUUID.Assign(NS_LITERAL_STRING("B7CBD7C1-53EF-42F9-8353-73F61C70C092"));
+  aUUID.AssignLiteral(MOZ_UTF16("B7CBD7C1-53EF-42F9-8353-73F61C70C092"));
   return;
 }
 

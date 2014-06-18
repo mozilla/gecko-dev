@@ -19,24 +19,24 @@
 #ifndef _nsFrameManagerBase_h_
 #define _nsFrameManagerBase_h_
 
+#include "nsDebug.h"
 #include "pldhash.h"
 
+class nsIFrame;
 class nsIPresShell;
 class nsStyleSet;
-class nsIContent;
-class nsPlaceholderFrame;
-class nsIFrame;
-class nsStyleContext;
-class nsIAtom;
-class nsStyleChangeList;
-class nsILayoutHistoryState;
 
 class nsFrameManagerBase
 {
 public:
   nsFrameManagerBase()
+    : mPresShell(nullptr)
+    , mStyleSet(nullptr)
+    , mRootFrame(nullptr)
+    , mUndisplayedMap(nullptr)
+    , mIsDestroyingFrames(false)
   {
-    memset(this, '\0', sizeof(nsFrameManagerBase));
+    mPlaceholderMap.ops = nullptr;
   }
 
   bool IsDestroyingFrames() { return mIsDestroyingFrames; }
@@ -46,8 +46,8 @@ public:
    * root frame is controlled by the frame manager. When the frame manager is
    * destroyed, it destroys the entire frame hierarchy.
    */
-  NS_HIDDEN_(nsIFrame*) GetRootFrame() const { return mRootFrame; }
-  NS_HIDDEN_(void)      SetRootFrame(nsIFrame* aRootFrame)
+  nsIFrame* GetRootFrame() const { return mRootFrame; }
+  void      SetRootFrame(nsIFrame* aRootFrame)
   {
     NS_ASSERTION(!mRootFrame, "already have a root frame");
     mRootFrame = aRootFrame;

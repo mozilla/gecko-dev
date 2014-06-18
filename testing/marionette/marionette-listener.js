@@ -495,6 +495,7 @@ function executeScript(msg, directInject) {
                       createInstance(Components.interfaces.nsIFileInputStream);
         stream.init(importedScripts, -1, 0, 0);
         let data = NetUtil.readInputStreamToString(stream, stream.available());
+        stream.close();
         script = data + script;
       }
       let res = Cu.evalInSandbox(script, sandbox, "1.8", "dummy file" ,0);
@@ -526,6 +527,7 @@ function executeScript(msg, directInject) {
                       createInstance(Components.interfaces.nsIFileInputStream);
         stream.init(importedScripts, -1, 0, 0);
         let data = NetUtil.readInputStreamToString(stream, stream.available());
+        stream.close();
         script = data + script;
       }
       let res = Cu.evalInSandbox(script, sandbox, "1.8", "dummy file", 0);
@@ -662,6 +664,7 @@ function executeWithCallback(msg, useFinish) {
                       createInstance(Ci.nsIFileInputStream);
       stream.init(importedScripts, -1, 0, 0);
       let data = NetUtil.readInputStreamToString(stream, stream.available());
+      stream.close();
       scriptSrc = data + scriptSrc;
     }
     Cu.evalInSandbox(scriptSrc, sandbox, "1.8", "dummy file", 0);
@@ -966,7 +969,7 @@ function actions(chain, touchId, command_id, i) {
   let el;
   let c;
   i++;
-  if (command != 'press') {
+  if (command != 'press' && command != 'wait') {
     //if mouseEventsOnly, then touchIds isn't used
     if (!(touchId in touchIds) && !mouseEventsOnly) {
       sendError("Element has not been pressed", 500, null, command_id);
@@ -1560,11 +1563,6 @@ function sendKeysToElement(msg) {
 
   let el = elementManager.getKnownElement(msg.json.id, curFrame);
   if (checkVisible(el)) {
-    if (el.mozIsTextField && el.mozIsTextField(false)) {
-      var currentTextLength = el.value ? el.value.length : 0;
-      el.selectionStart = currentTextLength;
-      el.selectionEnd = currentTextLength;
-    }
     el.focus();
     var value = msg.json.value.join("");
     let hasShift = null;

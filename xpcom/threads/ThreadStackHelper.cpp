@@ -5,6 +5,9 @@
 
 #include "ThreadStackHelper.h"
 #include "MainThreadUtils.h"
+#include "nsJSPrincipals.h"
+#include "nsScriptSecurityManager.h"
+#include "jsfriendapi.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Move.h"
@@ -184,7 +187,8 @@ ThreadStackHelper::SigAction(int aSignal, siginfo_t* aInfo, void* aContext)
 #endif // XP_LINUX
 
 bool
-ThreadStackHelper::PrepareStackBuffer(Stack& aStack) {
+ThreadStackHelper::PrepareStackBuffer(Stack& aStack)
+{
   // Return false to skip getting the stack and return an empty stack
   aStack.clear();
 #ifdef MOZ_ENABLE_PROFILER_SPS
@@ -207,8 +211,54 @@ ThreadStackHelper::PrepareStackBuffer(Stack& aStack) {
 #endif
 }
 
+#ifdef MOZ_ENABLE_PROFILER_SPS
+
+namespace {
+
+bool
+IsChromeJSScript(JSScript* aScript)
+{
+  // May be called from another thread or inside a signal handler.
+  // We assume querying the script is safe but we must not manipulate it.
+
+  nsIScriptSecurityManager* const secman =
+    nsScriptSecurityManager::GetScriptSecurityManager();
+  NS_ENSURE_TRUE(secman, false);
+
+  JSPrincipals* const principals = JS_GetScriptPrincipals(aScript);
+  return secman->IsSystemPrincipal(nsJSPrincipals::get(principals));
+}
+
+} // namespace
+
+const char*
+ThreadStackHelper::AppendJSEntry(const volatile StackEntry* aEntry,
+                                 const char* aPrevLabel)
+{
+  // May be called from another thread or inside a signal handler.
+  // We assume querying the script is safe but we must not manupulate it.
+  MOZ_ASSERT(aEntry->isJs());
+  MOZ_ASSERT(aEntry->script());
+
+  const char* label;
+  if (IsChromeJSScript(aEntry->script())) {
+    label = "(chrome script)";
+  } else {
+    label = "(content script)";
+  }
+
+  if (label == aPrevLabel) {
+    return aPrevLabel;
+  }
+  mStackBuffer.infallibleAppend(label);
+  return label;
+}
+
+#endif // MOZ_ENABLE_PROFILER_SPS
+
 void
-ThreadStackHelper::FillStackBuffer() {
+ThreadStackHelper::FillStackBuffer()
+{
 #ifdef MOZ_ENABLE_PROFILER_SPS
   size_t reservedSize = mMaxStackSize;
 
@@ -221,6 +271,10 @@ ThreadStackHelper::FillStackBuffer() {
     /* We only accept non-copy labels, because
        we are unable to actually copy labels here */
     if (entry->isCopyLabel()) {
+      continue;
+    }
+    if (entry->isJs()) {
+      prevLabel = AppendJSEntry(entry, prevLabel);
       continue;
     }
     const char* const label = entry->label();

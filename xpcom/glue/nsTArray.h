@@ -102,7 +102,7 @@ class nsIntRegion;
 struct nsTArrayFallibleResult
 {
   // Note: allows implicit conversions from and to bool
-  nsTArrayFallibleResult(bool result)
+  MOZ_IMPLICIT nsTArrayFallibleResult(bool result)
     : mResult(result)
   {}
 
@@ -250,7 +250,7 @@ struct nsTArrayInfallibleAllocator : nsTArrayInfallibleAllocatorBase
 
   static void* Realloc(void* ptr, size_t size) {
     void* newptr = realloc(ptr, size);
-    if (MOZ_UNLIKELY(!ptr && size)) {
+    if (MOZ_UNLIKELY(!newptr && size)) {
       NS_ABORT_OOM(size);
     }
     return newptr;
@@ -751,9 +751,7 @@ public:
 
   // A special value that is used to indicate an invalid or unknown index
   // into the array.
-  enum {
-    NoIndex = index_type(-1)
-  };
+  static const index_type NoIndex = index_type(-1);
 
   using base_type::Length;
 
@@ -1696,6 +1694,7 @@ public:
 template <class TArrayBase, size_t N>
 class nsAutoArrayBase : public TArrayBase
 {
+  static_assert(N != 0, "nsAutoArrayBase<TArrayBase, 0> should be specialized");
 public:
   typedef nsAutoArrayBase<TArrayBase, N> self_type;
   typedef TArrayBase base_type;
@@ -1755,6 +1754,24 @@ private:
                          ? MOZ_ALIGNOF(Header) : MOZ_ALIGNOF(elem_type)> mAlign;
   };
 };
+
+//
+// Specialization of nsAutoArrayBase<TArrayBase, N> for the case where N == 0.
+// nsAutoArrayBase<TArrayBase, 0> behaves exactly like TArrayBase, but without
+// this specialization, it stores a useless inline header.
+//
+// We do have many nsAutoArrayBase<TArrayBase, 0> objects in memory: about
+// 2,000 per tab as of May 2014. These are typically not explicitly
+// nsAutoArrayBase<TArrayBase, 0> but rather nsAutoArrayBase<TArrayBase, N>
+// for some value N depending on template parameters, in generic code.
+//
+// For that reason, we optimize this case with the below partial specialization,
+// which ensures that nsAutoArrayBase<TArrayBase, 0> is just like TArrayBase,
+// without any inline header overhead.
+//
+template <class TArrayBase>
+class nsAutoArrayBase<TArrayBase, 0> : public TArrayBase
+{};
 
 //
 // nsAutoTArray<E, N> is an infallible vector class with N elements of inline

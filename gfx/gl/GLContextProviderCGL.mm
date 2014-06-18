@@ -16,10 +16,10 @@
 #include "GeckoProfiler.h"
 #include "mozilla/gfx/MacIOSurface.h"
 
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace gl {
+
+using namespace mozilla::gfx;
 
 static bool gUseDoubleBufferedWindows = true;
 
@@ -174,7 +174,9 @@ GLContextCGL::SupportsRobustness() const
 bool
 GLContextCGL::SwapBuffers()
 {
-  PROFILER_LABEL("GLContext", "SwapBuffers");
+  PROFILER_LABEL("GLContextCGL", "SwapBuffers",
+    js::ProfileEntry::Category::GRAPHICS);
+
   [mContext flushBuffer];
   return true;
 }

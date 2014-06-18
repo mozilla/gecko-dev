@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#undef LOG_TAG
 #define LOG_TAG "SampleIterator"
 //#define LOG_NDEBUG 0
 #include <utils/Log.h>
@@ -28,7 +29,7 @@
 
 #include "include/SampleTable.h"
 
-namespace android {
+namespace stagefright {
 
 SampleIterator::SampleIterator(SampleTable *table)
     : mTable(table),
@@ -136,6 +137,18 @@ status_t SampleIterator::seekTo(uint32_t sampleIndex) {
     if ((err = findSampleTime(sampleIndex, &mCurrentSampleTime)) != OK) {
         ALOGE("findSampleTime return error");
         return err;
+    }
+
+    if (sampleIndex + 1 == mTable->mNumSampleSizes) {
+        mCurrentSampleDuration = 0;
+    }
+    else {
+        uint32_t nextSampleTime;
+        if ((err = findSampleTime(sampleIndex + 1, &nextSampleTime)) != OK ) {
+            ALOGE("findSampleTime return error");
+            return err;
+        }
+        mCurrentSampleDuration = nextSampleTime - mCurrentSampleTime;
     }
 
     mCurrentSampleIndex = sampleIndex;
@@ -312,5 +325,6 @@ status_t SampleIterator::findSampleTime(
     return OK;
 }
 
-}  // namespace android
+}  // namespace stagefright
 
+#undef LOG_TAG

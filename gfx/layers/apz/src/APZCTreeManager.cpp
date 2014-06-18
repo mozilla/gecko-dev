@@ -22,11 +22,12 @@
 #include "nsThreadUtils.h"              // for NS_IsMainThread
 #include "mozilla/gfx/Logging.h"        // for gfx::TreeLog
 #include "UnitTransforms.h"             // for ViewAs
+#include "gfxPrefs.h"                   // for gfxPrefs
 
 #include <algorithm>                    // for std::stable_sort
 
-#define APZC_LOG(...)
-// #define APZC_LOG(...) printf_stderr("APZC: " __VA_ARGS__)
+#define APZCTM_LOG(...)
+// #define APZCTM_LOG(...) printf_stderr("APZCTM: " __VA_ARGS__)
 
 namespace mozilla {
 namespace layers {
@@ -38,6 +39,8 @@ static bool gPrintApzcTree = false;
 
 APZCTreeManager::APZCTreeManager()
     : mTreeLock("APZCTreeLock"),
+      mInOverscrolledApzc(false),
+      mRetainedTouchIdentifier(-1),
       mTouchCount(0),
       mApzcTreeLog("apzctree")
 {
@@ -66,7 +69,7 @@ APZCTreeManager::GetAllowedTouchBehavior(WidgetInputEvent* aEvent,
     spt.x = touchEvent->touches[i]->mRefPoint.x;
     spt.y = touchEvent->touches[i]->mRefPoint.y;
 
-    nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(spt);
+    nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(spt, nullptr);
     aOutValues.AppendElement(apzc
       ? apzc->GetAllowedTouchBehavior(spt)
       : AllowedTouchBehavior::UNKNOWN);
@@ -95,8 +98,11 @@ Collect(AsyncPanZoomController* aApzc, nsTArray< nsRefPtr<AsyncPanZoomController
 }
 
 void
-APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor, Layer* aRoot,
-                                             bool aIsFirstPaint, uint64_t aFirstPaintLayersId)
+APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
+                                             Layer* aRoot,
+                                             bool aIsFirstPaint,
+                                             uint64_t aOriginatingLayersId,
+                                             uint32_t aPaintSequenceNumber)
 {
   if (AsyncPanZoomController::GetThreadAssertionsEnabled()) {
     Compositor::AssertOnCompositorThread();
@@ -120,6 +126,17 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor, Laye
   Collect(mRootApzc, &apzcsToDestroy);
   mRootApzc = nullptr;
 
+  // For testing purposes, we log some data to the APZTestData associated with
+  // the layers id that originated this update.
+  APZTestData* testData = nullptr;
+  if (gfxPrefs::APZTestLoggingEnabled()) {
+    if (CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aOriginatingLayersId)) {
+      testData = &state->mApzTestData;
+      testData->StartNewPaint(aPaintSequenceNumber);
+    }
+  }
+  APZPaintLogHelper paintLogger(testData, aPaintSequenceNumber);
+
   if (aRoot) {
     mApzcTreeLog << "[start]\n";
     UpdatePanZoomControllerTree(aCompositor,
@@ -127,13 +144,13 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor, Laye
                                 // aCompositor is null in gtest scenarios
                                 aCompositor ? aCompositor->RootLayerTreeId() : 0,
                                 gfx3DMatrix(), nullptr, nullptr,
-                                aIsFirstPaint, aFirstPaintLayersId,
-                                &apzcsToDestroy);
+                                aIsFirstPaint, aOriginatingLayersId,
+                                paintLogger, &apzcsToDestroy);
     mApzcTreeLog << "[end]\n";
   }
 
   for (size_t i = 0; i < apzcsToDestroy.Length(); i++) {
-    APZC_LOG("Destroying APZC at %p\n", apzcsToDestroy[i].get());
+    APZCTM_LOG("Destroying APZC at %p\n", apzcsToDestroy[i].get());
     apzcsToDestroy[i]->Destroy();
   }
 }
@@ -144,7 +161,9 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                              gfx3DMatrix aTransform,
                                              AsyncPanZoomController* aParent,
                                              AsyncPanZoomController* aNextSibling,
-                                             bool aIsFirstPaint, uint64_t aFirstPaintLayersId,
+                                             bool aIsFirstPaint,
+                                             uint64_t aOriginatingLayersId,
+                                             const APZPaintLogHelper& aPaintLogger,
                                              nsTArray< nsRefPtr<AsyncPanZoomController> >* aApzcsToDestroy)
 {
   mTreeLock.AssertCurrentThreadOwns();
@@ -209,10 +228,10 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
           apzc->SetPrevSibling(nullptr);
           apzc->SetLastChild(nullptr);
         }
-        APZC_LOG("Using APZC %p for layer %p with identifiers %lld %lld\n", apzc, aLayer, aLayersId, container->GetFrameMetrics().GetScrollId());
+        APZCTM_LOG("Using APZC %p for layer %p with identifiers %lld %lld\n", apzc, aLayer, aLayersId, container->GetFrameMetrics().GetScrollId());
 
         apzc->NotifyLayersUpdated(metrics,
-                                  aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
+                                  aIsFirstPaint && (aLayersId == aOriginatingLayersId));
         apzc->SetScrollHandoffParentId(container->GetScrollHandoffParentId());
 
         // Use the composition bounds as the hit test region.
@@ -233,7 +252,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         gfx::To3DMatrix(aLayer->GetTransform(), transform);
 
         apzc->SetLayerHitTestData(visible, aTransform, transform);
-        APZC_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
+        APZCTM_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
                                                                               visible.width, visible.height,
                                                                               apzc);
 
@@ -251,6 +270,17 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         } else {
           mRootApzc = apzc;
           apzc->MakeRoot();
+        }
+
+        // For testing, log the parent scroll id of every APZC that has a
+        // parent. This allows test code to reconstruct the APZC tree.
+        // Note that we currently only do this for APZCs in the layer tree
+        // that originated the update, because the only identifying information
+        // we are logging about APZCs is the scroll id, and otherwise we could
+        // confuse APZCs from different layer trees with the same scroll id.
+        if (aLayersId == aOriginatingLayersId && apzc->GetParent()) {
+          aPaintLogger.LogTestData(metrics.GetScrollId(), "parentScrollId",
+              apzc->GetParent()->GetGuid().mScrollId);
         }
 
         // Let this apzc be the parent of other controllers when we recurse downwards
@@ -298,7 +328,8 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   for (Layer* child = aLayer->GetLastChild(); child; child = child->GetPrevSibling()) {
     gfx::TreeAutoIndent indent(mApzcTreeLog);
     next = UpdatePanZoomControllerTree(aCompositor, child, childLayersId, aTransform, aParent, next,
-                                       aIsFirstPaint, aFirstPaintLayersId, aApzcsToDestroy);
+                                       aIsFirstPaint, aOriginatingLayersId,
+                                       aPaintLogger, aApzcsToDestroy);
   }
 
   // Return the APZC that should be the sibling of other APZCs as we continue
@@ -349,23 +380,36 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
     case MULTITOUCH_INPUT: {
       const MultiTouchInput& multiTouchInput = aEvent.AsMultiTouchInput();
       if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_START) {
+        // If we are in an overscrolled state and a second finger goes down,
+        // ignore that second touch point completely. The touch-start for it is
+        // dropped completely; subsequent touch events until the touch-end for it
+        // will have this touch point filtered out.
+        if (mApzcForInputBlock && mApzcForInputBlock->IsOverscrolled()) {
+          if (mRetainedTouchIdentifier == -1) {
+            mRetainedTouchIdentifier = mApzcForInputBlock->GetLastTouchIdentifier();
+          }
+          return nsEventStatus_eConsumeNoDefault;
+        }
         // MULTITOUCH_START input contains all active touches of the current
         // session thus resetting mTouchCount.
         mTouchCount = multiTouchInput.mTouches.Length();
-        mApzcForInputBlock = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint));
+        mInOverscrolledApzc = false;
+        mApzcForInputBlock = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint),
+                                           &mInOverscrolledApzc);
         if (multiTouchInput.mTouches.Length() == 1) {
           // If we have one touch point, this might be the start of a pan.
           // Prepare for possible overscroll handoff.
           BuildOverscrollHandoffChain(mApzcForInputBlock);
         }
         for (size_t i = 1; i < multiTouchInput.mTouches.Length(); i++) {
-          nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[i].mScreenPoint));
+          nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[i].mScreenPoint),
+                                                                 &mInOverscrolledApzc);
           mApzcForInputBlock = CommonAncestor(mApzcForInputBlock.get(), apzc2.get());
-          APZC_LOG("Using APZC %p as the common ancestor\n", mApzcForInputBlock.get());
+          APZCTM_LOG("Using APZC %p as the common ancestor\n", mApzcForInputBlock.get());
           // For now, we only ever want to do pinching on the root APZC for a given layers id. So
           // when we find the common ancestor of multiple points, also walk up to the root APZC.
           mApzcForInputBlock = RootAPZCForLayersId(mApzcForInputBlock);
-          APZC_LOG("Using APZC %p as the root APZC for multi-touch\n", mApzcForInputBlock.get());
+          APZCTM_LOG("Using APZC %p as the root APZC for multi-touch\n", mApzcForInputBlock.get());
         }
 
         if (mApzcForInputBlock) {
@@ -377,20 +421,53 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
           mCachedTransformToApzcForInputBlock = gfx3DMatrix();
         }
       } else if (mApzcForInputBlock) {
-        APZC_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
+        APZCTM_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
       }
+
+      // If we receive a touch-cancel, it means all touches are finished, so we
+      // can stop ignoring any that we were ignoring.
+      if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL) {
+        mRetainedTouchIdentifier = -1;
+      }
+
       if (mApzcForInputBlock) {
         mApzcForInputBlock->GetGuid(aOutTargetGuid);
         // Use the cached transform to compute the point to send to the APZC.
         // This ensures that the sequence of touch points an APZC sees in an
         // input block are all in the same coordinate space.
         transformToApzc = mCachedTransformToApzcForInputBlock;
+
+        // Make a copy of the input event that we pass, with some modifications,
+        // to the target APZC.
         MultiTouchInput inputForApzc(multiTouchInput);
+
+        // If we are currently ignoring any touch points, filter them out from
+        // the set of touch points included in this event.
+        if (mRetainedTouchIdentifier != -1) {
+          for (size_t j = 0; j < inputForApzc.mTouches.Length(); ++j) {
+            if (inputForApzc.mTouches[j].mIdentifier != mRetainedTouchIdentifier) {
+              // TODO(botond): Once we get rid of ReceiveInputEvent(WidgetInputEvent),
+              // the signature of this function will change to take the InputData
+              // via non-const reference. We can then remove the touch point from
+              // multiTouchInput rather than the copy (inputForApzc), so that
+              // content doesn't get it either.
+              inputForApzc.mTouches.RemoveElementAt(j);
+              --j;
+            }
+          }
+          if (inputForApzc.mTouches.IsEmpty()) {
+            return nsEventStatus_eConsumeNoDefault;
+          }
+        }
+
         for (size_t i = 0; i < inputForApzc.mTouches.Length(); i++) {
           ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
         }
-        result = mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
+        mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
       }
+      result = mInOverscrolledApzc ? nsEventStatus_eConsumeNoDefault
+             : mApzcForInputBlock ? nsEventStatus_eConsumeDoDefault
+             : nsEventStatus_eIgnore;
       if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL ||
           multiTouchInput.mType == MultiTouchInput::MULTITOUCH_END) {
         if (mTouchCount >= multiTouchInput.mTouches.Length()) {
@@ -404,31 +481,64 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
         // then null it out so we don't keep a dangling reference and leak things.
         if (mTouchCount == 0) {
           mApzcForInputBlock = nullptr;
+          mInOverscrolledApzc = false;
+          mRetainedTouchIdentifier = -1;
+          ClearOverscrollHandoffChain();
+        }
+      }
+      break;
+    } case PANGESTURE_INPUT: {
+      const PanGestureInput& panInput = aEvent.AsPanGestureInput();
+      bool inOverscrolledApzc = false;
+      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(panInput.mPanStartPoint,
+                                                            &inOverscrolledApzc);
+      if (apzc) {
+        if (panInput.mType == PanGestureInput::PANGESTURE_START ||
+            panInput.mType == PanGestureInput::PANGESTURE_MOMENTUMSTART) {
+          BuildOverscrollHandoffChain(apzc);
+        }
+        apzc->GetGuid(aOutTargetGuid);
+        GetInputTransforms(apzc, transformToApzc, transformToGecko);
+        PanGestureInput inputForApzc(panInput);
+        ApplyTransform(&(inputForApzc.mPanStartPoint), transformToApzc);
+        result = apzc->ReceiveInputEvent(inputForApzc);
+        if (panInput.mType == PanGestureInput::PANGESTURE_END ||
+            panInput.mType == PanGestureInput::PANGESTURE_MOMENTUMEND) {
           ClearOverscrollHandoffChain();
         }
       }
       break;
     } case PINCHGESTURE_INPUT: {
       const PinchGestureInput& pinchInput = aEvent.AsPinchGestureInput();
-      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(pinchInput.mFocusPoint);
+      bool inOverscrolledApzc = false;
+      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(pinchInput.mFocusPoint,
+                                                            &inOverscrolledApzc);
       if (apzc) {
         apzc->GetGuid(aOutTargetGuid);
         GetInputTransforms(apzc, transformToApzc, transformToGecko);
         PinchGestureInput inputForApzc(pinchInput);
         ApplyTransform(&(inputForApzc.mFocusPoint), transformToApzc);
-        result = apzc->ReceiveInputEvent(inputForApzc);
+        apzc->ReceiveInputEvent(inputForApzc);
       }
+      result = inOverscrolledApzc ? nsEventStatus_eConsumeNoDefault
+             : apzc ? nsEventStatus_eConsumeDoDefault
+             : nsEventStatus_eIgnore;
       break;
     } case TAPGESTURE_INPUT: {
       const TapGestureInput& tapInput = aEvent.AsTapGestureInput();
-      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(ScreenPoint(tapInput.mPoint));
+      bool inOverscrolledApzc = false;
+      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(ScreenPoint(tapInput.mPoint),
+                                                            &inOverscrolledApzc);
       if (apzc) {
         apzc->GetGuid(aOutTargetGuid);
         GetInputTransforms(apzc, transformToApzc, transformToGecko);
         TapGestureInput inputForApzc(tapInput);
         ApplyTransform(&(inputForApzc.mPoint), transformToApzc);
-        result = apzc->ReceiveInputEvent(inputForApzc);
+        apzc->ReceiveInputEvent(inputForApzc);
       }
+      result = inOverscrolledApzc ? nsEventStatus_eConsumeNoDefault
+             : apzc ? nsEventStatus_eConsumeDoDefault
+             : nsEventStatus_eIgnore;
       break;
     }
   }
@@ -436,10 +546,12 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
 }
 
 already_AddRefed<AsyncPanZoomController>
-APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent)
+APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent,
+                                        bool* aOutInOverscrolledApzc)
 {
   ScreenPoint point = ScreenPoint(aEvent.touches[0]->mRefPoint.x, aEvent.touches[0]->mRefPoint.y);
-  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(point);
+  // Ignore events if any touch hits inside an overscrolled apzc.
+  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(point, aOutInOverscrolledApzc);
   if (aEvent.touches.Length() == 1) {
     // If we have one touch point, this might be the start of a pan.
     // Prepare for possible overscroll handoff.
@@ -447,13 +559,13 @@ APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent)
   }
   for (size_t i = 1; i < aEvent.touches.Length(); i++) {
     point = ScreenPoint(aEvent.touches[i]->mRefPoint.x, aEvent.touches[i]->mRefPoint.y);
-    nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(point);
+    nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(point, aOutInOverscrolledApzc);
     apzc = CommonAncestor(apzc.get(), apzc2.get());
-    APZC_LOG("Using APZC %p as the common ancestor\n", apzc.get());
+    APZCTM_LOG("Using APZC %p as the common ancestor\n", apzc.get());
     // For now, we only ever want to do pinching on the root APZC for a given layers id. So
     // when we find the common ancestor of multiple points, also walk up to the root APZC.
     apzc = RootAPZCForLayersId(apzc);
-    APZC_LOG("Using APZC %p as the root APZC for multi-touch\n", apzc.get());
+    APZCTM_LOG("Using APZC %p as the root APZC for multi-touch\n", apzc.get());
   }
   return apzc.forget();
 }
@@ -464,15 +576,25 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsEventStatus ret = nsEventStatus_eIgnore;
   if (!aEvent.touches.Length()) {
-    return ret;
+    return nsEventStatus_eIgnore;
   }
   if (aEvent.message == NS_TOUCH_START) {
+    // If we are in an overscrolled state and a second finger goes down,
+    // ignore that second touch point completely. The touch-start for it is
+    // dropped completely; subsequent touch events until the touch-end for it
+    // will have this touch point filtered out.
+    if (mApzcForInputBlock && mApzcForInputBlock->IsOverscrolled()) {
+      if (mRetainedTouchIdentifier == -1) {
+        mRetainedTouchIdentifier = mApzcForInputBlock->GetLastTouchIdentifier();
+      }
+      return nsEventStatus_eConsumeNoDefault;
+    }
     // NS_TOUCH_START event contains all active touches of the current
     // session thus resetting mTouchCount.
     mTouchCount = aEvent.touches.Length();
-    mApzcForInputBlock = GetTouchInputBlockAPZC(aEvent);
+    mInOverscrolledApzc = false;
+    mApzcForInputBlock = GetTouchInputBlockAPZC(aEvent, &mInOverscrolledApzc);
     if (mApzcForInputBlock) {
       // Cache apz transform so it can be used for future events in this block.
       gfx3DMatrix transformToGecko;
@@ -480,6 +602,28 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
     } else {
       // Reset the cached apz transform
       mCachedTransformToApzcForInputBlock = gfx3DMatrix();
+    }
+  }
+
+  // If we receive a touch-cancel, it means all touches are finished, so we
+  // can stop ignoring any that we were ignoring.
+  if (aEvent.message == NS_TOUCH_CANCEL) {
+    mRetainedTouchIdentifier = -1;
+  }
+
+  // If we are currently ignoring any touch points, filter them out from the
+  // set of touch points included in this event. Note that we modify aEvent
+  // itself, so that the touch points are also filtered out when the caller
+  // passes the event on to content.
+  if (mRetainedTouchIdentifier != -1) {
+    for (size_t j = 0; j < aEvent.touches.Length(); ++j) {
+      if (aEvent.touches[j]->Identifier() != mRetainedTouchIdentifier) {
+        aEvent.touches.RemoveElementAt(j);
+        --j;
+      }
+    }
+    if (aEvent.touches.IsEmpty()) {
+      return nsEventStatus_eConsumeNoDefault;
     }
   }
 
@@ -493,7 +637,7 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
     for (size_t i = 0; i < inputForApzc.mTouches.Length(); i++) {
       ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
     }
-    ret = mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
+    mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
 
     // For computing the event to pass back to Gecko, use the up-to-date transforms.
     // This ensures that transformToApzc and transformToGecko are in sync
@@ -505,6 +649,9 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
       ApplyTransform(&(aEvent.touches[i]->mRefPoint), outTransform);
     }
   }
+  nsEventStatus result = mInOverscrolledApzc ? nsEventStatus_eConsumeNoDefault
+                       : mApzcForInputBlock ? nsEventStatus_eConsumeDoDefault
+                       : nsEventStatus_eIgnore;
   // If we have an mApzcForInputBlock and it's the end of the touch sequence
   // then null it out so we don't keep a dangling reference and leak things.
   if (aEvent.message == NS_TOUCH_CANCEL ||
@@ -518,10 +665,12 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
     }
     if (mTouchCount == 0) {
       mApzcForInputBlock = nullptr;
+      mInOverscrolledApzc = false;
+      mRetainedTouchIdentifier = -1;
       ClearOverscrollHandoffChain();
     }
   }
-  return ret;
+  return result;
 }
 
 void
@@ -529,7 +678,7 @@ APZCTreeManager::TransformCoordinateToGecko(const ScreenIntPoint& aPoint,
                                             LayoutDeviceIntPoint* aOutTransformedPoint)
 {
   MOZ_ASSERT(aOutTransformedPoint);
-  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aPoint);
+  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aPoint, nullptr);
   if (apzc && aOutTransformedPoint) {
     gfx3DMatrix transformToApzc;
     gfx3DMatrix transformToGecko;
@@ -547,18 +696,22 @@ APZCTreeManager::ProcessEvent(WidgetInputEvent& aEvent,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  // Transform the refPoint
-  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(ScreenPoint(aEvent.refPoint.x, aEvent.refPoint.y));
-  if (!apzc) {
-    return nsEventStatus_eIgnore;
+  // Transform the refPoint.
+  // If the event hits an overscrolled APZC, instruct the caller to ignore it.
+  bool inOverscrolledApzc = false;
+  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(ScreenPoint(aEvent.refPoint.x, aEvent.refPoint.y),
+                                                        &inOverscrolledApzc);
+  if (apzc) {
+    apzc->GetGuid(aOutTargetGuid);
+    gfx3DMatrix transformToApzc;
+    gfx3DMatrix transformToGecko;
+    GetInputTransforms(apzc, transformToApzc, transformToGecko);
+    gfx3DMatrix outTransform = transformToApzc * transformToGecko;
+    ApplyTransform(&(aEvent.refPoint), outTransform);
   }
-  apzc->GetGuid(aOutTargetGuid);
-  gfx3DMatrix transformToApzc;
-  gfx3DMatrix transformToGecko;
-  GetInputTransforms(apzc, transformToApzc, transformToGecko);
-  gfx3DMatrix outTransform = transformToApzc * transformToGecko;
-  ApplyTransform(&(aEvent.refPoint), outTransform);
-  return nsEventStatus_eIgnore;
+  return inOverscrolledApzc ? nsEventStatus_eConsumeNoDefault
+       : apzc ? nsEventStatus_eConsumeDoDefault
+       : nsEventStatus_eIgnore;
 }
 
 nsEventStatus
@@ -681,7 +834,7 @@ TransformDisplacement(APZCTreeManager* aTreeManager,
   ApplyTransform(&aEndPoint, transformToApzc);
 }
 
-void
+bool
 APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
                                 uint32_t aOverscrollHandoffChainIndex)
 {
@@ -697,14 +850,15 @@ APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStar
     // nothing more to scroll, so we ignore the rest of the pan gesture.
     if (aOverscrollHandoffChainIndex >= mOverscrollHandoffChain.length()) {
       // Nothing more to scroll - ignore the rest of the pan gesture.
-      return;
+      return false;
     }
 
     next = mOverscrollHandoffChain[aOverscrollHandoffChainIndex];
   }
 
-  if (next == nullptr)
-    return;
+  if (next == nullptr) {
+    return false;
+  }
 
   // Convert the start and end points from |aPrev|'s coordinate space to
   // |next|'s coordinate space. Since |aPrev| may be the same as |next|
@@ -717,10 +871,10 @@ APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStar
 
   // Scroll |next|. If this causes overscroll, it will call DispatchScroll()
   // again with an incremented index.
-  next->AttemptScroll(aStartPoint, aEndPoint, aOverscrollHandoffChainIndex);
+  return next->AttemptScroll(aStartPoint, aEndPoint, aOverscrollHandoffChainIndex);
 }
 
-void
+bool
 APZCTreeManager::HandOffFling(AsyncPanZoomController* aPrev, ScreenPoint aVelocity)
 {
   // Build the overscroll handoff chain. This is necessary because it is
@@ -759,7 +913,7 @@ APZCTreeManager::HandOffFling(AsyncPanZoomController* aPrev, ScreenPoint aVeloci
 
   // Nothing to hand off fling to.
   if (next == nullptr) {
-    return;
+    return false;
   }
 
   // The fling's velocity needs to be transformed from the screen coordinates
@@ -775,7 +929,7 @@ APZCTreeManager::HandOffFling(AsyncPanZoomController* aPrev, ScreenPoint aVeloci
   ScreenPoint transformedVelocity = endPoint - startPoint;
 
   // Tell |next| to start a fling with the transformed velocity.
-  next->TakeOverFling(transformedVelocity);
+  return next->TakeOverFling(transformedVelocity);
 }
 
 bool
@@ -821,17 +975,8 @@ APZCTreeManager::CanBePanned(AsyncPanZoomController* aApzc)
 bool
 APZCTreeManager::HitTestAPZC(const ScreenIntPoint& aPoint)
 {
-  MonitorAutoLock lock(mTreeLock);
-  nsRefPtr<AsyncPanZoomController> target;
-  // The root may have siblings, so check those too
-  gfxPoint point(aPoint.x, aPoint.y);
-  for (AsyncPanZoomController* apzc = mRootApzc; apzc; apzc = apzc->GetPrevSibling()) {
-    target = GetAPZCAtPoint(apzc, point);
-    if (target) {
-      return true;
-    }
-  }
-  return false;
+  nsRefPtr<AsyncPanZoomController> target = GetTargetAPZC(aPoint, nullptr);
+  return target != nullptr;
 }
 
 already_AddRefed<AsyncPanZoomController>
@@ -857,14 +1002,14 @@ struct CompareByScrollPriority
 };
 
 already_AddRefed<AsyncPanZoomController>
-APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint)
+APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint, bool* aOutInOverscrolledApzc)
 {
   MonitorAutoLock lock(mTreeLock);
   nsRefPtr<AsyncPanZoomController> target;
   // The root may have siblings, so check those too
   gfxPoint point(aPoint.x, aPoint.y);
   for (AsyncPanZoomController* apzc = mRootApzc; apzc; apzc = apzc->GetPrevSibling()) {
-    target = GetAPZCAtPoint(apzc, point);
+    target = GetAPZCAtPoint(apzc, point, aOutInOverscrolledApzc);
     if (target) {
       break;
     }
@@ -997,7 +1142,9 @@ APZCTreeManager::FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableL
 }
 
 AsyncPanZoomController*
-APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& aHitTestPoint)
+APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc,
+                                const gfxPoint& aHitTestPoint,
+                                bool* aOutInOverscrolledApzc)
 {
   mTreeLock.AssertCurrentThreadOwns();
 
@@ -1016,7 +1163,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
   // since the composition bounds (used to initialize the visible rect against
   // which we hit test are in those coordinates).
   gfxPoint hitTestPointForThisLayer = ancestorUntransform.ProjectPoint(aHitTestPoint);
-  APZC_LOG("Untransformed %f %f to transient coordinates %f %f for hit-testing APZC %p\n",
+  APZCTM_LOG("Untransformed %f %f to transient coordinates %f %f for hit-testing APZC %p\n",
            aHitTestPoint.x, aHitTestPoint.y,
            hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
 
@@ -1028,24 +1175,37 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
                                * aApzc->GetCSSTransform().Inverse()
                                * gfx3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse();
   gfxPoint hitTestPointForChildLayers = childUntransform.ProjectPoint(aHitTestPoint);
-  APZC_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
+  APZCTM_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
            aHitTestPoint.x, aHitTestPoint.y,
            hitTestPointForChildLayers.x, hitTestPointForChildLayers.y, aApzc);
 
+  AsyncPanZoomController* result = nullptr;
   // This walks the tree in depth-first, reverse order, so that it encounters
   // APZCs front-to-back on the screen.
   for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
-    AsyncPanZoomController* match = GetAPZCAtPoint(child, hitTestPointForChildLayers);
+    AsyncPanZoomController* match = GetAPZCAtPoint(child, hitTestPointForChildLayers, aOutInOverscrolledApzc);
     if (match) {
-      return match;
+      result = match;
+      break;
     }
   }
-  if (aApzc->VisibleRegionContains(ViewAs<ParentLayerPixel>(hitTestPointForThisLayer))) {
-    APZC_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p\n",
+  if (!result && aApzc->VisibleRegionContains(ViewAs<ParentLayerPixel>(hitTestPointForThisLayer))) {
+    APZCTM_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p\n",
              hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
-    return aApzc;
+    result = aApzc;
   }
-  return nullptr;
+
+  // If we are overscrolled, and the point matches us or one of our children,
+  // the result is inside an overscrolled APZC, inform our caller of this
+  // (callers typically ignore events targeted at overscrolled APZCs).
+  if (result && aApzc->IsOverscrolled()) {
+    if (aOutInOverscrolledApzc) {
+      *aOutInOverscrolledApzc = true;
+    }
+    result = nullptr;
+  }
+
+  return result;
 }
 
 /* This function sets the aTransformToApzcOut and aTransformToGeckoOut out-parameters

@@ -11,7 +11,6 @@
 #include "WMFAudioOutputSource.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/DebugOnly.h"
-#include "mp4_demuxer/audio_decoder_config.h"
 #include "WMFMediaDataDecoder.h"
 
 namespace mozilla {
@@ -58,8 +57,6 @@ WMFDecoderModule::Startup()
 nsresult
 WMFDecoderModule::Shutdown()
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
-
   DebugOnly<HRESULT> hr = wmf::MFShutdown();
   NS_ASSERTION(SUCCEEDED(hr), "MFShutdown failed");
 

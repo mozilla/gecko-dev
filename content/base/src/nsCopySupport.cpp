@@ -369,7 +369,7 @@ nsCopySupport::GetContents(const nsACString& aMimeType, uint32_t aFlags, nsISele
 
   uint32_t flags = aFlags | nsIDocumentEncoder::SkipInvisibleContent;
   
-  if (aMimeType.Equals("text/plain"))
+  if (aMimeType.EqualsLiteral("text/plain"))
     flags |= nsIDocumentEncoder::OutputPreformatted;
 
   NS_ConvertASCIItoUTF16 unicodeMimeType(aMimeType);
@@ -637,7 +637,7 @@ nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPres
   if (!nsContentUtils::IsSafeToRunScript())
     return false;
 
-  nsCOMPtr<nsIDocShell> docShell = do_GetInterface(piWindow);
+  nsCOMPtr<nsIDocShell> docShell = piWindow->GetDocShell();
   const bool chromeShell =
     docShell && docShell->ItemType() == nsIDocShellTreeItem::typeChrome;
 

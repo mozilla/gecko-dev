@@ -259,7 +259,7 @@ select[size="1"][disabled] {
 input[type="button"][disabled],
 input[type="submit"][disabled],
 input[type="reset"][disabled],
-button[disabled="true"] {
+button[disabled] {
   padding: 0 7px 0 7px;
   background: transparent linear-gradient(rgba(255,255,255,0.4) 0, rgba(235,235,235,0.4) 3px, rgba(185,185,185,0.4) 100%);
 }
@@ -283,11 +283,9 @@ select[disabled] > button {
 *:-moz-any-link:active,
 *[role=button]:active,
 button:active,
-input:active,
 option:active,
 select:active,
-label:active,
-textarea:active {
+label:active {
   background-color: rgba(141, 184, 216, 0.5);
 }
 

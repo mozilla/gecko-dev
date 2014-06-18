@@ -47,8 +47,9 @@ using mozilla::Preferences;
 using mozilla::TimeStamp;
 using mozilla::Telemetry::Accumulate;
 using safe_browsing::ClientDownloadRequest;
-using safe_browsing::ClientDownloadRequest_SignatureInfo;
 using safe_browsing::ClientDownloadRequest_CertificateChain;
+using safe_browsing::ClientDownloadRequest_Resource;
+using safe_browsing::ClientDownloadRequest_SignatureInfo;
 
 // Preferences that we need to initialize the query.
 #define PREF_SB_APP_REP_URL "browser.safebrowsing.appRepURL"
@@ -103,6 +104,10 @@ private:
     SERVER_RESPONSE_INVALID = 2,
   };
 
+  // Number of blocklist and allowlist hits we have seen.
+  uint32_t mBlocklistCount;
+  uint32_t mAllowlistCount;
+
   // The query containing metadata about the downloaded file.
   nsCOMPtr<nsIApplicationReputationQuery> mQuery;
 
@@ -118,9 +123,11 @@ private:
   // When we started this query
   TimeStamp mStartTime;
 
-  // The protocol buffer used to store signature information extracted using
-  // the Windows Authenticode API, if the binary is signed.
-  ClientDownloadRequest_SignatureInfo mSignatureInfo;
+  // A protocol buffer for storing things we need in the remote request. We
+  // store the resource chain (redirect information) as well as signature
+  // information extracted using the Windows Authenticode API, if the binary is
+  // signed.
+  ClientDownloadRequest mRequest;
 
   // The response from the application reputation query. This is read in chunks
   // as part of our nsIStreamListener implementation and may contain embedded
@@ -140,6 +147,10 @@ private:
                                  nsISupports *aContext,
                                  nsresult aResult,
                                  bool* aShouldBlock);
+
+  // Strip url parameters, fragments, and user@pass fields from the URI spec
+  // using nsIURL. If aURI is not an nsIURL, returns the original nsIURI.spec.
+  nsresult GetStrippedSpec(nsIURI* aUri, nsACString& spec);
 
   // Escape '/' and '%' in certificate attribute values.
   nsCString EscapeCertificateAttribute(const nsACString& aAttribute);
@@ -162,13 +173,14 @@ private:
   //   <issuer_cert_sha1_fingerprint>[/CN=<cn>][/O=<org>][/OU=<unit>]
   // for each (cert, issuer) pair in each chain of certificates that is
   // associated with the binary.
-  nsresult GenerateWhitelistStrings(
-    const ClientDownloadRequest_SignatureInfo& aSignatureInfo);
+  nsresult GenerateWhitelistStrings();
 
   // Parse the XPCOM certificate lists and stick them into the protocol buffer
   // version.
-  nsresult ParseCertificates(nsIArray* aSigArray,
-                             ClientDownloadRequest_SignatureInfo* aSigInfo);
+  nsresult ParseCertificates(nsIArray* aSigArray);
+
+  // Adds the redirects to mAnylistSpecs to be looked up.
+  nsresult AddRedirects(nsIArray* aRedirects);
 
   // Helper function to ensure that we call PendingLookup::LookupNext or
   // PendingLookup::OnComplete.
@@ -239,7 +251,7 @@ nsresult
 PendingDBLookup::LookupSpec(const nsACString& aSpec,
                             bool aAllowlistOnly)
 {
-  LOG(("Checking principal %s", aSpec.Data()));
+  LOG(("Checking principal %s [this=%p]", aSpec.Data(), this));
   mSpec = aSpec;
   mAllowlistOnly = aAllowlistOnly;
   nsresult rv = LookupSpecInternal(aSpec);
@@ -284,7 +296,7 @@ PendingDBLookup::LookupSpecInternal(const nsACString& aSpec)
   nsAutoCString blocklist;
   Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &blocklist);
   if (!mAllowlistOnly && !blocklist.IsEmpty()) {
-    tables.Append(",");
+    tables.Append(',');
     tables.Append(blocklist);
   }
   return dbService->Lookup(principal, tables, this);
@@ -294,12 +306,13 @@ NS_IMETHODIMP
 PendingDBLookup::HandleEvent(const nsACString& tables)
 {
   // HandleEvent is guaranteed to call either:
-  // 1) PendingLookup::OnComplete if the URL can be classified locally, or
-  // 2) PendingLookup::LookupNext if the URL can be cannot classified locally.
+  // 1) PendingLookup::OnComplete if the URL matches the blocklist, or
+  // 2) PendingLookup::LookupNext if the URL does not match the blocklist.
   // Blocklisting trumps allowlisting.
   nsAutoCString blockList;
   Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &blockList);
   if (!mAllowlistOnly && FindInReadable(blockList, tables)) {
+    mPendingLookup->mBlocklistCount++;
     Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, BLOCK_LIST);
     LOG(("Found principal %s on blocklist [this = %p]", mSpec.get(), this));
     return mPendingLookup->OnComplete(true, NS_OK);
@@ -308,13 +321,15 @@ PendingDBLookup::HandleEvent(const nsACString& tables)
   nsAutoCString allowList;
   Preferences::GetCString(PREF_DOWNLOAD_ALLOW_TABLE, &allowList);
   if (FindInReadable(allowList, tables)) {
+    mPendingLookup->mAllowlistCount++;
     Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, ALLOW_LIST);
     LOG(("Found principal %s on allowlist [this = %p]", mSpec.get(), this));
-    return mPendingLookup->OnComplete(false, NS_OK);
+    // Don't call onComplete, since blocklisting trumps allowlisting
+  } else {
+    LOG(("Didn't find principal %s on any list [this = %p]", mSpec.get(),
+         this));
+    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, NO_LIST);
   }
-
-  LOG(("Didn't find principal %s on any list [this = %p]", mSpec.get(), this));
-  Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, NO_LIST);
   return mPendingLookup->LookupNext();
 }
 
@@ -324,6 +339,8 @@ NS_IMPL_ISUPPORTS(PendingLookup,
 
 PendingLookup::PendingLookup(nsIApplicationReputationQuery* aQuery,
                              nsIApplicationReputationCallback* aCallback) :
+  mBlocklistCount(0),
+  mAllowlistCount(0),
   mQuery(aQuery),
   mCallback(aCallback)
 {
@@ -367,27 +384,36 @@ nsresult
 PendingLookup::LookupNext()
 {
   // We must call LookupNext or SendRemoteQuery upon return.
-  // Look up all of the URLs that could whitelist this download.
-  // Blacklist first.
+  // Look up all of the URLs that could allow or block this download.
+  // Blocklist first.
+  if (mBlocklistCount > 0) {
+    return OnComplete(true, NS_OK);
+  }
   int index = mAnylistSpecs.Length() - 1;
   nsCString spec;
-  bool allowlistOnly = false;
   if (index >= 0) {
-    // Check the source URI and referrer.
+    // Check the source URI, referrer and redirect chain.
     spec = mAnylistSpecs[index];
     mAnylistSpecs.RemoveElementAt(index);
-  } else {
-    // Check the allowlists next.
-    index = mAllowlistSpecs.Length() - 1;
-    if (index >= 0) {
-      allowlistOnly = true;
-      spec = mAllowlistSpecs[index];
-      mAllowlistSpecs.RemoveElementAt(index);
-    }
-  }
-  if (index >= 0) {
     nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
-    return lookup->LookupSpec(spec, allowlistOnly);
+    return lookup->LookupSpec(spec, false);
+  }
+  // If any of mAnylistSpecs matched the blocklist, go ahead and block.
+  if (mBlocklistCount > 0) {
+    return OnComplete(true, NS_OK);
+  }
+  // If any of mAnylistSpecs matched the allowlist, go ahead and pass.
+  if (mAllowlistCount > 0) {
+    return OnComplete(false, NS_OK);
+  }
+  // Only binary signatures remain.
+  index = mAllowlistSpecs.Length() - 1;
+  if (index >= 0) {
+    spec = mAllowlistSpecs[index];
+    LOG(("PendingLookup::LookupNext: checking %s on allowlist", spec.get()));
+    mAllowlistSpecs.RemoveElementAt(index);
+    nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
+    return lookup->LookupSpec(spec, true);
   }
 #ifdef XP_WIN
   // There are no more URIs to check against local list. If the file is not
@@ -403,6 +429,7 @@ PendingLookup::LookupNext()
   }
   return NS_OK;
 #else
+  LOG(("PendingLookup: Nothing left to check [this=%p]", this));
   return OnComplete(false, NS_OK);
 #endif
 }
@@ -415,11 +442,11 @@ PendingLookup::EscapeCertificateAttribute(const nsACString& aAttribute)
   escaped.SetCapacity(aAttribute.Length());
   for (unsigned int i = 0; i < aAttribute.Length(); ++i) {
     if (aAttribute.Data()[i] == '%') {
-      escaped.Append("%25");
+      escaped.AppendLiteral("%25");
     } else if (aAttribute.Data()[i] == '/') {
-      escaped.Append("%2F");
+      escaped.AppendLiteral("%2F");
     } else if (aAttribute.Data()[i] == ' ') {
-      escaped.Append("%20");
+      escaped.AppendLiteral("%20");
     } else {
       escaped.Append(aAttribute.Data()[i]);
     }
@@ -465,7 +492,7 @@ PendingLookup::GenerateWhitelistStringsForPair(
   rv = certificate->GetCommonName(commonName);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!commonName.IsEmpty()) {
-    whitelistString.Append("/CN=");
+    whitelistString.AppendLiteral("/CN=");
     whitelistString.Append(
       EscapeCertificateAttribute(NS_ConvertUTF16toUTF8(commonName)));
   }
@@ -474,7 +501,7 @@ PendingLookup::GenerateWhitelistStringsForPair(
   rv = certificate->GetOrganization(organization);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!organization.IsEmpty()) {
-    whitelistString.Append("/O=");
+    whitelistString.AppendLiteral("/O=");
     whitelistString.Append(
       EscapeCertificateAttribute(NS_ConvertUTF16toUTF8(organization)));
   }
@@ -483,7 +510,7 @@ PendingLookup::GenerateWhitelistStringsForPair(
   rv = certificate->GetOrganizationalUnit(organizationalUnit);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!organizationalUnit.IsEmpty()) {
-    whitelistString.Append("/OU=");
+    whitelistString.AppendLiteral("/OU=");
     whitelistString.Append(
       EscapeCertificateAttribute(NS_ConvertUTF16toUTF8(organizationalUnit)));
   }
@@ -529,12 +556,56 @@ PendingLookup::GenerateWhitelistStringsForChain(
 }
 
 nsresult
-PendingLookup::GenerateWhitelistStrings(
-  const safe_browsing::ClientDownloadRequest_SignatureInfo& aSignatureInfo)
+PendingLookup::GenerateWhitelistStrings()
 {
-  for (int i = 0; i < aSignatureInfo.certificate_chain_size(); ++i) {
+  for (int i = 0; i < mRequest.signature().certificate_chain_size(); ++i) {
     nsresult rv = GenerateWhitelistStringsForChain(
-      aSignatureInfo.certificate_chain(i));
+      mRequest.signature().certificate_chain(i));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
+nsresult
+PendingLookup::AddRedirects(nsIArray* aRedirects)
+{
+  uint32_t length = 0;
+  aRedirects->GetLength(&length);
+  LOG(("ApplicationReputation: Got %u redirects", length));
+  nsCOMPtr<nsISimpleEnumerator> iter;
+  nsresult rv = aRedirects->Enumerate(getter_AddRefs(iter));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool hasMoreRedirects = false;
+  rv = iter->HasMoreElements(&hasMoreRedirects);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  while (hasMoreRedirects) {
+    nsCOMPtr<nsISupports> supports;
+    rv = iter->GetNext(getter_AddRefs(supports));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIPrincipal> principal = do_QueryInterface(supports, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIURI> uri;
+    rv = principal->GetURI(getter_AddRefs(uri));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    // Add the spec to our list of local lookups. The most recent redirect is
+    // the last element.
+    nsCString spec;
+    rv = GetStrippedSpec(uri, spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+    mAnylistSpecs.AppendElement(spec);
+    LOG(("ApplicationReputation: Appending redirect %s\n", spec.get()));
+
+    // Store the redirect information in the remote request.
+    ClientDownloadRequest_Resource* resource = mRequest.add_resources();
+    resource->set_url(spec.get());
+    resource->set_type(ClientDownloadRequest::DOWNLOAD_REDIRECT);
+
+    rv = iter->HasMoreElements(&hasMoreRedirects);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;
@@ -552,25 +623,67 @@ PendingLookup::StartLookup()
 }
 
 nsresult
+PendingLookup::GetStrippedSpec(nsIURI* aUri, nsACString& escaped)
+{
+  // If aURI is not an nsIURL, we do not want to check the lists or send a
+  // remote query.
+  nsresult rv;
+  nsCOMPtr<nsIURL> url = do_QueryInterface(aUri, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = url->GetScheme(escaped);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCString temp;
+  rv = url->GetHostPort(temp);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  escaped.Append("://");
+  escaped.Append(temp);
+
+  rv = url->GetFilePath(temp);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // nsIUrl.filePath starts with '/'
+  escaped.Append(temp);
+
+  return NS_OK;
+}
+
+nsresult
 PendingLookup::DoLookupInternal()
 {
-  // We want to check the target URI against the local lists.
+  // We want to check the target URI, its referrer, and associated redirects
+  // against the local lists.
   nsCOMPtr<nsIURI> uri;
   nsresult rv = mQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCString spec;
-  rv = uri->GetSpec(spec);
+  rv = GetStrippedSpec(uri, spec);
   NS_ENSURE_SUCCESS(rv, rv);
+
   mAnylistSpecs.AppendElement(spec);
+
+  ClientDownloadRequest_Resource* resource = mRequest.add_resources();
+  resource->set_url(spec.get());
+  resource->set_type(ClientDownloadRequest::DOWNLOAD_URL);
 
   nsCOMPtr<nsIURI> referrer = nullptr;
   rv = mQuery->GetReferrerURI(getter_AddRefs(referrer));
   if (referrer) {
     nsCString spec;
-    rv = referrer->GetSpec(spec);
+    rv = GetStrippedSpec(referrer, spec);
     NS_ENSURE_SUCCESS(rv, rv);
     mAnylistSpecs.AppendElement(spec);
+    resource->set_referrer(spec.get());
+  }
+  nsCOMPtr<nsIArray> redirects;
+  rv = mQuery->GetRedirects(getter_AddRefs(redirects));
+  if (redirects) {
+    AddRedirects(redirects);
+  } else {
+    LOG(("ApplicationReputation: Got no redirects [this=%p]", this));
   }
 
   // Extract the signature and parse certificates so we can use it to check
@@ -580,11 +693,11 @@ PendingLookup::DoLookupInternal()
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (sigArray) {
-    rv = ParseCertificates(sigArray, &mSignatureInfo);
+    rv = ParseCertificates(sigArray);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  rv = GenerateWhitelistStrings(mSignatureInfo);
+  rv = GenerateWhitelistStrings();
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Start the call chain.
@@ -610,9 +723,7 @@ PendingLookup::OnComplete(bool shouldBlock, nsresult rv)
 }
 
 nsresult
-PendingLookup::ParseCertificates(
-  nsIArray* aSigArray,
-  ClientDownloadRequest_SignatureInfo* aSignatureInfo)
+PendingLookup::ParseCertificates(nsIArray* aSigArray)
 {
   // If we haven't been set for any reason, bail.
   NS_ENSURE_ARG_POINTER(aSigArray);
@@ -637,7 +748,7 @@ PendingLookup::ParseCertificates(
     NS_ENSURE_SUCCESS(rv, rv);
 
     safe_browsing::ClientDownloadRequest_CertificateChain* certChain =
-      aSignatureInfo->add_certificate_chain();
+      mRequest.mutable_signature()->add_certificate_chain();
     nsCOMPtr<nsISimpleEnumerator> chainElt;
     rv = certList->GetEnumerator(getter_AddRefs(chainElt));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -668,8 +779,8 @@ PendingLookup::ParseCertificates(
     rv = chains->HasMoreElements(&hasMoreChains);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  if (aSignatureInfo->certificate_chain_size() > 0) {
-    aSignatureInfo->set_trusted(true);
+  if (mRequest.signature().certificate_chain_size() > 0) {
+    mRequest.mutable_signature()->set_trusted(true);
   }
   return NS_OK;
 }
@@ -692,38 +803,36 @@ PendingLookup::SendRemoteQueryInternal()
   LOG(("Sending remote query for application reputation [this = %p]", this));
   // We did not find a local result, so fire off the query to the application
   // reputation service.
-  safe_browsing::ClientDownloadRequest req;
   nsCOMPtr<nsIURI> uri;
   nsresult rv;
   rv = mQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCString spec;
-  rv = uri->GetSpec(spec);
+  rv = GetStrippedSpec(uri, spec);
   NS_ENSURE_SUCCESS(rv, rv);
-  req.set_url(spec.get());
+  mRequest.set_url(spec.get());
 
   uint32_t fileSize;
   rv = mQuery->GetFileSize(&fileSize);
   NS_ENSURE_SUCCESS(rv, rv);
-  req.set_length(fileSize);
+  mRequest.set_length(fileSize);
   // We have no way of knowing whether or not a user initiated the download.
-  req.set_user_initiated(false);
+  mRequest.set_user_initiated(false);
 
   nsCString locale;
   NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_GENERAL_LOCALE, &locale),
                     NS_ERROR_NOT_AVAILABLE);
-  req.set_locale(locale.get());
+  mRequest.set_locale(locale.get());
   nsCString sha256Hash;
   rv = mQuery->GetSha256Hash(sha256Hash);
   NS_ENSURE_SUCCESS(rv, rv);
-  req.mutable_digests()->set_sha256(sha256Hash.Data());
+  mRequest.mutable_digests()->set_sha256(sha256Hash.Data());
   nsString fileName;
   rv = mQuery->GetSuggestedFileName(fileName);
   NS_ENSURE_SUCCESS(rv, rv);
-  req.set_file_basename(NS_ConvertUTF16toUTF8(fileName).get());
-  req.mutable_signature()->CopyFrom(mSignatureInfo);
+  mRequest.set_file_basename(NS_ConvertUTF16toUTF8(fileName).get());
 
-  if (req.signature().trusted()) {
+  if (mRequest.signature().trusted()) {
     LOG(("Got signed binary for remote application reputation check "
          "[this = %p]", this));
   } else {
@@ -735,7 +844,7 @@ PendingLookup::SendRemoteQueryInternal()
   // out of memory, or if the protocol buffer req is missing required fields
   // (only the URL for now).
   std::string serialized;
-  if (!req.SerializeToString(&serialized)) {
+  if (!mRequest.SerializeToString(&serialized)) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -920,6 +1029,7 @@ NS_IMETHODIMP
 ApplicationReputationService::QueryReputation(
     nsIApplicationReputationQuery* aQuery,
     nsIApplicationReputationCallback* aCallback) {
+  LOG(("Starting application reputation check [query=%p]", aQuery));
   NS_ENSURE_ARG_POINTER(aQuery);
   NS_ENSURE_ARG_POINTER(aCallback);
 

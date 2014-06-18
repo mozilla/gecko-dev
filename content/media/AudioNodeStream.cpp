@@ -439,7 +439,9 @@ AudioNodeStream::UpMixDownMixChunk(const AudioChunk* aChunk,
 void
 AudioNodeStream::ProcessInput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags)
 {
-  EnsureTrack(AUDIO_TRACK, mSampleRate);
+  if (!mFinished) {
+    EnsureTrack(AUDIO_TRACK, mSampleRate);
+  }
   // No more tracks will be coming
   mBuffer.AdvanceKnownTracksTime(STREAM_TIME_MAX);
 
@@ -522,6 +524,7 @@ AudioNodeStream::AdvanceOutputSegment()
 TrackTicks
 AudioNodeStream::GetCurrentPosition()
 {
+  NS_ASSERTION(!mFinished, "Don't create another track after finishing");
   return EnsureTrack(AUDIO_TRACK, mSampleRate)->Get<AudioSegment>()->GetDuration();
 }
 
@@ -553,13 +556,15 @@ AudioNodeStream::TimeFromDestinationTime(AudioNodeStream* aDestination,
   MOZ_ASSERT(aDestination->SampleRate() == SampleRate());
 
   double destinationSeconds = std::max(0.0, aSeconds);
-  StreamTime streamTime = SecondsToMediaTime(destinationSeconds);
+  StreamTime streamTime =
+    aDestination->SecondsToStreamTimeRoundDown(destinationSeconds);
   // MediaTime does not have the resolution of double
-  double offset = destinationSeconds - MediaTimeToSeconds(streamTime);
+  double offset =
+    destinationSeconds - aDestination->StreamTimeToSeconds(streamTime);
 
   GraphTime graphTime = aDestination->StreamTimeToGraphTime(streamTime);
   StreamTime thisStreamTime = GraphTimeToStreamTimeOptimistic(graphTime);
-  double thisSeconds = MediaTimeToSeconds(thisStreamTime) + offset;
+  double thisSeconds = StreamTimeToSeconds(thisStreamTime) + offset;
   MOZ_ASSERT(thisSeconds >= 0.0);
   return thisSeconds;
 }
@@ -585,7 +590,7 @@ AudioNodeStream::DestinationTimeFromTicks(AudioNodeStream* aDestination,
   StreamTime sourceTime = TicksToTimeRoundDown(SampleRate(), aPosition);
   GraphTime graphTime = StreamTimeToGraphTime(sourceTime);
   StreamTime destinationTime = aDestination->GraphTimeToStreamTimeOptimistic(graphTime);
-  return MediaTimeToSeconds(destinationTime);
+  return StreamTimeToSeconds(destinationTime);
 }
 
 }

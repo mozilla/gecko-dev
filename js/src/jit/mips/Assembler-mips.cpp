@@ -30,8 +30,39 @@ ABIArgGenerator::ABIArgGenerator()
 ABIArg
 ABIArgGenerator::next(MIRType type)
 {
-    MOZ_ASSUME_UNREACHABLE("NYI");
-    return ABIArg();
+    switch (type) {
+      case MIRType_Int32:
+      case MIRType_Pointer:
+        Register destReg;
+        if (GetIntArgReg(usedArgSlots_, &destReg))
+            current_ = ABIArg(destReg);
+        else
+            current_ = ABIArg(usedArgSlots_ * sizeof(intptr_t));
+        usedArgSlots_++;
+        break;
+      case MIRType_Float32:
+      case MIRType_Double:
+        if (!usedArgSlots_) {
+            current_ = ABIArg(f12);
+            usedArgSlots_ += 2;
+            firstArgFloat = true;
+        } else if (usedArgSlots_ <= 2) {
+            // NOTE: We will use f14 always. This is not compatible with
+            // system ABI. We will have to introduce some infrastructure
+            // changes if we have to use system ABI here.
+            current_ = ABIArg(f14);
+            usedArgSlots_ = 4;
+        } else {
+            usedArgSlots_ += usedArgSlots_ % 2;
+            current_ = ABIArg(usedArgSlots_ * sizeof(intptr_t));
+            usedArgSlots_ += 2;
+        }
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE("Unexpected argument type");
+    }
+    return current_;
+
 }
 const Register ABIArgGenerator::NonArgReturnVolatileReg0 = t0;
 const Register ABIArgGenerator::NonArgReturnVolatileReg1 = t1;
@@ -126,7 +157,7 @@ jit::PatchJump(CodeLocationJump &jump_, CodeLocationLabel label)
 
     Assembler::updateLuiOriValue(inst1, inst2, (uint32_t)label.raw());
 
-    AutoFlushCache::updateTop(uintptr_t(inst1), 8);
+    AutoFlushICache::flush(uintptr_t(inst1), 8);
 }
 
 void
@@ -150,7 +181,7 @@ Assembler::executableCopy(uint8_t *buffer)
         updateLuiOriValue(inst1, inst1->next(), (uint32_t)buffer + value);
     }
 
-    AutoFlushCache::updateTop((uintptr_t)buffer, m_buffer.size());
+    AutoFlushICache::setRange(uintptr_t(buffer), m_buffer.size());
 }
 
 uint32_t
@@ -298,6 +329,12 @@ Assembler::processCodeLabels(uint8_t *rawCode)
     }
 }
 
+int32_t
+Assembler::extractCodeLabelOffset(uint8_t *code) {
+    InstImm *inst = (InstImm *)code;
+    return Assembler::extractLuiOriValue(inst, inst->next());
+}
+
 void
 Assembler::Bind(uint8_t *rawCode, AbsoluteLabel *label, const void *address)
 {
@@ -397,8 +434,8 @@ BOffImm16::BOffImm16(InstImm inst)
 bool
 Assembler::oom() const
 {
-    return m_buffer.oom() ||
-           !enoughMemory_ ||
+    return AssemblerShared::oom() ||
+           m_buffer.oom() ||
            jumpRelocations_.oom() ||
            dataRelocations_.oom() ||
            preBarriers_.oom();
@@ -1078,6 +1115,12 @@ Assembler::as_absd(FloatRegister fd, FloatRegister fs)
 }
 
 BufferOffset
+Assembler::as_negs(FloatRegister fd, FloatRegister fs)
+{
+    return writeInst(InstReg(op_cop1, rs_s, zero, fs, fd, ff_neg_fmt).encode());
+}
+
+BufferOffset
 Assembler::as_negd(FloatRegister fd, FloatRegister fs)
 {
     return writeInst(InstReg(op_cop1, rs_d, zero, fs, fd, ff_neg_fmt).encode());
@@ -1215,6 +1258,17 @@ Assembler::bind(InstImm *inst, uint32_t branch, uint32_t target)
         inst[1].makeNop();
         return;
     }
+
+    // Generate the long jump for calls because return address has to be the
+    // address after the reserved block.
+    if (inst[0].encode() == inst_bgezal.encode()) {
+        addLongJump(BufferOffset(branch));
+        writeLuiOriInstructions(inst, &inst[1], ScratchRegister, target);
+        inst[2] = InstReg(op_special, ScratchRegister, zero, ra, ff_jalr).encode();
+        // There is 1 nop after this.
+        return;
+    }
+
     if (BOffImm16::isInRange(offset)) {
         bool conditional = (inst[0].encode() != inst_bgezal.encode() &&
                             inst[0].encode() != inst_beq.encode());
@@ -1230,13 +1284,7 @@ Assembler::bind(InstImm *inst, uint32_t branch, uint32_t target)
         return;
     }
 
-    if (inst[0].encode() == inst_bgezal.encode()) {
-        // Handle long call.
-        addLongJump(BufferOffset(branch));
-        writeLuiOriInstructions(inst, &inst[1], ScratchRegister, target);
-        inst[2] = InstReg(op_special, ScratchRegister, zero, ra, ff_jalr).encode();
-        // There is 1 nop after this.
-    } else if (inst[0].encode() == inst_beq.encode()) {
+    if (inst[0].encode() == inst_beq.encode()) {
         // Handle long unconditional jump.
         addLongJump(BufferOffset(branch));
         writeLuiOriInstructions(inst, &inst[1], ScratchRegister, target);
@@ -1336,7 +1384,7 @@ Assembler::patchWrite_NearCall(CodeLocationLabel start, CodeLocationLabel toCall
     inst[3] = InstNOP();
 
     // Ensure everyone sees the code that was just written into memory.
-    AutoFlushCache::updateTop(uintptr_t(inst), patchWrite_NearCallSize());
+    AutoFlushICache::flush(uintptr_t(inst), patchWrite_NearCallSize());
 }
 
 uint32_t
@@ -1383,7 +1431,7 @@ Assembler::patchDataWithValueCheck(CodeLocationLabel label, PatchedImmPtr newVal
     // Replace with new value
     Assembler::updateLuiOriValue(inst, inst->next(), uint32_t(newValue.value));
 
-    AutoFlushCache::updateTop(uintptr_t(inst), 8);
+    AutoFlushICache::flush(uintptr_t(inst), 8);
 }
 
 void
@@ -1406,6 +1454,13 @@ Assembler::patchWrite_Imm32(CodeLocationLabel label, Imm32 imm)
     // Overwrite the 4 bytes before the return address, which will
     // end up being the call instruction.
     *(raw - 1) = imm.value;
+}
+
+void
+Assembler::patchInstructionImmediate(uint8_t *code, PatchedImmPtr imm)
+{
+    InstImm *inst = (InstImm *)code;
+    Assembler::updateLuiOriValue(inst, inst->next(), (uint32_t)imm.value);
 }
 
 uint8_t *
@@ -1485,7 +1540,7 @@ Assembler::ToggleToJmp(CodeLocationLabel inst_)
     // We converted beq to andi, so now we restore it.
     inst->setOpcode(op_beq);
 
-    AutoFlushCache::updateTop((uintptr_t)inst, 4);
+    AutoFlushICache::flush(uintptr_t(inst), 4);
 }
 
 void
@@ -1498,7 +1553,7 @@ Assembler::ToggleToCmp(CodeLocationLabel inst_)
     // Replace "beq $zero, $zero, offset" with "andi $zero, $zero, offset"
     inst->setOpcode(op_andi);
 
-    AutoFlushCache::updateTop((uintptr_t)inst, 4);
+    AutoFlushICache::flush(uintptr_t(inst), 4);
 }
 
 void
@@ -1520,75 +1575,14 @@ Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled)
         *i2 = nop;
     }
 
-    AutoFlushCache::updateTop((uintptr_t)i2, 4);
+    AutoFlushICache::flush(uintptr_t(i2), 4);
 }
 
 void Assembler::updateBoundsCheck(uint32_t heapSize, Instruction *inst)
 {
-    MOZ_ASSUME_UNREACHABLE("NYI");
+    InstImm *i0 = (InstImm *) inst;
+    InstImm *i1 = (InstImm *) i0->next();
+
+    // Replace with new value
+    Assembler::updateLuiOriValue(i0, i1, heapSize);
 }
-
-void
-AutoFlushCache::update(uintptr_t newStart, size_t len)
-{
-    uintptr_t newStop = newStart + len;
-    if (this == nullptr) {
-        // just flush right here and now.
-        JSC::ExecutableAllocator::cacheFlush((void*)newStart, len);
-        return;
-    }
-    used_ = true;
-    if (!start_) {
-        IonSpewCont(IonSpew_CacheFlush, ".");
-        start_ = newStart;
-        stop_ = newStop;
-        return;
-    }
-
-    if (newStop < start_ - 4096 || newStart > stop_ + 4096) {
-        // If this would add too many pages to the range. Flush recorded range
-        // and make a new range.
-        IonSpewCont(IonSpew_CacheFlush, "*");
-        JSC::ExecutableAllocator::cacheFlush((void*)start_, stop_);
-        start_ = newStart;
-        stop_ = newStop;
-        return;
-    }
-    start_ = Min(start_, newStart);
-    stop_ = Max(stop_, newStop);
-    IonSpewCont(IonSpew_CacheFlush, ".");
-}
-
-AutoFlushCache::~AutoFlushCache()
-{
-    if (!runtime_)
-        return;
-
-    flushAnyway();
-    IonSpewCont(IonSpew_CacheFlush, ">", name_);
-    if (runtime_->flusher() == this) {
-        IonSpewFin(IonSpew_CacheFlush);
-        runtime_->setFlusher(nullptr);
-    }
-}
-
-void
-AutoFlushCache::flushAnyway()
-{
-    if (!runtime_)
-        return;
-
-    IonSpewCont(IonSpew_CacheFlush, "|", name_);
-
-    if (!used_)
-        return;
-
-    if (start_) {
-        JSC::ExecutableAllocator::cacheFlush((void *)start_,
-                                             size_t(stop_ - start_ + sizeof(Instruction)));
-    } else {
-        JSC::ExecutableAllocator::cacheFlush(nullptr, 0xff000000);
-    }
-    used_ = false;
-}
-

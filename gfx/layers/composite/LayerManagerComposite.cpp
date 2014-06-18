@@ -38,6 +38,7 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/Effects.h"     // for Effect, EffectChain, etc
 #include "mozilla/layers/LayersTypes.h"  // for etc
+#include "ipc/CompositorBench.h"        // for CompositorBench
 #include "ipc/ShadowLayerUtils.h"
 #include "mozilla/mozalloc.h"           // for operator new, etc
 #include "nsAutoPtr.h"                  // for nsRefPtr
@@ -132,9 +133,6 @@ LayerManagerComposite::Destroy()
       RootLayer()->Destroy();
     }
     mRoot = nullptr;
-
-    mCompositor->Destroy();
-
     mDestroyed = true;
   }
 }
@@ -163,7 +161,7 @@ LayerManagerComposite::BeginTransaction()
 }
 
 void
-LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget)
+LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget, const nsIntRect& aRect)
 {
   mInTransaction = true;
   
@@ -182,8 +180,9 @@ LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget)
   }
 
   mIsCompositorReady = true;
-  mCompositor->SetTargetContext(aTarget);
+  mCompositor->SetTargetContext(aTarget, aRect);
   mTarget = aTarget;
+  mTargetBounds = aRect;
 }
 
 bool
@@ -225,12 +224,13 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
   }
 
   if (mRoot && mClonedLayerTreeProperties) {
+    MOZ_ASSERT(!mTarget);
     nsIntRegion invalid =
       mClonedLayerTreeProperties->ComputeDifferences(mRoot, nullptr, &mGeometryChanged);
     mClonedLayerTreeProperties = nullptr;
 
     mInvalidRegion.Or(mInvalidRegion, invalid);
-  } else {
+  } else if (!mTarget) {
     mInvalidRegion.Or(mInvalidRegion, mRenderBounds);
   }
 
@@ -249,7 +249,7 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
     mGeometryChanged = false;
   }
 
-  mCompositor->SetTargetContext(nullptr);
+  mCompositor->ClearTargetContext();
   mTarget = nullptr;
 
 #ifdef MOZ_LAYERS_HAVE_LOG
@@ -376,7 +376,9 @@ LayerManagerComposite::RenderDebugOverlay(const Rect& aBounds)
 void
 LayerManagerComposite::Render()
 {
-  PROFILER_LABEL("LayerManagerComposite", "Render");
+  PROFILER_LABEL("LayerManagerComposite", "Render",
+    js::ProfileEntry::Category::GRAPHICS);
+
   if (mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return;
@@ -401,28 +403,39 @@ LayerManagerComposite::Render()
   }
 
   {
-    PROFILER_LABEL("LayerManagerComposite", "PreRender");
+    PROFILER_LABEL("LayerManagerComposite", "PreRender",
+      js::ProfileEntry::Category::GRAPHICS);
+
     if (!mCompositor->GetWidget()->PreRender(this)) {
       return;
     }
   }
 
+  nsIntRegion invalid;
+  if (mTarget) {
+    invalid = mTargetBounds;
+  } else {
+    invalid = mInvalidRegion;
+    // Reset the invalid region now that we've begun compositing.
+    mInvalidRegion.SetEmpty();
+  }
+
   nsIntRect clipRect;
   Rect bounds(mRenderBounds.x, mRenderBounds.y, mRenderBounds.width, mRenderBounds.height);
   Rect actualBounds;
+
+  CompositorBench(mCompositor, bounds);
+
   if (mRoot->GetClipRect()) {
     clipRect = *mRoot->GetClipRect();
     WorldTransformRect(clipRect);
     Rect rect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
-    mCompositor->BeginFrame(mInvalidRegion, &rect, mWorldMatrix, bounds, nullptr, &actualBounds);
+    mCompositor->BeginFrame(invalid, &rect, mWorldMatrix, bounds, nullptr, &actualBounds);
   } else {
     gfx::Rect rect;
-    mCompositor->BeginFrame(mInvalidRegion, nullptr, mWorldMatrix, bounds, &rect, &actualBounds);
+    mCompositor->BeginFrame(invalid, nullptr, mWorldMatrix, bounds, &rect, &actualBounds);
     clipRect = nsIntRect(rect.x, rect.y, rect.width, rect.height);
   }
-
-  // Reset the invalid region now that we've begun compositing.
-  mInvalidRegion.SetEmpty();
 
   if (actualBounds.IsEmpty()) {
     mCompositor->GetWidget()->PostRender(this);
@@ -456,7 +469,9 @@ LayerManagerComposite::Render()
   RenderDebugOverlay(actualBounds);
 
   {
-    PROFILER_LABEL("LayerManagerComposite", "EndFrame");
+    PROFILER_LABEL("LayerManagerComposite", "EndFrame",
+      js::ProfileEntry::Category::GRAPHICS);
+
     mCompositor->EndFrame();
     mCompositor->SetFBAcquireFence(mRoot);
   }

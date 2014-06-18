@@ -6,26 +6,34 @@
 package org.mozilla.gecko.db;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
+import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.IOException;
-import java.lang.ref.SoftReference;
-import java.util.Collections;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
+import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.mozglue.RobocopTarget;
+import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.util.RawResource;
+import org.mozilla.gecko.util.ThreadUtils;
 
 /**
  * {@code SuggestedSites} provides API to get a list of locale-specific
@@ -38,23 +46,25 @@ import org.mozilla.gecko.util.RawResource;
  *
  * Under the hood, {@code SuggestedSites} keeps reference to the
  * parsed list of sites to avoid reparsing the JSON file on every
- * {@code get()} call. This cached list is a soft reference and can
- * garbage collected at any moment.
+ * {@code get()} call.
  *
  * The default list of suggested sites is stored in a raw Android
  * resource ({@code R.raw.suggestedsites}) which is dynamically
  * generated at build time for each target locale.
+ *
+ * Changes to the list of suggested sites are saved in SharedPreferences.
  */
 @RobocopTarget
 public class SuggestedSites {
     private static final String LOGTAG = "GeckoSuggestedSites";
 
+    // SharedPreference key for suggested sites that should be hidden.
+    public static final String PREF_SUGGESTED_SITES_HIDDEN = "suggestedSites.hidden";
+
     private static final String[] COLUMNS = new String[] {
         BrowserContract.SuggestedSites._ID,
         BrowserContract.SuggestedSites.URL,
-        BrowserContract.SuggestedSites.TITLE,
-        BrowserContract.SuggestedSites.IMAGE_URL,
-        BrowserContract.SuggestedSites.BG_COLOR
+        BrowserContract.SuggestedSites.TITLE
     };
 
     private static final String JSON_KEY_URL = "url";
@@ -85,11 +95,12 @@ public class SuggestedSites {
     }
 
     private final Context context;
-    private SoftReference<List<Site>> cachedSites;
+    private Map<String, Site> cachedSites;
+    private Locale cachedLocale;
+    private Set<String> cachedBlacklist;
 
     public SuggestedSites(Context appContext) {
         context = appContext;
-        cachedSites = new SoftReference<List<Site>>(null);
     }
 
     private String loadFromFile() {
@@ -110,7 +121,7 @@ public class SuggestedSites {
      * source or standard file location. This will be called on every
      * cache miss during a {@code get()} call.
      */
-    private List<Site> refresh() {
+    private void refresh() {
         Log.d(LOGTAG, "Refreshing tiles from file");
 
         String jsonString = loadFromFile();
@@ -119,35 +130,47 @@ public class SuggestedSites {
             jsonString = loadFromResource();
         }
 
-        List<Site> sites = null;
+        Map<String, Site> sites = null;
 
         try {
             final JSONArray jsonSites = new JSONArray(jsonString);
-            sites = new ArrayList<Site>(jsonSites.length());
+            sites = new LinkedHashMap<String, Site>(jsonSites.length());
 
             final int count = jsonSites.length();
             for (int i = 0; i < count; i++) {
                 final JSONObject jsonSite = (JSONObject) jsonSites.get(i);
+                final String url = jsonSite.getString(JSON_KEY_URL);
 
-                final Site site = new Site(jsonSite.getString(JSON_KEY_URL),
+                final Site site = new Site(url,
                                            jsonSite.getString(JSON_KEY_TITLE),
                                            jsonSite.getString(JSON_KEY_IMAGE_URL),
                                            jsonSite.getString(JSON_KEY_BG_COLOR));
 
-                sites.add(site);
+                sites.put(url, site);
             }
 
             Log.d(LOGTAG, "Successfully parsed suggested sites.");
         } catch (Exception e) {
             Log.e(LOGTAG, "Failed to refresh suggested sites", e);
-            return null;
+            return;
         }
 
         // Update cached list of sites
-        cachedSites = new SoftReference<List<Site>>(Collections.unmodifiableList(sites));
+        cachedSites = Collections.unmodifiableMap(sites);
+        cachedLocale = Locale.getDefault();
+    }
 
-        // Return the refreshed list
-        return sites;
+    private boolean isEnabled() {
+        final SharedPreferences prefs = GeckoSharedPrefs.forApp(context);
+        return prefs.getBoolean(GeckoPreferences.PREFS_SUGGESTED_SITES, true);
+    }
+
+    private synchronized Site getSiteForUrl(String url) {
+        if (cachedSites == null) {
+            return null;
+        }
+
+        return cachedSites.get(url);
     }
 
     /**
@@ -156,35 +179,173 @@ public class SuggestedSites {
      * @param limit maximum number of suggested sites.
      */
     public Cursor get(int limit) {
-        List<Site> sites = cachedSites.get();
-        if (sites == null) {
-            Log.d(LOGTAG, "No cached sites, refreshing.");
-            sites = refresh();
-        }
+        return get(limit, Locale.getDefault());
+    }
 
+    /**
+     * Returns a {@code Cursor} with the list of suggested websites.
+     *
+     * @param limit maximum number of suggested sites.
+     * @param locale the target locale.
+     */
+    public Cursor get(int limit, Locale locale) {
+        return get(limit, locale, null);
+    }
+
+    /**
+     * Returns a {@code Cursor} with the list of suggested websites.
+     *
+     * @param limit maximum number of suggested sites.
+     * @param excludeUrls list of URLs to be excluded from the list.
+     */
+    public Cursor get(int limit, List<String> excludeUrls) {
+        return get(limit, Locale.getDefault(), excludeUrls);
+    }
+
+    /**
+     * Returns a {@code Cursor} with the list of suggested websites.
+     *
+     * @param limit maximum number of suggested sites.
+     * @param locale the target locale.
+     * @param excludeUrls list of URLs to be excluded from the list.
+     */
+    public synchronized Cursor get(int limit, Locale locale, List<String> excludeUrls) {
         final MatrixCursor cursor = new MatrixCursor(COLUMNS);
 
-        // Return empty cursor if there was an error when
-        // loading the suggested sites or the list is empty.
-        if (sites == null || sites.isEmpty()) {
+        // Return an empty cursor if suggested sites have been
+        // disabled by the user.
+        if (!isEnabled()) {
             return cursor;
         }
 
-        final int sitesCount = sites.size();
+        if (cachedSites == null || !locale.equals(cachedLocale)) {
+            Log.d(LOGTAG, "No cached sites, refreshing.");
+            refresh();
+        }
+
+        // Return empty cursor if there was an error when
+        // loading the suggested sites or the list is empty.
+        if (cachedSites == null || cachedSites.isEmpty()) {
+            return cursor;
+        }
+
+        excludeUrls = includeBlacklist(excludeUrls);
+
+        final int sitesCount = cachedSites.size();
         Log.d(LOGTAG, "Number of suggested sites: " + sitesCount);
 
-        final int count = Math.min(limit, sitesCount);
-        for (int i = 0; i < count; i++) {
-            final Site site = sites.get(i);
+        final int maxCount = Math.min(limit, sitesCount);
+        for (Site site : cachedSites.values()) {
+            if (cursor.getCount() == maxCount) {
+                break;
+            }
+
+            if (excludeUrls != null && excludeUrls.contains(site.url)) {
+                continue;
+            }
 
             final RowBuilder row = cursor.newRow();
             row.add(-1);
             row.add(site.url);
             row.add(site.title);
-            row.add(site.imageUrl);
-            row.add(site.bgColor);
         }
 
+        cursor.setNotificationUri(context.getContentResolver(),
+                                  BrowserContract.SuggestedSites.CONTENT_URI);
+
         return cursor;
+    }
+
+    public boolean contains(String url) {
+        return (getSiteForUrl(url) != null);
+    }
+
+    public String getImageUrlForUrl(String url) {
+        final Site site = getSiteForUrl(url);
+        return (site != null ? site.imageUrl : null);
+    }
+
+    public String getBackgroundColorForUrl(String url) {
+        final Site site = getSiteForUrl(url);
+        return (site != null ? site.bgColor : null);
+    }
+
+    private Set<String> loadBlacklist() {
+        Log.d(LOGTAG, "Loading blacklisted suggested sites from SharedPreferences.");
+        final Set<String> blacklist = new HashSet<String>();
+
+        final SharedPreferences preferences = GeckoSharedPrefs.forProfile(context);
+        final String sitesString = preferences.getString(PREF_SUGGESTED_SITES_HIDDEN, null);
+
+        if (sitesString != null) {
+            for (String site : sitesString.trim().split(" ")) {
+                blacklist.add(Uri.decode(site));
+            }
+        }
+
+        return blacklist;
+    }
+
+    private List<String> includeBlacklist(List<String> originalList) {
+        if (cachedBlacklist == null) {
+            cachedBlacklist = loadBlacklist();
+        }
+
+        if (cachedBlacklist.isEmpty()) {
+            return originalList;
+        }
+
+        if (originalList == null) {
+            originalList = new ArrayList<String>();
+        }
+
+        originalList.addAll(cachedBlacklist);
+        return originalList;
+    }
+
+    /**
+     * Blacklist a suggested site so it will no longer be returned as a suggested site.
+     * This method should only be called from a background thread because it may write
+     * to SharedPreferences.
+     *
+     * Urls that are not Suggested Sites are ignored.
+     *
+     * @param url String url of site to blacklist
+     * @return true is blacklisted, false otherwise
+     */
+    public synchronized boolean hideSite(String url) {
+        ThreadUtils.assertNotOnUiThread();
+
+        if (cachedSites == null) {
+            refresh();
+            if (cachedSites == null) {
+                Log.w(LOGTAG, "Could not load suggested sites!");
+                return false;
+            }
+        }
+
+        if (cachedSites.containsKey(url)) {
+            if (cachedBlacklist == null) {
+                cachedBlacklist = loadBlacklist();
+            }
+
+            // Check if site has already been blacklisted, just in case.
+            if (!cachedBlacklist.contains(url)) {
+
+                saveToBlacklist(url);
+                cachedBlacklist.add(url);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void saveToBlacklist(String url) {
+        final SharedPreferences prefs = GeckoSharedPrefs.forProfile(context);
+        final String prefString = prefs.getString(PREF_SUGGESTED_SITES_HIDDEN, "");
+        final String siteString = prefString.concat(" " + Uri.encode(url));
+        prefs.edit().putString(PREF_SUGGESTED_SITES_HIDDEN, siteString).commit();
     }
 }

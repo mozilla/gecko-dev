@@ -328,7 +328,7 @@ TraceLogger::~TraceLogger()
         // We temporary enable logging for this. Stop doesn't need any extra data,
         // so is safe to do, even when we encountered OOM.
         enabled = true;
-        while (stack.size() > 0)
+        while (stack.currentId() > 0)
             stopEvent();
         enabled = false;
     }
@@ -378,6 +378,9 @@ TraceLogger::createTextId(const char *text)
 uint32_t
 TraceLogger::createTextId(JSScript *script)
 {
+    if (!script->filename())
+        return createTextId("");
+
     assertNoQuotes(script->filename());
 
     PointerHashMap::AddPtr p = pointerMap.lookupForAdd(script);
@@ -406,6 +409,9 @@ TraceLogger::createTextId(JSScript *script)
 uint32_t
 TraceLogger::createTextId(const JS::ReadOnlyCompileOptions &compileOptions)
 {
+    if (!compileOptions.filename())
+        return createTextId("");
+
     assertNoQuotes(compileOptions.filename());
 
     PointerHashMap::AddPtr p = pointerMap.lookupForAdd(&compileOptions);
@@ -582,13 +588,15 @@ TraceLogger::startEvent(uint32_t id)
         return;
     }
 
-    if (!tree.ensureSpaceBeforeAdd()) {
+    if (!tree.hasSpaceForAdd()){
         uint64_t start = rdtsc() - traceLoggers.startupTime;
-        if (!flush()) {
-            fprintf(stderr, "TraceLogging: Couldn't write the data to disk.\n");
-            enabled = false;
-            failed = true;
-            return;
+        if (!tree.ensureSpaceBeforeAdd()) {
+            if (!flush()) {
+                fprintf(stderr, "TraceLogging: Couldn't write the data to disk.\n");
+                enabled = false;
+                failed = true;
+                return;
+            }
         }
 
         // Log the time it took to flush the events as being from the
@@ -699,6 +707,7 @@ TraceLogger::stopEvent()
             return;
         }
     }
+    JS_ASSERT(stack.currentId() > 0);
     stack.pop();
 }
 
@@ -823,9 +832,8 @@ TraceLogging::lazyInit()
         enabledTextIds[TraceLogger::ParserCompileFunction] = true;
         enabledTextIds[TraceLogger::ParserCompileLazy] = true;
         enabledTextIds[TraceLogger::ParserCompileScript] = true;
-        enabledTextIds[TraceLogger::YarrCompile] = true;
-        enabledTextIds[TraceLogger::YarrInterpret] = true;
-        enabledTextIds[TraceLogger::YarrJIT] = true;
+        enabledTextIds[TraceLogger::IrregexpCompile] = true;
+        enabledTextIds[TraceLogger::IrregexpExecute] = true;
     }
 
     if (ContainsFlag(env, "IonCompiler") || strlen(env) == 0) {
@@ -848,7 +856,6 @@ TraceLogging::lazyInit()
         enabledTextIds[TraceLogger::EliminateRedundantChecks] = true;
         enabledTextIds[TraceLogger::GenerateLIR] = true;
         enabledTextIds[TraceLogger::RegisterAllocation] = true;
-        enabledTextIds[TraceLogger::UnsplitEdges] = true;
         enabledTextIds[TraceLogger::GenerateCode] = true;
     }
 

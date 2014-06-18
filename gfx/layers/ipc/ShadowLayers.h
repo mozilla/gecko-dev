@@ -245,6 +245,10 @@ public:
   virtual void RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                              TextureClient* aTexture) MOZ_OVERRIDE;
 
+  virtual void RemoveTextureFromCompositableAsync(AsyncTransactionTracker* aAsyncTransactionTracker,
+                                                  CompositableClient* aCompositable,
+                                                  TextureClient* aTexture) MOZ_OVERRIDE;
+
   virtual void RemoveTexture(TextureClient* aTexture) MOZ_OVERRIDE;
 
   /**
@@ -284,6 +288,10 @@ public:
                                          TextureClient* aClientOnBlack,
                                          TextureClient* aClientOnWhite) MOZ_OVERRIDE;
 
+  virtual void SendFenceHandle(AsyncTransactionTracker* aTracker,
+                               PTextureChild* aTexture,
+                               const FenceHandle& aFence) MOZ_OVERRIDE;
+
   /**
    * End the current transaction and forward it to LayerManagerComposite.
    * |aReplies| are directions from the LayerManagerComposite to the
@@ -291,7 +299,9 @@ public:
    */
   bool EndTransaction(InfallibleTArray<EditReply>* aReplies,
                       const nsIntRegion& aRegionToClear,
+                      uint64_t aId,
                       bool aScheduleComposite,
+                      uint32_t aPaintSequenceNumber,
                       bool* aSent);
 
   /**

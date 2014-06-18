@@ -46,9 +46,9 @@ nsMathMLmrootFrame::~nsMathMLmrootFrame()
 }
 
 void
-nsMathMLmrootFrame::Init(nsIContent*      aContent,
-                         nsIFrame*        aParent,
-                         nsIFrame*        aPrevInFlow)
+nsMathMLmrootFrame::Init(nsIContent*       aContent,
+                         nsContainerFrame* aParent,
+                         nsIFrame*         aPrevInFlow)
 {
   nsMathMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
   
@@ -145,18 +145,17 @@ GetRadicalXOffsets(nscoord aIndexWidth, nscoord aSqrWidth,
     *aSqrOffset = dxSqr;
 }
 
-nsresult
+void
 nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
-  nsresult rv = NS_OK;
   nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
   nsReflowStatus childStatus;
 
   aDesiredSize.Width() = aDesiredSize.Height() = 0;
-  aDesiredSize.SetTopAscent(0);
+  aDesiredSize.SetBlockStartAscent(0);
 
   nsBoundingMetrics bmSqr, bmBase, bmIndex;
   nsRenderingContext& renderingContext = *aReflowState.rendContext;
@@ -177,14 +176,9 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
                                          | NS_REFLOW_CALC_BOUNDING_METRICS);
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
-    rv = ReflowChild(childFrame, aPresContext,
+    ReflowChild(childFrame, aPresContext,
                      childDesiredSize, childReflowState, childStatus);
     //NS_ASSERTION(NS_FRAME_IS_COMPLETE(childStatus), "bad status");
-    if (NS_FAILED(rv)) {
-      // Call DidReflow() for the child frames we successfully did reflow.
-      DidReflowChildren(mFrames.FirstChild(), childFrame);
-      return rv;
-    }
     if (0 == count) {
       // base 
       baseFrame = childFrame;
@@ -203,12 +197,12 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   if (2 != count) {
     // report an error, encourage people to get their markups in order
     ReportChildCountError();
-    rv = ReflowError(renderingContext, aDesiredSize);
+    ReflowError(renderingContext, aDesiredSize);
     aStatus = NS_FRAME_COMPLETE;
     NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
     // Call DidReflow() for the child frames we successfully did reflow.
     DidReflowChildren(mFrames.FirstChild(), childFrame);
-    return rv;
+    return;
   }
 
   ////////////
@@ -285,10 +279,10 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   mBoundingMetrics.rightBearing = bmSqr.width + 
     std::max(bmBase.width, bmBase.rightBearing); // take also care of the rule
 
-  aDesiredSize.SetTopAscent(mBoundingMetrics.ascent + leading);
-  aDesiredSize.Height() = aDesiredSize.TopAscent() +
-    std::max(baseSize.Height() - baseSize.TopAscent(),
-           mBoundingMetrics.descent + ruleThickness);
+  aDesiredSize.SetBlockStartAscent(mBoundingMetrics.ascent + leading);
+  aDesiredSize.Height() = aDesiredSize.BlockStartAscent() +
+    std::max(baseSize.Height() - baseSize.BlockStartAscent(),
+             mBoundingMetrics.descent + ruleThickness);
   aDesiredSize.Width() = mBoundingMetrics.width;
 
   /////////////
@@ -306,9 +300,9 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
     indexClearance = 
       indexRaisedAscent - mBoundingMetrics.ascent; // excess gap introduced by a tall index 
     mBoundingMetrics.ascent = indexRaisedAscent;
-    nscoord descent = aDesiredSize.Height() - aDesiredSize.TopAscent();
-    aDesiredSize.SetTopAscent(mBoundingMetrics.ascent + leading);
-    aDesiredSize.Height() = aDesiredSize.TopAscent() + descent;
+    nscoord descent = aDesiredSize.Height() - aDesiredSize.BlockStartAscent();
+    aDesiredSize.SetBlockStartAscent(mBoundingMetrics.ascent + leading);
+    aDesiredSize.Height() = aDesiredSize.BlockStartAscent() + descent;
   }
 
   nscoord dxIndex, dxSqr;
@@ -326,7 +320,8 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
 
   // place the index
   nscoord dx = dxIndex;
-  nscoord dy = aDesiredSize.TopAscent() - (indexRaisedAscent + indexSize.TopAscent() - bmIndex.ascent);
+  nscoord dy = aDesiredSize.BlockStartAscent() -
+    (indexRaisedAscent + indexSize.BlockStartAscent() - bmIndex.ascent);
   FinishReflowChild(indexFrame, aPresContext, indexSize, nullptr,
                     MirrorIfRTL(aDesiredSize.Width(), indexSize.Width(), dx),
                     dy, 0);
@@ -341,17 +336,16 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
                    dy, bmBase.width, ruleThickness);
 
   // place the base
-  dy = aDesiredSize.TopAscent() - baseSize.TopAscent();
+  dy = aDesiredSize.BlockStartAscent() - baseSize.BlockStartAscent();
   FinishReflowChild(baseFrame, aPresContext, baseSize, nullptr,
                     MirrorIfRTL(aDesiredSize.Width(), baseSize.Width(), dx),
                     dy, 0);
 
   mReference.x = 0;
-  mReference.y = aDesiredSize.TopAscent();
+  mReference.y = aDesiredSize.BlockStartAscent();
 
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return NS_OK;
 }
 
 /* virtual */ void

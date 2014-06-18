@@ -100,7 +100,7 @@ class PowPolicy : public BoxInputsPolicy
     MIRType specialization_;
 
   public:
-    PowPolicy(MIRType specialization)
+    explicit PowPolicy(MIRType specialization)
       : specialization_(specialization)
     { }
 
@@ -120,7 +120,7 @@ class StringPolicy : public BoxInputsPolicy
 
 // Expect a string for operand Op. Else a ToString instruction is inserted.
 template <unsigned Op>
-class ConvertToStringPolicy : public BoxInputsPolicy
+class ConvertToStringPolicy : public TypePolicy
 {
   public:
     static bool staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
@@ -213,6 +213,16 @@ class ToDoublePolicy : public BoxInputsPolicy
 
 // Box objects, strings and undefined as input to a ToInt32 instruction.
 class ToInt32Policy : public BoxInputsPolicy
+{
+  public:
+    static bool staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
+    bool adjustInputs(TempAllocator &alloc, MInstruction *def) {
+        return staticAdjustInputs(alloc, def);
+    }
+};
+
+// Box objects as input to a ToString instruction.
+class ToStringPolicy : public BoxInputsPolicy
 {
   public:
     static bool staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
@@ -322,6 +332,12 @@ class StoreTypedArrayElementStaticPolicy : public StoreTypedArrayPolicy
 
 // Accepts integers and doubles. Everything else is boxed.
 class ClampPolicy : public BoxInputsPolicy
+{
+  public:
+    bool adjustInputs(TempAllocator &alloc, MInstruction *ins);
+};
+
+class FilterTypeSetPolicy : public BoxInputsPolicy
 {
   public:
     bool adjustInputs(TempAllocator &alloc, MInstruction *ins);

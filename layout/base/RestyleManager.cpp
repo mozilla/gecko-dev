@@ -479,13 +479,13 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
   return false;
 }
 
-nsresult
+void
 RestyleManager::StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint)
 {
   // If the frame hasn't even received an initial reflow, then don't
   // send it a style-change reflow!
   if (aFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW)
-    return NS_OK;
+    return;
 
   nsIPresShell::IntrinsicDirty dirtyType;
   if (aHint & nsChangeHint_ClearDescendantIntrinsics) {
@@ -510,7 +510,7 @@ RestyleManager::StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint)
     aFrame = nsLayoutUtils::GetNextContinuationOrIBSplitSibling(aFrame);
   } while (aFrame);
 
-  return NS_OK;
+  return;
 }
 
 NS_DECLARE_FRAME_PROPERTY(ChangeListProperty, nullptr)
@@ -590,7 +590,8 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   if (!count)
     return NS_OK;
 
-  PROFILER_LABEL("CSS", "ProcessRestyledFrames");
+  PROFILER_LABEL("RestyleManager", "ProcessRestyledFrames",
+    js::ProfileEntry::Category::CSS);
 
   // Make sure to not rebuild quote or counter lists while we're
   // processing restyles
@@ -2454,9 +2455,9 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
     else {
       NS_ASSERTION(aSelf->GetContent(),
                    "non pseudo-element frame without content node");
-      // Skip flex-item style fixup for anonymous subtrees:
-      TreeMatchContext::AutoFlexOrGridItemStyleFixupSkipper
-        flexOrGridFixupSkipper(mTreeMatchContext,
+      // Skip parent display based style fixup for anonymous subtrees:
+      TreeMatchContext::AutoParentDisplayBasedStyleFixupSkipper
+        parentDisplayBasedFixupSkipper(mTreeMatchContext,
                                element->IsRootOfNativeAnonymousSubtree());
       newContext = styleSet->ResolveStyleFor(element, parentContext,
                                              mTreeMatchContext);
@@ -2677,11 +2678,12 @@ ElementRestyler::RestyleBeforePseudo()
 {
   // Make sure not to do this for pseudo-frames or frames that
   // can't have generated content.
+  nsContainerFrame* cif;
   if (!mFrame->StyleContext()->GetPseudo() &&
       ((mFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
        // Our content insertion frame might have gotten flagged
-       (mFrame->GetContentInsertionFrame()->GetStateBits() &
-        NS_FRAME_MAY_HAVE_GENERATED_CONTENT))) {
+       ((cif = mFrame->GetContentInsertionFrame()) &&
+        (cif->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)))) {
     // Check for a new :before pseudo and an existing :before
     // frame, but only if the frame is the first continuation.
     nsIFrame* prevContinuation = mFrame->GetPrevContinuation();
@@ -2711,11 +2713,12 @@ ElementRestyler::RestyleAfterPseudo(nsIFrame* aFrame)
 {
   // Make sure not to do this for pseudo-frames or frames that
   // can't have generated content.
+  nsContainerFrame* cif;
   if (!aFrame->StyleContext()->GetPseudo() &&
       ((aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
        // Our content insertion frame might have gotten flagged
-       (aFrame->GetContentInsertionFrame()->GetStateBits() &
-        NS_FRAME_MAY_HAVE_GENERATED_CONTENT))) {
+       ((cif = aFrame->GetContentInsertionFrame()) &&
+        (cif->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)))) {
     // Check for new :after content, but only if the frame is the
     // last continuation.
     nsIFrame* nextContinuation = aFrame->GetNextContinuation();
@@ -2906,7 +2909,8 @@ RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
                                       RestyleTracker&    aRestyleTracker,
                                       bool               aRestyleDescendants)
 {
-  PROFILER_LABEL("CSS", "ComputeStyleChangeFor");
+  PROFILER_LABEL("RestyleManager", "ComputeStyleChangeFor",
+    js::ProfileEntry::Category::CSS);
 
   nsIContent *content = aFrame->GetContent();
   if (aMinChange) {
@@ -2932,10 +2936,9 @@ RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
   TreeMatchContext treeMatchContext(true,
                                     nsRuleWalker::eRelevantLinkUnvisited,
                                     mPresContext->Document());
-  nsIContent *parent = content ? content->GetParent() : nullptr;
-  Element *parentElement =
-    parent && parent->IsElement() ? parent->AsElement() : nullptr;
-  treeMatchContext.InitAncestors(parentElement);
+  Element* parent =
+    content ? content->GetParentElementCrossingShadowRoot() : nullptr;
+  treeMatchContext.InitAncestors(parent);
   nsTArray<nsIContent*> visibleKidsOfHiddenElement;
   for (nsIFrame* ibSibling = aFrame; ibSibling;
        ibSibling = GetNextBlockInInlineSibling(propTable, ibSibling)) {

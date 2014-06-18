@@ -28,7 +28,7 @@ struct DebugModeOSREntry
     uint32_t pcOffset;
     ICEntry::Kind frameKind;
 
-    DebugModeOSREntry(JSScript *script)
+    explicit DebugModeOSREntry(JSScript *script)
       : script(script),
         oldBaselineScript(script->baselineScript()),
         oldStub(nullptr),
@@ -127,6 +127,43 @@ struct DebugModeOSREntry
 };
 
 typedef js::Vector<DebugModeOSREntry> DebugModeOSREntryVector;
+
+class UniqueScriptOSREntryIter
+{
+    const DebugModeOSREntryVector &entries_;
+    size_t index_;
+
+  public:
+    UniqueScriptOSREntryIter(const DebugModeOSREntryVector &entries)
+      : entries_(entries),
+        index_(0)
+    { }
+
+    bool done() {
+        return index_ == entries_.length();
+    }
+
+    const DebugModeOSREntry &entry() {
+        MOZ_ASSERT(!done());
+        return entries_[index_];
+    }
+
+    UniqueScriptOSREntryIter &operator++() {
+        MOZ_ASSERT(!done());
+        while (++index_ < entries_.length()) {
+            bool unique = true;
+            for (size_t i = 0; i < index_; i++) {
+                if (entries_[i].script == entries_[index_].script) {
+                    unique = false;
+                    break;
+                }
+            }
+            if (unique)
+                break;
+        }
+        return *this;
+    }
+};
 
 static bool
 CollectOnStackScripts(JSContext *cx, const JitActivationIterator &activation,
@@ -551,11 +588,12 @@ UndoRecompileBaselineScriptsForDebugMode(JSContext *cx,
 {
     // In case of failure, roll back the entire set of active scripts so that
     // we don't have to patch return addresses on the stack.
-    for (size_t i = 0; i < entries.length(); i++) {
-        JSScript *script = entries[i].script;
+    for (UniqueScriptOSREntryIter iter(entries); !iter.done(); ++iter) {
+        const DebugModeOSREntry &entry = iter.entry();
+        JSScript *script = entry.script;
         BaselineScript *baselineScript = script->baselineScript();
-        if (entries[i].recompiled()) {
-            script->setBaselineScript(cx, entries[i].oldBaselineScript);
+        if (entry.recompiled()) {
+            script->setBaselineScript(cx, entry.oldBaselineScript);
             BaselineScript::Destroy(cx->runtime()->defaultFreeOp(), baselineScript);
         }
     }
@@ -602,9 +640,10 @@ jit::RecompileOnStackBaselineScriptsForDebugMode(JSContext *cx, JSCompartment *c
     //
     // After this point the function must be infallible.
 
-    for (size_t i = 0; i < entries.length(); i++) {
-        if (entries[i].recompiled())
-            BaselineScript::Destroy(cx->runtime()->defaultFreeOp(), entries[i].oldBaselineScript);
+    for (UniqueScriptOSREntryIter iter(entries); !iter.done(); ++iter) {
+        const DebugModeOSREntry &entry = iter.entry();
+        if (entry.recompiled())
+            BaselineScript::Destroy(cx->runtime()->defaultFreeOp(), entry.oldBaselineScript);
     }
 
     size_t processed = 0;
@@ -742,7 +781,7 @@ JitRuntime::generateBaselineDebugModeOSRHandler(JSContext *cx, uint32_t *noFrame
 
     // Not all patched baseline frames are returning from a situation where
     // the frame reg is already fixed up.
-    CodeOffsetLabel noFrameRegPopOffset = masm.currentOffset();
+    CodeOffsetLabel noFrameRegPopOffset(masm.currentOffset());
 
     // Record the stack pointer for syncing.
     masm.movePtr(StackPointer, syncedStackStart);
@@ -790,6 +829,7 @@ JitRuntime::generateBaselineDebugModeOSRHandler(JSContext *cx, uint32_t *noFrame
     masm.jump(target);
 
     Linker linker(masm);
+    AutoFlushICache afc("BaselineDebugModeOSRHandler");
     JitCode *code = linker.newCode<NoGC>(cx, JSC::OTHER_CODE);
     if (!code)
         return nullptr;

@@ -3,12 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
+const { Cc, Ci, Cu } = require('chrome');
 const { Loader } = require("sdk/test/loader");
 const { setTimeout } = require("sdk/timers");
 const { emit } = require("sdk/system/events");
-const { id } = require("sdk/self");
 const simplePrefs = require("sdk/simple-prefs");
 const { prefs: sp } = simplePrefs;
+const { defer, resolve, reject, all } = require("sdk/core/promise");
+const AddonInstaller = require("sdk/addon/installer");
+const fixtures = require("./fixtures");
+const { pathFor } = require("sdk/system");
+const file = require("sdk/io/file");
+const { install, uninstall } = require("sdk/addon/installer");
+const { open } = require('sdk/preferences/utils');
+const { toFilename } = require('sdk/url');
+const { AddonManager } = Cu.import('resource://gre/modules/AddonManager.jsm', {});
+const { ZipWriter } = require('./zip/utils');
+const { getTabForId } = require('sdk/tabs/utils');
+const { preferencesBranch, id } = require('sdk/self');
+const { Tab } = require('sdk/tabs/tab');
+require('sdk/tabs');
+
+const prefsrv = Cc['@mozilla.org/preferences-service;1'].
+                    getService(Ci.nsIPrefService);
 
 const specialChars = "!@#$%^&*()_-=+[]{}~`\'\"<>,./?;:";
 
@@ -38,6 +55,7 @@ exports.testSetGetBool = function(assert) {
   assert.equal(sp.test, undefined, "Value should not exist");
   sp.test = true;
   assert.ok(sp.test, "Value read should be the value previously set");
+  delete sp.test;
 };
 
 // TEST: setting and getting preferences with special characters work
@@ -51,6 +69,7 @@ exports.testSpecialChars = function(assert, done) {
     simplePrefs.on(char, function onPrefChanged() {
       simplePrefs.removeListener(char, onPrefChanged);
       assert.equal(sp[char], rand, "setting pref with a name that is a special char, " + char + ", worked!");
+      delete sp[char];
 
       // end test
       if (++count == len)
@@ -64,6 +83,7 @@ exports.testSetGetInt = function(assert) {
   assert.equal(sp["test-int"], undefined, "Value should not exist");
   sp["test-int"] = 1;
   assert.equal(sp["test-int"], 1, "Value read should be the value previously set");
+  delete sp["test-int"];
 };
 
 exports.testSetComplex = function(assert) {
@@ -80,6 +100,7 @@ exports.testSetGetString = function(assert) {
   assert.equal(sp["test-string"], undefined, "Value should not exist");
   sp["test-string"] = "test";
   assert.equal(sp["test-string"], "test", "Value read should be the value previously set");
+  delete sp["test-string"];
 };
 
 exports.testHasAndRemove = function(assert) {
@@ -93,6 +114,7 @@ exports.testPrefListener = function(assert, done) {
   let listener = function(prefName) {
     simplePrefs.removeListener('test-listener', listener);
     assert.equal(prefName, "test-listen", "The prefs listener heard the right event");
+    delete sp["test-listen"];
     done();
   };
 
@@ -112,13 +134,14 @@ exports.testPrefListener = function(assert, done) {
 
   toSet.forEach(function(pref) {
     sp[pref] = true;
+    delete sp[pref];
   });
 
-  assert.ok((observed.length == 3 && toSet.length == 3),
+  assert.ok((observed.length === 6 && toSet.length === 3),
       "Wildcard lengths inconsistent" + JSON.stringify([observed.length, toSet.length]));
 
   toSet.forEach(function(pref,ii) {
-    assert.equal(observed[ii], pref, "Wildcard observed " + pref);
+    assert.equal(observed[2*ii], pref, "Wildcard observed " + pref);
   });
 
   simplePrefs.removeListener('',wildlistener);
@@ -150,6 +173,7 @@ exports.testPrefRemoveListener = function(assert, done) {
 
     setTimeout(function() {
       assert.pass("The prefs listener was removed");
+      delete sp["test-listen2"];
       done();
     }, 250);
   };
@@ -176,6 +200,7 @@ exports.testPrefUnloadListener = function(assert, done) {
     // this should execute, but also definitely shouldn't fire listener
     require("sdk/simple-prefs").prefs["test-listen3"] = false;
 
+    delete sp.prefs["test-listen3"];
     done();
   };
 
@@ -203,6 +228,7 @@ exports.testPrefUnloadWildcardListener = function(assert, done) {
     // this should execute, but also definitely shouldn't fire listener
     require("sdk/simple-prefs").prefs[testpref] = false;
 
+    delete sp.prefs[testpref];
     done();
   };
 
@@ -221,4 +247,104 @@ exports.testPrefJSONStringification = function(assert) {
       "JSON stringification should work.");
 };
 
-require('sdk/test').run(exports);
+exports.testUnloadOfDynamicPrefGeneration = function(assert, done) {
+  let loader = Loader(module);
+  let branch = prefsrv.getDefaultBranch('extensions.' + preferencesBranch);
+
+  let { enable } = loader.require("sdk/preferences/native-options");
+
+  let addon_id = "test-bootstrap-addon@mozilla.com";
+  let xpi_path = file.join(pathFor("ProfD"), addon_id + ".xpi");
+
+  // zip the add-on
+  let zip = new ZipWriter(xpi_path);
+  assert.pass("start creating the xpi");
+  zip.addFile("", toFilename(fixtures.url("bootstrap-addon/"))).
+  then(zip.close()).
+  then(_ => install(xpi_path)).
+  // get the addon
+  then(id => {
+    let { promise, resolve } = defer();
+    AddonManager.getAddonByID(id, resolve);
+    return promise;
+  }).
+  // insatll the add-on
+  then(addon => {
+    assert.pass('installed');
+
+    assert.pass('addon id: ' + addon.id);
+    addon.userDisabled = false;
+    assert.ok(!addon.userDisabled, 'the add-on is enabled');
+    assert.ok(addon.isActive, 'the add-on is enabled');
+
+    // setup dynamic prefs
+    return enable({
+      id: addon.id,
+      preferences: [{
+        "name": "test",
+        "description": "test",
+        "title": "Test",
+        "type": "string",
+        "value": "default"
+      }, {
+        "name": "test-int",
+        "description": "test",
+        "type": "integer",
+        "value": 5,
+        "title": "How Many?"
+      }]
+    });
+  }).
+  then(args => {
+    assert.pass('enabled');
+    return args;
+  }).
+  // show inline prefs
+  then(open).
+  then(args => {
+    assert.pass('opened');
+    return args;
+  }).
+  // confirm dynamic pref generation did occur
+  then(args => {
+    let results = args.document.querySelectorAll("*[data-jetpack-id=\"" +args.id + "\"]");
+    assert.ok(results.length > 0, "the prefs were setup");
+    return args;
+  }).
+  // unload dynamic prefs
+  then(args => {
+    loader.unload();
+    assert.pass('unload');
+    return args;
+  }).
+  // hide and show the inline prefs
+  then(({ tabId, id, document }) => {
+    let { promise, resolve } = defer();
+    let tab = Tab({ tab: getTabForId(tabId) });
+
+    tab.close(_ => resolve({ id: id }));
+
+    return promise;
+  }).
+  // reopen the add-on prefs page
+  then(open).
+  // confirm dynamic pref generation did not occur
+  then(({ id, tabId, document }) => {
+    let { promise, resolve } = defer();
+    let tab = Tab({ tab: getTabForId(tabId) });
+
+    let results = document.querySelectorAll("*[data-jetpack-id=\"" + id + "\"]");
+    assert.equal(0, results.length, "the prefs were not setup after unload");
+
+    tab.close(_ => resolve({ id: id }));
+
+    return promise;
+  }).
+  // uninstall the add-on
+  then(({ id }) => uninstall(id)).
+  // delete the pref branch
+  then(_ => branch.deleteBranch('')).
+  then(done, assert.fail);
+}
+
+require("sdk/test").run(exports);

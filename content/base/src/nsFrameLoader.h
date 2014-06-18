@@ -174,7 +174,7 @@ public:
   NS_DECL_NSIFRAMELOADER
   NS_DECL_NSICONTENTVIEWMANAGER
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
-  NS_HIDDEN_(nsresult) CheckForRecursiveLoad(nsIURI* aURI);
+  nsresult CheckForRecursiveLoad(nsIURI* aURI);
   nsresult ReallyStartLoading();
   void Finalize();
   nsIDocShell* GetExistingDocShell() { return mDocShell; }
@@ -372,7 +372,7 @@ private:
 
   // Updates the subdocument position and size. This gets called only
   // when we have our own in-process DocShell.
-  NS_HIDDEN_(nsresult) UpdateBaseWindowPositionAndSize(nsSubDocumentFrame *aIFrame);
+  nsresult UpdateBaseWindowPositionAndSize(nsSubDocumentFrame *aIFrame);
   nsresult CheckURILoad(nsIURI* aURI);
   void FireErrorEvent();
   nsresult ReallyStartLoadingInternal();
@@ -445,7 +445,7 @@ private:
 
   // The ContentParent associated with mRemoteBrowser.  This was added as a
   // strong ref in bug 545237, and we're not sure if we can get rid of it.
-  nsRefPtr<mozilla::dom::ContentParent> mContentParent;
+  nsRefPtr<mozilla::dom::nsIContentParent> mContentParent;
   RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;
   uint64_t mChildID;

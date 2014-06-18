@@ -15,9 +15,11 @@ const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 const { dbg_assert, dumpn, update } = DevToolsUtils;
 const { SourceMapConsumer, SourceMapGenerator } = require("source-map");
 const { defer, resolve, reject, all } = require("devtools/toolkit/deprecated-sync-thenables");
-const {CssLogic} = require("devtools/styleinspector/css-logic");
+const { CssLogic } = require("devtools/styleinspector/css-logic");
 
-Cu.import("resource://gre/modules/NetUtil.jsm");
+DevToolsUtils.defineLazyGetter(this, "NetUtil", () => {
+  return Cu.import("resource://gre/modules/NetUtil.jsm", {}).NetUtil;
+});
 
 let B2G_ID = "{3c2e2abc-06d4-11e1-ac3b-374f68613e61}";
 
@@ -508,6 +510,8 @@ function ThreadActor(aHooks, aGlobal)
   };
 
   this._gripDepth = 0;
+  this._threadLifetimePool = null;
+  this._tabClosed = false;
 }
 
 /**
@@ -679,9 +683,7 @@ ThreadActor.prototype = {
    */
   globalManager: {
     findGlobals: function () {
-      const { gDevToolsExtensions: {
-        getContentGlobals
-      } } = Cu.import("resource://gre/modules/devtools/DevToolsExtensions.jsm", {});
+      const { getContentGlobals } = require("devtools/server/content-globals");
 
       this.globalDebugObject = this._addDebuggees(this.global);
 
@@ -886,7 +888,10 @@ ThreadActor.prototype = {
       reportError(e, "Got an exception during TA__pauseAndRespond: ");
     }
 
-    return undefined;
+    // If the browser tab has been closed, terminate the debuggee script
+    // instead of continuing. Executing JS after the content window is gone is
+    // a bad idea.
+    return this._tabClosed ? null : undefined;
   },
 
   /**
@@ -950,7 +955,15 @@ ThreadActor.prototype = {
   },
 
   _makeOnStep: function ({ thread, pauseAndRespond, startFrame,
-                           startLocation }) {
+                           startLocation, steppingType }) {
+    // Breaking in place: we should always pause.
+    if (steppingType === "break") {
+      return function () {
+        return pauseAndRespond(this);
+      };
+    }
+
+    // Otherwise take what a "step" means into consideration.
     return function () {
       // onStep is called with 'this' set to the current frame.
 
@@ -995,19 +1008,20 @@ ThreadActor.prototype = {
   /**
    * Define the JS hook functions for stepping.
    */
-  _makeSteppingHooks: function (aStartLocation) {
+  _makeSteppingHooks: function (aStartLocation, steppingType) {
     // Bind these methods and state because some of the hooks are called
     // with 'this' set to the current frame. Rather than repeating the
     // binding in each _makeOnX method, just do it once here and pass it
     // in to each function.
     const steppingHookState = {
       pauseAndRespond: (aFrame, onPacket=(k)=>k) => {
-        this._pauseAndRespond(aFrame, { type: "resumeLimit" }, onPacket);
+        return this._pauseAndRespond(aFrame, { type: "resumeLimit" }, onPacket);
       },
       createValueGrip: this.createValueGrip.bind(this),
       thread: this,
       startFrame: this.youngestFrame,
-      startLocation: aStartLocation
+      startLocation: aStartLocation,
+      steppingType: steppingType
     };
 
     return {
@@ -1028,7 +1042,7 @@ ThreadActor.prototype = {
    */
   _handleResumeLimit: function (aRequest) {
     let steppingType = aRequest.resumeLimit.type;
-    if (["step", "next", "finish"].indexOf(steppingType) == -1) {
+    if (["break", "step", "next", "finish"].indexOf(steppingType) == -1) {
       return reject({ error: "badParameterType",
                       message: "Unknown resumeLimit type" });
     }
@@ -1036,7 +1050,8 @@ ThreadActor.prototype = {
     const generatedLocation = getFrameLocation(this.youngestFrame);
     return this.sources.getOriginalLocation(generatedLocation)
       .then(originalLocation => {
-        const { onEnterFrame, onPop, onStep } = this._makeSteppingHooks(originalLocation);
+        const { onEnterFrame, onPop, onStep } = this._makeSteppingHooks(originalLocation,
+                                                                        steppingType);
 
         // Make sure there is still a frame on the stack if we are to continue
         // stepping.
@@ -1046,6 +1061,7 @@ ThreadActor.prototype = {
             case "step":
               this.dbg.onEnterFrame = onEnterFrame;
               // Fall through.
+            case "break":
             case "next":
               if (stepFrame.script) {
                   stepFrame.onStep = onStep;
@@ -3058,7 +3074,14 @@ ObjectActor.prototype = {
     };
 
     if (this.obj.class != "DeadObject") {
-      let raw = Cu.unwaiveXrays(this.obj.unsafeDereference());
+      let raw = this.obj.unsafeDereference();
+
+      // If Cu is not defined, we are running on a worker thread, where xrays
+      // don't exist.
+      if (Cu) {
+        raw = Cu.unwaiveXrays(raw);
+      }
+
       if (!DevToolsUtils.isSafeJSObject(raw)) {
         raw = null;
       }
@@ -3598,8 +3621,16 @@ DebuggerServer.ObjectActorPreviewers = {
     let raw = obj.unsafeDereference();
     let items = aGrip.preview.items = [];
 
-    for (let [i, value] of Array.prototype.entries.call(raw)) {
-      if (Object.hasOwnProperty.call(raw, i)) {
+    for (let i = 0; i < length; ++i) {
+      // Array Xrays filter out various possibly-unsafe properties (like
+      // functions, and claim that the value is undefined instead. This
+      // is generally the right thing for privileged code accessing untrusted
+      // objects, but quite confusing for Object previews. So we manually
+      // override this protection by waiving Xrays on the array, and re-applying
+      // Xrays on any indexed value props that we pull off of it.
+      let desc = Object.getOwnPropertyDescriptor(Cu.waiveXrays(raw), i);
+      if (desc && !desc.get && !desc.set) {
+        let value = Cu.unwaiveXrays(desc.value);
         value = makeDebuggeeValueIfNeeded(obj, value);
         items.push(threadActor.createValueGrip(value));
       } else {
@@ -3632,7 +3663,18 @@ DebuggerServer.ObjectActorPreviewers = {
 
     let raw = obj.unsafeDereference();
     let items = aGrip.preview.items = [];
-    for (let item of Set.prototype.values.call(raw)) {
+    // We currently lack XrayWrappers for Set, so when we iterate over
+    // the values, the temporary iterator objects get created in the target
+    // compartment. However, we _do_ have Xrays to Object now, so we end up
+    // Xraying those temporary objects, and filtering access to |it.value|
+    // based on whether or not it's Xrayable and/or callable, which breaks
+    // the for/of iteration.
+    //
+    // This code is designed to handle untrusted objects, so we can safely
+    // waive Xrays on the iterable, and relying on the Debugger machinery to
+    // make sure we handle the resulting objects carefully.
+    for (let item of Cu.waiveXrays(Set.prototype.values.call(raw))) {
+      item = Cu.unwaiveXrays(item);
       item = makeDebuggeeValueIfNeeded(obj, item);
       items.push(threadActor.createValueGrip(item));
       if (items.length == OBJECT_PREVIEW_MAX_ITEMS) {
@@ -3660,7 +3702,18 @@ DebuggerServer.ObjectActorPreviewers = {
 
     let raw = obj.unsafeDereference();
     let entries = aGrip.preview.entries = [];
-    for (let [key, value] of Map.prototype.entries.call(raw)) {
+    // We don't have Xrays to Iterators, so .entries returns [key, value]
+    // Arrays that live in content. But since we have Array Xrays,
+    // we'll deny access depending on the nature of those values. So we need
+    // to waive Xrays on those tuples (and re-apply them on the underlying
+    // values) until we fix bug 1023984.
+    //
+    // Even then though, we might want to continue waiving Xrays here for the
+    // same reason we do so for Arrays above - this filtering behavior is likely
+    // to be more confusing than beneficial in the case of Object previews.
+    for (let keyValuePair of Map.prototype.entries.call(raw)) {
+      let key = Cu.unwaiveXrays(Cu.waiveXrays(keyValuePair)[0]);
+      let value = Cu.unwaiveXrays(Cu.waiveXrays(keyValuePair)[1]);
       key = makeDebuggeeValueIfNeeded(obj, key);
       value = makeDebuggeeValueIfNeeded(obj, value);
       entries.push([threadActor.createValueGrip(key),
@@ -3764,7 +3817,9 @@ DebuggerServer.ObjectActorPreviewers.Object = [
     let raw = obj.unsafeDereference();
     let global = Cu.getGlobalForObject(DebuggerServer);
     let classProto = global[obj.class].prototype;
-    let safeView = classProto.subarray.call(raw, 0, OBJECT_PREVIEW_MAX_ITEMS);
+    // The Xray machinery for TypedArrays denies indexed access on the grounds
+    // that it's slow, and advises callers to do a structured clone instead.
+    let safeView = Cu.cloneInto(classProto.subarray.call(raw, 0, OBJECT_PREVIEW_MAX_ITEMS), global);
     let items = aGrip.preview.items = [];
     for (let i = 0; i < safeView.length; i++) {
       items.push(safeView[i]);
@@ -3804,7 +3859,7 @@ DebuggerServer.ObjectActorPreviewers.Object = [
   },
 
   function CSSMediaRule({obj, threadActor}, aGrip, aRawObj) {
-    if (!aRawObj || !(aRawObj instanceof Ci.nsIDOMCSSMediaRule)) {
+    if (!aRawObj || Ci && !(aRawObj instanceof Ci.nsIDOMCSSMediaRule)) {
       return false;
     }
     aGrip.preview = {
@@ -3815,7 +3870,7 @@ DebuggerServer.ObjectActorPreviewers.Object = [
   },
 
   function CSSStyleRule({obj, threadActor}, aGrip, aRawObj) {
-    if (!aRawObj || !(aRawObj instanceof Ci.nsIDOMCSSStyleRule)) {
+    if (!aRawObj || Ci && !(aRawObj instanceof Ci.nsIDOMCSSStyleRule)) {
       return false;
     }
     aGrip.preview = {
@@ -3827,15 +3882,15 @@ DebuggerServer.ObjectActorPreviewers.Object = [
 
   function ObjectWithURL({obj, threadActor}, aGrip, aRawObj) {
     if (!aRawObj ||
-        !(aRawObj instanceof Ci.nsIDOMCSSImportRule ||
-          aRawObj instanceof Ci.nsIDOMCSSStyleSheet ||
-          aRawObj instanceof Ci.nsIDOMLocation ||
-          aRawObj instanceof Ci.nsIDOMWindow)) {
+        Ci && !(aRawObj instanceof Ci.nsIDOMCSSImportRule ||
+                aRawObj instanceof Ci.nsIDOMCSSStyleSheet ||
+                aRawObj instanceof Ci.nsIDOMLocation ||
+                aRawObj instanceof Ci.nsIDOMWindow)) {
       return false;
     }
 
     let url;
-    if (aRawObj instanceof Ci.nsIDOMWindow && aRawObj.location) {
+    if (Ci && (aRawObj instanceof Ci.nsIDOMWindow) && aRawObj.location) {
       url = aRawObj.location.href;
     } else if (aRawObj.href) {
       url = aRawObj.href;
@@ -3855,14 +3910,14 @@ DebuggerServer.ObjectActorPreviewers.Object = [
     if (!aRawObj ||
         obj.class != "DOMStringList" &&
         obj.class != "DOMTokenList" &&
-        !(aRawObj instanceof Ci.nsIDOMMozNamedAttrMap ||
-          aRawObj instanceof Ci.nsIDOMCSSRuleList ||
-          aRawObj instanceof Ci.nsIDOMCSSValueList ||
-          aRawObj instanceof Ci.nsIDOMFileList ||
-          aRawObj instanceof Ci.nsIDOMFontFaceList ||
-          aRawObj instanceof Ci.nsIDOMMediaList ||
-          aRawObj instanceof Ci.nsIDOMNodeList ||
-          aRawObj instanceof Ci.nsIDOMStyleSheetList)) {
+        Ci && !(aRawObj instanceof Ci.nsIDOMMozNamedAttrMap ||
+                aRawObj instanceof Ci.nsIDOMCSSRuleList ||
+                aRawObj instanceof Ci.nsIDOMCSSValueList ||
+                aRawObj instanceof Ci.nsIDOMFileList ||
+                aRawObj instanceof Ci.nsIDOMFontFaceList ||
+                aRawObj instanceof Ci.nsIDOMMediaList ||
+                aRawObj instanceof Ci.nsIDOMNodeList ||
+                aRawObj instanceof Ci.nsIDOMStyleSheetList)) {
       return false;
     }
 
@@ -3891,7 +3946,7 @@ DebuggerServer.ObjectActorPreviewers.Object = [
   }, // ArrayLike
 
   function CSSStyleDeclaration({obj, threadActor}, aGrip, aRawObj) {
-    if (!aRawObj || !(aRawObj instanceof Ci.nsIDOMCSSStyleDeclaration)) {
+    if (!aRawObj || Ci && !(aRawObj instanceof Ci.nsIDOMCSSStyleDeclaration)) {
       return false;
     }
 
@@ -3913,7 +3968,7 @@ DebuggerServer.ObjectActorPreviewers.Object = [
   },
 
   function DOMNode({obj, threadActor}, aGrip, aRawObj) {
-    if (obj.class == "Object" || !aRawObj || !(aRawObj instanceof Ci.nsIDOMNode)) {
+    if (obj.class == "Object" || !aRawObj || Ci && !(aRawObj instanceof Ci.nsIDOMNode)) {
       return false;
     }
 
@@ -3923,9 +3978,9 @@ DebuggerServer.ObjectActorPreviewers.Object = [
       nodeName: aRawObj.nodeName,
     };
 
-    if (aRawObj instanceof Ci.nsIDOMDocument && aRawObj.location) {
+    if (Ci && (aRawObj instanceof Ci.nsIDOMDocument) && aRawObj.location) {
       preview.location = threadActor.createValueGrip(aRawObj.location.href);
-    } else if (aRawObj instanceof Ci.nsIDOMDocumentFragment) {
+    } else if (Ci && (aRawObj instanceof Ci.nsIDOMDocumentFragment)) {
       preview.childNodesLength = aRawObj.childNodes.length;
 
       if (threadActor._gripDepth < 2) {
@@ -3938,7 +3993,7 @@ DebuggerServer.ObjectActorPreviewers.Object = [
           }
         }
       }
-    } else if (aRawObj instanceof Ci.nsIDOMElement) {
+    } else if (Ci && (aRawObj instanceof Ci.nsIDOMElement)) {
       // Add preview for DOM element attributes.
       if (aRawObj instanceof Ci.nsIDOMHTMLElement) {
         preview.nodeName = preview.nodeName.toLowerCase();
@@ -3953,10 +4008,10 @@ DebuggerServer.ObjectActorPreviewers.Object = [
           break;
         }
       }
-    } else if (aRawObj instanceof Ci.nsIDOMAttr) {
+    } else if (Ci && (aRawObj instanceof Ci.nsIDOMAttr)) {
       preview.value = threadActor.createValueGrip(aRawObj.value);
-    } else if (aRawObj instanceof Ci.nsIDOMText ||
-               aRawObj instanceof Ci.nsIDOMComment) {
+    } else if (Ci && (aRawObj instanceof Ci.nsIDOMText) ||
+               Ci && (aRawObj instanceof Ci.nsIDOMComment)) {
       preview.textContent = threadActor.createValueGrip(aRawObj.textContent);
     }
 
@@ -3964,7 +4019,7 @@ DebuggerServer.ObjectActorPreviewers.Object = [
   }, // DOMNode
 
   function DOMEvent({obj, threadActor}, aGrip, aRawObj) {
-    if (!aRawObj || !(aRawObj instanceof Ci.nsIDOMEvent)) {
+    if (!aRawObj || Ci && !(aRawObj instanceof Ci.nsIDOMEvent)) {
       return false;
     }
 
@@ -3980,9 +4035,9 @@ DebuggerServer.ObjectActorPreviewers.Object = [
     }
 
     let props = [];
-    if (aRawObj instanceof Ci.nsIDOMMouseEvent) {
+    if (Ci && (aRawObj instanceof Ci.nsIDOMMouseEvent)) {
       props.push("buttons", "clientX", "clientY", "layerX", "layerY");
-    } else if (aRawObj instanceof Ci.nsIDOMKeyEvent) {
+    } else if (Ci && (aRawObj instanceof Ci.nsIDOMKeyEvent)) {
       let modifiers = [];
       if (aRawObj.altKey) {
         modifiers.push("Alt");
@@ -4000,10 +4055,10 @@ DebuggerServer.ObjectActorPreviewers.Object = [
       preview.modifiers = modifiers;
 
       props.push("key", "charCode", "keyCode");
-    } else if (aRawObj instanceof Ci.nsIDOMTransitionEvent ||
-               aRawObj instanceof Ci.nsIDOMAnimationEvent) {
+    } else if (Ci && (aRawObj instanceof Ci.nsIDOMTransitionEvent) ||
+               Ci && (aRawObj instanceof Ci.nsIDOMAnimationEvent)) {
       props.push("animationName", "pseudoElement");
-    } else if (aRawObj instanceof Ci.nsIDOMClipboardEvent) {
+    } else if (Ci && (aRawObj instanceof Ci.nsIDOMClipboardEvent)) {
       props.push("clipboardData");
     }
 
@@ -4046,7 +4101,7 @@ DebuggerServer.ObjectActorPreviewers.Object = [
   }, // DOMEvent
 
   function DOMException({obj, threadActor}, aGrip, aRawObj) {
-    if (!aRawObj || !(aRawObj instanceof Ci.nsIDOMDOMException)) {
+    if (!aRawObj || Ci && !(aRawObj instanceof Ci.nsIDOMDOMException)) {
       return false;
     }
 
@@ -4611,8 +4666,8 @@ EnvironmentActor.prototype = {
         descForm.value = this.threadActor.createValueGrip(desc.value);
         descForm.writable = desc.writable;
       } else {
-        descForm.get = this.threadActor.createValueGrip(desc.get);
-        descForm.set = this.threadActor.createValueGrip(desc.set);
+        descForm.get = this.threadActor.createValueGrip(desc.get || undefined);
+        descForm.set = this.threadActor.createValueGrip(desc.set || undefined);
       }
       bindings.variables[name] = descForm;
     }
@@ -5468,10 +5523,11 @@ function convertToUnicode(aString, aCharset=null) {
  * @param String aPrefix
  *        An optional prefix for the reported error message.
  */
-function reportError(aError, aPrefix="") {
+let oldReportError = reportError;
+reportError = function(aError, aPrefix="") {
   dbg_assert(aError instanceof Error, "Must pass Error objects to reportError");
   let msg = aPrefix + aError.message + ":\n" + aError.stack;
-  Cu.reportError(msg);
+  oldReportError(msg);
   dumpn(msg);
 }
 

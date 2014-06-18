@@ -222,7 +222,8 @@ MediaDecoder::DecodedStreamGraphListener::DecodedStreamGraphListener(MediaStream
   : mData(aData),
     mMutex("MediaDecoder::DecodedStreamData::mMutex"),
     mStream(aStream),
-    mLastOutputTime(aStream->GetCurrentTime()),
+    mLastOutputTime(aStream->
+                    StreamTimeToMicroseconds(aStream->GetCurrentTime())),
     mStreamFinishedOnMainThread(false)
 {
 }
@@ -233,7 +234,8 @@ MediaDecoder::DecodedStreamGraphListener::NotifyOutput(MediaStreamGraph* aGraph,
 {
   MutexAutoLock lock(mMutex);
   if (mStream) {
-    mLastOutputTime = mStream->GraphTimeToStreamTime(aCurrentTime);
+    mLastOutputTime = mStream->
+      StreamTimeToMicroseconds(mStream->GraphTimeToStreamTime(aCurrentTime));
   }
 }
 
@@ -1019,8 +1021,13 @@ void MediaDecoder::NotifyPrincipalChanged()
 
 void MediaDecoder::NotifyBytesConsumed(int64_t aBytes, int64_t aOffset)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mShuttingDown) {
+    return;
+  }
+
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  NS_ENSURE_TRUE_VOID(mDecoderStateMachine);
+  MOZ_ASSERT(mDecoderStateMachine);
   if (mIgnoreProgressData) {
     return;
   }

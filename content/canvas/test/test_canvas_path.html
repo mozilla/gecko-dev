@@ -329,6 +329,11 @@ function test_pathconstructor_canvas() {
   ctx.fill(p);
   isPixel(ctx, 105, 5, [0, 0, 255, 255], 0);
   isPixel(ctx, 5, 5, [0, 0, 0, 0], 0);
+
+  // copy constructor. This should not crash.
+  var p1 = new Path2D();
+  var _p2 = new Path2D(p1);
+  p1.arcTo(0, 0, 1, 1, 2);
 }
 </script>
 
@@ -382,5 +387,9 @@ function runTests() {
 }
 
 addLoadEvent(runTests);
+
+// Don't leak the world via the Path2D reference to its window.
+document.all;
+window.p = new Path2D();
 
 </script>

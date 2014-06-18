@@ -21,15 +21,15 @@ public:
   SECStatus SetTrustedRoot(AppTrustedRoot trustedRoot);
 
   SECStatus GetCertTrust(mozilla::pkix::EndEntityOrCA endEntityOrCA,
-                         SECOidTag policy,
-                         const CERTCertificate* candidateCert,
+                         const mozilla::pkix::CertPolicyId& policy,
+                         const SECItem& candidateCertDER,
                  /*out*/ mozilla::pkix::TrustLevel* trustLevel) MOZ_OVERRIDE;
   SECStatus FindPotentialIssuers(const SECItem* encodedIssuerName,
                                  PRTime time,
                          /*out*/ mozilla::pkix::ScopedCERTCertList& results)
                                  MOZ_OVERRIDE;
   SECStatus VerifySignedData(const CERTSignedData* signedData,
-                             const CERTCertificate* cert) MOZ_OVERRIDE;
+                             const SECItem& subjectPublicKeyInfo) MOZ_OVERRIDE;
   SECStatus CheckRevocation(mozilla::pkix::EndEntityOrCA endEntityOrCA,
                             const CERTCertificate* cert,
                             /*const*/ CERTCertificate* issuerCertToDup,

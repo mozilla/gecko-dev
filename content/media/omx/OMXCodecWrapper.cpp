@@ -34,6 +34,32 @@ using namespace mozilla::layers;
 
 namespace android {
 
+bool
+OMXCodecReservation::ReserveOMXCodec()
+{
+  if (!mManagerService.get()) {
+    sp<MediaResourceManagerClient::EventListener> listener = this;
+    mClient = new MediaResourceManagerClient(listener);
+
+    mManagerService = mClient->getMediaResourceManagerService();
+    if (!mManagerService.get()) {
+      mClient = nullptr;
+      return true; // not really in use, but not usable
+    }
+  }
+  return (mManagerService->requestMediaResource(mClient, mType, false) == OK); // don't wait
+}
+
+void
+OMXCodecReservation::ReleaseOMXCodec()
+{
+  if (!mManagerService.get() || !mClient.get()) {
+    return;
+  }
+
+  mManagerService->cancelClient(mClient, mType);
+}
+
 OMXAudioEncoder*
 OMXCodecWrapper::CreateAACEncoder()
 {
@@ -176,7 +202,11 @@ nsresult
 OMXVideoEncoder::ConfigureDirect(sp<AMessage>& aFormat,
                                  BlobFormat aBlobFormat)
 {
-  MOZ_ASSERT(!mStarted, "Configure() was called already.");
+  // We now allow re-configuration to handle resolution/framerate/etc changes
+  if (mStarted) {
+    Stop();
+  }
+  MOZ_ASSERT(!mStarted, "OMX Stop() failed?");
 
   int width = 0;
   int height = 0;
@@ -400,7 +430,6 @@ OMXVideoEncoder::AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
   // NAL unit format is needed by WebRTC for RTP packets; AVC/H.264 decoder
   // config descriptor is needed to construct MP4 'avcC' box.
   status_t result = GenerateAVCDescriptorBlob(format, aOutputBuf, mBlobFormat);
-  mHasConfigBlob = (result == OK);
 
   return result;
 }
@@ -429,26 +458,30 @@ OMXVideoEncoder::AppendFrame(nsTArray<uint8_t>* aOutputBuf,
   aOutputBuf->AppendElements(aData + sizeof(length), aSize);
 }
 
-nsresult
-OMXVideoEncoder::GetCodecConfig(nsTArray<uint8_t>* aOutputBuf)
-{
-  MOZ_ASSERT(mHasConfigBlob, "Haven't received codec config yet.");
-
-  return AppendDecoderConfig(aOutputBuf, nullptr) == OK ? NS_OK : NS_ERROR_FAILURE;
-}
-
 // MediaCodec::setParameters() is available only after API level 18.
 #if ANDROID_VERSION >= 18
 nsresult
 OMXVideoEncoder::SetBitrate(int32_t aKbps)
 {
   sp<AMessage> msg = new AMessage();
+#if ANDROID_VERSION >= 19
+  // XXX Do we need a runtime check here?
+  msg->setInt32("video-bitrate", aKbps * 1000 /* kbps -> bps */);
+#else
   msg->setInt32("videoBitrate", aKbps * 1000 /* kbps -> bps */);
+#endif
   status_t result = mCodec->setParameters(msg);
   MOZ_ASSERT(result == OK);
   return result == OK ? NS_OK : NS_ERROR_FAILURE;
 }
 #endif
+
+nsresult
+OMXVideoEncoder::RequestIDRFrame()
+{
+  MOZ_ASSERT(mStarted, "Configure() should be called before RequestIDRFrame().");
+  return mCodec->requestIDRFrame() == OK ? NS_OK : NS_ERROR_FAILURE;
+}
 
 nsresult
 OMXAudioEncoder::Configure(int aChannels, int aInputSampleRate,

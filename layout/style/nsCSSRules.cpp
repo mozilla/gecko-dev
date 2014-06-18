@@ -22,7 +22,7 @@
 #include "nsCOMPtr.h"
 #include "nsIDOMCSSStyleSheet.h"
 #include "nsIMediaList.h"
-#include "nsICSSRuleList.h"
+#include "mozilla/dom/CSSRuleList.h"
 #include "nsIDocument.h"
 #include "nsPresContext.h"
 
@@ -130,7 +130,7 @@ Rule::SizeOfCOMArrayElementIncludingThis(css::Rule* aElement,
 // Style Rule List for group rules
 //
 
-class GroupRuleRuleList MOZ_FINAL : public nsICSSRuleList
+class GroupRuleRuleList MOZ_FINAL : public dom::CSSRuleList
 {
 public:
   GroupRuleRuleList(GroupRule *aGroupRule);
@@ -428,16 +428,16 @@ ImportRule::GetCssText(nsAString& aCssText)
 {
   aCssText.AssignLiteral("@import url(");
   nsStyleUtil::AppendEscapedCSSString(mURLSpec, aCssText);
-  aCssText.Append(NS_LITERAL_STRING(")"));
+  aCssText.Append(')');
   if (mMedia) {
     nsAutoString mediaText;
     mMedia->GetText(mediaText);
     if (!mediaText.IsEmpty()) {
-      aCssText.AppendLiteral(" ");
+      aCssText.Append(' ');
       aCssText.Append(mediaText);
     }
   }
-  aCssText.AppendLiteral(";");
+  aCssText.Append(';');
   return NS_OK;
 }
 
@@ -687,13 +687,13 @@ GroupRule::AppendRulesToCssText(nsAString& aCssText)
     if (domRule) {
       nsAutoString cssText;
       domRule->GetCssText(cssText);
-      aCssText.Append(NS_LITERAL_STRING("  ") +
-                      cssText +
-                      NS_LITERAL_STRING("\n"));
+      aCssText.AppendLiteral("  ");
+      aCssText.Append(cssText);
+      aCssText.Append('\n');
     }
   }
 
-  aCssText.AppendLiteral("}");
+  aCssText.Append('}');
 }
 
 // nsIDOMCSSMediaRule or nsIDOMCSSMozDocumentRule methods
@@ -1311,7 +1311,7 @@ NameSpaceRule::GetCssText(nsAString& aCssText)
   }
   aCssText.AppendLiteral("url(");
   nsStyleUtil::AppendEscapedCSSString(mURLSpec, aCssText);
-  aCssText.Append(NS_LITERAL_STRING(");"));
+  aCssText.AppendLiteral(");");
   return NS_OK;
 }
 
@@ -1376,12 +1376,12 @@ AppendSerializedFontSrc(const nsCSSValue& src, nsAString & aResult)
       aResult.AppendLiteral("url(");
       nsDependentString url(sources[i].GetOriginalURLValue());
       nsStyleUtil::AppendEscapedCSSString(url, aResult);
-      aResult.AppendLiteral(")");
+      aResult.Append(')');
     } else if (sources[i].GetUnit() == eCSSUnit_Local_Font) {
       aResult.AppendLiteral("local(");
       nsDependentString local(sources[i].GetStringBufferValue());
       nsStyleUtil::AppendEscapedCSSString(local, aResult);
-      aResult.AppendLiteral(")");
+      aResult.Append(')');
     } else {
       NS_NOTREACHED("entry in src: descriptor with improper unit");
       i++;
@@ -1927,19 +1927,6 @@ NS_INTERFACE_MAP_END
 IMPL_STYLE_RULE_INHERIT(nsCSSFontFeatureValuesRule, Rule)
 
 static void
-FamilyListToString(const nsTArray<nsString>& aFamilyList, nsAString& aOutStr)
-{
-  uint32_t i, n = aFamilyList.Length();
-
-  for (i = 0; i < n; i++) {
-    nsStyleUtil::AppendEscapedCSSString(aFamilyList[i], aOutStr);
-    if (i != n - 1) {
-      aOutStr.AppendLiteral(", ");
-    }
-  }
-}
-
-static void
 FeatureValuesToString(
   const nsTArray<gfxFontFeatureValueSet::FeatureValues>& aFeatureValues,
   nsAString& aOutStr)
@@ -1961,18 +1948,18 @@ FeatureValuesToString(
     // for each ident-values tuple
     uint32_t j, numValues = fv.valuelist.Length();
     for (j = 0; j < numValues; j++) {
-      aOutStr.AppendLiteral(" ");
+      aOutStr.Append(' ');
       const gfxFontFeatureValueSet::ValueList& vlist = fv.valuelist[j];
       nsStyleUtil::AppendEscapedCSSIdent(vlist.name, aOutStr);
-      aOutStr.AppendLiteral(":");
+      aOutStr.Append(':');
 
       uint32_t k, numSelectors = vlist.featureSelectors.Length();
       for (k = 0; k < numSelectors; k++) {
-        aOutStr.AppendLiteral(" ");
+        aOutStr.Append(' ');
         aOutStr.AppendInt(vlist.featureSelectors[k]);
       }
 
-      aOutStr.AppendLiteral(";");
+      aOutStr.Append(';');
     }
     aOutStr.AppendLiteral(" }\n");
   }
@@ -1980,18 +1967,18 @@ FeatureValuesToString(
 
 static void
 FontFeatureValuesRuleToString(
-  const nsTArray<nsString>& aFamilyList,
+  const mozilla::FontFamilyList& aFamilyList,
   const nsTArray<gfxFontFeatureValueSet::FeatureValues>& aFeatureValues,
   nsAString& aOutStr)
 {
   aOutStr.AssignLiteral("@font-feature-values ");
   nsAutoString familyListStr, valueTextStr;
-  FamilyListToString(aFamilyList, familyListStr);
+  nsStyleUtil::AppendEscapedCSSFontFamilyList(aFamilyList, familyListStr);
   aOutStr.Append(familyListStr);
   aOutStr.AppendLiteral(" {\n");
   FeatureValuesToString(aFeatureValues, valueTextStr);
   aOutStr.Append(valueTextStr);
-  aOutStr.AppendLiteral("}");
+  aOutStr.Append('}');
 }
 
 #ifdef DEBUG
@@ -2058,9 +2045,9 @@ nsCSSFontFeatureValuesRule::GetParentRule(nsIDOMCSSRule** aParentRule)
 }
 
 NS_IMETHODIMP
-nsCSSFontFeatureValuesRule::GetFontFamily(nsAString& aFontFamily)
+nsCSSFontFeatureValuesRule::GetFontFamily(nsAString& aFamilyListStr)
 {
-  FamilyListToString(mFamilyList, aFontFamily);
+  nsStyleUtil::AppendEscapedCSSFontFamilyList(mFamilyList, aFamilyListStr);
   return NS_OK;
 }
 
@@ -2106,13 +2093,10 @@ struct MakeFamilyArray {
 };
 
 void
-nsCSSFontFeatureValuesRule::SetFamilyList(const nsAString& aFamilyList,
-                                          bool& aContainsGeneric)
+nsCSSFontFeatureValuesRule::SetFamilyList(
+  const mozilla::FontFamilyList& aFamilyList)
 {
-  nsFont font(aFamilyList, 0, 0, 0, 0, 0, 0);
-  MakeFamilyArray families(mFamilyList);
-  font.EnumerateFamilies(MakeFamilyArray::AddFamily, (void*) &families);
-  aContainsGeneric = families.hasGeneric;
+  mFamilyList = aFamilyList;
 }
 
 void
@@ -2515,9 +2499,9 @@ nsCSSKeyframesRule::GetCssText(nsAString& aCssText)
   for (uint32_t i = 0, i_end = mRules.Count(); i != i_end; ++i) {
     static_cast<nsCSSKeyframeRule*>(mRules[i])->GetCssText(tmp);
     aCssText.Append(tmp);
-    aCssText.AppendLiteral("\n");
+    aCssText.Append('\n');
   }
-  aCssText.AppendLiteral("}");
+  aCssText.Append('}');
   return NS_OK;
 }
 
@@ -3058,3 +3042,457 @@ CSSSupportsRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 
 // Must be outside namespace
 DOMCI_DATA(CSSSupportsRule, mozilla::CSSSupportsRule)
+
+// -------------------------------------------
+// nsCSSCounterStyleRule
+//
+
+nsCSSCounterStyleRule::nsCSSCounterStyleRule(const nsCSSCounterStyleRule& aCopy)
+  : Rule(aCopy),
+    mName(aCopy.mName)
+{
+}
+
+nsCSSCounterStyleRule::~nsCSSCounterStyleRule()
+{
+}
+
+/* virtual */ already_AddRefed<css::Rule>
+nsCSSCounterStyleRule::Clone() const
+{
+  nsRefPtr<css::Rule> clone = new nsCSSCounterStyleRule(*this);
+  return clone.forget();
+}
+
+nsCSSCounterStyleRule::Getter const
+nsCSSCounterStyleRule::kGetters[] = {
+#define CSS_COUNTER_DESC(name_, method_) &nsCSSCounterStyleRule::Get##method_,
+#include "nsCSSCounterDescList.h"
+#undef CSS_COUNTER_DESC
+};
+
+NS_IMPL_ADDREF(nsCSSCounterStyleRule)
+NS_IMPL_RELEASE(nsCSSCounterStyleRule)
+
+DOMCI_DATA(CSSCounterStyleRule, nsCSSCounterStyleRule)
+
+// QueryInterface implementation for nsCSSCounterStyleRule
+NS_INTERFACE_MAP_BEGIN(nsCSSCounterStyleRule)
+  NS_INTERFACE_MAP_ENTRY(nsIStyleRule)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMCSSRule)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMCSSCounterStyleRule)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIStyleRule)
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CSSCounterStyleRule)
+NS_INTERFACE_MAP_END
+
+IMPL_STYLE_RULE_INHERIT(nsCSSCounterStyleRule, css::Rule)
+
+#ifdef DEBUG
+void
+nsCSSCounterStyleRule::List(FILE* out, int32_t aIndent) const
+{
+  nsCString baseInd, descInd;
+  for (int32_t indent = aIndent; --indent >= 0; ) {
+    baseInd.AppendLiteral("  ");
+  }
+  descInd = baseInd;
+  descInd.AppendLiteral("  ");
+
+  fprintf(out, "%s@counter-style %s (rev.%u) {\n",
+          baseInd.get(), NS_ConvertUTF16toUTF8(mName).get(), mGeneration);
+  // TODO
+  fprintf(out, "%s}\n", baseInd.get());
+}
+#endif
+
+/* virtual */ int32_t
+nsCSSCounterStyleRule::GetType() const
+{
+  return Rule::COUNTER_STYLE_RULE;
+}
+
+// nsIDOMCSSRule methods
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetType(uint16_t* aType)
+{
+  *aType = nsIDOMCSSRule::COUNTER_STYLE_RULE;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetCssText(nsAString& aCssText)
+{
+  aCssText.AssignLiteral(MOZ_UTF16("@counter-style "));
+  nsStyleUtil::AppendEscapedCSSIdent(mName, aCssText);
+  aCssText.AppendLiteral(MOZ_UTF16(" {\n"));
+  for (nsCSSCounterDesc id = nsCSSCounterDesc(0);
+       id < eCSSCounterDesc_COUNT;
+       id = nsCSSCounterDesc(id + 1)) {
+    if (mValues[id].GetUnit() != eCSSUnit_Null) {
+      nsAutoString tmp;
+      (this->*kGetters[id])(tmp);
+      aCssText.AppendLiteral(MOZ_UTF16("  "));
+      AppendASCIItoUTF16(nsCSSProps::GetStringValue(id), aCssText);
+      aCssText.AppendLiteral(MOZ_UTF16(": "));
+      aCssText.Append(tmp);
+      aCssText.AppendLiteral(MOZ_UTF16(";\n"));
+    }
+  }
+  aCssText.AppendLiteral(MOZ_UTF16("}"));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::SetCssText(const nsAString& aCssText)
+{
+  // FIXME: implement???
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetParentStyleSheet(nsIDOMCSSStyleSheet** aSheet)
+{
+  return Rule::GetParentStyleSheet(aSheet);
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetParentRule(nsIDOMCSSRule** aParentRule)
+{
+  return Rule::GetParentRule(aParentRule);
+}
+
+// nsIDOMCSSCounterStyleRule methods
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetName(nsAString& aName)
+{
+  aName.Truncate();
+  nsStyleUtil::AppendEscapedCSSIdent(mName, aName);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::SetName(const nsAString& aName)
+{
+  nsCSSParser parser;
+  nsAutoString name;
+  if (parser.ParseCounterStyleName(aName, nullptr, name)) {
+    nsIDocument* doc = GetDocument();
+    MOZ_AUTO_DOC_UPDATE(doc, UPDATE_STYLE, true);
+
+    mName = name;
+
+    nsCSSStyleSheet* sheet = GetStyleSheet();
+    if (sheet) {
+      sheet->SetModifiedByChildRule();
+      if (doc) {
+        doc->StyleRuleChanged(sheet, this, this);
+      }
+    }
+  }
+  return NS_OK;
+}
+
+int32_t
+nsCSSCounterStyleRule::GetSystem() const
+{
+  const nsCSSValue& system = GetDesc(eCSSCounterDesc_System);
+  switch (system.GetUnit()) {
+    case eCSSUnit_Enumerated:
+      return system.GetIntValue();
+    case eCSSUnit_Pair:
+      return system.GetPairValue().mXValue.GetIntValue();
+    default:
+      return NS_STYLE_COUNTER_SYSTEM_SYMBOLIC;
+  }
+}
+
+const nsCSSValue&
+nsCSSCounterStyleRule::GetSystemArgument() const
+{
+  const nsCSSValue& system = GetDesc(eCSSCounterDesc_System);
+  NS_ABORT_IF_FALSE(system.GetUnit() == eCSSUnit_Pair,
+                    "Invalid system value");
+  return system.GetPairValue().mYValue;
+}
+
+void
+nsCSSCounterStyleRule::SetDesc(nsCSSCounterDesc aDescID, const nsCSSValue& aValue)
+{
+  NS_ABORT_IF_FALSE(aDescID >= 0 && aDescID < eCSSCounterDesc_COUNT,
+                    "descriptor ID out of range");
+
+  nsIDocument* doc = GetDocument();
+  MOZ_AUTO_DOC_UPDATE(doc, UPDATE_STYLE, true);
+
+  mValues[aDescID] = aValue;
+  mGeneration++;
+
+  nsCSSStyleSheet* sheet = GetStyleSheet();
+  if (sheet) {
+    sheet->SetModifiedByChildRule();
+    if (doc) {
+      doc->StyleRuleChanged(sheet, this, this);
+    }
+  }
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetSystem(nsAString& aSystem)
+{
+  const nsCSSValue& value = GetDesc(eCSSCounterDesc_System);
+  if (value.GetUnit() == eCSSUnit_Null) {
+    aSystem.Truncate();
+    return NS_OK;
+  }
+
+  aSystem = NS_ConvertASCIItoUTF16(nsCSSProps::ValueToKeyword(
+          GetSystem(), nsCSSProps::kCounterSystemKTable));
+  if (value.GetUnit() == eCSSUnit_Pair) {
+    aSystem.Append(' ');
+    GetSystemArgument().AppendToString(
+        eCSSProperty_UNKNOWN, aSystem, nsCSSValue::eNormalized);
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetSymbols(nsAString& aSymbols)
+{
+  const nsCSSValue& value = GetDesc(eCSSCounterDesc_Symbols);
+
+  aSymbols.Truncate();
+  if (value.GetUnit() == eCSSUnit_List) {
+    for (const nsCSSValueList* item = value.GetListValue();
+         item; item = item->mNext) {
+      item->mValue.AppendToString(eCSSProperty_UNKNOWN,
+                                  aSymbols,
+                                  nsCSSValue::eNormalized);
+      if (item->mNext) {
+        aSymbols.Append(' ');
+      }
+    }
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetAdditiveSymbols(nsAString& aSymbols)
+{
+  const nsCSSValue& value = GetDesc(eCSSCounterDesc_AdditiveSymbols);
+
+  aSymbols.Truncate();
+  if (value.GetUnit() == eCSSUnit_PairList) {
+    for (const nsCSSValuePairList* item = value.GetPairListValue();
+         item; item = item->mNext) {
+      item->mXValue.AppendToString(eCSSProperty_UNKNOWN,
+                                   aSymbols, nsCSSValue::eNormalized);
+      aSymbols.Append(' ');
+      item->mYValue.AppendToString(eCSSProperty_UNKNOWN,
+                                   aSymbols, nsCSSValue::eNormalized);
+      if (item->mNext) {
+        aSymbols.AppendLiteral(", ");
+      }
+    }
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetRange(nsAString& aRange)
+{
+  const nsCSSValue& value = GetDesc(eCSSCounterDesc_Range);
+
+  switch (value.GetUnit()) {
+    case eCSSUnit_Auto:
+      aRange.AssignLiteral(MOZ_UTF16("auto"));
+      break;
+
+    case eCSSUnit_PairList:
+      aRange.Truncate();
+      for (const nsCSSValuePairList* item = value.GetPairListValue();
+          item; item = item->mNext) {
+        const nsCSSValue& lower = item->mXValue;
+        const nsCSSValue& upper = item->mYValue;
+        if (lower.GetUnit() == eCSSUnit_Enumerated) {
+          NS_ASSERTION(lower.GetIntValue() ==
+                       NS_STYLE_COUNTER_RANGE_INFINITE,
+                       "Unrecognized keyword");
+          aRange.AppendLiteral("infinite");
+        } else {
+          aRange.AppendInt(lower.GetIntValue());
+        }
+        aRange.Append(' ');
+        if (upper.GetUnit() == eCSSUnit_Enumerated) {
+          NS_ASSERTION(upper.GetIntValue() ==
+                       NS_STYLE_COUNTER_RANGE_INFINITE,
+                       "Unrecognized keyword");
+          aRange.AppendLiteral("infinite");
+        } else {
+          aRange.AppendInt(upper.GetIntValue());
+        }
+        if (item->mNext) {
+          aRange.AppendLiteral(", ");
+        }
+      }
+      break;
+
+    default:
+      aRange.Truncate();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSSCounterStyleRule::GetSpeakAs(nsAString& aSpeakAs)
+{
+  const nsCSSValue& value = GetDesc(eCSSCounterDesc_SpeakAs);
+
+  switch (value.GetUnit()) {
+    case eCSSUnit_Enumerated:
+      switch (value.GetIntValue()) {
+        case NS_STYLE_COUNTER_SPEAKAS_BULLETS:
+          aSpeakAs.AssignLiteral(MOZ_UTF16("bullets"));
+          break;
+        case NS_STYLE_COUNTER_SPEAKAS_NUMBERS:
+          aSpeakAs.AssignLiteral(MOZ_UTF16("numbers"));
+          break;
+        case NS_STYLE_COUNTER_SPEAKAS_WORDS:
+          aSpeakAs.AssignLiteral(MOZ_UTF16("words"));
+          break;
+        case NS_STYLE_COUNTER_SPEAKAS_SPELL_OUT:
+          aSpeakAs.AssignLiteral(MOZ_UTF16("spell-out"));
+          break;
+        default:
+          NS_NOTREACHED("Unknown speech synthesis");
+      }
+      break;
+
+    case eCSSUnit_Auto:
+    case eCSSUnit_Ident:
+      aSpeakAs.Truncate();
+      value.AppendToString(eCSSProperty_UNKNOWN,
+                           aSpeakAs, nsCSSValue::eNormalized);
+      break;
+
+    default:
+      aSpeakAs.Truncate();
+  }
+  return NS_OK;
+}
+
+nsresult
+nsCSSCounterStyleRule::GetDescriptor(nsCSSCounterDesc aDescID,
+                                     nsAString& aValue)
+{
+  NS_ASSERTION(aDescID == eCSSCounterDesc_Negative ||
+               aDescID == eCSSCounterDesc_Prefix ||
+               aDescID == eCSSCounterDesc_Suffix ||
+               aDescID == eCSSCounterDesc_Pad ||
+               aDescID == eCSSCounterDesc_Fallback,
+               "Unexpected descriptor");
+  const nsCSSValue& value = GetDesc(aDescID);
+  aValue.Truncate();
+  if (value.GetUnit() != eCSSUnit_Null) {
+    value.AppendToString(
+        eCSSProperty_UNKNOWN, aValue, nsCSSValue::eNormalized);
+  }
+  return NS_OK;
+}
+
+#define CSS_COUNTER_DESC_GETTER(name_)                    \
+NS_IMETHODIMP                                             \
+nsCSSCounterStyleRule::Get##name_(nsAString& a##name_)    \
+{                                                         \
+  return GetDescriptor(eCSSCounterDesc_##name_, a##name_);\
+}
+CSS_COUNTER_DESC_GETTER(Negative)
+CSS_COUNTER_DESC_GETTER(Prefix)
+CSS_COUNTER_DESC_GETTER(Suffix)
+CSS_COUNTER_DESC_GETTER(Pad)
+CSS_COUNTER_DESC_GETTER(Fallback)
+#undef CSS_COUNTER_DESC_GETTER
+
+/* static */ bool
+nsCSSCounterStyleRule::CheckDescValue(int32_t aSystem,
+                                      nsCSSCounterDesc aDescID,
+                                      const nsCSSValue& aValue)
+{
+  switch (aDescID) {
+    case eCSSCounterDesc_System:
+      if (aValue.GetUnit() != eCSSUnit_Pair) {
+        return aValue.GetIntValue() == aSystem;
+      } else {
+        return aValue.GetPairValue().mXValue.GetIntValue() == aSystem;
+      }
+
+    case eCSSCounterDesc_Symbols:
+      switch (aSystem) {
+        case NS_STYLE_COUNTER_SYSTEM_NUMERIC:
+        case NS_STYLE_COUNTER_SYSTEM_ALPHABETIC:
+          // for these two system, the list must contain at least 2 elements
+          return aValue.GetListValue()->mNext;
+        case NS_STYLE_COUNTER_SYSTEM_EXTENDS:
+          // for extends system, no symbols should be set
+          return false;
+        default:
+          return true;
+      }
+
+    case eCSSCounterDesc_AdditiveSymbols:
+      switch (aSystem) {
+        case NS_STYLE_COUNTER_SYSTEM_EXTENDS:
+          return false;
+        default:
+          return true;
+      }
+
+    default:
+      return true;
+  }
+}
+
+nsresult
+nsCSSCounterStyleRule::SetDescriptor(nsCSSCounterDesc aDescID,
+                                     const nsAString& aValue)
+{
+  nsCSSParser parser;
+  nsCSSValue value;
+  nsCSSStyleSheet* sheet = GetStyleSheet();
+  nsIURI* baseURL = nullptr;
+  nsIPrincipal* principal = nullptr;
+  if (sheet) {
+    baseURL = sheet->GetBaseURI();
+    principal = sheet->Principal();
+  }
+  if (parser.ParseCounterDescriptor(aDescID, aValue, nullptr,
+                                    baseURL, principal, value)) {
+    if (CheckDescValue(GetSystem(), aDescID, value)) {
+      SetDesc(aDescID, value);
+    }
+  }
+  return NS_OK;
+}
+
+#define CSS_COUNTER_DESC_SETTER(name_)                        \
+NS_IMETHODIMP                                                 \
+nsCSSCounterStyleRule::Set##name_(const nsAString& a##name_)  \
+{                                                             \
+  return SetDescriptor(eCSSCounterDesc_##name_, a##name_);    \
+}
+CSS_COUNTER_DESC_SETTER(System)
+CSS_COUNTER_DESC_SETTER(Symbols)
+CSS_COUNTER_DESC_SETTER(AdditiveSymbols)
+CSS_COUNTER_DESC_SETTER(Negative)
+CSS_COUNTER_DESC_SETTER(Prefix)
+CSS_COUNTER_DESC_SETTER(Suffix)
+CSS_COUNTER_DESC_SETTER(Range)
+CSS_COUNTER_DESC_SETTER(Pad)
+CSS_COUNTER_DESC_SETTER(Fallback)
+CSS_COUNTER_DESC_SETTER(SpeakAs)
+#undef CSS_COUNTER_DESC_SETTER
+
+/* virtual */ size_t
+nsCSSCounterStyleRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  return aMallocSizeOf(this);
+}

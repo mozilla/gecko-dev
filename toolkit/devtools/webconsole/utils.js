@@ -31,6 +31,8 @@ const REGEX_MATCH_FUNCTION_NAME = /^\(?function\s+([^(\s]+)\s*\(/;
 // Match the function arguments from the result of toString() or toSource().
 const REGEX_MATCH_FUNCTION_ARGS = /^\(?function\s*[^\s(]*\s*\((.+?)\)/;
 
+// Number of terminal entries for the self-xss prevention to go away
+const CONSOLE_ENTRY_THRESHOLD = 10
 let WebConsoleUtils = {
   /**
    * Convenience function to unwrap a wrapped object.
@@ -530,7 +532,80 @@ let WebConsoleUtils = {
   {
     return aGrip && typeof(aGrip) == "object" && aGrip.actor;
   },
+  /**
+   * Value of devtools.selfxss.count preference
+   *
+   * @type number
+   * @private
+   */
+  _usageCount: 0,
+  get usageCount() {
+    if (WebConsoleUtils._usageCount < CONSOLE_ENTRY_THRESHOLD) {
+      WebConsoleUtils._usageCount = Services.prefs.getIntPref("devtools.selfxss.count")
+      if (Services.prefs.getBoolPref("devtools.chrome.enabled")) {
+        WebConsoleUtils.usageCount = CONSOLE_ENTRY_THRESHOLD;
+      }
+    }
+    return WebConsoleUtils._usageCount;
+  },
+  set usageCount(newUC) {
+    if (newUC <= CONSOLE_ENTRY_THRESHOLD) {
+      WebConsoleUtils._usageCount = newUC;
+      Services.prefs.setIntPref("devtools.selfxss.count", newUC);
+    }
+  },
+  /**
+   * The inputNode "paste" event handler generator. Helps prevent self-xss attacks
+   *
+   * @param nsIDOMElement inputField
+   * @param nsIDOMElement notificationBox
+   * @returns A function to be added as a handler to 'paste' and 'drop' events on the input field
+   */
+  pasteHandlerGen: function WCU_pasteHandlerGen(inputField, notificationBox){
+    let handler = function WCU_pasteHandler(aEvent) {
+      if (WebConsoleUtils.usageCount >= CONSOLE_ENTRY_THRESHOLD) {
+        inputField.removeEventListener("paste", handler);
+        inputField.removeEventListener("drop", handler);
+        return true;
+      }
+      if (notificationBox.getNotificationWithValue("selfxss-notification")) {
+        aEvent.preventDefault();
+        aEvent.stopPropagation();
+        return false;
+      }
+      let l10n = new WebConsoleUtils.l10n("chrome://browser/locale/devtools/webconsole.properties");
+      let okstring = l10n.getStr("selfxss.okstring");
+      let msg = l10n.getFormatStr("selfxss.msg", [okstring]);
+
+      let notification = notificationBox.appendNotification(msg,
+        "selfxss-notification", null, notificationBox.PRIORITY_WARNING_HIGH, null,
+        function(eventType) {
+          // Cleanup function if notification is dismissed
+          if (eventType == "removed") {
+            inputField.removeEventListener("keyup", pasteKeyUpHandler);
+          }
+        });
+
+      function pasteKeyUpHandler(aEvent2) {
+        let value = inputField.value || inputField.textContent;
+        if (value.contains(okstring)) {
+          notificationBox.removeNotification(notification);
+          inputField.removeEventListener("keyup", pasteKeyUpHandler);
+          WebConsoleUtils.usageCount = CONSOLE_ENTRY_THRESHOLD;
+        }
+      }
+      inputField.addEventListener("keyup", pasteKeyUpHandler);
+
+      aEvent.preventDefault();
+      aEvent.stopPropagation();
+      return false;
+    };
+    return handler;
+  },
+
+
 };
+
 exports.Utils = WebConsoleUtils;
 
 //////////////////////////////////////////////////////////////////////////
@@ -974,7 +1049,8 @@ function getMatchedProps_impl(aObj, aMatch, {chainIterator, getProperties})
   let iter = chainIterator(aObj);
   for (let obj of iter) {
     let props = getProperties(obj);
-    for (let prop of props) {
+    for (let i = 0; i < props.length; i++) {
+      let prop = props[i];
       if (prop.indexOf(aMatch) != 0) {
         continue;
       }
@@ -1672,16 +1748,20 @@ function JSTermHelpers(aOwner)
   };
 
   /**
-   * Print a string to the output, as-is.
+   * Print the String representation of a value to the output, as-is.
    *
-   * @param string aString
-   *        A string you want to output.
+   * @param any aValue
+   *        A value you want to output as a string.
    * @return void
    */
-  aOwner.sandbox.print = function JSTH_print(aString)
+  aOwner.sandbox.print = function JSTH_print(aValue)
   {
     aOwner.helperResult = { rawOutput: true };
-    return String(aString);
+    // Waiving Xrays here allows us to see a closer representation of the
+    // underlying object. This may execute arbitrary content code, but that
+    // code will run with content privileges, and the result will be rendered
+    // inert by coercing it to a String.
+    return String(Cu.waiveXrays(aValue));
   };
 }
 exports.JSTermHelpers = JSTermHelpers;

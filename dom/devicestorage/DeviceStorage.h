@@ -25,6 +25,7 @@
 
 class DeviceStorageFile;
 class nsIInputStream;
+class nsIOutputStream;
 
 namespace mozilla {
 class EventListenerManager;
@@ -92,6 +93,9 @@ public:
   nsresult Remove();
   nsresult Write(nsIInputStream* aInputStream);
   nsresult Write(InfallibleTArray<uint8_t>& bits);
+  nsresult Append(nsIInputStream* aInputStream);
+  nsresult Append(nsIInputStream* aInputStream,
+                  nsIOutputStream* aOutputStream);
   void CollectFiles(nsTArray<nsRefPtr<DeviceStorageFile> >& aFiles,
                     PRTime aSince = 0);
   void collectFilesInternal(nsTArray<nsRefPtr<DeviceStorageFile> >& aFiles,
@@ -219,6 +223,13 @@ public:
   AddNamed(nsIDOMBlob* aBlob, const nsAString& aPath, ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
+  AppendNamed(nsIDOMBlob* aBlob, const nsAString& aPath, ErrorResult& aRv);
+
+  already_AddRefed<DOMRequest>
+  AddOrAppendNamed(nsIDOMBlob* aBlob, const nsAString& aPath,
+                   const int32_t aRequestType, ErrorResult& aRv);
+
+  already_AddRefed<DOMRequest>
   Get(const nsAString& aPath, ErrorResult& aRv)
   {
     return GetInternal(aPath, false, aRv);
@@ -256,6 +267,9 @@ public:
   already_AddRefed<DOMRequest> Mount(ErrorResult& aRv);
   already_AddRefed<DOMRequest> Unmount(ErrorResult& aRv);
 
+  bool CanBeMounted();
+  bool CanBeFormatted();
+  bool CanBeShared();
   bool Default();
 
   // Uses XPCOM GetStorageName
@@ -305,6 +319,7 @@ private:
   nsString mStorageType;
   nsCOMPtr<nsIFile> mRootDirectory;
   nsString mStorageName;
+  bool mIsShareable;
 
   already_AddRefed<nsDOMDeviceStorage> GetStorage(const nsAString& aFullPath,
                                                   nsAString& aOutStoragePath);

@@ -72,10 +72,11 @@ nsGonkCameraControl::nsGonkCameraControl(uint32_t aCameraId)
   , mDeferConfigUpdate(0)
   , mMediaProfiles(nullptr)
   , mRecorder(nullptr)
+  , mRecorderMonitor("GonkCameraControl::mRecorder.Monitor")
   , mProfileManager(nullptr)
   , mRecorderProfile(nullptr)
   , mVideoFile(nullptr)
-  , mReentrantMonitor("GonkCameraControl::OnTakePictureMonitor")
+  , mReentrantMonitor("GonkCameraControl::OnTakePicture.Monitor")
 {
   // Constructor runs on the main thread...
   DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
@@ -420,6 +421,12 @@ nsGonkCameraControl::Set(uint32_t aKey, const nsAString& aValue)
     case CAMERA_PARAM_FLASHMODE:
       // Explicit flash mode changes always win and stick.
       mAutoFlashModeOverridden = false;
+      break;
+
+    case CAMERA_PARAM_SCENEMODE:
+      // Reset disabling normal pictures in HDR mode in conjunction with setting
+      // scene mode because some drivers require they be changed together.
+      mParams.Set(CAMERA_PARAM_SCENEMODE_HDR_RETURNNORMALPICTURE, false);
       break;
   }
 
@@ -946,6 +953,8 @@ nsGonkCameraControl::StartRecordingImpl(DeviceStorageFileDescriptor* aFileDescri
 {
   MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
 
+  ReentrantMonitorAutoEnter mon(mRecorderMonitor);
+
   NS_ENSURE_TRUE(mRecorderProfile, NS_ERROR_NOT_INITIALIZED);
   NS_ENSURE_FALSE(mRecorder, NS_ERROR_FAILURE);
 
@@ -1035,7 +1044,7 @@ nsGonkCameraControl::StopRecordingImpl()
     nsRefPtr<DeviceStorageFile> mFile;
   };
 
-  MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
+  ReentrantMonitorAutoEnter mon(mRecorderMonitor);
 
   // nothing to do if we have no mRecorder
   NS_ENSURE_TRUE(mRecorder, NS_OK);
@@ -1044,12 +1053,27 @@ nsGonkCameraControl::StopRecordingImpl()
   mRecorder = nullptr;
   OnRecorderStateChange(CameraControlListener::kRecorderStopped);
 
-  if (mAutoFlashModeOverridden) {
-    SetAndPush(CAMERA_PARAM_FLASHMODE, NS_LITERAL_STRING("auto"));
+  {
+    ICameraControlParameterSetAutoEnter set(this);
+
+    // clear the recording hint once stopped because some drivers will solely
+    // check this flag to determine the mode, despite its actual internal state,
+    // thus causing problems when taking pictures
+    nsresult rv = mParams.Set(CAMERA_PARAM_RECORDINGHINT, false);
+    if (NS_FAILED(rv)) {
+      DOM_CAMERA_LOGE("Failed to set recording hint (0x%x)\n", rv);
+    }
+
+    if (mAutoFlashModeOverridden) {
+      rv = mParams.Set(CAMERA_PARAM_FLASHMODE, NS_LITERAL_STRING("auto"));
+      if (NS_FAILED(rv)) {
+        DOM_CAMERA_LOGE("Failed to set flash mode (0x%x)\n", rv);
+      }
+    }
   }
 
   // notify DeviceStorage that the new video file is closed and ready
-  return NS_DispatchToMainThread(new RecordingComplete(mVideoFile), NS_DISPATCH_NORMAL);
+  return NS_DispatchToMainThread(new RecordingComplete(mVideoFile));
 }
 
 nsresult
@@ -1540,8 +1564,8 @@ nsGonkCameraControl::OnRecorderEvent(int msg, int ext1, int ext2)
 
 nsresult
 nsGonkCameraControl::SetupRecording(int aFd, int aRotation,
-                                    int64_t aMaxFileSizeBytes,
-                                    int64_t aMaxVideoLengthMs)
+                                    uint64_t aMaxFileSizeBytes,
+                                    uint64_t aMaxVideoLengthMs)
 {
   RETURN_IF_NO_CAMERA_HW();
 
@@ -1549,27 +1573,42 @@ nsGonkCameraControl::SetupRecording(int aFd, int aRotation,
   const size_t SIZE = 256;
   char buffer[SIZE];
 
+  ReentrantMonitorAutoEnter mon(mRecorderMonitor);
+
   mRecorder = new GonkRecorder();
-  CHECK_SETARG(mRecorder->init());
+  CHECK_SETARG_RETURN(mRecorder->init(), NS_ERROR_FAILURE);
 
   nsresult rv = mRecorderProfile->ConfigureRecorder(mRecorder);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  CHECK_SETARG(mRecorder->setCamera(mCameraHw));
+  CHECK_SETARG_RETURN(mRecorder->setCamera(mCameraHw), NS_ERROR_FAILURE);
 
-  DOM_CAMERA_LOGI("maxVideoLengthMs=%lld\n", aMaxVideoLengthMs);
+  DOM_CAMERA_LOGI("maxVideoLengthMs=%llu\n", aMaxVideoLengthMs);
+  const uint64_t kMaxVideoLengthMs = INT64_MAX / 1000;
   if (aMaxVideoLengthMs == 0) {
     aMaxVideoLengthMs = -1;
+  } else if (aMaxVideoLengthMs > kMaxVideoLengthMs) {
+    // GonkRecorder parameters are internally limited to signed 64-bit values,
+    // and the time length limit is converted from milliseconds to microseconds,
+    // so we limit this value to prevent any unexpected overflow weirdness.
+    DOM_CAMERA_LOGW("maxVideoLengthMs capped to %lld\n", kMaxVideoLengthMs);
+    aMaxVideoLengthMs = kMaxVideoLengthMs;
   }
   snprintf(buffer, SIZE, "max-duration=%lld", aMaxVideoLengthMs);
-  CHECK_SETARG(mRecorder->setParameters(String8(buffer)));
+  CHECK_SETARG_RETURN(mRecorder->setParameters(String8(buffer)),
+                      NS_ERROR_INVALID_ARG);
 
-  DOM_CAMERA_LOGI("maxFileSizeBytes=%lld\n", aMaxFileSizeBytes);
+  DOM_CAMERA_LOGI("maxFileSizeBytes=%llu\n", aMaxFileSizeBytes);
   if (aMaxFileSizeBytes == 0) {
     aMaxFileSizeBytes = -1;
+  } else if (aMaxFileSizeBytes > INT64_MAX) {
+    // GonkRecorder parameters are internally limited to signed 64-bit values
+    DOM_CAMERA_LOGW("maxFileSizeBytes capped to INT64_MAX\n");
+    aMaxFileSizeBytes = INT64_MAX;
   }
   snprintf(buffer, SIZE, "max-filesize=%lld", aMaxFileSizeBytes);
-  CHECK_SETARG(mRecorder->setParameters(String8(buffer)));
+  CHECK_SETARG_RETURN(mRecorder->setParameters(String8(buffer)),
+                      NS_ERROR_INVALID_ARG);
 
   // adjust rotation by camera sensor offset
   int r = aRotation;
@@ -1577,13 +1616,15 @@ nsGonkCameraControl::SetupRecording(int aFd, int aRotation,
   r = RationalizeRotation(r);
   DOM_CAMERA_LOGI("setting video rotation to %d degrees (mapped from %d)\n", r, aRotation);
   snprintf(buffer, SIZE, "video-param-rotation-angle-degrees=%d", r);
-  CHECK_SETARG(mRecorder->setParameters(String8(buffer)));
+  CHECK_SETARG_RETURN(mRecorder->setParameters(String8(buffer)),
+                      NS_ERROR_INVALID_ARG);
 
-  CHECK_SETARG(mRecorder->setListener(new GonkRecorderListener(this)));
+  CHECK_SETARG_RETURN(mRecorder->setListener(new GonkRecorderListener(this)),
+                      NS_ERROR_FAILURE);
 
   // recording API needs file descriptor of output file
-  CHECK_SETARG(mRecorder->setOutputFile(aFd, 0, 0));
-  CHECK_SETARG(mRecorder->prepare());
+  CHECK_SETARG_RETURN(mRecorder->setOutputFile(aFd, 0, 0), NS_ERROR_FAILURE);
+  CHECK_SETARG_RETURN(mRecorder->prepare(), NS_ERROR_FAILURE);
 
   return NS_OK;
 }

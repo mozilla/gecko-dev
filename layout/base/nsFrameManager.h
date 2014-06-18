@@ -19,9 +19,15 @@
 #ifndef _nsFrameManager_h_
 #define _nsFrameManager_h_
 
-#include "nsIFrame.h"
 #include "nsFrameManagerBase.h"
+
+#include "nsAutoPtr.h"
+#include "nsFrameList.h"
 #include "nsIContent.h"
+#include "nsStyleContext.h"
+
+class nsContainerFrame;
+class nsPlaceholderFrame;
 
 namespace mozilla {
 /**
@@ -37,7 +43,7 @@ struct UndisplayedNode {
     MOZ_COUNT_CTOR(mozilla::UndisplayedNode);
   }
 
-  NS_HIDDEN ~UndisplayedNode()
+  ~UndisplayedNode()
   {
     MOZ_COUNT_DTOR(mozilla::UndisplayedNode);
 
@@ -66,69 +72,71 @@ struct UndisplayedNode {
  * lock can be acquired, then the changes are processed immediately; otherwise,
  * they're queued and processed later.
  *
- * Do not add virtual methods to this class, or bryner will punish you.
+ * Do not add virtual methods (a vtable pointer) or members to this class, or
+ * else you'll break the validity of the reinterpret_cast in nsIPresShell's
+ * FrameManager() method.
  */
 
 class nsFrameManager : public nsFrameManagerBase
 {
-  typedef nsIFrame::ChildListID ChildListID;
+  typedef mozilla::layout::FrameChildListID ChildListID;
 
 public:
-  nsFrameManager(nsIPresShell *aPresShell, nsStyleSet* aStyleSet) NS_HIDDEN {
+  nsFrameManager(nsIPresShell *aPresShell, nsStyleSet* aStyleSet) {
     mPresShell = aPresShell;
     mStyleSet = aStyleSet;
     MOZ_ASSERT(mPresShell, "need a pres shell");
     MOZ_ASSERT(mStyleSet, "need a style set");
   }
-  ~nsFrameManager() NS_HIDDEN;
+  ~nsFrameManager();
 
   /*
    * After Destroy is called, it is an error to call any FrameManager methods.
    * Destroy should be called when the frame tree managed by the frame
    * manager is no longer being displayed.
    */
-  NS_HIDDEN_(void) Destroy();
+  void Destroy();
 
   // Placeholder frame functions
-  NS_HIDDEN_(nsPlaceholderFrame*) GetPlaceholderFrameFor(const nsIFrame* aFrame);
-  NS_HIDDEN_(nsresult)
+  nsPlaceholderFrame* GetPlaceholderFrameFor(const nsIFrame* aFrame);
+  nsresult
     RegisterPlaceholderFrame(nsPlaceholderFrame* aPlaceholderFrame);
 
-  NS_HIDDEN_(void)
+  void
     UnregisterPlaceholderFrame(nsPlaceholderFrame* aPlaceholderFrame);
 
-  NS_HIDDEN_(void)      ClearPlaceholderFrameMap();
+  void      ClearPlaceholderFrameMap();
 
   // Mapping undisplayed content
-  NS_HIDDEN_(nsStyleContext*) GetUndisplayedContent(nsIContent* aContent);
-  NS_HIDDEN_(mozilla::UndisplayedNode*)
+  nsStyleContext* GetUndisplayedContent(nsIContent* aContent);
+  mozilla::UndisplayedNode*
     GetAllUndisplayedContentIn(nsIContent* aParentContent);
-  NS_HIDDEN_(void) SetUndisplayedContent(nsIContent* aContent,
+  void SetUndisplayedContent(nsIContent* aContent,
                                          nsStyleContext* aStyleContext);
-  NS_HIDDEN_(void) ChangeUndisplayedContent(nsIContent* aContent,
+  void ChangeUndisplayedContent(nsIContent* aContent,
                                             nsStyleContext* aStyleContext);
-  NS_HIDDEN_(void) ClearUndisplayedContentIn(nsIContent* aContent,
+  void ClearUndisplayedContentIn(nsIContent* aContent,
                                              nsIContent* aParentContent);
-  NS_HIDDEN_(void) ClearAllUndisplayedContentIn(nsIContent* aParentContent);
+  void ClearAllUndisplayedContentIn(nsIContent* aParentContent);
 
   // Functions for manipulating the frame model
-  NS_HIDDEN_(nsresult) AppendFrames(nsIFrame*       aParentFrame,
-                                    ChildListID     aListID,
-                                    nsFrameList&    aFrameList);
+  void AppendFrames(nsContainerFrame* aParentFrame,
+                    ChildListID       aListID,
+                    nsFrameList&      aFrameList);
 
-  NS_HIDDEN_(nsresult) InsertFrames(nsIFrame*       aParentFrame,
-                                    ChildListID     aListID,
-                                    nsIFrame*       aPrevFrame,
-                                    nsFrameList&    aFrameList);
+  void InsertFrames(nsContainerFrame* aParentFrame,
+                    ChildListID       aListID,
+                    nsIFrame*         aPrevFrame,
+                    nsFrameList&      aFrameList);
 
-  NS_HIDDEN_(nsresult) RemoveFrame(ChildListID     aListID,
-                                   nsIFrame*       aOldFrame);
+  void RemoveFrame(ChildListID     aListID,
+                   nsIFrame*       aOldFrame);
 
   /*
    * Notification that a frame is about to be destroyed. This allows any
    * outstanding references to the frame to be cleaned up.
    */
-  NS_HIDDEN_(void)     NotifyDestroyingFrame(nsIFrame* aFrame);
+  void     NotifyDestroyingFrame(nsIFrame* aFrame);
 
   /*
    * Capture/restore frame state for the frame subtree rooted at aFrame.
@@ -139,25 +147,20 @@ public:
    * of aFrame.
    */
 
-  NS_HIDDEN_(void) CaptureFrameState(nsIFrame*              aFrame,
+  void CaptureFrameState(nsIFrame*              aFrame,
                                      nsILayoutHistoryState* aState);
 
-  NS_HIDDEN_(void) RestoreFrameState(nsIFrame*              aFrame,
+  void RestoreFrameState(nsIFrame*              aFrame,
                                      nsILayoutHistoryState* aState);
 
   /*
    * Add/restore state for one frame
    */
-  NS_HIDDEN_(void) CaptureFrameStateFor(nsIFrame*              aFrame,
+  void CaptureFrameStateFor(nsIFrame*              aFrame,
                                         nsILayoutHistoryState* aState);
 
-  NS_HIDDEN_(void) RestoreFrameStateFor(nsIFrame*              aFrame,
+  void RestoreFrameStateFor(nsIFrame*              aFrame,
                                         nsILayoutHistoryState* aState);
-
-  NS_HIDDEN_(nsIPresShell*) GetPresShell() const { return mPresShell; }
-  NS_HIDDEN_(nsPresContext*) GetPresContext() const {
-    return mPresShell->GetPresContext();
-  }
 };
 
 #endif

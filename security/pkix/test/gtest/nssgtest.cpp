@@ -1,6 +1,13 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* Copyright 2013 Mozilla Foundation
+/* This code is made available to you under your choice of the following sets
+ * of licensing terms:
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+/* Copyright 2013 Mozilla Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +23,9 @@
  */
 
 #include "nssgtest.h"
+#include "nss.h"
+#include "pkixtestutil.h"
+#include "prinit.h"
 
 using namespace std;
 using namespace testing;
@@ -67,5 +77,29 @@ Pred_SECFailure(const char* expectedExpr, const char* actualExpr,
       << "Expected: (" << expectedExpr << ") == (" << actualExpr
       << "), actual: " << SECFailure << " != " << actual;
 }
+
+/*static*/ void
+NSSTest::SetUpTestCase()
+{
+  if (NSS_NoDB_Init(nullptr) != SECSuccess) {
+    PR_Abort();
+  }
+
+  now = PR_Now();
+  oneDayBeforeNow = now - ONE_DAY;
+  oneDayAfterNow = now + ONE_DAY;
+}
+
+NSSTest::NSSTest()
+  : arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE))
+{
+  if (!arena) {
+    PR_Abort();
+  }
+}
+
+/*static*/ PRTime NSSTest::now;
+/*static*/ PRTime NSSTest::oneDayBeforeNow;
+/*static*/ PRTime NSSTest::oneDayAfterNow;
 
 } } } // namespace mozilla::pkix::test

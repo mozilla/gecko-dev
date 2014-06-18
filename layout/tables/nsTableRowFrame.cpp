@@ -132,9 +132,9 @@ nsTableRowFrame::~nsTableRowFrame()
 }
 
 void
-nsTableRowFrame::Init(nsIContent*      aContent,
-                      nsIFrame*        aParent,
-                      nsIFrame*        aPrevInFlow)
+nsTableRowFrame::Init(nsIContent*       aContent,
+                      nsContainerFrame* aParent,
+                      nsIFrame*         aPrevInFlow)
 {
   // Let the base class do its initialization
   nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
@@ -176,7 +176,7 @@ nsTableRowFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   }
 }
 
-nsresult
+void
 nsTableRowFrame::AppendFrames(ChildListID     aListID,
                               nsFrameList&    aFrameList)
 {
@@ -195,12 +195,10 @@ nsTableRowFrame::AppendFrames(ChildListID     aListID,
   PresContext()->PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
                                                NS_FRAME_HAS_DIRTY_CHILDREN);
   tableFrame->SetGeometryDirty();
-
-  return NS_OK;
 }
 
 
-nsresult
+void
 nsTableRowFrame::InsertFrames(ChildListID     aListID,
                               nsIFrame*       aPrevFrame,
                               nsFrameList&    aFrameList)
@@ -231,38 +229,28 @@ nsTableRowFrame::InsertFrames(ChildListID     aListID,
   PresContext()->PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
                                                NS_FRAME_HAS_DIRTY_CHILDREN);
   tableFrame->SetGeometryDirty();
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsTableRowFrame::RemoveFrame(ChildListID     aListID,
                              nsIFrame*       aOldFrame)
 {
   NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
 
+  MOZ_ASSERT((nsTableCellFrame*)do_QueryFrame(aOldFrame));
+  nsTableCellFrame* cellFrame = static_cast<nsTableCellFrame*>(aOldFrame);
+  // remove the cell from the cell map
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
-  nsTableCellFrame *cellFrame = do_QueryFrame(aOldFrame);
-  if (cellFrame) {
-    int32_t colIndex;
-    cellFrame->GetColIndex(colIndex);
-    // remove the cell from the cell map
-    tableFrame->RemoveCell(cellFrame, GetRowIndex());
+  tableFrame->RemoveCell(cellFrame, GetRowIndex());
 
-    // Remove the frame and destroy it
-    mFrames.DestroyFrame(aOldFrame);
+  // Remove the frame and destroy it
+  mFrames.DestroyFrame(aOldFrame);
 
-    PresContext()->PresShell()->
-      FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                       NS_FRAME_HAS_DIRTY_CHILDREN);
-    tableFrame->SetGeometryDirty();
-  }
-  else {
-    NS_ERROR("unexpected frame type");
-    return NS_ERROR_INVALID_ARG;
-  }
+  PresContext()->PresShell()->
+    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                     NS_FRAME_HAS_DIRTY_CHILDREN);
 
-  return NS_OK;
+  tableFrame->SetGeometryDirty();
 }
 
 /* virtual */ nsMargin
@@ -378,7 +366,7 @@ nscoord nsTableRowFrame::GetMaxCellAscent() const
   return mMaxCellAscent;
 }
 
-nscoord nsTableRowFrame::GetRowBaseline()
+nscoord nsTableRowFrame::GetRowBaseline(WritingMode aWritingMode)
 {
   if(mMaxCellAscent)
     return mMaxCellAscent;
@@ -792,7 +780,7 @@ nscoord CalcHeightFromUnpaginatedHeight(nsPresContext*   aPresContext,
   return std::max(height, 0);
 }
 
-nsresult
+void
 nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
                                 nsHTMLReflowMetrics&     aDesiredSize,
                                 const nsHTMLReflowState& aReflowState,
@@ -804,7 +792,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
   // XXXldb Should we be checking constrained height instead?
   const bool isPaginated = aPresContext->IsPaginated();
   const bool borderCollapse = aTableFrame.IsBorderCollapse();
-  nsresult rv = NS_OK;
+
   nscoord cellSpacingX = aTableFrame.GetCellSpacingX();
   int32_t cellColSpan = 1;  // must be defined here so it's set properly for non-cell kids
   
@@ -912,8 +900,8 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
                              kidReflowState);
 
         nsReflowStatus status;
-        rv = ReflowChild(kidFrame, aPresContext, desiredSize, kidReflowState,
-                         x, 0, 0, status);
+        ReflowChild(kidFrame, aPresContext, desiredSize, kidReflowState,
+                    x, 0, 0, status);
 
         // allow the table to determine if/how the table needs to be rebalanced
         // If any of the cells are not complete, then we're not complete
@@ -1029,13 +1017,12 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
   }
   aDesiredSize.UnionOverflowAreasWithDesiredBounds();
   FinishAndStoreOverflow(&aDesiredSize);
-  return rv;
 }
 
 /** Layout the entire row.
   * This method stacks cells horizontally according to HTML 4.0 rules.
   */
-nsresult
+void
 nsTableRowFrame::Reflow(nsPresContext*          aPresContext,
                         nsHTMLReflowMetrics&     aDesiredSize,
                         const nsHTMLReflowState& aReflowState,
@@ -1043,7 +1030,6 @@ nsTableRowFrame::Reflow(nsPresContext*          aPresContext,
 {
   DO_GLOBAL_REFLOW_COUNT("nsTableRowFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
-  nsresult rv = NS_OK;
 
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
   const nsStyleVisibility* rowVis = StyleVisibility();
@@ -1058,8 +1044,7 @@ nsTableRowFrame::Reflow(nsPresContext*          aPresContext,
   // See if we have a cell with specified/pct height
   InitHasCellWithStyleHeight(tableFrame);
 
-  rv = ReflowChildren(aPresContext, aDesiredSize, aReflowState, *tableFrame,
-                      aStatus);
+  ReflowChildren(aPresContext, aDesiredSize, aReflowState, *tableFrame, aStatus);
 
   if (aPresContext->IsPaginated() && !NS_FRAME_IS_FULLY_COMPLETE(aStatus) &&
       ShouldAvoidBreakInside(aReflowState)) {
@@ -1077,7 +1062,6 @@ nsTableRowFrame::Reflow(nsPresContext*          aPresContext,
   }
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return rv;
 }
 
 /**
@@ -1439,7 +1423,7 @@ nsTableRowFrame::InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayI
 
 /* ----- global methods ----- */
 
-nsIFrame* 
+nsTableRowFrame* 
 NS_NewTableRowFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   return new (aPresShell) nsTableRowFrame(aContext);
