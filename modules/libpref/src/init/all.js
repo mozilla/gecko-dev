@@ -4542,7 +4542,7 @@ pref("dom.mms.requestStatusReport", true);
 pref("dom.mms.retrieval_mode", "manual");
 
 pref("dom.mms.sendRetryCount", 3);
-pref("dom.mms.sendRetryInterval", 300000);
+pref("dom.mms.sendRetryIntervals", "10000,60000,180000");
 
 pref("dom.mms.retrievalRetryCount", 4);
 pref("dom.mms.retrievalRetryIntervals", "60000,300000,600000,1800000");
