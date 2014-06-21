@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1413629481502000);
+const PRTime gPreloadListExpirationTime = INT64_C(1414234641322000);
 
 class nsSTSPreload
 {
@@ -24,6 +24,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "admin.google.com", true },
   { "adsfund.org", true },
   { "aladdinschools.appspot.com", false },
+  { "alpha.irccloud.com", false },
   { "api.intercom.io", false },
   { "api.simple.com", false },
   { "api.xero.com", false },
@@ -35,6 +36,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "arivo.com.br", true },
   { "bank.simple.com", false },
   { "bccx.com", true },
+  { "bcrook.com", false },
   { "bitbucket.org", false },
   { "blog.cyveillance.com", true },
   { "blog.linode.com", false },
@@ -97,7 +99,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "forum.quantifiedself.com", true },
   { "gernert-server.de", true },
   { "getcloak.com", false },
-  { "getlantern.org", false },
   { "glass.google.com", true },
   { "go.xero.com", false },
   { "gocardless.com", true },
@@ -115,7 +116,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "id.mayfirst.org", false },
   { "imouto.my", false },
   { "inertianetworks.com", true },
-  { "intercom.io", false },
   { "itriskltd.com", true },
   { "keeperapp.com", true },
   { "keepersecurity.com", true },
@@ -210,7 +210,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "squareup.com", false },
   { "ssl.google-analytics.com", true },
   { "stage.wepay.com", false },
-  { "stocktrade.de", false },
+  { "static.wepay.com", false },
   { "stripe.com", true },
   { "strongest-privacy.com", true },
   { "subrosa.io", true },
@@ -255,6 +255,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.apollo-auto.com", true },
   { "www.banking.co.at", false },
   { "www.braintreepayments.com", false },
+  { "www.capitainetrain.com", false },
   { "www.cyveillance.com", true },
   { "www.dropcam.com", false },
   { "www.entropia.de", false },
