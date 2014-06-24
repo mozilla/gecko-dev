@@ -14,7 +14,7 @@ function remoteAnswer(call) {
     call.onconnected = null;
     deferred.resolve(call);
   };
-  emulator.run("gsm accept " + call.number);
+  emulator.runCmd("gsm accept " + call.number);
 
   return deferred.promise;
 }
@@ -29,7 +29,7 @@ function remoteHangUp(call) {
     call.ondisconnected = null;
     deferred.resolve(call);
   };
-  emulator.run("gsm cancel " + call.number);
+  emulator.runCmd("gsm cancel " + call.number);
 
   return deferred.promise;
 }
@@ -37,7 +37,7 @@ function remoteHangUp(call) {
 function muxModem(id) {
   let deferred = Promise.defer();
 
-  emulator.run("mux modem " + id, function() {
+  emulator.runCmd("mux modem " + id, function() {
     deferred.resolve();
   });
 

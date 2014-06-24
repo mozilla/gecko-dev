@@ -30,7 +30,7 @@ function dial() {
       ok(event.call.error);
       is(event.call.error.name, "BadNumberError");
 
-      emulator.run("gsm list", function(result) {
+      emulator.runCmd("gsm list", function(result) {
         log("Initial call list: " + result);
         is(result[0], "OK");
         cleanUp();

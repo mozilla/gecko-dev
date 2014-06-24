@@ -13,10 +13,10 @@ let emulator = (function() {
 
   // Overwritten it so people could not call this function directly.
   runEmulatorCmd = function() {
-    throw "Use emulator.run(cmd, callback) instead of runEmulatorCmd";
+    throw "Use emulator.runCmd(cmd, callback) instead of runEmulatorCmd";
   };
 
-  function run(cmd, callback) {
+  function runCmd(cmd, callback) {
     pendingCmdCount++;
     originalRunEmulatorCmd(cmd, function(result) {
       pendingCmdCount--;
@@ -42,7 +42,7 @@ let emulator = (function() {
   }
 
   return {
-    run: run,
+    runCmd: runCmd,
     waitFinish: waitFinish
   };
 }());
@@ -96,7 +96,7 @@ function restoreTelephonyDial() {
     let deferred = Promise.defer();
 
     log("Clear existing calls.");
-    emulator.run("gsm clear", function(result) {
+    emulator.runCmd("gsm clear", function(result) {
       if (result[0] == "OK") {
         waitFor(function() {
           deferred.resolve();

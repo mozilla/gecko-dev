@@ -106,7 +106,7 @@ function remoteDial(number) {
 
     deferred.resolve(call);
   };
-  emulator.run("gsm call " + number);
+  emulator.runCmd("gsm call " + number);
 
   return deferred.promise;
 }
@@ -122,7 +122,7 @@ function remoteAnswer(call) {
     checkEventCallState(event, call, "connected");
     deferred.resolve(call);
   };
-  emulator.run("gsm accept " + call.number);
+  emulator.runCmd("gsm accept " + call.number);
 
   return deferred.promise;
 }
@@ -138,7 +138,7 @@ function remoteHangUp(call) {
     checkEventCallState(event, call, "disconnected");
     deferred.resolve(call);
   };
-  emulator.run("gsm cancel " + call.number);
+  emulator.runCmd("gsm cancel " + call.number);
 
   return deferred.promise;
 }

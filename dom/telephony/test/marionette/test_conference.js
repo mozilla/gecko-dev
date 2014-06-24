@@ -73,7 +73,7 @@ function checkState(active, calls, conferenceState, conferenceCalls) {
 function checkEmulatorCallList(expectedCallList) {
   let deferred = Promise.defer();
 
-  emulator.run("gsm list", function(result) {
+  emulator.runCmd("gsm list", function(result) {
     log("Call list is now: " + result);
     for (let i = 0; i < expectedCallList.length; ++i) {
       is(result[i], expectedCallList[i], "emulator calllist");
@@ -185,7 +185,7 @@ function remoteDial(number) {
 
     deferred.resolve(call);
   };
-  emulator.run("gsm call " + number);
+  emulator.runCmd("gsm call " + number);
 
   return deferred.promise;
 }
@@ -201,7 +201,7 @@ function remoteAnswer(call) {
     checkEventCallState(event, call, "connected");
     deferred.resolve(call);
   };
-  emulator.run("gsm accept " + call.number);
+  emulator.runCmd("gsm accept " + call.number);
 
   return deferred.promise;
 }
@@ -217,7 +217,7 @@ function remoteHangUp(call) {
     checkEventCallState(event, call, "disconnected");
     deferred.resolve(call);
   };
-  emulator.run("gsm cancel " + call.number);
+  emulator.runCmd("gsm cancel " + call.number);
 
   return deferred.promise;
 }
