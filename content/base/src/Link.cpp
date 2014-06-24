@@ -183,6 +183,7 @@ Link::SetHost(const nsAString &aHost)
 
   (void)uri->SetHostPort(NS_ConvertUTF16toUTF8(aHost));
   SetHrefAttribute(uri);
+  return;
 }
 
 void
