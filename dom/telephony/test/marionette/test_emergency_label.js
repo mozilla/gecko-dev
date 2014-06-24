@@ -4,120 +4,170 @@
 MARIONETTE_TIMEOUT = 60000;
 MARIONETTE_HEAD_JS = 'head.js';
 
-let number;
-let emergency;
-let outgoing;
+const DEFAULT_ECC_LIST = "112,911";
 
-let testCase = 0;
-let expectedResults = [
-  ["112", true],
-  ["911", true],
-  ["0912345678", false],
-  ["777", false],
-];
+function setEccListProperty(list) {
+  log("Set property ril.ecclist: " + list);
 
-function createGoldenCallListResult0(number, state) {
-  //  "outbound to  xxxxxxxxxx : ringing"
-  let padPattern = "          ";
-  let pad = padPattern.substring(0, padPattern.length - number.length);
-  return "outbound to  " + number + pad + " : " + state;
-}
-
-function dial() {
-  log("Make an outgoing call.");
-
-  telephony.dial(number).then(call => {
-    outgoing = call;
-    ok(outgoing);
-    is(outgoing.number, number);
-    is(outgoing.state, "dialing");
-
-    is(outgoing, telephony.active);
-    is(telephony.calls.length, 1);
-    is(telephony.calls[0], outgoing);
-
-    outgoing.onalerting = function onalerting(event) {
-      log("Received 'onalerting' call event.");
-      is(outgoing, event.call);
-      is(outgoing.state, "alerting");
-      is(outgoing.emergency, emergency);
-
-      emulator.runCmd("gsm list", function(result) {
-        log("Call list is now: " + result);
-        is(result[0], createGoldenCallListResult0(number, "ringing"));
-        is(result[1], "OK");
-        answer();
-      });
-    };
-  });
-}
-
-function answer() {
-  log("Answering the call.");
-
-  // We get no "connecting" event when the remote party answers the call.
-
-  outgoing.onconnected = function onconnected(event) {
-    log("Received 'connected' call event.");
-    is(outgoing, event.call);
-    is(outgoing.state, "connected");
-    is(outgoing.emergency, emergency);
-
-    is(outgoing, telephony.active);
-
-    emulator.runCmd("gsm list", function(result) {
-      log("Call list is now: " + result);
-      is(result[0], createGoldenCallListResult0(number, "active"));
-      is(result[1], "OK");
-      hangUp();
+  let deferred = Promise.defer();
+  try {
+    emulator.runShellCmd(["setprop","ril.ecclist", list]).then(function() {
+      deferred.resolve(list);
     });
-  };
-  emulator.runCmd("gsm accept " + number);
-}
-
-function hangUp() {
-  log("Hanging up the call.");
-
-  // We get no "disconnecting" event when the remote party terminates the call.
-
-  outgoing.ondisconnected = function ondisconnected(event) {
-    log("Received 'disconnected' call event.");
-    is(outgoing, event.call);
-    is(outgoing.state, "disconnected");
-    is(outgoing.emergency, emergency);
-
-    is(telephony.active, null);
-    is(telephony.calls.length, 0);
-
-    emulator.runCmd("gsm list", function(result) {
-      log("Call list is now: " + result);
-      is(result[0], "OK");
-      verifyNextEmergencyLabel();
-    });
-  };
-  emulator.runCmd("gsm cancel " + number);
-}
-
-function cleanUp() {
-  finish();
-}
-
-function verifyNextEmergencyLabel() {
-  if (testCase >= expectedResults.length) {
-    cleanUp();
-  } else {
-    log("Running test case: " + testCase + "/" + expectedResults.length);
-    number = expectedResults[testCase][0];
-    emergency = expectedResults[testCase][1];
-    testCase++;
-
-    // No more calls in the list; give time for emulator to catch up
-    waitFor(dial, function() {
-      return (telephony.calls.length === 0);
-    });
+  } catch (e) {
+    deferred.reject(e);
   }
+  return deferred.promise;
+}
+
+function getEccListProperty() {
+  log("Get property ril.ecclist.");
+
+  let deferred = Promise.defer();
+  try {
+    emulator.runShellCmd(["getprop","ril.ecclist"]).then(function(aResult) {
+      let list = !aResult.length ? "" : aResult[0];
+      deferred.resolve(list);
+    });
+  } catch (e) {
+    deferred.reject(e);
+  }
+  return deferred.promise;
+}
+
+/**
+ * Convenient helper to compare a TelephonyCall and a received call event.
+ */
+function checkEventCallState(event, call, state) {
+  is(call, event.call, "event.call");
+  is(call.state, state, "call state");
+}
+
+/**
+ * Make an outgoing call.
+ *
+ * @param number
+ *        A string.
+ * @param serviceId [optional]
+ *        Identification of a service. 0 is set as default.
+ * @return A deferred promise.
+ */
+function dial(number, serviceId) {
+  serviceId = typeof serviceId !== "undefined" ? serviceId : 0;
+  log("Make an outgoing call: " + number + ", serviceId: " + serviceId);
+
+  let deferred = Promise.defer();
+
+  telephony.dial(number, serviceId).then(call => {
+    ok(call);
+    is(call.number, number);
+    is(call.state, "dialing");
+    is(call.serviceId, serviceId);
+
+    call.onalerting = function onalerting(event) {
+      call.onalerting = null;
+      log("Received 'onalerting' call event.");
+      checkEventCallState(event, call, "alerting");
+      deferred.resolve(call);
+    };
+  }, cause => {
+    deferred.reject(cause);
+  });
+
+  return deferred.promise;
+}
+
+/**
+ * Remote party answers the call.
+ *
+ * @param call
+ *        A TelephonyCall object.
+ * @return A deferred promise.
+ */
+function remoteAnswer(call) {
+  log("Remote answering the call.");
+
+  let deferred = Promise.defer();
+
+  call.onconnected = function onconnected(event) {
+    log("Received 'connected' call event.");
+    call.onconnected = null;
+    checkEventCallState(event, call, "connected");
+    deferred.resolve(call);
+  };
+  emulator.runCmd("gsm accept " + call.number);
+
+  return deferred.promise;
+}
+
+/**
+ * Remote party hangs up the call.
+ *
+ * @param call
+ *        A TelephonyCall object.
+ * @return A deferred promise.
+ */
+function remoteHangUp(call) {
+  log("Remote hanging up the call.");
+
+  let deferred = Promise.defer();
+
+  call.ondisconnected = function ondisconnected(event) {
+    log("Received 'disconnected' call event.");
+    call.ondisconnected = null;
+    checkEventCallState(event, call, "disconnected");
+    deferred.resolve(call);
+  };
+  emulator.runCmd("gsm cancel " + call.number);
+
+  return deferred.promise;
+}
+
+function testEmergencyLabel(number, list) {
+  if (!list) {
+    list = DEFAULT_ECC_LIST;
+  }
+  let index = list.split(",").indexOf(number);
+  let emergency = index != -1;
+  log("= testEmergencyLabel = " + number + " should be " +
+      (emergency ? "emergency" : "normal") + " call");
+
+  let outCall;
+
+  return dial(number)
+    .then(call => { outCall = call; })
+    .then(() => {
+      is(outCall.emergency, emergency, "emergency result should be correct");
+    })
+    .then(() => remoteAnswer(outCall))
+    .then(() => {
+      is(outCall.emergency, emergency, "emergency result should be correct");
+    })
+    .then(() => remoteHangUp(outCall));
 }
 
 startTest(function() {
-  verifyNextEmergencyLabel();
+  let origEccList;
+  let eccList;
+
+  getEccListProperty()
+    .then(list => {
+      origEccList = eccList = list;
+    })
+    .then(() => testEmergencyLabel("112", eccList))
+    .then(() => testEmergencyLabel("911", eccList))
+    .then(() => testEmergencyLabel("0912345678", eccList))
+    .then(() => testEmergencyLabel("777", eccList))
+    .then(() => {
+      eccList = "777,119";
+      return setEccListProperty(eccList);
+    })
+    .then(() => testEmergencyLabel("777", eccList))
+    .then(() => testEmergencyLabel("119", eccList))
+    .then(() => testEmergencyLabel("112", eccList))
+    .then(() => setEccListProperty(origEccList))
+    .then(null, error => {
+      ok(false, 'promise rejects during test: ' + error);
+    })
+    .then(finish);
 });
