@@ -547,6 +547,7 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
     JS_ASSERT_IF(rt->isAtomsCompartment(ncx->compartment()),
                  kind == FINALIZE_STRING ||
                  kind == FINALIZE_FAT_INLINE_STRING ||
+                 kind == FINALIZE_SYMBOL ||
                  kind == FINALIZE_JITCODE);
     JS_ASSERT(!rt->isHeapBusy());
     JS_ASSERT(rt->gc.isAllocAllowed());
@@ -606,6 +607,10 @@ AllocateObject(ThreadSafeContext *cx, AllocKind kind, size_t nDynamicSlots, Init
     size_t thingSize = Arena::thingSize(kind);
 
     JS_ASSERT(thingSize == Arena::thingSize(kind));
+    JS_ASSERT(thingSize >= sizeof(JSObject));
+    static_assert(sizeof(JSObject) >= CellSize,
+                  "All allocations must be at least the allocator-imposed minimum size.");
+
     if (!CheckAllocatorState<allowGC>(cx, kind))
         return nullptr;
 
@@ -652,6 +657,9 @@ template <typename T, AllowGC allowGC>
 inline T *
 AllocateNonObject(ThreadSafeContext *cx)
 {
+    static_assert(sizeof(T) >= CellSize,
+                  "All allocations must be at least the allocator-imposed minimum size.");
+
     AllocKind kind = MapTypeToFinalizeKind<T>::kind;
     size_t thingSize = sizeof(T);
 
@@ -706,6 +714,23 @@ AllocateObjectForCacheHit(JSContext *cx, AllocKind kind, InitialHeap heap)
     return obj;
 }
 
+inline bool
+IsInsideGGCNursery(const js::gc::Cell *cell)
+{
+#ifdef JSGC_GENERATIONAL
+    if (!cell)
+        return false;
+    uintptr_t addr = uintptr_t(cell);
+    addr &= ~js::gc::ChunkMask;
+    addr |= js::gc::ChunkLocationOffset;
+    uint32_t location = *reinterpret_cast<uint32_t *>(addr);
+    JS_ASSERT(location != 0);
+    return location & js::gc::ChunkLocationBitNursery;
+#else
+    return false;
+#endif
+}
+
 } /* namespace gc */
 
 template <js::AllowGC allowGC>
@@ -730,27 +755,27 @@ NewTypeObject(js::ThreadSafeContext *cx)
     return gc::AllocateNonObject<types::TypeObject, js::CanGC>(cx);
 }
 
-} /* namespace js */
-
 template <js::AllowGC allowGC>
 inline JSString *
-js_NewGCString(js::ThreadSafeContext *cx)
+NewGCString(js::ThreadSafeContext *cx)
 {
     return js::gc::AllocateNonObject<JSString, allowGC>(cx);
 }
 
 template <js::AllowGC allowGC>
 inline JSFatInlineString *
-js_NewGCFatInlineString(js::ThreadSafeContext *cx)
+NewGCFatInlineString(js::ThreadSafeContext *cx)
 {
     return js::gc::AllocateNonObject<JSFatInlineString, allowGC>(cx);
 }
 
 inline JSExternalString *
-js_NewGCExternalString(js::ThreadSafeContext *cx)
+NewGCExternalString(js::ThreadSafeContext *cx)
 {
     return js::gc::AllocateNonObject<JSExternalString, js::CanGC>(cx);
 }
+
+} /* namespace js */
 
 inline JSScript *
 js_NewGCScript(js::ThreadSafeContext *cx)

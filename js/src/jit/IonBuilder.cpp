@@ -117,7 +117,6 @@ IonBuilder::IonBuilder(JSContext *analysisContext, CompileCompartment *comp,
     backgroundCodegen_(nullptr),
     analysisContext(analysisContext),
     baselineFrame_(baselineFrame),
-    descrSetHash_(nullptr),
     constraints_(constraints),
     analysis_(*temp, info->script()),
     thisTypes(nullptr),
@@ -694,7 +693,7 @@ IonBuilder::build()
     }
 
     // Emit the start instruction, so we can begin real instructions.
-    current->makeStart(MStart::New(alloc(), MStart::StartType_Default));
+    current->add(MStart::New(alloc(), MStart::StartType_Default));
     if (instrumentedProfiling())
         current->add(MProfilerStackOp::New(alloc(), script(), MProfilerStackOp::Enter));
 
@@ -1076,6 +1075,7 @@ IonBuilder::addOsrValueTypeBarrier(uint32_t slot, MInstruction **def_,
       case MIRType_Int32:
       case MIRType_Double:
       case MIRType_String:
+      case MIRType_Symbol:
       case MIRType_Object:
         if (type != def->type()) {
             MUnbox *unbox = MUnbox::New(alloc(), def, type, MUnbox::Fallible);
@@ -6200,6 +6200,10 @@ IonBuilder::testSingletonPropertyTypes(MDefinition *obj, JSObject *singleton, Pr
         key = JSProto_String;
         break;
 
+      case MIRType_Symbol:
+        key = JSProto_Symbol;
+        break;
+
       case MIRType_Int32:
       case MIRType_Double:
         key = JSProto_Number;
@@ -6502,6 +6506,7 @@ jit::TypeSetIncludes(types::TypeSet *types, MIRType input, types::TypeSet *input
       case MIRType_Double:
       case MIRType_Float32:
       case MIRType_String:
+      case MIRType_Symbol:
       case MIRType_MagicOptimizedArguments:
         return types->hasType(types::Type::PrimitiveType(ValueTypeFromMIRType(input)));
 
@@ -6750,26 +6755,24 @@ IonBuilder::getElemTryTypedObject(bool *emitted, MDefinition *obj, MDefinition *
 {
     JS_ASSERT(*emitted == false);
 
-    TypeDescrSet objDescrs;
-    if (!lookupTypeDescrSet(obj, &objDescrs))
-        return false;
-
-    if (!objDescrs.allOfArrayKind())
+    TypedObjectPrediction objPrediction = typedObjectPrediction(obj);
+    if (objPrediction.isUseless())
         return true;
 
-    TypeDescrSet elemDescrs;
-    if (!objDescrs.arrayElementType(*this, &elemDescrs))
-        return false;
-    if (elemDescrs.empty())
+    if (!objPrediction.ofArrayKind())
         return true;
 
-    JS_ASSERT(TypeDescr::isSized(elemDescrs.kind()));
+    TypedObjectPrediction elemPrediction = objPrediction.arrayElementType();
+    if (elemPrediction.isUseless())
+        return true;
+
+    JS_ASSERT(TypeDescr::isSized(elemPrediction.kind()));
 
     int32_t elemSize;
-    if (!elemDescrs.allHaveSameSize(&elemSize))
+    if (!elemPrediction.hasKnownSize(&elemSize))
         return true;
 
-    switch (elemDescrs.kind()) {
+    switch (elemPrediction.kind()) {
       case type::X4:
         // FIXME (bug 894105): load into a MIRType_float32x4 etc
         return true;
@@ -6779,15 +6782,15 @@ IonBuilder::getElemTryTypedObject(bool *emitted, MDefinition *obj, MDefinition *
         return getElemTryComplexElemOfTypedObject(emitted,
                                                   obj,
                                                   index,
-                                                  objDescrs,
-                                                  elemDescrs,
+                                                  objPrediction,
+                                                  elemPrediction,
                                                   elemSize);
       case type::Scalar:
         return getElemTryScalarElemOfTypedObject(emitted,
                                                  obj,
                                                  index,
-                                                 objDescrs,
-                                                 elemDescrs,
+                                                 objPrediction,
+                                                 elemPrediction,
                                                  elemSize);
 
       case type::Reference:
@@ -6808,7 +6811,7 @@ bool
 IonBuilder::checkTypedObjectIndexInBounds(int32_t elemSize,
                                           MDefinition *obj,
                                           MDefinition *index,
-                                          TypeDescrSet objDescrs,
+                                          TypedObjectPrediction objPrediction,
                                           MDefinition **indexAsByteOffset,
                                           bool *canBeNeutered)
 {
@@ -6822,7 +6825,7 @@ IonBuilder::checkTypedObjectIndexInBounds(int32_t elemSize,
     // Value to int32 using truncation.
     int32_t lenOfAll;
     MDefinition *length;
-    if (objDescrs.hasKnownArrayLength(&lenOfAll)) {
+    if (objPrediction.hasKnownArrayLength(&lenOfAll)) {
         length = constantInt(lenOfAll);
 
         // If we are not loading the length from the object itself,
@@ -6859,21 +6862,19 @@ bool
 IonBuilder::getElemTryScalarElemOfTypedObject(bool *emitted,
                                               MDefinition *obj,
                                               MDefinition *index,
-                                              TypeDescrSet objDescrs,
-                                              TypeDescrSet elemDescrs,
+                                              TypedObjectPrediction objPrediction,
+                                              TypedObjectPrediction elemPrediction,
                                               int32_t elemSize)
 {
-    JS_ASSERT(objDescrs.allOfArrayKind());
+    JS_ASSERT(objPrediction.ofArrayKind());
 
     // Must always be loading the same scalar type
-    ScalarTypeDescr::Type elemType;
-    if (!elemDescrs.scalarType(&elemType))
-        return true;
+    ScalarTypeDescr::Type elemType = elemPrediction.scalarType();
     JS_ASSERT(elemSize == ScalarTypeDescr::alignment(elemType));
 
     bool canBeNeutered;
     MDefinition *indexAsByteOffset;
-    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objDescrs,
+    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objPrediction,
                                        &indexAsByteOffset, &canBeNeutered))
     {
         return false;
@@ -6927,32 +6928,32 @@ bool
 IonBuilder::getElemTryComplexElemOfTypedObject(bool *emitted,
                                                MDefinition *obj,
                                                MDefinition *index,
-                                               TypeDescrSet objDescrs,
-                                               TypeDescrSet elemDescrs,
+                                               TypedObjectPrediction objPrediction,
+                                               TypedObjectPrediction elemPrediction,
                                                int32_t elemSize)
 {
-    JS_ASSERT(objDescrs.allOfArrayKind());
+    JS_ASSERT(objPrediction.ofArrayKind());
 
     MDefinition *type = loadTypedObjectType(obj);
     MDefinition *elemTypeObj = typeObjectForElementFromArrayStructType(type);
 
     bool canBeNeutered;
     MDefinition *indexAsByteOffset;
-    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objDescrs,
+    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objPrediction,
                                        &indexAsByteOffset, &canBeNeutered))
     {
         return false;
     }
 
     return pushDerivedTypedObject(emitted, obj, indexAsByteOffset,
-                                  elemDescrs, elemTypeObj, canBeNeutered);
+                                  elemPrediction, elemTypeObj, canBeNeutered);
 }
 
 bool
 IonBuilder::pushDerivedTypedObject(bool *emitted,
                                    MDefinition *obj,
                                    MDefinition *offset,
-                                   TypeDescrSet derivedTypeDescrs,
+                                   TypedObjectPrediction derivedPrediction,
                                    MDefinition *derivedTypeObj,
                                    bool canBeNeutered)
 {
@@ -6962,7 +6963,7 @@ IonBuilder::pushDerivedTypedObject(bool *emitted,
 
     // Create the derived typed object.
     MInstruction *derivedTypedObj = MNewDerivedTypedObject::New(alloc(),
-                                                                derivedTypeDescrs,
+                                                                derivedPrediction,
                                                                 derivedTypeObj,
                                                                 owner,
                                                                 ownerOffset);
@@ -6976,7 +6977,7 @@ IonBuilder::pushDerivedTypedObject(bool *emitted,
     // determined based on the type descriptor (and is immutable).
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
     const Class *expectedClass = objTypes ? objTypes->getKnownClass() : nullptr;
-    JSObject *expectedProto = derivedTypeDescrs.knownPrototype();
+    const TypedProto *expectedProto = derivedPrediction.getKnownPrototype();
     JS_ASSERT_IF(expectedClass, IsTypedObjectClass(expectedClass));
 
     // Determine (if possible) the class/proto that the observed type set
@@ -7251,9 +7252,13 @@ IonBuilder::getElemTryCache(bool *emitted, MDefinition *obj, MDefinition *index)
     if (obj->mightBeType(MIRType_String))
         return true;
 
-    // Index should be integer or string
-    if (!index->mightBeType(MIRType_Int32) && !index->mightBeType(MIRType_String))
+    // Index should be integer, string, or symbol
+    if (!index->mightBeType(MIRType_Int32) &&
+        !index->mightBeType(MIRType_String) &&
+        !index->mightBeType(MIRType_Symbol))
+    {
         return true;
+    }
 
     // Turn off cacheing if the element is int32 and we've seen non-native objects as the target
     // of this getelem.
@@ -7267,9 +7272,9 @@ IonBuilder::getElemTryCache(bool *emitted, MDefinition *obj, MDefinition *index)
     BarrierKind barrier = PropertyReadNeedsTypeBarrier(analysisContext, constraints(), obj,
                                                        nullptr, types);
 
-    // Always add a barrier if the index might be a string, so that the cache
-    // can attach stubs for particular properties.
-    if (index->mightBeType(MIRType_String))
+    // Always add a barrier if the index might be a string or symbol, so that
+    // the cache can attach stubs for particular properties.
+    if (index->mightBeType(MIRType_String) || index->mightBeType(MIRType_Symbol))
         barrier = BarrierKind::TypeSet;
 
     // See note about always needing a barrier in jsop_getprop.
@@ -7305,7 +7310,8 @@ IonBuilder::jsop_getelem_dense(MDefinition *obj, MDefinition *index)
 {
     types::TemporaryTypeSet *types = bytecodeTypes(pc);
 
-    if (JSOp(*pc) == JSOP_CALLELEM && !index->mightBeType(MIRType_String)) {
+    MOZ_ASSERT(index->type() == MIRType_Int32 || index->type() == MIRType_Double);
+    if (JSOp(*pc) == JSOP_CALLELEM) {
         // Indexed call on an element of an array. Populate the observed types
         // with any objects that could be in the array, to avoid extraneous
         // type barriers.
@@ -7663,26 +7669,24 @@ IonBuilder::setElemTryTypedObject(bool *emitted, MDefinition *obj,
 {
     JS_ASSERT(*emitted == false);
 
-    TypeDescrSet objTypeDescrs;
-    if (!lookupTypeDescrSet(obj, &objTypeDescrs))
-        return false;
-
-    if (!objTypeDescrs.allOfArrayKind())
+    TypedObjectPrediction objPrediction = typedObjectPrediction(obj);
+    if (objPrediction.isUseless())
         return true;
 
-    TypeDescrSet elemTypeDescrs;
-    if (!objTypeDescrs.arrayElementType(*this, &elemTypeDescrs))
-        return false;
-    if (elemTypeDescrs.empty())
+    if (!objPrediction.ofArrayKind())
         return true;
 
-    JS_ASSERT(TypeDescr::isSized(elemTypeDescrs.kind()));
+    TypedObjectPrediction elemPrediction = objPrediction.arrayElementType();
+    if (elemPrediction.isUseless())
+        return true;
+
+    JS_ASSERT(TypeDescr::isSized(elemPrediction.kind()));
 
     int32_t elemSize;
-    if (!elemTypeDescrs.allHaveSameSize(&elemSize))
+    if (!elemPrediction.hasKnownSize(&elemSize))
         return true;
 
-    switch (elemTypeDescrs.kind()) {
+    switch (elemPrediction.kind()) {
       case type::X4:
         // FIXME (bug 894105): store a MIRType_float32x4 etc
         return true;
@@ -7698,9 +7702,9 @@ IonBuilder::setElemTryTypedObject(bool *emitted, MDefinition *obj,
         return setElemTryScalarElemOfTypedObject(emitted,
                                                  obj,
                                                  index,
-                                                 objTypeDescrs,
+                                                 objPrediction,
                                                  value,
-                                                 elemTypeDescrs,
+                                                 elemPrediction,
                                                  elemSize);
     }
 
@@ -7711,20 +7715,18 @@ bool
 IonBuilder::setElemTryScalarElemOfTypedObject(bool *emitted,
                                               MDefinition *obj,
                                               MDefinition *index,
-                                              TypeDescrSet objTypeDescrs,
+                                              TypedObjectPrediction objPrediction,
                                               MDefinition *value,
-                                              TypeDescrSet elemTypeDescrs,
+                                              TypedObjectPrediction elemPrediction,
                                               int32_t elemSize)
 {
     // Must always be loading the same scalar type
-    ScalarTypeDescr::Type elemType;
-    if (!elemTypeDescrs.scalarType(&elemType))
-        return true;
+    ScalarTypeDescr::Type elemType = elemPrediction.scalarType();
     JS_ASSERT(elemSize == ScalarTypeDescr::alignment(elemType));
 
     bool canBeNeutered;
     MDefinition *indexAsByteOffset;
-    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objTypeDescrs,
+    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objPrediction,
                                        &indexAsByteOffset, &canBeNeutered))
     {
         return false;
@@ -7881,8 +7883,12 @@ IonBuilder::setElemTryCache(bool *emitted, MDefinition *object,
     if (!object->mightBeType(MIRType_Object))
         return true;
 
-    if (!index->mightBeType(MIRType_Int32) && !index->mightBeType(MIRType_String))
+    if (!index->mightBeType(MIRType_Int32) &&
+        !index->mightBeType(MIRType_String) &&
+        !index->mightBeType(MIRType_Symbol))
+    {
         return true;
+    }
 
     // TODO: Bug 876650: remove this check:
     // Temporary disable the cache if non dense native,
@@ -8696,18 +8702,18 @@ IonBuilder::getPropTryConstant(bool *emitted, MDefinition *obj, PropertyName *na
 }
 
 bool
-IonBuilder::getPropTryTypedObject(bool *emitted, MDefinition *obj, PropertyName *name,
+IonBuilder::getPropTryTypedObject(bool *emitted,
+                                  MDefinition *obj,
+                                  PropertyName *name,
                                   types::TemporaryTypeSet *resultTypes)
 {
-    TypeDescrSet fieldDescrs;
-    int32_t fieldOffset;
+    TypedObjectPrediction fieldPrediction;
+    size_t fieldOffset;
     size_t fieldIndex;
-    if (!lookupTypedObjectField(obj, name, &fieldOffset, &fieldDescrs, &fieldIndex))
-        return false;
-    if (fieldDescrs.empty())
+    if (!typedObjectHasField(obj, name, &fieldOffset, &fieldPrediction, &fieldIndex))
         return true;
 
-    switch (fieldDescrs.kind()) {
+    switch (fieldPrediction.kind()) {
       case type::Reference:
         return true;
 
@@ -8720,7 +8726,7 @@ IonBuilder::getPropTryTypedObject(bool *emitted, MDefinition *obj, PropertyName 
         return getPropTryComplexPropOfTypedObject(emitted,
                                                   obj,
                                                   fieldOffset,
-                                                  fieldDescrs,
+                                                  fieldPrediction,
                                                   fieldIndex,
                                                   resultTypes);
 
@@ -8728,7 +8734,7 @@ IonBuilder::getPropTryTypedObject(bool *emitted, MDefinition *obj, PropertyName 
         return getPropTryScalarPropOfTypedObject(emitted,
                                                  obj,
                                                  fieldOffset,
-                                                 fieldDescrs,
+                                                 fieldPrediction,
                                                  resultTypes);
 
       case type::UnsizedArray:
@@ -8741,13 +8747,11 @@ IonBuilder::getPropTryTypedObject(bool *emitted, MDefinition *obj, PropertyName 
 bool
 IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted, MDefinition *typedObj,
                                               int32_t fieldOffset,
-                                              TypeDescrSet fieldDescrs,
+                                              TypedObjectPrediction fieldPrediction,
                                               types::TemporaryTypeSet *resultTypes)
 {
-    // Must always be loading the same scalar type.
-    ScalarTypeDescr::Type fieldType;
-    if (!fieldDescrs.scalarType(&fieldType))
-        return true;
+    // Must always be loading the same scalar type
+    ScalarTypeDescr::Type fieldType = fieldPrediction.scalarType();
 
     // OK, perform the optimization.
     return pushScalarLoadFromTypedObject(emitted, typedObj, constantInt(fieldOffset),
@@ -8755,17 +8759,13 @@ IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted, MDefinition *typedO
 }
 
 bool
-IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted, MDefinition *typedObj,
+IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
+                                               MDefinition *typedObj,
                                                int32_t fieldOffset,
-                                               TypeDescrSet fieldDescrs,
+                                               TypedObjectPrediction fieldPrediction,
                                                size_t fieldIndex,
                                                types::TemporaryTypeSet *resultTypes)
 {
-    // Must know the field index so that we can load the new type
-    // object for the derived value
-    if (fieldIndex == SIZE_MAX)
-        return true;
-
     // OK, perform the optimization
 
     // Identify the type object for the field.
@@ -8773,7 +8773,7 @@ IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted, MDefinition *typed
     MDefinition *fieldTypeObj = typeObjectForFieldFromStructType(type, fieldIndex);
 
     return pushDerivedTypedObject(emitted, typedObj, constantInt(fieldOffset),
-                                  fieldDescrs, fieldTypeObj, true);
+                                  fieldPrediction, fieldTypeObj, true);
 }
 
 bool
@@ -9352,16 +9352,13 @@ bool
 IonBuilder::setPropTryTypedObject(bool *emitted, MDefinition *obj,
                                   PropertyName *name, MDefinition *value)
 {
-    TypeDescrSet fieldDescrs;
-    int32_t fieldOffset;
+    TypedObjectPrediction fieldPrediction;
+    size_t fieldOffset;
     size_t fieldIndex;
-    if (!lookupTypedObjectField(obj, name, &fieldOffset, &fieldDescrs,
-                                &fieldIndex))
-        return false;
-    if (fieldDescrs.empty())
+    if (!typedObjectHasField(obj, name, &fieldOffset, &fieldPrediction, &fieldIndex))
         return true;
 
-    switch (fieldDescrs.kind()) {
+    switch (fieldPrediction.kind()) {
       case type::X4:
         // FIXME (bug 894104): store into a MIRType_float32x4 etc
         return true;
@@ -9375,7 +9372,7 @@ IonBuilder::setPropTryTypedObject(bool *emitted, MDefinition *obj,
 
       case type::Scalar:
         return setPropTryScalarPropOfTypedObject(emitted, obj, fieldOffset,
-                                                 value, fieldDescrs);
+                                                 value, fieldPrediction);
     }
 
     MOZ_ASSUME_UNREACHABLE("Unknown kind");
@@ -9386,12 +9383,10 @@ IonBuilder::setPropTryScalarPropOfTypedObject(bool *emitted,
                                               MDefinition *obj,
                                               int32_t fieldOffset,
                                               MDefinition *value,
-                                              TypeDescrSet fieldDescrs)
+                                              TypedObjectPrediction fieldPrediction)
 {
     // Must always be loading the same scalar type
-    ScalarTypeDescr::Type fieldType;
-    if (!fieldDescrs.scalarType(&fieldType))
-        return true;
+    ScalarTypeDescr::Type fieldType = fieldPrediction.scalarType();
 
     // OK! Perform the optimization.
 
@@ -9753,9 +9748,12 @@ IonBuilder::jsop_defvar(uint32_t index)
     PropertyName *name = script()->getName(index);
 
     // Bake in attrs.
-    unsigned attrs = JSPROP_ENUMERATE | JSPROP_PERMANENT;
+    unsigned attrs = JSPROP_ENUMERATE;
     if (JSOp(*pc) == JSOP_DEFCONST)
         attrs |= JSPROP_READONLY;
+    else
+        attrs |= JSPROP_PERMANENT;
+    JS_ASSERT(!script()->isForEval());
 
     // Pass the ScopeChain.
     JS_ASSERT(analysis().usesScopeChain());
@@ -10220,56 +10218,37 @@ IonBuilder::bytecodeTypes(jsbytecode *pc)
     return types::TypeScript::BytecodeTypes(script(), pc, bytecodeTypeMap, &typeArrayHint, typeArray);
 }
 
-TypeDescrSetHash *
-IonBuilder::getOrCreateDescrSetHash()
+TypedObjectPrediction
+IonBuilder::typedObjectPrediction(MDefinition *typedObj)
 {
-    if (!descrSetHash_) {
-        TypeDescrSetHash *hash =
-            alloc_->lifoAlloc()->new_<TypeDescrSetHash>(alloc());
-        if (!hash || !hash->init())
-            return nullptr;
-
-        descrSetHash_ = hash;
-    }
-    return descrSetHash_;
-}
-
-bool
-IonBuilder::lookupTypeDescrSet(MDefinition *typedObj,
-                                        TypeDescrSet *out)
-{
-    *out = TypeDescrSet(); // default to unknown
-
-    // Extract TypeDescrSet directly if we can
+    // Extract TypedObjectPrediction directly if we can
     if (typedObj->isNewDerivedTypedObject()) {
-        *out = typedObj->toNewDerivedTypedObject()->set();
-        return true;
+        return typedObj->toNewDerivedTypedObject()->prediction();
     }
 
     types::TemporaryTypeSet *types = typedObj->resultTypeSet();
-    return typeSetToTypeDescrSet(types, out);
+    return typedObjectPrediction(types);
 }
 
-bool
-IonBuilder::typeSetToTypeDescrSet(types::TemporaryTypeSet *types,
-                                  TypeDescrSet *out)
+TypedObjectPrediction
+IonBuilder::typedObjectPrediction(types::TemporaryTypeSet *types)
 {
-    // Extract TypeDescrSet directly if we can
+    // Type set must be known to be an object.
     if (!types || types->getKnownMIRType() != MIRType_Object)
-        return true;
+        return TypedObjectPrediction();
 
     // And only known objects.
     if (types->unknownObject())
-        return true;
+        return TypedObjectPrediction();
 
-    TypeDescrSetBuilder set;
+    TypedObjectPrediction out;
     for (uint32_t i = 0; i < types->getObjectCount(); i++) {
         types::TypeObject *type = types->getTypeObject(i);
-        if (!type)
-            return true;
+        if (!type || type->unknownProperties())
+            return TypedObjectPrediction();
 
         if (!IsTypedObjectClass(type->clasp()))
-            return true;
+            return TypedObjectPrediction();
 
         TaggedProto proto = type->proto();
 
@@ -10278,11 +10257,10 @@ IonBuilder::typeSetToTypeDescrSet(types::TemporaryTypeSet *types,
         JS_ASSERT(proto.isObject() && proto.toObject()->is<TypedProto>());
 
         TypedProto &typedProto = proto.toObject()->as<TypedProto>();
-        if (!set.insert(&typedProto.typeDescr()))
-            return false;
+        out.addProto(typedProto);
     }
 
-    return set.build(*this, out);
+    return out;
 }
 
 MDefinition *
@@ -10388,36 +10366,27 @@ IonBuilder::loadTypedObjectElements(MDefinition *typedObj,
 }
 
 // Looks up the offset/type-repr-set of the field `id`, given the type
-// set `objTypes` of the field owner. Note that even when true is
-// returned, `*fieldDescrs` might be empty if no useful type/offset
-// pair could be determined.
+// set `objTypes` of the field owner. If a field is found, returns true
+// and sets *fieldOffset, *fieldPrediction, and *fieldIndex. Returns false
+// otherwise. Infallible.
 bool
-IonBuilder::lookupTypedObjectField(MDefinition *typedObj,
-                                   PropertyName *name,
-                                   int32_t *fieldOffset,
-                                   TypeDescrSet *fieldDescrs,
-                                   size_t *fieldIndex)
+IonBuilder::typedObjectHasField(MDefinition *typedObj,
+                                PropertyName *name,
+                                size_t *fieldOffset,
+                                TypedObjectPrediction *fieldPrediction,
+                                size_t *fieldIndex)
 {
-    TypeDescrSet objDescrs;
-    if (!lookupTypeDescrSet(typedObj, &objDescrs))
+    TypedObjectPrediction objPrediction = typedObjectPrediction(typedObj);
+    if (objPrediction.isUseless())
         return false;
 
     // Must be accessing a struct.
-    if (!objDescrs.allOfKind(type::Struct))
-        return true;
+    if (objPrediction.kind() != type::Struct)
+        return false;
 
     // Determine the type/offset of the field `name`, if any.
-    int32_t offset;
-    if (!objDescrs.fieldNamed(*this, NameToId(name), &offset,
-                              fieldDescrs, fieldIndex))
-        return false;
-    if (fieldDescrs->empty())
-        return true;
-
-    JS_ASSERT(offset >= 0);
-    *fieldOffset = offset;
-
-    return true;
+    return objPrediction.hasFieldNamed(NameToId(name), fieldOffset,
+                                       fieldPrediction, fieldIndex);
 }
 
 MDefinition *

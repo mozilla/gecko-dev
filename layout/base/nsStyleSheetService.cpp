@@ -8,12 +8,12 @@
 
 #include "nsStyleSheetService.h"
 #include "nsIStyleSheet.h"
+#include "mozilla/CSSStyleSheet.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/unused.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/URIUtils.h"
-#include "nsCSSStyleSheet.h"
 #include "nsIURI.h"
 #include "nsCOMPtr.h"
 #include "nsICategoryManager.h"
@@ -186,7 +186,7 @@ nsStyleSheetService::LoadAndRegisterSheetInternal(nsIURI *aSheetURI,
 
   nsRefPtr<css::Loader> loader = new css::Loader();
 
-  nsRefPtr<nsCSSStyleSheet> sheet;
+  nsRefPtr<CSSStyleSheet> sheet;
   // Allow UA sheets, but not user sheets, to use unsafe rules
   nsresult rv = loader->LoadSheetSync(aSheetURI, aSheetType == AGENT_SHEET,
                                       true, getter_AddRefs(sheet));
@@ -289,7 +289,7 @@ MOZ_DEFINE_MALLOC_SIZE_OF(StyleSheetServiceMallocSizeOf)
 
 NS_IMETHODIMP
 nsStyleSheetService::CollectReports(nsIHandleReportCallback* aHandleReport,
-                                    nsISupports* aData)
+                                    nsISupports* aData, bool aAnonymize)
 {
   return MOZ_COLLECT_REPORT(
     "explicit/layout/style-sheet-service", KIND_HEAP, UNITS_BYTES,

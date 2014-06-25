@@ -6,7 +6,6 @@
 #ifndef SHARED_SURFACEIO_H_
 #define SHARED_SURFACEIO_H_
 
-#include "gfxImageSurface.h"
 #include "SharedSurfaceGL.h"
 #include "mozilla/RefPtr.h"
 
@@ -50,11 +49,14 @@ public:
         return LOCAL_GL_TEXTURE_RECTANGLE_ARB;
     }
 
+    MacIOSurface* GetIOSurface() const {
+        return mSurface;
+    }
+
 private:
     SharedSurface_IOSurface(MacIOSurface* surface, GLContext* gl, const gfx::IntSize& size, bool hasAlpha);
 
     RefPtr<MacIOSurface> mSurface;
-    nsRefPtr<gfxImageSurface> mImageSurface;
     GLuint mProdTex;
     const GLContext* mCurConsGL;
     GLuint mConsTex;

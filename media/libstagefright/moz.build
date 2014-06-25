@@ -46,6 +46,7 @@ if CONFIG['OS_TARGET'] != 'Android':
     ]
 
 EXPORTS.mp4_demuxer += [
+    'binding/include/mp4_demuxer/AnnexB.h',
     'binding/include/mp4_demuxer/DecoderData.h',
     'binding/include/mp4_demuxer/mp4_demuxer.h',
 ]
@@ -110,6 +111,7 @@ if CONFIG['_MSC_VER']:
         '-wd4309', # '=' : truncation of constant value
         '-wd4355', # 'this' : used in base member initializer list
         '-wd4804', # '>' : unsafe use of type 'bool' in operation
+        '-wd4099', # mismatched class/struct tags
     ]
 elif CONFIG['GNU_CXX']:
     CFLAGS += [

@@ -16,14 +16,28 @@ let emulator = (function() {
 
   // Overwritten it so people could not call this function directly.
   runEmulatorCmd = function() {
-    throw "Use emulator.run(cmd, callback) instead of runEmulatorCmd";
+    throw "Use emulator.runWithCallback(cmd, callback) instead of runEmulatorCmd";
   };
 
-  function run(cmd, callback) {
+  function run(cmd) {
+    let deferred = Promise.defer();
+
     pendingCmdCount++;
     originalRunEmulatorCmd(cmd, function(result) {
-      is(result[result.length - 1], "OK", "emulator command should be OK.");
       pendingCmdCount--;
+      if (result[result.length - 1] === "OK") {
+        deferred.resolve(result);
+      } else {
+        is(result[result.length - 1], "OK", "emulator command result.");
+        deferred.reject();
+      }
+    });
+
+    return deferred.promise;
+  }
+
+  function runWithCallback(cmd, callback) {
+    run(cmd).then(result => {
       if (callback && typeof callback === "function") {
         callback(result);
       }
@@ -47,6 +61,7 @@ let emulator = (function() {
 
   return {
     run: run,
+    runWithCallback: runWithCallback,
     waitFinish: waitFinish
   };
 }());
@@ -75,24 +90,42 @@ let emulator = (function() {
   /**
    * @return Promise
    */
-  function clearCalls() {
+  function waitForNoCall() {
     let deferred = Promise.defer();
 
-    log("Clear existing calls.");
-    emulator.run("gsm clear", function(result) {
-      if (result[0] == "OK") {
-        waitFor(function() {
-          deferred.resolve();
-        }, function() {
-          return telephony.calls.length === 0;
-        });
-      } else {
-        log("Failed to clear existing calls.");
-        deferred.reject();
-      }
+    waitFor(function() {
+      deferred.resolve();
+    }, function() {
+      return telephony.calls.length === 0;
     });
 
     return deferred.promise;
+  }
+
+  /**
+   * @return Promise
+   */
+  function clearCalls() {
+    log("Clear existing calls.");
+
+    // Hang up all calls.
+    let hangUpPromises = [];
+
+    for (let call of telephony.calls) {
+      log(".. hangUp " + call.number);
+      hangUpPromises.push(hangUp(call));
+    }
+
+    for (let call of conference.calls) {
+      log(".. hangUp " + call.number);
+      hangUpPromises.push(hangUp(call));
+    }
+
+    return Promise.all(hangUpPromises)
+      .then(() => {
+        return emulator.run("gsm clear");
+      })
+      .then(waitForNoCall);
   }
 
   /**
@@ -289,6 +322,38 @@ let emulator = (function() {
   }
 
   /**
+   * Convenient helper to check the expected call number and name.
+   *
+   * @param number
+   *        A string sent to modem.
+   * @param numberPresentation
+   *        An unsigned short integer sent to modem.
+   * @param name
+   *        A string sent to modem.
+   * @param namePresentation
+   *        An unsigned short integer sent to modem.
+   * @param receivedNumber
+   *        A string exposed by Telephony API.
+   * @param receivedName
+   *        A string exposed by Telephony API.
+   */
+  function checkCallId(number, numberPresentation, name, namePresentation,
+                       receivedNumber, receivedName) {
+    let expectedNum = !numberPresentation ? number : "";
+    is(receivedNumber, expectedNum, "check number per numberPresentation");
+
+    let expectedName;
+    if (numberPresentation) {
+      expectedName = "";
+    } else if (!namePresentation) {
+      expectedName = name ? name : "";
+    } else {
+      expectedName = "";
+    }
+    is(receivedName, expectedName, "check name per number/namePresentation");
+  }
+
+  /**
    * Convenient helper to check the call list existing in the emulator.
    *
    * @param expectedCallList
@@ -296,18 +361,12 @@ let emulator = (function() {
    * @return A deferred promise.
    */
   function checkEmulatorCallList(expectedCallList) {
-    let deferred = Promise.defer();
-
-    emulator.run("gsm list", function(result) {
-        log("Call list is now: " + result);
-        for (let i = 0; i < expectedCallList.length; ++i) {
-          is(result[i], expectedCallList[i], "emulator calllist");
-        }
-        is(result[expectedCallList.length], "OK", "emulator calllist");
-        deferred.resolve();
-        });
-
-    return deferred.promise;
+    return emulator.run("gsm list").then(result => {
+      log("Call list is now: " + result);
+      for (let i = 0; i < expectedCallList.length; ++i) {
+        is(result[i], expectedCallList[i], "emulator calllist");
+      }
+    });
   }
 
   /**
@@ -394,7 +453,7 @@ let emulator = (function() {
 
     telephony.dial(number, serviceId).then(call => {
       ok(call);
-      is(call.number, number);
+      is(call.id.number, number);
       is(call.state, "dialing");
       is(call.serviceId, serviceId);
 
@@ -498,13 +557,40 @@ let emulator = (function() {
   }
 
   /**
+   * Locally hang up a call.
+   *
+   * @param call
+   *        A TelephonyCall object.
+   * @return A deferred promise.
+   */
+  function hangUp(call) {
+    let deferred = Promise.defer();
+
+    call.ondisconnected = function(event) {
+      log("Received 'disconnected' call event");
+      call.ondisconnected = null;
+      checkEventCallState(event, call, "disconnected");
+      deferred.resolve(call);
+    };
+    call.hangUp();
+
+    return deferred.promise;
+  }
+
+  /**
    * Simulate an incoming call.
    *
    * @param number
    *        A string.
+   * @param numberPresentation [optional]
+   *        An unsigned short integer.
+   * @param name [optional]
+   *        A string.
+   * @param namePresentation [optional]
+   *        An unsigned short integer.
    * @return A deferred promise.
    */
-  function remoteDial(number) {
+  function remoteDial(number, numberPresentation, name, namePresentation) {
     log("Simulating an incoming call.");
 
     let deferred = Promise.defer();
@@ -516,13 +602,17 @@ let emulator = (function() {
       let call = event.call;
 
       ok(call);
-      is(call.number, number);
       is(call.state, "incoming");
-
+      checkCallId(number, numberPresentation, name, namePresentation,
+                  call.id.number, call.id.name);
       deferred.resolve(call);
     };
-    emulator.run("gsm call " + number);
 
+    numberPresentation = numberPresentation || "";
+    name = name || "";
+    namePresentation = namePresentation || "";
+    emulator.run("gsm call " + number + "," + numberPresentation + "," + name +
+                 "," + namePresentation);
     return deferred.promise;
   }
 
@@ -544,7 +634,7 @@ let emulator = (function() {
       checkEventCallState(event, call, "connected");
       deferred.resolve(call);
     };
-    emulator.run("gsm accept " + call.number);
+    emulator.run("gsm accept " + call.id.number);
 
     return deferred.promise;
   }
@@ -567,7 +657,7 @@ let emulator = (function() {
       checkEventCallState(event, call, "disconnected");
       deferred.resolve(call);
     };
-    emulator.run("gsm cancel " + call.number);
+    emulator.run("gsm cancel " + call.id.number);
 
     return deferred.promise;
   }
@@ -616,7 +706,7 @@ let emulator = (function() {
     let check_onconnected  = StateEventChecker('connected', 'onresuming');
 
     for (let call of callsToAdd) {
-      let callName = "callToAdd (" + call.number + ')';
+      let callName = "callToAdd (" + call.id.number + ')';
 
       let ongroupchange = callName + ".ongroupchange";
       pending.push(ongroupchange);
@@ -677,7 +767,7 @@ let emulator = (function() {
     let check_onheld = StateEventChecker('held', 'onholding');
 
     for (let call of calls) {
-      let callName = "call (" + call.number + ')';
+      let callName = "call (" + call.id.number + ')';
 
       let onholding = callName + ".onholding";
       pending.push(onholding);
@@ -730,7 +820,7 @@ let emulator = (function() {
     let check_onconnected  = StateEventChecker('connected', 'onresuming');
 
     for (let call of calls) {
-      let callName = "call (" + call.number + ')';
+      let callName = "call (" + call.id.number + ')';
 
       let onresuming = callName + ".onresuming";
       pending.push(onresuming);
@@ -789,7 +879,7 @@ let emulator = (function() {
 
     // Remained call in conference will be held.
     for (let call of remainedCalls) {
-      let callName = "remainedCall (" + call.number + ')';
+      let callName = "remainedCall (" + call.id.number + ')';
 
       let onstatechange = callName + ".onstatechange";
       pending.push(onstatechange);
@@ -800,7 +890,7 @@ let emulator = (function() {
     // When a call is removed from conference with 2 calls, another one will be
     // automatically removed from group and be put on hold.
     for (let call of autoRemovedCalls) {
-      let callName = "autoRemovedCall (" + call.number + ')';
+      let callName = "autoRemovedCall (" + call.id.number + ')';
 
       let ongroupchange = callName + ".ongroupchange";
       pending.push(ongroupchange);
@@ -873,7 +963,7 @@ let emulator = (function() {
     // When a call is hang up from conference with 2 calls, another one will be
     // automatically removed from group.
     for (let call of autoRemovedCalls) {
-      let callName = "autoRemovedCall (" + call.number + ')';
+      let callName = "autoRemovedCall (" + call.id.number + ')';
 
       let ongroupchange = callName + ".ongroupchange";
       pending.push(ongroupchange);
@@ -962,8 +1052,8 @@ let emulator = (function() {
   function createCallAndAddToConference(inNumber, conferenceCalls) {
     // Create an info array. allInfo = [info1, info2, ...].
     let allInfo = conferenceCalls.map(function(call, i) {
-      return (i === 0) ? outCallStrPool(call.number)
-                       : inCallStrPool(call.number);
+      return (i === 0) ? outCallStrPool(call.id.number)
+                       : inCallStrPool(call.id.number);
     });
 
     // Define state property of the info array.
@@ -1042,6 +1132,7 @@ let emulator = (function() {
   this.gCheckAll = checkAll;
   this.gDial = dial;
   this.gAnswer = answer;
+  this.gHangUp = hangUp;
   this.gHold = hold;
   this.gRemoteDial = remoteDial;
   this.gRemoteAnswer = remoteAnswer;

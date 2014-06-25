@@ -46,7 +46,6 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
     NS_DECL_NSIOBSERVER
 
     mozJSComponentLoader();
-    virtual ~mozJSComponentLoader();
 
     // ModuleLoader
     const mozilla::Module* LoadModule(mozilla::FileLocation &aFile);
@@ -56,11 +55,11 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
 
     static mozJSComponentLoader* Get() { return sSelf; }
 
-    void NoteSubScript(JS::HandleScript aScript, JS::HandleObject aThisObject);
-
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
  protected:
+    virtual ~mozJSComponentLoader();
+
     static mozJSComponentLoader* sSelf;
 
     nsresult ReallyInit();
@@ -158,7 +157,6 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
 
     nsClassHashtable<nsCStringHashKey, ModuleEntry> mImports;
     nsDataHashtable<nsCStringHashKey, ModuleEntry*> mInProgressImports;
-    nsDataHashtable<nsPtrHashKey<JSScript>, JSObject*> mThisObjects;
 
     bool mInitialized;
     bool mReuseLoaderGlobal;

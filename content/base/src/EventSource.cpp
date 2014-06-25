@@ -518,6 +518,7 @@ public:
   }
 
 private:
+  ~AsyncVerifyRedirectCallbackFwr() {}
   nsRefPtr<EventSource> mEventSource;
 };
 
@@ -1236,15 +1237,11 @@ EventSource::DispatchAllMessageEvents()
     return;
   }
 
-  // We need a parent object so that we can enter its compartment.
-  nsCOMPtr<nsIGlobalObject> parentObject = do_QueryInterface(GetParentObject());
-  if (NS_WARN_IF(!parentObject)) {
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.InitUsingWin(GetOwner()))) {
     return;
   }
-
-  AutoJSAPI jsapi;
   JSContext* cx = jsapi.cx();
-  JSAutoCompartment ac(cx, parentObject->GetGlobalJSObject());
 
   while (mMessagesToDispatch.GetSize() > 0) {
     nsAutoPtr<Message>

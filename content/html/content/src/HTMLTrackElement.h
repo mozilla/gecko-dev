@@ -26,7 +26,7 @@ class WebVTTListener;
 class HTMLTrackElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  HTMLTrackElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
+  HTMLTrackElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
   virtual ~HTMLTrackElement();
 
   // nsISupports
@@ -90,7 +90,7 @@ public:
 
   TextTrack* GetTrack();
 
-  virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
 
   // For Track, ItemValue reflects the src attribute
   virtual void GetItemValueText(nsAString& aText) MOZ_OVERRIDE
@@ -124,6 +124,9 @@ public:
 
   void DispatchTrackRunnable(const nsString& aEventName);
   void DispatchTrustedEvent(const nsAString& aName);
+
+  void DropChannel();
+
 protected:
   virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
   void OnChannelRedirect(nsIChannel* aChannel, nsIChannel* aNewChannel,

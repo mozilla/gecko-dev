@@ -11,7 +11,6 @@ Cu.import("resource://gre/modules/WebappOSUtils.jsm");
 const LINUX = navigator.platform.startsWith("Linux");
 const MAC = navigator.platform.startsWith("Mac");
 const WIN = navigator.platform.startsWith("Win");
-const MAC_106 = navigator.userAgent.contains("Mac OS X 10.6");
 
 const PR_RDWR        = 0x04;
 const PR_CREATE_FILE = 0x08;
@@ -46,6 +45,39 @@ function checkDateHigherThan(files, date) {
     }
 
     return true;
+  });
+}
+
+function dirContainsOnly(dir, expectedFiles) {
+  return Task.spawn(function*() {
+    let iterator = new OS.File.DirectoryIterator(dir);
+
+    let entries;
+    try {
+      entries = yield iterator.nextBatch();
+    } finally {
+      iterator.close();
+    }
+
+    let ret = true;
+
+    // Find unexpected files
+    for each (let {path} in entries) {
+      if (expectedFiles.indexOf(path) == -1) {
+        info("Unexpected file: " + path);
+        ret = false;
+      }
+    }
+
+    // Find missing files
+    for each (let expectedPath in expectedFiles) {
+      if (entries.findIndex(({path}) => path == expectedPath) == -1) {
+        info("Missing file: " + expectedPath);
+        ret = false;
+      }
+    }
+
+    return ret;
   });
 }
 
@@ -288,6 +320,10 @@ function TestAppInfo(aApp) {
 
       if (this.profileDir) {
         yield OS.File.removeDir(this.profileDir.parent.path, { ignoreAbsent: true });
+      }
+
+      if (this.trashDir) {
+        yield OS.File.removeDir(this.trashDir, { ignoreAbsent: true });
       }
 
       yield OS.File.removeDir(this.installPath, { ignoreAbsent: true });

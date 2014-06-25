@@ -1209,6 +1209,8 @@ namespace dom {
 
 class MessageManagerReporter MOZ_FINAL : public nsIMemoryReporter
 {
+  ~MessageManagerReporter() {}
+
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
@@ -1330,7 +1332,7 @@ ReportReferentCount(const char* aManagerType,
 
 NS_IMETHODIMP
 MessageManagerReporter::CollectReports(nsIMemoryReporterCallback* aCb,
-                                       nsISupports* aClosure)
+                                       nsISupports* aClosure, bool aAnonymize)
 {
   nsresult rv;
 

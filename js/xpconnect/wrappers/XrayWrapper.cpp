@@ -39,14 +39,39 @@ namespace xpc {
 
 using namespace XrayUtils;
 
+inline bool
+IsTypedArrayKey(JSProtoKey key)
+{
+#ifdef DEBUG
+    bool isTypedArraySlow = key == JSProto_Int8Array ||
+                            key == JSProto_Uint8Array ||
+                            key == JSProto_Int16Array ||
+                            key == JSProto_Uint16Array ||
+                            key == JSProto_Int32Array ||
+                            key == JSProto_Uint32Array ||
+                            key == JSProto_Float32Array ||
+                            key == JSProto_Float64Array ||
+                            key == JSProto_Uint8ClampedArray;
+#endif
+    bool isTypedArray = key >= JSProto_Int8Array &&
+                        key <= JSProto_Uint8ClampedArray;
+    MOZ_ASSERT(isTypedArray == isTypedArraySlow, "Somebody reordered jsprototypes.h!");
+    static_assert(JSProto_Uint8ClampedArray - JSProto_Int8Array == 8,
+                  "New prototype added in typed array range");
+    return isTypedArray;
+}
+
 // Whitelist for the standard ES classes we can Xray to.
 static bool
 IsJSXraySupported(JSProtoKey key)
 {
+    if (IsTypedArrayKey(key))
+        return true;
     switch (key) {
       case JSProto_Date:
       case JSProto_Object:
       case JSProto_Array:
+      case JSProto_Function:
         return true;
       default:
         return false;
@@ -147,6 +172,8 @@ public:
 class XrayTraits
 {
 public:
+    XrayTraits() {}
+
     static JSObject* getTargetObject(JSObject *wrapper) {
         return js::UncheckedUnwrap(wrapper, /* stopAtOuter = */ false);
     }
@@ -200,6 +227,9 @@ private:
     JSObject* attachExpandoObject(JSContext *cx, HandleObject target,
                                   nsIPrincipal *origin,
                                   HandleObject exclusiveGlobal);
+
+    XrayTraits(XrayTraits &) MOZ_DELETE;
+    const XrayTraits& operator=(XrayTraits &) MOZ_DELETE;
 };
 
 class XPCWrappedNativeXrayTraits : public XrayTraits
@@ -325,7 +355,11 @@ public:
     static bool call(JSContext *cx, HandleObject wrapper,
                      const JS::CallArgs &args, js::Wrapper& baseInstance)
     {
-        // We'll handle this when we start supporting Functions.
+        JSXrayTraits &self = JSXrayTraits::singleton;
+        RootedObject holder(cx, self.ensureHolder(cx, wrapper));
+        if (self.getProtoKey(holder) == JSProto_Function)
+            return baseInstance.call(cx, wrapper, args);
+
         RootedValue v(cx, ObjectValue(*wrapper));
         js_ReportIsNotFunction(cx, v);
         return false;
@@ -334,7 +368,11 @@ public:
     static bool construct(JSContext *cx, HandleObject wrapper,
                           const JS::CallArgs &args, js::Wrapper& baseInstance)
     {
-        // We'll handle this when we start supporting Functions.
+        JSXrayTraits &self = JSXrayTraits::singleton;
+        RootedObject holder(cx, self.ensureHolder(cx, wrapper));
+        if (self.getProtoKey(holder) == JSProto_Function)
+            return baseInstance.construct(cx, wrapper, args);
+
         RootedValue v(cx, ObjectValue(*wrapper));
         js_ReportIsNotFunction(cx, v);
         return false;
@@ -379,6 +417,7 @@ public:
     enum {
         SLOT_PROTOKEY = 0,
         SLOT_ISPROTOTYPE,
+        SLOT_CONSTRUCTOR_FOR,
         SLOT_COUNT
     };
     virtual JSObject* createHolder(JSContext *cx, JSObject *wrapper) MOZ_OVERRIDE;
@@ -390,6 +429,11 @@ public:
 
     static bool isPrototype(JSObject *holder) {
         return js::GetReservedSlot(holder, SLOT_ISPROTOTYPE).toBoolean();
+    }
+
+    static JSProtoKey constructorFor(JSObject *holder) {
+        int32_t key = js::GetReservedSlot(holder, SLOT_CONSTRUCTOR_FOR).toInt32();
+        return static_cast<JSProtoKey>(key);
     }
 
     static bool getOwnPropertyFromTargetIfSafe(JSContext *cx,
@@ -429,7 +473,7 @@ SilentFailure(JSContext *cx, HandleId id, const char *reason)
 bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
                                                   HandleObject target,
                                                   HandleObject wrapper,
-                                                  HandleId idArg,
+                                                  HandleId id,
                                                   MutableHandle<JSPropertyDescriptor> outDesc)
 {
     // Note - This function operates in the target compartment, because it
@@ -439,9 +483,6 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
     MOZ_ASSERT(WrapperFactory::IsXrayWrapper(wrapper));
     MOZ_ASSERT(outDesc.object() == nullptr);
 
-    RootedId id(cx, idArg);
-    if (!JS_WrapId(cx, &id))
-        return false;
     Rooted<JSPropertyDescriptor> desc(cx);
     if (!JS_GetOwnPropertyDescriptorById(cx, target, id, &desc))
         return false;
@@ -464,24 +505,8 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
             return SilentFailure(cx, id, "Value not same-origin with target");
 
         // Disallow non-Xrayable objects.
-        if (GetXrayType(propObj) == NotXray) {
-            // Note - We're going add Xrays for Arrays/TypedArrays soon in
-            // bug 987163, so we don't want to cause unnecessary compat churn
-            // by making xrayedObj.arrayProp stop working temporarily, and then
-            // start working again. At the same time, this is an important check,
-            // and this patch wouldn't be as useful without it. So we just
-            // forcibly override the behavior here for Arrays until bug 987163
-            // lands.
-            JSProtoKey key = IdentifyStandardInstanceOrPrototype(propObj);
-            if (key != JSProto_Uint8ClampedArray &&
-                key != JSProto_Int8Array && key != JSProto_Uint8Array &&
-                key != JSProto_Int16Array && key != JSProto_Uint16Array &&
-                key != JSProto_Int32Array && key != JSProto_Uint32Array &&
-                key != JSProto_Float32Array && key != JSProto_Float64Array)
-            {
-                return SilentFailure(cx, id, "Value not Xrayable");
-            }
-        }
+        if (GetXrayType(propObj) == NotXray)
+            return SilentFailure(cx, id, "Value not Xrayable");
 
         // Disallow callables.
         if (JS_ObjectIsCallable(cx, propObj))
@@ -520,6 +545,7 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
 
     RootedObject target(cx, getTargetObject(wrapper));
     if (!isPrototype(holder)) {
+        JSProtoKey key = getProtoKey(holder);
         // For Object and Array instances, we expose some properties from the
         // underlying object, but only after filtering them carefully.
         //
@@ -529,19 +555,46 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
         // it's tempting to try to impose some sort of structure on what Arrays
         // "should" look like over Xrays, the underlying object is squishy enough
         // that it makes sense to just treat them like Objects for Xray purposes.
-        switch (getProtoKey(holder)) {
-          case JSProto_Object:
-          case JSProto_Array:
+        if (key == JSProto_Object || key == JSProto_Array) {
             {
                 JSAutoCompartment ac(cx, target);
                 if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, desc))
                     return false;
             }
             return JS_WrapPropertyDescriptor(cx, desc);
-
-          default:
-            // Most instance (non-prototypes) Xrays don't have anything on them.
-            break;
+        } else if (IsTypedArrayKey(key)) {
+            if (IsArrayIndex(GetArrayIndexFromId(cx, id))) {
+                JS_ReportError(cx, "Accessing TypedArray data over Xrays is slow, and forbidden "
+                                   "in order to encourage performant code. To copy TypedArrays "
+                                   "across origin boundaries, consider using Components.utils.cloneInto().");
+                return false;
+            }
+        } else if (key == JSProto_Function) {
+            if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_LENGTH)) {
+                FillPropertyDescriptor(desc, wrapper, JSPROP_PERMANENT | JSPROP_READONLY,
+                                       NumberValue(JS_GetFunctionArity(JS_GetObjectFunction(target))));
+                return true;
+            } else if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_NAME)) {
+                FillPropertyDescriptor(desc, wrapper, JSPROP_PERMANENT | JSPROP_READONLY,
+                                       StringValue(JS_GetFunctionId(JS_GetObjectFunction(target))));
+            } else if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_PROTOTYPE)) {
+                // Handle the 'prototype' property to make xrayedGlobal.StandardClass.prototype work.
+                JSProtoKey standardConstructor = constructorFor(holder);
+                if (standardConstructor != JSProto_Null) {
+                    RootedObject standardProto(cx);
+                    {
+                        JSAutoCompartment ac(cx, target);
+                        if (!JS_GetClassPrototype(cx, standardConstructor, &standardProto))
+                            return false;
+                        MOZ_ASSERT(standardProto);
+                    }
+                    if (!JS_WrapObject(cx, &standardProto))
+                        return false;
+                    FillPropertyDescriptor(desc, wrapper, JSPROP_PERMANENT | JSPROP_READONLY,
+                                           ObjectValue(*standardProto));
+                    return true;
+                }
+            }
         }
 
         // The rest of this function applies only to prototypes.
@@ -763,11 +816,10 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
         return false;
 
     if (!isPrototype(holder)) {
+        JSProtoKey key = getProtoKey(holder);
         // For Object and Array instances, we expose some properties from the underlying
         // object, but only after filtering them carefully.
-        switch (getProtoKey(holder)) {
-          case JSProto_Object:
-          case JSProto_Array:
+        if (key == JSProto_Object || key == JSProto_Array) {
             MOZ_ASSERT(props.empty());
             {
                 JSAutoCompartment ac(cx, target);
@@ -776,19 +828,36 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
                     return false;
                 // Loop over the properties, and only pass along the ones that
                 // we determine to be safe.
+                if (!props.reserve(targetProps.length()))
+                    return false;
                 for (size_t i = 0; i < targetProps.length(); ++i) {
                     Rooted<JSPropertyDescriptor> desc(cx);
                     RootedId id(cx, targetProps[i]);
                     if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, &desc))
                         return false;
                     if (desc.object())
-                        props.append(id);
+                        props.infallibleAppend(id);
                 }
             }
-            return JS_WrapAutoIdVector(cx, props);
-          default:
-            // Most instance (non-prototypes) Xrays don't have anything on them.
-            break;
+            return true;
+        } else if (IsTypedArrayKey(key)) {
+            uint32_t length = JS_GetTypedArrayLength(target);
+            // TypedArrays enumerate every indexed property in range, but
+            // |length| is a getter that lives on the proto, like it should be.
+            if (!props.reserve(length))
+                return false;
+            for (int32_t i = 0; i <= int32_t(length - 1); ++i)
+                props.infallibleAppend(INT_TO_JSID(i));
+        } else if (key == JSProto_Function) {
+            if (!props.append(GetRTIdByIndex(cx, XPCJSRuntime::IDX_LENGTH)))
+                return false;
+            if (!props.append(GetRTIdByIndex(cx, XPCJSRuntime::IDX_NAME)))
+                return false;
+            // Handle the .prototype property on standard constructors.
+            if (constructorFor(holder) != JSProto_Null) {
+                if (!props.append(GetRTIdByIndex(cx, XPCJSRuntime::IDX_PROTOTYPE)))
+                    return false;
+            }
         }
 
         // The rest of this function applies only to prototypes.
@@ -852,6 +921,13 @@ JSXrayTraits::createHolder(JSContext *cx, JSObject *wrapper)
     js::SetReservedSlot(holder, SLOT_PROTOKEY, v);
     v.setBoolean(isPrototype);
     js::SetReservedSlot(holder, SLOT_ISPROTOTYPE, v);
+
+    // If this is a function, also compute whether it serves as a constructor
+    // for a standard class.
+    if (key == JSProto_Function) {
+        v.setNumber(static_cast<uint32_t>(IdentifyStandardConstructor(target)));
+        js::SetReservedSlot(holder, SLOT_CONSTRUCTOR_FOR, v);
+    }
 
     return holder;
 }
@@ -1650,17 +1726,17 @@ XPCWrappedNativeXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, 
         if (!js::GetPropertyNames(cx, target, flags, &wnProps))
             return false;
     }
-    if (!JS_WrapAutoIdVector(cx, wnProps))
-        return false;
 
     // Go through the properties we got and enumerate all native ones.
+    if (!props.reserve(wnProps.length()))
+        return false;
     for (size_t n = 0; n < wnProps.length(); ++n) {
         RootedId id(cx, wnProps[n]);
         bool hasProp;
         if (!JS_HasPropertyById(cx, wrapper, id, &hasProp))
             return false;
         if (hasProp)
-            props.append(id);
+            props.infallibleAppend(id);
     }
     return true;
 }
@@ -2423,8 +2499,6 @@ XrayWrapper<Base, Traits>::enumerate(JSContext *cx, HandleObject wrapper, unsign
         if (!js::GetPropertyNames(cx, expando, flags, &props))
             return false;
     }
-    if (!JS_WrapAutoIdVector(cx, props))
-        return false;
 
     return Traits::singleton.enumerateNames(cx, wrapper, flags, props);
 }

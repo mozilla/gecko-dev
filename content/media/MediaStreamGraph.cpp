@@ -396,7 +396,9 @@ MediaStreamGraphImpl::UpdateCurrentTime()
     // Calculate blocked time and fire Blocked/Unblocked events
     GraphTime blockedTime = 0;
     GraphTime t = prevCurrentTime;
-    while (t < nextCurrentTime) {
+    // include |nextCurrentTime| to ensure NotifyBlockingChanged() is called
+    // before NotifyFinished() when |nextCurrentTime == stream end time|
+    while (t <= nextCurrentTime) {
       GraphTime end;
       bool blocked = stream->mBlocked.GetAt(t, &end);
       if (blocked) {
@@ -451,6 +453,8 @@ MediaStreamGraphImpl::UpdateCurrentTime()
     // out.
     if (mCurrentTime >=
           stream->StreamTimeToGraphTime(stream->GetStreamBuffer().GetAllTracksEnd()))  {
+      NS_WARN_IF_FALSE(stream->mNotifiedBlocked,
+        "Should've notified blocked=true for a fully finished stream");
       stream->mNotifiedFinished = true;
       stream->mLastPlayedVideoFrame.SetNull();
       SetStreamOrderDirty();
@@ -688,7 +692,7 @@ MediaStreamGraphImpl::RecomputeBlocking(GraphTime aEndBlockingDecisions)
                               this, MediaTimeToSeconds(mStateComputedTime),
                               MediaTimeToSeconds(aEndBlockingDecisions)));
   mStateComputedTime = aEndBlockingDecisions;
- 
+
   if (blockingDecisionsWillChange) {
     // Make sure we wake up to notify listeners about these changes.
     EnsureNextIteration();
@@ -1587,6 +1591,7 @@ public:
 
 class MediaStreamGraphShutdownObserver MOZ_FINAL : public nsIObserver
 {
+  ~MediaStreamGraphShutdownObserver() {}
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -2119,7 +2124,7 @@ MediaStream::AddListener(MediaStreamListener* aListener)
 
 void
 MediaStream::RemoveListenerImpl(MediaStreamListener* aListener)
-{ 
+{
   // wouldn't need this if we could do it in the opposite order
   nsRefPtr<MediaStreamListener> listener(aListener);
   mListeners.RemoveElement(aListener);
@@ -2751,7 +2756,7 @@ struct ArrayClearer
 
 NS_IMETHODIMP
 MediaStreamGraphImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
-                                     nsISupports* aData)
+                                     nsISupports* aData, bool aAnonymize)
 {
   // Clears out the report array after we're done with it.
   ArrayClearer reportCleanup(mAudioStreamSizes);
@@ -2786,20 +2791,21 @@ MediaStreamGraphImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
 
   for (size_t i = 0; i < mAudioStreamSizes.Length(); i++) {
     const AudioNodeSizes& usage = mAudioStreamSizes[i];
-    const char* const nodeType =  usage.mNodeType.get();
+    const char* const nodeType =  usage.mNodeType.IsEmpty() ?
+                                  "<unknown>" : usage.mNodeType.get();
 
     nsPrintfCString domNodePath("explicit/webaudio/audio-node/%s/dom-nodes",
-                                  nodeType);
+                                nodeType);
     REPORT(domNodePath, usage.mDomNode,
            "Memory used by AudioNode DOM objects (Web Audio).");
 
     nsPrintfCString enginePath("explicit/webaudio/audio-node/%s/engine-objects",
-                                nodeType);
+                               nodeType);
     REPORT(enginePath, usage.mEngine,
            "Memory used by AudioNode engine objects (Web Audio).");
 
     nsPrintfCString streamPath("explicit/webaudio/audio-node/%s/stream-objects",
-                                nodeType);
+                               nodeType);
     REPORT(streamPath, usage.mStream,
            "Memory used by AudioNode stream objects (Web Audio).");
 

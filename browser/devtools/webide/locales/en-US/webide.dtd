@@ -2,7 +2,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY windowTitle "Firefox App Manager">
+<!ENTITY windowTitle "Firefox WebIDE">
 
 <!ENTITY projectMenu_label "Project">
 <!ENTITY projectMenu_accesskey "P">
@@ -38,19 +38,19 @@
 <!ENTITY viewMenu_accesskey "V">
 <!ENTITY viewMenu_toggleEditor_label "Toggle Editor">
 <!ENTITY viewMenu_toggleEditor_accesskey "E">
+<!ENTITY viewMenu_showAddons_label "Manage simulators">
+<!ENTITY viewMenu_showAddons_accesskey "M">
 
 <!ENTITY projectButton_label "Open App">
 <!ENTITY runtimeButton_label "Select Runtime">
 
 <!-- We try to repicate Firefox' bindings: -->
 <!-- quit app -->
-<!ENTITY key_quit "Q">
+<!ENTITY key_quit "W">
 <!-- open menu -->
 <!ENTITY key_showProjectPanel "O">
 <!-- reload app -->
 <!ENTITY key_play "R">
-<!-- close app -->
-<!ENTITY key_stop "W">
 <!-- show toolbox -->
 <!ENTITY key_toggleToolbox "VK_F12">
 <!-- toggle sidebar -->
@@ -61,6 +61,9 @@
 <!ENTITY runtimePanel_USBDevices "USB Devices">
 <!ENTITY runtimePanel_simulators "Simulators">
 <!ENTITY runtimePanel_custom "Custom">
+<!ENTITY runtimePanel_nosimulator "Install Simulator">
+<!ENTITY runtimePanel_noadbhelper "Install ADB Helper">
+<!ENTITY runtimePanel_nousbdevice "Can't see your device?">
 
 <!-- Lense -->
 <!ENTITY details_valid_header "valid">
@@ -76,3 +79,19 @@
 <!ENTITY newAppHeader "Select template">
 <!ENTITY newAppLoadingTemplate "Loading templates…">
 <!ENTITY newAppProjectName "Project Name:">
+
+
+<!-- Decks -->
+
+<!ENTITY deck_close "close">
+
+<!-- Addons -->
+<!ENTITY addons_title "Extra Components:">
+<!ENTITY addons_aboutaddons "Open Addons Manager">
+
+<!-- Permissions Table -->
+<!ENTITY permissionstable_title "Permissions Table">
+<!ENTITY permissionstable_name_header "Name">
+
+<!-- Runtime Details -->
+<!ENTITY runtimedetails_title "Runtime Info">

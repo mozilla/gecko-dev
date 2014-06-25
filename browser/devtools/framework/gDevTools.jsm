@@ -57,8 +57,6 @@ DevTools.prototype = {
       // testing/profiles/prefs_general.js so lets set it to the same as it is
       // in a default browser profile for the duration of the test.
       Services.prefs.setBoolPref("dom.send_after_paint_to_content", false);
-    } else {
-      Services.prefs.setBoolPref("dom.send_after_paint_to_content", true);
     }
   },
 
@@ -434,9 +432,13 @@ let gDevToolsBrowser = {
       win.DeveloperToolbar.show(false);
     }
 
+    // Enable WebIDE?
+    let webIDEEnabled = Services.prefs.getBoolPref("devtools.webide.enabled");
+    toggleCmd("Tools:WebIDE", webIDEEnabled);
+
     // Enable App Manager?
     let appMgrEnabled = Services.prefs.getBoolPref("devtools.appmanager.enabled");
-    toggleCmd("Tools:DevAppMgr", appMgrEnabled);
+    toggleCmd("Tools:DevAppMgr", !webIDEEnabled && appMgrEnabled);
 
     // Enable Browser Toolbox?
     let chromeEnabled = Services.prefs.getBoolPref("devtools.chrome.enabled");
@@ -524,16 +526,19 @@ let gDevToolsBrowser = {
    * Open the App Manager
    */
   openAppManager: function(gBrowser) {
-    if (Services.prefs.getBoolPref("devtools.webide.enabled")) {
-      let win = Services.wm.getMostRecentWindow("devtools:webide");
-      if (win) {
-        win.focus();
-      } else {
-        let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].getService(Ci.nsIWindowWatcher);
-        ww.openWindow(null, "chrome://webide/content/", "webide", "chrome,centerscreen,resizable", null);
-      }
+    gBrowser.selectedTab = gBrowser.addTab("about:app-manager");
+  },
+
+  /**
+   * Open WebIDE
+   */
+  openWebIDE: function() {
+    let win = Services.wm.getMostRecentWindow("devtools:webide");
+    if (win) {
+      win.focus();
     } else {
-      gBrowser.selectedTab = gBrowser.addTab("about:app-manager");
+      let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].getService(Ci.nsIWindowWatcher);
+      ww.openWindow(null, "chrome://webide/content/", "webide", "chrome,centerscreen,resizable", null);
     }
   },
 

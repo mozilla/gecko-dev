@@ -12,7 +12,7 @@
 #include "nsPresContext.h"
 #include "nsRuleNode.h"
 #include "nsCSSKeywords.h"
-#include "nsStyleAnimation.h"
+#include "mozilla/StyleAnimationValue.h"
 #include "gfxMatrix.h"
 
 using namespace mozilla;
@@ -53,7 +53,7 @@ ProcessTranslatePart(const nsCSSValue& aValue,
     // Handle this here (even though nsRuleNode::CalcLength handles it
     // fine) so that callers are allowed to pass a null style context
     // and pres context to SetToTransformFunction if they know (as
-    // nsStyleAnimation does) that all lengths within the transform
+    // StyleAnimationValue does) that all lengths within the transform
     // function have already been computed to pixels and percents.
     //
     // Raw numbers are treated as being pixels.
@@ -97,18 +97,18 @@ ProcessMatrix(gfx3DMatrix& aMatrix,
   /* Take the first four elements out of the array as floats and store
    * them.
    */
-  result.xx = aData->Item(1).GetFloatValue();
-  result.yx = aData->Item(2).GetFloatValue();
-  result.xy = aData->Item(3).GetFloatValue();
-  result.yy = aData->Item(4).GetFloatValue();
+  result._11 = aData->Item(1).GetFloatValue();
+  result._12 = aData->Item(2).GetFloatValue();
+  result._21 = aData->Item(3).GetFloatValue();
+  result._22 = aData->Item(4).GetFloatValue();
 
   /* The last two elements have their length parts stored in aDelta
    * and their percent parts stored in aX[0] and aY[1].
    */
-  result.x0 = ProcessTranslatePart(aData->Item(5),
+  result._31 = ProcessTranslatePart(aData->Item(5),
                                    aContext, aPresContext, aCanStoreInRuleTree,
                                    aBounds.Width());
-  result.y0 = ProcessTranslatePart(aData->Item(6),
+  result._32 = ProcessTranslatePart(aData->Item(6),
                                    aContext, aPresContext, aCanStoreInRuleTree,
                                    aBounds.Height());
 
@@ -180,12 +180,14 @@ ProcessInterpolateMatrix(gfx3DMatrix& aMatrix,
   }
   double progress = aData->Item(3).GetPercentValue();
 
-  aMatrix = nsStyleAnimation::InterpolateTransformMatrix(matrix1, matrix2, progress) * aMatrix;
+  aMatrix =
+    StyleAnimationValue::InterpolateTransformMatrix(matrix1, matrix2, progress)
+    * aMatrix;
 }
 
 /* Helper function to process a translatex function. */
 static void
-ProcessTranslateX(gfx3DMatrix& aMatrix, 
+ProcessTranslateX(gfx3DMatrix& aMatrix,
                   const nsCSSValue::Array* aData,
                   nsStyleContext* aContext,
                   nsPresContext* aPresContext,
@@ -502,7 +504,7 @@ MatrixForTransformFunction(gfx3DMatrix& aMatrix,
   NS_PRECONDITION(aData, "Why did you want to get data from a null array?");
   // It's OK if aContext and aPresContext are null if the caller already
   // knows that all length units have been converted to pixels (as
-  // nsStyleAnimation does).
+  // StyleAnimationValue does).
 
 
   /* Get the keyword for the transform. */

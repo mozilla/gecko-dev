@@ -11,10 +11,10 @@
 
 #include "mozilla/css/StyleRule.h"
 
+#include "mozilla/CSSStyleSheet.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/css/GroupRule.h"
 #include "mozilla/css/Declaration.h"
-#include "nsCSSStyleSheet.h"
 #include "nsIDocument.h"
 #include "nsIAtom.h"
 #include "nsString.h"
@@ -541,7 +541,7 @@ int32_t nsCSSSelector::CalcWeight() const
 // StyleRule:selectorText
 //
 void
-nsCSSSelector::ToString(nsAString& aString, nsCSSStyleSheet* aSheet,
+nsCSSSelector::ToString(nsAString& aString, CSSStyleSheet* aSheet,
                         bool aAppend) const
 {
   if (!aAppend)
@@ -584,7 +584,7 @@ nsCSSSelector::ToString(nsAString& aString, nsCSSStyleSheet* aSheet,
 
 void
 nsCSSSelector::AppendToStringWithoutCombinators
-                   (nsAString& aString, nsCSSStyleSheet* aSheet) const
+                   (nsAString& aString, CSSStyleSheet* aSheet) const
 {
   AppendToStringWithoutCombinatorsOrNegations(aString, aSheet, false);
 
@@ -599,7 +599,7 @@ nsCSSSelector::AppendToStringWithoutCombinators
 
 void
 nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
-                   (nsAString& aString, nsCSSStyleSheet* aSheet,
+                   (nsAString& aString, CSSStyleSheet* aSheet,
                    bool aIsNegated) const
 {
   nsAutoString temp;
@@ -895,7 +895,7 @@ nsCSSSelectorList::AddSelector(char16_t aOperator)
 }
 
 void
-nsCSSSelectorList::ToString(nsAString& aResult, nsCSSStyleSheet* aSheet)
+nsCSSSelectorList::ToString(nsAString& aResult, CSSStyleSheet* aSheet)
 {
   aResult.Truncate();
   nsCSSSelectorList *p = this;
@@ -982,9 +982,11 @@ class DOMCSSStyleRule;
 
 class DOMCSSDeclarationImpl : public nsDOMCSSDeclaration
 {
+protected:
+  virtual ~DOMCSSDeclarationImpl(void);
+
 public:
   DOMCSSDeclarationImpl(css::StyleRule *aRule);
-  virtual ~DOMCSSDeclarationImpl(void);
 
   NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent) MOZ_OVERRIDE;
   void DropReference(void);
@@ -1026,7 +1028,6 @@ class DOMCSSStyleRule : public nsICSSStyleRuleDOMWrapper
 {
 public:
   DOMCSSStyleRule(StyleRule *aRule);
-  virtual ~DOMCSSStyleRule();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMCSSStyleRule)
@@ -1041,6 +1042,8 @@ public:
   friend class ::DOMCSSDeclarationImpl;
 
 protected:
+  virtual ~DOMCSSStyleRule();
+
   DOMCSSDeclarationImpl mDOMDeclaration;
 
   StyleRule* Rule() {
@@ -1438,7 +1441,7 @@ StyleRule::DeclarationChanged(Declaration* aDecl,
   nsRefPtr<StyleRule> clone = new StyleRule(*this, aDecl);
 
   if (aHandleContainer) {
-    nsCSSStyleSheet* sheet = GetStyleSheet();
+    CSSStyleSheet* sheet = GetStyleSheet();
     if (mParentRule) {
       if (sheet) {
         sheet->ReplaceRuleInGroup(mParentRule, this, clone);

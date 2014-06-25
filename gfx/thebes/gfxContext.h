@@ -37,7 +37,7 @@ template <typename T> class FallibleTArray;
  * Note that the gfxContext takes coordinates in device pixels,
  * as opposed to app units.
  */
-class gfxContext {
+class gfxContext MOZ_FINAL {
     NS_INLINE_DECL_REFCOUNTING(gfxContext)
 
 public:
@@ -53,8 +53,6 @@ public:
      */
     gfxContext(mozilla::gfx::DrawTarget *aTarget,
                const mozilla::gfx::Point& aDeviceOffset = mozilla::gfx::Point());
-
-    ~gfxContext();
 
     /**
      * Create a new gfxContext wrapping aTarget and preserving aTarget's
@@ -720,6 +718,8 @@ public:
     static mozilla::gfx::UserDataKey sDontUseAsSourceKey;
 
 private:
+    ~gfxContext();
+
   friend class GeneralPattern;
   friend struct GlyphBufferAzure;
 

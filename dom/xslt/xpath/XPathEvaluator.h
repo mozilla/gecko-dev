@@ -21,12 +21,15 @@ namespace mozilla {
 namespace dom {
 
 class GlobalObject;
+class XPathResult;
 
 /**
  * A class for evaluating an XPath expression string
  */
 class XPathEvaluator MOZ_FINAL : public nsIDOMXPathEvaluator
 {
+    ~XPathEvaluator();
+
 public:
     XPathEvaluator(nsIDocument* aDocument = nullptr);
 
@@ -50,10 +53,11 @@ public:
                          ErrorResult& rv);
     already_AddRefed<nsIDOMXPathNSResolver>
         CreateNSResolver(nsINode* aNodeResolver, ErrorResult& rv);
-    already_AddRefed<nsISupports>
-        Evaluate(const nsAString& aExpression, nsINode* aContextNode,
-                 nsIDOMXPathNSResolver* aResolver, uint16_t aType,
-                 nsISupports* aResult, ErrorResult& rv);
+    already_AddRefed<XPathResult>
+        Evaluate(JSContext* aCx, const nsAString& aExpression,
+                 nsINode* aContextNode, nsIDOMXPathNSResolver* aResolver,
+                 uint16_t aType, JS::Handle<JSObject*> aResult,
+                 ErrorResult& rv);
 private:
     nsWeakPtr mDocument;
     nsRefPtr<txResultRecycler> mRecycler;

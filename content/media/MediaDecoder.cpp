@@ -61,13 +61,14 @@ PRLogModuleInfo* gMediaDecoderLog;
 
 class MediaMemoryTracker : public nsIMemoryReporter
 {
+  virtual ~MediaMemoryTracker();
+
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
 
   MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf);
 
   MediaMemoryTracker();
-  virtual ~MediaMemoryTracker();
   void InitMemoryReporter();
 
   static StaticRefPtr<MediaMemoryTracker> sUniqueInstance;
@@ -417,7 +418,6 @@ MediaDecoder::MediaDecoder() :
   mInitialPlaybackRate(1.0),
   mInitialPreservesPitch(true),
   mDuration(-1),
-  mTransportSeekable(true),
   mMediaSeekable(true),
   mSameOriginMedia(false),
   mReentrantMonitor("media.decoder"),
@@ -429,6 +429,7 @@ MediaDecoder::MediaDecoder() :
   mIgnoreProgressData(false),
   mInfiniteStream(false),
   mOwner(nullptr),
+  mPlaybackStatistics(new MediaChannelStatistics()),
   mPinnedForSeek(false),
   mShuttingDown(false),
   mPausedForPlaybackRateNull(false),
@@ -550,8 +551,6 @@ nsresult MediaDecoder::InitializeStateMachine(MediaDecoder* aCloneDonor)
   }
   {
     ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-    mDecoderStateMachine->SetTransportSeekable(mTransportSeekable);
-    mDecoderStateMachine->SetMediaSeekable(mMediaSeekable);
     mDecoderStateMachine->SetDuration(mDuration);
     mDecoderStateMachine->SetVolume(mInitialVolume);
     mDecoderStateMachine->SetAudioCaptured(mInitialAudioCaptured);
@@ -940,7 +939,7 @@ double MediaDecoder::ComputePlaybackRate(bool* aReliable)
     *aReliable = true;
     return length * static_cast<double>(USECS_PER_S) / mDuration;
   }
-  return mPlaybackStatistics.GetRateAtLastStop(aReliable);
+  return mPlaybackStatistics->GetRateAtLastStop(aReliable);
 }
 
 void MediaDecoder::UpdatePlaybackRate()
@@ -1032,7 +1031,7 @@ void MediaDecoder::NotifyBytesConsumed(int64_t aBytes, int64_t aOffset)
     return;
   }
   if (aOffset >= mDecoderPosition) {
-    mPlaybackStatistics.AddBytes(aBytes);
+    mPlaybackStatistics->AddBytes(aBytes);
   }
   mDecoderPosition = aOffset + aBytes;
 }
@@ -1285,25 +1284,14 @@ void MediaDecoder::SetMediaSeekable(bool aMediaSeekable) {
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   MOZ_ASSERT(NS_IsMainThread() || OnDecodeThread());
   mMediaSeekable = aMediaSeekable;
-  if (mDecoderStateMachine) {
-    mDecoderStateMachine->SetMediaSeekable(aMediaSeekable);
-  }
 }
 
-void MediaDecoder::SetTransportSeekable(bool aTransportSeekable)
+bool
+MediaDecoder::IsTransportSeekable()
 {
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  MOZ_ASSERT(NS_IsMainThread() || OnDecodeThread());
-  mTransportSeekable = aTransportSeekable;
-  if (mDecoderStateMachine) {
-    mDecoderStateMachine->SetTransportSeekable(aTransportSeekable);
-  }
-}
-
-bool MediaDecoder::IsTransportSeekable()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  return mTransportSeekable;
+  MOZ_ASSERT(OnDecodeThread() || NS_IsMainThread());
+  return GetResource()->IsTransportSeekable();
 }
 
 bool MediaDecoder::IsMediaSeekable()
@@ -1528,7 +1516,7 @@ int64_t MediaDecoder::GetEndMediaTime() const {
 }
 
 // Drop reference to state machine.  Only called during shutdown dance.
-void MediaDecoder::ReleaseStateMachine() {
+void MediaDecoder::BreakCycles() {
   mDecoderStateMachine = nullptr;
 }
 
@@ -1743,7 +1731,7 @@ MediaDecoder::IsAppleMP3Enabled()
 
 NS_IMETHODIMP
 MediaMemoryTracker::CollectReports(nsIHandleReportCallback* aHandleReport,
-                                   nsISupports* aData)
+                                   nsISupports* aData, bool aAnonymize)
 {
   int64_t video = 0, audio = 0;
   size_t resources = 0;

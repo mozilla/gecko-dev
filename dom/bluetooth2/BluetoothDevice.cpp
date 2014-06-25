@@ -15,6 +15,7 @@
 
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
 #include "mozilla/dom/BluetoothDevice2Binding.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 USING_BLUETOOTH_NAMESPACE
 
@@ -45,13 +46,10 @@ NS_IMPL_ADDREF_INHERITED(BluetoothDevice, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(BluetoothDevice, DOMEventTargetHelper)
 
 BluetoothDevice::BluetoothDevice(nsPIDOMWindow* aWindow,
-                                 const nsAString& aAdapterPath,
                                  const BluetoothValue& aValue)
   : DOMEventTargetHelper(aWindow)
-  , BluetoothPropertyContainer(BluetoothObjectType::TYPE_DEVICE)
   , mJsUuids(nullptr)
   , mJsServices(nullptr)
-  , mAdapterPath(aAdapterPath)
   , mIsRooted(false)
 {
   MOZ_ASSERT(aWindow);
@@ -114,9 +112,6 @@ BluetoothDevice::SetPropertyByValue(const BluetoothNamedValue& aValue)
   const BluetoothValue& value = aValue.value();
   if (name.EqualsLiteral("Name")) {
     mName = value.get_nsString();
-  } else if (name.EqualsLiteral("Path")) {
-    MOZ_ASSERT(value.get_nsString().Length() > 0);
-    mPath = value.get_nsString();
   } else if (name.EqualsLiteral("Address")) {
     mAddress = value.get_nsString();
   } else if (name.EqualsLiteral("Class")) {
@@ -129,13 +124,13 @@ BluetoothDevice::SetPropertyByValue(const BluetoothNamedValue& aValue)
     mPaired = value.get_bool();
   } else if (name.EqualsLiteral("UUIDs")) {
     mUuids = value.get_ArrayOfnsString();
-    nsresult rv;
-    nsIScriptContext* sc = GetContextForEventHandlers(&rv);
-    NS_ENSURE_SUCCESS_VOID(rv);
-    NS_ENSURE_TRUE_VOID(sc);
 
-    AutoPushJSContext cx(sc->GetNativeContext());
-
+    AutoJSAPI jsapi;
+    if (!jsapi.InitUsingWin(GetOwner())) {
+      BT_WARNING("Failed to initialise AutoJSAPI!");
+      return;
+    }
+    JSContext* cx = jsapi.cx();
     JS::Rooted<JSObject*> uuids(cx);
     if (NS_FAILED(nsTArrayToJSArray(cx, mUuids, &uuids))) {
       BT_WARNING("Cannot set JS UUIDs object!");
@@ -145,13 +140,13 @@ BluetoothDevice::SetPropertyByValue(const BluetoothNamedValue& aValue)
     Root();
   } else if (name.EqualsLiteral("Services")) {
     mServices = value.get_ArrayOfnsString();
-    nsresult rv;
-    nsIScriptContext* sc = GetContextForEventHandlers(&rv);
-    NS_ENSURE_SUCCESS_VOID(rv);
-    NS_ENSURE_TRUE_VOID(sc);
 
-    AutoPushJSContext cx(sc->GetNativeContext());
-
+    AutoJSAPI jsapi;
+    if (!jsapi.InitUsingWin(GetOwner())) {
+      BT_WARNING("Failed to initialise AutoJSAPI!");
+      return;
+    }
+    JSContext* cx = jsapi.cx();
     JS::Rooted<JSObject*> services(cx);
     if (NS_FAILED(nsTArrayToJSArray(cx, mServices, &services))) {
       BT_WARNING("Cannot set JS Services object!");
@@ -170,14 +165,12 @@ BluetoothDevice::SetPropertyByValue(const BluetoothNamedValue& aValue)
 // static
 already_AddRefed<BluetoothDevice>
 BluetoothDevice::Create(nsPIDOMWindow* aWindow,
-                        const nsAString& aAdapterPath,
                         const BluetoothValue& aValue)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aWindow);
 
-  nsRefPtr<BluetoothDevice> device =
-    new BluetoothDevice(aWindow, aAdapterPath, aValue);
+  nsRefPtr<BluetoothDevice> device = new BluetoothDevice(aWindow, aValue);
   return device.forget();
 }
 

@@ -48,7 +48,7 @@ static PRLogModuleInfo* gTrackElementLog;
 // Replace the usual NS_IMPL_NS_NEW_HTML_ELEMENT(Track) so
 // we can return an UnknownElement instead when pref'd off.
 nsGenericHTMLElement*
-NS_NewHTMLTrackElement(already_AddRefed<nsINodeInfo>&& aNodeInfo,
+NS_NewHTMLTrackElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
                        mozilla::dom::FromParser aFromParser)
 {
   if (!mozilla::dom::HTMLTrackElement::IsWebVTTEnabled()) {
@@ -75,7 +75,7 @@ static MOZ_CONSTEXPR nsAttrValue::EnumTable kKindTable[] = {
 static MOZ_CONSTEXPR const char* kKindTableDefaultString = kKindTable->tag;
 
 /** HTMLTrackElement */
-HTMLTrackElement::HTMLTrackElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
+HTMLTrackElement::HTMLTrackElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 #ifdef PR_LOGGING
@@ -95,8 +95,7 @@ NS_IMPL_ADDREF_INHERITED(HTMLTrackElement, Element)
 NS_IMPL_RELEASE_INHERITED(HTMLTrackElement, Element)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLTrackElement, nsGenericHTMLElement,
-                                   mTrack, mChannel, mMediaParent,
-                                   mListener)
+                                   mTrack, mMediaParent, mListener)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(HTMLTrackElement)
 NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
@@ -368,6 +367,12 @@ HTMLTrackElement::DispatchTrustedEvent(const nsAString& aName)
   }
   nsContentUtils::DispatchTrustedEvent(doc, static_cast<nsIContent*>(this),
                                        aName, false, false);
+}
+
+void
+HTMLTrackElement::DropChannel()
+{
+  mChannel = nullptr;
 }
 
 } // namespace dom

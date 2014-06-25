@@ -1437,7 +1437,7 @@ ReturnType Simulator::getFromVFPRegister(int reg_index)
 void
 Simulator::getFpArgs(double *x, double *y, int32_t *z)
 {
-    if (useHardFpABI()) {
+    if (UseHardFpABI()) {
         *x = get_double_from_d_register(0);
         *y = get_double_from_d_register(1);
         *z = get_register(0);
@@ -1452,7 +1452,7 @@ void
 Simulator::setCallResultDouble(double result)
 {
     // The return value is either in r0/r1 or d0.
-    if (useHardFpABI()) {
+    if (UseHardFpABI()) {
         char buffer[2 * sizeof(vfp_registers_[0])];
         memcpy(buffer, &result, sizeof(buffer));
         // Copy result to d0.
@@ -1468,7 +1468,7 @@ Simulator::setCallResultDouble(double result)
 void
 Simulator::setCallResultFloat(float result)
 {
-    if (useHardFpABI()) {
+    if (UseHardFpABI()) {
         char buffer[sizeof(registers_[0])];
         memcpy(buffer, &result, sizeof(buffer));
         // Copy result to s0.
@@ -1491,8 +1491,8 @@ Simulator::setCallResult(int64_t res)
 int
 Simulator::readW(int32_t addr, SimInstruction *instr)
 {
-    // The regexp engines emit unaligned loads, so we don't check for them here
-    // like the other methods below.
+    // The regexp engine emits unaligned loads, so we don't check for them here
+    // like most of the other methods do.
     intptr_t *ptr = reinterpret_cast<intptr_t*>(addr);
     return *ptr;
 }
@@ -1512,13 +1512,10 @@ Simulator::writeW(int32_t addr, int value, SimInstruction *instr)
 uint16_t
 Simulator::readHU(int32_t addr, SimInstruction *instr)
 {
-    if ((addr & 1) == 0) {
-        uint16_t *ptr = reinterpret_cast<uint16_t*>(addr);
-        return *ptr;
-    }
-    printf("Unaligned unsigned halfword read at 0x%08x, pc=%p\n", addr, instr);
-    MOZ_CRASH();
-    return 0;
+    // The regexp engine emits unaligned loads, so we don't check for them here
+    // like most of the other methods do.
+    uint16_t *ptr = reinterpret_cast<uint16_t*>(addr);
+    return *ptr;
 }
 
 int16_t
@@ -2227,7 +2224,7 @@ Simulator::softwareInterrupt(SimInstruction *instr)
           }
           case Args_Float32_Float32: {
             float fval0;
-            if (useHardFpABI())
+            if (UseHardFpABI())
                 fval0 = get_float_from_s_register(0);
             else
                 fval0 = mozilla::BitwiseCast<float>(arg0);
@@ -2267,7 +2264,7 @@ Simulator::softwareInterrupt(SimInstruction *instr)
           case Args_Double_IntDouble: {
             int32_t ival = get_register(0);
             double dval0;
-            if (useHardFpABI())
+            if (UseHardFpABI())
                 dval0 = get_double_from_d_register(0);
             else
                 dval0 = get_double_from_register_pair(2);
@@ -2280,7 +2277,7 @@ Simulator::softwareInterrupt(SimInstruction *instr)
           case Args_Int_IntDouble: {
             int32_t ival = get_register(0);
             double dval0;
-            if (useHardFpABI())
+            if (UseHardFpABI())
                 dval0 = get_double_from_d_register(0);
             else
                 dval0 = get_double_from_register_pair(2);

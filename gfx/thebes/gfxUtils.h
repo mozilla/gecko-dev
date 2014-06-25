@@ -11,14 +11,16 @@
 #include "imgIContainer.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
+#include "nsPrintfCString.h"
 
+class gfxASurface;
 class gfxDrawable;
 class nsIntRegion;
 struct nsIntRect;
 
 namespace mozilla {
 namespace layers {
-class PlanarYCbCrData;
+struct PlanarYCbCrData;
 }
 }
 
@@ -40,8 +42,15 @@ public:
      * If the source is not gfxImageFormat::ARGB32, no operation is performed.  If
      * aDestSurface is given, the data is copied over.
      */
-    static void PremultiplyDataSurface(DataSourceSurface *aSurface);
-    static mozilla::TemporaryRef<DataSourceSurface> UnpremultiplyDataSurface(DataSourceSurface* aSurface);
+    static bool PremultiplyDataSurface(DataSourceSurface* srcSurf,
+                                       DataSourceSurface* destSurf);
+    static bool UnpremultiplyDataSurface(DataSourceSurface* srcSurf,
+                                         DataSourceSurface* destSurf);
+
+    static mozilla::TemporaryRef<DataSourceSurface>
+      CreatePremultipliedDataSurface(DataSourceSurface* srcSurf);
+    static mozilla::TemporaryRef<DataSourceSurface>
+      CreateUnpremultipliedDataSurface(DataSourceSurface* srcSurf);
 
     static void ConvertBGRAtoRGBA(uint8_t* aData, uint32_t aLength);
 
@@ -157,6 +166,11 @@ public:
                       const gfxIntSize& aDestSize,
                       unsigned char* aDestBuffer,
                       int32_t aStride);
+
+    /**
+     * Clears surface to transparent black.
+     */
+    static void ClearThebesSurface(gfxASurface* aSurface);
 
     /**
      * Creates a copy of aSurface, but having the SurfaceFormat aFormat.

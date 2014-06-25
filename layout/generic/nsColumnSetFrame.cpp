@@ -140,7 +140,7 @@ nsColumnSetFrame::GetAvailableContentHeight(const nsHTMLReflowState& aReflowStat
   }
 
   nsMargin bp = aReflowState.ComputedPhysicalBorderPadding();
-  ApplySkipSides(bp, &aReflowState);
+  bp.ApplySkipSides(GetSkipSides(&aReflowState));
   bp.bottom = aReflowState.ComputedPhysicalBorderPadding().bottom;
   return std::max(0, aReflowState.AvailableHeight() - bp.TopBottom());
 }
@@ -177,13 +177,13 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
     availContentWidth = aReflowState.ComputedWidth();
   }
 
-  nscoord consumedHeight = GetConsumedHeight();
+  nscoord consumedBSize = GetConsumedBSize();
 
   // The effective computed height is the height of the current continuation
   // of the column set frame. This should be the same as the computed height
   // if we have an unconstrained available height.
-  nscoord computedHeight = GetEffectiveComputedHeight(aReflowState,
-                                                      consumedHeight);
+  nscoord computedBSize = GetEffectiveComputedBSize(aReflowState,
+                                                    consumedBSize);
   nscoord colHeight = GetAvailableContentHeight(aReflowState);
 
   if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
@@ -298,7 +298,7 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
 #endif
   ReflowConfig config = { numColumns, colWidth, expectedWidthLeftOver, colGap,
                           colHeight, isBalancing, knownFeasibleHeight,
-                          knownInfeasibleHeight, computedHeight, consumedHeight };
+                          knownInfeasibleHeight, computedBSize, consumedBSize };
   return config;
 }
 
@@ -440,7 +440,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
   // get our border and padding
   nsMargin borderPadding = aReflowState.ComputedPhysicalBorderPadding();
-  ApplySkipSides(borderPadding, &aReflowState);
+  borderPadding.ApplySkipSides(GetSkipSides(&aReflowState));
   
   nsRect contentRect(0, 0, 0, 0);
   nsOverflowAreas overflowRects;
@@ -789,7 +789,7 @@ nsColumnSetFrame::FindBestBalanceHeight(const nsHTMLReflowState& aReflowState,
   bool feasible = aRunWasFeasible;
 
   nsMargin bp = aReflowState.ComputedPhysicalBorderPadding();
-  ApplySkipSides(bp);
+  bp.ApplySkipSides(GetSkipSides());
   bp.bottom = aReflowState.ComputedPhysicalBorderPadding().bottom;
 
   nscoord availableContentHeight =

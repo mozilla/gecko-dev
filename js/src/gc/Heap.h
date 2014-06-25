@@ -27,7 +27,7 @@ struct JSRuntime;
 
 namespace JS {
 namespace shadow {
-class Runtime;
+struct Runtime;
 }
 }
 
@@ -75,6 +75,7 @@ enum AllocKind {
     FINALIZE_FAT_INLINE_STRING,
     FINALIZE_STRING,
     FINALIZE_EXTERNAL_STRING,
+    FINALIZE_SYMBOL,
     FINALIZE_JITCODE,
     FINALIZE_LAST = FINALIZE_JITCODE
 };

@@ -37,8 +37,9 @@
 #include "nsIInterfaceInfo.h"
 #include "nsIScriptError.h"
 
-#include "nsIStyleRuleProcessor.h"
+#include "nsCSSRuleProcessor.h"
 #include "nsXBLResourceLoader.h"
+#include "mozilla/AddonPathService.h"
 #include "mozilla/dom/CDATASection.h"
 #include "mozilla/dom/Comment.h"
 #include "mozilla/dom/Element.h"
@@ -154,10 +155,15 @@ nsXBLPrototypeBinding::Traverse(nsCycleCollectionTraversalCallback &cb) const
 }
 
 void
-nsXBLPrototypeBinding::UnlinkJSObjects()
+nsXBLPrototypeBinding::Unlink()
 {
-  if (mImplementation)
+  if (mImplementation) {
     mImplementation->UnlinkJSObjects();
+  }
+
+  if (mResources) {
+    mResources->Unlink();
+  }
 }
 
 void
@@ -230,9 +236,7 @@ nsXBLPrototypeBinding::LoadResources()
 nsresult
 nsXBLPrototypeBinding::AddResource(nsIAtom* aResourceType, const nsAString& aSrc)
 {
-  if (!mResources) {
-    mResources = new nsXBLPrototypeResources(this);
-  }
+  EnsureResources();
 
   mResources->AddResource(aResourceType, aSrc);
   return NS_OK;
@@ -251,7 +255,7 @@ nsXBLPrototypeBinding::BindingAttached(nsIContent* aBoundElement)
 {
   if (mImplementation && mImplementation->CompiledMembers() &&
       mImplementation->mConstructor)
-    return mImplementation->mConstructor->Execute(aBoundElement);
+    return mImplementation->mConstructor->Execute(aBoundElement, MapURIToAddonID(mBindingURI));
   return NS_OK;
 }
 
@@ -260,7 +264,7 @@ nsXBLPrototypeBinding::BindingDetached(nsIContent* aBoundElement)
 {
   if (mImplementation && mImplementation->CompiledMembers() &&
       mImplementation->mDestructor)
-    return mImplementation->mDestructor->Execute(aBoundElement);
+    return mImplementation->mDestructor->Execute(aBoundElement, MapURIToAddonID(mBindingURI));
   return NS_OK;
 }
 
@@ -584,27 +588,7 @@ nsIStyleRuleProcessor*
 nsXBLPrototypeBinding::GetRuleProcessor()
 {
   if (mResources) {
-    return mResources->mRuleProcessor;
-  }
-
-  return nullptr;
-}
-
-nsXBLPrototypeResources::sheet_array_type*
-nsXBLPrototypeBinding::GetOrCreateStyleSheets()
-{
-  if (!mResources) {
-    mResources = new nsXBLPrototypeResources(this);
-  }
-
-  return &mResources->mStyleSheetList;
-}
-
-nsXBLPrototypeResources::sheet_array_type*
-nsXBLPrototypeBinding::GetStyleSheets()
-{
-  if (mResources) {
-    return &mResources->mStyleSheetList;
+    return mResources->GetRuleProcessor();
   }
 
   return nullptr;
@@ -1256,7 +1240,7 @@ nsXBLPrototypeBinding::ReadContentNode(nsIObjectInputStream* aStream,
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIAtom> tagAtom = do_GetAtom(tag);
-  nsCOMPtr<nsINodeInfo> nodeInfo =
+  nsRefPtr<NodeInfo> nodeInfo =
     aNim->GetNodeInfo(tagAtom, prefixAtom, namespaceID, nsIDOMNode::ELEMENT_NODE);
 
   uint32_t attrCount;
@@ -1303,7 +1287,7 @@ nsXBLPrototypeBinding::ReadContentNode(nsIObjectInputStream* aStream,
         if (!prefix.IsEmpty())
           prefixAtom = do_GetAtom(prefix);
 
-        nsCOMPtr<nsINodeInfo> ni =
+        nsRefPtr<NodeInfo> ni =
           aNim->GetNodeInfo(nameAtom, prefixAtom,
                             namespaceID, nsIDOMNode::ATTRIBUTE_NODE);
         attrs[i].mName.SetTo(ni);
@@ -1697,4 +1681,64 @@ nsXBLPrototypeBinding::ResolveBaseBinding()
   }
 
   return NS_OK;
+}
+
+void
+nsXBLPrototypeBinding::EnsureResources()
+{
+  if (!mResources) {
+    mResources = new nsXBLPrototypeResources(this);
+  }
+}
+
+void
+nsXBLPrototypeBinding::AppendStyleSheet(CSSStyleSheet* aSheet)
+{
+  EnsureResources();
+  mResources->AppendStyleSheet(aSheet);
+}
+
+void
+nsXBLPrototypeBinding::RemoveStyleSheet(CSSStyleSheet* aSheet)
+{
+  if (!mResources) {
+    MOZ_ASSERT(false, "Trying to remove a sheet that does not exist.");
+    return;
+  }
+
+  mResources->RemoveStyleSheet(aSheet);
+} 
+void
+nsXBLPrototypeBinding::InsertStyleSheetAt(size_t aIndex, CSSStyleSheet* aSheet)
+{
+  EnsureResources();
+  mResources->InsertStyleSheetAt(aIndex, aSheet);
+}
+
+CSSStyleSheet*
+nsXBLPrototypeBinding::StyleSheetAt(size_t aIndex) const
+{
+  MOZ_ASSERT(mResources);
+  return mResources->StyleSheetAt(aIndex);
+}
+
+size_t
+nsXBLPrototypeBinding::SheetCount() const
+{
+  return mResources ? mResources->SheetCount() : 0;
+}
+
+bool
+nsXBLPrototypeBinding::HasStyleSheets() const
+{
+  return mResources && mResources->HasStyleSheets();
+}
+
+void
+nsXBLPrototypeBinding::AppendStyleSheetsTo(
+                                      nsTArray<CSSStyleSheet*>& aResult) const
+{
+  if (mResources) {
+    mResources->AppendStyleSheetsTo(aResult);
+  }
 }

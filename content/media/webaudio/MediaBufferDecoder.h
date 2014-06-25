@@ -9,13 +9,11 @@
 
 #include "nsWrapperCache.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
-#include "SharedThreadPool.h"
+#include "nsIThreadPool.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/RefPtr.h"
 
 namespace mozilla {
 
@@ -34,7 +32,6 @@ struct WebAudioDecodeJob MOZ_FINAL
                     dom::AudioContext* aContext,
                     dom::DecodeSuccessCallback* aSuccessCallback = nullptr,
                     dom::DecodeErrorCallback* aFailureCallback = nullptr);
-  ~WebAudioDecodeJob();
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebAudioDecodeJob)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebAudioDecodeJob)
@@ -65,6 +62,9 @@ struct WebAudioDecodeJob MOZ_FINAL
   nsRefPtr<dom::DecodeErrorCallback> mFailureCallback; // can be null
   nsRefPtr<dom::AudioBuffer> mOutput;
   FallibleTArray<ChannelBuffer> mChannelBuffers;
+
+private:
+  ~WebAudioDecodeJob();
 };
 
 /**
@@ -79,6 +79,9 @@ public:
   void AsyncDecodeMedia(const char* aContentType, uint8_t* aBuffer,
                         uint32_t aLength, WebAudioDecodeJob& aDecodeJob);
 
+  ~MediaBufferDecoder() { Shutdown(); }
+  void Shutdown();
+
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
   {
     return 0;
@@ -88,7 +91,7 @@ private:
   bool EnsureThreadPoolInitialized();
 
 private:
-  RefPtr<SharedThreadPool> mThreadPool;
+  nsCOMPtr<nsIThreadPool> mThreadPool;
 };
 
 }

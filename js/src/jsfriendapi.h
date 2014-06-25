@@ -37,7 +37,7 @@ class JSAtom;
 struct JSErrorFormatString;
 class JSLinearString;
 struct JSJitInfo;
-class JSErrorReport;
+struct JSErrorReport;
 
 namespace JS {
 template <class T>
@@ -449,16 +449,6 @@ extern JS_FRIEND_API(bool)
 IsAtomsCompartment(JSCompartment *comp);
 
 /*
- * Check whether it is OK to assign an undeclared variable with the name
- * |propname| at the current location in script.  It is not an error if there is
- * no current script location, or if that location is not an assignment to an
- * undeclared variable.  Reports an error if one needs to be reported (and,
- * particularly, always reports when it returns false).
- */
-extern JS_FRIEND_API(bool)
-ReportIfUndeclaredVarAssignment(JSContext *cx, JS::HandleString propname);
-
-/*
  * Returns whether we're in a non-strict property set (in that we're in a
  * non-strict script and the bytecode we're on is a property set).  The return
  * value does NOT indicate any sort of exception was thrown: it's just a
@@ -688,7 +678,7 @@ NotifyAnimationActivity(JSObject *obj);
  * thus it will really return the outermost enclosing function *since the
  * innermost eval*.
  */
-JS_FRIEND_API(JSScript *)
+JS_FRIEND_API(JSFunction *)
 GetOutermostEnclosingFunctionOfScriptedCaller(JSContext *cx);
 
 JS_FRIEND_API(JSFunction *)
@@ -820,10 +810,12 @@ IsObjectInContextCompartment(JSObject *obj, const JSContext *cx);
  * XDR_BYTECODE_VERSION.
  */
 #define JSITER_ENUMERATE  0x1   /* for-in compatible hidden default iterator */
-#define JSITER_FOREACH    0x2   /* return [key, value] pair rather than key */
-#define JSITER_KEYVALUE   0x4   /* destructuring for-in wants [key, value] */
+#define JSITER_FOREACH    0x2   /* get obj[key] for each property */
+#define JSITER_KEYVALUE   0x4   /* obsolete destructuring for-in wants [key, value] */
 #define JSITER_OWNONLY    0x8   /* iterate over obj's own properties only */
 #define JSITER_HIDDEN     0x10  /* also enumerate non-enumerable properties */
+#define JSITER_SYMBOLS    0x20  /* also include symbol property keys */
+#define JSITER_SYMBOLSONLY 0x40 /* exclude string property keys */
 
 JS_FRIEND_API(bool)
 RunningWithTrustedPrincipals(JSContext *cx);
@@ -2056,16 +2048,13 @@ IdToValue(jsid id)
 {
     if (JSID_IS_STRING(id))
         return JS::StringValue(JSID_TO_STRING(id));
-    if (MOZ_LIKELY(JSID_IS_INT(id)))
+    if (JSID_IS_INT(id))
         return JS::Int32Value(JSID_TO_INT(id));
-    if (MOZ_LIKELY(JSID_IS_OBJECT(id)))
-        return JS::ObjectValue(*JSID_TO_OBJECT(id));
+    if (JSID_IS_SYMBOL(id))
+        return JS::SymbolValue(JSID_TO_SYMBOL(id));
     JS_ASSERT(JSID_IS_VOID(id));
     return JS::UndefinedValue();
 }
-
-extern JS_FRIEND_API(bool)
-IsTypedArrayThisCheck(JS::IsAcceptableThis test);
 
 /*
  * If the embedder has registered a default JSContext callback, returns the

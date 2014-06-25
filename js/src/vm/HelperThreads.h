@@ -457,7 +457,7 @@ OffThreadParsingMustWaitForGC(JSRuntime *rt);
 struct SourceCompressionTask
 {
     friend class ScriptSource;
-    friend class HelperThread;
+    friend struct HelperThread;
 
 #ifdef JS_THREADSAFE
     // Thread performing the compression.
@@ -482,11 +482,12 @@ struct SourceCompressionTask
     } result;
     void *compressed;
     size_t compressedBytes;
+    HashNumber compressedHash;
 
   public:
     explicit SourceCompressionTask(ExclusiveContext *cx)
       : cx(cx), ss(nullptr), abort_(false),
-        result(OOM), compressed(nullptr), compressedBytes(0)
+        result(OOM), compressed(nullptr), compressedBytes(0), compressedHash(0)
     {
 #ifdef JS_THREADSAFE
         helperThread = nullptr;

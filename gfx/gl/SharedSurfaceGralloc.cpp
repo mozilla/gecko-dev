@@ -119,6 +119,27 @@ SharedSurface_Gralloc::Create(GLContext* prodGL,
 }
 
 
+SharedSurface_Gralloc::SharedSurface_Gralloc(GLContext* prodGL,
+                                             const gfx::IntSize& size,
+                                             bool hasAlpha,
+                                             GLLibraryEGL* egl,
+                                             layers::ISurfaceAllocator* allocator,
+                                             layers::GrallocTextureClientOGL* textureClient,
+                                             GLuint prodTex)
+    : SharedSurface_GL(SharedSurfaceType::Gralloc,
+                       AttachmentType::GLTexture,
+                       prodGL,
+                       size,
+                       hasAlpha)
+    , mEGL(egl)
+    , mSync(0)
+    , mAllocator(allocator)
+    , mTextureClient(textureClient)
+    , mProdTex(prodTex)
+{
+}
+
+
 bool
 SharedSurface_Gralloc::HasExtensions(GLLibraryEGL* egl, GLContext* gl)
 {
@@ -148,10 +169,19 @@ SharedSurface_Gralloc::Fence()
         mSync = 0;
     }
 
+    bool disableSyncFence = false;
+    // Disable sync fence on AdrenoTM200.
+    // AdrenoTM200's sync fence does not work correctly. See Bug 1022205.
+    if (mGL->Renderer() == GLRenderer::AdrenoTM200) {
+        disableSyncFence = true;
+    }
+
     // When Android native fences are available, try
     // them first since they're more likely to work.
     // Android native fences are also likely to perform better.
-    if (mEGL->IsExtensionSupported(GLLibraryEGL::ANDROID_native_fence_sync)) {
+    if (!disableSyncFence &&
+        mEGL->IsExtensionSupported(GLLibraryEGL::ANDROID_native_fence_sync))
+    {
         mGL->MakeCurrent();
         EGLSync sync = mEGL->fCreateSync(mEGL->Display(),
                                          LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID,
@@ -175,7 +205,9 @@ SharedSurface_Gralloc::Fence()
         }
     }
 
-    if (mEGL->IsExtensionSupported(GLLibraryEGL::KHR_fence_sync)) {
+    if (!disableSyncFence &&
+        mEGL->IsExtensionSupported(GLLibraryEGL::KHR_fence_sync))
+    {
         mGL->MakeCurrent();
         mSync = mEGL->fCreateSync(mEGL->Display(),
                                   LOCAL_EGL_SYNC_FENCE,

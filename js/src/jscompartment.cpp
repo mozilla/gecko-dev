@@ -44,6 +44,7 @@ JSCompartment::JSCompartment(Zone *zone, const JS::CompartmentOptions &options =
     isSystem(false),
     isSelfHosting(false),
     marked(true),
+    addonId(options.addonIdOrNull()),
 #ifdef DEBUG
     firedOnNewGlobalObject(false),
 #endif
@@ -263,6 +264,53 @@ JSCompartment::putWrapper(JSContext *cx, const CrossCompartmentKey &wrapped, con
     return success;
 }
 
+static JSString *
+CopyStringPure(JSContext *cx, JSString *str)
+{
+    /*
+     * Directly allocate the copy in the destination compartment, rather than
+     * first flattening it (and possibly allocating in source compartment),
+     * because we don't know whether the flattening will pay off later.
+     */
+
+    size_t len = str->length();
+    JSString *copy;
+    if (str->isLinear()) {
+        /* Only use AutoStableStringChars if the NoGC allocation fails. */
+        if (str->hasLatin1Chars()) {
+            JS::AutoCheckCannotGC nogc;
+            copy = NewStringCopyN<NoGC>(cx, str->asLinear().latin1Chars(nogc), len);
+        } else {
+            JS::AutoCheckCannotGC nogc;
+            copy = NewStringCopyNDontDeflate<NoGC>(cx, str->asLinear().twoByteChars(nogc), len);
+        }
+        if (copy)
+            return copy;
+
+        AutoStableStringChars chars(cx);
+        if (!chars.init(cx, str))
+            return nullptr;
+
+        return chars.isLatin1()
+               ? NewStringCopyN<CanGC>(cx, chars.latin1Range().start().get(), len)
+               : NewStringCopyNDontDeflate<CanGC>(cx, chars.twoByteRange().start().get(), len);
+    }
+
+    if (str->hasLatin1Chars()) {
+        ScopedJSFreePtr<Latin1Char> copiedChars;
+        if (!str->asRope().copyLatin1CharsZ(cx, copiedChars))
+            return nullptr;
+
+        return NewString<CanGC>(cx, copiedChars.forget(), len);
+    }
+
+    ScopedJSFreePtr<jschar> copiedChars;
+    if (!str->asRope().copyTwoByteCharsZ(cx, copiedChars))
+        return nullptr;
+
+    return NewString<CanGC>(cx, copiedChars.forget(), len);
+}
+
 bool
 JSCompartment::wrap(JSContext *cx, JSString **strp)
 {
@@ -288,22 +336,8 @@ JSCompartment::wrap(JSContext *cx, JSString **strp)
         return true;
     }
 
-    /*
-     * No dice. Make a copy, and cache it. Directly allocate the copy in the
-     * destination compartment, rather than first flattening it (and possibly
-     * allocating in source compartment), because we don't know whether the
-     * flattening will pay off later.
-     */
-    JSString *copy;
-    if (str->hasPureChars()) {
-        copy = js_NewStringCopyN<CanGC>(cx, str->pureChars(), str->length());
-    } else {
-        ScopedJSFreePtr<jschar> copiedChars;
-        if (!str->copyNonPureCharsZ(cx, copiedChars))
-            return false;
-        copy = js_NewString<CanGC>(cx, copiedChars.forget(), str->length());
-    }
-
+    /* No dice. Make a copy, and cache it. */
+    JSString *copy = CopyStringPure(cx, str);
     if (!copy)
         return false;
     if (!putWrapper(cx, CrossCompartmentKey(key), StringValue(copy)))
@@ -427,23 +461,6 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
 }
 
 bool
-JSCompartment::wrapId(JSContext *cx, jsid *idp)
-{
-    MOZ_ASSERT(*idp != JSID_VOID, "JSID_VOID is an out-of-band sentinel value");
-    if (JSID_IS_INT(*idp))
-        return true;
-    RootedValue value(cx, IdToValue(*idp));
-    if (!wrap(cx, &value))
-        return false;
-    RootedId id(cx);
-    if (!ValueToId<CanGC>(cx, value, &id))
-        return false;
-
-    *idp = id;
-    return true;
-}
-
-bool
 JSCompartment::wrap(JSContext *cx, PropertyOp *propp)
 {
     RootedValue value(cx, CastAsObjectJsval(*propp));
@@ -479,18 +496,6 @@ JSCompartment::wrap(JSContext *cx, MutableHandle<PropertyDescriptor> desc)
     }
 
     return wrap(cx, desc.value());
-}
-
-bool
-JSCompartment::wrap(JSContext *cx, AutoIdVector &props)
-{
-    jsid *vector = props.begin();
-    int length = props.length();
-    for (size_t n = 0; n < size_t(length); ++n) {
-        if (!wrapId(cx, &vector[n]))
-            return false;
-    }
-    return true;
 }
 
 bool

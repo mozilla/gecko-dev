@@ -344,9 +344,6 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
         script = JS_GetFunctionScript(cx, function);
     }
 
-    loader->NoteSubScript(script, targetObj);
-
-
     bool ok = false;
     if (function) {
         ok = JS_CallFunction(cx, targetObj, function, JS::HandleValueArray::empty(),
@@ -388,6 +385,12 @@ public:
         , mScriptLength(0)
     {}
 
+    static void OffThreadCallback(void *aToken, void *aData);
+
+    /* Sends the "done" notification back. Main thread only. */
+    void SendObserverNotification();
+
+private:
     virtual ~ScriptPrecompiler()
     {
       if (mScriptBuf) {
@@ -395,12 +398,6 @@ public:
       }
     }
 
-    static void OffThreadCallback(void *aToken, void *aData);
-
-    /* Sends the "done" notification back. Main thread only. */
-    void SendObserverNotification();
-
-private:
     nsRefPtr<nsIObserver> mObserver;
     nsRefPtr<nsIPrincipal> mPrincipal;
     nsRefPtr<nsIChannel> mChannel;

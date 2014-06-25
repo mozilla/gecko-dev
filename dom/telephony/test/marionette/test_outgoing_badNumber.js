@@ -17,7 +17,7 @@ function dial() {
   telephony.dial(number).then(call => {
     outgoing = call;
     ok(outgoing);
-    is(outgoing.number, number);
+    is(outgoing.id.number, number);
     is(outgoing.state, "dialing");
 
     is(outgoing, telephony.active);
@@ -30,9 +30,8 @@ function dial() {
       ok(event.call.error);
       is(event.call.error.name, "BadNumberError");
 
-      emulator.run("gsm list", function(result) {
+      emulator.runWithCallback("gsm list", function(result) {
         log("Initial call list: " + result);
-        is(result[0], "OK");
         cleanUp();
       });
     };

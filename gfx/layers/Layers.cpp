@@ -18,7 +18,6 @@
 #include "gfxPlatform.h"                // for gfxPlatform
 #include "gfxUtils.h"                   // for gfxUtils, etc
 #include "gfx2DGlue.h"
-#include "gfxImageSurface.h"
 #include "mozilla/DebugOnly.h"          // for DebugOnly
 #include "mozilla/Telemetry.h"          // for Accumulate
 #include "mozilla/gfx/2D.h"             // for DrawTarget
@@ -248,28 +247,32 @@ CreateCSSValueList(const InfallibleTArray<TransformFunction>& aFunctions)
       case TransformFunction::TRotationX:
       {
         float theta = aFunctions[i].get_RotationX().radians();
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_rotatex, resultTail);
+        arr = StyleAnimationValue::AppendTransformFunction(eCSSKeyword_rotatex,
+                                                           resultTail);
         arr->Item(1).SetFloatValue(theta, eCSSUnit_Radian);
         break;
       }
       case TransformFunction::TRotationY:
       {
         float theta = aFunctions[i].get_RotationY().radians();
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_rotatey, resultTail);
+        arr = StyleAnimationValue::AppendTransformFunction(eCSSKeyword_rotatey,
+                                                           resultTail);
         arr->Item(1).SetFloatValue(theta, eCSSUnit_Radian);
         break;
       }
       case TransformFunction::TRotationZ:
       {
         float theta = aFunctions[i].get_RotationZ().radians();
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_rotatez, resultTail);
+        arr = StyleAnimationValue::AppendTransformFunction(eCSSKeyword_rotatez,
+                                                           resultTail);
         arr->Item(1).SetFloatValue(theta, eCSSUnit_Radian);
         break;
       }
       case TransformFunction::TRotation:
       {
         float theta = aFunctions[i].get_Rotation().radians();
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_rotate, resultTail);
+        arr = StyleAnimationValue::AppendTransformFunction(eCSSKeyword_rotate,
+                                                           resultTail);
         arr->Item(1).SetFloatValue(theta, eCSSUnit_Radian);
         break;
       }
@@ -279,7 +282,9 @@ CreateCSSValueList(const InfallibleTArray<TransformFunction>& aFunctions)
         float y = aFunctions[i].get_Rotation3D().y();
         float z = aFunctions[i].get_Rotation3D().z();
         float theta = aFunctions[i].get_Rotation3D().radians();
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_rotate3d, resultTail);
+        arr =
+          StyleAnimationValue::AppendTransformFunction(eCSSKeyword_rotate3d,
+                                                       resultTail);
         arr->Item(1).SetFloatValue(x, eCSSUnit_Number);
         arr->Item(2).SetFloatValue(y, eCSSUnit_Number);
         arr->Item(3).SetFloatValue(z, eCSSUnit_Number);
@@ -288,7 +293,9 @@ CreateCSSValueList(const InfallibleTArray<TransformFunction>& aFunctions)
       }
       case TransformFunction::TScale:
       {
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_scale3d, resultTail);
+        arr =
+          StyleAnimationValue::AppendTransformFunction(eCSSKeyword_scale3d,
+                                                       resultTail);
         arr->Item(1).SetFloatValue(aFunctions[i].get_Scale().x(), eCSSUnit_Number);
         arr->Item(2).SetFloatValue(aFunctions[i].get_Scale().y(), eCSSUnit_Number);
         arr->Item(3).SetFloatValue(aFunctions[i].get_Scale().z(), eCSSUnit_Number);
@@ -296,7 +303,9 @@ CreateCSSValueList(const InfallibleTArray<TransformFunction>& aFunctions)
       }
       case TransformFunction::TTranslation:
       {
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_translate3d, resultTail);
+        arr =
+          StyleAnimationValue::AppendTransformFunction(eCSSKeyword_translate3d,
+                                                       resultTail);
         arr->Item(1).SetFloatValue(aFunctions[i].get_Translation().x(), eCSSUnit_Pixel);
         arr->Item(2).SetFloatValue(aFunctions[i].get_Translation().y(), eCSSUnit_Pixel);
         arr->Item(3).SetFloatValue(aFunctions[i].get_Translation().z(), eCSSUnit_Pixel);
@@ -305,27 +314,32 @@ CreateCSSValueList(const InfallibleTArray<TransformFunction>& aFunctions)
       case TransformFunction::TSkewX:
       {
         float x = aFunctions[i].get_SkewX().x();
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_skewx, resultTail);
+        arr = StyleAnimationValue::AppendTransformFunction(eCSSKeyword_skewx,
+                                                           resultTail);
         arr->Item(1).SetFloatValue(x, eCSSUnit_Radian);
         break;
       }
       case TransformFunction::TSkewY:
       {
         float y = aFunctions[i].get_SkewY().y();
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_skewy, resultTail);
+        arr = StyleAnimationValue::AppendTransformFunction(eCSSKeyword_skewy,
+                                                           resultTail);
         arr->Item(1).SetFloatValue(y, eCSSUnit_Radian);
         break;
       }
       case TransformFunction::TSkew:
       {
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_skew, resultTail);
+        arr = StyleAnimationValue::AppendTransformFunction(eCSSKeyword_skew,
+                                                           resultTail);
         arr->Item(1).SetFloatValue(aFunctions[i].get_Skew().x(), eCSSUnit_Radian);
         arr->Item(2).SetFloatValue(aFunctions[i].get_Skew().y(), eCSSUnit_Radian);
         break;
       }
       case TransformFunction::TTransformMatrix:
       {
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_matrix3d, resultTail);
+        arr =
+          StyleAnimationValue::AppendTransformFunction(eCSSKeyword_matrix3d,
+                                                       resultTail);
         const gfx::Matrix4x4& matrix = aFunctions[i].get_TransformMatrix().value();
         arr->Item(1).SetFloatValue(matrix._11, eCSSUnit_Number);
         arr->Item(2).SetFloatValue(matrix._12, eCSSUnit_Number);
@@ -348,7 +362,9 @@ CreateCSSValueList(const InfallibleTArray<TransformFunction>& aFunctions)
       case TransformFunction::TPerspective:
       {
         float perspective = aFunctions[i].get_Perspective().value();
-        arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_perspective, resultTail);
+        arr =
+          StyleAnimationValue::AppendTransformFunction(eCSSKeyword_perspective,
+                                                       resultTail);
         arr->Item(1).SetFloatValue(perspective, eCSSUnit_Pixel);
         break;
       }
@@ -397,14 +413,14 @@ Layer::SetAnimations(const AnimationArray& aAnimations)
       functions.AppendElement(ctf);
     }
 
-    // Precompute the nsStyleAnimation::Values that we need if this is a transform
+    // Precompute the StyleAnimationValues that we need if this is a transform
     // animation.
-    InfallibleTArray<nsStyleAnimation::Value>& startValues = data->mStartValues;
-    InfallibleTArray<nsStyleAnimation::Value>& endValues = data->mEndValues;
+    InfallibleTArray<StyleAnimationValue>& startValues = data->mStartValues;
+    InfallibleTArray<StyleAnimationValue>& endValues = data->mEndValues;
     for (uint32_t j = 0; j < mAnimations[i].segments().Length(); j++) {
       const AnimationSegment& segment = mAnimations[i].segments()[j];
-      nsStyleAnimation::Value* startValue = startValues.AppendElement();
-      nsStyleAnimation::Value* endValue = endValues.AppendElement();
+      StyleAnimationValue* startValue = startValues.AppendElement();
+      StyleAnimationValue* endValue = endValues.AppendElement();
       if (segment.endState().type() == Animatable::TArrayOfTransformFunction) {
         const InfallibleTArray<TransformFunction>& startFunctions =
           segment.startState().get_ArrayOfTransformFunction();
@@ -1198,11 +1214,11 @@ LayerManager::BeginTabSwitch()
   mTabSwitchStart = TimeStamp::Now();
 }
 
-static nsACString& PrintInfo(nsACString& aTo, LayerComposite* aLayerComposite);
+static void PrintInfo(std::stringstream& aStream, LayerComposite* aLayerComposite);
 
 #ifdef MOZ_DUMP_PAINTING
 template <typename T>
-void WriteSnapshotLinkToDumpFile(T* aObj, FILE* aFile)
+void WriteSnapshotLinkToDumpFile(T* aObj, std::stringstream& aStream)
 {
   if (!aObj) {
     return;
@@ -1210,7 +1226,7 @@ void WriteSnapshotLinkToDumpFile(T* aObj, FILE* aFile)
   nsCString string(aObj->Name());
   string.Append('-');
   string.AppendInt((uint64_t)aObj);
-  fprintf_stderr(aFile, "href=\"javascript:ViewImage('%s')\"", string.BeginReading());
+  aStream << nsPrintfCString("href=\"javascript:ViewImage('%s')\"", string.BeginReading()).get();
 }
 
 template <typename T>
@@ -1252,61 +1268,60 @@ void WriteSnapshotToDumpFile(Compositor* aCompositor, DrawTarget* aTarget)
 #endif
 
 void
-Layer::Dump(FILE* aFile, const char* aPrefix, bool aDumpHtml)
+Layer::Dump(std::stringstream& aStream, const char* aPrefix, bool aDumpHtml)
 {
   if (aDumpHtml) {
-    fprintf_stderr(aFile, "<li><a id=\"%p\" ", this);
+    aStream << nsPrintfCString("<li><a id=\"%p\" ", this).get();
 #ifdef MOZ_DUMP_PAINTING
     if (GetType() == TYPE_CONTAINER || GetType() == TYPE_THEBES) {
-      WriteSnapshotLinkToDumpFile(this, aFile);
+      WriteSnapshotLinkToDumpFile(this, aStream);
     }
 #endif
-    fprintf_stderr(aFile, ">");
+    aStream << ">";
   }
-  DumpSelf(aFile, aPrefix);
+  DumpSelf(aStream, aPrefix);
 
 #ifdef MOZ_DUMP_PAINTING
   if (gfxUtils::sDumpPainting && AsLayerComposite() && AsLayerComposite()->GetCompositableHost()) {
-    AsLayerComposite()->GetCompositableHost()->Dump(aFile, aPrefix, aDumpHtml);
+    AsLayerComposite()->GetCompositableHost()->Dump(aStream, aPrefix, aDumpHtml);
   }
 #endif
 
   if (aDumpHtml) {
-    fprintf_stderr(aFile, "</a>");
+    aStream << "</a>";
   }
 
   if (Layer* mask = GetMaskLayer()) {
-    fprintf_stderr(aFile, "%s  Mask layer:\n", aPrefix);
+    aStream << nsPrintfCString("%s  Mask layer:\n", aPrefix).get();
     nsAutoCString pfx(aPrefix);
     pfx += "    ";
-    mask->Dump(aFile, pfx.get(), aDumpHtml);
+    mask->Dump(aStream, pfx.get(), aDumpHtml);
   }
 
   if (Layer* kid = GetFirstChild()) {
     nsAutoCString pfx(aPrefix);
     pfx += "  ";
     if (aDumpHtml) {
-      fprintf_stderr(aFile, "<ul>");
+      aStream << "<ul>";
     }
-    kid->Dump(aFile, pfx.get(), aDumpHtml);
+    kid->Dump(aStream, pfx.get(), aDumpHtml);
     if (aDumpHtml) {
-      fprintf_stderr(aFile, "</ul>");
+      aStream << "</ul>";
     }
   }
 
   if (aDumpHtml) {
-    fprintf_stderr(aFile, "</li>");
+    aStream << "</li>";
   }
   if (Layer* next = GetNextSibling())
-    next->Dump(aFile, aPrefix, aDumpHtml);
+    next->Dump(aStream, aPrefix, aDumpHtml);
 }
 
 void
-Layer::DumpSelf(FILE* aFile, const char* aPrefix)
+Layer::DumpSelf(std::stringstream& aStream, const char* aPrefix)
 {
-  nsAutoCString str;
-  PrintInfo(str, aPrefix);
-  fprintf_stderr(aFile, "%s\n", str.get());
+  PrintInfo(aStream, aPrefix);
+  aStream << "\n";
 }
 
 void
@@ -1333,9 +1348,9 @@ Layer::LogSelf(const char* aPrefix)
   if (!IsLogEnabled())
     return;
 
-  nsAutoCString str;
-  PrintInfo(str, aPrefix);
-  MOZ_LAYERS_LOG(("%s", str.get()));
+  std::stringstream ss;
+  PrintInfo(ss, aPrefix);
+  MOZ_LAYERS_LOG(("%s", ss.str().c_str()));
 
   if (mMaskLayer) {
     nsAutoCString pfx(aPrefix);
@@ -1344,199 +1359,187 @@ Layer::LogSelf(const char* aPrefix)
   }
 }
 
-nsACString&
-Layer::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+Layer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  aTo += aPrefix;
-  aTo += nsPrintfCString("%s%s (0x%p)", mManager->Name(), Name(), this);
+  aStream << aPrefix;
+  aStream << nsPrintfCString("%s%s (0x%p)", mManager->Name(), Name(), this).get();
 
-  layers::PrintInfo(aTo, AsLayerComposite());
+  layers::PrintInfo(aStream, AsLayerComposite());
 
   if (mUseClipRect) {
-    AppendToString(aTo, mClipRect, " [clip=", "]");
+    AppendToString(aStream, mClipRect, " [clip=", "]");
   }
   if (1.0 != mPostXScale || 1.0 != mPostYScale) {
-    aTo.AppendPrintf(" [postScale=%g, %g]", mPostXScale, mPostYScale);
+    aStream << nsPrintfCString(" [postScale=%g, %g]", mPostXScale, mPostYScale).get();
   }
   if (!mTransform.IsIdentity()) {
-    AppendToString(aTo, mTransform, " [transform=", "]");
+    AppendToString(aStream, mTransform, " [transform=", "]");
   }
   if (!mVisibleRegion.IsEmpty()) {
-    AppendToString(aTo, mVisibleRegion, " [visible=", "]");
+    AppendToString(aStream, mVisibleRegion, " [visible=", "]");
   } else {
-    aTo += " [not visible]";
+    aStream << " [not visible]";
   }
   if (!mEventRegions.mHitRegion.IsEmpty()) {
-    AppendToString(aTo, mEventRegions.mHitRegion, " [hitregion=", "]");
+    AppendToString(aStream, mEventRegions.mHitRegion, " [hitregion=", "]");
   }
   if (!mEventRegions.mDispatchToContentHitRegion.IsEmpty()) {
-    AppendToString(aTo, mEventRegions.mDispatchToContentHitRegion, " [dispatchtocontentregion=", "]");
+    AppendToString(aStream, mEventRegions.mDispatchToContentHitRegion, " [dispatchtocontentregion=", "]");
   }
   if (1.0 != mOpacity) {
-    aTo.AppendPrintf(" [opacity=%g]", mOpacity);
+    aStream << nsPrintfCString(" [opacity=%g]", mOpacity).get();
   }
   if (GetContentFlags() & CONTENT_OPAQUE) {
-    aTo += " [opaqueContent]";
+    aStream << " [opaqueContent]";
   }
   if (GetContentFlags() & CONTENT_COMPONENT_ALPHA) {
-    aTo += " [componentAlpha]";
+    aStream << " [componentAlpha]";
   }
   if (GetScrollbarDirection() == VERTICAL) {
-    aTo.AppendPrintf(" [vscrollbar=%lld]", GetScrollbarTargetContainerId());
+    aStream << nsPrintfCString(" [vscrollbar=%lld]", GetScrollbarTargetContainerId()).get();
   }
   if (GetScrollbarDirection() == HORIZONTAL) {
-    aTo.AppendPrintf(" [hscrollbar=%lld]", GetScrollbarTargetContainerId());
+    aStream << nsPrintfCString(" [hscrollbar=%lld]", GetScrollbarTargetContainerId()).get();
   }
   if (GetIsFixedPosition()) {
-    aTo.AppendPrintf(" [isFixedPosition anchor=%f,%f margin=%f,%f,%f,%f]", mAnchor.x, mAnchor.y,
-                     mMargins.top, mMargins.right, mMargins.bottom, mMargins.left);
+    aStream << nsPrintfCString(" [isFixedPosition anchor=%f,%f margin=%f,%f,%f,%f]", mAnchor.x, mAnchor.y,
+                     mMargins.top, mMargins.right, mMargins.bottom, mMargins.left).get();
   }
   if (GetIsStickyPosition()) {
-    aTo.AppendPrintf(" [isStickyPosition scrollId=%d outer=%f,%f %fx%f "
+    aStream << nsPrintfCString(" [isStickyPosition scrollId=%d outer=%f,%f %fx%f "
                      "inner=%f,%f %fx%f]", mStickyPositionData->mScrollId,
                      mStickyPositionData->mOuter.x, mStickyPositionData->mOuter.y,
                      mStickyPositionData->mOuter.width, mStickyPositionData->mOuter.height,
                      mStickyPositionData->mInner.x, mStickyPositionData->mInner.y,
-                     mStickyPositionData->mInner.width, mStickyPositionData->mInner.height);
+                     mStickyPositionData->mInner.width, mStickyPositionData->mInner.height).get();
   }
   if (mMaskLayer) {
-    aTo.AppendPrintf(" [mMaskLayer=%p]", mMaskLayer.get());
+    aStream << nsPrintfCString(" [mMaskLayer=%p]", mMaskLayer.get()).get();
   }
-
-  return aTo;
 }
 
-nsACString&
-ThebesLayer::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+ThebesLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  Layer::PrintInfo(aTo, aPrefix);
+  Layer::PrintInfo(aStream, aPrefix);
   if (!mValidRegion.IsEmpty()) {
-    AppendToString(aTo, mValidRegion, " [valid=", "]");
+    AppendToString(aStream, mValidRegion, " [valid=", "]");
   }
-  return aTo;
 }
 
-nsACString&
-ContainerLayer::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+ContainerLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  Layer::PrintInfo(aTo, aPrefix);
+  Layer::PrintInfo(aStream, aPrefix);
   if (!mFrameMetrics.IsDefault()) {
-    AppendToString(aTo, mFrameMetrics, " [metrics=", "]");
+    AppendToString(aStream, mFrameMetrics, " [metrics=", "]");
   }
   if (mScrollHandoffParentId != FrameMetrics::NULL_SCROLL_ID) {
-    aTo.AppendPrintf(" [scrollParent=%llu]", mScrollHandoffParentId);
+    aStream << nsPrintfCString(" [scrollParent=%llu]", mScrollHandoffParentId).get();
   }
   if (UseIntermediateSurface()) {
-    aTo += " [usesTmpSurf]";
+    aStream << " [usesTmpSurf]";
   }
   if (1.0 != mPreXScale || 1.0 != mPreYScale) {
-    aTo.AppendPrintf(" [preScale=%g, %g]", mPreXScale, mPreYScale);
+    aStream << nsPrintfCString(" [preScale=%g, %g]", mPreXScale, mPreYScale).get();
   }
-  return aTo;
 }
 
-nsACString&
-ColorLayer::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+ColorLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  Layer::PrintInfo(aTo, aPrefix);
-  AppendToString(aTo, mColor, " [color=", "]");
-  return aTo;
+  Layer::PrintInfo(aStream, aPrefix);
+  AppendToString(aStream, mColor, " [color=", "]");
 }
 
-nsACString&
-CanvasLayer::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+CanvasLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  Layer::PrintInfo(aTo, aPrefix);
+  Layer::PrintInfo(aStream, aPrefix);
   if (mFilter != GraphicsFilter::FILTER_GOOD) {
-    AppendToString(aTo, mFilter, " [filter=", "]");
+    AppendToString(aStream, mFilter, " [filter=", "]");
   }
-  return aTo;
 }
 
-nsACString&
-ImageLayer::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+ImageLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  Layer::PrintInfo(aTo, aPrefix);
+  Layer::PrintInfo(aStream, aPrefix);
   if (mFilter != GraphicsFilter::FILTER_GOOD) {
-    AppendToString(aTo, mFilter, " [filter=", "]");
+    AppendToString(aStream, mFilter, " [filter=", "]");
   }
-  return aTo;
 }
 
-nsACString&
-RefLayer::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+RefLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  ContainerLayer::PrintInfo(aTo, aPrefix);
+  ContainerLayer::PrintInfo(aStream, aPrefix);
   if (0 != mId) {
-    AppendToString(aTo, mId, " [id=", "]");
+    AppendToString(aStream, mId, " [id=", "]");
   }
-  return aTo;
 }
 
-nsACString&
-ReadbackLayer::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+ReadbackLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  Layer::PrintInfo(aTo, aPrefix);
-  AppendToString(aTo, mSize, " [size=", "]");
+  Layer::PrintInfo(aStream, aPrefix);
+  AppendToString(aStream, mSize, " [size=", "]");
   if (mBackgroundLayer) {
-    AppendToString(aTo, mBackgroundLayer, " [backgroundLayer=", "]");
-    AppendToString(aTo, mBackgroundLayerOffset, " [backgroundOffset=", "]");
+    AppendToString(aStream, mBackgroundLayer, " [backgroundLayer=", "]");
+    AppendToString(aStream, mBackgroundLayerOffset, " [backgroundOffset=", "]");
   } else if (mBackgroundColor.a == 1.0) {
-    AppendToString(aTo, mBackgroundColor, " [backgroundColor=", "]");
+    AppendToString(aStream, mBackgroundColor, " [backgroundColor=", "]");
   } else {
-    aTo += " [nobackground]";
+    aStream << " [nobackground]";
   }
-  return aTo;
 }
 
 //--------------------------------------------------
 // LayerManager
 
 void
-LayerManager::Dump(FILE* aFile, const char* aPrefix, bool aDumpHtml)
+LayerManager::Dump(std::stringstream& aStream, const char* aPrefix, bool aDumpHtml)
 {
-  FILE* file = FILEOrDefault(aFile);
-
 #ifdef MOZ_DUMP_PAINTING
   if (aDumpHtml) {
-    fprintf_stderr(file, "<ul><li><a ");
-    WriteSnapshotLinkToDumpFile(this, file);
-    fprintf_stderr(file, ">");
+    aStream << "<ul><li><a ";
+    WriteSnapshotLinkToDumpFile(this, aStream);
+    aStream << ">";
   }
 #endif
-  DumpSelf(file, aPrefix);
+  DumpSelf(aStream, aPrefix);
 #ifdef MOZ_DUMP_PAINTING
   if (aDumpHtml) {
-    fprintf_stderr(file, "</a>");
+    aStream << "</a>";
   }
 #endif
 
   nsAutoCString pfx(aPrefix);
   pfx += "  ";
   if (!GetRoot()) {
-    fprintf_stderr(file, "%s(null)", pfx.get());
+    aStream << nsPrintfCString("%s(null)", pfx.get()).get();
     if (aDumpHtml) {
-      fprintf_stderr(file, "</li></ul>");
+      aStream << "</li></ul>";
     }
     return;
   }
 
   if (aDumpHtml) {
-    fprintf_stderr(file, "<ul>");
+    aStream << "<ul>";
   }
-  GetRoot()->Dump(file, pfx.get(), aDumpHtml);
+  GetRoot()->Dump(aStream, pfx.get(), aDumpHtml);
   if (aDumpHtml) {
-    fprintf_stderr(file, "</ul></li></ul>");
+    aStream << "</ul></li></ul>";
   }
-  fprintf_stderr(file, "\n");
+  aStream << "\n";
 }
 
 void
-LayerManager::DumpSelf(FILE* aFile, const char* aPrefix)
+LayerManager::DumpSelf(std::stringstream& aStream, const char* aPrefix)
 {
-  nsAutoCString str;
-  PrintInfo(str, aPrefix);
-  fprintf_stderr(FILEOrDefault(aFile), "%s\n", str.get());
+  PrintInfo(aStream, aPrefix);
+  aStream << "\n";
 }
 
 void
@@ -1561,15 +1564,15 @@ void
 LayerManager::LogSelf(const char* aPrefix)
 {
   nsAutoCString str;
-  PrintInfo(str, aPrefix);
-  MOZ_LAYERS_LOG(("%s", str.get()));
+  std::stringstream ss;
+  PrintInfo(ss, aPrefix);
+  MOZ_LAYERS_LOG(("%s", ss.str().c_str()));
 }
 
-nsACString&
-LayerManager::PrintInfo(nsACString& aTo, const char* aPrefix)
+void
+LayerManager::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  aTo += aPrefix;
-  return aTo += nsPrintfCString("%sLayerManager (0x%p)", Name(), this);
+  aStream << aPrefix << nsPrintfCString("%sLayerManager (0x%p)", Name(), this).get();
 }
 
 /*static*/ void
@@ -1587,22 +1590,21 @@ LayerManager::IsLogEnabled()
   return PR_LOG_TEST(sLog, PR_LOG_DEBUG);
 }
 
-static nsACString&
-PrintInfo(nsACString& aTo, LayerComposite* aLayerComposite)
+void
+PrintInfo(std::stringstream& aStream, LayerComposite* aLayerComposite)
 {
   if (!aLayerComposite) {
-    return aTo;
+    return;
   }
   if (const nsIntRect* clipRect = aLayerComposite->GetShadowClipRect()) {
-    AppendToString(aTo, *clipRect, " [shadow-clip=", "]");
+    AppendToString(aStream, *clipRect, " [shadow-clip=", "]");
   }
   if (!aLayerComposite->GetShadowTransform().IsIdentity()) {
-    AppendToString(aTo, aLayerComposite->GetShadowTransform(), " [shadow-transform=", "]");
+    AppendToString(aStream, aLayerComposite->GetShadowTransform(), " [shadow-transform=", "]");
   }
   if (!aLayerComposite->GetShadowVisibleRegion().IsEmpty()) {
-    AppendToString(aTo, aLayerComposite->GetShadowVisibleRegion(), " [shadow-visible=", "]");
+    AppendToString(aStream, aLayerComposite->GetShadowVisibleRegion(), " [shadow-visible=", "]");
   }
-  return aTo;
 }
 
 void

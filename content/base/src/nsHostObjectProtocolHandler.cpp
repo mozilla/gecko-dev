@@ -33,11 +33,13 @@ namespace mozilla {
 
 class HostObjectURLsReporter MOZ_FINAL : public nsIMemoryReporter
 {
+  ~HostObjectURLsReporter() {}
+
  public:
   NS_DECL_ISUPPORTS
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData)
+                            nsISupports* aData, bool aAnonymize)
   {
     return MOZ_COLLECT_REPORT(
       "host-object-urls", KIND_OTHER, UNITS_COUNT,
@@ -55,11 +57,12 @@ class BlobURLsReporter MOZ_FINAL : public nsIMemoryReporter
   NS_DECL_ISUPPORTS
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aCallback,
-                            nsISupports* aData)
+                            nsISupports* aData, bool aAnonymize)
   {
     EnumArg env;
     env.mCallback = aCallback;
     env.mData = aData;
+    env.mAnonymize = aAnonymize;
 
     if (gDataTable) {
       gDataTable->EnumerateRead(CountCallback, &env);
@@ -131,9 +134,12 @@ class BlobURLsReporter MOZ_FINAL : public nsIMemoryReporter
   }
 
  private:
+  ~BlobURLsReporter() {}
+
   struct EnumArg {
     nsIHandleReportCallback* mCallback;
     nsISupports* mData;
+    bool mAnonymize;
     nsDataHashtable<nsPtrHashKey<nsIDOMBlob>, uint32_t> mRefCounts;
   };
 
@@ -190,16 +196,28 @@ class BlobURLsReporter MOZ_FINAL : public nsIMemoryReporter
           !owner.IsEmpty()) {
         owner.ReplaceChar('/', '\\');
         path += "owner(";
-        path += owner;
+        if (envp->mAnonymize) {
+          path += "<anonymized>";
+        } else {
+          path += owner;
+        }
         path += ")";
       } else {
         path += "owner unknown";
       }
       path += "/";
-      path += aInfo->mStack;
+      if (envp->mAnonymize) {
+        path += "<anonymized-stack>";
+      } else {
+        path += aInfo->mStack;
+      }
       url = aKey;
       url.ReplaceChar('/', '\\');
-      path += url;
+      if (envp->mAnonymize) {
+        path += "<anonymized-url>";
+      } else {
+        path += url;
+      }
       if (refCount > 1) {
         nsAutoCString addrStr;
 

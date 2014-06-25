@@ -41,6 +41,12 @@ struct ViewTransform {
       gfx3DMatrix::ScalingMatrix(mScale.scale, mScale.scale, 1);
   }
 
+  // For convenience, to avoid writing the cumbersome
+  // "gfx3dMatrix(a) * gfx3DMatrix(b)".
+  friend gfx3DMatrix operator*(const ViewTransform& a, const ViewTransform& b) {
+    return gfx3DMatrix(a) * gfx3DMatrix(b);
+  }
+
   bool operator==(const ViewTransform& rhs) const {
     return mTranslation == rhs.mTranslation && mScale == rhs.mScale;
   }
@@ -64,6 +70,9 @@ struct ViewTransform {
 class AsyncCompositionManager MOZ_FINAL
 {
   friend class AutoResolveRefLayers;
+  ~AsyncCompositionManager()
+  {
+  }
 public:
   NS_INLINE_DECL_REFCOUNTING(AsyncCompositionManager)
 
@@ -72,9 +81,6 @@ public:
     , mIsFirstPaint(false)
     , mLayersUpdated(false)
     , mReadyForCompose(true)
-  {
-  }
-  ~AsyncCompositionManager()
   {
   }
 
@@ -155,14 +161,18 @@ private:
    * aTransformedSubtreeRoot. The translation is chosen so that the layer's
    * anchor point relative to aTransformedSubtreeRoot's parent layer is the same
    * as it was when aTransformedSubtreeRoot's GetLocalTransform() was
-   * aPreviousTransformForRoot. For sticky position layers, the translation is
-   * further intersected with the layer's sticky scroll ranges.
+   * aPreviousTransformForRoot. aCurrentTransformForRoot is
+   * aTransformedSubtreeRoot's current GetLocalTransform() modulo any
+   * overscroll-related transform, which we don't want to adjust for.
+   * For sticky position layers, the translation is further intersected with
+   * the layer's sticky scroll ranges.
    * This function will also adjust layers so that the given content document
    * fixed position margins will be respected during asynchronous panning and
    * zooming.
    */
   void AlignFixedAndStickyLayers(Layer* aLayer, Layer* aTransformedSubtreeRoot,
                                  const gfx::Matrix4x4& aPreviousTransformForRoot,
+                                 const gfx::Matrix4x4& aCurrentTransformForRoot,
                                  const LayerMargin& aFixedLayerMargins);
 
   /**

@@ -6,6 +6,7 @@
 
 #include "builtin/TypedObject.h"
 
+#include "mozilla/Casting.h"
 #include "mozilla/CheckedInt.h"
 
 #include "jscompartment.h"
@@ -28,6 +29,7 @@
 
 using mozilla::CheckedInt32;
 using mozilla::DebugOnly;
+using mozilla::SafeCast;
 
 using namespace js;
 
@@ -863,7 +865,7 @@ StructMetaTypeDescr::create(JSContext *cx,
 {
     // Obtain names of fields, which are the own properties of `fields`
     AutoIdVector ids(cx);
-    if (!GetPropertyNames(cx, fields, JSITER_OWNONLY, &ids))
+    if (!GetPropertyNames(cx, fields, JSITER_OWNONLY | JSITER_SYMBOLS, &ids))
         return nullptr;
 
     // Iterate through each field. Collect values for the various
@@ -959,6 +961,7 @@ StructMetaTypeDescr::create(JSContext *cx,
                                  JSMSG_TYPEDOBJECT_TOO_BIG);
             return nullptr;
         }
+        MOZ_ASSERT(offset.value() >= 0);
         if (!fieldOffsets.append(Int32Value(offset.value()))) {
             js_ReportOutOfMemory(cx);
             return nullptr;
@@ -1147,13 +1150,13 @@ StructTypeDescr::fieldName(size_t index) const
     return fieldNames.getDenseElement(index).toString()->asAtom();
 }
 
-int32_t
+size_t
 StructTypeDescr::fieldOffset(size_t index) const
 {
     JSObject &fieldOffsets =
         getReservedSlot(JS_DESCR_SLOT_STRUCT_FIELD_OFFSETS).toObject();
     JS_ASSERT(index < fieldOffsets.getDenseInitializedLength());
-    return fieldOffsets.getDenseElement(index).toInt32();
+    return SafeCast<size_t>(fieldOffsets.getDenseElement(index).toInt32());
 }
 
 SizedTypeDescr&
@@ -1316,12 +1319,12 @@ DefineMetaTypeDescr(JSContext *cx,
     ctor = global->createConstructor(cx, T::construct, className, constructorLength);
     if (!ctor ||
         !LinkConstructorAndPrototype(cx, ctor, proto) ||
-        !DefinePropertiesAndBrand(cx, proto,
-                                  T::typeObjectProperties,
-                                  T::typeObjectMethods) ||
-        !DefinePropertiesAndBrand(cx, protoProto,
-                                  T::typedObjectProperties,
-                                  T::typedObjectMethods))
+        !DefinePropertiesAndFunctions(cx, proto,
+                                      T::typeObjectProperties,
+                                      T::typeObjectMethods) ||
+        !DefinePropertiesAndFunctions(cx, protoProto,
+                                      T::typedObjectProperties,
+                                      T::typedObjectMethods))
     {
         return nullptr;
     }

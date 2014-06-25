@@ -15,6 +15,16 @@
 
 namespace mozilla {
 
+class DataBuffer;
+
+// Temporary whitelist for refcounted class dangerously exposing its destructor.
+// Filed bug 1028139 to address this class.
+template<>
+struct HasDangerousPublicDestructor<DataBuffer>
+{
+  static const bool value = true;
+};
+
 class DataBuffer {
  public:
   DataBuffer() : data_(nullptr), len_(0) {}

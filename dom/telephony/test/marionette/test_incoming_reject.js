@@ -15,21 +15,20 @@ function simulateIncoming() {
     log("Received 'incoming' call event.");
     incoming = event.call;
     ok(incoming);
-    is(incoming.number, number);
+    is(incoming.id.number, number);
     is(incoming.state, "incoming");
 
     //ok(telephony.calls === calls); // bug 717414
     is(telephony.calls.length, 1);
     is(telephony.calls[0], incoming);
 
-    emulator.run("gsm list", function(result) {
+    emulator.runWithCallback("gsm list", function(result) {
       log("Call list is now: " + result);
       is(result[0], "inbound from " + number + " : incoming");
-      is(result[1], "OK");
       reject();
     });
   };
-  emulator.run("gsm call " + number);
+  emulator.runWithCallback("gsm call " + number);
 }
 
 function reject() {
@@ -52,9 +51,8 @@ function reject() {
     is(telephony.active, null);
     is(telephony.calls.length, 0);
 
-    emulator.run("gsm list", function(result) {
+    emulator.runWithCallback("gsm list", function(result) {
       log("Call list is now: " + result);
-      is(result[0], "OK");
       cleanUp();
     });
   };

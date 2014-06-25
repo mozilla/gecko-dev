@@ -30,7 +30,7 @@ import traceback
 import urllib2
 import zipfile
 
-from automationutils import environment, getDebuggerInfo, isURL, KeyValueParseError, parseKeyValue, processLeakLog, dumpScreen, ShutdownLeaks, printstatus
+from automationutils import environment, getDebuggerInfo, isURL, KeyValueParseError, parseKeyValue, processLeakLog, dumpScreen, ShutdownLeaks, printstatus, LSANLeaks
 from datetime import datetime
 from manifestparser import TestManifest
 from mochitest_options import MochitestOptions
@@ -148,6 +148,7 @@ class MochitestServer(object):
     # get testing environment
     env = environment(xrePath=self._xrePath)
     env["XPCOM_DEBUG_BREAK"] = "warn"
+    env["LD_LIBRARY_PATH"] = self._xrePath
 
     # When running with an ASan build, our xpcshell server will also be ASan-enabled,
     # thus consuming too much resources when running together with the browser on
@@ -746,6 +747,7 @@ class SSLTunnel:
       exit(1)
 
     env = environment(xrePath=self.xrePath)
+    env["LD_LIBRARY_PATH"] = self.xrePath
     self.process = mozprocess.ProcessHandler([ssltunnel, self.configFile],
                                                env=env)
     self.process.run()
@@ -916,6 +918,7 @@ class Mochitest(MochitestUtilsMixin):
 
     # Pre-create the certification database for the profile
     env = self.environment(xrePath=options.xrePath)
+    env["LD_LIBRARY_PATH"] = options.xrePath
     bin_suffix = mozinfo.info.get('bin_suffix', '')
     certutil = os.path.join(options.utilityPath, "certutil" + bin_suffix)
     pk12util = os.path.join(options.utilityPath, "pk12util" + bin_suffix)
@@ -1025,8 +1028,13 @@ class Mochitest(MochitestUtilsMixin):
 
   def buildBrowserEnv(self, options, debugger=False):
     """build the environment variables for the specific test and operating system"""
+    if mozinfo.info["asan"]:
+      lsanPath = SCRIPT_DIR
+    else:
+      lsanPath = None
+
     browserEnv = self.environment(xrePath=options.xrePath, debugger=debugger,
-                                  dmdPath=options.dmdPath)
+                                  dmdPath=options.dmdPath, lsanPath=lsanPath)
 
     # These variables are necessary for correct application startup; change
     # via the commandline at your own risk.
@@ -1234,6 +1242,11 @@ class Mochitest(MochitestUtilsMixin):
       else:
         shutdownLeaks = None
 
+      if mozinfo.info["asan"] and (mozinfo.isLinux or mozinfo.isMac):
+        lsanLeaks = LSANLeaks(log.info)
+      else:
+        lsanLeaks = None
+
       # create an instance to process the output
       outputHandler = self.OutputHandler(harness=self,
                                          utilityPath=utilityPath,
@@ -1241,6 +1254,7 @@ class Mochitest(MochitestUtilsMixin):
                                          dump_screen_on_timeout=not debuggerInfo,
                                          dump_screen_on_fail=screenshotOnFail,
                                          shutdownLeaks=shutdownLeaks,
+                                         lsanLeaks=lsanLeaks,
         )
 
       def timeoutHandler():
@@ -1255,9 +1269,9 @@ class Mochitest(MochitestUtilsMixin):
       self.lastTestSeen = self.test_name
       startTime = datetime.now()
 
-      # b2g desktop requires FirefoxRunner even though appname is b2g
+      # b2g desktop requires Runner even though appname is b2g
       if mozinfo.info.get('appname') == 'b2g' and mozinfo.info.get('toolkit') != 'gonk':
-          runner_cls = mozrunner.FirefoxRunner
+          runner_cls = mozrunner.Runner
       else:
           runner_cls = mozrunner.runners.get(mozinfo.info.get('appname', 'firefox'),
                                              mozrunner.Runner)
@@ -1266,12 +1280,7 @@ class Mochitest(MochitestUtilsMixin):
                           cmdargs=args,
                           env=env,
                           process_class=mozprocess.ProcessHandlerMixin,
-                          kp_kwargs=kp_kwargs,
-                          )
-
-      # XXX work around bug 898379 until mozrunner is updated for m-c; see
-      # https://bugzilla.mozilla.org/show_bug.cgi?id=746243#c49
-      runner.kp_kwargs = kp_kwargs
+                          process_args=kp_kwargs)
 
       # start the runner
       runner.start(debug_args=debug_args,
@@ -1365,7 +1374,10 @@ class Mochitest(MochitestUtilsMixin):
       options.testPath = dir
       print "testpath: %s" % options.testPath
 
-      options.profilePath = tempfile.mkdtemp()
+      # If we are using --run-by-dir, we should not use the profile path (if) provided
+      # by the user, since we need to create a new directory for each run. We would face problems
+      # if we use the directory provided by the user.
+      options.profilePath = None
       self.urlOpts = []
       self.doTests(options, onLaunch)
 
@@ -1403,17 +1415,17 @@ class Mochitest(MochitestUtilsMixin):
         return 1
       self.mediaDevices = devices
 
-    self.leak_report_file = os.path.join(options.profilePath, "runtests_leaks.log")
-
-    self.browserEnv = self.buildBrowserEnv(options, debuggerInfo is not None)
-    if self.browserEnv is None:
-      return 1
-
     # buildProfile sets self.profile .
     # This relies on sideeffects and isn't very stateful:
     # https://bugzilla.mozilla.org/show_bug.cgi?id=919300
     self.manifest = self.buildProfile(options)
     if self.manifest is None:
+      return 1
+
+    self.leak_report_file = os.path.join(options.profilePath, "runtests_leaks.log")
+
+    self.browserEnv = self.buildBrowserEnv(options, debuggerInfo is not None)
+    if self.browserEnv is None:
       return 1
 
     try:
@@ -1520,7 +1532,7 @@ class Mochitest(MochitestUtilsMixin):
 
   class OutputHandler(object):
     """line output handler for mozrunner"""
-    def __init__(self, harness, utilityPath, symbolsPath=None, dump_screen_on_timeout=True, dump_screen_on_fail=False, shutdownLeaks=None):
+    def __init__(self, harness, utilityPath, symbolsPath=None, dump_screen_on_timeout=True, dump_screen_on_fail=False, shutdownLeaks=None, lsanLeaks=None):
       """
       harness -- harness instance
       dump_screen_on_timeout -- whether to dump the screen on timeout
@@ -1531,6 +1543,7 @@ class Mochitest(MochitestUtilsMixin):
       self.dump_screen_on_timeout = dump_screen_on_timeout
       self.dump_screen_on_fail = dump_screen_on_fail
       self.shutdownLeaks = shutdownLeaks
+      self.lsanLeaks = lsanLeaks
 
       # perl binary to use
       self.perl = which('perl')
@@ -1558,6 +1571,7 @@ class Mochitest(MochitestUtilsMixin):
               self.dumpScreenOnFail,
               self.metro_subprocess_id,
               self.trackShutdownLeaks,
+              self.trackLSANLeaks,
               self.log,
               self.countline,
               ]
@@ -1608,6 +1622,9 @@ class Mochitest(MochitestUtilsMixin):
 
       if self.shutdownLeaks:
         self.shutdownLeaks.process()
+
+      if self.lsanLeaks:
+        self.lsanLeaks.process()
 
 
     # output line handlers:
@@ -1664,6 +1681,11 @@ class Mochitest(MochitestUtilsMixin):
     def trackShutdownLeaks(self, line):
       if self.shutdownLeaks:
         self.shutdownLeaks.log(line)
+      return line
+
+    def trackLSANLeaks(self, line):
+      if self.lsanLeaks:
+        self.lsanLeaks.log(line)
       return line
 
     def log(self, line):

@@ -69,20 +69,46 @@ add_task(function* test_translation_opportunity() {
   let countsByLanguage = JSON.parse(day.get("translationOpportunityCountsByLanguage"));
   Assert.equal(countsByLanguage["fr"], 1);
 
+  // Record a missed opportunity.
+  yield provider.recordMissedTranslationOpportunity("it", now);
+
+  values = yield m.getValues();
+  day = values.days.getDay(now);
+  Assert.equal(values.days.size, 1);
+  Assert.ok(values.days.hasDay(now));
+  Assert.ok(day.has("missedTranslationOpportunityCount"));
+  Assert.equal(day.get("missedTranslationOpportunityCount"), 1);
+
+  Assert.ok(day.has("missedTranslationOpportunityCountsByLanguage"));
+  let missedCountsByLanguage = JSON.parse(day.get("missedTranslationOpportunityCountsByLanguage"));
+  Assert.equal(missedCountsByLanguage["it"], 1);
+
   // Record more opportunities.
   yield provider.recordTranslationOpportunity("fr", now);
   yield provider.recordTranslationOpportunity("fr", now);
   yield provider.recordTranslationOpportunity("es", now);
 
+  yield provider.recordMissedTranslationOpportunity("it", now);
+  yield provider.recordMissedTranslationOpportunity("cs", now);
+  yield provider.recordMissedTranslationOpportunity("fi", now);
+
   values = yield m.getValues();
-  let day = values.days.getDay(now);
+  day = values.days.getDay(now);
   Assert.ok(day.has("translationOpportunityCount"));
   Assert.equal(day.get("translationOpportunityCount"), 4);
+  Assert.ok(day.has("missedTranslationOpportunityCount"));
+  Assert.equal(day.get("missedTranslationOpportunityCount"), 4);
 
   Assert.ok(day.has("translationOpportunityCountsByLanguage"));
   countsByLanguage = JSON.parse(day.get("translationOpportunityCountsByLanguage"));
   Assert.equal(countsByLanguage["fr"], 3);
   Assert.equal(countsByLanguage["es"], 1);
+
+  Assert.ok(day.has("missedTranslationOpportunityCountsByLanguage"));
+  missedCountsByLanguage = JSON.parse(day.get("missedTranslationOpportunityCountsByLanguage"));
+  Assert.equal(missedCountsByLanguage["it"], 2);
+  Assert.equal(missedCountsByLanguage["cs"], 1);
+  Assert.equal(missedCountsByLanguage["fi"], 1);
 
   yield provider.shutdown();
   yield storage.close();
@@ -147,13 +173,16 @@ add_task(function* test_record_translation() {
   yield provider.init(storage);
   let now = new Date();
 
-  // Record a language change before translation.
-  yield provider.recordLanguageChange(true);
+  // Record a change to the source language changes before translation.
+  yield provider.recordDetectedLanguageChange(true);
 
-  // Record two language changes after translation.
-  yield provider.recordLanguageChange(false);
-  yield provider.recordLanguageChange(false);
+  // Record two changes to the source language changes after translation.
+  yield provider.recordDetectedLanguageChange(false);
+  yield provider.recordDetectedLanguageChange(false);
 
+  // Record two changes to the target language.
+  yield provider.recordTargetLanguageChange();
+  yield provider.recordTargetLanguageChange();
 
   let m = provider.getMeasurement("translation", 1);
   let values = yield m.getValues();
@@ -163,11 +192,44 @@ add_task(function* test_record_translation() {
 
   Assert.ok(day.has("detectedLanguageChangedBefore"));
   Assert.equal(day.get("detectedLanguageChangedBefore"), 1);
+
   Assert.ok(day.has("detectedLanguageChangedAfter"));
   Assert.equal(day.get("detectedLanguageChangedAfter"), 2);
+  Assert.ok(day.has("targetLanguageChanged"));
+  Assert.equal(day.get("targetLanguageChanged"), 2);
 
   yield provider.shutdown();
   yield storage.close();
+});
+
+function* test_simple_counter(aProviderFuncName, aCounterName) {
+  let storage = yield Metrics.Storage("translation");
+  let provider = new TranslationProvider();
+  yield provider.init(storage);
+  let now = new Date();
+
+  yield provider[aProviderFuncName]();
+  yield provider[aProviderFuncName]();
+
+  let m = provider.getMeasurement("translation", 1);
+  let values = yield m.getValues();
+  Assert.equal(values.days.size, 1);
+  Assert.ok(values.days.hasDay(now));
+  let day = values.days.getDay(now);
+
+  Assert.ok(day.has(aCounterName));
+  Assert.equal(day.get(aCounterName), 2);
+
+  yield provider.shutdown();
+  yield storage.close();
+}
+
+add_task(function* test_denied_translation_offer() {
+  yield test_simple_counter("recordDeniedTranslationOffer", "deniedTranslationOffer");
+});
+
+add_task(function* test_show_original() {
+  yield test_simple_counter("recordShowOriginalContent", "showOriginalContent");  
 });
 
 add_task(function* test_collect_daily() {
@@ -220,12 +282,16 @@ add_task(function* test_healthreporter_json() {
     yield reporter._providerManager.registerProvider(provider);
 
     yield provider.recordTranslationOpportunity("fr", now);
-    yield provider.recordLanguageChange(true);
+    yield provider.recordDetectedLanguageChange(true);
     yield provider.recordTranslation("fr", "en", 1000, now);
-    yield provider.recordLanguageChange(false);
+    yield provider.recordDetectedLanguageChange(false);
 
     yield provider.recordTranslationOpportunity("es", now);
     yield provider.recordTranslation("es", "en", 1000, now);
+
+    yield provider.recordDeniedTranslationOffer();
+
+    yield provider.recordShowOriginalContent();
 
     yield reporter.collectMeasurements();
     let payload = yield reporter.getJSONPayload(true);
@@ -259,6 +325,12 @@ add_task(function* test_healthreporter_json() {
     Assert.equal(translations["detectedLanguageChangedBefore"], 1);
     Assert.ok("detectedLanguageChangedAfter" in translations);
     Assert.equal(translations["detectedLanguageChangedAfter"], 1);
+    
+    Assert.ok("deniedTranslationOffer" in translations);
+    Assert.equal(translations["deniedTranslationOffer"], 1);
+
+    Assert.ok("showOriginalContent" in translations);
+    Assert.equal(translations["showOriginalContent"], 1);
   } finally {
     reporter._shutdown();
   }
@@ -276,12 +348,16 @@ add_task(function* test_healthreporter_json2() {
     yield reporter._providerManager.registerProvider(provider);
 
     yield provider.recordTranslationOpportunity("fr", now);
-    yield provider.recordLanguageChange(true);
+    yield provider.recordDetectedLanguageChange(true);
     yield provider.recordTranslation("fr", "en", 1000, now);
-    yield provider.recordLanguageChange(false);
+    yield provider.recordDetectedLanguageChange(false);
 
     yield provider.recordTranslationOpportunity("es", now);
     yield provider.recordTranslation("es", "en", 1000, now);
+
+    yield provider.recordDeniedTranslationOffer();
+
+    yield provider.recordShowOriginalContent();
 
     yield reporter.collectMeasurements();
     let payload = yield reporter.getJSONPayload(true);
@@ -301,6 +377,8 @@ add_task(function* test_healthreporter_json2() {
     Assert.ok(!("pageTranslatedCountsByLanguage" in translations));
     Assert.ok(!("detectedLanguageChangedBefore" in translations));
     Assert.ok(!("detectedLanguageChangedAfter" in translations));
+    Assert.ok(!("deniedTranslationOffer" in translations));
+    Assert.ok(!("showOriginalContent" in translations));
   } finally {
     reporter._shutdown();
   }

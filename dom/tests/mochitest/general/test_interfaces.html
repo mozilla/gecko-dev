@@ -78,6 +78,7 @@ var ecmaGlobals =
     {name: "SIMD", nightly: true},
     "StopIteration",
     "String",
+    "Symbol",
     "SyntaxError",
     {name: "TypedObject", nightly: true},
     "TypeError",
@@ -111,6 +112,8 @@ var legacyMozPrefixedInterfaces =
 // IMPORTANT: Do not change the list below without review from a DOM peer!
 var interfaceNamesInGlobalScope =
   [
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "AlarmsManager", pref: "dom.mozAlarms.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "AnalyserNode",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -308,6 +311,10 @@ var interfaceNamesInGlobalScope =
     "DOMException",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "DOMImplementation",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "DOMMatrix",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "DOMMatrixReadOnly",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "DOMMMIError", b2g: true, pref: "dom.mobileconnection.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -665,7 +672,7 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "MozMobileNetworkInfo", b2g: true, pref: "dom.mobileconnection.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    "MozMobileMessageManager",
+    {name: "MozMobileMessageManager", b2g: true, pref: "dom.sms.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "MozMobileMessageThread",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1112,6 +1119,8 @@ var interfaceNamesInGlobalScope =
     {name: "TelephonyCall", b2g: true, pref: "dom.telephony.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "TelephonyCallGroup", b2g: true, pref: "dom.telephony.enabled"},
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "TelephonyCallId", b2g: true, pref: "dom.telephony.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Text",
 // IMPORTANT: Do not change this list without review from a DOM peer!

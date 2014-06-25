@@ -1374,6 +1374,8 @@ DummyCallback(nsITimer* aTimer, void* aClosure)
 
 class TimerThreadEventTarget MOZ_FINAL : public nsIEventTarget
 {
+  ~TimerThreadEventTarget() {}
+
   WorkerPrivate* mWorkerPrivate;
   nsRefPtr<WorkerRunnable> mWorkerRunnable;
 
@@ -1758,6 +1760,8 @@ public:
     // This should never be used when reporting with workers (hence the "?!").
     extras->domPathPrefix.AssignLiteral("explicit/workers/?!/");
 
+    extras->location = nullptr;
+
     aCompartmentStats->extra = extras;
   }
 };
@@ -1975,7 +1979,6 @@ class WorkerPrivate::MemoryReporter MOZ_FINAL : public nsIMemoryReporter
 
   SharedMutex mMutex;
   WorkerPrivate* mWorkerPrivate;
-  nsCString mRtPath;
   bool mAlreadyMappedToAddon;
 
 public:
@@ -1985,45 +1988,52 @@ public:
   {
     aWorkerPrivate->AssertIsOnWorkerThread();
 
-    nsCString escapedDomain(aWorkerPrivate->Domain());
-    escapedDomain.ReplaceChar('/', '\\');
-
-    NS_ConvertUTF16toUTF8 escapedURL(aWorkerPrivate->ScriptURL());
-    escapedURL.ReplaceChar('/', '\\');
-
-    nsAutoCString addressString;
-    addressString.AppendPrintf("0x%p", static_cast<void*>(aWorkerPrivate));
-
-    mRtPath = NS_LITERAL_CSTRING("explicit/workers/workers(") +
-              escapedDomain + NS_LITERAL_CSTRING(")/worker(") +
-              escapedURL + NS_LITERAL_CSTRING(", ") + addressString +
-              NS_LITERAL_CSTRING(")/");
   }
 
   NS_IMETHOD
   CollectReports(nsIMemoryReporterCallback* aCallback,
-                 nsISupports* aClosure)
+                 nsISupports* aClosure, bool aAnonymize)
   {
     AssertIsOnMainThread();
 
-    // Assumes that WorkerJSRuntimeStats will hold a reference to mRtPath,
-    // and not a copy, as TryToMapAddon() may later modify the string again.
-    WorkerJSRuntimeStats rtStats(mRtPath);
+    // Assumes that WorkerJSRuntimeStats will hold a reference to |path|, and
+    // not a copy, as TryToMapAddon() may later modify if.
+    nsCString path;
+    WorkerJSRuntimeStats rtStats(path);
 
     {
       MutexAutoLock lock(mMutex);
 
-      TryToMapAddon();
+      path.AppendLiteral("explicit/workers/workers(");
+      if (aAnonymize && !mWorkerPrivate->Domain().IsEmpty()) {
+        path.AppendLiteral("<anonymized-domain>)/worker(<anonymized-url>");
+      } else {
+        nsCString escapedDomain(mWorkerPrivate->Domain());
+        if (escapedDomain.IsEmpty()) {
+          escapedDomain += "chrome";
+        } else {
+          escapedDomain.ReplaceChar('/', '\\');
+        }
+        path.Append(escapedDomain);
+        path.AppendLiteral(")/worker(");
+        NS_ConvertUTF16toUTF8 escapedURL(mWorkerPrivate->ScriptURL());
+        escapedURL.ReplaceChar('/', '\\');
+        path.Append(escapedURL);
+      }
+      path.AppendPrintf(", 0x%p)/", static_cast<void*>(mWorkerPrivate));
+
+      TryToMapAddon(path);
 
       if (!mWorkerPrivate ||
-          !mWorkerPrivate->BlockAndCollectRuntimeStats(&rtStats)) {
+          !mWorkerPrivate->BlockAndCollectRuntimeStats(&rtStats, aAnonymize)) {
         // Returning NS_OK here will effectively report 0 memory.
         return NS_OK;
       }
     }
 
-    return xpc::ReportJSRuntimeExplicitTreeStats(rtStats, mRtPath,
-                                                 aCallback, aClosure);
+    return xpc::ReportJSRuntimeExplicitTreeStats(rtStats, path,
+                                                 aCallback, aClosure,
+                                                 aAnonymize);
   }
 
 private:
@@ -2042,7 +2052,7 @@ private:
 
   // Only call this from the main thread and under mMutex lock.
   void
-  TryToMapAddon()
+  TryToMapAddon(nsACString &path)
   {
     AssertIsOnMainThread();
     mMutex.AssertCurrentThreadOwns();
@@ -2078,7 +2088,7 @@ private:
     static const size_t explicitLength = strlen("explicit/");
     addonId.Insert(NS_LITERAL_CSTRING("add-ons/"), 0);
     addonId += "/";
-    mRtPath.Insert(addonId, explicitLength);
+    path.Insert(addonId, explicitLength);
   }
 };
 
@@ -3127,10 +3137,11 @@ WorkerPrivateParent<Derived>::BroadcastErrorToSharedWorkers(
 
     size_t actionsIndex = windowActions.LastIndexOf(WindowAction(window));
 
-    nsIGlobalObject* global = sharedWorker->GetParentObject();
-    AutoJSAPIWithErrorsReportedToWindow jsapi(global);
+    AutoJSAPI jsapi;
+    if (NS_WARN_IF(!jsapi.InitWithLegacyErrorReportingUsingWin(sharedWorker->GetOwner()))) {
+      continue;
+    }
     JSContext* cx = jsapi.cx();
-    JSAutoCompartment ac(cx, global->GetGlobalJSObject());
 
     RootedDictionary<ErrorEventInit> errorInit(aCx);
     errorInit.mBubbles = false;
@@ -4301,7 +4312,8 @@ WorkerPrivate::ScheduleDeletion(WorkerRanOrNot aRanOrNot)
 }
 
 bool
-WorkerPrivate::BlockAndCollectRuntimeStats(JS::RuntimeStats* aRtStats)
+WorkerPrivate::BlockAndCollectRuntimeStats(JS::RuntimeStats* aRtStats,
+                                           bool aAnonymize)
 {
   AssertIsOnMainThread();
   mMutex.AssertCurrentThreadOwns();
@@ -4334,7 +4346,7 @@ WorkerPrivate::BlockAndCollectRuntimeStats(JS::RuntimeStats* aRtStats)
   if (mMemoryReporter) {
     // Don't hold the lock while doing the actual report.
     MutexAutoUnlock unlock(mMutex);
-    succeeded = JS::CollectRuntimeStats(rt, aRtStats, nullptr);
+    succeeded = JS::CollectRuntimeStats(rt, aRtStats, nullptr, aAnonymize);
   }
 
   NS_ASSERTION(mMemoryReporterRunning, "This isn't possible!");

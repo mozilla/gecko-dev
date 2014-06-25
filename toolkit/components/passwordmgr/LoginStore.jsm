@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80 filetype=javascript: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -266,31 +266,6 @@ LoginStore.prototype = {
 
     // Indicate that the current version of the code has touched the file.
     this.data.version = kDataVersion;
-
-    // Due to bug 1019885, invalid data was created by the import process in
-    // Nightly.  This automated procedure fixes the error.  This is provided as
-    // a convenience to Nightly users and can be safely removed after Nightly
-    // users are updated to the new version.
-    let originalDisabledHosts = this.data.disabledHosts;
-    if (originalDisabledHosts.some(hostItem => typeof hostItem != "string")) {
-
-      this.data.disabledHosts = [];
-
-      for (let hostItem of originalDisabledHosts) {
-        // Fix each item if it is in the broken format.
-        if (typeof hostItem != "string") {
-          hostItem = hostItem.hostname;
-        }
-
-        // Ensure we don't create duplicates in the process.
-        if (this.data.disabledHosts.indexOf(hostItem) == -1) {
-          this.data.disabledHosts.push(hostItem);
-        }
-      }
-
-      // Ensure the updated data is saved.
-      this.saveSoon();
-    }
 
     this.dataReady = true;
   },

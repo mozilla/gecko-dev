@@ -9,6 +9,7 @@
 #ifndef nsCaret_h__
 #define nsCaret_h__
 
+#include "mozilla/MemoryReporting.h"
 #include "nsCoord.h"
 #include "nsISelectionListener.h"
 #include "nsIWeakReferenceUtils.h"
@@ -22,17 +23,17 @@ class nsITimer;
 class nsCaret : public nsISelectionListener
 {
   public:
+    nsCaret();
 
-                  nsCaret();
-    virtual       ~nsCaret();
+  protected:
+    virtual ~nsCaret();
 
+  public:
     enum EViewCoordinates {
       eTopLevelWindowCoordinates,
       eRenderingViewCoordinates,
       eClosestViewCoordinates
     };
-
-  public:
 
     NS_DECL_ISUPPORTS
 
@@ -164,6 +165,8 @@ class nsCaret : public nsISelectionListener
                                              int32_t* aReturnOffset);
 
     void CheckCaretDrawingState();
+
+    size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 protected:
 

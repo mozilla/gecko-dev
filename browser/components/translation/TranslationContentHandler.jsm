@@ -85,8 +85,15 @@ TranslationContentHandler.prototype = {
       return;
 
     LanguageDetector.detectLanguage(string).then(result => {
-      if (!result.confident)
+      // Bail if we're not confident.
+      if (!result.confident) {
         return;
+      }
+
+      // The window might be gone by now.
+      if (Cu.isDeadWrapper(content)) {
+        return;
+      }
 
       content.detectedLanguage = result.language;
 
@@ -121,16 +128,16 @@ TranslationContentHandler.prototype = {
         // translated text.
         let translationDocument = this.global.content.translationDocument ||
                                   new TranslationDocument(this.global.content.document);
-        let bingTranslation = new BingTranslation(translationDocument,
-                                                  msg.data.from,
-                                                  msg.data.to);
+        let bingTranslator = new BingTranslator(translationDocument,
+                                                msg.data.from,
+                                                msg.data.to);
 
         this.global.content.translationDocument = translationDocument;
         translationDocument.translatedFrom = msg.data.from;
         translationDocument.translatedTo = msg.data.to;
         translationDocument.translationError = false;
 
-        bingTranslation.translate().then(
+        bingTranslator.translate().then(
           result => {
             this.global.sendAsyncMessage("Translation:Finished", {
               characterCount: result.characterCount,

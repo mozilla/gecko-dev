@@ -90,9 +90,15 @@ ImageHost::Composite(EffectChain& aEffectChain,
   if (!source) {
     return;
   }
+
+  bool isAlphaPremultiplied = true;
+  if (mFrontBuffer->GetFlags() & TextureFlags::NON_PREMULTIPLIED)
+    isAlphaPremultiplied = false;
+
   RefPtr<TexturedEffect> effect = CreateTexturedEffect(mFrontBuffer->GetFormat(),
                                                        source,
-                                                       aFilter);
+                                                       aFilter,
+                                                       isAlphaPremultiplied);
   if (!effect) {
     return;
   }
@@ -189,36 +195,33 @@ ImageHost::SetCompositor(Compositor* aCompositor)
 }
 
 void
-ImageHost::PrintInfo(nsACString& aTo, const char* aPrefix)
+ImageHost::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
-  aTo += aPrefix;
-  aTo += nsPrintfCString("ImageHost (0x%p)", this);
+  aStream << aPrefix;
+  aStream << nsPrintfCString("ImageHost (0x%p)", this).get();
 
-  AppendToString(aTo, mPictureRect, " [picture-rect=", "]");
+  AppendToString(aStream, mPictureRect, " [picture-rect=", "]");
 
   if (mFrontBuffer) {
     nsAutoCString pfx(aPrefix);
     pfx += "  ";
-    aTo += "\n";
-    mFrontBuffer->PrintInfo(aTo, pfx.get());
+    aStream << "\n";
+    mFrontBuffer->PrintInfo(aStream, pfx.get());
   }
 }
 
 #ifdef MOZ_DUMP_PAINTING
 void
-ImageHost::Dump(FILE* aFile,
+ImageHost::Dump(std::stringstream& aStream,
                 const char* aPrefix,
                 bool aDumpHtml)
 {
-  if (!aFile) {
-    aFile = stderr;
-  }
   if (mFrontBuffer) {
-    fprintf_stderr(aFile, "%s", aPrefix);
-    fprintf_stderr(aFile, aDumpHtml ? "<ul><li>TextureHost: "
+    aStream << aPrefix;
+    aStream << (aDumpHtml ? "<ul><li>TextureHost: "
                              : "TextureHost: ");
-    DumpTextureHost(aFile, mFrontBuffer);
-    fprintf_stderr(aFile, aDumpHtml ? " </li></ul> " : " ");
+    DumpTextureHost(aStream, mFrontBuffer);
+    aStream << (aDumpHtml ? " </li></ul> " : " ");
   }
 }
 #endif

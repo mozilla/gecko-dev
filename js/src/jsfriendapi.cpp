@@ -24,6 +24,7 @@
 #include "vm/WrapperObject.h"
 
 #include "jsobjinlines.h"
+#include "jsscriptinlines.h"
 
 #include "vm/ScopeObject-inl.h"
 
@@ -264,12 +265,6 @@ JS_WrapPropertyDescriptor(JSContext *cx, JS::MutableHandle<js::PropertyDescripto
     return cx->compartment()->wrap(cx, desc);
 }
 
-JS_FRIEND_API(bool)
-JS_WrapAutoIdVector(JSContext *cx, js::AutoIdVector &props)
-{
-    return cx->compartment()->wrap(cx, props);
-}
-
 JS_FRIEND_API(void)
 JS_TraceShapeCycleCollectorChildren(JSTracer *trc, void *shape)
 {
@@ -449,7 +444,7 @@ js::RunningWithTrustedPrincipals(JSContext *cx)
     return cx->runningWithTrustedPrincipals();
 }
 
-JS_FRIEND_API(JSScript *)
+JS_FRIEND_API(JSFunction *)
 js::GetOutermostEnclosingFunctionOfScriptedCaller(JSContext *cx)
 {
     ScriptFrameIter iter(cx);
@@ -459,13 +454,12 @@ js::GetOutermostEnclosingFunctionOfScriptedCaller(JSContext *cx)
     if (!iter.isFunctionFrame())
         return nullptr;
 
-    RootedFunction scriptedCaller(cx, iter.callee());
-    RootedScript outermost(cx, scriptedCaller->nonLazyScript());
-    for (StaticScopeIter<NoGC> i(scriptedCaller); !i.done(); i++) {
+    RootedFunction curr(cx, iter.callee());
+    for (StaticScopeIter<NoGC> i(curr); !i.done(); i++) {
         if (i.type() == StaticScopeIter<NoGC>::FUNCTION)
-            outermost = i.funScript();
+            curr = &i.fun();
     }
-    return outermost;
+    return curr;
 }
 
 JS_FRIEND_API(JSFunction *)
@@ -981,6 +975,8 @@ JS::IncrementalReferenceBarrier(void *ptr, JSGCTraceKind kind)
         JSObject::writeBarrierPre(static_cast<JSObject*>(cell));
     else if (kind == JSTRACE_STRING)
         JSString::writeBarrierPre(static_cast<JSString*>(cell));
+    else if (kind == JSTRACE_SYMBOL)
+        JS::Symbol::writeBarrierPre(static_cast<JS::Symbol*>(cell));
     else if (kind == JSTRACE_SCRIPT)
         JSScript::writeBarrierPre(static_cast<JSScript*>(cell));
     else if (kind == JSTRACE_LAZY_SCRIPT)

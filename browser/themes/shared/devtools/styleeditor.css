@@ -65,8 +65,8 @@
 }
 
 .stylesheet-sidebar {
-  width: 230px;
-  -moz-border-start: 1px solid;
+  max-width: 400px;
+  min-width: 100px;
 }
 
 .theme-light .stylesheet-sidebar {
@@ -89,6 +89,10 @@
   padding: 4px;
   cursor: pointer;
   border-bottom: 1px solid;
+}
+
+.media-rule-line {
+  -moz-padding-start: 4px;
 }
 
 .theme-light .media-condition-unmatched {
@@ -119,11 +123,6 @@
 
 .disabled > .stylesheet-enabled {
   background-position: -24px 8px;
-}
-
-#style-editor-options {
-  width: 20px;
-  overflow: hidden;
 }
 
 /* Invert all toggle icons but the one in the active row for light theme */

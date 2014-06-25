@@ -36,7 +36,7 @@
 
 namespace mozilla {
 namespace dom {
-class MediaStreamConstraints;
+struct MediaStreamConstraints;
 class NavigatorUserMediaSuccessCallback;
 class NavigatorUserMediaErrorCallback;
 }
@@ -444,8 +444,8 @@ public:
   static MediaDevice* Create(MediaEngineVideoSource* source);
   static MediaDevice* Create(MediaEngineAudioSource* source);
 
-  virtual ~MediaDevice() {}
 protected:
+  virtual ~MediaDevice() {}
   MediaDevice(MediaEngineSource* aSource);
   nsString mName;
   nsString mID;

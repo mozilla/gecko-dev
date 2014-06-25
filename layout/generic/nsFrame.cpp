@@ -1001,50 +1001,11 @@ nsIFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
   return skip;
 }
 
-
-void
-nsIFrame::ApplySkipSides(nsMargin& aMargin,
-                         const nsHTMLReflowState* aReflowState) const
-{
-  int skipSides = GetSkipSides(aReflowState);
-  if (skipSides & (1 << NS_SIDE_TOP)) {
-    aMargin.top = 0;
-  }
-  if (skipSides & (1 << NS_SIDE_RIGHT)) {
-    aMargin.right = 0;
-  }
-  if (skipSides & (1 << NS_SIDE_BOTTOM)) {
-    aMargin.bottom = 0;
-  }
-  if (skipSides & (1 << NS_SIDE_LEFT)) {
-    aMargin.left = 0;
-  }
-}
-
-void
-nsIFrame::ApplyLogicalSkipSides(LogicalMargin& aMargin,
-                                const nsHTMLReflowState* aReflowState) const
-{
-  int skipSides = GetLogicalSkipSides(aReflowState);
-  if (skipSides & (LOGICAL_SIDE_B_START)) {
-    aMargin.BStart(GetWritingMode()) = 0;
-  }
-  if (skipSides & (LOGICAL_SIDE_I_END)) {
-    aMargin.IEnd(GetWritingMode()) = 0;
-  }
-  if (skipSides & (LOGICAL_SIDE_B_END)) {
-    aMargin.BEnd(GetWritingMode()) = 0;
-  }
-  if (skipSides & (LOGICAL_SIDE_I_START)) {
-    aMargin.IStart(GetWritingMode()) = 0;
-  }
-}
-
 nsRect
 nsIFrame::GetPaddingRectRelativeToSelf() const
 {
   nsMargin border(GetUsedBorder());
-  ApplySkipSides(border);
+  border.ApplySkipSides(GetSkipSides());
   nsRect r(0, 0, mRect.width, mRect.height);
   r.Deflate(border);
   return r;
@@ -1074,7 +1035,7 @@ nsRect
 nsIFrame::GetMarginRectRelativeToSelf() const
 {
   nsMargin m = GetUsedMargin();
-  ApplySkipSides(m);
+  m.ApplySkipSides(GetSkipSides());
   nsRect r(0, 0, mRect.width, mRect.height);
   r.Inflate(m);
   return r;
@@ -1166,7 +1127,7 @@ nsRect
 nsIFrame::GetContentRectRelativeToSelf() const
 {
   nsMargin bp(GetUsedBorderAndPadding());
-  ApplySkipSides(bp);
+  bp.ApplySkipSides(GetSkipSides());
   nsRect r(0, 0, mRect.width, mRect.height);
   r.Deflate(bp);
   return r;
@@ -4990,10 +4951,10 @@ nsIFrame::TryUpdateTransformOnly(Layer** aLayerResult)
  static const gfx::Float kError = 0.0001f;
   if (!transform3d.Is2D(&transform) ||
       !layer->GetBaseTransform().Is2D(&previousTransform) ||
-      !gfx::FuzzyEqual(transform.xx, previousTransform._11, kError) ||
-      !gfx::FuzzyEqual(transform.yy, previousTransform._22, kError) ||
-      !gfx::FuzzyEqual(transform.xy, previousTransform._21, kError) ||
-      !gfx::FuzzyEqual(transform.yx, previousTransform._12, kError)) {
+      !gfx::FuzzyEqual(transform._11, previousTransform._11, kError) ||
+      !gfx::FuzzyEqual(transform._22, previousTransform._22, kError) ||
+      !gfx::FuzzyEqual(transform._21, previousTransform._21, kError) ||
+      !gfx::FuzzyEqual(transform._12, previousTransform._12, kError)) {
     return false;
   }
   gfx::Matrix4x4 matrix;

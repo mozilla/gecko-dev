@@ -7,6 +7,7 @@
 #include "json.h"
 
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/Range.h"
 
 #include "jsarray.h"
 #include "jsatom.h"
@@ -31,6 +32,8 @@ using namespace js::types;
 
 using mozilla::IsFinite;
 using mozilla::Maybe;
+using mozilla::Range;
+using mozilla::RangedPtr;
 
 const Class js::JSONClass = {
     js_JSON_str,
@@ -55,20 +58,19 @@ static inline bool IsQuoteSpecialCharacter(jschar c)
 }
 
 /* ES5 15.12.3 Quote. */
+template <typename CharT>
 static bool
-Quote(JSContext *cx, StringBuffer &sb, JSString *str)
+Quote(StringBuffer &sb, JSLinearString *str)
 {
-    JS::Anchor<JSString *> anchor(str);
     size_t len = str->length();
-    const jschar *buf = str->getChars(cx);
-    if (!buf)
-        return false;
 
     /* Step 1. */
     if (!sb.append('"'))
         return false;
 
     /* Step 2. */
+    JS::AutoCheckCannotGC nogc;
+    const RangedPtr<const CharT> buf(str->chars<CharT>(nogc), len);
     for (size_t i = 0; i < len; ++i) {
         /* Batch-append maximal character sequences containing no escapes. */
         size_t mark = i;
@@ -117,6 +119,19 @@ Quote(JSContext *cx, StringBuffer &sb, JSString *str)
     return sb.append('"');
 }
 
+static bool
+Quote(JSContext *cx, StringBuffer &sb, JSString *str)
+{
+    JS::Anchor<JSString *> anchor(str);
+    JSLinearString *linear = str->ensureLinear(cx);
+    if (!linear)
+        return false;
+
+    return linear->hasLatin1Chars()
+           ? Quote<Latin1Char>(sb, linear)
+           : Quote<jschar>(sb, linear);
+}
+
 namespace {
 
 class StringifyContext
@@ -148,9 +163,17 @@ WriteIndent(JSContext *cx, StringifyContext *scx, uint32_t limit)
     if (!scx->gap.empty()) {
         if (!scx->sb.append('\n'))
             return false;
-        for (uint32_t i = 0; i < limit; i++) {
-            if (!scx->sb.append(scx->gap.rawTwoByteBegin(), scx->gap.rawTwoByteEnd()))
-                return false;
+
+        if (scx->gap.isUnderlyingBufferLatin1()) {
+            for (uint32_t i = 0; i < limit; i++) {
+                if (!scx->sb.append(scx->gap.rawLatin1Begin(), scx->gap.rawLatin1End()))
+                    return false;
+            }
+        } else {
+            for (uint32_t i = 0; i < limit; i++) {
+                if (!scx->sb.append(scx->gap.rawTwoByteBegin(), scx->gap.rawTwoByteEnd()))
+                    return false;
+            }
         }
     }
 
@@ -774,8 +797,8 @@ Revive(JSContext *cx, HandleValue reviver, MutableHandleValue vp)
 
 template <typename CharT>
 bool
-js::ParseJSONWithReviver(JSContext *cx, mozilla::Range<const CharT> chars,
-                         HandleValue reviver, MutableHandleValue vp)
+js::ParseJSONWithReviver(JSContext *cx, const Range<const CharT> chars, HandleValue reviver,
+                         MutableHandleValue vp)
 {
     /* 15.12.2 steps 2-3. */
     JSONParser<CharT> parser(cx, chars);
@@ -789,12 +812,12 @@ js::ParseJSONWithReviver(JSContext *cx, mozilla::Range<const CharT> chars,
 }
 
 template bool
-js::ParseJSONWithReviver(JSContext *cx, mozilla::Range<const Latin1Char> chars,
-                         HandleValue reviver, MutableHandleValue vp);
+js::ParseJSONWithReviver(JSContext *cx, const Range<const Latin1Char> chars, HandleValue reviver,
+                         MutableHandleValue vp);
 
 template bool
-js::ParseJSONWithReviver(JSContext *cx, mozilla::Range<const jschar> chars,
-                         HandleValue reviver, MutableHandleValue vp);
+js::ParseJSONWithReviver(JSContext *cx, const Range<const jschar> chars, HandleValue reviver,
+                         MutableHandleValue vp);
 
 #if JS_HAS_TOSOURCE
 static bool
@@ -825,8 +848,8 @@ json_parse(JSContext *cx, unsigned argc, Value *vp)
 
     JS::Anchor<JSString *> anchor(flat);
 
-    AutoStableStringChars flatChars(cx, flat);
-    if (!flatChars.init())
+    AutoStableStringChars flatChars(cx);
+    if (!flatChars.init(cx, flat))
         return false;
 
     RootedValue reviver(cx, args.get(1));

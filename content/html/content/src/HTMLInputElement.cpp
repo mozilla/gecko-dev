@@ -252,6 +252,8 @@ class HTMLInputElementState MOZ_FINAL : public nsISupports
     {};
 
   protected:
+    ~HTMLInputElementState() {}
+
     nsString mValue;
     nsTArray<nsCOMPtr<nsIDOMFile> > mFiles;
     bool mChecked;
@@ -330,6 +332,8 @@ namespace {
 class DirPickerRecursiveFileEnumerator MOZ_FINAL
   : public nsISimpleEnumerator
 {
+  ~DirPickerRecursiveFileEnumerator() {}
+
 public:
   NS_DECL_ISUPPORTS
 
@@ -706,6 +710,8 @@ NS_IMPL_ISUPPORTS(HTMLInputElement::nsFilePickerShownCallback,
 class nsColorPickerShownCallback MOZ_FINAL
   : public nsIColorPickerShownCallback
 {
+  ~nsColorPickerShownCallback() {}
+
 public:
   nsColorPickerShownCallback(HTMLInputElement* aInput,
                              nsIColorPicker* aColorPicker)
@@ -1095,7 +1101,7 @@ static nsresult FireEventForAccessibility(nsIDOMHTMLInputElement* aTarget,
 // construction, destruction
 //
 
-HTMLInputElement::HTMLInputElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
+HTMLInputElement::HTMLInputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
                                    FromParser aFromParser)
   : nsGenericHTMLFormElementWithState(aNodeInfo)
   , mType(kInputDefaultType->value)
@@ -1228,11 +1234,11 @@ NS_IMPL_NSICONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(HTMLInputElement)
 // nsIDOMNode
 
 nsresult
-HTMLInputElement::Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const
+HTMLInputElement::Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const
 {
   *aResult = nullptr;
 
-  already_AddRefed<nsINodeInfo> ni = nsCOMPtr<nsINodeInfo>(aNodeInfo).forget();
+  already_AddRefed<mozilla::dom::NodeInfo> ni = nsRefPtr<mozilla::dom::NodeInfo>(aNodeInfo).forget();
   nsRefPtr<HTMLInputElement> it = new HTMLInputElement(ni, NOT_FROM_PARSER);
 
   nsresult rv = const_cast<HTMLInputElement*>(this)->CopyInnerTo(it);

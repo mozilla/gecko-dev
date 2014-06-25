@@ -192,10 +192,13 @@ GetCaseIndependentLetters(jschar character,
                           bool ascii_subject,
                           jschar *letters)
 {
-    JS_ASSERT(!ascii_subject);
-
     jschar lower = unicode::ToLowerCase(character);
     jschar upper = unicode::ToUpperCase(character);
+
+    // The standard requires that non-ASCII characters cannot have ASCII
+    // character codes in their equivalence class.
+    if (ascii_subject && character > kMaxOneByteCharCode)
+        return 0;
 
     letters[0] = character;
 
@@ -212,6 +215,23 @@ GetCaseIndependentLetters(jschar character,
         return 2;
     }
     return 1;
+}
+
+static jschar
+ConvertNonLatin1ToLatin1(jschar c)
+{
+    JS_ASSERT(c > kMaxOneByteCharCode);
+    switch (c) {
+      // This are equivalent characters in unicode.
+      case 0x39c:
+      case 0x3bc:
+        return 0xb5;
+      // This is an uppercase of a Latin-1 character
+      // outside of Latin-1.
+      case 0x178:
+        return 0xff;
+    }
+    return 0;
 }
 
 void
@@ -670,17 +690,14 @@ TextNode::FilterASCII(int depth, bool ignore_case)
 
                 // Here, we need to check for characters whose upper and lower cases
                 // are outside the Latin-1 range.
-                jschar chars[kEcma262UnCanonicalizeMaxWidth];
-                size_t length = GetCaseIndependentLetters(c, true, chars);
-                JS_ASSERT(length <= 1);
-
-                if (length == 0) {
+                jschar converted = ConvertNonLatin1ToLatin1(c);
+                if (converted == 0) {
                     // Character is outside Latin-1 completely
                     return set_replacement(nullptr);
                 }
 
                 // Convert quark to Latin-1 in place.
-                quarks[j] = chars[0];
+                quarks[j] = converted;
             }
         } else {
             JS_ASSERT(elm.text_type() == TextElement::CHAR_CLASS);
@@ -1533,10 +1550,27 @@ RegExpCompiler::Assemble(JSContext *cx,
     return code;
 }
 
+template <typename CharT>
+static void
+SampleChars(FrequencyCollator *collator, const CharT *chars, size_t length)
+{
+    // Sample some characters from the middle of the string.
+    static const int kSampleSize = 128;
+
+    int chars_sampled = 0;
+    int half_way = (int(length) - kSampleSize) / 2;
+    for (size_t i = Max(0, half_way);
+         i < length && chars_sampled < kSampleSize;
+         i++, chars_sampled++)
+    {
+        collator->CountCharacter(chars[i]);
+    }
+}
+
 RegExpCode
 irregexp::CompilePattern(JSContext *cx, RegExpShared *shared, RegExpCompileData *data,
-                         const jschar *sampleChars, size_t sampleLength,
-                         bool is_global, bool ignore_case, bool is_ascii)
+                         HandleLinearString sample, bool is_global, bool ignore_case,
+                         bool is_ascii)
 {
     if ((data->capture_count + 1) * 2 - 1 > RegExpMacroAssembler::kMaxRegister) {
         JS_ReportError(cx, "regexp too big");
@@ -1547,15 +1581,12 @@ irregexp::CompilePattern(JSContext *cx, RegExpShared *shared, RegExpCompileData 
     RegExpCompiler compiler(&alloc, data->capture_count, ignore_case, is_ascii);
 
     // Sample some characters from the middle of the string.
-    static const int kSampleSize = 128;
-
-    int chars_sampled = 0;
-    int half_way = (sampleLength - kSampleSize) / 2;
-    for (size_t i = Max(0, half_way);
-         i < sampleLength && chars_sampled < kSampleSize;
-         i++, chars_sampled++)
-    {
-        compiler.frequency_collator()->CountCharacter(sampleChars[i]);
+    if (sample->hasLatin1Chars()) {
+        JS::AutoCheckCannotGC nogc;
+        SampleChars(compiler.frequency_collator(), sample->latin1Chars(nogc), sample->length());
+    } else {
+        JS::AutoCheckCannotGC nogc;
+        SampleChars(compiler.frequency_collator(), sample->twoByteChars(nogc), sample->length());
     }
 
     // Wrap the body of the regexp in capture #0.
@@ -1652,9 +1683,10 @@ irregexp::CompilePattern(JSContext *cx, RegExpShared *shared, RegExpCompileData 
     return compiler.Assemble(cx, assembler, node, data->capture_count);
 }
 
+template <typename CharT>
 RegExpRunStatus
-irregexp::ExecuteCode(JSContext *cx, jit::JitCode *codeBlock,
-                      const jschar *chars, size_t start, size_t length, MatchPairs *matches)
+irregexp::ExecuteCode(JSContext *cx, jit::JitCode *codeBlock, const CharT *chars, size_t start,
+                      size_t length, MatchPairs *matches)
 {
 #ifdef JS_ION
     typedef void (*RegExpCodeSignature)(InputOutputData *);
@@ -1662,13 +1694,25 @@ irregexp::ExecuteCode(JSContext *cx, jit::JitCode *codeBlock,
     InputOutputData data(chars, chars + length, start, matches);
 
     RegExpCodeSignature function = reinterpret_cast<RegExpCodeSignature>(codeBlock->raw());
-    CALL_GENERATED_REGEXP(function, &data);
+
+    {
+        JS::AutoSuppressGCAnalysis nogc;
+        CALL_GENERATED_REGEXP(function, &data);
+    }
 
     return (RegExpRunStatus) data.result;
 #else
     MOZ_CRASH();
 #endif
 }
+
+template RegExpRunStatus
+irregexp::ExecuteCode(JSContext *cx, jit::JitCode *codeBlock, const Latin1Char *chars, size_t start,
+                      size_t length, MatchPairs *matches);
+
+template RegExpRunStatus
+irregexp::ExecuteCode(JSContext *cx, jit::JitCode *codeBlock, const jschar *chars, size_t start,
+                      size_t length, MatchPairs *matches);
 
 // -------------------------------------------------------------------
 // Tree to graph conversion

@@ -40,6 +40,9 @@ class Date;
 class DirPickerFileListBuilderTask;
 
 class UploadLastDir MOZ_FINAL : public nsIObserver, public nsSupportsWeakReference {
+
+  ~UploadLastDir() {}
+
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -66,13 +69,13 @@ public:
 
   class ContentPrefCallback MOZ_FINAL : public nsIContentPrefCallback2
   {
-    public:
+    virtual ~ContentPrefCallback()
+    { }
+
+  public:
     ContentPrefCallback(nsIFilePicker* aFilePicker, nsIFilePickerShownCallback* aFpCallback)
     : mFilePicker(aFilePicker)
     , mFpCallback(aFpCallback)
-    { }
-
-    virtual ~ContentPrefCallback()
     { }
 
     NS_DECL_ISUPPORTS
@@ -102,7 +105,7 @@ public:
   using nsIConstraintValidation::Validity;
   using nsGenericHTMLFormElementWithState::GetForm;
 
-  HTMLInputElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
+  HTMLInputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
                    mozilla::dom::FromParser aFromParser);
   virtual ~HTMLInputElement();
 
@@ -235,7 +238,7 @@ public:
    */
   already_AddRefed<nsIDOMHTMLInputElement> GetSelectedRadioButton();
 
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLInputElement,
                                            nsGenericHTMLFormElementWithState)
@@ -1364,12 +1367,12 @@ private:
   class nsFilePickerShownCallback
     : public nsIFilePickerShownCallback
   {
-  public:
-    nsFilePickerShownCallback(HTMLInputElement* aInput,
-                              nsIFilePicker* aFilePicker);
     virtual ~nsFilePickerShownCallback()
     { }
 
+  public:
+    nsFilePickerShownCallback(HTMLInputElement* aInput,
+                              nsIFilePicker* aFilePicker);
     NS_DECL_ISUPPORTS
 
     NS_IMETHOD Done(int16_t aResult) MOZ_OVERRIDE;

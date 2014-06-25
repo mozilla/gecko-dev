@@ -1542,6 +1542,10 @@ Daily counts are reported in the following properties:
 
 translationOpportunityCount
     Integer count of the number of opportunities there were to translate a page.
+missedTranslationOpportunityCount
+    Integer count of the number of missed opportunities there were to translate a page.
+    A missed opportunity is when the page language is not supported by the translation
+    provider.
 pageTranslatedCount
     Integer count of the number of pages translated.
 charactersTranslatedCount
@@ -1552,12 +1556,25 @@ detectedLanguageChangedBefore
 detectedLanguageChangedAfter
     Integer count of the number of times the user manually adjusted the detected
     language after having first translated the page.
+targetLanguageChanged
+    Integer count of the number of times the user manually adjusted the target
+    language.
+deniedTranslationOffer
+    Integer count of the number of times the user opted-out offered
+    page translation, either by the Not Now button or by the notification's
+    close button in the "offer" state.
+showOriginalContent
+    Integer count of the number of times the user activated the Show Original
+    command.
 
 Additional daily counts broken down by language are reported in the following
 properties:
 
 translationOpportunityCountsByLanguage
     A mapping from language to count of opportunities to translate that
+    language.
+missedTranslationOpportunityCountsByLanguage
+    A mapping from language to count of missed opportunities to translate that
     language.
 pageTranslatedCountsByLanguage
     A mapping from language to the counts of pages translated from that
@@ -1581,13 +1598,22 @@ Example
       "detectLanguageEnabled": 1,
       "showTranslationUI": 1,
       "translationOpportunityCount": 134,
+      "missedTranslationOpportunityCount": 32,
       "pageTranslatedCount": 6,
       "charactersTranslatedCount": "1126",
       "detectedLanguageChangedBefore": 1,
       "detectedLanguageChangedAfter": 2,
+      "targetLanguageChanged": 0,
+      "deniedTranslationOffer": 3,
+      "showOriginalContent": 2,
       "translationOpportunityCountsByLanguage": {
         "fr": 100,
         "es": 34
+      },
+      "missedTranslationOpportunityCountsByLanguage": {
+        "it": 20,
+        "nl": 10,
+        "fi": 2
       },
       "pageTranslatedCountsByLanguage": {
         "fr": {

@@ -14,20 +14,19 @@ function simulateIncoming() {
     log("Received 'incoming' call event.");
     incomingCall = event.call;
     ok(incomingCall);
-    is(incomingCall.number, inNumber);
+    is(incomingCall.id.number, inNumber);
     is(incomingCall.state, "incoming");
 
     is(telephony.calls.length, 1);
     is(telephony.calls[0], incomingCall);
 
-    emulator.run("gsm list", function(result) {
+    emulator.runWithCallback("gsm list", function(result) {
       log("Call list is now: " + result);
       is(result[0], "inbound from " + inNumber + " : incoming");
-      is(result[1], "OK");
       answerIncoming();
     });
   };
-  emulator.run("gsm call " + inNumber);
+  emulator.runWithCallback("gsm call " + inNumber);
 }
 
 function answerIncoming() {
@@ -49,10 +48,9 @@ function answerIncoming() {
 
     is(incomingCall, telephony.active);
 
-    emulator.run("gsm list", function(result) {
+    emulator.runWithCallback("gsm list", function(result) {
       log("Call list is now: " + result);
       is(result[0], "inbound from " + inNumber + " : active");
-      is(result[1], "OK");
       remoteHangUp();
     });
   };
@@ -72,13 +70,12 @@ function remoteHangUp() {
     is(telephony.active, null);
     is(telephony.calls.length, 0);
 
-    emulator.run("gsm list", function(result) {
+    emulator.runWithCallback("gsm list", function(result) {
       log("Call list is now: " + result);
-      is(result[0], "OK");
       cleanUp();
     });
   };
-  emulator.run("gsm cancel " + inNumber);
+  emulator.runWithCallback("gsm cancel " + inNumber);
 }
 
 function cleanUp() {

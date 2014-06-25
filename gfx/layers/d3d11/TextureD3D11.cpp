@@ -138,6 +138,9 @@ CreateTextureHostD3D11(const SurfaceDescriptor& aDesc,
                                         aDesc.get_SurfaceDescriptorD3D10());
       break;
     }
+    case SurfaceDescriptor::TSurfaceStreamDescriptor: {
+      MOZ_CRASH("Should never hit this.");
+    }
     default: {
       NS_WARNING("Unsupported SurfaceDescriptor type");
     }
@@ -150,6 +153,7 @@ TextureClientD3D11::TextureClientD3D11(gfx::SurfaceFormat aFormat, TextureFlags 
   , mFormat(aFormat)
   , mIsLocked(false)
   , mNeedsClear(false)
+  , mNeedsClearWhite(false)
 {}
 
 TextureClientD3D11::~TextureClientD3D11()
@@ -183,6 +187,11 @@ TextureClientD3D11::Lock(OpenMode aMode)
     mDrawTarget = BorrowDrawTarget();
     mDrawTarget->ClearRect(Rect(0, 0, GetSize().width, GetSize().height));
     mNeedsClear = false;
+  }
+  if (mNeedsClearWhite) {
+    mDrawTarget = BorrowDrawTarget();
+    mDrawTarget->FillRect(Rect(0, 0, GetSize().width, GetSize().height), ColorPattern(Color(1.0, 1.0, 1.0, 1.0)));
+    mNeedsClearWhite = false;
   }
 
   return true;
@@ -246,6 +255,7 @@ TextureClientD3D11::AllocateForSurface(gfx::IntSize aSize, TextureAllocationFlag
 
   // Defer clearing to the next time we lock to avoid an extra (expensive) lock.
   mNeedsClear = aFlags & ALLOC_CLEAR_BUFFER;
+  mNeedsClearWhite = aFlags & ALLOC_CLEAR_BUFFER_WHITE;
 
   return true;
 }

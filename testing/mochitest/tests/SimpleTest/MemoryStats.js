@@ -1,4 +1,4 @@
-/* -*- js-indent-level: 4; tab-width: 4; indent-tabs-mode: nil -*- */
+/* -*- js-indent-level: 4; indent-tabs-mode: nil -*- */
 /* vim:set ts=4 sw=4 sts=4 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -90,7 +90,7 @@ MemoryStats.dump = function (dumpFn,
                                          "nsIMemoryInfoDumper");
         md.dumpMemoryReportsToNamedFile(dumpfile, function () {
             dumpFn("TEST-INFO | " + testURL + " | MEMDUMP-END");
-        }, null);
+        }, null, /* anonymize = */ false);
 
     }
 

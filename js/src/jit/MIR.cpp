@@ -378,10 +378,14 @@ MDefinition::hasLiveDefUses() const
 {
     for (MUseIterator i(uses_.begin()); i != uses_.end(); i++) {
         MNode *ins = (*i)->consumer();
-        if (!ins->isDefinition())
-            continue;
-        if (!ins->toDefinition()->isRecoveredOnBailout())
-            return true;
+        if (ins->isDefinition()) {
+            if (!ins->toDefinition()->isRecoveredOnBailout())
+                return true;
+        } else {
+            MOZ_ASSERT(ins->isResumePoint());
+            if (ins->toResumePoint()->isObservableOperand(*i))
+                return true;
+        }
     }
 
     return false;
@@ -896,6 +900,7 @@ MUnbox::printOpcode(FILE *fp) const
       case MIRType_Double: fprintf(fp, "to Double"); break;
       case MIRType_Boolean: fprintf(fp, "to Boolean"); break;
       case MIRType_String: fprintf(fp, "to String"); break;
+      case MIRType_Symbol: fprintf(fp, "to Symbol"); break;
       case MIRType_Object: fprintf(fp, "to Object"); break;
       default: break;
     }
@@ -1534,28 +1539,6 @@ MDiv::fallible() const
     return !isTruncated();
 }
 
-bool
-MMod::canBeDivideByZero() const
-{
-    JS_ASSERT(specialization_ == MIRType_Int32);
-    return !rhs()->isConstant() || rhs()->toConstant()->value().toInt32() == 0;
-}
-
-bool
-MMod::canBePowerOfTwoDivisor() const
-{
-    JS_ASSERT(specialization_ == MIRType_Int32);
-
-    if (!rhs()->isConstant())
-        return true;
-
-    int32_t i = rhs()->toConstant()->value().toInt32();
-    if (i <= 0 || !IsPowerOfTwo(i))
-        return false;
-
-    return true;
-}
-
 MDefinition *
 MMod::foldsTo(TempAllocator &alloc, bool useValueNumbers)
 {
@@ -1566,6 +1549,23 @@ MMod::foldsTo(TempAllocator &alloc, bool useValueNumbers)
         return folded;
 
     return this;
+}
+
+void
+MMod::analyzeEdgeCasesForward()
+{
+    // These optimizations make sense only for integer division
+    if (specialization_ != MIRType_Int32)
+        return;
+
+    if (rhs()->isConstant() && !rhs()->toConstant()->value().isInt32(0))
+        canBeDivideByZero_ = false;
+
+    if (rhs()->isConstant()) {
+        int32_t n = rhs()->toConstant()->value().toInt32();
+        if (n > 0 && !IsPowerOfTwo(n))
+            canBePowerOfTwoDivisor_ = false;
+    }
 }
 
 bool
@@ -1686,10 +1686,11 @@ MUrsh::fallible() const
 }
 
 static inline bool
-KnownNonStringPrimitive(MDefinition *op)
+SimpleArithOperand(MDefinition *op)
 {
     return !op->mightBeType(MIRType_Object)
         && !op->mightBeType(MIRType_String)
+        && !op->mightBeType(MIRType_Symbol)
         && !op->mightBeType(MIRType_MagicOptimizedArguments)
         && !op->mightBeType(MIRType_MagicHole)
         && !op->mightBeType(MIRType_MagicIsConstructing);
@@ -1708,9 +1709,9 @@ MBinaryArithInstruction::infer(TempAllocator &alloc, BaselineInspector *inspecto
     if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object))
         return;
 
-    // Anything complex - strings and objects - are not specialized
+    // Anything complex - strings, symbols, and objects - are not specialized
     // unless baseline type hints suggest it might be profitable
-    if (!KnownNonStringPrimitive(getOperand(0)) || !KnownNonStringPrimitive(getOperand(1)))
+    if (!SimpleArithOperand(getOperand(0)) || !SimpleArithOperand(getOperand(1)))
         return inferFallback(inspector, pc);
 
     // Retrieve type information of lhs and rhs.
@@ -1804,9 +1805,9 @@ MBinaryArithInstruction::inferFallback(BaselineInspector *inspector,
 static bool
 SafelyCoercesToDouble(MDefinition *op)
 {
-    // Strings are unhandled -- visitToDouble() doesn't support them yet.
+    // Strings and symbols are unhandled -- visitToDouble() doesn't support them yet.
     // Null is unhandled -- ToDouble(null) == 0, but (0 == null) is false.
-    return KnownNonStringPrimitive(op) && !op->mightBeType(MIRType_Null);
+    return SimpleArithOperand(op) && !op->mightBeType(MIRType_Null);
 }
 
 static bool
@@ -1814,6 +1815,7 @@ ObjectOrSimplePrimitive(MDefinition *op)
 {
     // Return true if op is either undefined/null/boolean/int32 or an object.
     return !op->mightBeType(MIRType_String)
+        && !op->mightBeType(MIRType_Symbol)
         && !op->mightBeType(MIRType_Double)
         && !op->mightBeType(MIRType_Float32)
         && !op->mightBeType(MIRType_MagicOptimizedArguments)
@@ -2120,6 +2122,9 @@ MTypeOf::foldsTo(TempAllocator &alloc, bool useValueNumbers)
         break;
       case MIRType_String:
         type = JSTYPE_STRING;
+        break;
+      case MIRType_Symbol:
+        type = JSTYPE_SYMBOL;
         break;
       case MIRType_Null:
         type = JSTYPE_OBJECT;
@@ -2459,6 +2464,7 @@ MCompare::tryFold(bool *result)
           case MIRType_Double:
           case MIRType_Float32:
           case MIRType_String:
+          case MIRType_Symbol:
           case MIRType_Boolean:
             *result = (op == JSOP_NE || op == JSOP_STRICTNE);
             return true;
@@ -2478,6 +2484,7 @@ MCompare::tryFold(bool *result)
           case MIRType_Double:
           case MIRType_Float32:
           case MIRType_String:
+          case MIRType_Symbol:
           case MIRType_Object:
           case MIRType_Null:
           case MIRType_Undefined:
@@ -2502,6 +2509,7 @@ MCompare::tryFold(bool *result)
           case MIRType_Int32:
           case MIRType_Double:
           case MIRType_Float32:
+          case MIRType_Symbol:
           case MIRType_Object:
           case MIRType_Null:
           case MIRType_Undefined:
@@ -3441,7 +3449,8 @@ TryAddTypeBarrierForWrite(TempAllocator &alloc, types::CompilerConstraintList *c
       case MIRType_Boolean:
       case MIRType_Int32:
       case MIRType_Double:
-      case MIRType_String: {
+      case MIRType_String:
+      case MIRType_Symbol: {
         // The property is a particular primitive type, guard by unboxing the
         // value before the write.
         if (!(*pvalue)->mightBeType(propertyType)) {

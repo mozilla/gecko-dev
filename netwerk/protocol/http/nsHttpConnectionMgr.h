@@ -129,6 +129,9 @@ public:
     // to the socket thread
     nsresult UpdateRequestTokenBucket(EventTokenBucket *aBucket);
 
+    // clears the connection history mCT
+    nsresult ClearConnectionHistory();
+
     // Pipielining Interfaces and Datatypes
 
     const static uint32_t kPipelineInfoTypeMask = 0xffff0000;
@@ -392,12 +395,13 @@ private:
     //
     class nsConnectionHandle : public nsAHttpConnection
     {
+        virtual ~nsConnectionHandle();
+
     public:
         NS_DECL_THREADSAFE_ISUPPORTS
         NS_DECL_NSAHTTPCONNECTION(mConn)
 
         nsConnectionHandle(nsHttpConnection *conn) { NS_ADDREF(mConn = conn); }
-        virtual ~nsConnectionHandle();
 
         nsHttpConnection *mConn;
     };
@@ -410,6 +414,8 @@ private:
                                        public nsIInterfaceRequestor,
                                        public nsITimerCallback
     {
+        ~nsHalfOpenSocket();
+
     public:
         NS_DECL_THREADSAFE_ISUPPORTS
         NS_DECL_NSIOUTPUTSTREAMCALLBACK
@@ -420,7 +426,6 @@ private:
         nsHalfOpenSocket(nsConnectionEntry *ent,
                          nsAHttpTransaction *trans,
                          uint32_t caps);
-        ~nsHalfOpenSocket();
 
         nsresult SetupStreams(nsISocketTransport **,
                               nsIAsyncInputStream **,
@@ -661,6 +666,9 @@ private:
     static PLDHashOperator ReadConnectionEntry(const nsACString &key,
                                                nsAutoPtr<nsConnectionEntry> &ent,
                                                void *aArg);
+    static PLDHashOperator RemoveDeadConnections(const nsACString &key,
+        nsAutoPtr<nsConnectionEntry> &ent,
+        void *aArg);
 
     // Read Timeout Tick handlers
     void ActivateTimeoutTick();

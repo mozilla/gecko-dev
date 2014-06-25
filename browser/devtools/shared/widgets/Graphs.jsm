@@ -283,6 +283,19 @@ AbstractCanvasGraph.prototype = {
   },
 
   /**
+   * Same as `setData`, but waits for this graph to finish initializing first.
+   *
+   * @param object data
+   *        The data source. The actual format is specified by subclasses.
+   * @return promise
+   *         A promise resolved once the data is set.
+   */
+  setDataWhenReady: Task.async(function*(data) {
+    yield this.ready();
+    this.setData(data);
+  }),
+
+  /**
    * Adds regions to this graph.
    *
    * See the "Language" section in the constructor documentation
@@ -293,7 +306,7 @@ AbstractCanvasGraph.prototype = {
    */
   setRegions: function(regions) {
     if (!this._cachedGraphImage) {
-      throw "Can't highlighted regions on a graph with no data displayed.";
+      throw "Can't highlight regions on a graph with no data displayed.";
     }
     if (this._regions) {
       throw "Regions were already highlighted on the graph.";
@@ -362,6 +375,38 @@ AbstractCanvasGraph.prototype = {
       return { start: this._selection.start, end: this._cursor.x };
     }
     return { start: null, end: null };
+  },
+
+  /**
+   * Gets the selection bounds, scaled to correlate with the data source ranges,
+   * such that a [0, max width] selection maps to [first value, last value].
+   *
+   * @param function unpack [optional]
+   *        Invoked when retrieving the numbers in the data source representing
+   *        the first and last values, on the X axis. Currently, all graphs
+   *        store this in a "delta" property for all entries, but in the future
+   *        this may change as new graphs with different data source format
+   *        requirements are implemented.
+   * @return object
+   *         The mapped selection's { min, max } values.
+   */
+  getMappedSelection: function(unpack = e => e.delta) {
+    if (!this.hasData() || !this.hasSelection()) {
+      return { start: null, end: null };
+    }
+    let selection = this.getSelection();
+    let totalTicks = this._data.length;
+    let firstTick = unpack(this._data[0]);
+    let lastTick = unpack(this._data[totalTicks - 1]);
+
+    // The selection's start and end values are not guaranteed to be ascending.
+    // This can happen, for example, when click & dragging from right to left.
+    let min = Math.min(selection.start, selection.end);
+    let max = Math.max(selection.start, selection.end);
+    min = map(min, 0, this._width, firstTick, lastTick);
+    max = map(max, 0, this._width, firstTick, lastTick);
+
+    return { min: min, max: max };
   },
 
   /**
@@ -829,6 +874,7 @@ AbstractCanvasGraph.prototype = {
     }
 
     this._shouldRedraw = true;
+    this.emit("mousedown");
   },
 
   /**
@@ -870,6 +916,7 @@ AbstractCanvasGraph.prototype = {
     }
 
     this._shouldRedraw = true;
+    this.emit("mouseup");
   },
 
   /**
@@ -938,6 +985,7 @@ AbstractCanvasGraph.prototype = {
 
     this._shouldRedraw = true;
     this.emit("selecting");
+    this.emit("scroll");
   },
 
   /**
@@ -1133,13 +1181,6 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     this._maxTooltip.querySelector("[text=value]").textContent = maxValue|0;
     this._avgTooltip.querySelector("[text=value]").textContent = avgValue|0;
     this._minTooltip.querySelector("[text=value]").textContent = minValue|0;
-
-    /**
-     * Maps a value from one range to another.
-     */
-    function map(value, istart, istop, ostart, ostop) {
-      return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
-    }
 
     /**
      * Constrains a value to a range.
@@ -1547,6 +1588,9 @@ this.CanvasGraphUtils = {
    * Merges the animation loop of two graphs.
    */
   linkAnimation: Task.async(function*(graph1, graph2) {
+    if (!graph1 || !graph2) {
+      return;
+    }
     yield graph1.ready();
     yield graph2.ready();
 
@@ -1567,6 +1611,9 @@ this.CanvasGraphUtils = {
    * Makes sure selections in one graph are reflected in another.
    */
   linkSelection: function(graph1, graph2) {
+    if (!graph1 || !graph2) {
+      return;
+    }
     graph1.on("selecting", () => {
       graph2.setSelection(graph1.getSelection());
     });
@@ -1581,3 +1628,10 @@ this.CanvasGraphUtils = {
     });
   }
 };
+
+/**
+ * Maps a value from one range to another.
+ */
+function map(value, istart, istop, ostart, ostop) {
+  return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
+}

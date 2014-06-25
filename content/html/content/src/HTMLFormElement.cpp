@@ -29,7 +29,7 @@
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "nsIMutableArray.h"
-#include "nsIAutofillController.h"
+#include "nsIFormAutofillContentService.h"
 
 // form submission
 #include "nsIFormSubmitObserver.h"
@@ -64,7 +64,7 @@
 
 // construction, destruction
 nsGenericHTMLElement*
-NS_NewHTMLFormElement(already_AddRefed<nsINodeInfo>&& aNodeInfo,
+NS_NewHTMLFormElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
                       mozilla::dom::FromParser aFromParser)
 {
   mozilla::dom::HTMLFormElement* it = new mozilla::dom::HTMLFormElement(aNodeInfo);
@@ -96,7 +96,7 @@ static const nsAttrValue::EnumTable* kFormDefaultAutocomplete = &kFormAutocomple
 bool HTMLFormElement::gFirstFormSubmitted = false;
 bool HTMLFormElement::gPasswordManagerInitialized = false;
 
-HTMLFormElement::HTMLFormElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
+HTMLFormElement::HTMLFormElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo),
     mSelectedRadioButtons(4),
     mRequiredRadioButtonCounts(4),
@@ -306,10 +306,12 @@ void
 HTMLFormElement::RequestAutocomplete()
 {
   bool dummy;
-  nsCOMPtr<nsIDOMWindow> win = do_QueryInterface(OwnerDoc()->GetScriptHandlingObject(dummy));
-  nsCOMPtr<nsIAutofillController> controller(do_GetService("@mozilla.org/autofill-controller;1"));
+  nsCOMPtr<nsIDOMWindow> window =
+    do_QueryInterface(OwnerDoc()->GetScriptHandlingObject(dummy));
+  nsCOMPtr<nsIFormAutofillContentService> formAutofillContentService =
+    do_GetService("@mozilla.org/formautofill/content-service;1");
 
-  if (!controller || !win) {
+  if (!formAutofillContentService || !window) {
     AutocompleteErrorEventInit init;
     init.mBubbles = true;
     init.mCancelable = false;
@@ -317,11 +319,12 @@ HTMLFormElement::RequestAutocomplete()
 
     nsRefPtr<AutocompleteErrorEvent> event =
       AutocompleteErrorEvent::Constructor(this, NS_LITERAL_STRING("autocompleteerror"), init);
+
     (new AsyncEventDispatcher(this, event))->PostDOMEvent();
     return;
   }
 
-  controller->RequestAutocomplete(this, win);
+  formAutofillContentService->RequestAutocomplete(this, window);
 }
 
 bool

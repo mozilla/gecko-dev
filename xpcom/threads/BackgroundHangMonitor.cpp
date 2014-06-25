@@ -89,6 +89,7 @@ public:
   }
 
   BackgroundHangManager();
+private:
   ~BackgroundHangManager();
 };
 
@@ -136,7 +137,7 @@ public:
   // Platform-specific helper to get hang stacks
   ThreadStackHelper mStackHelper;
   // Stack of current hang
-  Telemetry::HangHistogram::Stack mHangStack;
+  Telemetry::HangStack mHangStack;
   // Statistics for telemetry
   Telemetry::ThreadHangStats mStats;
 

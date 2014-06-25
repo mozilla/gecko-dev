@@ -6,7 +6,6 @@
 
 #include "jit/AsmJSLink.h"
 
-#include "mozilla/BinarySearch.h"
 #include "mozilla/PodOperations.h"
 
 #ifdef MOZ_VTUNE
@@ -32,7 +31,6 @@
 using namespace js;
 using namespace js::jit;
 
-using mozilla::BinarySearch;
 using mozilla::IsNaN;
 using mozilla::PodZero;
 
@@ -93,29 +91,14 @@ AsmJSFrameIterator::operator++()
     settle(ReturnAddressForJitCall(sp_));
 }
 
-struct GetCallSite
-{
-    const AsmJSModule &module;
-    explicit GetCallSite(const AsmJSModule &module) : module(module) {}
-    uint32_t operator[](size_t index) const {
-        return module.callSite(index).returnAddressOffset();
-    }
-};
-
 void
 AsmJSFrameIterator::settle(uint8_t *returnAddress)
 {
-    uint32_t target = returnAddress - module_->codeBase();
-    size_t lowerBound = 0;
-    size_t upperBound = module_->numCallSites();
-
-    size_t match;
-    if (!BinarySearch(GetCallSite(*module_), lowerBound, upperBound, target, &match)) {
+    callsite_ = module_->lookupCallSite(returnAddress);
+    if (!callsite_ || callsite_->isEntry()) {
         module_ = nullptr;
         return;
     }
-
-    callsite_ = &module_->callSite(match);
 
     if (callsite_->isEntry()) {
         module_ = nullptr;
@@ -612,7 +595,15 @@ HandleDynamicLinkFailure(JSContext *cx, CallArgs args, AsmJSModule &module, Hand
     if (module.strict())
         options.strictOption = true;
 
-    SourceBufferHolder srcBuf(src->chars(), end - begin, SourceBufferHolder::NoOwnership);
+    AutoStableStringChars stableChars(cx);
+    if (!stableChars.initTwoByte(cx, src))
+        return false;
+
+    const jschar *chars = stableChars.twoByteRange().start().get();
+    SourceBufferHolder::Ownership ownership = stableChars.maybeGiveOwnershipToCaller()
+                                              ? SourceBufferHolder::GiveOwnership
+                                              : SourceBufferHolder::NoOwnership;
+    SourceBufferHolder srcBuf(chars, end - begin, ownership);
     if (!frontend::CompileFunctionBody(cx, &fun, options, formals, srcBuf))
         return false;
 
@@ -727,8 +718,8 @@ SendModuleToAttachedProfiler(JSContext *cx, AsmJSModule &module)
 
 #if defined(JS_ION_PERF)
     if (module.numExportedFunctions() > 0) {
-        size_t firstEntryCode = (size_t) module.entryTrampoline(module.exportedFunction(0));
-        writePerfSpewerAsmJSEntriesAndExits(firstEntryCode, (size_t) module.globalData() - firstEntryCode);
+        size_t firstEntryCode = size_t(module.codeBase() + module.functionBytes());
+        writePerfSpewerAsmJSEntriesAndExits(firstEntryCode, module.codeBytes() - module.functionBytes());
     }
     if (!SendBlocksToPerf(cx, module))
         return false;
@@ -909,13 +900,12 @@ AppendUseStrictSource(JSContext *cx, HandleFunction fun, Handle<JSFlatString*> s
     // the "use strict" directive, but these functions won't validate as asm.js
     // modules.
 
-    ConstTwoByteChars chars(src->chars(), src->length());
-    if (!FindBody(cx, fun, chars, src->length(), &bodyStart, &bodyEnd))
+    if (!FindBody(cx, fun, src, &bodyStart, &bodyEnd))
         return false;
 
-    return out.append(chars, bodyStart) &&
+    return out.appendSubstring(src, 0, bodyStart) &&
            out.append("\n\"use strict\";\n") &&
-           out.append(chars + bodyStart, src->length() - bodyStart);
+           out.appendSubstring(src, bodyStart, src->length() - bodyStart);
 }
 
 JSString *

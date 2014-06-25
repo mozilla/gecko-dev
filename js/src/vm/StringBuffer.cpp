@@ -77,7 +77,7 @@ FinishStringFlat(ExclusiveContext *cx, StringBuffer &sb, Buffer &cb)
     if (!buf)
         return nullptr;
 
-    JSFlatString *str = js_NewString<CanGC>(cx, buf.get(), len);
+    JSFlatString *str = NewString<CanGC>(cx, buf.get(), len);
     if (!str)
         return nullptr;
 
@@ -118,6 +118,12 @@ StringBuffer::finishAtom()
     if (len == 0)
         return cx->names().empty;
 
+    if (isLatin1()) {
+        JSAtom *atom = AtomizeChars(cx, latin1Chars().begin(), len);
+        latin1Chars().clear();
+        return atom;
+    }
+
     JSAtom *atom = AtomizeChars(cx, twoByteChars().begin(), len);
     twoByteChars().clear();
     return atom;
@@ -138,6 +144,10 @@ js::ValueToStringBufferSlow(JSContext *cx, const Value &arg, StringBuffer &sb)
         return BooleanToStringBuffer(v.toBoolean(), sb);
     if (v.isNull())
         return sb.append(cx->names().null);
+    if (v.isSymbol()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SYMBOL_TO_STRING);
+        return false;
+    }
     JS_ASSERT(v.isUndefined());
     return sb.append(cx->names().undefined);
 }

@@ -86,6 +86,7 @@ using mozilla::ArrayLength;
 using mozilla::NumberEqualsInt32;
 using mozilla::Maybe;
 using mozilla::PodCopy;
+using mozilla::Range;
 
 enum JSShellExitCode {
     EXITCODE_RUNTIME_ERROR      = 3,
@@ -1219,9 +1220,8 @@ Evaluate(JSContext *cx, unsigned argc, jsval *vp)
         }
     }
 
-    size_t codeLength;
-    const jschar *codeChars = JS_GetStringCharsAndLength(cx, code, &codeLength);
-    if (!codeChars)
+    AutoStableStringChars codeChars(cx);
+    if (!codeChars.initTwoByte(cx, code))
         return false;
 
     AutoNewContext ancx;
@@ -1268,7 +1268,8 @@ Evaluate(JSContext *cx, unsigned argc, jsval *vp)
             if (loadBytecode) {
                 script = JS_DecodeScript(cx, loadBuffer, loadLength, options.originPrincipals(cx));
             } else {
-                script = JS::Compile(cx, global, options, codeChars, codeLength);
+                Range<const jschar> chars = codeChars.twoByteRange();
+                script = JS::Compile(cx, global, options, chars.start().get(), chars.length());
             }
 
             if (!script)
@@ -1276,16 +1277,28 @@ Evaluate(JSContext *cx, unsigned argc, jsval *vp)
         }
 
         if (displayURL && !script->scriptSource()->hasDisplayURL()) {
-            const jschar *durl = JS_GetStringCharsZ(cx, displayURL);
-            if (!durl)
+            JSFlatString *flat = displayURL->ensureFlat(cx);
+            if (!flat)
                 return false;
+
+            AutoStableStringChars chars(cx);
+            if (!chars.initTwoByte(cx, flat))
+                return false;
+
+            const jschar *durl = chars.twoByteRange().start().get();
             if (!script->scriptSource()->setDisplayURL(cx, durl))
                 return false;
         }
         if (sourceMapURL && !script->scriptSource()->hasSourceMapURL()) {
-            const jschar *smurl = JS_GetStringCharsZ(cx, sourceMapURL);
-            if (!smurl)
+            JSFlatString *flat = sourceMapURL->ensureFlat(cx);
+            if (!flat)
                 return false;
+
+            AutoStableStringChars chars(cx);
+            if (!chars.initTwoByte(cx, flat))
+                return false;
+
+            const jschar *smurl = chars.twoByteRange().start().get();
             if (!script->scriptSource()->setSourceMapURL(cx, smurl))
                 return false;
         }
@@ -1440,8 +1453,8 @@ Run(JSContext *cx, unsigned argc, jsval *vp)
     if (!str)
         return false;
 
-    AutoStableStringChars chars(cx, &str->asLinear());
-    if (!chars.initTwoByte(cx))
+    AutoStableStringChars chars(cx);
+    if (!chars.initTwoByte(cx, str))
         return false;
 
     const jschar *ucbuf = chars.twoByteRange().start().get();
@@ -1793,12 +1806,12 @@ TrapHandler(JSContext *cx, JSScript *, jsbytecode *pc, jsval *rvalArg,
     JSAbstractFramePtr frame(iter.abstractFramePtr().raw(), iter.pc());
     RootedScript script(cx, iter.script());
 
-    size_t length;
-    const jschar *chars = JS_GetStringCharsAndLength(cx, str, &length);
-    if (!chars)
+    AutoStableStringChars stableChars(cx);
+    if (!stableChars.initTwoByte(cx, str))
         return JSTRAP_ERROR;
 
-    if (!frame.evaluateUCInStackFrame(cx, chars, length,
+    Range<const jschar> chars = stableChars.twoByteRange();
+    if (!frame.evaluateUCInStackFrame(cx, chars.start().get(), chars.length(),
                                       script->filename(),
                                       script->lineno(),
                                       &rval))
@@ -2515,12 +2528,13 @@ Intern(JSContext *cx, unsigned argc, jsval *vp)
     if (!str)
         return false;
 
-    size_t length;
-    const jschar *chars = JS_GetStringCharsAndLength(cx, str, &length);
-    if (!chars)
+    AutoStableStringChars strChars(cx);
+    if (!strChars.initTwoByte(cx, str))
         return false;
 
-    if (!JS_InternUCStringN(cx, chars, length))
+    Range<const jschar> chars = strChars.twoByteRange();
+
+    if (!JS_InternUCStringN(cx, chars.start().get(), chars.length()))
         return false;
 
     args.rval().setUndefined();
@@ -2749,10 +2763,13 @@ EvalInContext(JSContext *cx, unsigned argc, jsval *vp)
     if (!JS_ConvertArguments(cx, args, "S / o", str.address(), sobj.address()))
         return false;
 
-    size_t srclen;
-    const jschar *src = JS_GetStringCharsAndLength(cx, str, &srclen);
-    if (!src)
+    AutoStableStringChars strChars(cx);
+    if (!strChars.initTwoByte(cx, str))
         return false;
+
+    Range<const jschar> chars = strChars.twoByteRange();
+    size_t srclen = chars.length();
+    const jschar *src = chars.start().get();
 
     bool lazy = false;
     if (srclen == 4) {
@@ -2844,14 +2861,14 @@ EvalInFrame(JSContext *cx, unsigned argc, jsval *vp)
         ac.construct(cx, DefaultObjectForContextOrNull(cx));
     }
 
-    size_t length;
-    const jschar *chars = JS_GetStringCharsAndLength(cx, str, &length);
-    if (!chars)
-        return false;
+    AutoStableStringChars stableChars(cx);
+    if (!stableChars.initTwoByte(cx, str))
+        return JSTRAP_ERROR;
 
+    Range<const jschar> chars = stableChars.twoByteRange();
     JSAbstractFramePtr frame(fi.abstractFramePtr().raw(), fi.pc());
     RootedScript fpscript(cx, frame.script());
-    bool ok = !!frame.evaluateUCInStackFrame(cx, chars, length,
+    bool ok = !!frame.evaluateUCInStackFrame(cx, chars.start().get(), chars.length(),
                                              fpscript->filename(),
                                              JS_PCToLineNumber(cx, fpscript,
                                                                fi.pc()),
@@ -3529,15 +3546,24 @@ Compile(JSContext *cx, unsigned argc, jsval *vp)
     }
 
     RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
-    JSString *scriptContents = args[0].toString();
+    JSFlatString *scriptContents = args[0].toString()->ensureFlat(cx);
+    if (!scriptContents)
+        return false;
+
+    AutoStableStringChars stableChars(cx);
+    if (!stableChars.initTwoByte(cx, scriptContents))
+        return false;
+
     JS::AutoSaveContextOptions asco(cx);
     JS::ContextOptionsRef(cx).setNoScriptRval(true);
     JS::CompileOptions options(cx);
     options.setIntroductionType("js shell compile")
            .setFileAndLine("<string>", 1)
            .setCompileAndGo(true);
-    bool ok = JS_CompileUCScript(cx, global, JS_GetStringCharsZ(cx, scriptContents),
-                                 JS_GetStringLength(scriptContents), options);
+
+    const jschar *chars = stableChars.twoByteRange().start().get();
+    bool ok = JS_CompileUCScript(cx, global, chars,
+                                 scriptContents->length(), options);
     args.rval().setUndefined();
     return ok;
 }
@@ -3560,14 +3586,22 @@ Parse(JSContext *cx, unsigned argc, jsval *vp)
         return false;
     }
 
-    JSString *scriptContents = args[0].toString();
+    JSFlatString *scriptContents = args[0].toString()->ensureFlat(cx);
+    if (!scriptContents)
+        return false;
+
+    AutoStableStringChars stableChars(cx);
+    if (!stableChars.initTwoByte(cx, scriptContents))
+        return false;
+
+    size_t length = scriptContents->length();
+    const jschar *chars = stableChars.twoByteRange().start().get();
+
     CompileOptions options(cx);
     options.setIntroductionType("js shell parse")
            .setFileAndLine("<string>", 1)
            .setCompileAndGo(false);
-    Parser<FullParseHandler> parser(cx, &cx->tempLifoAlloc(), options,
-                                    JS_GetStringCharsZ(cx, scriptContents),
-                                    JS_GetStringLength(scriptContents),
+    Parser<FullParseHandler> parser(cx, &cx->tempLifoAlloc(), options, chars, length,
                                     /* foldConstants = */ true, nullptr, nullptr);
 
     ParseNode *pn = parser.parse(nullptr);
@@ -3599,14 +3633,20 @@ SyntaxParse(JSContext *cx, unsigned argc, jsval *vp)
         return false;
     }
 
-    JSString *scriptContents = args[0].toString();
+    JSFlatString *scriptContents = args[0].toString()->ensureFlat(cx);
+    if (!scriptContents)
+        return false;
     CompileOptions options(cx);
     options.setIntroductionType("js shell syntaxParse")
            .setFileAndLine("<string>", 1)
            .setCompileAndGo(false);
 
-    const jschar *chars = JS_GetStringCharsZ(cx, scriptContents);
-    size_t length = JS_GetStringLength(scriptContents);
+    AutoStableStringChars stableChars(cx);
+    if (!stableChars.initTwoByte(cx, scriptContents))
+        return false;
+
+    const jschar *chars = stableChars.twoByteRange().start().get();
+    size_t length = scriptContents->length();
     Parser<frontend::SyntaxParseHandler> parser(cx, &cx->tempLifoAlloc(),
                                                 options, chars, length, false, nullptr, nullptr);
 
@@ -3635,17 +3675,17 @@ class OffThreadState {
         DONE            /* compilation done: have token and source */
     };
 
-    OffThreadState() : monitor(), state(IDLE), token() { }
+    OffThreadState() : monitor(), state(IDLE), token(), source(nullptr) { }
     bool init() { return monitor.init(); }
 
-    bool startIfIdle(JSContext *cx, JSString *newSource) {
+    bool startIfIdle(JSContext *cx, ScopedJSFreePtr<jschar> &newSource) {
         AutoLockMonitor alm(monitor);
         if (state != IDLE)
             return false;
 
         JS_ASSERT(!token);
 
-        source.construct(cx, newSource);
+        source = newSource.forget();
 
         state = COMPILING;
         return true;
@@ -3655,9 +3695,10 @@ class OffThreadState {
         AutoLockMonitor alm(monitor);
         JS_ASSERT(state == COMPILING);
         JS_ASSERT(!token);
-        JS_ASSERT(source.ref());
+        JS_ASSERT(source);
 
-        source.destroy();
+        js_free(source);
+        source = nullptr;
 
         state = IDLE;
     }
@@ -3666,7 +3707,7 @@ class OffThreadState {
         AutoLockMonitor alm(monitor);
         JS_ASSERT(state == COMPILING);
         JS_ASSERT(!token);
-        JS_ASSERT(source.ref());
+        JS_ASSERT(source);
         JS_ASSERT(newToken);
 
         token = newToken;
@@ -3684,8 +3725,9 @@ class OffThreadState {
                 alm.wait();
         }
 
-        JS_ASSERT(source.ref());
-        source.destroy();
+        JS_ASSERT(source);
+        js_free(source);
+        source = nullptr;
 
         JS_ASSERT(token);
         void *holdToken = token;
@@ -3698,7 +3740,7 @@ class OffThreadState {
     Monitor monitor;
     State state;
     void *token;
-    Maybe<PersistentRootedString> source;
+    jschar *source;
 };
 
 static OffThreadState offThreadState;
@@ -3750,17 +3792,34 @@ OffThreadCompileScript(JSContext *cx, unsigned argc, jsval *vp)
     options.forceAsync = true;
 
     JSString *scriptContents = args[0].toString();
-    const jschar *chars = JS_GetStringCharsZ(cx, scriptContents);
-    if (!chars)
+    AutoStableStringChars stableChars(cx);
+    if (!stableChars.initTwoByte(cx, scriptContents))
         return false;
-    size_t length = JS_GetStringLength(scriptContents);
+
+    size_t length = scriptContents->length();
+    const jschar *chars = stableChars.twoByteRange().start().get();
+
+    // Make sure we own the string's chars, so that they are not freed before
+    // the compilation is finished.
+    ScopedJSFreePtr<jschar> ownedChars;
+    if (stableChars.maybeGiveOwnershipToCaller()) {
+        ownedChars = const_cast<jschar*>(chars);
+    } else {
+        jschar *copy = cx->pod_malloc<jschar>(length);
+        if (!copy)
+            return false;
+
+        mozilla::PodCopy(copy, chars, length);
+        ownedChars = copy;
+        chars = copy;
+    }
 
     if (!JS::CanCompileOffThread(cx, options, length)) {
         JS_ReportError(cx, "cannot compile code on worker thread");
         return false;
     }
 
-    if (!offThreadState.startIfIdle(cx, scriptContents)) {
+    if (!offThreadState.startIfIdle(cx, ownedChars)) {
         JS_ReportError(cx, "called offThreadCompileScript without calling runOffThreadScript"
                        " to receive prior off-thread compilation");
         return false;
@@ -4380,11 +4439,11 @@ class ShellSourceHook: public SourceHook {
         if (!*src)
             return false;
 
-        const jschar *chars = JS_GetStringCharsZ(cx, str);
-        if (!chars)
+        JSLinearString *linear = str->ensureLinear(cx);
+        if (!linear)
             return false;
 
-        PodCopy(*src, chars, *length);
+        CopyChars(*src, *linear);
         return true;
     }
 };
@@ -4969,13 +5028,19 @@ PrintHelpString(JSContext *cx, jsval v)
 {
     JSString *str = v.toString();
     JS::Anchor<JSString *> a_str(str);
-    const jschar *chars = JS_GetStringCharsZ(cx, str);
-    if (!chars)
+
+    JSLinearString *linear = str->ensureLinear(cx);
+    if (!linear)
         return false;
 
-    for (const jschar *p = chars; *p; p++)
-        fprintf(gOutFile, "%c", char(*p));
-
+    JS::AutoCheckCannotGC nogc;
+    if (linear->hasLatin1Chars()) {
+        for (const Latin1Char *p = linear->latin1Chars(nogc); *p; p++)
+            fprintf(gOutFile, "%c", char(*p));
+    } else {
+        for (const jschar *p = linear->twoByteChars(nogc); *p; p++)
+            fprintf(gOutFile, "%c", char(*p));
+    }
     fprintf(gOutFile, "\n");
 
     return true;
@@ -6033,6 +6098,11 @@ SetRuntimeOptions(JSRuntime *rt, const OptionParser &op)
 
 #endif // JS_ION
 
+#if defined(JS_CODEGEN_ARM)
+    if (const char *str = op.getStringOption("arm-hwcap"))
+        jit::ParseARMHwCapFlags(str);
+#endif
+
 #if defined(JS_ARM_SIMULATOR)
     if (op.getBoolOption("arm-sim-icache-checks"))
         jit::Simulator::ICacheCheckingEnabled = true;
@@ -6166,14 +6236,11 @@ main(int argc, char **argv, char **envp)
     if (!op.addMultiStringOption('f', "file", "PATH", "File path to run")
         || !op.addMultiStringOption('e', "execute", "CODE", "Inline code to run")
         || !op.addBoolOption('i', "shell", "Enter prompt after running code")
-        || !op.addBoolOption('m', "jm", "No-op (still used by fuzzers)")
-        || !op.addBoolOption('\0', "no-jm", "No-op (still used by fuzzers)")
         || !op.addBoolOption('c', "compileonly", "Only compile, don't run (syntax checking mode)")
         || !op.addBoolOption('w', "warnings", "Emit warnings")
         || !op.addBoolOption('W', "nowarnings", "Don't emit warnings")
         || !op.addBoolOption('s', "strict", "Check strictness")
         || !op.addBoolOption('d', "debugjit", "Enable runtime debug mode for method JIT code")
-        || !op.addBoolOption('a', "always-mjit", "No-op (still used by fuzzers)")
         || !op.addBoolOption('D', "dump-bytecode", "Dump bytecode with exec count for all scripts")
         || !op.addBoolOption('b', "print-timing", "Print sub-ms runtime for each file that's run")
         || !op.addStringOption('\0', "js-cache", "[path]",
@@ -6255,6 +6322,10 @@ main(int argc, char **argv, char **envp)
 #endif
         || !op.addIntOption('\0', "available-memory", "SIZE",
                             "Select GC settings based on available memory (MB)", 0)
+#if defined(JS_CODEGEN_ARM)
+        || !op.addStringOption('\0', "arm-hwcap", "[features]",
+                               "Specify ARM code generation features, or 'help' to list all features.")
+#endif
 #if defined(JS_ARM_SIMULATOR)
         || !op.addBoolOption('\0', "arm-sim-icache-checks", "Enable icache flush checks in the ARM "
                              "simulator.")

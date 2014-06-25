@@ -194,6 +194,8 @@ DeviceStorageUsedSpaceCache::SetUsedSizes(const nsAString& aStorageName,
 
 class GlobalDirs
 {
+private:
+  ~GlobalDirs() {}
 public:
   NS_INLINE_DECL_REFCOUNTING(GlobalDirs)
 #if !defined(MOZ_WIDGET_GONK)
@@ -606,12 +608,13 @@ DeviceStorageFile::Init()
 // no convenient way to restart, we use a pref watcher instead.
 class OverrideRootDir MOZ_FINAL : public nsIObserver
 {
+  ~OverrideRootDir();
+
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
   static OverrideRootDir* GetSingleton();
-  ~OverrideRootDir();
   void Init();
 private:
   static mozilla::StaticRefPtr<OverrideRootDir> sSingleton;
@@ -1722,15 +1725,11 @@ JS::Value StringToJsval(nsPIDOMWindow* aWindow, nsAString& aString)
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aWindow);
 
-  JSObject* global =
-    static_cast<nsGlobalWindow*>(aWindow)->GetWrapperPreserveColor();
-  if (NS_WARN_IF(!global)) {
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.InitUsingWin(aWindow))) {
     return JSVAL_NULL;
   }
-
-  AutoJSAPI jsapi;
   JSContext* cx = jsapi.cx();
-  JSAutoCompartment ac(cx, global);
 
   JS::Rooted<JS::Value> result(cx);
   if (!xpc::StringToJsval(cx, aString, &result)) {
@@ -1754,8 +1753,6 @@ public:
   DeviceStorageCursorRequest(nsDOMDeviceStorageCursor* aCursor)
     : mCursor(aCursor) { }
 
-  ~DeviceStorageCursorRequest() {}
-
   bool Recv__delete__(const bool& allow,
                       const InfallibleTArray<PermissionChoice>& choices)
   {
@@ -1775,6 +1772,8 @@ public:
   }
 
 private:
+  ~DeviceStorageCursorRequest() {}
+
   nsRefPtr<nsDOMDeviceStorageCursor> mCursor;
 };
 
@@ -3148,6 +3147,8 @@ public:
   }
 
 private:
+  ~DeviceStorageRequest() {}
+
   int32_t mRequestType;
   nsCOMPtr<nsPIDOMWindow> mWindow;
   nsCOMPtr<nsIPrincipal> mPrincipal;

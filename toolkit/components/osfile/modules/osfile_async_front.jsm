@@ -454,6 +454,7 @@ let Scheduler = {
       let isError = false;
       try {
         try {
+          Scheduler.Debugging.messagesSent++;
           data = yield this.worker.post(method, ...args);
         } finally {
           Scheduler.Debugging.messagesReceived++;
@@ -608,7 +609,18 @@ const PREF_OSFILE_TEST_SHUTDOWN_OBSERVER =
 
 AsyncShutdown.webWorkersShutdown.addBlocker(
   "OS.File: flush pending requests, warn about unclosed files, shut down service.",
-  () => Scheduler.kill({reset: false, shutdown: true})
+  Task.async(function*() {
+    // Give clients a last chance to enqueue requests.
+    yield Barriers.shutdown.wait({crashAfterMS: null});
+
+    // Wait until all requests are complete and kill the worker.
+    yield Scheduler.kill({reset: false, shutdown: true});
+  }),
+  () => {
+    let details = Barriers.getDetails();
+    details.clients = Barriers.shutdown.state;
+    return details;
+  }
 );
 
 
@@ -823,6 +835,33 @@ File.prototype = {
   flush: function flush() {
     return Scheduler.post("File_prototype_flush",
       [this._fdmsg]);
+  },
+
+  /**
+   * Set the file's access permissions.  Without any options, the
+   * permissions are set to an approximation of what they would have
+   * been if the file had been created in its current directory in the
+   * "most typical" fashion for the operating system.  In the current
+   * implementation, this means that on Unix-like systems (including
+   * Android, B2G, etc) we set the POSIX file mode to (0666 & ~umask),
+   * and on Windows, we do nothing.
+   *
+   * This operation is likely to fail if applied to a file that was
+   * not created by the currently running program (more precisely,
+   * if it was created by a program running under a different OS-level
+   * user account).  It may also fail, or silently do nothing, if the
+   * filesystem containing the file does not support access permissions.
+   *
+   * @param {*=} options
+   * - {number} unixMode     If present, the POSIX file mode is set to exactly
+   *                         this value, unless |unixHonorUmask| is also
+   *                         present.
+   * - {bool} unixHonorUmask If true, any |unixMode| value is modified by the
+   *                         process umask, as open() would have done.
+   */
+  setPermissions: function setPermissions(options = {}) {
+    return Scheduler.post("File_prototype_setPermissions",
+                          [this._fdmsg, options]);
   }
 };
 
@@ -921,6 +960,35 @@ File.setDates = function setDates(path, accessDate, modificationDate) {
   return Scheduler.post("setDates",
                         [Type.path.toMsg(path), accessDate, modificationDate],
                         this);
+};
+
+/**
+ * Set the file's access permissions.  Without any options, the
+ * permissions are set to an approximation of what they would have
+ * been if the file had been created in its current directory in the
+ * "most typical" fashion for the operating system.  In the current
+ * implementation, this means that on Unix-like systems (including
+ * Android, B2G, etc) we set the POSIX file mode to (0666 & ~umask),
+ * and on Windows, we do nothing.
+ *
+ * This operation is likely to fail if applied to a file that was
+ * not created by the currently running program (more precisely,
+ * if it was created by a program running under a different OS-level
+ * user account).  It may also fail, or silently do nothing, if the
+ * filesystem containing the file does not support access permissions.
+ *
+ * @param {string} path   The path to the file.
+ *
+ * @param {*=} options
+ * - {number} unixMode     If present, the POSIX file mode is set to exactly
+ *                         this value, unless |unixHonorUmask| is also
+ *                         present.
+ * - {bool} unixHonorUmask If true, any |unixMode| value is modified by the
+ *                         process umask, as open() would have done.
+ */
+File.setPermissions = function setPermissions(path, options = {}) {
+  return Scheduler.post("setPermissions",
+                        [Type.path.toMsg(path), options]);
 };
 
 /**
@@ -1506,28 +1574,16 @@ Object.defineProperty(OS.File, "queue", {
   }
 });
 
-// Auto-flush OS.File during profile-before-change. This ensures that any I/O
-// that has been queued *before* profile-before-change is properly completed.
-// To ensure that I/O queued *during* profile-before-change is completed,
-// clients should register using AsyncShutdown.addBlocker.
-AsyncShutdown.profileBeforeChange.addBlocker(
-  "OS.File: flush I/O queued before profile-before-change",
-  // Wait until the latest currently enqueued promise is satisfied/rejected
-  function() {
-    let DEBUG = false;
-    try {
-      DEBUG = Services.prefs.getBoolPref("toolkit.osfile.debug.failshutdown");
-    } catch (ex) {
-      // Ignore
-    }
-    if (DEBUG) {
-      // Return a promise that will never be satisfied
-      return Promise.defer().promise;
-    } else {
-      return Scheduler.queue;
-    }
-  },
-  function getDetails() {
+/**
+ * Shutdown barriers, to let clients register to be informed during shutdown.
+ */
+let Barriers = {
+  profileBeforeChange: new AsyncShutdown.Barrier("OS.File: Waiting for clients before profile-before-shutdown"),
+  shutdown: new AsyncShutdown.Barrier("OS.File: Waiting for clients before full shutdown"),
+  /**
+   * Return the shutdown state of OS.File
+   */
+  getDetails: function() {
     let result = {
       launched: Scheduler.launched,
       shutdown: Scheduler.shutdown,
@@ -1538,7 +1594,7 @@ AsyncShutdown.profileBeforeChange.addBlocker(
       messagesSent: Scheduler.Debugging.messagesSent,
       messagesReceived: Scheduler.Debugging.messagesReceived,
       messagesQueued: Scheduler.Debugging.messagesQueued,
-      DEBUG: SharedAll.Config.DEBUG
+      DEBUG: SharedAll.Config.DEBUG,
     };
     // Convert dates to strings for better readability
     for (let key of ["latestSent", "latestReceived"]) {
@@ -1547,5 +1603,28 @@ AsyncShutdown.profileBeforeChange.addBlocker(
       }
     }
     return result;
+  }
+};
+
+File.profileBeforeChange = Barriers.profileBeforeChange.client;
+File.shutdown = Barriers.shutdown.client;
+
+// Auto-flush OS.File during profile-before-change. This ensures that any I/O
+// that has been queued *before* profile-before-change is properly completed.
+// To ensure that I/O queued *during* profile-before-change is completed,
+// clients should register using AsyncShutdown.addBlocker.
+AsyncShutdown.profileBeforeChange.addBlocker(
+  "OS.File: flush I/O queued before profile-before-change",
+  Task.async(function*() {
+    // Give clients a last chance to enqueue requests.
+    yield Barriers.profileBeforeChange.wait({crashAfterMS: null});
+
+    // Wait until all currently enqueued requests are completed.
+    yield Scheduler.queue;
+  }),
+  () => {
+    let details = Barriers.getDetails();
+    details.clients = Barriers.profileBeforeChange.state;
+    return details;
   }
 );

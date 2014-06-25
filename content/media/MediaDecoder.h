@@ -6,9 +6,9 @@
 /*
 Each video element based on MediaDecoder has a state machine to manage
 its play state and keep the current frame up to date. All state machines
-share time in a single shared thread. Each decoder also has one thread
-dedicated to decoding audio and video data. This thread is shutdown when
-playback is paused. Each decoder also has a thread to push decoded audio
+share time in a single shared thread. Each decoder also has a MediaTaskQueue
+running in a SharedThreadPool to decode audio and video data.
+Each decoder also has a thread to push decoded audio
 to the hardware. This thread is not created until playback starts, but
 currently is not destroyed when paused, only when playback ends.
 
@@ -234,6 +234,11 @@ struct SeekTarget {
     , mType(aType)
   {
   }
+  SeekTarget(const SeekTarget& aOther)
+    : mTime(aOther.mTime)
+    , mType(aOther.mType)
+  {
+  }
   bool IsValid() const {
     return mType != SeekTarget::Invalid;
   }
@@ -270,7 +275,6 @@ public:
   };
 
   MediaDecoder();
-  virtual ~MediaDecoder();
 
   // Reset the decoder and notify the media element that
   // server connection is closed.
@@ -603,7 +607,7 @@ public:
 
   // Set a flag indicating whether seeking is supported
   virtual void SetMediaSeekable(bool aMediaSeekable) MOZ_OVERRIDE;
-  virtual void SetTransportSeekable(bool aTransportSeekable) MOZ_FINAL MOZ_OVERRIDE;
+
   // Returns true if this media supports seeking. False for example for WebM
   // files without an index and chained ogg files.
   virtual bool IsMediaSeekable() MOZ_FINAL MOZ_OVERRIDE;
@@ -713,14 +717,14 @@ public:
   // Records activity stopping on the channel. The monitor must be held.
   virtual void NotifyPlaybackStarted() {
     GetReentrantMonitor().AssertCurrentThreadIn();
-    mPlaybackStatistics.Start();
+    mPlaybackStatistics->Start();
   }
 
   // Used to estimate rates of data passing through the decoder's channel.
   // Records activity stopping on the channel. The monitor must be held.
   virtual void NotifyPlaybackStopped() {
     GetReentrantMonitor().AssertCurrentThreadIn();
-    mPlaybackStatistics.Stop();
+    mPlaybackStatistics->Stop();
   }
 
   // The actual playback rate computation. The monitor must be held.
@@ -824,7 +828,7 @@ public:
   MediaDecoderStateMachine* GetStateMachine() const;
 
   // Drop reference to state machine.  Only called during shutdown dance.
-  virtual void ReleaseStateMachine();
+  virtual void BreakCycles();
 
   // Notifies the element that decoding has failed.
   virtual void DecodeError();
@@ -994,6 +998,8 @@ public:
   }
 
 protected:
+  virtual ~MediaDecoder();
+
   /******
    * The following members should be accessed with the decoder lock held.
    ******/
@@ -1031,10 +1037,6 @@ protected:
 
   // True when playback should start with audio captured (not playing).
   bool mInitialAudioCaptured;
-
-  // True if the resource is seekable at a transport level (server supports byte
-  // range requests, local file, etc.).
-  bool mTransportSeekable;
 
   // True if the media is seekable (i.e. supports random access).
   bool mMediaSeekable;
@@ -1189,7 +1191,7 @@ protected:
   // Data needed to estimate playback data rate. The timeline used for
   // this estimate is "decode time" (where the "current time" is the
   // time of the last decoded video frame).
-  MediaChannelStatistics mPlaybackStatistics;
+  nsRefPtr<MediaChannelStatistics> mPlaybackStatistics;
 
   // True when our media stream has been pinned. We pin the stream
   // while seeking.

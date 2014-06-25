@@ -648,8 +648,9 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
   gfx->PopGroupToSource();
 
   nsRefPtr<gfxPattern> maskSurface =
-    maskFrame ? maskFrame->ComputeMaskAlpha(aContext, aFrame,
-                                            matrix, opacity) : nullptr;
+    maskFrame ? maskFrame->GetMaskForMaskedFrame(aContext->ThebesContext(),
+                                                 aFrame, matrix, opacity)
+              : nullptr;
 
   nsRefPtr<gfxPattern> clipMaskSurface;
   if (clipPathFrame && !isTrivialClip) {
@@ -1114,8 +1115,8 @@ PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
   gfxMatrix matrix = aMatrix;
   matrix.Multiply(nsSVGUtils::GetStrokeTransform(aFrame));
 
-  double dx = style_expansion * (fabs(matrix.xx) + fabs(matrix.xy));
-  double dy = style_expansion * (fabs(matrix.yy) + fabs(matrix.yx));
+  double dx = style_expansion * (fabs(matrix._11) + fabs(matrix._21));
+  double dy = style_expansion * (fabs(matrix._22) + fabs(matrix._12));
 
   gfxRect strokeExtents = aPathExtents;
   strokeExtents.Inflate(dx, dy);

@@ -71,6 +71,7 @@
 #include "nsLayoutStylesheetCache.h"
 #include "nsIJSRuntimeService.h"
 #include "nsThreadManager.h"
+#include "nsAnonymousTemporaryFile.h"
 
 #include "IHistory.h"
 #include "nsNetUtil.h"
@@ -190,18 +191,23 @@ class MemoryReportRequestChild : public PMemoryReportRequestChild,
 public:
     NS_DECL_ISUPPORTS
 
-    MemoryReportRequestChild(uint32_t aGeneration, const nsAString& aDMDDumpIdent);
-    virtual ~MemoryReportRequestChild();
+    MemoryReportRequestChild(uint32_t aGeneration, bool aAnonymize,
+                             const nsAString& aDMDDumpIdent);
     NS_IMETHOD Run();
 private:
+    virtual ~MemoryReportRequestChild();
+
     uint32_t mGeneration;
+    bool     mAnonymize;
     nsString mDMDDumpIdent;
 };
 
 NS_IMPL_ISUPPORTS(MemoryReportRequestChild, nsIRunnable)
 
-MemoryReportRequestChild::MemoryReportRequestChild(uint32_t aGeneration, const nsAString& aDMDDumpIdent)
-: mGeneration(aGeneration), mDMDDumpIdent(aDMDDumpIdent)
+MemoryReportRequestChild::MemoryReportRequestChild(
+    uint32_t aGeneration, bool aAnonymize, const nsAString& aDMDDumpIdent)
+  : mGeneration(aGeneration), mAnonymize(aAnonymize),
+    mDMDDumpIdent(aDMDDumpIdent)
 {
     MOZ_COUNT_CTOR(MemoryReportRequestChild);
 }
@@ -358,6 +364,8 @@ public:
     NS_DECL_NSICONSOLELISTENER
 
 private:
+    ~ConsoleListener() {}
+
     ContentChild* mChild;
     friend class ContentChild;
 };
@@ -414,6 +422,8 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage)
 
 class SystemMessageHandledObserver MOZ_FINAL : public nsIObserver
 {
+    ~SystemMessageHandledObserver() {}
+
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIOBSERVER
@@ -478,8 +488,17 @@ ContentChild* ContentChild::sSingleton;
 // Performs initialization that is not fork-safe, i.e. that must be done after
 // forking from the Nuwa process.
 static void
-InitOnContentProcessCreated()
+InitOnContentProcessCreated(bool aAfterNuwaFork)
 {
+#ifdef MOZ_NUWA_PROCESS
+    // Wait until we are forked from Nuwa
+    if (!aAfterNuwaFork &&
+        Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false)) {
+        return;
+    }
+#else
+    unused << aAfterNuwaFork;
+#endif
     // This will register cross-process observer.
     mozilla::dom::time::InitializeDateCacheCleaner();
 }
@@ -666,17 +685,17 @@ ContentChild::InitXPCOM()
         new SystemMessageHandledObserver();
     sysMsgObserver->Init();
 
-#ifndef MOZ_NUWA_PROCESS
-    InitOnContentProcessCreated();
-#endif
+    InitOnContentProcessCreated(/* aAfterNuwaFork = */false);
 }
 
 PMemoryReportRequestChild*
-ContentChild::AllocPMemoryReportRequestChild(const uint32_t& generation,
-                                             const bool &minimizeMemoryUsage,
+ContentChild::AllocPMemoryReportRequestChild(const uint32_t& aGeneration,
+                                             const bool &aAnonymize,
+                                             const bool &aMinimizeMemoryUsage,
                                              const nsString& aDMDDumpIdent)
 {
-    MemoryReportRequestChild *actor = new MemoryReportRequestChild(generation, aDMDDumpIdent);
+    MemoryReportRequestChild *actor =
+        new MemoryReportRequestChild(aGeneration, aAnonymize, aDMDDumpIdent);
     actor->AddRef();
     return actor;
 }
@@ -684,6 +703,7 @@ ContentChild::AllocPMemoryReportRequestChild(const uint32_t& generation,
 // This is just a wrapper for InfallibleTArray<MemoryReport> that implements
 // nsISupports, so it can be passed to nsIMemoryReporter::CollectReports.
 class MemoryReportsWrapper MOZ_FINAL : public nsISupports {
+    ~MemoryReportsWrapper() {}
 public:
     NS_DECL_ISUPPORTS
     MemoryReportsWrapper(InfallibleTArray<MemoryReport> *r) : mReports(r) { }
@@ -715,6 +735,8 @@ public:
         return NS_OK;
     }
 private:
+    ~MemoryReportCallback() {}
+
     const nsCString mProcess;
 };
 NS_IMPL_ISUPPORTS(
@@ -724,15 +746,17 @@ NS_IMPL_ISUPPORTS(
 
 bool
 ContentChild::RecvPMemoryReportRequestConstructor(
-    PMemoryReportRequestChild* child,
-    const uint32_t& generation,
-    const bool& minimizeMemoryUsage,
+    PMemoryReportRequestChild* aChild,
+    const uint32_t& aGeneration,
+    const bool& aAnonymize,
+    const bool& aMinimizeMemoryUsage,
     const nsString& aDMDDumpIdent)
 {
-    MemoryReportRequestChild *actor = static_cast<MemoryReportRequestChild*>(child);
+    MemoryReportRequestChild *actor =
+        static_cast<MemoryReportRequestChild*>(aChild);
     nsresult rv;
 
-    if (minimizeMemoryUsage) {
+    if (aMinimizeMemoryUsage) {
         nsCOMPtr<nsIMemoryReporterManager> mgr = do_GetService("@mozilla.org/memory-reporter-manager;1");
         rv = mgr->MinimizeMemoryUsage(actor);
         // mgr will eventually call actor->Run()
@@ -759,7 +783,8 @@ NS_IMETHODIMP MemoryReportRequestChild::Run()
     nsRefPtr<MemoryReportsWrapper> wrappedReports =
         new MemoryReportsWrapper(&reports);
     nsRefPtr<MemoryReportCallback> cb = new MemoryReportCallback(process);
-    mgr->GetReportsForThisProcessExtended(cb, wrappedReports, mDMDDumpIdent);
+    mgr->GetReportsForThisProcessExtended(cb, wrappedReports, mAnonymize,
+                                          mDMDDumpIdent);
 
     bool sent = Send__delete__(this, mGeneration, reports);
     return sent ? NS_OK : NS_ERROR_FAILURE;
@@ -1834,7 +1859,7 @@ public:
         }
 
         // Perform other after-fork initializations.
-        InitOnContentProcessCreated();
+        InitOnContentProcessCreated(/* aAfterNuwaFork = */true);
 
         return NS_OK;
     }

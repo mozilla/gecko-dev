@@ -5,7 +5,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/basictypes.h"
-#include "nsCxPusher.h"
 #include "nsDOMClassInfo.h"
 #include "nsTArrayHelpers.h"
 #include "DOMRequest.h"
@@ -13,9 +12,11 @@
 
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
 #include "mozilla/dom/BluetoothAdapter2Binding.h"
+#include "mozilla/dom/BluetoothAttributeEvent.h"
 #include "mozilla/dom/BluetoothDeviceEvent.h"
 #include "mozilla/dom/BluetoothStatusChangedEvent.h"
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/LazyIdleThread.h"
 
 #include "BluetoothAdapter.h"
@@ -89,23 +90,19 @@ public:
       }
       nsRefPtr<BluetoothDevice> d =
         BluetoothDevice::Create(mAdapterPtr->GetOwner(),
-                                mAdapterPtr->GetPath(),
                                 properties);
       devices.AppendElement(d);
     }
 
-    nsresult rv;
-    nsIScriptContext* sc = mAdapterPtr->GetContextForEventHandlers(&rv);
-    if (!sc) {
-      BT_WARNING("Cannot create script context!");
-      SetError(NS_LITERAL_STRING("BluetoothScriptContextError"));
+    AutoJSAPI jsapi;
+    if (!jsapi.InitUsingWin(mAdapterPtr->GetOwner())) {
+      BT_WARNING("Failed to initialise AutoJSAPI!");
+      SetError(NS_LITERAL_STRING("BluetoothAutoJSAPIInitError"));
       return false;
     }
-
-    AutoPushJSContext cx(sc->GetNativeContext());
+    JSContext* cx = jsapi.cx();
     JS::Rooted<JSObject*> JsDevices(cx);
-    rv = nsTArrayToJSArray(cx, devices, &JsDevices);
-    if (!JsDevices) {
+    if (NS_FAILED(nsTArrayToJSArray(cx, devices, &JsDevices))) {
       BT_WARNING("Cannot create JS array!");
       SetError(NS_LITERAL_STRING("BluetoothError"));
       return false;
@@ -162,11 +159,9 @@ static int kCreatePairedDeviceTimeout = 50000; // unit: msec
 BluetoothAdapter::BluetoothAdapter(nsPIDOMWindow* aWindow,
                                    const BluetoothValue& aValue)
   : DOMEventTargetHelper(aWindow)
-  , BluetoothPropertyContainer(BluetoothObjectType::TYPE_ADAPTER)
   , mJsUuids(nullptr)
   , mJsDeviceAddresses(nullptr)
-  // TODO: Change to Disabled after Bug 1006309 landed
-  , mState(BluetoothAdapterState::Enabled)
+  , mState(BluetoothAdapterState::Disabled)
   , mDiscoverable(false)
   , mDiscovering(false)
   , mPairable(false)
@@ -241,8 +236,6 @@ BluetoothAdapter::SetPropertyByValue(const BluetoothNamedValue& aValue)
     mName = value.get_nsString();
   } else if (name.EqualsLiteral("Address")) {
     mAddress = value.get_nsString();
-  } else if (name.EqualsLiteral("Path")) {
-    mPath = value.get_nsString();
   } else if (name.EqualsLiteral("Discoverable")) {
     mDiscoverable = value.get_bool();
   } else if (name.EqualsLiteral("Discovering")) {
@@ -259,12 +252,13 @@ BluetoothAdapter::SetPropertyByValue(const BluetoothNamedValue& aValue)
     mClass = value.get_uint32_t();
   } else if (name.EqualsLiteral("UUIDs")) {
     mUuids = value.get_ArrayOfnsString();
-    nsresult rv;
-    nsIScriptContext* sc = GetContextForEventHandlers(&rv);
-    NS_ENSURE_SUCCESS_VOID(rv);
-    NS_ENSURE_TRUE_VOID(sc);
 
-    AutoPushJSContext cx(sc->GetNativeContext());
+    AutoJSAPI jsapi;
+    if (!jsapi.InitUsingWin(GetOwner())) {
+      BT_WARNING("Failed to initialise AutoJSAPI!");
+      return;
+    }
+    JSContext* cx = jsapi.cx();
     JS::Rooted<JSObject*> uuids(cx);
     if (NS_FAILED(nsTArrayToJSArray(cx, mUuids, &uuids))) {
       BT_WARNING("Cannot set JS UUIDs object!");
@@ -275,12 +269,12 @@ BluetoothAdapter::SetPropertyByValue(const BluetoothNamedValue& aValue)
   } else if (name.EqualsLiteral("Devices")) {
     mDeviceAddresses = value.get_ArrayOfnsString();
 
-    nsresult rv;
-    nsIScriptContext* sc = GetContextForEventHandlers(&rv);
-    NS_ENSURE_SUCCESS_VOID(rv);
-    NS_ENSURE_TRUE_VOID(sc);
-
-    AutoPushJSContext cx(sc->GetNativeContext());
+    AutoJSAPI jsapi;
+    if (!jsapi.InitUsingWin(GetOwner())) {
+      BT_WARNING("Failed to initialise AutoJSAPI!");
+      return;
+    }
+    JSContext* cx = jsapi.cx();
     JS::Rooted<JSObject*> deviceAddresses(cx);
     if (NS_FAILED(nsTArrayToJSArray(cx, mDeviceAddresses, &deviceAddresses))) {
       BT_WARNING("Cannot set JS Devices object!");
@@ -310,28 +304,25 @@ BluetoothAdapter::Notify(const BluetoothSignal& aData)
 {
   InfallibleTArray<BluetoothNamedValue> arr;
 
-  BT_LOGD("[A] %s: %s", __FUNCTION__, NS_ConvertUTF16toUTF8(aData.name()).get());
+  BT_LOGD("[A] %s: %s", __FUNCTION__,
+          NS_ConvertUTF16toUTF8(aData.name()).get());
 
   BluetoothValue v = aData.value();
   if (aData.name().EqualsLiteral("DeviceFound")) {
-    nsRefPtr<BluetoothDevice> device = BluetoothDevice::Create(GetOwner(), mPath, aData.value());
+    nsRefPtr<BluetoothDevice> device =
+      BluetoothDevice::Create(GetOwner(), aData.value());
 
     BluetoothDeviceEventInit init;
     init.mBubbles = false;
     init.mCancelable = false;
     init.mDevice = device;
     nsRefPtr<BluetoothDeviceEvent> event =
-      BluetoothDeviceEvent::Constructor(this, NS_LITERAL_STRING("devicefound"), init);
+      BluetoothDeviceEvent::Constructor(this,
+                                        NS_LITERAL_STRING("devicefound"),
+                                        init);
     DispatchTrustedEvent(event);
   } else if (aData.name().EqualsLiteral("PropertyChanged")) {
-    MOZ_ASSERT(v.type() == BluetoothValue::TArrayOfBluetoothNamedValue);
-
-    const InfallibleTArray<BluetoothNamedValue>& arr =
-      v.get_ArrayOfBluetoothNamedValue();
-
-    for (uint32_t i = 0, propCount = arr.Length(); i < propCount; ++i) {
-      SetPropertyByValue(arr[i]);
-    }
+    HandlePropertyChanged(v);
   } else if (aData.name().EqualsLiteral(PAIRED_STATUS_CHANGED_ID) ||
              aData.name().EqualsLiteral(HFP_STATUS_CHANGED_ID) ||
              aData.name().EqualsLiteral(SCO_STATUS_CHANGED_ID) ||
@@ -447,38 +438,81 @@ BluetoothAdapter::GetUuids(JSContext* aContext,
   aUuids.setObject(*mJsUuids);
 }
 
-already_AddRefed<DOMRequest>
+already_AddRefed<Promise>
 BluetoothAdapter::SetName(const nsAString& aName, ErrorResult& aRv)
 {
-  if (mName.Equals(aName)) {
-    return FirePropertyAlreadySet(GetOwner(), aRv);
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(GetOwner());
+  if(!global) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
   }
+
+  nsRefPtr<Promise> promise = new Promise(global);
+
+  if (mName.Equals(aName)) {
+    // Need to resolved with "undefined" since this method is Promise<void>
+    promise->MaybeResolve(JS::UndefinedHandleValue);
+    return promise.forget();
+  }
+
   nsString name(aName);
   BluetoothValue value(name);
   BluetoothNamedValue property(NS_LITERAL_STRING("Name"), value);
-  return SetProperty(GetOwner(), property, aRv);
+
+  BluetoothService* bs = BluetoothService::Get();
+  if (!bs) {
+    promise->MaybeReject(NS_ERROR_NOT_AVAILABLE);
+    return promise.forget();
+  }
+
+  nsRefPtr<BluetoothReplyRunnable> result =
+    new BluetoothVoidReplyRunnable(nullptr /* DOMRequest */,
+                                   promise,
+                                   NS_LITERAL_STRING("SetName"));
+  if (NS_FAILED(bs->SetProperty(BluetoothObjectType::TYPE_ADAPTER,
+                               property, result))) {
+    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
+  }
+
+  return promise.forget();
 }
 
-already_AddRefed<DOMRequest>
+already_AddRefed<Promise>
 BluetoothAdapter::SetDiscoverable(bool aDiscoverable, ErrorResult& aRv)
 {
-  if (aDiscoverable == mDiscoverable) {
-    return FirePropertyAlreadySet(GetOwner(), aRv);
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(GetOwner());
+  if(!global) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
   }
+
+  nsRefPtr<Promise> promise = new Promise(global);
+
+  if (aDiscoverable == mDiscoverable) {
+    // Need to resolved with "undefined" since this method is Promise<void>
+    promise->MaybeResolve(JS::UndefinedHandleValue);
+    return promise.forget();
+  }
+
   BluetoothValue value(aDiscoverable);
   BluetoothNamedValue property(NS_LITERAL_STRING("Discoverable"), value);
-  return SetProperty(GetOwner(), property, aRv);
-}
 
-already_AddRefed<DOMRequest>
-BluetoothAdapter::SetDiscoverableTimeout(uint32_t aDiscoverableTimeout, ErrorResult& aRv)
-{
-  if (aDiscoverableTimeout == mDiscoverableTimeout) {
-    return FirePropertyAlreadySet(GetOwner(), aRv);
+  BluetoothService* bs = BluetoothService::Get();
+  if (!bs) {
+    promise->MaybeReject(NS_ERROR_NOT_AVAILABLE);
+    return promise.forget();
   }
-  BluetoothValue value(aDiscoverableTimeout);
-  BluetoothNamedValue property(NS_LITERAL_STRING("DiscoverableTimeout"), value);
-  return SetProperty(GetOwner(), property, aRv);
+
+  nsRefPtr<BluetoothReplyRunnable> result =
+    new BluetoothVoidReplyRunnable(nullptr /* DOMRequest */,
+                                   promise,
+                                   NS_LITERAL_STRING("SetDiscoverable"));
+  if (NS_FAILED(bs->SetProperty(BluetoothObjectType::TYPE_ADAPTER,
+                                property, result))) {
+    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
+  }
+
+  return promise.forget();
 }
 
 already_AddRefed<DOMRequest>
@@ -672,10 +706,13 @@ BluetoothAdapter::SetPairingConfirmation(const nsAString& aDeviceAddress,
 }
 
 already_AddRefed<Promise>
-BluetoothAdapter::EnableDisable(bool aEnable)
+BluetoothAdapter::EnableDisable(bool aEnable, ErrorResult& aRv)
 {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(GetOwner());
-  NS_ENSURE_TRUE(global, nullptr);
+  if(!global) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
 
   nsRefPtr<Promise> promise = new Promise(global);
 
@@ -704,7 +741,13 @@ BluetoothAdapter::EnableDisable(bool aEnable)
     methodName.AssignLiteral("Disable");
     mState = BluetoothAdapterState::Disabling;
   }
-  // TODO: Fire attr changed event for this state change
+
+  nsTArray<nsString> types;
+  BT_APPEND_ENUM_STRING(types,
+                        BluetoothAdapterAttribute,
+                        BluetoothAdapterAttribute::State);
+
+  DispatchAttributeEvent(types);
 
   nsRefPtr<BluetoothReplyRunnable> result =
     new BluetoothVoidReplyRunnable(nullptr, /* DOMRequest */
@@ -719,15 +762,118 @@ BluetoothAdapter::EnableDisable(bool aEnable)
 }
 
 already_AddRefed<Promise>
-BluetoothAdapter::Enable()
+BluetoothAdapter::Enable(ErrorResult& aRv)
 {
-  return EnableDisable(true);
+  return EnableDisable(true, aRv);
 }
 
 already_AddRefed<Promise>
-BluetoothAdapter::Disable()
+BluetoothAdapter::Disable(ErrorResult& aRv)
 {
-  return EnableDisable(false);
+  return EnableDisable(false, aRv);
+}
+
+BluetoothAdapterAttribute
+BluetoothAdapter::ConvertStringToAdapterAttribute(const nsAString& aString)
+{
+  using namespace
+    mozilla::dom::BluetoothAdapterAttributeValues;
+
+  for (size_t index = 0; index < ArrayLength(strings) - 1; index++) {
+    if (aString.LowerCaseEqualsASCII(strings[index].value,
+                                     strings[index].length)) {
+      return static_cast<BluetoothAdapterAttribute>(index);
+    }
+  }
+  return BluetoothAdapterAttribute::Unknown;
+}
+
+bool
+BluetoothAdapter::IsAdapterAttributeChanged(BluetoothAdapterAttribute aType,
+                                            const BluetoothValue& aValue)
+{
+  switch(aType) {
+    case BluetoothAdapterAttribute::State: {
+      MOZ_ASSERT(aValue.type() == BluetoothValue::Tbool);
+      bool isEnabled = aValue.get_bool();
+      return isEnabled ? mState != BluetoothAdapterState::Enabled
+                       : mState != BluetoothAdapterState::Disabled;
+    }
+    case BluetoothAdapterAttribute::Name:
+      MOZ_ASSERT(aValue.type() == BluetoothValue::TnsString);
+      return !mName.Equals(aValue.get_nsString());
+    case BluetoothAdapterAttribute::Address:
+      MOZ_ASSERT(aValue.type() == BluetoothValue::TnsString);
+      return !mAddress.Equals(aValue.get_nsString());
+    case BluetoothAdapterAttribute::Discoverable:
+      MOZ_ASSERT(aValue.type() == BluetoothValue::Tbool);
+      return mDiscoverable != aValue.get_bool();
+    case BluetoothAdapterAttribute::Discovering:
+      MOZ_ASSERT(aValue.type() == BluetoothValue::Tbool);
+      return mDiscovering != aValue.get_bool();
+    default:
+      BT_WARNING("Type %d is not handled", uint32_t(aType));
+      return false;
+  }
+}
+
+void
+BluetoothAdapter::HandlePropertyChanged(const BluetoothValue& aValue)
+{
+  MOZ_ASSERT(aValue.type() == BluetoothValue::TArrayOfBluetoothNamedValue);
+
+  const InfallibleTArray<BluetoothNamedValue>& arr =
+    aValue.get_ArrayOfBluetoothNamedValue();
+
+  nsTArray<nsString> types;
+  for (uint32_t i = 0, propCount = arr.Length(); i < propCount; ++i) {
+    BluetoothAdapterAttribute type =
+      ConvertStringToAdapterAttribute(arr[i].name());
+
+    // Non-BluetoothAdapterAttribute properties
+    if (type == BluetoothAdapterAttribute::Unknown) {
+      SetPropertyByValue(arr[i]);
+      continue;
+    }
+
+    // BluetoothAdapterAttribute properties
+    if (IsAdapterAttributeChanged(type, arr[i].value())) {
+      SetPropertyByValue(arr[i]);
+      BT_APPEND_ENUM_STRING(types, BluetoothAdapterAttribute, type);
+    }
+  }
+
+  DispatchAttributeEvent(types);
+}
+
+void
+BluetoothAdapter::DispatchAttributeEvent(const nsTArray<nsString>& aTypes)
+{
+  NS_ENSURE_TRUE_VOID(aTypes.Length());
+
+  AutoJSAPI jsapi;
+  JSContext* cx = jsapi.cx();
+  JS::Rooted<JS::Value> value(cx);
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(GetOwner());
+  NS_ENSURE_TRUE_VOID(global);
+
+  JS::Rooted<JSObject*> scope(cx, global->GetGlobalJSObject());
+  NS_ENSURE_TRUE_VOID(scope);
+
+  JSAutoCompartment ac(cx, scope);
+
+  if(!ToJSValue(cx, aTypes, &value)) {
+    JS_ClearPendingException(cx);
+    return;
+  }
+
+  RootedDictionary<BluetoothAttributeEventInit> init(cx);
+  init.mAttrs = value;
+  nsRefPtr<BluetoothAttributeEvent> event =
+    BluetoothAttributeEvent::Constructor(this,
+                                         NS_LITERAL_STRING("attributechanged"),
+                                         init);
+  DispatchTrustedEvent(event);
 }
 
 already_AddRefed<DOMRequest>

@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,6 @@
  * debugging global.
  */
 let { Ci, Cc, CC, Cu, Cr } = require("chrome");
-let Debugger = require("Debugger");
 let Services = require("Services");
 let { ActorPool } = require("devtools/server/actors/common");
 let { DebuggerTransport, LocalDebuggerTransport, ChildDebuggerTransport } =
@@ -52,12 +51,18 @@ DevToolsUtils.defineLazyGetter(this, "nsFile", () => {
   return CC("@mozilla.org/file/local;1", "nsIFile", "initWithPath");
 });
 
-const LOG_PREF = "devtools.debugger.log";
-const VERBOSE_PREF = "devtools.debugger.log.verbose";
-dumpn.wantLogging = Services.prefs.getBoolPref(LOG_PREF);
-dumpv.wantVerbose =
-  Services.prefs.getPrefType(VERBOSE_PREF) !== Services.prefs.PREF_INVALID &&
-  Services.prefs.getBoolPref(VERBOSE_PREF);
+if (isWorker) {
+  dumpn.wantLogging = true;
+  dumpv.wantVerbose = true;
+} else {
+  const LOG_PREF = "devtools.debugger.log";
+  const VERBOSE_PREF = "devtools.debugger.log.verbose";
+
+  dumpn.wantLogging = Services.prefs.getBoolPref(LOG_PREF);
+  dumpv.wantVerbose =
+    Services.prefs.getPrefType(VERBOSE_PREF) !== Services.prefs.PREF_INVALID &&
+    Services.prefs.getBoolPref(VERBOSE_PREF);
+}
 
 function loadSubScript(aURL)
 {
@@ -159,7 +164,6 @@ var DebuggerServer = {
   _listener: null,
   _initialized: false,
   _transportInitialized: false,
-  xpcInspector: null,
   // Number of currently open TCP connections.
   _socketConnections: 0,
   // Map of global actor names to actor constructors provided by extensions.
@@ -225,7 +229,6 @@ var DebuggerServer = {
       return;
     }
 
-    this.xpcInspector = require("xpcInspector");
     this.initTransport(aAllowConnectionCallback);
 
     this._initialized = true;

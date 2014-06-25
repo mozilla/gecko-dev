@@ -1159,9 +1159,25 @@ Http2Session::ResponseHeadersComplete()
   LOG3(("Http2Session::ResponseHeadersComplete %p for 0x%X fin=%d",
         this, mInputFrameDataStream->StreamID(), mInputFrameFinal));
 
-  // only do this once, afterwards ignore trailers
-  if (mInputFrameDataStream->AllHeadersReceived())
+  // only interpret headers once, afterwards ignore trailers
+  if (mInputFrameDataStream->AllHeadersReceived()) {
+    LOG3(("Http2Session::ResponseHeadersComplete extra headers"));
+    nsresult rv = UncompressAndDiscard();
+    if (NS_FAILED(rv)) {
+      LOG3(("Http2Session::ResponseHeadersComplete extra uncompress failed\n"));
+      return rv;
+    }
+    mFlatHTTPResponseHeadersOut = 0;
+    mFlatHTTPResponseHeaders.Truncate();
+    if (mInputFrameFinal) {
+      // need to process the fin
+      ChangeDownstreamState(PROCESSING_COMPLETE_HEADERS);
+    } else {
+      ResetDownstreamState();
+    }
+
     return NS_OK;
+  }
   mInputFrameDataStream->SetAllHeadersReceived();
 
   // The stream needs to see flattened http headers
@@ -2018,7 +2034,9 @@ Http2Session::ReadyToProcessDataFrame(enum internalStateType newState)
         mInputFrameDataSize));
   UpdateLocalRwin(mInputFrameDataStream, mInputFrameDataSize);
 
-  mInputFrameDataStream->SetRecvdData(true);
+  if (mInputFrameDataStream) {
+    mInputFrameDataStream->SetRecvdData(true);
+  }
 
   return NS_OK;
 }

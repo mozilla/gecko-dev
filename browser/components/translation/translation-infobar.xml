@@ -38,7 +38,7 @@
                           oncommand="document.getBindingParent(this).translate();"/>
               <xul:button class="translate-infobar-element"
                           label="&translation.notNow.button;" anonid="notNow"
-                          oncommand="document.getBindingParent(this).close();"/>
+                          oncommand="document.getBindingParent(this).closeCommand();"/>
             </xul:hbox>
 
             <!-- translating -->
@@ -98,7 +98,9 @@
                       class="translate-infobar-element options-menu-button"
                       anonid="options"
                       label="&translation.options.menu;">
-            <xul:menupopup onpopupshowing="document.getBindingParent(this).optionsShowing();">
+            <xul:menupopup class="translation-menupopup cui-widget-panel cui-widget-panelview
+                                  cui-widget-panelWithFooter PanelUI-subView"
+                           onpopupshowing="document.getBindingParent(this).optionsShowing();">
               <xul:menuitem anonid="neverForLanguage"
                             oncommand="document.getBindingParent(this).neverForLanguage();"/>
               <xul:menuitem anonid="neverForSite"
@@ -109,15 +111,22 @@
               <xul:menuitem oncommand="openPreferences('paneContent');"
                             label="&translation.options.preferences.label;"
                             accesskey="&translation.options.preferences.accesskey;"/>
+              <xul:menuitem class="translation-attribution subviewbutton panel-subview-footer"
+                            oncommand="document.getBindingParent(this).openProviderAttribution();">
+                <xul:label>Übersetzungen von</xul:label>
+                <xul:image src="chrome://browser/content/microsoft-translator-attribution.png"
+                           aria-label="Microsoft Translator"/>
+              </xul:menuitem>
             </xul:menupopup>
           </xul:button>
 
         </xul:hbox>
         <xul:toolbarbutton ondblclick="event.stopPropagation();"
+                           anonid="closeButton"
                            class="messageCloseButton close-icon tabbable"
                            xbl:inherits="hidden=hideclose"
                            tooltiptext="&closeNotification.tooltip;"
-                           oncommand="document.getBindingParent(this).close();"/>
+                           oncommand="document.getBindingParent(this).closeCommand();"/>
       </xul:hbox>
     </content>
     <implementation>
@@ -152,11 +161,6 @@
         <parameter name="aTranslation"/>
         <body>
           <![CDATA[
-            if (Translation.serviceUnavailable) {
-              this.state = Translation.STATE_UNAVAILABLE;
-              return;
-            }
-
             this.translation = aTranslation;
             let bundle = Cc["@mozilla.org/intl/stringbundle;1"]
                            .getService(Ci.nsIStringBundleService)
@@ -213,6 +217,16 @@
         </body>
       </method>
 
+      <!-- To be called when the infobar should be closed per user's wish (e.g.
+           by clicking the notification's close button -->
+      <method name="closeCommand">
+        <body>
+          <![CDATA[
+            this.close();
+            this.translation.infobarClosed();
+          ]]>
+        </body>
+      </method>
       <method name="_handleButtonHiding">
         <body>
           <![CDATA[
@@ -298,7 +312,7 @@
 
             Services.prefs.setCharPref(kPrefName, val);
 
-            this.close();
+            this.closeCommand();
           ]]>
         </body>
       </method>
@@ -310,7 +324,15 @@
             let perms = Services.perms;
             perms.add(uri, "translate", perms.DENY_ACTION);
 
-            this.close();
+            this.closeCommand();
+          ]]>
+        </body>
+      </method>
+
+      <method name="openProviderAttribution">
+        <body>
+          <![CDATA[
+            Translation.openProviderAttribution();
           ]]>
         </body>
       </method>

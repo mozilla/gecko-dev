@@ -35,11 +35,11 @@ namespace {
 
 // If JS_STRUCTURED_CLONE_VERSION changes then we need to update our major
 // schema version.
-static_assert(JS_STRUCTURED_CLONE_VERSION == 2,
+static_assert(JS_STRUCTURED_CLONE_VERSION == 3,
               "Need to update the major schema version.");
 
 // Major schema version. Bump for almost everything.
-const uint32_t kMajorSchemaVersion = 14;
+const uint32_t kMajorSchemaVersion = 15;
 
 // Minor schema version. Should almost always be 0 (maybe bump on release
 // branches if we have to).
@@ -881,6 +881,8 @@ UpgradeSchemaFrom7To8(mozIStorageConnection* aConnection)
 
 class CompressDataBlobsFunction MOZ_FINAL : public mozIStorageFunction
 {
+  ~CompressDataBlobsFunction() {}
+
 public:
   NS_DECL_ISUPPORTS
 
@@ -1142,6 +1144,8 @@ UpgradeSchemaFrom10_0To11_0(mozIStorageConnection* aConnection)
 
 class EncodeKeysFunction MOZ_FINAL : public mozIStorageFunction
 {
+  ~EncodeKeysFunction() {}
+
 public:
   NS_DECL_ISUPPORTS
 
@@ -1451,6 +1455,17 @@ UpgradeSchemaFrom13_0To14_0(mozIStorageConnection* aConnection)
   // The only change between 13 and 14 was a different structured
   // clone format, but it's backwards-compatible.
   nsresult rv = aConnection->SetSchemaVersion(MakeSchemaVersion(14, 0));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+UpgradeSchemaFrom14_0To15_0(mozIStorageConnection* aConnection)
+{
+  // The only change between 14 and 15 was a different structured
+  // clone format, but it's backwards-compatible.
+  nsresult rv = aConnection->SetSchemaVersion(MakeSchemaVersion(15, 0));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -2069,7 +2084,7 @@ OpenDatabaseHelper::CreateDatabaseConnection(
     }
     else  {
       // This logic needs to change next time we change the schema!
-      static_assert(kSQLiteSchemaVersion == int32_t((14 << 4) + 0),
+      static_assert(kSQLiteSchemaVersion == int32_t((15 << 4) + 0),
                     "Need upgrade code from schema version increase.");
 
       while (schemaVersion != kSQLiteSchemaVersion) {
@@ -2103,6 +2118,9 @@ OpenDatabaseHelper::CreateDatabaseConnection(
         }
         else if (schemaVersion == MakeSchemaVersion(13, 0)) {
           rv = UpgradeSchemaFrom13_0To14_0(connection);
+        }
+        else if (schemaVersion == MakeSchemaVersion(14, 0)) {
+          rv = UpgradeSchemaFrom14_0To15_0(connection);
         }
         else {
           NS_WARNING("Unable to open IndexedDB database, no upgrade path is "

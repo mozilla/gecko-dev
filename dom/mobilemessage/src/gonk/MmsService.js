@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 sts=2 et filetype=javascript
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -328,14 +328,24 @@ MmsConnection.prototype = {
    * @see nsIDOMMozCdmaIccInfo
    */
   getPhoneNumber: function() {
-    let iccInfo = this.radioInterface.rilContext.iccInfo;
-
-    if (!iccInfo) {
+    let number;
+    // Get the proper IccInfo based on the current card type.
+    try {
+      let iccInfo = null;
+      let baseIccInfo = this.radioInterface.rilContext.iccInfo;
+      if (baseIccInfo.iccType === 'ruim' || baseIccInfo.iccType === 'csim') {
+        iccInfo = baseIccInfo.QueryInterface(Ci.nsIDOMMozCdmaIccInfo);
+        number = iccInfo.mdn;
+      } else {
+        iccInfo = baseIccInfo.QueryInterface(Ci.nsIDOMMozGsmIccInfo);
+        number = iccInfo.msisdn;
+      }
+    } catch (e) {
+      if (DEBUG) {
+       debug("Exception - QueryInterface failed on iccinfo for GSM/CDMA info");
+      }
       return null;
     }
-
-    let number = (iccInfo instanceof Ci.nsIDOMMozGsmIccInfo)
-               ? iccInfo.msisdn : iccInfo.mdn;
 
     // Workaround an xpconnect issue with undefined string objects.
     // See bug 808220
@@ -1135,8 +1145,8 @@ function SendTransaction(mmsConnection, cancellableId, msg, requestDeliveryRepor
   // Insert Phone number if available.
   // Otherwise, Let MMS Proxy Relay insert from address automatically for us.
   let phoneNumber = mmsConnection.getPhoneNumber();
-  msg.headers["from"] = (phoneNumber) ?
-                          { address: phoneNumber, type: "PLMN" } : null;
+  let from = (phoneNumber) ? { address: phoneNumber, type: "PLMN" } : null;
+  msg.headers["from"] = from;
 
   msg.headers["date"] = new Date();
   msg.headers["x-mms-message-class"] = "personal";
@@ -1433,8 +1443,8 @@ function ReadRecTransaction(mmsConnection, messageID, toAddress) {
   // Insert Phone number if available.
   // Otherwise, Let MMS Proxy Relay insert from address automatically for us.
   let phoneNumber = mmsConnection.getPhoneNumber();
-  headers["from"] = (phoneNumber) ?
-                      { address: phoneNumber, type: "PLMN" } : null;
+  let from = (phoneNumber) ? { address: phoneNumber, type: "PLMN" } : null;
+  headers["from"] = from;
   headers["x-mms-read-status"] = MMS.MMS_PDU_READ_STATUS_READ;
 
   this.istream = MMS.PduHelper.compose(null, {headers: headers});

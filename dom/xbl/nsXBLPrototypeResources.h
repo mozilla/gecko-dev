@@ -8,13 +8,16 @@
 
 #include "nsAutoPtr.h"
 #include "nsICSSLoaderObserver.h"
-#include "nsIStyleRuleProcessor.h"
 
-class nsIContent;
+class nsCSSRuleProcessor;
 class nsIAtom;
-class nsXBLResourceLoader;
+class nsIContent;
 class nsXBLPrototypeBinding;
-class nsCSSStyleSheet;
+class nsXBLResourceLoader;
+
+namespace mozilla {
+class CSSStyleSheet;
+} // namespace mozilla
 
 // *********************************************************************/
 // The XBLPrototypeResources class
@@ -32,23 +35,37 @@ public:
 
   nsresult Write(nsIObjectOutputStream* aStream);
 
-  void Traverse(nsCycleCollectionTraversalCallback &cb) const;
+  void Traverse(nsCycleCollectionTraversalCallback &cb);
+  void Unlink();
 
   void ClearLoader();
 
-  typedef nsTArray<nsRefPtr<nsCSSStyleSheet> > sheet_array_type;
+  void AppendStyleSheet(mozilla::CSSStyleSheet* aSheet);
+  void RemoveStyleSheet(mozilla::CSSStyleSheet* aSheet);
+  void InsertStyleSheetAt(size_t aIndex, mozilla::CSSStyleSheet* aSheet);
+  mozilla::CSSStyleSheet* StyleSheetAt(size_t aIndex) const;
+  size_t SheetCount() const;
+  bool HasStyleSheets() const;
+  void AppendStyleSheetsTo(nsTArray<mozilla::CSSStyleSheet*>& aResult) const;
+
+  /**
+   * Recreates mRuleProcessor to represent the current list of style sheets
+   * stored in mStyleSheetList.  (Named GatherRuleProcessor to parallel
+   * nsStyleSet::GatherRuleProcessors.)
+   */
+  void GatherRuleProcessor();
+
+  nsCSSRuleProcessor* GetRuleProcessor() const { return mRuleProcessor; }
 
 private:
   // A loader object. Exists only long enough to load resources, and then it dies.
   nsRefPtr<nsXBLResourceLoader> mLoader;
 
-public:
   // A list of loaded stylesheets for this binding.
-  sheet_array_type mStyleSheetList;
+  nsTArray<nsRefPtr<mozilla::CSSStyleSheet>> mStyleSheetList;
 
   // The list of stylesheets converted to a rule processor.
-  nsCOMPtr<nsIStyleRuleProcessor> mRuleProcessor;
+  nsRefPtr<nsCSSRuleProcessor> mRuleProcessor;
 };
 
 #endif
-

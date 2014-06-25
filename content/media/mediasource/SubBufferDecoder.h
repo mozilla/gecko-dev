@@ -44,7 +44,6 @@ public:
   virtual void SetMediaDuration(int64_t aDuration) MOZ_OVERRIDE;
   virtual void UpdateEstimatedMediaDuration(int64_t aDuration) MOZ_OVERRIDE;
   virtual void SetMediaSeekable(bool aMediaSeekable) MOZ_OVERRIDE;
-  virtual void SetTransportSeekable(bool aTransportSeekable) MOZ_OVERRIDE;
   virtual layers::ImageContainer* GetImageContainer() MOZ_OVERRIDE;
   virtual MediaDecoderOwner* GetOwner() MOZ_OVERRIDE;
 
@@ -86,7 +85,7 @@ public:
 
 private:
   MediaSourceDecoder* mParentDecoder;
-  nsAutoPtr<MediaDecoderReader> mReader;
+  nsRefPtr<MediaDecoderReader> mReader;
   int64_t mMediaDuration;
   int64_t mMediaStartTime;
 };

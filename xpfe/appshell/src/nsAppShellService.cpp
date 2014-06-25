@@ -20,7 +20,6 @@
 #include "nsPIDOMWindow.h"
 #include "nsWebShellWindow.h"
 
-#include "nsCRT.h"
 #include "prprf.h"
 
 #include "nsWidgetInitData.h"
@@ -215,8 +214,9 @@ nsAppShellService::CreateTopLevelWindow(nsIXULWindow *aParent,
 class WebBrowserChrome2Stub : public nsIWebBrowserChrome2,
                               public nsIInterfaceRequestor,
                               public nsSupportsWeakReference {
-public:
+protected:
     virtual ~WebBrowserChrome2Stub() {}
+public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBBROWSERCHROME
     NS_DECL_NSIWEBBROWSERCHROME2
@@ -333,6 +333,7 @@ public:
   NS_FORWARD_NSIWEBNAVIGATION(mWebNavigation->)
   NS_FORWARD_NSIINTERFACEREQUESTOR(mInterfaceRequestor->)
 private:
+  ~WindowlessBrowserStub() {}
   nsCOMPtr<nsIWebBrowser> mBrowser;
   nsCOMPtr<nsIWebNavigation> mWebNavigation;
   nsCOMPtr<nsIInterfaceRequestor> mInterfaceRequestor;
@@ -606,27 +607,39 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
   // Enforce the Private Browsing autoStart pref first.
   bool isPrivateBrowsingWindow =
     Preferences::GetBool("browser.privatebrowsing.autostart");
+  bool isUsingRemoteTabs =
+    Preferences::GetBool("browser.tabs.remote.autostart");
+
   if (aChromeMask & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW) {
     // Caller requested a private window
     isPrivateBrowsingWindow = true;
   }
-  if (!isPrivateBrowsingWindow) {
+  if (aChromeMask & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW) {
+    isUsingRemoteTabs = true;
+  }
+
+  nsCOMPtr<nsIDOMWindow> domWin = do_GetInterface(aParent);
+  nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(domWin);
+  nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(webNav);
+
+  if (!isPrivateBrowsingWindow && parentContext) {
     // Ensure that we propagate any existing private browsing status
     // from the parent, even if it will not actually be used
     // as a parent value.
-    nsCOMPtr<nsIDOMWindow> domWin = do_GetInterface(aParent);
-    nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(domWin);
-    nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(webNav);
-    if (parentContext) {
-      isPrivateBrowsingWindow = parentContext->UsePrivateBrowsing();
-    }
+    isPrivateBrowsingWindow = parentContext->UsePrivateBrowsing();
   }
+
+  if (!isUsingRemoteTabs && parentContext) {
+    isUsingRemoteTabs = parentContext->UseRemoteTabs();
+  }
+
   nsCOMPtr<nsIDOMWindow> newDomWin =
       do_GetInterface(NS_ISUPPORTS_CAST(nsIBaseWindow*, window));
   nsCOMPtr<nsIWebNavigation> newWebNav = do_GetInterface(newDomWin);
   nsCOMPtr<nsILoadContext> thisContext = do_GetInterface(newWebNav);
   if (thisContext) {
     thisContext->SetPrivateBrowsing(isPrivateBrowsingWindow);
+    thisContext->SetRemoteTabs(isUsingRemoteTabs);
   }
 
   window.swap(*aResult); // transfer reference

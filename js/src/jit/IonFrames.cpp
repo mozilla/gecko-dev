@@ -207,6 +207,16 @@ JitFrameIterator::script() const
     return script;
 }
 
+uint8_t *
+JitFrameIterator::resumeAddressToFp() const
+{
+    // If we are settled on a patched BaselineFrame due to debug mode OSR, get
+    // the real return address via the stashed DebugModeOSRInfo.
+    if (isBaselineJS() && baselineFrame()->getDebugModeOSRInfo())
+        return baselineFrame()->debugModeOSRInfo()->resumeAddr;
+    return returnAddressToFp();
+}
+
 void
 JitFrameIterator::baselineScriptAndPc(JSScript **scriptRes, jsbytecode **pcRes) const
 {
@@ -214,7 +224,7 @@ JitFrameIterator::baselineScriptAndPc(JSScript **scriptRes, jsbytecode **pcRes) 
     JSScript *script = this->script();
     if (scriptRes)
         *scriptRes = script;
-    uint8_t *retAddr = returnAddressToFp();
+    uint8_t *retAddr = resumeAddressToFp();
 
     // If we have unwound the scope due to exception handling to a different
     // pc, the frame should behave as if it were settled on that pc.
@@ -222,11 +232,6 @@ JitFrameIterator::baselineScriptAndPc(JSScript **scriptRes, jsbytecode **pcRes) 
         *pcRes = overridePc;
         return;
     }
-
-    // If we are in the middle of a recompile handler, get the real return
-    // address as stashed in the RecompileInfo.
-    if (BaselineDebugModeOSRInfo *info = baselineFrame()->getDebugModeOSRInfo())
-        retAddr = info->resumeAddr;
 
     if (pcRes) {
         // If the return address is into the prologue entry address or just
@@ -750,28 +755,18 @@ HandleException(ResumeFromException *rfe)
 void
 HandleParallelFailure(ResumeFromException *rfe)
 {
-    ForkJoinContext *cx = ForkJoinContext::current();
-    JitFrameIterator iter(cx->perThreadData->jitTop, ParallelExecution);
-
     parallel::Spew(parallel::SpewBailouts, "Bailing from VM reentry");
 
-    while (!iter.isEntry()) {
-        if (iter.isScripted()) {
-            cx->bailoutRecord->updateCause(ParallelBailoutUnsupportedVM,
-                                           iter.script(), iter.script(), nullptr);
-            break;
-        }
-        ++iter;
-    }
+    ForkJoinContext *cx = ForkJoinContext::current();
+    JitFrameIterator frameIter(cx);
 
-    while (!iter.isEntry()) {
-        if (iter.isScripted())
-            PropagateAbortPar(iter.script(), iter.script());
-        ++iter;
-    }
+    cx->bailoutRecord->joinCause(ParallelBailoutUnsupportedVM);
+    cx->bailoutRecord->rematerializeFrames(cx, frameIter);
 
     rfe->kind = ResumeFromException::RESUME_ENTRY_FRAME;
-    rfe->stackPointer = iter.fp();
+
+    MOZ_ASSERT(frameIter.done());
+    rfe->stackPointer = frameIter.fp();
 }
 
 void
@@ -1457,6 +1452,12 @@ FromStringPayload(uintptr_t payload)
 }
 
 static Value
+FromSymbolPayload(uintptr_t payload)
+{
+    return SymbolValue(reinterpret_cast<JS::Symbol *>(payload));
+}
+
+static Value
 FromTypedPayload(JSValueType type, uintptr_t payload)
 {
     switch (type) {
@@ -1466,6 +1467,8 @@ FromTypedPayload(JSValueType type, uintptr_t payload)
         return BooleanValue(!!payload);
       case JSVAL_TYPE_STRING:
         return FromStringPayload(payload);
+      case JSVAL_TYPE_SYMBOL:
+        return FromSymbolPayload(payload);
       case JSVAL_TYPE_OBJECT:
         return FromObjectPayload(payload);
       default:
@@ -1552,6 +1555,8 @@ SnapshotIterator::allocationValue(const RValueAllocation &alloc)
             return BooleanValue(ReadFrameBooleanSlot(fp_, alloc.stackOffset2()));
           case JSVAL_TYPE_STRING:
             return FromStringPayload(fromStack(alloc.stackOffset2()));
+          case JSVAL_TYPE_SYMBOL:
+            return FromSymbolPayload(fromStack(alloc.stackOffset2()));
           case JSVAL_TYPE_OBJECT:
             return FromObjectPayload(fromStack(alloc.stackOffset2()));
           default:

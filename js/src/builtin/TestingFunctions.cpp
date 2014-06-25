@@ -764,6 +764,7 @@ static const struct TraceKindPair {
     { "all",        -1                  },
     { "object",     JSTRACE_OBJECT      },
     { "string",     JSTRACE_STRING      },
+    { "symbol",     JSTRACE_SYMBOL      },
 };
 
 static bool
@@ -1852,7 +1853,7 @@ FindPath(JSContext *cx, unsigned argc, jsval *vp)
                                JSPROP_ENUMERATE, nullptr, nullptr))
             return false;
 
-        RootedString edge(cx, js_NewString<CanGC>(cx, edges[i].get(), js_strlen(edges[i])));
+        RootedString edge(cx, NewString<CanGC>(cx, edges[i].get(), js_strlen(edges[i])));
         if (!edge)
             return false;
         edges[i].forget();

@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URLEncoder;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Vector;
 
@@ -111,16 +112,16 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
-abstract public class BrowserApp extends GeckoApp
-                                 implements TabsPanel.TabsLayoutChangeListener,
-                                            PropertyAnimator.PropertyAnimationListener,
-                                            View.OnKeyListener,
-                                            LayerView.OnMetricsChangedListener,
-                                            BrowserSearch.OnSearchListener,
-                                            BrowserSearch.OnEditSuggestionListener,
-                                            HomePager.OnNewTabsListener,
-                                            OnUrlOpenListener,
-                                            ActionModeCompat.Presenter {
+public class BrowserApp extends GeckoApp
+                        implements TabsPanel.TabsLayoutChangeListener,
+                                   PropertyAnimator.PropertyAnimationListener,
+                                   View.OnKeyListener,
+                                   LayerView.OnMetricsChangedListener,
+                                   BrowserSearch.OnSearchListener,
+                                   BrowserSearch.OnEditSuggestionListener,
+                                   HomePager.OnNewTabsListener,
+                                   OnUrlOpenListener,
+                                   ActionModeCompat.Presenter {
     private static final String LOGTAG = "GeckoBrowserApp";
 
     private static final int TABS_ANIMATION_DURATION = 450;
@@ -1113,7 +1114,7 @@ abstract public class BrowserApp extends GeckoApp
         final int sidebarWidth = getResources().getDimensionPixelSize(R.dimen.tabs_sidebar_width);
 
         ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) mTabsPanel.getLayoutParams();
-        lp.width = (isSideBar ? sidebarWidth : ViewGroup.LayoutParams.FILL_PARENT);
+        lp.width = (isSideBar ? sidebarWidth : ViewGroup.LayoutParams.MATCH_PARENT);
         mTabsPanel.requestLayout();
 
         final boolean sidebarIsShown = (isSideBar && mTabsPanel.isShown());
@@ -1130,6 +1131,10 @@ abstract public class BrowserApp extends GeckoApp
             // Do exactly the same thing as if you tapped 'Sync' in Settings.
             final Intent intent = new Intent(getContext(), FxAccountGetStartedActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            final NativeJSObject extras = message.optObject("extras", null);
+            if (extras != null) {
+                intent.putExtra("extras", extras.toString());
+            }
             getContext().startActivity(intent);
 
         } else if ("CharEncoding:Data".equals(event)) {
@@ -1991,6 +1996,7 @@ abstract public class BrowserApp extends GeckoApp
      */
     private class HideOnTouchListener implements TouchEventInterceptor {
         private boolean mIsHidingTabs = false;
+        private final Rect mTempRect = new Rect();
 
         @Override
         public boolean onInterceptTouchEvent(View view, MotionEvent event) {
@@ -2003,9 +2009,8 @@ abstract public class BrowserApp extends GeckoApp
             // tapping on an "empty" part of the view will still be considered a
             // valid touch event.
             if (view.getScrollX() != 0 || view.getScrollY() != 0) {
-                Rect rect = new Rect();
-                view.getHitRect(rect);
-                rect.offset(-view.getScrollX(), -view.getScrollY());
+                view.getHitRect(mTempRect);
+                mTempRect.offset(-view.getScrollX(), -view.getScrollY());
 
                 int[] viewCoords = new int[2];
                 view.getLocationOnScreen(viewCoords);
@@ -2013,7 +2018,7 @@ abstract public class BrowserApp extends GeckoApp
                 int x = (int) event.getRawX() - viewCoords[0];
                 int y = (int) event.getRawY() - viewCoords[1];
 
-                if (!rect.contains(x, y))
+                if (!mTempRect.contains(x, y))
                     return false;
             }
 
@@ -2742,7 +2747,7 @@ abstract public class BrowserApp extends GeckoApp
 
     // HomePager.OnNewTabsListener
     @Override
-    public void onNewTabs(String[] urls) {
+    public void onNewTabs(List<String> urls) {
         final EnumSet<OnUrlOpenListener.Flags> flags = EnumSet.of(OnUrlOpenListener.Flags.ALLOW_SWITCH_TO_TAB);
 
         for (String url : urls) {

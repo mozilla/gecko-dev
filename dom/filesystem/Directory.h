@@ -30,7 +30,7 @@
 namespace mozilla {
 namespace dom {
 
-class CreateFileOptions;
+struct CreateFileOptions;
 class FileSystemBase;
 class Promise;
 class StringOrFileOrDirectory;
@@ -48,7 +48,6 @@ public:
   GetRoot(FileSystemBase* aFileSystem);
 
   Directory(FileSystemBase* aFileSystem, const nsAString& aPath);
-  ~Directory();
 
   // ========= Begin WebIDL bindings. ===========
 
@@ -81,6 +80,8 @@ public:
   FileSystemBase*
   GetFileSystem() const;
 private:
+  ~Directory();
+
   static bool
   IsValidRelativePath(const nsString& aPath);
 

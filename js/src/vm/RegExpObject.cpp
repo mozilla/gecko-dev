@@ -28,6 +28,8 @@ using mozilla::DebugOnly;
 using mozilla::Maybe;
 using js::frontend::TokenStream;
 
+using JS::AutoCheckCannotGC;
+
 JS_STATIC_ASSERT(IgnoreCaseFlag == JSREG_FOLD);
 JS_STATIC_ASSERT(GlobalFlag == JSREG_GLOB);
 JS_STATIC_ASSERT(MultilineFlag == JSREG_MULTILINE);
@@ -428,12 +430,13 @@ RegExpObject::toString(JSContext *cx) const
 
 RegExpShared::RegExpShared(JSAtom *source, RegExpFlag flags)
   : source(source), flags(flags), parenCount(0), canStringMatch(false), marked_(false),
-    byteCode(nullptr)
+    byteCodeLatin1(nullptr), byteCodeTwoByte(nullptr)
 {}
 
 RegExpShared::~RegExpShared()
 {
-    js_free(byteCode);
+    js_free(byteCodeLatin1);
+    js_free(byteCodeTwoByte);
 
     for (size_t i = 0; i < tables.length(); i++)
         js_delete(tables[i]);
@@ -449,20 +452,22 @@ RegExpShared::trace(JSTracer *trc)
         MarkString(trc, &source, "RegExpShared source");
 
 #ifdef JS_ION
-    if (jitCode)
-        MarkJitCode(trc, &jitCode, "RegExpShared code");
+    if (jitCodeLatin1)
+        MarkJitCode(trc, &jitCodeLatin1, "RegExpShared code Latin1");
+    if (jitCodeTwoByte)
+        MarkJitCode(trc, &jitCodeTwoByte, "RegExpShared code TwoByte");
 #endif
 }
 
 bool
-RegExpShared::compile(JSContext *cx, const jschar *sampleChars, size_t sampleLength)
+RegExpShared::compile(JSContext *cx, HandleLinearString input)
 {
     TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
     AutoTraceLog logCompile(logger, TraceLogger::IrregexpCompile);
 
     if (!sticky()) {
         RootedAtom pattern(cx, source);
-        return compile(cx, pattern, sampleChars, sampleLength);
+        return compile(cx, pattern, input);
     }
 
     /*
@@ -485,13 +490,13 @@ RegExpShared::compile(JSContext *cx, const jschar *sampleChars, size_t sampleLen
     if (!fakeySource)
         return false;
 
-    return compile(cx, fakeySource, sampleChars, sampleLength);
+    return compile(cx, fakeySource, input);
 }
 
 bool
-RegExpShared::compile(JSContext *cx, HandleAtom pattern, const jschar *sampleChars, size_t sampleLength)
+RegExpShared::compile(JSContext *cx, HandleAtom pattern, HandleLinearString input)
 {
-    if (!ignoreCase() && !StringHasRegExpMetaChars(pattern->chars(), pattern->length())) {
+    if (!ignoreCase() && !StringHasRegExpMetaChars(pattern)) {
         canStringMatch = true;
         parenCount = 0;
         return true;
@@ -509,38 +514,45 @@ RegExpShared::compile(JSContext *cx, HandleAtom pattern, const jschar *sampleCha
 
     this->parenCount = data.capture_count;
 
-    irregexp::RegExpCode code = irregexp::CompilePattern(cx, this, &data, sampleChars, sampleLength,
+    irregexp::RegExpCode code = irregexp::CompilePattern(cx, this, &data, input,
                                                          false /* global() */,
-                                                         ignoreCase());
+                                                         ignoreCase(),
+                                                         input->hasLatin1Chars());
     if (code.empty())
         return false;
 
 #ifdef JS_ION
     JS_ASSERT(!code.jitCode || !code.byteCode);
-    jitCode = code.jitCode;
+    if (input->hasLatin1Chars())
+        jitCodeLatin1 = code.jitCode;
+    else
+        jitCodeTwoByte = code.jitCode;
 #endif
 
-    byteCode = code.byteCode;
+    if (input->hasLatin1Chars())
+        byteCodeLatin1 = code.byteCode;
+    else
+        byteCodeTwoByte = code.byteCode;
 
     return true;
 }
 
 bool
-RegExpShared::compileIfNecessary(JSContext *cx, const jschar *sampleChars, size_t sampleLength)
+RegExpShared::compileIfNecessary(JSContext *cx, HandleLinearString input)
 {
-    if (isCompiled() || canStringMatch)
+    if (isCompiled(input->hasLatin1Chars()) || canStringMatch)
         return true;
-    return compile(cx, sampleChars, sampleLength);
+    return compile(cx, input);
 }
 
 RegExpRunStatus
-RegExpShared::execute(JSContext *cx, const jschar *chars, size_t length,
-                      size_t *lastIndex, MatchPairs &matches)
+RegExpShared::execute(JSContext *cx, HandleLinearString input, size_t *lastIndex,
+                      MatchPairs &matches)
 {
     TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
 
     /* Compile the code at point-of-use. */
-    if (!compileIfNecessary(cx, chars, length))
+    if (!compileIfNecessary(cx, input))
         return RegExpRunStatus_Error;
 
     /* Ensure sufficient memory for output vector. */
@@ -551,13 +563,15 @@ RegExpShared::execute(JSContext *cx, const jschar *chars, size_t length,
      * |displacement| emulates sticky mode by matching from this offset
      * into the char buffer and subtracting the delta off at the end.
      */
+    size_t charsOffset = 0;
+    size_t length = input->length();
     size_t origLength = length;
     size_t start = *lastIndex;
     size_t displacement = 0;
 
     if (sticky()) {
         displacement = start;
-        chars += displacement;
+        charsOffset += displacement;
         length -= displacement;
         start = 0;
     }
@@ -566,23 +580,34 @@ RegExpShared::execute(JSContext *cx, const jschar *chars, size_t length,
     irregexp::RegExpStackScope stackScope(cx->runtime());
 
     if (canStringMatch) {
-        int res = StringFindPattern(chars+start, length-start, source->chars(), source->length());
+        int res = StringFindPattern(input, source, start + charsOffset);
         if (res == -1)
             return RegExpRunStatus_Success_NotFound;
 
-        matches[0].start = res + start;
-        matches[0].limit = res + start + source->length();
+        matches[0].start = res;
+        matches[0].limit = res + source->length();
 
-        matches.displace(displacement);
         matches.checkAgainst(origLength);
         *lastIndex = matches[0].limit;
         return RegExpRunStatus_Success;
     }
 
-    if (hasByteCode()) {
+    if (uint8_t *byteCode = maybeByteCode(input->hasLatin1Chars())) {
         AutoTraceLog logInterpreter(logger, TraceLogger::IrregexpExecute);
-        RegExpRunStatus result =
-            irregexp::InterpretCode(cx, byteCode, chars, start, length, &matches);
+
+        AutoStableStringChars inputChars(cx);
+        if (!inputChars.init(cx, input))
+            return RegExpRunStatus_Error;
+
+        RegExpRunStatus result;
+        if (inputChars.isLatin1()) {
+            const Latin1Char *chars = inputChars.latin1Range().start().get() + charsOffset;
+            result = irregexp::InterpretCode(cx, byteCode, chars, start, length, &matches);
+        } else {
+            const jschar *chars = inputChars.twoByteRange().start().get() + charsOffset;
+            result = irregexp::InterpretCode(cx, byteCode, chars, start, length, &matches);
+        }
+
         if (result == RegExpRunStatus_Success) {
             matches.displace(displacement);
             matches.checkAgainst(origLength);
@@ -596,7 +621,14 @@ RegExpShared::execute(JSContext *cx, const jschar *chars, size_t length,
         RegExpRunStatus result;
         {
             AutoTraceLog logJIT(logger, TraceLogger::IrregexpExecute);
-            result = irregexp::ExecuteCode(cx, jitCode, chars, start, length, &matches);
+            AutoCheckCannotGC nogc;
+            if (input->hasLatin1Chars()) {
+                const Latin1Char *chars = input->latin1Chars(nogc) + charsOffset;
+                result = irregexp::ExecuteCode(cx, jitCodeLatin1, chars, start, length, &matches);
+            } else {
+                const jschar *chars = input->twoByteChars(nogc) + charsOffset;
+                result = irregexp::ExecuteCode(cx, jitCodeTwoByte, chars, start, length, &matches);
+            }
         }
 
         if (result == RegExpRunStatus_Error) {
@@ -640,8 +672,11 @@ RegExpShared::sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
 {
     size_t n = mallocSizeOf(this);
 
-    if (byteCode)
-        n += mallocSizeOf(byteCode);
+    if (byteCodeLatin1)
+        n += mallocSizeOf(byteCodeLatin1);
+
+    if (byteCodeTwoByte)
+        n += mallocSizeOf(byteCodeTwoByte);
 
     n += tables.sizeOfExcludingThis(mallocSizeOf);
     for (size_t i = 0; i < tables.length(); i++)
@@ -731,8 +766,10 @@ RegExpCompartment::sweep(JSRuntime *rt)
         // marked by the current trace.
         bool keep = shared->marked() && !IsStringAboutToBeFinalized(shared->source.unsafeGet());
 #ifdef JS_ION
-        if (keep && shared->jitCode)
-            keep = !IsJitCodeAboutToBeFinalized(shared->jitCode.unsafeGet());
+        if (keep && shared->jitCodeLatin1)
+            keep = !IsJitCodeAboutToBeFinalized(shared->jitCodeLatin1.unsafeGet());
+        if (keep && shared->jitCodeTwoByte)
+            keep = !IsJitCodeAboutToBeFinalized(shared->jitCodeTwoByte.unsafeGet());
 #endif
         if (keep) {
             shared->clearMarked();
@@ -867,10 +904,10 @@ js::ParseRegExpFlags(JSContext *cx, JSString *flagStr, RegExpFlag *flagsOut)
     bool ok;
     jschar lastParsed;
     if (linear->hasLatin1Chars()) {
-        JS::AutoCheckCannotGC nogc;
+        AutoCheckCannotGC nogc;
         ok = ::ParseRegExpFlags(linear->latin1Chars(nogc), len, flagsOut, &lastParsed);
     } else {
-        JS::AutoCheckCannotGC nogc;
+        AutoCheckCannotGC nogc;
         ok = ::ParseRegExpFlags(linear->twoByteChars(nogc), len, flagsOut, &lastParsed);
     }
 

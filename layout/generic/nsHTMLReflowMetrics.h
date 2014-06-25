@@ -14,7 +14,7 @@
 
 //----------------------------------------------------------------------
 
-class nsHTMLReflowState;
+struct nsHTMLReflowState;
 
 // Option flags
 #define NS_REFLOW_CALC_BOUNDING_METRICS  0x0001
@@ -238,6 +238,15 @@ public:
   nscoord& BSize(mozilla::WritingMode aWritingMode) {
     CHECK_WRITING_MODE(aWritingMode);
     return mBSize;
+  }
+
+  // Set inline and block size from a LogicalSize, converting to our
+  // writing mode as necessary.
+  void SetSize(mozilla::WritingMode aWM, mozilla::LogicalSize aSize)
+  {
+    mozilla::LogicalSize convertedSize = aSize.ConvertTo(mWritingMode, aWM);
+    mBSize = convertedSize.BSize(mWritingMode);
+    mISize = convertedSize.ISize(mWritingMode);
   }
 
   // Width and Height are physical dimensions, independent of writing mode.

@@ -582,11 +582,13 @@ static int64_t gSurfaceMemoryUsed[size_t(gfxSurfaceType::Max)] = { 0 };
 
 class SurfaceMemoryReporter MOZ_FINAL : public nsIMemoryReporter
 {
+    ~SurfaceMemoryReporter() {}
+
 public:
     NS_DECL_ISUPPORTS
 
     NS_IMETHOD CollectReports(nsIMemoryReporterCallback *aCb,
-                              nsISupports *aClosure)
+                              nsISupports *aClosure, bool aAnonymize)
     {
         const size_t len = ArrayLength(sSurfaceMemoryReporterAttrs);
         for (size_t i = 0; i < len; i++) {

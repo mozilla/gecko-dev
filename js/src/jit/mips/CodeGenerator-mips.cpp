@@ -52,7 +52,7 @@ CodeGeneratorMIPS::generateAsmJSPrologue(Label *stackOverflowLabel)
 {
     JS_ASSERT(gen->compilingAsmJS());
 
-    // See comment in Assembler-mips.h about AsmJSSizeOfRetAddr.
+    // See comment in Assembler-mips.h about AsmJSFrameSize.
     masm.push(ra);
 
     // The asm.js over-recursed handler wants to be able to assume that SP
@@ -212,22 +212,6 @@ CodeGeneratorMIPS::bailoutFrom(Label *label, LSnapshot *snapshot)
         return false;
     MOZ_ASSERT(label->used());
     MOZ_ASSERT(!label->bound());
-
-    CompileInfo &info = snapshot->mir()->block()->info();
-    switch (info.executionMode()) {
-      case ParallelExecution: {
-        // in parallel mode, make no attempt to recover, just signal an error.
-        OutOfLineAbortPar *ool = oolAbortPar(ParallelBailoutUnsupported,
-                                             snapshot->mir()->block(),
-                                             snapshot->mir()->pc());
-        masm.retarget(label, ool->entry());
-        return true;
-      }
-      case SequentialExecution:
-        break;
-      default:
-        MOZ_ASSUME_UNREACHABLE("No such execution mode");
-    }
 
     if (!encode(snapshot))
         return false;

@@ -69,9 +69,6 @@
 #include "nsMacCyrillicToUnicode.h"
 #include "nsMacIcelandicToUnicode.h"
 #include "nsARMSCII8ToUnicode.h"
-#include "nsTCVN5712ToUnicode.h"
-#include "nsVISCIIToUnicode.h"
-#include "nsVPSToUnicode.h"
 #include "nsUTF16ToUnicode.h"
 #include "nsUserDefinedToUnicode.h"
 #include "nsUnicodeToAscii.h"
@@ -115,9 +112,6 @@
 #include "nsUnicodeToMacCyrillic.h"
 #include "nsUnicodeToMacIcelandic.h"
 #include "nsUnicodeToARMSCII8.h"
-#include "nsUnicodeToTCVN5712.h"
-#include "nsUnicodeToVISCII.h"
-#include "nsUnicodeToVPS.h"
 #include "nsUnicodeToUTF16.h"
 #include "nsUnicodeToUserDefined.h"
 #include "nsMacArabicToUnicode.h"
@@ -157,12 +151,6 @@
 #include "nsUnicodeToEUCJP.h"
 #include "nsUnicodeToISO2022JP.h"
 #include "nsUnicodeToJISx0201.h"
-
-// ucvtw2
-#include "nsUCvTW2CID.h"
-#include "nsUCvTW2Dll.h"
-#include "nsEUCTWToUnicode.h"
-#include "nsUnicodeToEUCTW.h"
 
 // ucvtw
 #include "nsUCvTWCID.h"
@@ -238,9 +226,6 @@ NS_UCONV_REG_UNREG("x-mac-romanian", NS_MACROMANIANTOUNICODE_CID, NS_UNICODETOMA
 NS_UCONV_REG_UNREG("x-mac-cyrillic", NS_MACCYRILLICTOUNICODE_CID, NS_UNICODETOMACCYRILLIC_CID)
 NS_UCONV_REG_UNREG("x-mac-icelandic", NS_MACICELANDICTOUNICODE_CID, NS_UNICODETOMACICELANDIC_CID)
 NS_UCONV_REG_UNREG("armscii-8", NS_ARMSCII8TOUNICODE_CID, NS_UNICODETOARMSCII8_CID)
-NS_UCONV_REG_UNREG("x-viet-tcvn5712", NS_TCVN5712TOUNICODE_CID, NS_UNICODETOTCVN5712_CID)
-NS_UCONV_REG_UNREG("VISCII", NS_VISCIITOUNICODE_CID, NS_UNICODETOVISCII_CID)
-NS_UCONV_REG_UNREG("x-viet-vps", NS_VPSTOUNICODE_CID, NS_UNICODETOVPS_CID)
 NS_UCONV_REG_UNREG("UTF-16", NS_UTF16TOUNICODE_CID, NS_UNICODETOUTF16_CID)
 NS_UCONV_REG_UNREG("UTF-16BE", NS_UTF16BETOUNICODE_CID, NS_UNICODETOUTF16BE_CID)
 NS_UCONV_REG_UNREG("UTF-16LE", NS_UTF16LETOUNICODE_CID, NS_UNICODETOUTF16LE_CID)
@@ -266,9 +251,6 @@ NS_UCONV_REG_UNREG("ISO-2022-JP", NS_ISO2022JPTOUNICODE_CID, NS_UNICODETOISO2022
 NS_UCONV_REG_UNREG("EUC-JP", NS_EUCJPTOUNICODE_CID, NS_UNICODETOEUCJP_CID)
   
 NS_UCONV_REG_UNREG_ENCODER("jis_0201" , NS_UNICODETOJISX0201_CID)
-
-    // ucvtw2
-NS_UCONV_REG_UNREG("x-euc-tw", NS_EUCTWTOUNICODE_CID, NS_UNICODETOEUCTW_CID)
 
     // ucvtw
 NS_UCONV_REG_UNREG("Big5", NS_BIG5TOUNICODE_CID, NS_UNICODETOBIG5_CID)
@@ -307,8 +289,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsEUCJPToUnicodeV2)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsISO2022JPToUnicodeV2)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsUnicodeToISO2022JP)
 
-// ucvtw2
-
 // ucvtw
 
 // ucvko
@@ -340,63 +320,6 @@ const uint16_t g_uf0208Mapping[] = {
 
 const uint16_t g_uf0208extMapping[] = {
 #include "jis0208ext.uf"
-};
-
-// ucvtw2
-const uint16_t g_ufCNS1MappingTable[] = {
-#include "cns_1.uf"
-};
-
-const uint16_t g_ufCNS2MappingTable[] = {
-#include "cns_2.uf"
-};
-
-const uint16_t g_ufCNS3MappingTable[] = {
-#include "cns3.uf"
-};
-
-const uint16_t g_ufCNS4MappingTable[] = {
-#include "cns4.uf"
-};
-
-const uint16_t g_ufCNS5MappingTable[] = {
-#include "cns5.uf"
-};
-
-const uint16_t g_ufCNS6MappingTable[] = {
-#include "cns6.uf"
-};
-
-const uint16_t g_ufCNS7MappingTable[] = {
-#include "cns7.uf"
-};
-
-const uint16_t g_utCNS1MappingTable[] = {
-#include "cns_1.ut"
-};
-
-const uint16_t g_utCNS2MappingTable[] = {
-#include "cns_2.ut"
-};
-
-const uint16_t g_utCNS3MappingTable[] = {
-#include "cns3.ut"
-};
-
-const uint16_t g_utCNS4MappingTable[] = {
-#include "cns4.ut"
-};
-
-const uint16_t g_utCNS5MappingTable[] = {
-#include "cns5.ut"
-};
-
-const uint16_t g_utCNS6MappingTable[] = {
-#include "cns6.ut"
-};
-
-const uint16_t g_utCNS7MappingTable[] = {
-#include "cns7.ut"
 };
 
 const uint16_t g_ASCIIMappingTable[] = {
@@ -494,9 +417,6 @@ NS_DEFINE_NAMED_CID(NS_MACROMANIANTOUNICODE_CID);
 NS_DEFINE_NAMED_CID(NS_MACCYRILLICTOUNICODE_CID);
 NS_DEFINE_NAMED_CID(NS_MACICELANDICTOUNICODE_CID);
 NS_DEFINE_NAMED_CID(NS_ARMSCII8TOUNICODE_CID);
-NS_DEFINE_NAMED_CID(NS_TCVN5712TOUNICODE_CID);
-NS_DEFINE_NAMED_CID(NS_VISCIITOUNICODE_CID);
-NS_DEFINE_NAMED_CID(NS_VPSTOUNICODE_CID);
 NS_DEFINE_NAMED_CID(NS_UTF16TOUNICODE_CID);
 NS_DEFINE_NAMED_CID(NS_UTF16BETOUNICODE_CID);
 NS_DEFINE_NAMED_CID(NS_UTF16LETOUNICODE_CID);
@@ -548,9 +468,6 @@ NS_DEFINE_NAMED_CID(NS_UNICODETOMACROMANIAN_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOMACCYRILLIC_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOMACICELANDIC_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOARMSCII8_CID);
-NS_DEFINE_NAMED_CID(NS_UNICODETOTCVN5712_CID);
-NS_DEFINE_NAMED_CID(NS_UNICODETOVISCII_CID);
-NS_DEFINE_NAMED_CID(NS_UNICODETOVPS_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOUTF16BE_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOUTF16LE_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOUTF16_CID);
@@ -580,8 +497,6 @@ NS_DEFINE_NAMED_CID(NS_UNICODETOSJIS_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOEUCJP_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOISO2022JP_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOJISX0201_CID);
-NS_DEFINE_NAMED_CID(NS_EUCTWTOUNICODE_CID);
-NS_DEFINE_NAMED_CID(NS_UNICODETOEUCTW_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOBIG5_CID);
 NS_DEFINE_NAMED_CID(NS_BIG5TOUNICODE_CID);
 NS_DEFINE_NAMED_CID(NS_UNICODETOBIG5HKSCS_CID);
@@ -654,9 +569,6 @@ static const mozilla::Module::CIDEntry kUConvCIDs[] = {
   { &kNS_MACCYRILLICTOUNICODE_CID, false, nullptr, nsMacCyrillicToUnicodeConstructor },
   { &kNS_MACICELANDICTOUNICODE_CID, false, nullptr, nsMacIcelandicToUnicodeConstructor },
   { &kNS_ARMSCII8TOUNICODE_CID, false, nullptr, nsARMSCII8ToUnicodeConstructor },
-  { &kNS_TCVN5712TOUNICODE_CID, false, nullptr, nsTCVN5712ToUnicodeConstructor },
-  { &kNS_VISCIITOUNICODE_CID, false, nullptr, nsVISCIIToUnicodeConstructor },
-  { &kNS_VPSTOUNICODE_CID, false, nullptr, nsVPSToUnicodeConstructor },
   { &kNS_UTF16TOUNICODE_CID, false, nullptr, nsUTF16ToUnicodeConstructor },
   { &kNS_UTF16BETOUNICODE_CID, false, nullptr, nsUTF16BEToUnicodeConstructor },
   { &kNS_UTF16LETOUNICODE_CID, false, nullptr, nsUTF16LEToUnicodeConstructor },
@@ -708,9 +620,6 @@ static const mozilla::Module::CIDEntry kUConvCIDs[] = {
   { &kNS_UNICODETOMACCYRILLIC_CID, false, nullptr, nsUnicodeToMacCyrillicConstructor },
   { &kNS_UNICODETOMACICELANDIC_CID, false, nullptr, nsUnicodeToMacIcelandicConstructor },
   { &kNS_UNICODETOARMSCII8_CID, false, nullptr, nsUnicodeToARMSCII8Constructor },
-  { &kNS_UNICODETOTCVN5712_CID, false, nullptr, nsUnicodeToTCVN5712Constructor },
-  { &kNS_UNICODETOVISCII_CID, false, nullptr, nsUnicodeToVISCIIConstructor },
-  { &kNS_UNICODETOVPS_CID, false, nullptr, nsUnicodeToVPSConstructor },
   { &kNS_UNICODETOUTF16BE_CID, false, nullptr, nsUnicodeToUTF16BEConstructor },
   { &kNS_UNICODETOUTF16LE_CID, false, nullptr, nsUnicodeToUTF16LEConstructor },
   { &kNS_UNICODETOUTF16_CID, false, nullptr, nsUnicodeToUTF16Constructor },
@@ -740,8 +649,6 @@ static const mozilla::Module::CIDEntry kUConvCIDs[] = {
   { &kNS_UNICODETOEUCJP_CID, false, nullptr, nsUnicodeToEUCJPConstructor },
   { &kNS_UNICODETOISO2022JP_CID, false, nullptr, nsUnicodeToISO2022JPConstructor },
   { &kNS_UNICODETOJISX0201_CID, false, nullptr, nsUnicodeToJISx0201Constructor },
-  { &kNS_EUCTWTOUNICODE_CID, false, nullptr, nsEUCTWToUnicodeConstructor },
-  { &kNS_UNICODETOEUCTW_CID, false, nullptr, nsUnicodeToEUCTWConstructor },
   { &kNS_UNICODETOBIG5_CID, false, nullptr, nsUnicodeToBIG5Constructor },
   { &kNS_BIG5TOUNICODE_CID, false, nullptr, nsBIG5ToUnicodeConstructor },
   { &kNS_UNICODETOBIG5HKSCS_CID, false, nullptr, nsUnicodeToBIG5HKSCSConstructor },
@@ -816,9 +723,6 @@ static const mozilla::Module::ContractIDEntry kUConvContracts[] = {
   { NS_UNICODEDECODER_CONTRACTID_BASE "x-mac-cyrillic", &kNS_MACCYRILLICTOUNICODE_CID },
   { NS_UNICODEDECODER_CONTRACTID_BASE "x-mac-icelandic", &kNS_MACICELANDICTOUNICODE_CID },
   { NS_UNICODEDECODER_CONTRACTID_BASE "armscii-8", &kNS_ARMSCII8TOUNICODE_CID },
-  { NS_UNICODEDECODER_CONTRACTID_BASE "x-viet-tcvn5712", &kNS_TCVN5712TOUNICODE_CID },
-  { NS_UNICODEDECODER_CONTRACTID_BASE "VISCII", &kNS_VISCIITOUNICODE_CID },
-  { NS_UNICODEDECODER_CONTRACTID_BASE "x-viet-vps", &kNS_VPSTOUNICODE_CID },
   { NS_UNICODEDECODER_CONTRACTID_BASE "UTF-16", &kNS_UTF16TOUNICODE_CID },
   { NS_UNICODEDECODER_CONTRACTID_BASE "UTF-16BE", &kNS_UTF16BETOUNICODE_CID },
   { NS_UNICODEDECODER_CONTRACTID_BASE "UTF-16LE", &kNS_UTF16LETOUNICODE_CID },
@@ -870,9 +774,6 @@ static const mozilla::Module::ContractIDEntry kUConvContracts[] = {
   { NS_UNICODEENCODER_CONTRACTID_BASE "x-mac-cyrillic", &kNS_UNICODETOMACCYRILLIC_CID },
   { NS_UNICODEENCODER_CONTRACTID_BASE "x-mac-icelandic", &kNS_UNICODETOMACICELANDIC_CID },
   { NS_UNICODEENCODER_CONTRACTID_BASE "armscii-8", &kNS_UNICODETOARMSCII8_CID },
-  { NS_UNICODEENCODER_CONTRACTID_BASE "x-viet-tcvn5712", &kNS_UNICODETOTCVN5712_CID },
-  { NS_UNICODEENCODER_CONTRACTID_BASE "VISCII", &kNS_UNICODETOVISCII_CID },
-  { NS_UNICODEENCODER_CONTRACTID_BASE "x-viet-vps", &kNS_UNICODETOVPS_CID },
   { NS_UNICODEENCODER_CONTRACTID_BASE "UTF-16BE", &kNS_UNICODETOUTF16BE_CID },
   { NS_UNICODEENCODER_CONTRACTID_BASE "UTF-16LE", &kNS_UNICODETOUTF16LE_CID },
   { NS_UNICODEENCODER_CONTRACTID_BASE "UTF-16", &kNS_UNICODETOUTF16_CID },
@@ -902,8 +803,6 @@ static const mozilla::Module::ContractIDEntry kUConvContracts[] = {
   { NS_UNICODEENCODER_CONTRACTID_BASE "EUC-JP", &kNS_UNICODETOEUCJP_CID },
   { NS_UNICODEENCODER_CONTRACTID_BASE "ISO-2022-JP", &kNS_UNICODETOISO2022JP_CID },
   { NS_UNICODEENCODER_CONTRACTID_BASE "jis_0201", &kNS_UNICODETOJISX0201_CID },
-  { NS_UNICODEDECODER_CONTRACTID_BASE "x-euc-tw", &kNS_EUCTWTOUNICODE_CID },
-  { NS_UNICODEENCODER_CONTRACTID_BASE "x-euc-tw", &kNS_UNICODETOEUCTW_CID },
   { NS_UNICODEENCODER_CONTRACTID_BASE "Big5", &kNS_UNICODETOBIG5_CID },
   { NS_UNICODEDECODER_CONTRACTID_BASE "Big5", &kNS_BIG5TOUNICODE_CID },
   { NS_UNICODEENCODER_CONTRACTID_BASE "Big5-HKSCS", &kNS_UNICODETOBIG5HKSCS_CID },

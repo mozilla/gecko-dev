@@ -35,7 +35,7 @@ class TabChild;
 
 namespace widget {
 
-class AutoCacheNativeKeyCommands;
+struct AutoCacheNativeKeyCommands;
 
 class PuppetWidget : public nsBaseWidget, public nsSupportsWeakReference
 {
@@ -141,7 +141,7 @@ public:
                           DoCommandCallback aCallback,
                           void* aCallbackData) MOZ_OVERRIDE;
 
-  friend class AutoCacheNativeKeyCommands;
+  friend struct AutoCacheNativeKeyCommands;
 
   //
   // nsBaseWidget methods we override
@@ -312,9 +312,10 @@ public:
 
 class PuppetScreenManager MOZ_FINAL : public nsIScreenManager
 {
+    ~PuppetScreenManager();
+
 public:
     PuppetScreenManager();
-    ~PuppetScreenManager();
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSISCREENMANAGER

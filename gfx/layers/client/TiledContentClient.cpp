@@ -3,6 +3,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// Uncomment this to enable the TILING_PRLOG stuff in this file
+// for release builds. To get the output you need to have
+// NSPR_LOG_MODULES=tiling:5 in your environment at runtime.
+// #define FORCE_PR_LOG
+
 #include "mozilla/layers/TiledContentClient.h"
 #include <math.h>                       // for ceil, ceilf, floor
 #include "ClientTiledThebesLayer.h"     // for ClientTiledThebesLayer
@@ -25,6 +30,8 @@
 #include "gfxReusableSharedImageSurfaceWrapper.h"
 #include "nsMathUtils.h"               // for NS_roundf
 #include "gfx2DGlue.h"
+#include "LayersLogging.h"
+#include "UnitTransforms.h"             // for TransformTo
 
 // This is the minimum area that we deem reasonable to copy from the front buffer to the
 // back buffer on tile updates. If the valid region is smaller than this, we just
@@ -136,20 +143,37 @@ FuzzyEquals(float a, float b) {
   return (fabsf(a - b) < 1e-6);
 }
 
+static ViewTransform
+ComputeViewTransform(const FrameMetrics& aContentMetrics, const FrameMetrics& aCompositorMetrics)
+{
+  // This is basically the same code as AsyncPanZoomController::GetCurrentAsyncTransform
+  // but with aContentMetrics used in place of mLastContentPaintMetrics, because they
+  // should be equivalent, modulo race conditions while transactions are inflight.
+
+  LayerPoint translation = (aCompositorMetrics.GetScrollOffset() - aContentMetrics.GetScrollOffset())
+                         * aContentMetrics.LayersPixelsPerCSSPixel();
+  return ViewTransform(-translation,
+                       aCompositorMetrics.GetZoom()
+                     / aContentMetrics.mDevPixelsPerCSSPixel
+                     / aCompositorMetrics.GetParentResolution());
+}
+
 bool
 SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
     ContainerLayer* aLayer,
     bool aHasPendingNewThebesContent,
     bool aLowPrecision,
-    ParentLayerRect& aCompositionBounds,
-    CSSToParentLayerScale& aZoom)
+    ViewTransform& aViewTransform)
 {
   MOZ_ASSERT(aLayer);
 
-  CompositorChild* compositor = CompositorChild::Get();
+  CompositorChild* compositor = nullptr;
+  if(aLayer->Manager() &&
+     aLayer->Manager()->AsClientLayerManager()) {
+    compositor = aLayer->Manager()->AsClientLayerManager()->GetCompositorChild();
+  }
 
   if (!compositor) {
-    FindFallbackContentFrameMetrics(aLayer, aCompositionBounds, aZoom);
     return false;
   }
 
@@ -158,12 +182,10 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
 
   if (!compositor->LookupCompositorFrameMetrics(contentMetrics.GetScrollId(),
                                                 compositorMetrics)) {
-    FindFallbackContentFrameMetrics(aLayer, aCompositionBounds, aZoom);
     return false;
   }
 
-  aCompositionBounds = ParentLayerRect(compositorMetrics.mCompositionBounds);
-  aZoom = compositorMetrics.GetZoomToParent();
+  aViewTransform = ComputeViewTransform(contentMetrics, compositorMetrics);
 
   // Reset the checkerboard risk flag when switching to low precision
   // rendering.
@@ -198,7 +220,17 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   // When not a low precision pass and the page is in danger of checker boarding
   // abort update.
   if (!aLowPrecision && !mProgressiveUpdateWasInDanger) {
-    if (AboutToCheckerboard(contentMetrics, compositorMetrics)) {
+    bool scrollUpdatePending = contentMetrics.GetScrollOffsetUpdated() &&
+        contentMetrics.GetScrollGeneration() != compositorMetrics.GetScrollGeneration();
+    // If scrollUpdatePending is true, then that means the content-side
+    // metrics has a new scroll offset that is going to be forced into the
+    // compositor but it hasn't gotten there yet.
+    // Even though right now comparing the metrics might indicate we're
+    // about to checkerboard (and that's true), the checkerboarding will
+    // disappear as soon as the new scroll offset update is processed
+    // on the compositor side. To avoid leaving things in a low-precision
+    // paint, we need to detect and handle this case (bug 1026756).
+    if (!scrollUpdatePending && AboutToCheckerboard(contentMetrics, compositorMetrics)) {
       mProgressiveUpdateWasInDanger = true;
       return true;
     }
@@ -213,38 +245,33 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   return false;
 }
 
-void
-SharedFrameMetricsHelper::FindFallbackContentFrameMetrics(ContainerLayer* aLayer,
-                                                          ParentLayerRect& aCompositionBounds,
-                                                          CSSToParentLayerScale& aZoom) {
-  if (!aLayer) {
-    return;
-  }
-
-  ContainerLayer* layer = aLayer;
-  const FrameMetrics* contentMetrics = &(layer->GetFrameMetrics());
-
-  // Walk up the layer tree until a valid composition bounds is found
-  while (layer && contentMetrics->mCompositionBounds.IsEmpty()) {
-    layer = layer->GetParent();
-    contentMetrics = layer ? &(layer->GetFrameMetrics()) : contentMetrics;
-  }
-
-  MOZ_ASSERT(!contentMetrics->mCompositionBounds.IsEmpty());
-
-  aCompositionBounds = ParentLayerRect(contentMetrics->mCompositionBounds);
-  aZoom = contentMetrics->GetZoomToParent();  // TODO(botond): double-check this
-  return;
-}
-
 bool
 SharedFrameMetricsHelper::AboutToCheckerboard(const FrameMetrics& aContentMetrics,
                                               const FrameMetrics& aCompositorMetrics)
 {
-  CSSRect painted =
-        (aContentMetrics.mCriticalDisplayPort.IsEmpty() ? aContentMetrics.mDisplayPort : aContentMetrics.mCriticalDisplayPort)
-        + aContentMetrics.GetScrollOffset();
-  CSSRect showing = CSSRect(aCompositorMetrics.GetScrollOffset(), aCompositorMetrics.CalculateBoundedCompositedSizeInCssPixels());
+  // The size of the painted area is originally computed in layer pixels in layout, but then
+  // converted to app units and then back to CSS pixels before being put in the FrameMetrics.
+  // This process can introduce some rounding error, so we inflate the rect by one app unit
+  // to account for that.
+  CSSRect painted = (aContentMetrics.mCriticalDisplayPort.IsEmpty()
+                      ? aContentMetrics.mDisplayPort
+                      : aContentMetrics.mCriticalDisplayPort)
+                    + aContentMetrics.GetScrollOffset();
+  painted.Inflate(CSSMargin::FromAppUnits(nsMargin(1, 1, 1, 1)));
+
+  // Inflate the rect by the danger zone. See the description of the danger zone prefs
+  // in AsyncPanZoomController.cpp for an explanation of this.
+  CSSRect showing = CSSRect(aCompositorMetrics.GetScrollOffset(),
+                            aCompositorMetrics.CalculateBoundedCompositedSizeInCssPixels());
+  showing.Inflate(LayerSize(gfxPrefs::APZDangerZoneX(), gfxPrefs::APZDangerZoneY())
+                  / aCompositorMetrics.LayersPixelsPerCSSPixel());
+
+  // Clamp both rects to the scrollable rect, because having either of those
+  // exceed the scrollable rect doesn't make sense, and could lead to false
+  // positives.
+  painted = painted.Intersect(aContentMetrics.mScrollableRect);
+  showing = showing.Intersect(aContentMetrics.mScrollableRect);
+
   return !painted.Contains(showing);
 }
 
@@ -373,6 +400,7 @@ TileClient::TileClient()
   , mFrontBuffer(nullptr)
   , mBackLock(nullptr)
   , mFrontLock(nullptr)
+  , mCompositableClient(nullptr)
 {
 }
 
@@ -382,6 +410,7 @@ TileClient::TileClient(const TileClient& o)
   mFrontBuffer = o.mFrontBuffer;
   mBackLock = o.mBackLock;
   mFrontLock = o.mFrontLock;
+  mCompositableClient = nullptr;
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
   mLastUpdate = o.mLastUpdate;
 #endif
@@ -398,6 +427,7 @@ TileClient::operator=(const TileClient& o)
   mFrontBuffer = o.mFrontBuffer;
   mBackLock = o.mBackLock;
   mFrontLock = o.mFrontLock;
+  mCompositableClient = nullptr;
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
   mLastUpdate = o.mLastUpdate;
 #endif
@@ -411,6 +441,20 @@ TileClient::operator=(const TileClient& o)
 void
 TileClient::Flip()
 {
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+  if (mFrontBuffer && mFrontBuffer->GetIPDLActor() &&
+      mCompositableClient && mCompositableClient->GetIPDLActor()) {
+    // remove old buffer from CompositableHost
+    RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
+    // Hold TextureClient until transaction complete.
+    tracker->SetTextureClient(mFrontBuffer);
+    mFrontBuffer->SetRemoveFromCompositableTracker(tracker);
+    // RemoveTextureFromCompositableAsync() expects CompositorChild's presence.
+    mManager->AsShadowForwarder()->RemoveTextureFromCompositableAsync(tracker,
+                                                                      mCompositableClient,
+                                                                      mFrontBuffer);
+  }
+#endif
   RefPtr<TextureClient> frontBuffer = mFrontBuffer;
   mFrontBuffer = mBackBuffer;
   mBackBuffer = frontBuffer;
@@ -477,6 +521,20 @@ TileClient::DiscardFrontBuffer()
 {
   if (mFrontBuffer) {
     MOZ_ASSERT(mFrontLock);
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+    if (mFrontBuffer->GetIPDLActor() &&
+        mCompositableClient && mCompositableClient->GetIPDLActor()) {
+      // remove old buffer from CompositableHost
+      RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
+      // Hold TextureClient until transaction complete.
+      tracker->SetTextureClient(mFrontBuffer);
+      mFrontBuffer->SetRemoveFromCompositableTracker(tracker);
+      // RemoveTextureFromCompositableAsync() expects CompositorChild's presence.
+      mManager->AsShadowForwarder()->RemoveTextureFromCompositableAsync(tracker,
+                                                                        mCompositableClient,
+                                                                        mFrontBuffer);
+    }
+#endif
     mManager->GetTexturePool(mFrontBuffer->GetFormat())->ReturnTextureClientDeferred(mFrontBuffer);
     mFrontLock->ReadUnlock();
     mFrontBuffer = nullptr;
@@ -495,7 +553,25 @@ TileClient::DiscardBackBuffer()
       // this case we just want to drop it and not return it to the pool.
       mManager->GetTexturePool(mBackBuffer->GetFormat())->ReportClientLost();
     } else {
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+      if (mBackBuffer->GetIPDLActor() &&
+          mCompositableClient && mCompositableClient->GetIPDLActor()) {
+        // remove old buffer from CompositableHost
+        RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
+        // Hold TextureClient until transaction complete.
+        tracker->SetTextureClient(mBackBuffer);
+        mBackBuffer->SetRemoveFromCompositableTracker(tracker);
+        // RemoveTextureFromCompositableAsync() expects CompositorChild's presence.
+        mManager->AsShadowForwarder()->RemoveTextureFromCompositableAsync(tracker,
+                                                                          mCompositableClient,
+                                                                          mBackBuffer);
+      }
+      // TextureClient can be reused after transaction complete,
+      // when RemoveTextureFromCompositableTracker is used.
+      mManager->GetTexturePool(mBackBuffer->GetFormat())->ReturnTextureClientDeferred(mBackBuffer);
+#else
       mManager->GetTexturePool(mBackBuffer->GetFormat())->ReturnTextureClient(mBackBuffer);
+#endif
     }
     mBackLock->ReadUnlock();
     mBackBuffer = nullptr;
@@ -629,6 +705,9 @@ ClientTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
                                    LayerManager::DrawThebesLayerCallback aCallback,
                                    void* aCallbackData)
 {
+  TILING_PRLOG_OBJ(("TILING %p: PaintThebes painting region %s\n", mThebesLayer, tmpstr.get()), aPaintRegion);
+  TILING_PRLOG_OBJ(("TILING %p: PaintThebes new valid region %s\n", mThebesLayer, tmpstr.get()), aNewValidRegion);
+
   mCallback = aCallback;
   mCallbackData = aCallbackData;
 
@@ -744,6 +823,7 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   if (aTile.IsPlaceholderTile()) {
     aTile.SetLayerManager(mManager);
   }
+  aTile.SetCompositableClient(mCompositableClient);
 
   // Discard our front and backbuffers if our contents changed. In this case
   // the calling code will already have taken care of invalidating the entire
@@ -866,8 +946,6 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
   backBuffer->Unlock();
 
-  aTile.Flip();
-
   if (createdTextureClient) {
     if (!mCompositableClient->AddTextureClient(backBuffer)) {
       NS_WARNING("Failed to add tile TextureClient.");
@@ -876,6 +954,8 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
       return aTile;
     }
   }
+
+  aTile.Flip();
 
   // Note, we don't call UpdatedTexture. The Updated function is called manually
   // by the TiledContentHost before composition.
@@ -889,29 +969,45 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   return aTile;
 }
 
+/**
+ * This function takes the transform stored in aTransformToCompBounds
+ * (which was generated in GetTransformToAncestorsParentLayer), and
+ * modifies it with the ViewTransform from the compositor side so that
+ * it reflects what the compositor is actually rendering. This operation
+ * basically replaces the nontransient async transform that was injected
+ * in GetTransformToAncestorsParentLayer with the complete async transform.
+ * This function then returns the scroll ancestor's composition bounds,
+ * transformed into the thebes layer's LayerPixel coordinates, accounting
+ * for the compositor state.
+ */
 static LayerRect
-TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
-                           const CSSToParentLayerScale& aZoom,
-                           const ParentLayerPoint& aScrollOffset,
-                           const CSSToParentLayerScale& aResolution,
-                           const gfx3DMatrix& aTransformDisplayPortToLayer)
+GetCompositorSideCompositionBounds(ContainerLayer* aScrollAncestor,
+                                   const gfx3DMatrix& aTransformToCompBounds,
+                                   const ViewTransform& aAPZTransform)
 {
-  // Transform the composition bounds from the space of the displayport ancestor
-  // layer into the Layer space of this layer. Do this by
-  // compensating for the difference in resolution and subtracting the
-  // old composition bounds origin.
-  ParentLayerRect offsetViewportRect = (aCompositionBounds / aZoom) * aResolution;
-  offsetViewportRect.MoveBy(-aScrollOffset);
+  gfx3DMatrix nonTransientAPZTransform = gfx3DMatrix::ScalingMatrix(
+    aScrollAncestor->GetFrameMetrics().mResolution.scale,
+    aScrollAncestor->GetFrameMetrics().mResolution.scale,
+    1.f);
 
-  gfxRect transformedViewport =
-    aTransformDisplayPortToLayer.TransformBounds(
-      gfxRect(offsetViewportRect.x, offsetViewportRect.y,
-              offsetViewportRect.width, offsetViewportRect.height));
+  gfx3DMatrix layerTransform;
+  gfx::To3DMatrix(aScrollAncestor->GetTransform(), layerTransform);
 
-  return LayerRect(transformedViewport.x,
-                   transformedViewport.y,
-                   transformedViewport.width,
-                   transformedViewport.height);
+  // First take off the last two "terms" of aTransformToCompBounds, which
+  // are the scroll ancestor's local transform and the APZ's nontransient async
+  // transform.
+  gfx3DMatrix transform = aTransformToCompBounds;
+  transform = transform * layerTransform.Inverse();
+  transform = transform * nonTransientAPZTransform.Inverse();
+
+  // Next, apply the APZ's async transform (this includes the nontransient component
+  // as well).
+  transform = transform * gfx3DMatrix(aAPZTransform);
+
+  // Finally, put back the scroll ancestor's local transform.
+  transform = transform * layerTransform;
+  return TransformTo<LayerPixel>(transform.Inverse(),
+            ParentLayerRect(aScrollAncestor->GetFrameMetrics().mCompositionBounds));
 }
 
 bool
@@ -940,28 +1036,39 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   nsIntRegion staleRegion;
   staleRegion.And(aInvalidRegion, aOldValidRegion);
 
+  TILING_PRLOG_OBJ(("TILING %p: Progressive update stale region %s\n", mThebesLayer, tmpstr.get()), staleRegion);
+
+  ContainerLayer* scrollAncestor = nullptr;
+  mThebesLayer->GetAncestorLayers(&scrollAncestor, nullptr);
+
   // Find out the current view transform to determine which tiles to draw
   // first, and see if we should just abort this paint. Aborting is usually
   // caused by there being an incoming, more relevant paint.
-  ParentLayerRect compositionBounds;
-  CSSToParentLayerScale zoom;
+  ViewTransform viewTransform;
 #if defined(MOZ_WIDGET_ANDROID)
-  bool abortPaint = mManager->ProgressiveUpdateCallback(!staleRegion.Contains(aInvalidRegion),
-                                                        compositionBounds, zoom,
-                                                        !drawingLowPrecision);
+  FrameMetrics compositorMetrics = scrollAncestor->GetFrameMetrics();
+  bool abortPaint = false;
+  // On Android, only the primary scrollable layer is async-scrolled, and the only one
+  // that the Java-side code can provide details about. If we're tiling some other layer
+  // then we already have all the information we need about it.
+  if (scrollAncestor == mManager->GetPrimaryScrollableLayer()) {
+    abortPaint = mManager->ProgressiveUpdateCallback(!staleRegion.Contains(aInvalidRegion),
+                                                     compositorMetrics,
+                                                     !drawingLowPrecision);
+    viewTransform = ComputeViewTransform(scrollAncestor->GetFrameMetrics(), compositorMetrics);
+  }
 #else
   MOZ_ASSERT(mSharedFrameMetricsHelper);
 
-  ContainerLayer* parent = mThebesLayer->AsLayer()->GetParent();
-
   bool abortPaint =
     mSharedFrameMetricsHelper->UpdateFromCompositorFrameMetrics(
-      parent,
+      scrollAncestor,
       !staleRegion.Contains(aInvalidRegion),
       drawingLowPrecision,
-      compositionBounds,
-      zoom);
+      viewTransform);
 #endif
+
+  TILING_PRLOG(("TILING %p: Progressive update view transform %f %f zoom %f abort %d\n", mThebesLayer, viewTransform.mTranslation.x, viewTransform.mTranslation.y, viewTransform.mScale.scale, abortPaint));
 
   if (abortPaint) {
     // We ignore if front-end wants to abort if this is the first,
@@ -977,26 +1084,32 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   }
 
   LayerRect transformedCompositionBounds =
-    TransformCompositionBounds(compositionBounds, zoom, aPaintData->mScrollOffset,
-                               aPaintData->mResolution, aPaintData->mTransformDisplayPortToLayer);
+    GetCompositorSideCompositionBounds(scrollAncestor,
+                                       aPaintData->mTransformToCompBounds,
+                                       viewTransform);
 
-  // Paint tiles that have stale content or that intersected with the screen
-  // at the time of issuing the draw command in a single transaction first.
-  // This is to avoid rendering glitches on animated page content, and when
-  // layers change size/shape.
-  LayerRect typedCoherentUpdateRect =
-    transformedCompositionBounds.Intersect(aPaintData->mCompositionBounds);
+  TILING_PRLOG_OBJ(("TILING %p: Progressive update transformed compositor bounds %s\n", mThebesLayer, tmpstr.get()), transformedCompositionBounds);
 
-  // Offset by the viewport origin, as the composition bounds are stored in
-  // Layer space and not LayoutDevice space.
-  // TODO(kats): does this make sense?
-  typedCoherentUpdateRect.MoveBy(aPaintData->mViewport.TopLeft());
+  // Compute a "coherent update rect" that we should paint all at once in a
+  // single transaction. This is to avoid rendering glitches on animated
+  // page content, and when layers change size/shape.
+  // On Fennec uploads are more expensive because we're not using gralloc, so
+  // we use a coherent update rect that is intersected with the screen at the
+  // time of issuing the draw command. This will paint faster but also potentially
+  // make the progressive paint more visible to the user while scrolling.
+  // On B2G uploads are cheaper and we value coherency more, especially outside
+  // the browser, so we always use the entire user-visible area.
+  nsIntRect coherentUpdateRect(LayerIntRect::ToUntyped(RoundedOut(
+#ifdef MOZ_WIDGET_ANDROID
+    transformedCompositionBounds.Intersect(aPaintData->mCompositionBounds)
+#else
+    transformedCompositionBounds
+#endif
+  )));
 
-  // Convert to untyped to intersect with the invalid region.
-  nsIntRect untypedCoherentUpdateRect(LayerIntRect::ToUntyped(
-    RoundedOut(typedCoherentUpdateRect)));
+  TILING_PRLOG_OBJ(("TILING %p: Progressive update final coherency rect %s\n", mThebesLayer, tmpstr.get()), coherentUpdateRect);
 
-  aRegionToPaint.And(aInvalidRegion, untypedCoherentUpdateRect);
+  aRegionToPaint.And(aInvalidRegion, coherentUpdateRect);
   aRegionToPaint.Or(aRegionToPaint, staleRegion);
   bool drawingStale = !aRegionToPaint.IsEmpty();
   if (!drawingStale) {
@@ -1004,15 +1117,20 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   }
 
   // Prioritise tiles that are currently visible on the screen.
-  bool paintVisible = false;
-  if (aRegionToPaint.Intersects(untypedCoherentUpdateRect)) {
-    aRegionToPaint.And(aRegionToPaint, untypedCoherentUpdateRect);
-    paintVisible = true;
+  bool paintingVisible = false;
+  if (aRegionToPaint.Intersects(coherentUpdateRect)) {
+    aRegionToPaint.And(aRegionToPaint, coherentUpdateRect);
+    paintingVisible = true;
   }
+
+  TILING_PRLOG_OBJ(("TILING %p: Progressive update final paint region %s\n", mThebesLayer, tmpstr.get()), aRegionToPaint);
 
   // Paint area that's visible and overlaps previously valid content to avoid
   // visible glitches in animated elements, such as gifs.
-  bool paintInSingleTransaction = paintVisible && (drawingStale || aPaintData->mFirstPaint);
+  bool paintInSingleTransaction = paintingVisible && (drawingStale || aPaintData->mFirstPaint);
+
+  TILING_PRLOG(("TILING %p: paintingVisible %d drawingStale %d firstPaint %d singleTransaction %d\n",
+    mThebesLayer, paintingVisible, drawingStale, aPaintData->mFirstPaint, paintInSingleTransaction));
 
   // The following code decides what order to draw tiles in, based on the
   // current scroll direction of the primary scrollable layer.
@@ -1085,6 +1203,10 @@ ClientTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
                                          LayerManager::DrawThebesLayerCallback aCallback,
                                          void* aCallbackData)
 {
+  TILING_PRLOG_OBJ(("TILING %p: Progressive update valid region %s\n", mThebesLayer, tmpstr.get()), aValidRegion);
+  TILING_PRLOG_OBJ(("TILING %p: Progressive update invalid region %s\n", mThebesLayer, tmpstr.get()), aInvalidRegion);
+  TILING_PRLOG_OBJ(("TILING %p: Progressive update old valid region %s\n", mThebesLayer, tmpstr.get()), aOldValidRegion);
+
   bool repeat = false;
   bool isBufferChanged = false;
   do {
@@ -1096,6 +1218,8 @@ ClientTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
                                             regionToPaint,
                                             aPaintData,
                                             repeat);
+
+    TILING_PRLOG_OBJ(("TILING %p: Progressive update computed paint region %s repeat %d\n", mThebesLayer, tmpstr.get(), repeat), regionToPaint);
 
     // There's no further work to be done.
     if (regionToPaint.IsEmpty()) {
@@ -1117,6 +1241,9 @@ ClientTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
     PaintThebes(validOrStale, regionToPaint, aCallback, aCallbackData);
     aInvalidRegion.Sub(aInvalidRegion, regionToPaint);
   } while (repeat);
+
+  TILING_PRLOG_OBJ(("TILING %p: Progressive update final valid region %s buffer changed %d\n", mThebesLayer, tmpstr.get(), isBufferChanged), aValidRegion);
+  TILING_PRLOG_OBJ(("TILING %p: Progressive update final invalid region %s\n", mThebesLayer, tmpstr.get()), aInvalidRegion);
 
   // Return false if nothing has been drawn, or give what has been drawn
   // to the shadow layer to upload.

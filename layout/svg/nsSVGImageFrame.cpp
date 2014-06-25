@@ -40,6 +40,8 @@ public:
   void SetFrame(nsSVGImageFrame *frame) { mFrame = frame; }
 
 private:
+  ~nsSVGImageListener() {}
+
   nsSVGImageFrame *mFrame;
 };
 
@@ -386,6 +388,7 @@ nsSVGImageFrame::PaintSVG(nsRenderingContext *aContext,
       // and that's not always true for TYPE_VECTOR images.
       nsLayoutUtils::DrawSingleImage(
         aContext,
+        PresContext(),
         mImageContainer,
         nsLayoutUtils::GetGraphicsFilterForFrame(this),
         destRect,
@@ -395,6 +398,7 @@ nsSVGImageFrame::PaintSVG(nsRenderingContext *aContext,
     } else { // mImageContainer->GetType() == TYPE_RASTER
       nsLayoutUtils::DrawSingleUnscaledImage(
         aContext,
+        PresContext(),
         mImageContainer,
         nsLayoutUtils::GetGraphicsFilterForFrame(this),
         nsPoint(0, 0),

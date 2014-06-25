@@ -430,11 +430,11 @@ public:
       mLoadGroup(loadGroup)
   {}
 
-  ~nsPingListener();
-
   nsresult StartTimeout();
 
 private:
+  ~nsPingListener();
+
   bool mRequireSameHost;
   nsCOMPtr<nsIContent> mContent;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
@@ -1570,9 +1570,6 @@ nsDocShell::LoadURI(nsIURI * aURI,
             
     if (aLoadFlags & LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP)
         flags |= INTERNAL_LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
-
-    if (aLoadFlags & LOAD_FLAGS_FIXUP_SCHEME_TYPOS)
-        flags |= INTERNAL_LOAD_FLAGS_FIXUP_SCHEME_TYPOS;
 
     if (aLoadFlags & LOAD_FLAGS_FIRST_LOAD)
         flags |= INTERNAL_LOAD_FLAGS_FIRST_LOAD;
@@ -5779,6 +5776,19 @@ nsDocShell::SetMixedContentChannel(nsIChannel* aMixedContentChannel)
 }
 
 NS_IMETHODIMP
+nsDocShell::GetFailedChannel(nsIChannel** aFailedChannel)
+{
+    NS_ENSURE_ARG_POINTER(aFailedChannel);
+    nsIDocument* doc = GetDocument();
+    if (!doc) {
+        *aFailedChannel = nullptr;
+        return NS_OK;
+    }
+    NS_IF_ADDREF(*aFailedChannel = doc->GetFailedChannel());
+    return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDocShell::GetMixedContentChannel(nsIChannel **aMixedContentChannel)
 {
     NS_ENSURE_ARG_POINTER(aMixedContentChannel);
@@ -8295,6 +8305,11 @@ nsDocShell::CreateContentViewer(const char *aContentType,
 
         nsCOMPtr<nsIChannel> failedChannel = mFailedChannel;
 
+        nsIDocument* doc = viewer->GetDocument();
+        if (doc) {
+            doc->SetFailedChannel(failedChannel);
+        }
+
         // Make sure we have a URI to set currentURI.
         nsCOMPtr<nsIURI> failedURI;
         if (failedChannel) {
@@ -8746,6 +8761,8 @@ public:
     }
 
 private:
+    ~nsCopyFaviconCallback() {}
+
     nsCOMPtr<nsIURI> mNewURI;
     bool mInPrivateBrowsing;
 };

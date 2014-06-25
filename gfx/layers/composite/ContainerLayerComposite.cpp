@@ -124,15 +124,15 @@ static void DrawLayerInfo(const nsIntRect& aClipRect,
     return;
   }
 
-  nsAutoCString layerInfo;
-  aLayer->PrintInfo(layerInfo, "");
+  std::stringstream ss;
+  aLayer->PrintInfo(ss, "");
 
   nsIntRegion visibleRegion = aLayer->GetVisibleRegion();
 
   uint32_t maxWidth = std::min<uint32_t>(visibleRegion.GetBounds().width, 500);
 
   nsIntPoint topLeft = visibleRegion.GetBounds().TopLeft();
-  aManager->GetTextRenderer()->RenderText(layerInfo.get(), gfx::IntPoint(topLeft.x, topLeft.y),
+  aManager->GetTextRenderer()->RenderText(ss.str().c_str(), gfx::IntPoint(topLeft.x, topLeft.y),
                                           aLayer->GetEffectiveTransform(), 16,
                                           maxWidth);
 
@@ -240,13 +240,40 @@ static void DrawVelGraph(const nsIntRect& aClipRect,
   textureSource->Update(data);
 
   EffectChain effectChain;
-  effectChain.mPrimaryEffect = CreateTexturedEffect(SurfaceFormat::B8G8R8A8, textureSource, Filter::POINT);
+  effectChain.mPrimaryEffect = CreateTexturedEffect(SurfaceFormat::B8G8R8A8,
+                                                    textureSource,
+                                                    Filter::POINT,
+                                                    true);
 
   compositor->DrawQuad(graphRect,
                        clipRect,
                        effectChain,
                        1.0f,
                        transform);
+}
+
+static void PrintUniformityInfo(Layer* aLayer)
+{
+
+  if(Layer::TYPE_CONTAINER != aLayer->GetType()) {
+    return;
+  }
+
+  // Don't want to print a log for smaller layers
+  if (aLayer->GetEffectiveVisibleRegion().GetBounds().width < 300 ||
+      aLayer->GetEffectiveVisibleRegion().GetBounds().height < 300) {
+    return;
+  }
+
+  FrameMetrics frameMetrics = aLayer->AsContainerLayer()->GetFrameMetrics();
+  LayerIntPoint scrollOffset = RoundedToInt(frameMetrics.GetScrollOffsetInLayerPixels());
+  const gfx::Point layerTransform = GetScrollData(aLayer);
+  gfx::Point layerScroll;
+  layerScroll.x = scrollOffset.x - layerTransform.x;
+  layerScroll.y = scrollOffset.y - layerTransform.y;
+
+  printf_stderr("UniformityInfo Layer_Move %llu %p %f, %f\n",
+    TimeStamp::Now(), aLayer, layerScroll.x, layerScroll.y);
 }
 
 // ContainerRender is shared between RefLayer and ContainerLayer
@@ -399,6 +426,10 @@ ContainerRender(ContainerT* aContainer,
 
     if (gfxPrefs::LayersScrollGraph()) {
       DrawVelGraph(clipRect, aManager, layerToRender->GetLayer());
+    }
+
+    if (gfxPrefs::UniformityInfo()) {
+      PrintUniformityInfo(layerToRender->GetLayer());
     }
 
     if (gfxPrefs::DrawLayerInfo()) {

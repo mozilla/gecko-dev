@@ -66,6 +66,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/unused.h"
+#include "nsAnonymousTemporaryFile.h"
 #include "nsAppRunner.h"
 #include "nsAutoPtr.h"
 #include "nsCDefaultURIFixup.h"
@@ -118,6 +119,8 @@
 #include "nsIDocShell.h"
 #include "mozilla/net/NeckoMessageUtils.h"
 #include "gfxPrefs.h"
+#include "prio.h"
+#include "private/pprio.h"
 
 #if defined(ANDROID) || defined(LINUX)
 #include "nsSystemInfo.h"
@@ -445,6 +448,7 @@ private:
 // A memory reporter for ContentParent objects themselves.
 class ContentParentsMemoryReporter MOZ_FINAL : public nsIMemoryReporter
 {
+    ~ContentParentsMemoryReporter() {}
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIMEMORYREPORTER
@@ -454,7 +458,8 @@ NS_IMPL_ISUPPORTS(ContentParentsMemoryReporter, nsIMemoryReporter)
 
 NS_IMETHODIMP
 ContentParentsMemoryReporter::CollectReports(nsIMemoryReporterCallback* cb,
-                                             nsISupports* aClosure)
+                                             nsISupports* aClosure,
+                                             bool aAnonymize)
 {
     nsAutoTArray<ContentParent*, 16> cps;
     ContentParent::GetAllEvenIfDead(cps);
@@ -464,7 +469,7 @@ ContentParentsMemoryReporter::CollectReports(nsIMemoryReporterCallback* cb,
         MessageChannel* channel = cp->GetIPCChannel();
 
         nsString friendlyName;
-        cp->FriendlyName(friendlyName);
+        cp->FriendlyName(friendlyName, aAnonymize);
 
         cp->AddRef();
         nsrefcnt refcnt = cp->Release();
@@ -601,23 +606,28 @@ ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
 /*static*/ void
 ContentParent::StartUp()
 {
+    // We could launch sub processes from content process
+    // FIXME Bug 1023701 - Stop using ContentParent static methods in
+    // child process
+    sCanLaunchSubprocesses = true;
+
+    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+        return;
+    }
+
     // Note: This reporter measures all ContentParents.
     RegisterStrongMemoryReporter(new ContentParentsMemoryReporter());
 
     mozilla::dom::time::InitializeDateCacheCleaner();
 
-    sCanLaunchSubprocesses = true;
+    BackgroundChild::Startup();
 
-    if (XRE_GetProcessType() == GeckoProcessType_Default) {
-        BackgroundChild::Startup();
+    // Try to preallocate a process that we can transform into an app later.
+    PreallocatedProcessManager::AllocateAfterDelay();
 
-        // Try to preallocate a process that we can transform into an app later.
-        PreallocatedProcessManager::AllocateAfterDelay();
-
-        // Test the PBackground infrastructure on ENABLE_TESTS builds when a special
-        // testing preference is set.
-        MaybeTestPBackground();
-    }
+    // Test the PBackground infrastructure on ENABLE_TESTS builds when a special
+    // testing preference is set.
+    MaybeTestPBackground();
 }
 
 /*static*/ void
@@ -825,7 +835,8 @@ ContentParent::AnswerBridgeToChildProcess(const uint64_t& id)
 
 /*static*/ TabParent*
 ContentParent::CreateBrowserOrApp(const TabContext& aContext,
-                                  Element* aFrameElement)
+                                  Element* aFrameElement,
+                                  ContentParent* aOpenerContentParent)
 {
     if (!sCanLaunchSubprocesses) {
         return nullptr;
@@ -857,9 +868,12 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
             parent->SetIsForApp(isForApp);
             parent->SetIsForBrowser(isForBrowser);
             constructorSender = parent;
-        } else if (nsRefPtr<ContentParent> cp =
-                   GetNewOrUsed(aContext.IsBrowserElement(), initialPriority)) {
-            constructorSender = cp;
+        } else {
+          if (aOpenerContentParent) {
+            constructorSender = aOpenerContentParent;
+          } else {
+            constructorSender = GetNewOrUsed(aContext.IsBrowserElement(), initialPriority);
+          }
         }
         if (constructorSender) {
             uint32_t chromeFlags = 0;
@@ -1125,6 +1139,8 @@ public:
     }
 
 private:
+    ~SystemMessageHandledListener() {}
+
     static StaticAutoPtr<LinkedList<SystemMessageHandledListener> > sListeners;
 
     void ShutDown()
@@ -2423,13 +2439,13 @@ ContentParent::Observe(nsISupports* aSubject,
 #endif
         if (!isNuwa) {
             unsigned generation;
-            int minimize, identOffset = -1;
+            int anonymize, minimize, identOffset = -1;
             nsDependentString msg(aData);
             NS_ConvertUTF16toUTF8 cmsg(msg);
 
             if (sscanf(cmsg.get(),
-                       "generation=%x minimize=%d DMDident=%n",
-                       &generation, &minimize, &identOffset) < 2
+                       "generation=%x anonymize=%d minimize=%d DMDident=%n",
+                       &generation, &anonymize, &minimize, &identOffset) < 3
                 || identOffset < 0) {
                 return NS_ERROR_INVALID_ARG;
             }
@@ -2437,7 +2453,8 @@ ContentParent::Observe(nsISupports* aSubject,
             // offset in identOffset should be correct as a char offset.
             MOZ_ASSERT(cmsg[identOffset - 1] == '=');
             unused << SendPMemoryReportRequestConstructor(
-              generation, minimize, nsString(Substring(msg, identOffset)));
+              generation, anonymize, minimize,
+              nsString(Substring(msg, identOffset)));
         }
     }
     else if (!strcmp(aTopic, "child-gc-request")){
@@ -2678,7 +2695,7 @@ ContentParent::IsPreallocated()
 }
 
 void
-ContentParent::FriendlyName(nsAString& aName)
+ContentParent::FriendlyName(nsAString& aName, bool aAnonymize)
 {
     aName.Truncate();
 #ifdef MOZ_NUWA_PROCESS
@@ -2690,6 +2707,8 @@ ContentParent::FriendlyName(nsAString& aName)
         aName.AssignLiteral("(Preallocated)");
     } else if (mIsForBrowser) {
         aName.AssignLiteral("Browser");
+    } else if (aAnonymize) {
+        aName.AssignLiteral("<anonymized-name>");
     } else if (!mAppName.IsEmpty()) {
         aName = mAppName;
     } else if (!mAppManifestURL.IsEmpty()) {
@@ -2777,8 +2796,9 @@ ContentParent::RecvPIndexedDBConstructor(PIndexedDBParent* aActor)
 }
 
 PMemoryReportRequestParent*
-ContentParent::AllocPMemoryReportRequestParent(const uint32_t& generation,
-                                               const bool &minimizeMemoryUsage,
+ContentParent::AllocPMemoryReportRequestParent(const uint32_t& aGeneration,
+                                               const bool &aAnonymize,
+                                               const bool &aMinimizeMemoryUsage,
                                                const nsString &aDMDDumpIdent)
 {
     MemoryReportRequestParent* parent = new MemoryReportRequestParent();
@@ -3635,6 +3655,21 @@ ContentParent::RecvBackUpXResources(const FileDescriptor& aXSocketFd)
         mChildXSocketFdDup.reset(aXSocketFd.PlatformHandle());
     }
 #endif
+    return true;
+}
+
+bool
+ContentParent::RecvOpenAnonymousTemporaryFile(FileDescriptor *aFD)
+{
+    PRFileDesc *prfd;
+    nsresult rv = NS_OpenAnonymousTemporaryFile(&prfd);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+        return false;
+    }
+    *aFD = FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(prfd));
+    // The FileDescriptor object owns a duplicate of the file handle; we
+    // must close the original (and clean up the NSPR descriptor).
+    PR_Close(prfd);
     return true;
 }
 

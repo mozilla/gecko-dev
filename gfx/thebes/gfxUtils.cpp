@@ -4,6 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "gfxUtils.h"
+
+#include "cairo.h"
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 #include "gfxPlatform.h"
@@ -36,110 +38,270 @@ static const uint8_t UnpremultiplyValue(uint8_t a, uint8_t v) {
     return gfxUtils::sUnpremultiplyTable[a*256+v];
 }
 
-void
-gfxUtils::PremultiplyDataSurface(DataSourceSurface *aSurface)
+static void
+PremultiplyData(const uint8_t* srcData,
+                size_t srcStride,  // row-to-row stride in bytes
+                uint8_t* destData,
+                size_t destStride, // row-to-row stride in bytes
+                size_t pixelWidth,
+                size_t rowCount)
 {
-    // Only premultiply ARGB32
-    if (aSurface->GetFormat() != SurfaceFormat::B8G8R8A8) {
-        return;
-    }
+    MOZ_ASSERT(srcData && destData);
 
-    DataSourceSurface::MappedSurface map;
-    if (!aSurface->Map(DataSourceSurface::MapType::READ_WRITE, &map)) {
-        return;
-    }
-    MOZ_ASSERT(map.mStride == aSurface->GetSize().width * 4,
-               "Source surface stride isn't tightly packed");
+    for (size_t y = 0; y < rowCount; ++y) {
+        const uint8_t* src  = srcData  + y * srcStride;
+        uint8_t* dest       = destData + y * destStride;
 
-    uint8_t *src = map.mData;
-    uint8_t *dst = map.mData;
-
-    uint32_t dim = aSurface->GetSize().width * aSurface->GetSize().height;
-    for (uint32_t i = 0; i < dim; ++i) {
+        for (size_t x = 0; x < pixelWidth; ++x) {
 #ifdef IS_LITTLE_ENDIAN
-        uint8_t b = *src++;
-        uint8_t g = *src++;
-        uint8_t r = *src++;
-        uint8_t a = *src++;
+            uint8_t b = *src++;
+            uint8_t g = *src++;
+            uint8_t r = *src++;
+            uint8_t a = *src++;
 
-        *dst++ = PremultiplyValue(a, b);
-        *dst++ = PremultiplyValue(a, g);
-        *dst++ = PremultiplyValue(a, r);
-        *dst++ = a;
+            *dest++ = PremultiplyValue(a, b);
+            *dest++ = PremultiplyValue(a, g);
+            *dest++ = PremultiplyValue(a, r);
+            *dest++ = a;
 #else
-        uint8_t a = *src++;
-        uint8_t r = *src++;
-        uint8_t g = *src++;
-        uint8_t b = *src++;
+            uint8_t a = *src++;
+            uint8_t r = *src++;
+            uint8_t g = *src++;
+            uint8_t b = *src++;
 
-        *dst++ = a;
-        *dst++ = PremultiplyValue(a, r);
-        *dst++ = PremultiplyValue(a, g);
-        *dst++ = PremultiplyValue(a, b);
-#endif
-    }
-
-    aSurface->Unmap();
-}
-
-TemporaryRef<DataSourceSurface>
-gfxUtils::UnpremultiplyDataSurface(DataSourceSurface* aSurface)
-{
-    // Only premultiply ARGB32
-    if (aSurface->GetFormat() != SurfaceFormat::B8G8R8A8) {
-        return aSurface;
-    }
-
-    DataSourceSurface::MappedSurface map;
-    if (!aSurface->Map(DataSourceSurface::MapType::READ, &map)) {
-        return nullptr;
-    }
-
-    RefPtr<DataSourceSurface> dest = Factory::CreateDataSourceSurfaceWithStride(aSurface->GetSize(),
-                                                                                aSurface->GetFormat(),
-                                                                                map.mStride);
-
-    DataSourceSurface::MappedSurface destMap;
-    if (!dest->Map(DataSourceSurface::MapType::WRITE, &destMap)) {
-        aSurface->Unmap();
-        return nullptr;
-    }
-
-    uint8_t *src = map.mData;
-    uint8_t *dst = destMap.mData;
-
-    for (int32_t i = 0; i < aSurface->GetSize().height; ++i) {
-        uint8_t *srcRow = src + (i * map.mStride);
-        uint8_t *dstRow = dst + (i * destMap.mStride);
-
-        for (int32_t j = 0; j < aSurface->GetSize().width; ++j) {
-#ifdef IS_LITTLE_ENDIAN
-          uint8_t b = *srcRow++;
-          uint8_t g = *srcRow++;
-          uint8_t r = *srcRow++;
-          uint8_t a = *srcRow++;
-
-          *dstRow++ = UnpremultiplyValue(a, b);
-          *dstRow++ = UnpremultiplyValue(a, g);
-          *dstRow++ = UnpremultiplyValue(a, r);
-          *dstRow++ = a;
-#else
-          uint8_t a = *srcRow++;
-          uint8_t r = *srcRow++;
-          uint8_t g = *srcRow++;
-          uint8_t b = *srcRow++;
-
-          *dstRow++ = a;
-          *dstRow++ = UnpremultiplyValue(a, r);
-          *dstRow++ = UnpremultiplyValue(a, g);
-          *dstRow++ = UnpremultiplyValue(a, b);
+            *dest++ = a;
+            *dest++ = PremultiplyValue(a, r);
+            *dest++ = PremultiplyValue(a, g);
+            *dest++ = PremultiplyValue(a, b);
 #endif
         }
     }
+}
+static void
+UnpremultiplyData(const uint8_t* srcData,
+                  size_t srcStride,  // row-to-row stride in bytes
+                  uint8_t* destData,
+                  size_t destStride, // row-to-row stride in bytes
+                  size_t pixelWidth,
+                  size_t rowCount)
+{
+    MOZ_ASSERT(srcData && destData);
 
-    aSurface->Unmap();
-    dest->Unmap();
-    return dest;
+    for (size_t y = 0; y < rowCount; ++y) {
+        const uint8_t* src  = srcData  + y * srcStride;
+        uint8_t* dest       = destData + y * destStride;
+
+        for (size_t x = 0; x < pixelWidth; ++x) {
+#ifdef IS_LITTLE_ENDIAN
+            uint8_t b = *src++;
+            uint8_t g = *src++;
+            uint8_t r = *src++;
+            uint8_t a = *src++;
+
+            *dest++ = UnpremultiplyValue(a, b);
+            *dest++ = UnpremultiplyValue(a, g);
+            *dest++ = UnpremultiplyValue(a, r);
+            *dest++ = a;
+#else
+            uint8_t a = *src++;
+            uint8_t r = *src++;
+            uint8_t g = *src++;
+            uint8_t b = *src++;
+
+            *dest++ = a;
+            *dest++ = UnpremultiplyValue(a, r);
+            *dest++ = UnpremultiplyValue(a, g);
+            *dest++ = UnpremultiplyValue(a, b);
+#endif
+        }
+    }
+}
+
+static bool
+MapSrcDest(DataSourceSurface* srcSurf,
+           DataSourceSurface* destSurf,
+           DataSourceSurface::MappedSurface* out_srcMap,
+           DataSourceSurface::MappedSurface* out_destMap)
+{
+    MOZ_ASSERT(srcSurf && destSurf);
+    MOZ_ASSERT(out_srcMap && out_destMap);
+
+    if (srcSurf->GetFormat()  != SurfaceFormat::B8G8R8A8 ||
+        destSurf->GetFormat() != SurfaceFormat::B8G8R8A8)
+    {
+        MOZ_ASSERT(false, "Only operate on BGRA8 surfs.");
+        return false;
+    }
+
+    if (srcSurf->GetSize().width  != destSurf->GetSize().width ||
+        srcSurf->GetSize().height != destSurf->GetSize().height)
+    {
+        MOZ_ASSERT(false, "Width and height must match.");
+        return false;
+    }
+
+    if (srcSurf == destSurf) {
+        DataSourceSurface::MappedSurface map;
+        if (!srcSurf->Map(DataSourceSurface::MapType::READ_WRITE, &map)) {
+            NS_WARNING("Couldn't Map srcSurf/destSurf.");
+            return false;
+        }
+
+        *out_srcMap = map;
+        *out_destMap = map;
+        return true;
+    }
+
+    // Map src for reading.
+    DataSourceSurface::MappedSurface srcMap;
+    if (!srcSurf->Map(DataSourceSurface::MapType::READ, &srcMap)) {
+        NS_WARNING("Couldn't Map srcSurf.");
+        return false;
+    }
+
+    // Map dest for writing.
+    DataSourceSurface::MappedSurface destMap;
+    if (!destSurf->Map(DataSourceSurface::MapType::WRITE, &destMap)) {
+        NS_WARNING("Couldn't Map aDest.");
+        srcSurf->Unmap();
+        return false;
+    }
+
+    *out_srcMap = srcMap;
+    *out_destMap = destMap;
+    return true;
+}
+
+static void
+UnmapSrcDest(DataSourceSurface* srcSurf,
+             DataSourceSurface* destSurf)
+{
+    if (srcSurf == destSurf) {
+        srcSurf->Unmap();
+    } else {
+        srcSurf->Unmap();
+        destSurf->Unmap();
+    }
+}
+
+bool
+gfxUtils::PremultiplyDataSurface(DataSourceSurface* srcSurf,
+                                 DataSourceSurface* destSurf)
+{
+    MOZ_ASSERT(srcSurf && destSurf);
+
+    DataSourceSurface::MappedSurface srcMap;
+    DataSourceSurface::MappedSurface destMap;
+    if (!MapSrcDest(srcSurf, destSurf, &srcMap, &destMap))
+        return false;
+
+    PremultiplyData(srcMap.mData, srcMap.mStride,
+                    destMap.mData, destMap.mStride,
+                    srcSurf->GetSize().width,
+                    srcSurf->GetSize().height);
+
+    UnmapSrcDest(srcSurf, destSurf);
+    return true;
+}
+
+bool
+gfxUtils::UnpremultiplyDataSurface(DataSourceSurface* srcSurf,
+                                   DataSourceSurface* destSurf)
+{
+    MOZ_ASSERT(srcSurf && destSurf);
+
+    DataSourceSurface::MappedSurface srcMap;
+    DataSourceSurface::MappedSurface destMap;
+    if (!MapSrcDest(srcSurf, destSurf, &srcMap, &destMap))
+        return false;
+
+    UnpremultiplyData(srcMap.mData, srcMap.mStride,
+                      destMap.mData, destMap.mStride,
+                      srcSurf->GetSize().width,
+                      srcSurf->GetSize().height);
+
+    UnmapSrcDest(srcSurf, destSurf);
+    return true;
+}
+
+static bool
+MapSrcAndCreateMappedDest(DataSourceSurface* srcSurf,
+                          RefPtr<DataSourceSurface>* out_destSurf,
+                          DataSourceSurface::MappedSurface* out_srcMap,
+                          DataSourceSurface::MappedSurface* out_destMap)
+{
+    MOZ_ASSERT(srcSurf);
+    MOZ_ASSERT(out_destSurf && out_srcMap && out_destMap);
+
+    if (srcSurf->GetFormat() != SurfaceFormat::B8G8R8A8) {
+        MOZ_ASSERT(false, "Only operate on BGRA8.");
+        return false;
+    }
+
+    // Ok, map source for reading.
+    DataSourceSurface::MappedSurface srcMap;
+    if (!srcSurf->Map(DataSourceSurface::MapType::READ, &srcMap)) {
+        MOZ_ASSERT(false, "Couldn't Map srcSurf.");
+        return false;
+    }
+
+    // Make our dest surface based on the src.
+    RefPtr<DataSourceSurface> destSurf =
+        Factory::CreateDataSourceSurfaceWithStride(srcSurf->GetSize(),
+                                                   srcSurf->GetFormat(),
+                                                   srcMap.mStride);
+
+    DataSourceSurface::MappedSurface destMap;
+    if (!destSurf->Map(DataSourceSurface::MapType::WRITE, &destMap)) {
+        MOZ_ASSERT(false, "Couldn't Map destSurf.");
+        srcSurf->Unmap();
+        return false;
+    }
+
+    *out_destSurf = destSurf;
+    *out_srcMap = srcMap;
+    *out_destMap = destMap;
+    return true;
+}
+
+TemporaryRef<DataSourceSurface>
+gfxUtils::CreatePremultipliedDataSurface(DataSourceSurface* srcSurf)
+{
+    RefPtr<DataSourceSurface> destSurf;
+    DataSourceSurface::MappedSurface srcMap;
+    DataSourceSurface::MappedSurface destMap;
+    if (!MapSrcAndCreateMappedDest(srcSurf, &destSurf, &srcMap, &destMap)) {
+        MOZ_ASSERT(false, "MapSrcAndCreateMappedDest failed.");
+        return srcSurf;
+    }
+
+    PremultiplyData(srcMap.mData, srcMap.mStride,
+                    destMap.mData, destMap.mStride,
+                    srcSurf->GetSize().width,
+                    srcSurf->GetSize().height);
+
+    UnmapSrcDest(srcSurf, destSurf);
+    return destSurf;
+}
+
+TemporaryRef<DataSourceSurface>
+gfxUtils::CreateUnpremultipliedDataSurface(DataSourceSurface* srcSurf)
+{
+    RefPtr<DataSourceSurface> destSurf;
+    DataSourceSurface::MappedSurface srcMap;
+    DataSourceSurface::MappedSurface destMap;
+    if (!MapSrcAndCreateMappedDest(srcSurf, &destSurf, &srcMap, &destMap)) {
+        MOZ_ASSERT(false, "MapSrcAndCreateMappedDest failed.");
+        return srcSurf;
+    }
+
+    UnpremultiplyData(srcMap.mData, srcMap.mStride,
+                      destMap.mData, destMap.mStride,
+                      srcSurf->GetSize().width,
+                      srcSurf->GetSize().height);
+
+    UnmapSrcDest(srcSurf, destSurf);
+    return destSurf;
 }
 
 void
@@ -266,17 +428,17 @@ struct MOZ_STACK_CLASS AutoCairoPixmanBugWorkaround
         if (!aSurface || aSurface->GetType() == gfxSurfaceType::Quartz)
             return;
 
-        if (!IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.xx) ||
-            !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.xy) ||
-            !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.yx) ||
-            !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.yy)) {
+        if (!IsSafeImageTransformComponent(aDeviceSpaceToImageSpace._11) ||
+            !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace._21) ||
+            !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace._12) ||
+            !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace._22)) {
             NS_WARNING("Scaling up too much, bailing out");
             mSucceeded = false;
             return;
         }
 
-        if (IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.x0) &&
-            IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.y0))
+        if (IsSafeImageTransformComponent(aDeviceSpaceToImageSpace._31) &&
+            IsSafeImageTransformComponent(aDeviceSpaceToImageSpace._32))
             return;
 
         // We'll push a group, which will hopefully reduce our transform's
@@ -438,9 +600,9 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
     // we know we have the pixman limits. 16384.0 is a somewhat arbitrary
     // large number to make sure we avoid the expensive fmod when we can, but
     // still maintain a safe margin from the actual limit
-    if (doTile && (userSpaceToImageSpace.y0 > 16384.0 || userSpaceToImageSpace.x0 > 16384.0)) {
-        userSpaceToImageSpace.x0 = fmod(userSpaceToImageSpace.x0, aImageRect.width);
-        userSpaceToImageSpace.y0 = fmod(userSpaceToImageSpace.y0, aImageRect.height);
+    if (doTile && (userSpaceToImageSpace._32 > 16384.0 || userSpaceToImageSpace._31 > 16384.0)) {
+        userSpaceToImageSpace._31 = fmod(userSpaceToImageSpace._31, aImageRect.width);
+        userSpaceToImageSpace._32 = fmod(userSpaceToImageSpace._32, aImageRect.height);
     }
 #else
     // OK now, the hard part left is to account for the subimage sampling
@@ -641,19 +803,19 @@ gfxUtils::TransformRectToRect(const gfxRect& aFrom, const gfxPoint& aToTopLeft,
   gfxMatrix m;
   if (aToTopRight.y == aToTopLeft.y && aToTopRight.x == aToBottomRight.x) {
     // Not a rotation, so xy and yx are zero
-    m.xy = m.yx = 0.0;
-    m.xx = (aToBottomRight.x - aToTopLeft.x)/aFrom.width;
-    m.yy = (aToBottomRight.y - aToTopLeft.y)/aFrom.height;
-    m.x0 = aToTopLeft.x - m.xx*aFrom.x;
-    m.y0 = aToTopLeft.y - m.yy*aFrom.y;
+    m._21 = m._12 = 0.0;
+    m._11 = (aToBottomRight.x - aToTopLeft.x)/aFrom.width;
+    m._22 = (aToBottomRight.y - aToTopLeft.y)/aFrom.height;
+    m._31 = aToTopLeft.x - m._11*aFrom.x;
+    m._32 = aToTopLeft.y - m._22*aFrom.y;
   } else {
     NS_ASSERTION(aToTopRight.y == aToBottomRight.y && aToTopRight.x == aToTopLeft.x,
                  "Destination rectangle not axis-aligned");
-    m.xx = m.yy = 0.0;
-    m.xy = (aToBottomRight.x - aToTopLeft.x)/aFrom.height;
-    m.yx = (aToBottomRight.y - aToTopLeft.y)/aFrom.width;
-    m.x0 = aToTopLeft.x - m.xy*aFrom.y;
-    m.y0 = aToTopLeft.y - m.yx*aFrom.x;
+    m._11 = m._22 = 0.0;
+    m._21 = (aToBottomRight.x - aToTopLeft.x)/aFrom.height;
+    m._12 = (aToBottomRight.y - aToTopLeft.y)/aFrom.width;
+    m._31 = aToTopLeft.x - m._21*aFrom.y;
+    m._32 = aToTopLeft.y - m._12*aFrom.x;
   }
   return m;
 }
@@ -831,6 +993,21 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrData& aData,
                                aStride,
                                yuvtype);
   }
+}
+
+/* static */ void gfxUtils::ClearThebesSurface(gfxASurface* aSurface)
+{
+  if (aSurface->CairoStatus()) {
+    return;
+  }
+  cairo_surface_t* surf = aSurface->CairoSurface();
+  if (cairo_surface_status(surf)) {
+    return;
+  }
+  cairo_t* ctx = cairo_create(surf);
+  cairo_set_operator(ctx, CAIRO_OPERATOR_CLEAR);
+  cairo_paint_with_alpha(ctx, 1.0);
+  cairo_destroy(ctx);
 }
 
 /* static */ TemporaryRef<DataSourceSurface>

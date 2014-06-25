@@ -168,6 +168,8 @@ class TypedProto : public JSObject
     TypeDescr &typeDescr() const {
         return getReservedSlot(JS_TYPROTO_SLOT_DESCR).toObject().as<TypeDescr>();
     }
+
+    inline type::Kind kind() const;
 };
 
 class TypeDescr : public JSObject
@@ -505,7 +507,7 @@ class StructTypeDescr : public ComplexTypeDescr
     SizedTypeDescr &fieldDescr(size_t index) const;
 
     // Return the offset of the field at index `index`.
-    int32_t fieldOffset(size_t index) const;
+    size_t fieldOffset(size_t index) const;
 };
 
 typedef Handle<StructTypeDescr*> HandleStructTypeDescr;
@@ -1053,6 +1055,13 @@ inline void
 js::TypedProto::initTypeDescrSlot(TypeDescr &descr)
 {
     initReservedSlot(JS_TYPROTO_SLOT_DESCR, ObjectValue(descr));
+}
+
+inline js::type::Kind
+js::TypedProto::kind() const {
+    // Defined out of line because it depends on def'n of both
+    // TypedProto and TypeDescr
+    return typeDescr().kind();
 }
 
 #endif /* builtin_TypedObject_h */
