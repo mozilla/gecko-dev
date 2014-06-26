@@ -29,6 +29,7 @@
 #include <media/MediaProfiles.h>
 #include "mozilla/FileUtils.h"
 #include "mozilla/Services.h"
+#include "mozilla/ipc/FileDescriptorUtils.h"
 #include "nsAlgorithm.h"
 #include <media/mediaplayer.h>
 #include "nsPrintfCString.h"
@@ -47,6 +48,7 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::layers;
+using namespace mozilla::ipc;
 using namespace android;
 
 /**
@@ -1195,6 +1197,14 @@ nsGonkCameraControl::StartRecordingImpl(StartRecordingTask* aStartRecording)
     return NS_ERROR_INVALID_ARG;
   }
 
+  // SetupRecording creates a dup of the file descriptor, so we need to
+	// close the file descriptor when we leave this function. Also note, that
+	// since we're already off the main thread, we don't need to dispatch this.
+	// We just let the CloseFileRunnable destructor do the work.
+	nsRefPtr<CloseFileRunnable> closer;
+	if (dsfd->mFileDescriptor.IsValid()) {
+		closer = new CloseFileRunnable(dsfd->mFileDescriptor);
+	}
   nsresult rv;
   rv = SetupRecording(dsfd->mFileDescriptor.PlatformHandle(),
                       aStartRecording->mOptions.rotation,

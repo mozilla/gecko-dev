@@ -11,6 +11,7 @@
 #include "DeviceStorageFileDescriptor.h"
 #include "mozilla/dom/CameraControlBinding.h"
 #include "mozilla/dom/TabChild.h"
+#include "mozilla/ipc/FileDescriptorUtils.h"
 #include "mozilla/MediaManager.h"
 #include "mozilla/Services.h"
 #include "mozilla/unused.h"
@@ -29,6 +30,7 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::idl;
+using namespace mozilla::ipc;
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_2(nsDOMCameraControl, mDOMCapabilities, mWindow)
 
@@ -419,6 +421,15 @@ nsDOMCameraControl::HandleEvent(nsIDOMEvent* aEvent)
   if (mOnErrorCb &&
       nsDOMCameraManager::IsWindowStillActive(mWindow->WindowID())) {
     mOnErrorCb->HandleEvent(NS_LITERAL_STRING("FAILURE"));
+  }
+
+  if (mDSFileDescriptor->mFileDescriptor.IsValid()) {
+    // An error occured. We need to manually close the file associated with the
+    // FileDescriptor, and we shouldn't do this on the main thread, so we
+    // use a little helper.
+    nsRefPtr<CloseFileRunnable> closer =
+      new CloseFileRunnable(mDSFileDescriptor->mFileDescriptor);
+    closer->Dispatch();
   }
 
   return NS_OK;
