@@ -199,7 +199,7 @@ nsGonkCameraControl::SetConfigurationInternal(const Configuration& aConfig)
         break;
 
       default:
-        MOZ_ASSERT_UNREACHABLE("Unanticipated camera mode in SetConfigurationInternal()");
+        MOZ_ASSUME_UNREACHABLE("Unanticipated camera mode in SetConfigurationInternal()");
         rv = NS_ERROR_FAILURE;
         break;
     }
