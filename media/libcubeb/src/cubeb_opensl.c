@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <dlfcn.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <SLES/OpenSLES.h>
 #if defined(__ANDROID__)
 #include "android/sles_definitions.h"
@@ -37,6 +38,7 @@ struct cubeb {
 
 struct cubeb_stream {
   cubeb * context;
+  pthread_mutex_t mutex;
   SLObjectItf playerObj;
   SLPlayItf play;
   SLBufferQueueItf bufq;
@@ -45,6 +47,7 @@ struct cubeb_stream {
   long queuebuf_len;
   long bytespersec;
   long framesize;
+  long written;
   int draining;
   cubeb_stream_type stream_type;
 
@@ -54,19 +57,33 @@ struct cubeb_stream {
 };
 
 static void
+play_callback(SLPlayItf caller, void * user_ptr, SLuint32 event)
+{
+  cubeb_stream * stm = user_ptr;
+  assert(stm);
+  switch (event) {
+    case SL_PLAYEVENT_HEADATMARKER:
+      pthread_mutex_lock(&stm->mutex);
+      assert(stm->draining);
+      stm->draining = 0;
+      pthread_mutex_unlock(&stm->mutex);
+      stm->state_callback(stm, stm->user_ptr, CUBEB_STATE_DRAINED);
+      break;
+    default:
+      break;
+  }
+}
+
+static void
 bufferqueue_callback(SLBufferQueueItf caller, void * user_ptr)
 {
   cubeb_stream * stm = user_ptr;
+  assert(stm);
   SLBufferQueueState state;
-  (*stm->bufq)->GetState(stm->bufq, &state);
-
-  if (stm->draining) {
-    if (!state.count) {
-      stm->draining = 0;
-      stm->state_callback(stm, stm->user_ptr, CUBEB_STATE_DRAINED);
-    }
-    return;
-  }
+  SLresult res;
+  
+  res = (*stm->bufq)->GetState(stm->bufq, &state);
+  assert(res == SL_RESULT_SUCCESS);
 
   if (state.count > 1)
     return;
@@ -74,23 +91,40 @@ bufferqueue_callback(SLBufferQueueItf caller, void * user_ptr)
   SLuint32 i;
   for (i = state.count; i < NBUFS; i++) {
     void *buf = stm->queuebuf[stm->queuebuf_idx];
-    long written = stm->data_callback(stm, stm->user_ptr,
+    long written = 0;
+    pthread_mutex_lock(&stm->mutex);
+    int draining = stm->draining;
+    pthread_mutex_unlock(&stm->mutex);
+
+    if (!draining) {
+      written = stm->data_callback(stm, stm->user_ptr,
                                       buf, stm->queuebuf_len / stm->framesize);
-    if (written == CUBEB_ERROR) {
-      (*stm->play)->SetPlayState(stm->play, SL_PLAYSTATE_STOPPED);
-      return;
+      if (written < 0 || written * stm->framesize > stm->queuebuf_len) {
+        (*stm->play)->SetPlayState(stm->play, SL_PLAYSTATE_STOPPED);
+        return;
+      }
     }
 
-    if (written) {
-      (*stm->bufq)->Enqueue(stm->bufq, buf, written * stm->framesize);
-      stm->queuebuf_idx = (stm->queuebuf_idx + 1) % NBUFS;
-    } else if (!i) {
-      stm->state_callback(stm, stm->user_ptr, CUBEB_STATE_DRAINED);
-      return;
+    // Keep sending silent data even in draining mode to prevent the audio
+    // back-end from being stopped automatically by OpenSL/ES.
+    memset(buf + written * stm->framesize, 0, stm->queuebuf_len - written * stm->framesize);
+    res = (*stm->bufq)->Enqueue(stm->bufq, buf, stm->queuebuf_len);
+    assert(res == SL_RESULT_SUCCESS);
+    stm->queuebuf_idx = (stm->queuebuf_idx + 1) % NBUFS;
+    if (written > 0) {
+      pthread_mutex_lock(&stm->mutex);
+      stm->written += written;
+      pthread_mutex_unlock(&stm->mutex);
     }
 
-    if ((written * stm->framesize) < stm->queuebuf_len) {
+    if (!draining && written * stm->framesize < stm->queuebuf_len) {
+      pthread_mutex_lock(&stm->mutex);
+      int64_t written_duration = INT64_C(1000) * stm->written * stm->framesize / stm->bytespersec;
       stm->draining = 1;
+      pthread_mutex_unlock(&stm->mutex);
+      // Use SL_PLAYEVENT_HEADATMARKER event from slPlayCallback of SLPlayItf
+      // to make sure all the data has been processed.
+      (*stm->play)->SetMarkerPosition(stm->play, (SLmillisecond)written_duration);
       return;
     }
   }
@@ -418,6 +452,9 @@ opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name
     stm->queuebuf[i] = malloc(stm->queuebuf_len);
     assert(stm->queuebuf[i]);
   }
+  
+  int r = pthread_mutex_init(&stm->mutex, NULL);
+  assert(r == 0);
 
   SLDataLocator_BufferQueue loc_bufq;
   loc_bufq.locatorType = SL_DATALOCATOR_BUFFERQUEUE;
@@ -482,6 +519,18 @@ opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name
     return CUBEB_ERROR;
   }
 
+  res = (*stm->play)->RegisterCallback(stm->play, play_callback, stm);
+  if (res != SL_RESULT_SUCCESS) {
+    opensl_stream_destroy(stm);
+    return CUBEB_ERROR;
+  }
+
+  res = (*stm->play)->SetCallbackEventsMask(stm->play, (SLuint32)SL_PLAYEVENT_HEADATMARKER);
+  if (res != SL_RESULT_SUCCESS) {
+    opensl_stream_destroy(stm);
+    return CUBEB_ERROR;
+  }
+
   res = (*stm->bufq)->RegisterCallback(stm->bufq, bufferqueue_callback, stm);
   if (res != SL_RESULT_SUCCESS) {
     opensl_stream_destroy(stm);
@@ -502,6 +551,7 @@ opensl_stream_destroy(cubeb_stream * stm)
   for (i = 0; i < NBUFS; i++) {
     free(stm->queuebuf[i]);
   }
+  pthread_mutex_destroy(&stm->mutex);
   free(stm);
 }
 
@@ -541,7 +591,19 @@ opensl_stream_get_position(cubeb_stream * stm, uint64_t * position)
 
   samplerate = stm->bytespersec / stm->framesize;
 
-  *position = samplerate * msec / 1000;
+  int64_t compensated_position = samplerate * msec / 1000;
+  pthread_mutex_lock(&stm->mutex);
+  int64_t maximum_position = stm->written;
+  pthread_mutex_unlock(&stm->mutex);
+  assert(maximum_position >= 0);
+
+  if (compensated_position < 0) {
+    *position = 0;
+  } else if(compensated_position > maximum_position) {
+    *position = maximum_position;
+  } else {
+    *position = compensated_position;
+  }
   return CUBEB_OK;
 }
 
