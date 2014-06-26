@@ -132,6 +132,7 @@ private:
   DECL_GFX_PREF(Live, "apz.overscroll.snap_back.spring_friction", APZOverscrollSnapBackSpringFriction, float, 0.1f);
   DECL_GFX_PREF(Live, "apz.overscroll.snap_back.mass",         APZOverscrollSnapBackMass, float, 1000.0f);
   DECL_GFX_PREF(Live, "apz.pan_repaint_interval",              APZPanRepaintInterval, int32_t, 250);
+  DECL_GFX_PREF(Live, "apz.printtree",                         APZPrintTree, bool, false);
   DECL_GFX_PREF(Live, "apz.subframe.enabled",                  APZSubframeEnabled, bool, false);
   DECL_GFX_PREF(Once, "apz.test.logging_enabled",              APZTestLoggingEnabled, bool, false);
   DECL_GFX_PREF(Live, "apz.touch_start_tolerance",             APZTouchStartTolerance, float, 1.0f/4.5f);
@@ -234,9 +235,11 @@ public:
   // Manage the singleton:
   static gfxPrefs& GetSingleton()
   {
+    MOZ_ASSERT(!sInstanceHasBeenDestroyed, "Should never recreate a gfxPrefs instance!");
     if (!sInstance) {
       sInstance = new gfxPrefs;
     }
+    MOZ_ASSERT(SingletonExists());
     return *sInstance;
   }
   static void DestroySingleton();
@@ -244,6 +247,7 @@ public:
 
 private:
   static gfxPrefs* sInstance;
+  static bool sInstanceHasBeenDestroyed;
 
 private:
   // Creating these to avoid having to include Preferences.h in the .h

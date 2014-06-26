@@ -1611,9 +1611,20 @@ ForkJoinShared::executeFromMainThread(ThreadPoolWorker *worker)
     }
     TlsPerThreadData.set(&thisThread);
 
-    // Don't use setIonStackLimit() because that acquires the ionStackLimitLock, and the
-    // lock has not been initialized in these cases.
-    thisThread.jitStackLimit = oldData->jitStackLimit;
+    // Subtlety warning: the reason the stack limit is set via
+    // GetNativeStackLimit instead of oldData->jitStackLimit is because the
+    // main thread's jitStackLimit could be -1 due to runtime->interrupt being
+    // set.
+    //
+    // In turn, the reason that it is okay for runtime->interrupt to be
+    // set and for us to still continue PJS execution is because PJS, being
+    // unable to use the signal-based interrupt handling like sequential JIT
+    // code, keeps a separate flag, interruptPar, to filter out interrupts
+    // which should not interrupt JIT code.
+    //
+    // Thus, use GetNativeStackLimit instead of just propagating the
+    // main thread's.
+    thisThread.jitStackLimit = GetNativeStackLimit(cx_);
     executePortion(&thisThread, worker);
     TlsPerThreadData.set(oldData);
 
@@ -1713,7 +1724,7 @@ ForkJoinShared::setAbortFlagDueToInterrupt(ForkJoinContext &cx)
     // The GC Needed flag should not be set during parallel
     // execution.  Instead, one of the requestGC() or
     // requestZoneGC() methods should be invoked.
-    JS_ASSERT(!cx_->runtime()->gc.isNeeded);
+    JS_ASSERT(!cx_->runtime()->gc.isGcNeeded());
 
     if (!abort_) {
         cx.bailoutRecord->joinCause(ParallelBailoutInterrupt);
@@ -1820,7 +1831,7 @@ ForkJoinContext::ForkJoinContext(PerThreadData *perThreadData, ThreadPoolWorker 
     shared_(shared),
 #ifdef JSGC_FJGENERATIONAL
     gcShared_(shared),
-    fjNursery_(const_cast<ForkJoinContext*>(this), &this->gcShared_, allocator),
+    nursery_(const_cast<ForkJoinContext*>(this), &this->gcShared_, allocator),
 #endif
     worker_(worker),
     acquiredJSContext_(false),
@@ -1844,7 +1855,7 @@ ForkJoinContext::ForkJoinContext(PerThreadData *perThreadData, ThreadPoolWorker 
 bool ForkJoinContext::initialize()
 {
 #ifdef JSGC_FJGENERATIONAL
-    if (!fjNursery_.initialize())
+    if (!nursery_.initialize())
         return false;
 #endif
     return true;
@@ -1853,7 +1864,7 @@ bool ForkJoinContext::initialize()
 bool
 ForkJoinContext::isMainThread() const
 {
-    return perThreadData == &shared_->runtime()->mainThread;
+    return worker_->isMainThread();
 }
 
 JSRuntime *

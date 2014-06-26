@@ -12,14 +12,15 @@ const { ItchEditor } = require("projecteditor/editors");
 var ImageEditor = Class({
   extends: ItchEditor,
 
-  initialize: function(document) {
+  initialize: function() {
     ItchEditor.prototype.initialize.apply(this, arguments);
     this.label = "image";
     this.appended = promise.resolve();
   },
 
   load: function(resource) {
-    let image = this.doc.createElement("image");
+    this.elt.innerHTML = "";
+    let image = this.image = this.doc.createElement("image");
     image.className = "editor-image";
     image.setAttribute("src", resource.uri);
 
@@ -35,7 +36,15 @@ var ImageEditor = Class({
     this.appended.then(() => {
       this.emit("load");
     });
+  },
+
+  destroy: function() {
+    if (this.image) {
+      this.image.remove();
+      this.image = null;
+    }
   }
+
 });
 
 exports.ImageEditor = ImageEditor;

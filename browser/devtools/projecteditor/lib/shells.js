@@ -36,17 +36,13 @@ var Shell = Class({
 
     let constructor = this._editorTypeForResource();
 
-    this.editor = constructor(this.doc, this.host);
+    this.editor = constructor(this.host);
     this.editor.shell = this;
     this.editorAppended = this.editor.appended;
 
-    let loadDefer = promise.defer();
     this.editor.on("load", () => {
-      loadDefer.resolve();
+      this.editorDeferred.resolve();
     });
-
-    this.editorLoaded = loadDefer.promise;
-
     this.elt.appendChild(this.editor.elt);
   },
 
@@ -56,6 +52,8 @@ var Shell = Class({
    * need to be added before calling this.
    */
   load: function() {
+    this.editorDeferred = promise.defer();
+    this.editorLoaded = this.editorDeferred.promise;
     this.editor.load(this.resource);
   },
 
@@ -193,6 +191,8 @@ var ShellDeck = Class({
       }
       this.deck.selectedPanel = shell.elt;
       this._activeShell = shell;
+
+      shell.load();
       shell.editorLoaded.then(() => {
         // Handle case where another shell has been requested before this
         // one is finished loading.

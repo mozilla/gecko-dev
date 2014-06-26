@@ -72,25 +72,45 @@ function addTab(url) {
   return def.promise;
 }
 
-function addProjectEditorTabForTempDirectory() {
+/**
+ * Some tests may need to import one or more of the test helper scripts.
+ * A test helper script is simply a js file that contains common test code that
+ * is either not common-enough to be in head.js, or that is located in a separate
+ * directory.
+ * The script will be loaded synchronously and in the test's scope.
+ * @param {String} filePath The file path, relative to the current directory.
+ *                 Examples:
+ *                 - "helper_attributes_test_runner.js"
+ *                 - "../../../commandline/test/helpers.js"
+ */
+function loadHelperScript(filePath) {
+  let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
+  Services.scriptloader.loadSubScript(testDir + "/" + filePath, this);
+}
+
+function addProjectEditorTabForTempDirectory(opts = {}) {
   TEMP_PATH = buildTempDirectoryStructure();
-  let CUSTOM_OPTS = {
+  let customOpts = {
     name: "Test",
     iconUrl: "chrome://browser/skin/devtools/tool-options.svg",
     projectOverviewURL: SAMPLE_WEBAPP_URL
   };
 
-  return addProjectEditorTab().then((projecteditor) => {
-    return projecteditor.setProjectToAppPath(TEMP_PATH, CUSTOM_OPTS).then(() => {
+  return addProjectEditorTab(opts).then((projecteditor) => {
+    return projecteditor.setProjectToAppPath(TEMP_PATH, customOpts).then(() => {
       return projecteditor;
     });
   });
 }
 
-function addProjectEditorTab() {
-  return addTab("chrome://browser/content/devtools/projecteditor-test.html").then(() => {
+function addProjectEditorTab(opts = {}) {
+  return addTab("chrome://browser/content/devtools/projecteditor-test.xul").then(() => {
     let iframe = content.document.getElementById("projecteditor-iframe");
-    let projecteditor = ProjectEditor.ProjectEditor(iframe);
+    if (opts.menubar !== false) {
+      opts.menubar = content.document.querySelector("menubar");
+    }
+    let projecteditor = ProjectEditor.ProjectEditor(iframe, opts);
+
 
     ok (iframe, "Tab has placeholder iframe for projecteditor");
     ok (projecteditor, "ProjectEditor has been initialized");
@@ -173,7 +193,10 @@ function buildTempDirectoryStructure() {
 
 // https://developer.mozilla.org/en-US/Add-ons/Code_snippets/File_I_O#Writing_to_a_file
 function writeToFile(file, data) {
-  console.log("Writing to file: " + file.path, file.exists());
+  if (typeof file === "string") {
+    file = new FileUtils.File(file);
+  }
+  info("Writing to file: " + file.path + " (exists? " + file.exists() + ")");
   let defer = promise.defer();
   var ostream = FileUtils.openSafeFileOutputStream(file);
 
@@ -188,7 +211,9 @@ function writeToFile(file, data) {
       // Handle error!
       info("ERROR WRITING TEMP FILE", status);
     }
+    defer.resolve();
   });
+  return defer.promise;
 }
 
 // This is used when setting up the test.
@@ -221,8 +246,10 @@ function getTempFile(path) {
 }
 
 // https://developer.mozilla.org/en-US/Add-ons/Code_snippets/File_I_O#Writing_to_a_file
-function* getFileData(path) {
-  let file = new FileUtils.File(path);
+function* getFileData(file) {
+  if (typeof file === "string") {
+    file = new FileUtils.File(file);
+  }
   let def = promise.defer();
 
   NetUtil.asyncFetch(file, function(inputStream, status) {

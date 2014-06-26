@@ -1714,9 +1714,10 @@ nsIFileToJsval(nsPIDOMWindow* aWindow, DeviceStorageFile* aFile)
   MOZ_ASSERT(aFile->mLength != UINT64_MAX);
   MOZ_ASSERT(aFile->mLastModifiedDate != UINT64_MAX);
 
-  nsCOMPtr<nsIDOMBlob> blob = new nsDOMFileFile(fullPath, aFile->mMimeType,
-                                                aFile->mLength, aFile->mFile,
-                                                aFile->mLastModifiedDate);
+  nsCOMPtr<nsIDOMBlob> blob = new DOMFile(
+    new DOMFileImplFile(fullPath, aFile->mMimeType,
+                        aFile->mLength, aFile->mFile,
+                        aFile->mLastModifiedDate));
   return InterfaceToJsval(aWindow, blob, &NS_GET_IID(nsIDOMBlob));
 }
 
@@ -1726,7 +1727,7 @@ JS::Value StringToJsval(nsPIDOMWindow* aWindow, nsAString& aString)
   MOZ_ASSERT(aWindow);
 
   AutoJSAPI jsapi;
-  if (NS_WARN_IF(!jsapi.InitUsingWin(aWindow))) {
+  if (NS_WARN_IF(!jsapi.Init(aWindow))) {
     return JSVAL_NULL;
   }
   JSContext* cx = jsapi.cx();
