@@ -85,6 +85,8 @@ class RefTest(object):
     prefs['browser.snippets.syncPromo.enabled'] = False
     # And for useragent updates.
     prefs['general.useragent.updates.enabled'] = False
+    # And for webapp updates.  Yes, it is supposed to be an integer.
+    prefs['browser.webapps.checkForUpdates'] = 0
 
     for v in options.extraPrefs:
       thispref = v.split('=')
