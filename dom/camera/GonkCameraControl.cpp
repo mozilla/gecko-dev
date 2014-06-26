@@ -186,17 +186,28 @@ nsGonkCameraControl::SetConfigurationInternal(const Configuration& aConfig)
 
   nsresult rv;
 
-  switch (aConfig.mMode) {
-    case kPictureMode:
-      rv = SetPictureConfiguration(aConfig);
-      break;
+  {
+    ICameraControlParameterSetAutoEnter set(this);
 
-    case kVideoMode:
-      rv = SetVideoConfiguration(aConfig);
-      break;
+    switch (aConfig.mMode) {
+      case kPictureMode:
+        rv = SetPictureConfiguration(aConfig);
+        break;
 
-    default:
-      MOZ_ASSUME_UNREACHABLE("Unanticipated camera mode in SetConfigurationInternal()");
+      case kVideoMode:
+        rv = SetVideoConfiguration(aConfig);
+        break;
+
+      default:
+        MOZ_ASSERT_UNREACHABLE("Unanticipated camera mode in SetConfigurationInternal()");
+        rv = NS_ERROR_FAILURE;
+        break;
+    }
+
+    rv = Set(CAMERA_PARAM_RECORDINGHINT, aConfig.mMode == kVideoMode);
+    if (NS_FAILED(rv)) {
+      DOM_CAMERA_LOGE("Failed to set recording hint (0x%x)\n", rv);
+    }
   }
 
   DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
@@ -221,8 +232,12 @@ nsGonkCameraControl::SetConfigurationImpl(const Configuration& aConfig)
   // Stop any currently running preview
   nsresult rv = PausePreview();
   if (NS_FAILED(rv)) {
-    // warn, but plow ahead
-    NS_WARNING("PausePreview() in SetConfigurationImpl() failed");
+    DOM_CAMERA_LOGW("PausePreview() in SetConfigurationImpl() failed (0x%x)\n", rv);
+    if (rv == NS_ERROR_NOT_INITIALIZED) {
+      // If there no hardware available, nothing else we try will work,
+      // so bail out here.
+      return rv;
+    }
   }
 
   DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
@@ -246,11 +261,6 @@ nsGonkCameraControl::SetPictureConfiguration(const Configuration& aConfig)
   mRecorderProfile = nullptr;
 
   nsresult rv = SetPreviewSize(aConfig.mPreviewSize);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = PushParameters();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1039,7 +1049,7 @@ nsGonkCameraControl::SetPreviewSize(const Size& aSize)
   MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
 
   nsTArray<Size> previewSizes;
-  nsresult rv = mParams.Get(CAMERA_PARAM_SUPPORTED_PREVIEWSIZES, previewSizes);
+  nsresult rv = Get(CAMERA_PARAM_SUPPORTED_PREVIEWSIZES, previewSizes);
   if (NS_FAILED(rv)) {
     DOM_CAMERA_LOGE("Camera failed to return any preview sizes (0x%x)\n", rv);
     return rv;
@@ -1060,7 +1070,7 @@ nsGonkCameraControl::SetPreviewSize(const Size& aSize)
     SetVideoSize(best);
   }
   mCurrentConfiguration.mPreviewSize = best;
-  return mParams.Set(CAMERA_PARAM_PREVIEWSIZE, best);
+  return Set(CAMERA_PARAM_PREVIEWSIZE, best);
 }
 
 nsresult
@@ -1069,7 +1079,7 @@ nsGonkCameraControl::SetVideoSize(const Size& aSize)
   MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
 
   nsTArray<Size> videoSizes;
-  nsresult rv = mParams.Get(CAMERA_PARAM_SUPPORTED_VIDEOSIZES, videoSizes);
+  nsresult rv = Get(CAMERA_PARAM_SUPPORTED_VIDEOSIZES, videoSizes);
   if (NS_FAILED(rv)) {
     DOM_CAMERA_LOGE("Camera failed to return any video sizes (0x%x)\n", rv);
     return rv;
@@ -1083,7 +1093,7 @@ nsGonkCameraControl::SetVideoSize(const Size& aSize)
     return rv;
   }
   mLastRecorderSize = best;
-  return mParams.Set(CAMERA_PARAM_VIDEOSIZE, best);
+  return Set(CAMERA_PARAM_VIDEOSIZE, best);
 }
 
 nsresult
@@ -1189,20 +1199,14 @@ nsGonkCameraControl::SetupVideoMode(const nsAString& aProfile)
       return rv;
     }
 
-    rv = mParams.Set(CAMERA_PARAM_PREVIEWFRAMERATE, fps);
+    rv = Set(CAMERA_PARAM_PREVIEWFRAMERATE, fps);
     if (NS_FAILED(rv)) {
       DOM_CAMERA_LOGE("Failed to set video mode frame rate (0x%x)\n", rv);
       return rv;
     }
-
-    rv = PushParameters();
-    if (NS_FAILED(rv)) {
-      DOM_CAMERA_LOGE("Failed to set video mode settings (0x%x)\n", rv);
-      return rv;
-    }
-
-    mPreviewFps = fps;
   }
+
+  mPreviewFps = fps;
   return NS_OK;
 }
 
