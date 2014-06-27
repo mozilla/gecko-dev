@@ -9,7 +9,7 @@
 #define __nss_h_
 
 /* The private macro _NSS_ECC_STRING is for NSS internal use only. */
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 #ifdef NSS_ECC_MORE_THAN_SUITE_B
 #define _NSS_ECC_STRING " Extended ECC"
 #else
@@ -33,10 +33,10 @@
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>[.<build number>]][ <ECC>][ <Beta>]"
  */
-#define NSS_VERSION  "3.15.4" _NSS_ECC_STRING _NSS_CUSTOMIZED
+#define NSS_VERSION  "3.16.2" _NSS_ECC_STRING _NSS_CUSTOMIZED
 #define NSS_VMAJOR   3
-#define NSS_VMINOR   15
-#define NSS_VPATCH   4
+#define NSS_VMINOR   16
+#define NSS_VPATCH   2
 #define NSS_VBUILD   0
 #define NSS_BETA     PR_FALSE
 

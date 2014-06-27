@@ -226,6 +226,13 @@ extern PRInt32
 ssl3_CallHelloExtensionSenders(sslSocket *ss, PRBool append, PRUint32 maxBytes,
                                const ssl3HelloExtensionSender *sender);
 
+extern unsigned int
+ssl3_CalculatePaddingExtensionLength(unsigned int clientHelloLength);
+
+extern PRInt32
+ssl3_AppendPaddingExtension(sslSocket *ss, unsigned int extensionLen,
+			    PRUint32 maxBytes);
+
 /* Socket ops */
 struct sslSocketOpsStr {
     int         (*connect) (sslSocket *, const PRNetAddr *);
@@ -281,11 +288,11 @@ typedef struct {
 #endif
 } ssl3CipherSuiteCfg;
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 #define ssl_V3_SUITES_IMPLEMENTED 61
 #else
 #define ssl_V3_SUITES_IMPLEMENTED 37
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
 
 #define MAX_DTLS_SRTP_CIPHER_SUITES 4
 
@@ -317,6 +324,8 @@ typedef struct sslOptionsStr {
     unsigned int enableFalseStart       : 1;  /* 23 */
     unsigned int cbcRandomIV            : 1;  /* 24 */
     unsigned int enableOCSPStapling     : 1;  /* 25 */
+    unsigned int enableNPN              : 1;  /* 26 */
+    unsigned int enableALPN             : 1;  /* 27 */
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -644,9 +653,9 @@ struct sslSessionIDStr {
             SSL3KEAType           exchKeyType;
 				  /* key type used in exchange algorithm,
 				   * and to wrap the sym wrapping key. */
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 	    PRUint32              negotiatedECCurves;
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
 
 	    /* The following values are NOT restored from the server's on-disk
 	     * session cache, but are restored from the client's cache.
@@ -876,9 +885,9 @@ const ssl3CipherSuiteDef *suite_def;
 	SSL3Finished      sFinished[2];
 	SSL3Opaque        data[72];
     }                     finishedMsgs;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     PRUint32              negotiatedECCurves; /* bit mask */
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
 
     PRBool                authCertificatePending;
     /* Which function should SSL_RestartHandshake* call if we're blocked?
@@ -1371,8 +1380,6 @@ extern SECStatus   ssl_GatherRecord1stHandshake(sslSocket *ss);
 
 extern SECStatus   ssl2_HandleClientHelloMessage(sslSocket *ss);
 extern SECStatus   ssl2_HandleServerHelloMessage(sslSocket *ss);
-extern int         ssl2_StartGatherBytes(sslSocket *ss, sslGather *gs, 
-                                         unsigned int count);
 
 extern SECStatus   ssl_CreateSecurityInfo(sslSocket *ss);
 extern SECStatus   ssl_CopySecurityInfo(sslSocket *ss, sslSocket *os);
@@ -1587,7 +1594,7 @@ int ssl3_GatherCompleteHandshake(sslSocket *ss, int flags);
  */
 extern SECStatus ssl3_CreateRSAStepDownKeys(sslSocket *ss);
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 extern void      ssl3_FilterECCipherSuitesByServerCerts(sslSocket *ss);
 extern PRBool    ssl3_IsECCEnabled(sslSocket *ss);
 extern SECStatus ssl3_DisableECCSuites(sslSocket * ss, 
@@ -1642,7 +1649,7 @@ extern SECStatus ssl3_ECName2Params(PLArenaPool *arena, ECName curve,
 ECName	ssl3_GetCurveWithECKeyStrength(PRUint32 curvemsk, int requiredECCbits);
 
 
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
 
 extern SECStatus ssl3_CipherPrefSetDefault(ssl3CipherSuite which, PRBool on);
 extern SECStatus ssl3_CipherPrefGetDefault(ssl3CipherSuite which, PRBool *on);
@@ -1677,7 +1684,7 @@ extern SECStatus ssl3_NegotiateVersion(sslSocket *ss,
 
 extern SECStatus ssl_GetPeerInfo(sslSocket *ss);
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 /* ECDH functions */
 extern SECStatus ssl3_SendECDHClientKeyExchange(sslSocket * ss, 
 			     SECKEYPublicKey * svrPubKey);
@@ -1762,7 +1769,7 @@ extern SECStatus ssl_ConfigSecureServer(sslSocket *ss, CERTCertificate *cert,
                                         const CERTCertificateList *certChain,
                                         ssl3KeyPair *keyPair, SSLKEAType kea);
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 extern PRInt32 ssl3_SendSupportedCurvesXtn(sslSocket *ss,
 			PRBool append, PRUint32 maxBytes);
 extern PRInt32 ssl3_SendSupportedPointFormatsXtn(sslSocket *ss,
