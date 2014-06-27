@@ -39,6 +39,7 @@ SharedWorker::SharedWorker(nsPIDOMWindow* aWindow,
 SharedWorker::~SharedWorker()
 {
   AssertIsOnMainThread();
+  Close();
   MOZ_ASSERT(!mWorkerPrivate);
 }
 
