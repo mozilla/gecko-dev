@@ -18,17 +18,20 @@
 #include "ctr.h"
 #include "gcm.h"
 
-#if USE_HW_AES
-#include "intel-gcm.h"
+#ifdef USE_HW_AES
 #include "intel-aes.h"
 #include "mpi.h"
 
 static int has_intel_aes = 0;
+static PRBool use_hw_aes = PR_FALSE;
+
+#ifdef INTEL_GCM
+#include "intel-gcm.h"
 static int has_intel_avx = 0;
 static int has_intel_clmul = 0;
-static PRBool use_hw_aes = PR_FALSE;
 static PRBool use_hw_gcm = PR_FALSE;
 #endif
+#endif  /* USE_HW_AES */
 
 /*
  * There are currently five ways to build this code, varying in performance
@@ -833,7 +836,6 @@ rijndael_encryptECB(AESContext *cx, unsigned char *output,
     SECStatus rv;
     AESBlockFunc *encryptor;
 
-
     encryptor = (blocksize == RIJNDAEL_MIN_BLOCKSIZE) 
 				  ? &rijndael_encryptBlock128 
 				  : &rijndael_encryptBlock;
@@ -966,17 +968,28 @@ AESContext * AES_AllocateContext(void)
 }
 
 
-#if USE_HW_AES
+#ifdef INTEL_GCM
 /*
  * Adapted from the example code in "How to detect New Instruction support in
  * the 4th generation Intel Core processor family" by Max Locktyukhin.
+ *
+ * XGETBV:
+ *   Reads an extended control register (XCR) specified by ECX into EDX:EAX.
  */
 static PRBool
 check_xcr0_ymm()
 {
     PRUint32 xcr0;
 #if defined(_MSC_VER)
+#if defined(_M_IX86)
+    __asm {
+        mov ecx, 0
+        xgetbv
+        mov xcr0, eax
+    }
+#else
     xcr0 = (PRUint32)_xgetbv(0);  /* Requires VS2010 SP1 or later. */
+#endif
 #else
     __asm__ ("xgetbv" : "=a" (xcr0) : "c" (0) : "%edx");
 #endif
@@ -1022,7 +1035,7 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
     	return SECFailure;
     }
-#if USE_HW_AES
+#ifdef USE_HW_AES
     if (has_intel_aes == 0) {
 	unsigned long eax, ebx, ecx, edx;
 	char *disable_hw_aes = getenv("NSS_DISABLE_HW_AES");
@@ -1030,6 +1043,7 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	if (disable_hw_aes == NULL) {
 	    freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
 	    has_intel_aes = (ecx & (1 << 25)) != 0 ? 1 : -1;
+#ifdef INTEL_GCM
 	    has_intel_clmul = (ecx & (1 << 1)) != 0 ? 1 : -1;
 	    if ((ecx & (1 << 27)) != 0 && (ecx & (1 << 28)) != 0 &&
 		check_xcr0_ymm()) {
@@ -1037,17 +1051,22 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	    } else {
 		has_intel_avx = -1;
 	    }
+#endif
 	} else {
 	    has_intel_aes = -1;
+#ifdef INTEL_GCM
 	    has_intel_avx = -1;
 	    has_intel_clmul = -1;
+#endif
 	}
     }
     use_hw_aes = (PRBool)
 		(has_intel_aes > 0 && (keysize % 8) == 0 && blocksize == 16);
+#ifdef INTEL_GCM
     use_hw_gcm = (PRBool)
 		(use_hw_aes && has_intel_avx>0 && has_intel_clmul>0);
 #endif
+#endif  /* USE_HW_AES */
     /* Nb = (block size in bits) / 32 */
     cx->Nb = blocksize / 4;
     /* Nk = (key size in bits) / 32 */
@@ -1057,23 +1076,27 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
     /* copy in the iv, if neccessary */
     if (mode == NSS_AES_CBC) {
 	memcpy(cx->iv, iv, blocksize);
-#if USE_HW_AES
+#ifdef USE_HW_AES
 	if (use_hw_aes) {
 	    cx->worker = (freeblCipherFunc)
 				intel_aes_cbc_worker(encrypt, keysize);
 	} else
 #endif
+	{
 	    cx->worker = (freeblCipherFunc) (encrypt
 			  ? &rijndael_encryptCBC : &rijndael_decryptCBC);
+	}
     } else {
-#if  USE_HW_AES
+#ifdef  USE_HW_AES
 	if (use_hw_aes) {
 	    cx->worker = (freeblCipherFunc) 
 				intel_aes_ecb_worker(encrypt, keysize);
 	} else
 #endif
+	{
 	    cx->worker = (freeblCipherFunc) (encrypt
 			  ? &rijndael_encryptECB : &rijndael_decryptECB);
+	}
     }
     PORT_Assert((cx->Nb * (cx->Nr + 1)) <= RIJNDAEL_MAX_EXP_KEY_SIZE);
     if ((cx->Nb * (cx->Nr + 1)) > RIJNDAEL_MAX_EXP_KEY_SIZE) {
@@ -1152,7 +1175,7 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	cx->isBlock = PR_FALSE;
 	break;
     case NSS_AES_GCM:
-#if USE_HW_AES
+#ifdef INTEL_GCM
 	if(use_hw_gcm) {
         	cx->worker_cx = intel_AES_GCM_CreateContext(cx, cx->worker, iv, blocksize);
 		cx->worker = (freeblCipherFunc)
@@ -1171,7 +1194,14 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	break;
     case NSS_AES_CTR:
 	cx->worker_cx = CTR_CreateContext(cx, cx->worker, iv, blocksize);
-	cx->worker = (freeblCipherFunc) CTR_Update ;
+#if defined(USE_HW_AES) && defined(_MSC_VER)
+	if (use_hw_aes) {
+	    cx->worker = (freeblCipherFunc) CTR_Update_HW_AES;
+	} else
+#endif
+	{
+	    cx->worker = (freeblCipherFunc) CTR_Update;
+	}
 	cx->destroy = (freeblDestroyFunc) CTR_DestroyContext;
 	cx->isBlock = PR_FALSE;
 	break;

@@ -135,6 +135,13 @@ else
     ifdef BUILD_OPT
 	OPTIMIZER += -Ox  # maximum optimization for freebl
     endif
+    # The Intel AES assembly code requires Visual C++ 2010.
+    # if $(_MSC_VER) >= 1600 (Visual C++ 2010)
+    ifeq ($(firstword $(sort $(_MSC_VER) 1600)),1600)
+	DEFINES += -DUSE_HW_AES -DINTEL_GCM
+	ASFILES += intel-aes-x86-masm.asm intel-gcm-x86-masm.asm
+	EXTRA_SRCS += intel-gcm-wrap.c
+    endif
 endif
 else
     # -DMP_NO_MP_WORD
@@ -150,6 +157,13 @@ else
     ASFILES  = arcfour-amd64-masm.asm mpi_amd64_masm.asm mp_comba_amd64_masm.asm
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     DEFINES += -DNSS_USE_COMBA
+    # The Intel AES assembly code requires Visual C++ 2010 (10.0). The _xgetbv
+    # compiler intrinsic function requires Visual C++ 2010 (10.0) SP1.
+    ifeq ($(_MSC_VER_GE_10SP1),1)
+	DEFINES += -DUSE_HW_AES -DINTEL_GCM
+	ASFILES += intel-aes-x64-masm.asm intel-gcm-x64-masm.asm
+	EXTRA_SRCS += intel-gcm-wrap.c
+    endif
     MPI_SRCS += mpi_amd64.c
 endif
 endif
@@ -185,8 +199,8 @@ ifeq ($(CPU_ARCH),x86_64)
     DEFINES += -DNSS_USE_COMBA
     DEFINES += -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
 #   DEFINES += -DMPI_AMD64_ADD
-    # comment the next two lines to turn off intel HW accelleration
-    DEFINES += -DUSE_HW_AES
+    # comment the next four lines to turn off Intel HW acceleration.
+    DEFINES += -DUSE_HW_AES -DINTEL_GCM
     ASFILES += intel-aes.s intel-gcm.s
     EXTRA_SRCS += intel-gcm-wrap.c
     INTEL_GCM = 1
@@ -419,6 +433,11 @@ else
 	    ASFILES  = arcfour-amd64-gas.s mpi_amd64_gas.s
 	    ASFLAGS += -march=opteron -m64 -fPIC
 	    MPI_SRCS += mp_comba.c
+	    # comment the next four lines to turn off Intel HW acceleration
+	    ASFILES += intel-gcm.s
+	    EXTRA_SRCS += intel-gcm-wrap.c
+	    INTEL_GCM = 1
+	    DEFINES += -DINTEL_GCM
 	else
 	    ASFILES  = arcfour-amd64-sun.s mpi_amd64_sun.s sha-fast-amd64-sun.s
  	    ASFILES += mp_comba_amd64_sun.s mpcpucache_amd64.s
@@ -426,14 +445,13 @@ else
             SOL_CFLAGS += -xprefetch=no
 	    SHA_SRCS =
  	    MPCPU_SRCS =
+	    # Intel acceleration for GCM does not build currently with Studio
 	endif
 	DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
 	DEFINES += -DNSS_USE_COMBA -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
-	# comment the next two lines to turn off intel HW accelleration
+	# comment the next two lines to turn off Intel HW acceleration
 	DEFINES += -DUSE_HW_AES
-	ASFILES += intel-aes.s intel-gcm.s
-        EXTRA_SRCS += intel-gcm-wrap.c
-        INTEL_GCM = 1
+	ASFILES += intel-aes.s
 	MPI_SRCS += mpi_amd64.c
     else
 	# Solaris x86
@@ -646,7 +664,7 @@ $(OBJDIR)/$(PROG_PREFIX)intel-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -mssse3
 # symbolic names to registers, for example,
 #     .set  Htbl, %rdi
 # So we can't use Clang's integrated assembler with intel-gcm.s.
-ifneq (,$(findstring clang,$(AS)))
+ifneq (,$(findstring clang,$(shell $(AS) --version)))
 $(OBJDIR)/$(PROG_PREFIX)intel-gcm$(OBJ_SUFFIX): ASFLAGS += -no-integrated-as
 endif
 endif
