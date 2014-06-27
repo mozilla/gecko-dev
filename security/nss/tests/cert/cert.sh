@@ -46,7 +46,7 @@ cert_init()
   fi
   SCRIPTNAME="cert.sh"
   CRL_GRP_DATE=`date -u "+%Y%m%d%H%M%SZ"`
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
       html_head "Certutil and Crlutil Tests with ECC"
   else
       html_head "Certutil and Crlutil Tests"
@@ -292,7 +292,7 @@ cert_create_cert()
         return $RET
     fi
 
-    if [ -n "$NSS_ENABLE_ECC" ] ; then
+    if [ -z "$NSS_DISABLE_ECC" ] ; then
 	CU_ACTION="Import EC Root CA for $CERTNAME"
 	certu -A -n "TestCA-ec" -t "TC,TC,TC" -f "${R_PWFILE}" \
 	    -d "${PROFILEDIR}" -i "${R_CADIR}/TestCA-ec.ca.cert" 2>&1
@@ -340,7 +340,7 @@ cert_add_cert()
 #
 #   Generate and add EC cert
 #
-    if [ -n "$NSS_ENABLE_ECC" ] ; then
+    if [ -z "$NSS_DISABLE_ECC" ] ; then
 	CURVE="secp384r1"
 	CU_ACTION="Generate EC Cert Request for $CERTNAME"
 	CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-ec@bogus.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
@@ -430,7 +430,7 @@ cert_all_CA()
     # root.cert in $CLIENT_CADIR and in $SERVER_CADIR is one of the last 
     # in the chain
 
-    if [ -n "$NSS_ENABLE_ECC" ] ; then
+    if [ -z "$NSS_DISABLE_ECC" ] ; then
 #
 #       Create EC version of TestCA
 	CA_CURVE="secp521r1"
@@ -671,7 +671,7 @@ cert_smime_client()
   certu -E -t ",," -d ${P_R_BOBDIR} -f ${R_PWFILE} \
         -i ${R_EVEDIR}/Eve.cert 2>&1
 
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
       echo "$SCRIPTNAME: Importing EC Certificates =============================="
       CU_ACTION="Import Bob's EC cert into Alice's db"
       certu -E -t ",," -d ${P_R_ALICEDIR} -f ${R_PWFILE} \
@@ -742,7 +742,7 @@ cert_extended_ssl()
   certu -A -n "clientCA" -t "T,," -f "${R_PWFILE}" -d "${PROFILEDIR}" \
           -i "${CLIENT_CADIR}/clientCA.ca.cert" 2>&1
 
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
 #
 #     Repeat the above for EC certs
 #
@@ -830,7 +830,7 @@ cert_extended_ssl()
   certu -A -n "serverCA" -t "C,C,C" -f "${R_PWFILE}" -d "${PROFILEDIR}" \
           -i "${SERVER_CADIR}/serverCA.ca.cert" 2>&1
 
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
 #
 #     Repeat the above for EC certs
 #
@@ -920,7 +920,7 @@ cert_ssl()
   cert_add_cert 
   CU_ACTION="Modify trust attributes of Root CA -t TC,TC,TC"
   certu -M -n "TestCA" -t "TC,TC,TC" -d ${PROFILEDIR} -f "${R_PWFILE}"
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
       CU_ACTION="Modify trust attributes of EC Root CA -t TC,TC,TC"
       certu -M -n "TestCA-ec" -t "TC,TC,TC" -d ${PROFILEDIR} -f "${R_PWFILE}"
   fi
@@ -940,8 +940,8 @@ cert_ssl()
   fi
 
   echo "$SCRIPTNAME: Creating database for OCSP stapling tests  ==============="
-  echo "cp -rv ${SERVERDIR} ${STAPLINGDIR}"
-  cp -rv ${R_SERVERDIR} ${R_STAPLINGDIR}
+  echo "cp -r ${SERVERDIR} ${STAPLINGDIR}"
+  cp -r ${R_SERVERDIR} ${R_STAPLINGDIR}
   pk12u -o ${R_STAPLINGDIR}/ca.p12 -n TestCA -k ${R_PWFILE} -w ${R_PWFILE} -d ${R_CADIR}
   pk12u -i ${R_STAPLINGDIR}/ca.p12 -k ${R_PWFILE} -w ${R_PWFILE} -d ${R_STAPLINGDIR}
 }
@@ -1028,7 +1028,7 @@ cert_eccurves()
 {
   ################# Creating Certs for EC curves test ########################
   #
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
     echo "$SCRIPTNAME: Creating Server CA Issued Certificate for "
     echo "             EC Curves Test Certificates ------------------------------------"
 
@@ -1088,7 +1088,7 @@ cert_eccurves()
 	fi
     done
 
-  fi # if NSS_ENABLE_ECC=1
+  fi # $NSS_DISABLE_ECC
 }
 
 ########################### cert_extensions_test #############################
@@ -1176,6 +1176,201 @@ cert_extensions()
     done < ${QADIR}/cert/certext.txt
 }
 
+cert_make_with_param()
+{
+    DIRPASS="$1"
+    CERTNAME="$2"
+    MAKE="$3"
+    SUBJ="$4"
+    EXTRA="$5"
+    EXPECT="$6"
+    TESTNAME="$7"
+
+    echo certutil ${DIRPASS} -s "${SUBJ}" ${MAKE} ${CERTNAME} ${EXTRA}
+    ${BINDIR}/certutil ${DIRPASS} -s "${SUBJ}" ${MAKE} ${CERTNAME} ${EXTRA}
+        
+    RET=$?
+    if [ "${RET}" -ne "${EXPECT}" ]; then
+        # if we expected failure to create, then delete unexpected certificate
+        if [ "${EXPECT}" -ne 0 ]; then
+            ${BINDIR}/certutil ${DIRPASS} -D ${CERTNAME}
+        fi
+    
+        CERTFAILED=1
+        html_failed "${TESTNAME} (${COUNT}) - ${EXTRA}" 
+        cert_log "ERROR: ${TESTNAME} - ${EXTRA} failed"
+        return 1
+    fi
+
+    html_passed "${TESTNAME} (${COUNT})"
+    return 0
+}
+
+cert_list_and_count_dns()
+{
+    DIRPASS="$1"
+    CERTNAME="$2"
+    EXPECT="$3"
+    EXPECTCOUNT="$4"
+    TESTNAME="$5"
+
+    echo certutil ${DIRPASS} -L ${CERTNAME}
+    ${BINDIR}/certutil ${DIRPASS} -L ${CERTNAME}
+
+    RET=$?
+    if [ "${RET}" -ne "${EXPECT}" ]; then
+        CERTFAILED=1
+        html_failed "${TESTNAME} (${COUNT}) - list and count" 
+        cert_log "ERROR: ${TESTNAME} - list and count failed"
+        return 1
+    fi
+
+    LISTCOUNT=`${BINDIR}/certutil ${DIRPASS} -L ${CERTNAME} | grep -wc DNS`
+    if [ "${LISTCOUNT}" -ne "${EXPECTCOUNT}" ]; then
+        CERTFAILED=1
+        html_failed "${TESTNAME} (${COUNT}) - list and count" 
+        cert_log "ERROR: ${TESTNAME} - list and count failed"
+        return 1
+    fi
+
+    html_passed "${TESTNAME} (${COUNT})"
+    return 0
+}
+
+cert_dump_ext_to_file()
+{
+    DIRPASS="$1"
+    CERTNAME="$2"
+    OID="$3"
+    OUTFILE="$4"
+    EXPECT="$5"
+    TESTNAME="$6"
+
+    echo certutil ${DIRPASS} -L ${CERTNAME} --dump-ext-val ${OID}
+    echo "writing output to ${OUTFILE}"
+    ${BINDIR}/certutil ${DIRPASS} -L ${CERTNAME} --dump-ext-val ${OID} > ${OUTFILE}
+        
+    RET=$?
+    if [ "${RET}" -ne "${EXPECT}" ]; then
+        CERTFAILED=1
+        html_failed "${TESTNAME} (${COUNT}) - dump to file"
+        cert_log "ERROR: ${TESTNAME} - dump to file failed"
+        return 1
+    fi
+
+    html_passed "${TESTNAME} (${COUNT})"
+    return 0
+}
+
+cert_delete()
+{
+    DIRPASS="$1"
+    CERTNAME="$2"
+    EXPECT="$3"
+    TESTNAME="$4"
+
+    echo certutil ${DIRPASS} -D ${CERTNAME}
+    ${BINDIR}/certutil ${DIRPASS} -D ${CERTNAME}
+        
+    RET=$?
+    if [ "${RET}" -ne "${EXPECT}" ]; then
+        CERTFAILED=1
+        html_failed "${TESTNAME} (${COUNT}) - delete cert" 
+        cert_log "ERROR: ${TESTNAME} - delete cert failed"
+        return 1
+    fi
+
+    html_passed "${TESTNAME} (${COUNT})"
+    return 0
+}
+
+cert_inc_count()
+{
+    COUNT=`expr ${COUNT} + 1`
+}
+
+############################## cert_crl_ssl ############################
+# test adding subject-alt-name, dumping, and adding generic extension
+########################################################################
+cert_san_and_generic_extensions()
+{
+    EXTDUMP=${CERT_EXTENSIONS_DIR}/sanext.der
+
+    DIR="-d ${CERT_EXTENSIONS_DIR} -f ${R_PWFILE}"
+    CERTNAME="-n WithSAN"
+    MAKE="-S -t ,, -x -z ${R_NOISE_FILE}"
+    SUBJ="CN=example.com"
+
+    TESTNAME="san-and-generic-extensions"
+
+    cert_inc_count
+    cert_make_with_param "${DIR}" "${CERTNAME}" "${MAKE}" "${SUBJ}" \
+        "--extSAN example.com" 255 \
+        "create cert with invalid SAN parameter"
+
+    cert_inc_count
+    cert_make_with_param "${DIR}" "${CERTNAME}" "${MAKE}" "${SUBJ}" \
+        "--extSAN example.com,dns:www.example.com" 255 \
+        "create cert with invalid SAN parameter"
+
+    TN="create cert with valid SAN parameter"
+
+    cert_inc_count
+    cert_make_with_param "${DIR}" "${CERTNAME}" "${MAKE}" "${SUBJ}" \
+        "--extSAN dns:example.com,dns:www.example.com" 0 \
+        "${TN}"
+
+    cert_inc_count
+    cert_list_and_count_dns "${DIR}" "${CERTNAME}" 0 2 \
+        "${TN}"
+
+    cert_inc_count
+    cert_dump_ext_to_file "${DIR}" "${CERTNAME}" "2.5.29.17" "${EXTDUMP}" 0 \
+        "dump extension 2.5.29.17 to file ${EXTDUMP}"
+
+    cert_inc_count
+    cert_delete "${DIR}" "${CERTNAME}" 0 \
+        "${TN}"
+
+    cert_inc_count
+    cert_list_and_count_dns "${DIR}" "${CERTNAME}" 255 0 \
+        "expect failure to list cert, because we deleted it"
+
+    cert_inc_count
+    cert_make_with_param "${DIR}" "${CERTNAME}" "${MAKE}" "${SUBJ}" \
+        "--extGeneric ${EXTDUMP}" 255 \
+        "create cert with invalid generic ext parameter"
+
+    cert_inc_count
+    cert_make_with_param "${DIR}" "${CERTNAME}" "${MAKE}" "${SUBJ}" \
+        "--extGeneric not-critical:${EXTDUMP}" 255 \
+        "create cert with invalid generic ext parameter"
+
+    cert_inc_count
+    cert_make_with_param "${DIR}" "${CERTNAME}" "${MAKE}" "${SUBJ}" \
+        "--extGeneric not-critical:${EXTDUMP},2.5.29.17:critical:${EXTDUMP}" 255 \
+        "create cert with invalid generic ext parameter"
+
+    TN="create cert with valid generic ext parameter"
+
+    cert_inc_count
+    cert_make_with_param "${DIR}" "${CERTNAME}" "${MAKE}" "${SUBJ}" \
+        "--extGeneric 2.5.29.17:not-critical:${EXTDUMP}" 0 \
+        "${TN}"
+
+    cert_inc_count
+    cert_list_and_count_dns "${DIR}" "${CERTNAME}" 0 2 \
+        "${TN}"
+
+    cert_inc_count
+    cert_delete "${DIR}" "${CERTNAME}" 0 \
+        "${TN}"
+
+    cert_inc_count
+    cert_list_and_count_dns "${DIR}" "${CERTNAME}" 255 0 \
+        "expect failure to list cert, because we deleted it"
+}
+
 ############################## cert_crl_ssl ############################
 # local shell function to generate certs and crls for SSL tests
 ########################################################################
@@ -1227,7 +1422,7 @@ EOF_CRLINI
   CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
   chmod 600 ${CRL_FILE_GRP_1}_or
 
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
       CU_ACTION="Generating CRL (ECC) for range ${CRL_GRP_1_BEGIN}-${CRL_GRP_END} TestCA-ec authority"
 
 #     Until Bug 292285 is resolved, do not encode x400 Addresses. After
@@ -1260,7 +1455,7 @@ EOF_CRLINI
   CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
   chmod 600 ${CRL_FILE_GRP_1}_or1
   TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or"
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
       CU_ACTION="Modify CRL (ECC) by adding one more cert"
       crlu -d $CADIR -M -n "TestCA-ec" -f ${R_PWFILE} \
 	  -o ${CRL_FILE_GRP_1}_or1-ec -i ${CRL_FILE_GRP_1}_or-ec <<EOF_CRLINI
@@ -1284,7 +1479,7 @@ rmcert  ${UNREVOKED_CERT_GRP_1}
 EOF_CRLINI
   chmod 600 ${CRL_FILE_GRP_1}
   TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or1"
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
       CU_ACTION="Modify CRL (ECC) by removing one cert"
       crlu -d $CADIR -M -n "TestCA-ec" -f ${R_PWFILE} -o ${CRL_FILE_GRP_1}-ec \
 	  -i ${CRL_FILE_GRP_1}_or1-ec <<EOF_CRLINI
@@ -1313,7 +1508,7 @@ rmcert  ${UNREVOKED_CERT_GRP_2}
 EOF_CRLINI
   CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
   chmod 600 ${CRL_FILE_GRP_2}
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
       CU_ACTION="Creating CRL (ECC) for groups 1 and 2"
       crlu -d $CADIR -M -n "TestCA-ec" -f ${R_PWFILE} -o ${CRL_FILE_GRP_2}-ec \
           -i ${CRL_FILE_GRP_1}-ec <<EOF_CRLINI
@@ -1346,7 +1541,7 @@ addext crlNumber 0 2
 EOF_CRLINI
   CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
   chmod 600 ${CRL_FILE_GRP_3}
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
       CU_ACTION="Creating CRL (ECC) for groups 1, 2 and 3"
       crlu -d $CADIR -M -n "TestCA-ec" -f ${R_PWFILE} -o ${CRL_FILE_GRP_3}-ec \
           -i ${CRL_FILE_GRP_2}-ec <<EOF_CRLINI
@@ -1366,7 +1561,7 @@ EOF_CRLINI
   crlu -D -n TestCA  -f "${R_PWFILE}" -d "${R_SERVERDIR}"
   crlu -I -i ${CRL_FILE} -n "TestCA" -f "${R_PWFILE}" -d "${R_SERVERDIR}"
   CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-  if [ -n "$NSS_ENABLE_ECC" ] ; then
+  if [ -z "$NSS_DISABLE_ECC" ] ; then
       CU_ACTION="Importing CRL (ECC) for groups 1"
       crlu -D -n TestCA-ec  -f "${R_PWFILE}" -d "${R_SERVERDIR}"
       crlu -I -i ${CRL_FILE}-ec -n "TestCA-ec" -f "${R_PWFILE}" \
@@ -1513,6 +1708,7 @@ if [ -z "$NSS_TEST_DISABLE_FIPS" ]; then
 fi
 cert_eccurves
 cert_extensions
+cert_san_and_generic_extensions
 cert_test_password
 cert_test_distrust
 cert_test_ocspresp

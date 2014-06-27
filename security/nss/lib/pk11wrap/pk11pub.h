@@ -520,18 +520,38 @@ SECStatus PK11_Encrypt(PK11SymKey *symKey,
 		       const unsigned char *data, unsigned int dataLen);
 
 /* note: despite the name, this function takes a private key. */
-SECStatus PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,
-   unsigned *outLen, unsigned int maxLen, unsigned char *enc, unsigned encLen);
+SECStatus PK11_PubDecryptRaw(SECKEYPrivateKey *key,
+                             unsigned char *data, unsigned *outLen,
+                             unsigned int maxLen,
+                             const unsigned char *enc, unsigned encLen);
 #define PK11_PrivDecryptRaw PK11_PubDecryptRaw
 /* The encrypt function that complements the above decrypt function. */
-SECStatus PK11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
-                unsigned char *data, unsigned dataLen, void *wincx);
+SECStatus PK11_PubEncryptRaw(SECKEYPublicKey *key,
+                             unsigned char *enc,
+                             const unsigned char *data, unsigned dataLen,
+                             void *wincx);
 
-SECStatus PK11_PrivDecryptPKCS1(SECKEYPrivateKey *key, unsigned char *data,
-   unsigned *outLen, unsigned int maxLen, unsigned char *enc, unsigned encLen);
+SECStatus PK11_PrivDecryptPKCS1(SECKEYPrivateKey *key,
+                                unsigned char *data, unsigned *outLen,
+                                unsigned int maxLen,
+                                const unsigned char *enc, unsigned encLen);
 /* The encrypt function that complements the above decrypt function. */
-SECStatus PK11_PubEncryptPKCS1(SECKEYPublicKey *key, unsigned char *enc,
-                unsigned char *data, unsigned dataLen, void *wincx);
+SECStatus PK11_PubEncryptPKCS1(SECKEYPublicKey *key,
+                               unsigned char *enc,
+                               const unsigned char *data, unsigned dataLen,
+                               void *wincx);
+
+SECStatus PK11_PrivDecrypt(SECKEYPrivateKey *key,
+                           CK_MECHANISM_TYPE mechanism, SECItem *param,
+                           unsigned char *out, unsigned int *outLen,
+                           unsigned int maxLen,
+                           const unsigned char *enc, unsigned int encLen);
+SECStatus PK11_PubEncrypt(SECKEYPublicKey *key,
+                          CK_MECHANISM_TYPE mechanism, SECItem *param,
+                          unsigned char *out, unsigned int *outLen,
+                          unsigned int maxLen,
+                          const unsigned char *data, unsigned int dataLen,
+                          void *wincx);
 
 SECStatus PK11_ImportPrivateKeyInfo(PK11SlotInfo *slot, 
 		SECKEYPrivateKeyInfo *pki, SECItem *nickname,
@@ -559,6 +579,9 @@ SECStatus PK11_ImportEncryptedPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
 		SECItem *nickname, SECItem *publicValue, PRBool isPerm,
 		PRBool isPrivate, KeyType type, 
 		unsigned int usage, SECKEYPrivateKey** privk, void *wincx);
+SECItem *PK11_ExportDERPrivateKeyInfo(SECKEYPrivateKey *pk, void *wincx);
+SECKEYPrivateKeyInfo *PK11_ExportPrivKeyInfo(
+		SECKEYPrivateKey *pk, void *wincx);
 SECKEYPrivateKeyInfo *PK11_ExportPrivateKeyInfo(
 		CERTCertificate *cert, void *wincx);
 SECKEYEncryptedPrivateKeyInfo *PK11_ExportEncryptedPrivKeyInfo(
@@ -585,7 +608,7 @@ SECStatus PK11_WrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
  * The caller of PK11_DEREncodePublicKey should free the returned SECItem with
  * a SECITEM_FreeItem(..., PR_TRUE) call.
  */
-SECItem* PK11_DEREncodePublicKey(SECKEYPublicKey *pubk);
+SECItem* PK11_DEREncodePublicKey(const SECKEYPublicKey *pubk);
 PK11SymKey* PK11_CopySymKeyForSigning(PK11SymKey *originalKey,
 	CK_MECHANISM_TYPE mech);
 SECKEYPrivateKeyList* PK11_ListPrivKeysInSlot(PK11SlotInfo *slot,
@@ -770,9 +793,10 @@ PK11_GetPBECryptoMechanism(SECAlgorithmID *algid,
 /**********************************************************************
  * Functions to manage secmod flags
  **********************************************************************/
-PK11DefaultArrayEntry *PK11_GetDefaultArray(int *size);
+const PK11DefaultArrayEntry *PK11_GetDefaultArray(int *size);
 SECStatus PK11_UpdateSlotAttribute(PK11SlotInfo *slot,
-				   PK11DefaultArrayEntry *entry, PRBool add);
+				   const PK11DefaultArrayEntry *entry,
+				   PRBool add);
 
 /**********************************************************************
  * Functions to look at PKCS #11 dependent data

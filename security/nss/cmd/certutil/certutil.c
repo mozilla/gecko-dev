@@ -182,7 +182,7 @@ static SECStatus
 CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
         SECOidTag hashAlgTag, CERTName *subject, char *phone, int ascii, 
 	const char *emailAddrs, const char *dnsNames,
-        certutilExtnList extnList,
+        certutilExtnList extnList, const char *extGeneric,
         /*out*/ SECItem *result)
 {
     CERTSubjectPublicKeyInfo *spki;
@@ -220,7 +220,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
         PORT_FreeArena (arena, PR_FALSE);
 	return SECFailure;
     }
-    if (AddExtensions(extHandle, emailAddrs, dnsNames, extnList)
+    if (AddExtensions(extHandle, emailAddrs, dnsNames, extnList, extGeneric)
                   != SECSuccess) {
         PORT_FreeArena (arena, PR_FALSE);
         return SECFailure;
@@ -420,11 +420,64 @@ DumpChain(CERTCertDBHandle *handle, char *name, PRBool ascii)
 }
 
 static SECStatus
-listCerts(CERTCertDBHandle *handle, char *name, char *email, PK11SlotInfo *slot,
-          PRBool raw, PRBool ascii, PRFileDesc *outfile, void *pwarg)
+outputCertOrExtension(CERTCertificate *the_cert, PRBool raw, PRBool ascii,
+                      SECItem *extensionOID, PRFileDesc *outfile)
 {
     SECItem data;
     PRInt32 numBytes;
+    SECStatus rv = SECFailure;
+    if (extensionOID) {
+	int i;
+	PRBool found = PR_FALSE;
+	for (i=0; the_cert->extensions[i] != NULL; i++) {
+	    CERTCertExtension *extension = the_cert->extensions[i];
+	    if (SECITEM_CompareItem(&extension->id, extensionOID) == SECEqual) {
+		found = PR_TRUE;
+		numBytes = PR_Write(outfile, extension->value.data,
+				    extension->value.len);
+		rv = SECSuccess;
+		if (numBytes != (PRInt32) extension->value.len) {
+		    SECU_PrintSystemError(progName, "error writing extension");
+		    rv = SECFailure;
+		}
+		rv = SECSuccess;
+		break;
+	    }
+	}
+	if (!found) {
+	    SECU_PrintSystemError(progName, "extension not found");
+	    rv = SECFailure;
+	}
+    } else {
+	data.data = the_cert->derCert.data;
+	data.len = the_cert->derCert.len;
+	if (ascii) {
+	    PR_fprintf(outfile, "%s\n%s\n%s\n", NS_CERT_HEADER, 
+		    BTOA_DataToAscii(data.data, data.len), NS_CERT_TRAILER);
+	    rv = SECSuccess;
+	} else if (raw) {
+	    numBytes = PR_Write(outfile, data.data, data.len);
+	    rv = SECSuccess;
+	    if (numBytes != (PRInt32) data.len) {
+		SECU_PrintSystemError(progName, "error writing raw cert");
+		rv = SECFailure;
+	    }
+	} else {
+	    rv = SEC_PrintCertificateAndTrust(the_cert, "Certificate", NULL);
+	    if (rv != SECSuccess) {
+		SECU_PrintError(progName, "problem printing certificate");
+	    }
+	}
+    }
+    return rv;
+}
+
+static SECStatus
+listCerts(CERTCertDBHandle *handle, char *name, char *email,
+	  PK11SlotInfo *slot, PRBool raw, PRBool ascii,
+	  SECItem *extensionOID,
+	  PRFileDesc *outfile, void *pwarg)
+{
     SECStatus rv = SECFailure;
     CERTCertList *certs;
     CERTCertListNode *node;
@@ -461,34 +514,13 @@ listCerts(CERTCertDBHandle *handle, char *name, char *email, PK11SlotInfo *slot,
 	}
 	for (node = CERT_LIST_HEAD(certs); !CERT_LIST_END(node,certs);
 						node = CERT_LIST_NEXT(node)) {
-	    the_cert = node->cert;
-	    /* now get the subjectList that matches this cert */
-	    data.data = the_cert->derCert.data;
-	    data.len = the_cert->derCert.len;
-	    if (ascii) {
-		PR_fprintf(outfile, "%s\n%s\n%s\n", NS_CERT_HEADER, 
-		        BTOA_DataToAscii(data.data, data.len), NS_CERT_TRAILER);
-		rv = SECSuccess;
-	    } else if (raw) {
-		numBytes = PR_Write(outfile, data.data, data.len);
-		if (numBytes != (PRInt32) data.len) {
-		   SECU_PrintSystemError(progName, "error writing raw cert");
-		    rv = SECFailure;
-		}
-		rv = SECSuccess;
-	    } else {
-		rv = SEC_PrintCertificateAndTrust(the_cert, "Certificate", NULL);
-		if (rv != SECSuccess) {
-		    SECU_PrintError(progName, "problem printing certificate");
-		}
-
-	    }
+	    rv = outputCertOrExtension(node->cert, raw, ascii, extensionOID,
+                                       outfile);
 	    if (rv != SECSuccess) {
 		break;
 	    }
 	}
     } else if (email) {
-	CERTCertificate *the_cert;
 	certs = PK11_FindCertsFromEmailAddress(email, NULL);
 	if (!certs) {
 	    SECU_PrintError(progName, 
@@ -498,28 +530,8 @@ listCerts(CERTCertDBHandle *handle, char *name, char *email, PK11SlotInfo *slot,
 	}
 	for (node = CERT_LIST_HEAD(certs); !CERT_LIST_END(node,certs);
 						node = CERT_LIST_NEXT(node)) {
-	    the_cert = node->cert;
-	    /* now get the subjectList that matches this cert */
-	    data.data = the_cert->derCert.data;
-	    data.len  = the_cert->derCert.len;
-	    if (ascii) {
-		PR_fprintf(outfile, "%s\n%s\n%s\n", NS_CERT_HEADER, 
-		           BTOA_DataToAscii(data.data, data.len), 
-			   NS_CERT_TRAILER);
-		rv = SECSuccess;
-	    } else if (raw) {
-		numBytes = PR_Write(outfile, data.data, data.len);
-		rv = SECSuccess;
-		if (numBytes != (PRInt32) data.len) {
-		    SECU_PrintSystemError(progName, "error writing raw cert");
-		    rv = SECFailure;
-		}
-	    } else {
-		rv = SEC_PrintCertificateAndTrust(the_cert, "Certificate", NULL);
-		if (rv != SECSuccess) {
-		    SECU_PrintError(progName, "problem printing certificate");
-		}
-	    }
+	    rv = outputCertOrExtension(node->cert, raw, ascii, extensionOID,
+                                       outfile);
 	    if (rv != SECSuccess) {
 		break;
 	    }
@@ -547,8 +559,9 @@ listCerts(CERTCertDBHandle *handle, char *name, char *email, PK11SlotInfo *slot,
 
 static SECStatus
 ListCerts(CERTCertDBHandle *handle, char *nickname, char *email, 
-          PK11SlotInfo *slot, PRBool raw, PRBool ascii, PRFileDesc *outfile, 
-	  secuPWData *pwdata)
+          PK11SlotInfo *slot, PRBool raw, PRBool ascii,
+	  SECItem *extensionOID,
+	  PRFileDesc *outfile, secuPWData *pwdata)
 {
     SECStatus rv;
 
@@ -569,7 +582,8 @@ ListCerts(CERTCertDBHandle *handle, char *nickname, char *email,
 	CERT_DestroyCertList(list);
 	return SECSuccess;
     } 
-    rv = listCerts(handle, nickname, email, slot, raw, ascii, outfile, pwdata);
+    rv = listCerts(handle, nickname, email, slot, raw, ascii,
+                   extensionOID, outfile, pwdata);
     return rv;
 }
 
@@ -614,6 +628,15 @@ ValidateCert(CERTCertDBHandle *handle, char *name, char *date,
     switch (*certUsage) {
 	case 'O':
 	    usage = certificateUsageStatusResponder;
+	    break;
+	case 'L':
+	    usage = certificateUsageSSLCA;
+	    break;
+	case 'A':
+	    usage = certificateUsageAnyCA;
+	    break;
+	case 'Y':
+	    usage = certificateUsageVerifyCA;
 	    break;
 	case 'C':
 	    usage = certificateUsageSSLClient;
@@ -968,7 +991,7 @@ PrintSyntax(char *progName)
 	"\t\t [-f pwfile] [-z noisefile] [-d certdir] [-P dbprefix]\n", progName);
     FPS "\t%s -G [-h token-name] -k dsa [-q pqgfile -g key-size] [-f pwfile]\n"
 	"\t\t [-z noisefile] [-d certdir] [-P dbprefix]\n", progName);
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     FPS "\t%s -G [-h token-name] -k ec -q curve [-f pwfile]\n"
 	"\t\t [-z noisefile] [-d certdir] [-P dbprefix]\n", progName);
     FPS "\t%s -K [-n key-name] [-h token-name] [-k dsa|ec|rsa|all]\n", 
@@ -976,7 +999,7 @@ PrintSyntax(char *progName)
 #else
     FPS "\t%s -K [-n key-name] [-h token-name] [-k dsa|rsa|all]\n", 
 	progName);
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
     FPS "\t\t [-f pwfile] [-X] [-d certdir] [-P dbprefix]\n");
     FPS "\t%s --upgrade-merge --source-dir upgradeDir --upgrade-id uniqueID\n",
 	progName);
@@ -989,7 +1012,7 @@ PrintSyntax(char *progName)
     FPS "\t\t [-f targetPWfile] [-@ sourcePWFile]\n");
     FPS "\t%s -L [-n cert-name] [--email email-address] [-X] [-r] [-a]\n",
 	progName);
-    FPS "\t\t [-d certdir] [-P dbprefix]\n");
+    FPS "\t\t [--dump-ext-val OID] [-d certdir] [-P dbprefix]\n");
     FPS "\t%s -M -n cert-name -t trustargs [-d certdir] [-P dbprefix]\n",
 	progName);
     FPS "\t%s -O -n cert-name [-X] [-d certdir] [-a] [-P dbprefix]\n", progName);
@@ -1008,7 +1031,8 @@ PrintSyntax(char *progName)
         "\t\t [-p phone] [-1] [-2] [-3] [-4] [-5] [-6] [-7 emailAddrs]\n"
         "\t\t [-8 DNS-names]\n"
         "\t\t [--extAIA] [--extSIA] [--extCP] [--extPM] [--extPC] [--extIA]\n"
-        "\t\t [--extSKID] [--extNC]\n", progName);
+        "\t\t [--extSKID] [--extNC] [--extSAN type:name[,type:name]...]\n"
+	"\t\t [--extGeneric OID:critical-flag:filename[,OID:critical-flag:filename]...]\n", progName);
     FPS "\t%s -U [-X] [-d certdir] [-P dbprefix]\n", progName);
     exit(1);
 }
@@ -1155,7 +1179,7 @@ static void luG(enum usage_level ul, const char *command)
         return;
     FPS "%-20s Name of token in which to generate key (default is internal)\n",
         "   -h token-name");
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     FPS "%-20s Type of key pair to generate (\"dsa\", \"ec\", \"rsa\" (default))\n",
         "   -k key-type");
     FPS "%-20s Key size in bits, (min %d, max %d, default %d) (not for ec)\n",
@@ -1165,7 +1189,7 @@ static void luG(enum usage_level ul, const char *command)
         "   -k key-type");
     FPS "%-20s Key size in bits, (min %d, max %d, default %d)\n",
         "   -g key-size", MIN_KEY_BITS, MAX_KEY_BITS, DEFAULT_KEY_BITS);
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
     FPS "%-20s Set the public exponent value (3, 17, 65537) (rsa only)\n",
         "   -y exp");
     FPS "%-20s Specify the password file\n",
@@ -1174,7 +1198,7 @@ static void luG(enum usage_level ul, const char *command)
         "   -z noisefile");
     FPS "%-20s read PQG value from pqgfile (dsa only)\n",
         "   -q pqgfile");
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     FPS "%-20s Elliptic curve name (ec only)\n",
         "   -q curve-name");
     FPS "%-20s One of nistp256, nistp384, nistp521\n", "");
@@ -1286,7 +1310,7 @@ static void luK(enum usage_level ul, const char *command)
         "   -h token-name ");
 
     FPS "%-20s Key type (\"all\" (default), \"dsa\","
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
                                                     " \"ec\","
 #endif
                                                     " \"rsa\")\n",
@@ -1308,7 +1332,7 @@ static void luL(enum usage_level ul, const char *command)
 {
     int is_my_command = (command && 0 == strcmp(command, "L"));
     if (ul == usage_all || !command || is_my_command)
-    FPS "%-15s List all certs, or print out a single named cert\n",
+    FPS "%-15s List all certs, or print out a single named cert (or a subset)\n",
         "-L");
     if (ul == usage_selected && !is_my_command)
         return;
@@ -1327,6 +1351,9 @@ static void luL(enum usage_level ul, const char *command)
         "   -r");
     FPS "%-20s For single cert, print ASCII encoding (RFC1113)\n",
         "   -a");
+    FPS "%-20s \n"
+              "%-20s For single cert, print binary DER encoding of extension OID\n",
+        "   --dump-ext-val OID", "");
     FPS "\n");
 }
 
@@ -1418,11 +1445,11 @@ static void luR(enum usage_level ul, const char *command)
         "   -s subject");
     FPS "%-20s Output the cert request to this file\n",
         "   -o output-req");
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     FPS "%-20s Type of key pair to generate (\"dsa\", \"ec\", \"rsa\" (default))\n",
 #else
     FPS "%-20s Type of key pair to generate (\"dsa\", \"rsa\" (default))\n",
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
         "   -k key-type-or-id");
     FPS "%-20s or nickname of the cert key to use \n",
         "");
@@ -1432,12 +1459,12 @@ static void luR(enum usage_level ul, const char *command)
         "   -g key-size", MIN_KEY_BITS, MAX_KEY_BITS, DEFAULT_KEY_BITS);
     FPS "%-20s Name of file containing PQG parameters (dsa only)\n",
         "   -q pqgfile");
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     FPS "%-20s Elliptic curve name (ec only)\n",
         "   -q curve-name");
     FPS "%-20s See the \"-G\" option for a full list of supported names.\n",
         "");
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
     FPS "%-20s Specify the password file\n",
         "   -f pwfile");
     FPS "%-20s Key database directory (default is ~/.netscape)\n",
@@ -1472,6 +1499,9 @@ static void luV(enum usage_level ul, const char *command)
     FPS "%-20s Specify certificate usage:\n", "   -u certusage");
     FPS "%-25s C \t SSL Client\n", "");
     FPS "%-25s V \t SSL Server\n", "");
+    FPS "%-25s L \t SSL CA\n", "");
+    FPS "%-25s A \t Any CA\n", "");
+    FPS "%-25s Y \t Verify CA\n", "");
     FPS "%-25s S \t Email signer\n", "");
     FPS "%-25s R \t Email Recipient\n", "");   
     FPS "%-25s O \t OCSP status responder\n", "");   
@@ -1570,11 +1600,11 @@ static void luS(enum usage_level ul, const char *command)
         "   -c issuer-name");
     FPS "%-20s Set the certificate trust attributes (see -A above)\n",
         "   -t trustargs");
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     FPS "%-20s Type of key pair to generate (\"dsa\", \"ec\", \"rsa\" (default))\n",
 #else
     FPS "%-20s Type of key pair to generate (\"dsa\", \"rsa\" (default))\n",
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
         "   -k key-type-or-id");
     FPS "%-20s Name of token in which to generate key (default is internal)\n",
         "   -h token-name");
@@ -1582,12 +1612,12 @@ static void luS(enum usage_level ul, const char *command)
         "   -g key-size", MIN_KEY_BITS, MAX_KEY_BITS, DEFAULT_KEY_BITS);
     FPS "%-20s Name of file containing PQG parameters (dsa only)\n",
         "   -q pqgfile");
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     FPS "%-20s Elliptic curve name (ec only)\n",
         "   -q curve-name");
     FPS "%-20s See the \"-G\" option for a full list of supported names.\n",
         "");
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
     FPS "%-20s Self sign\n",
         "   -x");
     FPS "%-20s Cert serial number\n",
@@ -1638,6 +1668,18 @@ static void luS(enum usage_level ul, const char *command)
         "   See -G for available key flag options");
     FPS "%-20s Create a name constraints extension\n",
         "   --extNC ");
+    FPS "%-20s \n"
+        "%-20s Create a Subject Alt Name extension with one or multiple names\n",
+	"   --extSAN type:name[,type:name]...", "");
+    FPS "%-20s - type: directory, dn, dns, edi, ediparty, email, ip, ipaddr,\n", "");
+    FPS "%-20s         other, registerid, rfc822, uri, x400, x400addr\n", "");
+    FPS "%-20s \n"
+        "%-20s Add one or multiple extensions that certutil cannot encode yet,\n"
+	"%-20s by loading their encodings from external files.\n",
+        "   --extGeneric OID:critical-flag:filename[,OID:critical-flag:filename]...", "", "");
+    FPS "%-20s - OID (example): 1.2.3.4\n", "");
+    FPS "%-20s - critical-flag: critical or not-critical\n", "");
+    FPS "%-20s - filename: full path to a file containing an encoded extension\n", "");
     FPS "\n");
 }
 
@@ -1736,7 +1778,8 @@ MakeV1Cert(	CERTCertDBHandle *	handle,
 static SECStatus
 SignCert(CERTCertDBHandle *handle, CERTCertificate *cert, PRBool selfsign, 
          SECOidTag hashAlgTag,
-         SECKEYPrivateKey *privKey, char *issuerNickName, void *pwarg)
+         SECKEYPrivateKey *privKey, char *issuerNickName,
+         int certVersion, void *pwarg)
 {
     SECItem der;
     SECKEYPrivateKey *caPrivateKey = NULL;    
@@ -1776,9 +1819,23 @@ SignCert(CERTCertDBHandle *handle, CERTCertificate *cert, PRBool selfsign,
 	goto done;
     }
 
-    /* we only deal with cert v3 here */
-    *(cert->version.data) = 2;
-    cert->version.len = 1;
+    switch(certVersion) {
+      case (SEC_CERTIFICATE_VERSION_1):
+        /* The initial version for x509 certificates is version one
+         * and this default value must be an implicit DER encoding. */
+        cert->version.data = NULL;
+        cert->version.len = 0;
+        break;
+      case (SEC_CERTIFICATE_VERSION_2):
+      case (SEC_CERTIFICATE_VERSION_3):
+      case 3: /* unspecified format (would be version 4 certificate). */
+        *(cert->version.data) = certVersion;
+        cert->version.len = 1;
+        break;
+      default:
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
 
     der.len = 0;
     der.data = NULL;
@@ -1821,6 +1878,8 @@ CreateCert(
 	PRBool ascii,
 	PRBool  selfsign,
 	certutilExtnList extnList,
+	const char *extGeneric,
+        int certVersion,
 	SECItem * certDER)
 {
     void *	extHandle;
@@ -1848,7 +1907,7 @@ CreateCert(
 	    GEN_BREAK (SECFailure)
 	}
         
-        rv = AddExtensions(extHandle, emailAddrs, dnsNames, extnList);
+        rv = AddExtensions(extHandle, emailAddrs, dnsNames, extnList, extGeneric);
         if (rv != SECSuccess) {
 	    GEN_BREAK (SECFailure)
 	}
@@ -1880,7 +1939,8 @@ CreateCert(
 	}
 
 	rv = SignCert(handle, subjectCert, selfsign, hashAlgTag,
-		      *selfsignprivkey, issuerNickName, pwarg);
+		      *selfsignprivkey, issuerNickName,
+                      certVersion, pwarg);
 	if (rv != SECSuccess)
 	    break;
 
@@ -2194,6 +2254,10 @@ enum certutilOpts {
     opt_KeyOpFlagsOff,
     opt_KeyAttrFlags,
     opt_EmptyPassword,
+    opt_CertVersion,
+    opt_AddSubjectAltNameExt,
+    opt_DumpExtensionValue,
+    opt_GenericExtensions,
     opt_Help
 };
 
@@ -2303,6 +2367,13 @@ secuCommandFlag options_init[] =
                                                    "keyAttrFlags"},
 	{ /* opt_EmptyPassword       */  0,   PR_FALSE, 0, PR_FALSE, 
                                                    "empty-password"},
+        { /* opt_CertVersion         */  0,   PR_FALSE, 0, PR_FALSE,
+                                                   "certVersion"},
+	{ /* opt_AddSubjectAltExt    */  0,   PR_TRUE,  0, PR_FALSE, "extSAN"},
+	{ /* opt_DumpExtensionValue  */  0,   PR_TRUE, 0, PR_FALSE, 
+                                                   "dump-ext-val"},
+	{ /* opt_GenericExtensions   */  0,   PR_TRUE, 0, PR_FALSE, 
+                                                   "extGeneric"},
 };
 #define NUM_OPTIONS ((sizeof options_init)  / (sizeof options_init[0]))
 
@@ -2341,6 +2412,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
     SECOidTag   hashAlgTag      = SEC_OID_UNKNOWN;
     int	        keysize	        = DEFAULT_KEY_BITS;
     int         publicExponent  = 0x010001;
+    int         certVersion     = SEC_CERTIFICATE_VERSION_3;
     unsigned int serialNumber   = 0;
     int         warpmonths      = 0;
     int         validityMonths  = 3;
@@ -2427,12 +2499,12 @@ certutil_main(int argc, char **argv, PRBool initialize)
 		       progName, MIN_KEY_BITS, MAX_KEY_BITS);
 	    return 255;
 	}
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 	if (keytype == ecKey) {
 	    PR_fprintf(PR_STDERR, "%s -g:  Not for ec keys.\n", progName);
 	    return 255;
 	}
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
 
     }
 
@@ -2462,10 +2534,10 @@ certutil_main(int argc, char **argv, PRBool initialize)
 	    keytype = rsaKey;
 	} else if (PL_strcmp(arg, "dsa") == 0) {
 	    keytype = dsaKey;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 	} else if (PL_strcmp(arg, "ec") == 0) {
 	    keytype = ecKey;
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
 	} else if (PL_strcmp(arg, "all") == 0) {
 	    keytype = nullKey;
 	} else {
@@ -2518,7 +2590,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
 
     /*  -q PQG file or curve name */
     if (certutil.options[opt_PQGFile].activated) {
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 	if ((keytype != dsaKey) && (keytype != ecKey)) {
 	    PR_fprintf(PR_STDERR, "%s -q: specifies a PQG file for DSA keys" \
 		       " (-k dsa) or a named curve for EC keys (-k ec)\n)",
@@ -2527,7 +2599,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
 	if (keytype != dsaKey) {
 	    PR_fprintf(PR_STDERR, "%s -q: PQG file is for DSA key (-k dsa).\n)",
 	               progName);
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
 	    return 255;
 	}
     }
@@ -2568,6 +2640,19 @@ certutil_main(int argc, char **argv, PRBool initialize)
 	    return 255;
 	}
     }
+
+    /*  --certVersion */
+    if (certutil.options[opt_CertVersion].activated) {
+        certVersion = PORT_Atoi(certutil.options[opt_CertVersion].arg);
+        if (certVersion < 1 || certVersion > 4) {
+            PR_fprintf(PR_STDERR, "%s -certVersion: incorrect certificate version %d.",
+                                   progName, certVersion);
+            PR_fprintf(PR_STDERR, "Must be 1, 2, 3 or 4.\n");
+            return 255;
+        }
+        certVersion = certVersion - 1;
+    }
+
 
     /*  Check number of commands entered.  */
     commandsEntered = 0;
@@ -2629,9 +2714,10 @@ certutil_main(int argc, char **argv, PRBool initialize)
 	return 255;
     }
 
-    /*  if -L is given raw or ascii mode, it must be for only one cert.  */
+    /*  if -L is given raw, ascii or dump mode, it must be for only one cert. */
     if (certutil.commands[cmd_ListCerts].activated &&
         (certutil.options[opt_ASCIIForIO].activated ||
+         certutil.options[opt_DumpExtensionValue].activated ||
          certutil.options[opt_BinaryDER].activated) &&
         !certutil.options[opt_Nickname].activated) {
 	PR_fprintf(PR_STDERR, 
@@ -2951,10 +3037,29 @@ merge_fail:
 
     /*  List certs (-L)  */
     if (certutil.commands[cmd_ListCerts].activated) {
-	rv = ListCerts(certHandle, name, email, slot,
-	               certutil.options[opt_BinaryDER].activated,
-	               certutil.options[opt_ASCIIForIO].activated, 
-		       outFile, &pwdata);
+	if (certutil.options[opt_DumpExtensionValue].activated) {
+	    const char *oid_str;
+	    SECItem oid_item;
+            SECStatus srv;
+	    oid_item.data = NULL;
+	    oid_item.len = 0;
+	    oid_str = certutil.options[opt_DumpExtensionValue].arg;
+	    srv = GetOidFromString(NULL, &oid_item, oid_str, strlen(oid_str));
+	    if (srv != SECSuccess) {
+         	SECU_PrintError(progName, "malformed extension OID %s",
+				oid_str);
+		goto shutdown;
+	    }
+	    rv = ListCerts(certHandle, name, email, slot,
+			   PR_TRUE /*binary*/, PR_FALSE /*ascii*/,
+			   &oid_item,
+			   outFile, &pwdata);
+	} else {
+	    rv = ListCerts(certHandle, name, email, slot,
+			   certutil.options[opt_BinaryDER].activated,
+			   certutil.options[opt_ASCIIForIO].activated,
+			   NULL, outFile, &pwdata);
+	}
 	goto shutdown;
     }
     if (certutil.commands[cmd_DumpChain].activated) {
@@ -3145,6 +3250,12 @@ merge_fail:
             certutil_extns[ext_extKeyUsage].arg =
                 certutil.options[opt_AddCmdExtKeyUsageExt].arg;
         }
+        certutil_extns[ext_subjectAltName].activated =
+                certutil.options[opt_AddSubjectAltNameExt].activated;
+        if (certutil_extns[ext_subjectAltName].activated) {
+            certutil_extns[ext_subjectAltName].arg =
+                certutil.options[opt_AddSubjectAltNameExt].arg;
+        }
 
         certutil_extns[ext_authInfoAcc].activated =
 				certutil.options[opt_AddAuthInfoAccExt].activated;
@@ -3184,6 +3295,8 @@ merge_fail:
 		     certutil.options[opt_ExtendedEmailAddrs].arg,
 		     certutil.options[opt_ExtendedDNSNames].arg,
                      certutil_extns,
+		     (certutil.options[opt_GenericExtensions].activated ?
+		         certutil.options[opt_GenericExtensions].arg : NULL),
                      &certReqDER);
 	if (rv)
 	    goto shutdown;
@@ -3206,6 +3319,8 @@ merge_fail:
 		     NULL,
 		     NULL,
                      nullextnlist,
+		     (certutil.options[opt_GenericExtensions].activated ?
+		         certutil.options[opt_GenericExtensions].arg : NULL),
 		     &certReqDER);
 	if (rv) 
 	    goto shutdown;
@@ -3225,6 +3340,9 @@ merge_fail:
 			    certutil.commands[cmd_CreateNewCert].activated,
 	                certutil.options[opt_SelfSign].activated,
 	                certutil_extns,
+			(certutil.options[opt_GenericExtensions].activated ?
+			    certutil.options[opt_GenericExtensions].arg : NULL),
+                        certVersion,
 			&certDER);
 	if (rv) 
 	    goto shutdown;

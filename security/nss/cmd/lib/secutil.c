@@ -52,6 +52,19 @@ static char consoleName[] =  {
 #include "ssl.h"
 #include "sslproto.h"
 
+static PRBool utf8DisplayEnabled = PR_FALSE;
+
+void
+SECU_EnableUtf8Display(PRBool enable)
+{
+    utf8DisplayEnabled = enable;
+}
+
+PRBool
+SECU_GetUtf8DisplayEnabled(void)
+{
+    return utf8DisplayEnabled;
+}
 
 static void
 secu_ClearPassword(char *p)
@@ -609,12 +622,22 @@ secu_PrintRawStringQuotesOptional(FILE *out, SECItem *si, const char *m,
 
     for (i = 0; i < si->len; i++) {
 	unsigned char val = si->data[i];
+	unsigned char c;
 	if (SECU_GetWrapEnabled() && column > 76) {
 	    SECU_Newline(out);
 	    SECU_Indent(out, level); column = level*INDENT_MULT;
 	}
 
-	fprintf(out,"%c", printable[val]); column++;
+	if (utf8DisplayEnabled) {
+	    if (val < 32)
+		c = '.';
+	    else
+		c = val;
+	} else {
+	    c = printable[val];
+	}
+	fprintf(out,"%c", c);
+	column++;
     }
 
     if (quotes) {
@@ -1364,7 +1387,7 @@ secu_PrintAttribute(FILE *out, SEC_PKCS7Attribute *attr, char *m, int level)
     }
 }
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 static void
 secu_PrintECPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
 {
@@ -1382,7 +1405,7 @@ secu_PrintECPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
 	SECU_PrintObjectID(out, &curveOID, "Curve", level +1);
     }
 }
-#endif /* NSS_ENABLE_ECC */
+#endif /* NSS_DISABLE_ECC */
 
 void
 SECU_PrintRSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
@@ -1426,7 +1449,7 @@ secu_PrintSubjectPublicKeyInfo(FILE *out, PLArenaPool *arena,
 	    SECU_PrintDSAPublicKey(out, pk, "DSA Public Key", level +1);
 	    break;
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 	case ecKey:
 	    secu_PrintECPublicKey(out, pk, "EC Public Key", level +1);
 	    break;
@@ -2441,19 +2464,19 @@ loser:
 int
 SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
 {
-    unsigned char fingerprint[20];
+    unsigned char fingerprint[SHA256_LENGTH];
     char *fpStr = NULL;
     int err     = PORT_GetError();
     SECStatus rv;
     SECItem fpItem;
 
-    /* print MD5 fingerprint */
+    /* Print SHA-256 fingerprint */
     memset(fingerprint, 0, sizeof fingerprint);
-    rv = PK11_HashBuf(SEC_OID_MD5,fingerprint, derCert->data, derCert->len);
+    rv = PK11_HashBuf(SEC_OID_SHA256, fingerprint, derCert->data, derCert->len);
     fpItem.data = fingerprint;
-    fpItem.len = MD5_LENGTH;
+    fpItem.len = SHA256_LENGTH;
     fpStr = CERT_Hexify(&fpItem, 1);
-    SECU_Indent(out, level);  fprintf(out, "%s (MD5):", m);
+    SECU_Indent(out, level);  fprintf(out, "%s (SHA-256):", m);
     if (SECU_GetWrapEnabled()) {
 	fprintf(out, "\n");
 	SECU_Indent(out, level+1);
