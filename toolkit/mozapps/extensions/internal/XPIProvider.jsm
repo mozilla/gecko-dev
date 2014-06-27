@@ -670,7 +670,7 @@ function EM_R(aProperty) {
 
 function createAddonDetails(id, aAddon) {
   return {
-    id: id,
+    id: id || aAddon.id,
     type: aAddon.type,
     version: aAddon.version
   };
@@ -4242,8 +4242,8 @@ this.XPIProvider = {
     if (Services.appinfo.inSafeMode)
       return;
 
-    if (!aAddon.id || !aAddon.version || aAddon.type) {
-      logger.error("aAddon must include an id, version, and type");
+    if (!aAddon.id || !aAddon.version || !aAddon.type) {
+      logger.error(new Error("aAddon must include an id, version, and type"));
       return;
     }
 
@@ -4262,7 +4262,7 @@ this.XPIProvider = {
       if (aAddon.type == "locale")
         return;
 
-      if (!(aMethod in this.bootstrapScopes[aId])) {
+      if (!(aMethod in this.bootstrapScopes[aAddon.id])) {
         logger.warn("Add-on " + aAddon.id + " is missing bootstrap method " + aMethod);
         return;
       }
