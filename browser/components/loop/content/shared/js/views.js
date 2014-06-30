@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/*jshint newcap:false*/
 /*global loop:true, React */
 
 var loop = loop || {};
@@ -99,7 +100,36 @@ loop.shared.views = (function(_, OT, l10n) {
     }
   };
 
+  /**
+   * Conversation controls.
+   */
+  var ConversationToolbar = React.createClass({
+    mixins: [ReactL10nMixin],
 
+    propTypes: {
+      hangup: React.PropTypes.func.isRequired,
+    },
+
+    handleClickHangup: function() {
+      this.props.hangup();
+    },
+
+    render: function() {
+      return (
+        React.DOM.nav({className: "controls"},
+          React.DOM.button({
+            className: "btn stop",
+            "data-l10n-id": "stop",
+            onClick: this.handleClickHangup
+          })
+        )
+      );
+    }
+  });
+
+  /**
+   * Conversation view.
+   */
   var ReactConversationView = React.createClass({
     mixins: [ReactL10nMixin, Backbone.Events],
 
@@ -160,11 +190,8 @@ loop.shared.views = (function(_, OT, l10n) {
 
     /**
      * Hangs up current conversation.
-     *
-     * @param  {MouseEvent} event
      */
-    hangup: function(event) {
-      event.preventDefault();
+    hangup: function() {
       this.unpublish();
       this.props.model.endSession();
     },
@@ -205,11 +232,7 @@ loop.shared.views = (function(_, OT, l10n) {
     render: function() {
       return (
         React.DOM.div({className: "conversation"},
-          React.DOM.nav({className: "controls"},
-            React.DOM.button({className: "btn stop", "data-l10n-id": "stop",
-              onClick: this.hangup
-            })
-          ),
+          ConversationToolbar({hangup: this.hangup}),
           React.DOM.div({className: "media nested"},
             React.DOM.div({className: "remote"},
               React.DOM.div({className: "incoming"})),

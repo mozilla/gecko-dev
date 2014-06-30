@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/*jshint newcap:false*/
 /* global loop:true */
 
 var loop = loop || {};
@@ -187,7 +188,6 @@ loop.webapp = (function($, _, OT) {
         // User has loaded this url directly, actually setup the call.
         return this.navigate("call/" + loopToken, {trigger: true});
       }
-      /*jshint newcap:false*/
       this.loadReactComponent(ReactConversationView({
         sdk: OT,
         model: this._conversation
