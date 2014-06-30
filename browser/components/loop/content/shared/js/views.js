@@ -408,6 +408,7 @@ loop.shared.views = (function(_, OT, l10n) {
   return {
     L10nView: L10nView,
     BaseView: BaseView,
+    ReactL10nMixin: ReactL10nMixin,
     NotificationListView: NotificationListView,
     NotificationView: NotificationView,
     ReactConversationView: ReactConversationView,

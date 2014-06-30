@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/*jshint newcap:false*/
 /* global loop:true */
 
 var loop = loop || {};
@@ -49,6 +50,40 @@ loop.panel = (function(_, mozL10n) {
     }
   });
 
+  var InviteForm = React.createClass({
+    // XXX: this triggers an error in the browser console: gL10nDetails is not defined
+    //      that's probably because we're missing the definitions available in
+    //      standalone/index.html
+    mixins: [sharedViews.ReactL10nMixin],
+
+    handleFormSubmit: function() {
+      var nickname = this.refs.caller.getDOMNode().value;
+      this.props.client.requestCallUrl(nickname, this.props.callback);
+    },
+
+    render: function() {
+      return (
+        React.DOM.form({
+          className: "invite",
+          onSubmit: this.handleFormSubmit
+        },
+          React.DOM.input({
+            type: "text",
+            name: "caller",
+            ref: "caller",
+            "data-l10n-id": "caller",
+            required: "required"
+          }),
+          React.DOM.button({
+            type: "submit",
+            className: "get-url btn btn-success",
+            "data-l10n-id": "get_a_call_url"
+          })
+        )
+      );
+    }
+  });
+
   /**
    * Panel view.
    */
@@ -58,11 +93,7 @@ loop.panel = (function(_, mozL10n) {
       '  <p data-l10n-id="get_link_to_share"></p>',
       '</div>',
       '<div class="action">',
-      '  <form class="invite">',
-      '    <input type="text" name="caller" data-l10n-id="caller" required>',
-      '    <button type="submit" class="get-url btn btn-success"',
-      '       data-l10n-id="get_a_call_url"></button>',
-      '  </form>',
+      '  <div id="invite-form"></div>',
       '  <p class="result hide">',
       '    <input id="call-url" type="url" readonly>',
       '    <a class="go-back btn btn-info" href="" data-l10n-id="new_url"></a>',
@@ -81,7 +112,6 @@ loop.panel = (function(_, mozL10n) {
 
     events: {
       "keyup input[name=caller]": "changeButtonState",
-      "submit form.invite": "getCallUrl",
       "click a.go-back": "goBack"
     },
 
@@ -100,9 +130,8 @@ loop.panel = (function(_, mozL10n) {
       return this.$("input[name=caller]").val();
     },
 
-    getCallUrl: function(event) {
+    getCallUrl: function() {
       this.notifier.clear();
-      event.preventDefault();
       var callback = function(err, callUrlData) {
         this.clearPending();
         if (err) {
@@ -110,6 +139,7 @@ loop.panel = (function(_, mozL10n) {
           this.render();
           return;
         }
+        // XXX Move this to the InviteForm component (at least partly)
         this.onCallUrlReceived(callUrlData);
       }.bind(this);
 
@@ -156,6 +186,22 @@ loop.panel = (function(_, mozL10n) {
 
     render: function() {
       this.$el.html(this.template());
+
+      var callback = function(err, callUrlData) {
+        this.clearPending();
+        if (err) {
+          this.notifier.errorL10n("unable_retrieve_url");
+          this.render();
+          return;
+        }
+        this.onCallUrlReceived(callUrlData);
+      };
+
+      this.$("#invite-form").html(React.renderComponentToString(InviteForm({
+        client: this.client,
+        callback: callback.bind(this)
+      })));
+
       // Do not Disturb sub view
       this.dndView = new DoNotDisturbView({el: this.$(".dnd")}).render();
       return this;
