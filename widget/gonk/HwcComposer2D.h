@@ -29,6 +29,10 @@
 
 namespace mozilla {
 
+namespace gl {
+    class GLContext;
+}
+
 namespace layers {
 class ContainerLayer;
 class Layer;
@@ -52,7 +56,7 @@ public:
     HwcComposer2D();
     virtual ~HwcComposer2D();
 
-    int Init(hwc_display_t aDisplay, hwc_surface_t aSurface);
+    int Init(hwc_display_t aDisplay, hwc_surface_t aSurface, gl::GLContext* aGLContext);
 
     bool Initialized() const { return mHwc; }
 
@@ -81,6 +85,7 @@ private:
     HwcList*                mList;
     hwc_display_t           mDpy;
     hwc_surface_t           mSur;
+    gl::GLContext*          mGLContext;
     nsIntRect               mScreenRect;
     int                     mMaxLayerCount;
     bool                    mColorFill;
