@@ -3,7 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*jshint newcap:false*/
-/* global loop:true */
+/*global loop:true, React */
 
 var loop = loop || {};
 loop.panel = (function(_, mozL10n) {
@@ -56,7 +56,8 @@ loop.panel = (function(_, mozL10n) {
     //      standalone/index.html
     mixins: [sharedViews.ReactL10nMixin],
 
-    handleFormSubmit: function() {
+    handleFormSubmit: function(e) {
+      console.log("in handleFormSubmit");
       var nickname = this.refs.caller.getDOMNode().value;
       this.props.client.requestCallUrl(nickname, this.props.callback);
     },
@@ -197,10 +198,11 @@ loop.panel = (function(_, mozL10n) {
         this.onCallUrlReceived(callUrlData);
       };
 
-      this.$("#invite-form").html(React.renderComponentToString(InviteForm({
+      this.$("#invite-form", this.$el).empty();
+      React.renderComponent(InviteForm({
         client: this.client,
         callback: callback.bind(this)
-      })));
+      }), $("#invite-form", this.$el).get(0));
 
       // Do not Disturb sub view
       this.dndView = new DoNotDisturbView({el: this.$(".dnd")}).render();
