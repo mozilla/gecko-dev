@@ -9,7 +9,10 @@ function handleRequest(request, response) {
   let params = request.queryString.split("&");
   let format = params.filter((s) => s.contains("fmt="))[0].split("=")[1];
 
-  Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer).initWithCallback(() => {
+  let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+  timer.initWithCallback(() => {
+    // to avoid garbage collection
+    timer = null;
     switch (format) {
       case "txt": {
         response.setStatusLine(request.httpVersion, 200, "DA DA DA");
