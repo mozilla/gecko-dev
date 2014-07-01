@@ -61,33 +61,23 @@ loop.panel = (function(_, mozL10n) {
     },
 
     handleFormSubmit: function(e) {
-      console.log("in handleFormSubmit");
       var callback = function(err, callUrlData) {
         this.clearPending();
         if (err) {
           this.notifier.errorL10n("unable_retrieve_url");
-          console.error("getCallUrl ERROR");
-          // XXX this does not make sense now.
-          //this.render();
+          this.setState({pending: false});
           return;
         }
         this.onCallUrlReceived(callUrlData);
       }.bind(this);
+
       var nickname = this.refs.caller.getDOMNode().value;
       this.props.client.requestCallUrl(nickname, callback);
-      return false;
+      this.setState({pending: true});
     },
 
     onCallUrlReceived: function(response) {
-      this.setState({callUrl: response.call_url});
-    },
-
-    clearPending: function() {
-      this.setState({pending: false});
-    },
-
-    setPending: function() {
-      this.setState({pending: true});
+      this.setState({callUrl: response.call_url, pending: false});
     },
 
     render: function() {
@@ -100,16 +90,13 @@ loop.panel = (function(_, mozL10n) {
         // from the react lib
 
         <form className="invite" onSubmit={this.handleFormSubmit}>
-          <input type="text" name="caller"
+          <input type="text" name="caller" ref="caller" required="required"
                  className={cx({'pending': this.state.pending,
                                 'hide': !this.state.pending})}
-                 ref="caller" data-l10n-id="caller"
-                 required="required" />
-
+                 data-l10n-id="caller" />
           <input value={this.state.callUrl}
                  className={cx({'hide': this.state.callUrl})}
                  readOnly="true" />
-
           <button type="submit" className="get-url btn btn-success"
                   data-l10n-id="get_a_call_url" />
         </form>
