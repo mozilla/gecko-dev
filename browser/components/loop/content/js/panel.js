@@ -24,31 +24,32 @@ loop.panel = (function(_, mozL10n) {
   /**
    * Do not disturb panel subview.
    */
-  var DoNotDisturbView = sharedViews.BaseView.extend({
-    template: _.template([
-      '<label>',
-      '  <input type="checkbox" <%- checked %>>',
-      '  <span data-l10n-id="do_not_disturb"></span>',
-      '</label>',
-    ].join('')),
+  var DoNotDisturb = React.createClass({displayName: 'DoNotDisturb',
 
-    events: {
-      "click input[type=checkbox]": "toggle"
+    getInitialState: function() {
+      return {doNotDisturb: false};
     },
 
-    /**
-     * Toggles mozLoop activation status.
-     */
+     //Toggles mozLoop activation status.
     toggle: function() {
       navigator.mozLoop.doNotDisturb = !navigator.mozLoop.doNotDisturb;
       this.render();
     },
 
+    changeStatus: function() {
+      this.setState({doNotDisturb: !this.state.doNotDisturb});
+    },
+
     render: function() {
-      this.$el.html(this.template({
-        checked: navigator.mozLoop.doNotDisturb ? "checked" : ""
-      }));
-      return this;
+      var status = this.state.doNotDisturb ? 'Unavailable' : 'Available';
+      // XXX https://github.com/facebook/react/issues/310 for === htmlFor
+      return (
+        React.DOM.div(null, 
+          React.DOM.input( {type:"checkbox", checked:this.state.doNotDisturb,
+                id:"dnd-component", onChange:this.changeStatus} ),
+          React.DOM.label( {htmlFor:"dnd-component"}, status)
+        )
+      );
     }
   });
 
@@ -164,52 +165,11 @@ loop.panel = (function(_, mozL10n) {
       });
     },
 
-    getNickname: function() {
-      return this.$("input[name=caller]").val();
-    },
-
-    getCallUrl: function() {
-      this.notifier.clear();
-      var callback = function(err, callUrlData) {
-        this.clearPending();
-        if (err) {
-          this.notifier.errorL10n("unable_retrieve_url");
-          this.render();
-          return;
-        }
-        // XXX Move this to the InviteForm component (at least partly)
-        this.onCallUrlReceived(callUrlData);
-      }.bind(this);
-
-      this.setPending();
-      this.client.requestCallUrl(this.getNickname(), callback);
-    },
-
     goBack: function(event) {
       event.preventDefault();
       this.$(".action .result").hide();
       this.$(".action .invite").show();
       this.$(".description p").text(__("get_link_to_share"));
-      this.changeButtonState();
-    },
-
-    onCallUrlReceived: function(callUrlData) {
-      this.notifier.clear();
-      this.$(".action .invite").hide();
-      this.$(".action .invite input").val("");
-      this.$(".action .result input").val(callUrlData.call_url);
-      this.$(".action .result").show();
-      this.$(".description p").text(__("share_link_url"));
-    },
-
-    setPending: function() {
-      this.$("[name=caller]").addClass("pending");
-      this.$(".get-url").addClass("disabled").attr("disabled", "disabled");
-    },
-
-    clearPending: function() {
-      this.$("[name=caller]").removeClass("pending");
-      this.refs.caller.getDOMNode().classList.remove("pending");
       this.changeButtonState();
     },
 
@@ -225,7 +185,10 @@ loop.panel = (function(_, mozL10n) {
 
     render: function() {
       return (
-        InviteForm( {client:this.client, notifier:this.notifier} )
+        React.DOM.div(null, 
+          InviteForm( {client:this.client, notifier:this.notifier} ),
+          DoNotDisturb(null )
+        )
       );
     }
   });
@@ -310,7 +273,6 @@ loop.panel = (function(_, mozL10n) {
   return {
     init: init,
     PanelView: PanelView,
-    DoNotDisturbView: DoNotDisturbView,
     PanelRouter: PanelRouter
   };
 })(_, document.mozL10n);
