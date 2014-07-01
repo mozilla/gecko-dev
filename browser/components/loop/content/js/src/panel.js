@@ -52,7 +52,7 @@ loop.panel = (function(_, mozL10n) {
     }
   });
 
-  var InviteForm = React.createClass({displayName: 'InviteForm',
+  var InviteForm = React.createClass({
     // XXX: this triggers an error in the browser console: gL10nDetails is not defined
     //      that's probably because we're missing the definitions available in
     //      standalone/index.html
@@ -145,7 +145,7 @@ loop.panel = (function(_, mozL10n) {
   /**
    * Panel view.
    */
-  var PanelView = React.createClass({displayName: 'PanelView',
+  var PanelView = React.createClass({
     /**
      * Do not disturb view.
      * @type {DoNotDisturbView|undefined}
@@ -225,7 +225,7 @@ loop.panel = (function(_, mozL10n) {
 
     render: function() {
       return (
-        InviteForm( {client:this.client, notifier:this.notifier} )
+        <InviteForm client={this.client} notifier={this.notifier} />
       );
     }
   });
@@ -283,7 +283,7 @@ loop.panel = (function(_, mozL10n) {
       // purge pending notifications
       this._notifier.clear();
       // reset home view
-      this.loadReactComponent(PanelView( {notifier:this._notifier} ));
+      this.loadReactComponent(<PanelView notifier={this._notifier} />);
     }
   });
 
