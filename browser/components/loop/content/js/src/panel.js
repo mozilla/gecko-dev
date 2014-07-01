@@ -109,36 +109,26 @@ loop.panel = (function(_, mozL10n) {
     },
 
     render: function() {
+      // XXX setting elem value from a state makes it immutable ie
+      // read only but that is fine in our case. readOnly attr will
+      // suppress a warning regarding this issue from the react lib
+
       return (
-        React.DOM.form({
-          className: "invite",
-          onSubmit: this.handleFormSubmit
-        },
-          React.DOM.input({
-            type: "text",
-            name: "caller",
-            className: this.inviteInputState(),
-            ref: "caller",
-            "data-l10n-id": "caller",
-            required: "required"
-          }),
-          React.DOM.input({
-            // XXX setting elem value from a state makes it immutable ie
-            // read only but that is fine in our case. readOnly attr will
-            // suppress a warning regarding this issue from the react lib
-            value: this.state.callUrl,
-            className: this.callUrlInputState(),
-            readOnly: true
-          }),
-          React.DOM.button({
-            type: "submit",
-            className: "get-url btn btn-success",
-            "data-l10n-id": "get_a_call_url"
-          })
-        )
-      );
-    }
-  });
+        <form className="invite" onSubmit={this.handleFormSubmit}>
+          <input type="text" name="caller"
+                 className={this.inviteInputState()}
+                 ref="caller" data-l10n-id="caller"
+                 required="required" />
+
+          <input value={this.state.callUrl}
+                 className={this.callUrlInputState()}
+                 readOnlye="true" />
+
+          <button type="submit" className="get-url btn btn-success"
+                  data-l10n-id="get_a_call_url" />
+        </form>
+      );}});
+
 
   /**
    * Panel view.
