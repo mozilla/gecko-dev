@@ -110,11 +110,14 @@ loop.panel = (function(_, mozL10n) {
     },
 
     render: function() {
-      // XXX setting elem value from a state makes it immutable ie
-      // read only but that is fine in our case. readOnly attr will
-      // suppress a warning regarding this issue from the react lib
 
       return (
+
+        // XXX setting elem value from a state (in the callUrl input)
+        // makes it immutable ie read only but that is fine in our case.
+        // readOnly attr will suppress a warning regarding this issue
+        // from the react lib
+
         <form className="invite" onSubmit={this.handleFormSubmit}>
           <input type="text" name="caller"
                  className={this.inviteInputState()}
@@ -123,7 +126,7 @@ loop.panel = (function(_, mozL10n) {
 
           <input value={this.state.callUrl}
                  className={this.callUrlInputState()}
-                 readOnlye="true" />
+                 readOnly="true" />
 
           <button type="submit" className="get-url btn btn-success"
                   data-l10n-id="get_a_call_url" />
