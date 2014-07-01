@@ -28,17 +28,13 @@ loop.panel = (function(_, mozL10n) {
     mixins: [sharedViews.ReactL10nMixin],
 
     getInitialState: function() {
-      return {doNotDisturb: false};
+      return {doNotDisturb: navigator.mozLoop.doNotDisturb};
     },
 
-     //Toggles mozLoop activation status.
-    toggle: function() {
+    handleCheckboxChange: function() {
+      // Note: side effect!
       navigator.mozLoop.doNotDisturb = !navigator.mozLoop.doNotDisturb;
-      this.render();
-    },
-
-    changeStatus: function() {
-      this.setState({doNotDisturb: !this.state.doNotDisturb});
+      this.setState({doNotDisturb: navigator.mozLoop.doNotDisturb});
     },
 
     render: function() {
@@ -47,7 +43,7 @@ loop.panel = (function(_, mozL10n) {
       return (
         React.DOM.div(null, 
           React.DOM.input( {type:"checkbox", checked:this.state.doNotDisturb,
-                id:"dnd-component", onChange:this.changeStatus} ),
+                 id:"dnd-component", onChange:this.handleCheckboxChange} ),
           React.DOM.label( {htmlFor:"dnd-component"}, status)
         )
       );
