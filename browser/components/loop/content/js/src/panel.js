@@ -25,6 +25,7 @@ loop.panel = (function(_, mozL10n) {
    * Do not disturb panel subview.
    */
   var DoNotDisturb = React.createClass({
+    mixins: [sharedViews.ReactL10nMixin],
 
     getInitialState: function() {
       return {doNotDisturb: false};
@@ -172,9 +173,14 @@ loop.panel = (function(_, mozL10n) {
 
     render: function() {
       return (
-        <div>
-          <InviteForm client={this.client} notifier={this.notifier} />
-          <DoNotDisturb />
+        <div className="share generate-url">
+          <div className="description">
+            <p data-l10n-id="get_link_to_share"></p>
+          </div>
+          <div className="action">
+            <InviteForm client={this.client} notifier={this.notifier} />
+            <DoNotDisturb />
+          </div>
         </div>
       );
     }
