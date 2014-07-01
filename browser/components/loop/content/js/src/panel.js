@@ -54,9 +54,6 @@ loop.panel = (function(_, mozL10n) {
   });
 
   var InviteForm = React.createClass({
-    // XXX: this triggers an error in the browser console: gL10nDetails is not defined
-    //      that's probably because we're missing the definitions available in
-    //      standalone/index.html
     mixins: [sharedViews.ReactL10nMixin],
 
     getInitialState: function() {
@@ -123,12 +120,12 @@ loop.panel = (function(_, mozL10n) {
             className: this.inviteInputState(),
             ref: "caller",
             "data-l10n-id": "caller",
-            required: "required",
+            required: "required"
           }),
           React.DOM.input({
-            // XXX setting elem value from a state makes it immutable ie read only
-            // but that is fine in our case. readOnly attr will supress a warning
-            // regarding this issue from the react lib
+            // XXX setting elem value from a state makes it immutable ie
+            // read only but that is fine in our case. readOnly attr will
+            // suppress a warning regarding this issue from the react lib
             value: this.state.callUrl,
             className: this.callUrlInputState(),
             readOnly: true
