@@ -90,23 +90,8 @@ loop.panel = (function(_, mozL10n) {
       this.setState({pending: true});
     },
 
-    // XXX this could be improved
-    inviteInputState: function() {
-      if (this.state.pending)
-        return 'pending';
-      if (this.state.callUrl)
-        return 'hide';
-      return '';
-    },
-
-    callUrlInputState: function() {
-      if (this.state.callUrl)
-        return '';
-      return 'hide';
-    },
-
     render: function() {
-
+      var cx = React.addons.classSet;
       return (
 
         // XXX setting elem value from a state (in the callUrl input)
@@ -116,12 +101,13 @@ loop.panel = (function(_, mozL10n) {
 
         <form className="invite" onSubmit={this.handleFormSubmit}>
           <input type="text" name="caller"
-                 className={this.inviteInputState()}
+                 className={cx({'pending': this.state.pending,
+                                'hide': !this.state.pending})}
                  ref="caller" data-l10n-id="caller"
                  required="required" />
 
           <input value={this.state.callUrl}
-                 className={this.callUrlInputState()}
+                 className={cx({'hide': this.state.callUrl})}
                  readOnly="true" />
 
           <button type="submit" className="get-url btn btn-success"
