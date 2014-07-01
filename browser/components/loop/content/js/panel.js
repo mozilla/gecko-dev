@@ -131,18 +131,16 @@ loop.panel = (function(_, mozL10n) {
           React.DOM.button( {type:"submit", className:"get-url btn btn-success",
                   'data-l10n-id':"get_a_call_url"} )
         )
-      );}});
-
+      );
+    }
+  });
 
   /**
    * Panel view.
    */
   var PanelView = React.createClass({displayName: 'PanelView',
-    /**
-     * Do not disturb view.
-     * @type {DoNotDisturbView|undefined}
-     */
-    dndView: undefined,
+
+    mixins: [sharedViews.ReactL10nMixin],
 
     events: {
       "keyup input[name=caller]": "changeButtonState",
