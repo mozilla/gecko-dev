@@ -50,22 +50,47 @@ loop.panel = (function(_, mozL10n) {
     }
   });
 
-  var InviteForm = React.createClass({
+  var CallUrlResult = React.createClass({
+    mixins: [sharedViews.ReactL10nMixin],
+
+    propTypes: {
+      callUrl: React.PropTypes.string.isRequired,
+      retry: React.PropTypes.func.isRequired
+    },
+
+    handleButtonClick: function() {
+      this.props.retry();
+    },
+
+    render: function() {
+      return (
+        <div>
+          <input value={this.props.callUrl} readOnly="true" />
+          <button className="btn btn-success" data-l10n-id="new_url"
+                  onClick={this.handleButtonClick} />
+        </div>
+      );
+    }
+  });
+
+  var CallUrlForm = React.createClass({
     mixins: [sharedViews.ReactL10nMixin],
 
     getInitialState: function() {
-      return {
-        pending: false,
-        callUrl: false
-      };
+      return {pending: false, callUrl: false};
     },
 
-    handleFormSubmit: function(e) {
+    retry: function() {
+      this.setState({pending: false, callUrl: false});
+    },
+
+    handleFormSubmit: function(event) {
+      event.preventDefault();
+
       var callback = function(err, callUrlData) {
-        this.clearPending();
+        this.setState({pending: false});
         if (err) {
           this.notifier.errorL10n("unable_retrieve_url");
-          this.setState({pending: false});
           return;
         }
         this.onCallUrlReceived(callUrlData);
@@ -77,26 +102,26 @@ loop.panel = (function(_, mozL10n) {
     },
 
     onCallUrlReceived: function(response) {
-      this.setState({callUrl: response.call_url, pending: false});
+      this.setState({callUrl: response.call_url});
     },
 
     render: function() {
+      // If we have a call url, render result
+      if (this.state.callUrl) {
+        return <CallUrlResult callUrl={this.state.callUrl} retry={this.retry}/>;
+      }
+
+      // If we don't display the form
       var cx = React.addons.classSet;
       return (
-
         // XXX setting elem value from a state (in the callUrl input)
         // makes it immutable ie read only but that is fine in our case.
         // readOnly attr will suppress a warning regarding this issue
         // from the react lib
-
         <form className="invite" onSubmit={this.handleFormSubmit}>
           <input type="text" name="caller" ref="caller" required="required"
-                 className={cx({'pending': this.state.pending,
-                                'hide': !this.state.pending})}
+                 className={cx({'pending': this.state.pending})}
                  data-l10n-id="caller" />
-          <input value={this.state.callUrl}
-                 className={cx({'hide': this.state.callUrl})}
-                 readOnly="true" />
           <button type="submit" className="get-url btn btn-success"
                   data-l10n-id="get_a_call_url" />
         </form>
@@ -148,7 +173,7 @@ loop.panel = (function(_, mozL10n) {
             <p data-l10n-id="get_link_to_share"></p>
           </div>
           <div className="action">
-            <InviteForm client={this.client} notifier={this.notifier} />
+            <CallUrlForm client={this.client} notifier={this.notifier} />
             <DoNotDisturb />
           </div>
         </div>

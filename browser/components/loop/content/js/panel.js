@@ -50,80 +50,78 @@ loop.panel = (function(_, mozL10n) {
     }
   });
 
-  var InviteForm = React.createClass({displayName: 'InviteForm',
+  var CallUrlResult = React.createClass({displayName: 'CallUrlResult',
+    mixins: [sharedViews.ReactL10nMixin],
+
+    propTypes: {
+      callUrl: React.PropTypes.string.isRequired,
+      retry: React.PropTypes.func.isRequired
+    },
+
+    handleButtonClick: function() {
+      this.props.retry();
+    },
+
+    render: function() {
+      return (
+        React.DOM.div(null, 
+          React.DOM.input( {value:this.props.callUrl, readOnly:"true"} ),
+          React.DOM.button( {className:"btn btn-success", 'data-l10n-id':"new_url",
+                  onClick:this.handleButtonClick} )
+        )
+      );
+    }
+  });
+
+  var CallUrlForm = React.createClass({displayName: 'CallUrlForm',
     mixins: [sharedViews.ReactL10nMixin],
 
     getInitialState: function() {
-      return {
-        pending: false,
-        callUrl: false
-      };
+      return {pending: false, callUrl: false};
     },
 
-    handleFormSubmit: function(e) {
-      console.log("in handleFormSubmit");
+    retry: function() {
+      this.setState({pending: false, callUrl: false});
+    },
+
+    handleFormSubmit: function(event) {
+      event.preventDefault();
+
       var callback = function(err, callUrlData) {
-        this.clearPending();
+        this.setState({pending: false});
         if (err) {
           this.notifier.errorL10n("unable_retrieve_url");
-          console.error("getCallUrl ERROR");
-          // XXX this does not make sense now.
-          //this.render();
           return;
         }
         this.onCallUrlReceived(callUrlData);
       }.bind(this);
+
       var nickname = this.refs.caller.getDOMNode().value;
       this.props.client.requestCallUrl(nickname, callback);
-      return false;
+      this.setState({pending: true});
     },
 
     onCallUrlReceived: function(response) {
       this.setState({callUrl: response.call_url});
     },
 
-    clearPending: function() {
-      this.setState({pending: false});
-    },
-
-    setPending: function() {
-      this.setState({pending: true});
-    },
-
-    // XXX this could be improved
-    inviteInputState: function() {
-      if (this.state.pending)
-        return 'pending';
-      if (this.state.callUrl)
-        return 'hide';
-      return '';
-    },
-
-    callUrlInputState: function() {
-      if (this.state.callUrl)
-        return '';
-      return 'hide';
-    },
-
     render: function() {
+      // If we have a call url, render result
+      if (this.state.callUrl) {
+        return CallUrlResult( {callUrl:this.state.callUrl, retry:this.retry});
+      }
 
+      // If we don't display the form
+      var cx = React.addons.classSet;
       return (
-
         // XXX setting elem value from a state (in the callUrl input)
         // makes it immutable ie read only but that is fine in our case.
         // readOnly attr will suppress a warning regarding this issue
         // from the react lib
-
         React.DOM.form( {className:"invite", onSubmit:this.handleFormSubmit}, 
-          React.DOM.input( {type:"text", name:"caller",
-                 className:this.inviteInputState(),
-                 ref:"caller", 'data-l10n-id':"caller",
-                 required:"required"} ),
-
-          React.DOM.input( {value:this.state.callUrl,
-                 className:this.callUrlInputState(),
-                 readOnly:"true"} ),
-
+          React.DOM.input( {type:"text", name:"caller", ref:"caller", required:"required",
+                 className:cx({'pending': this.state.pending}),
+                 'data-l10n-id':"caller"} ),
           React.DOM.button( {type:"submit", className:"get-url btn btn-success",
                   'data-l10n-id':"get_a_call_url"} )
         )
@@ -175,7 +173,7 @@ loop.panel = (function(_, mozL10n) {
             React.DOM.p( {'data-l10n-id':"get_link_to_share"})
           ),
           React.DOM.div( {className:"action"}, 
-            InviteForm( {client:this.client, notifier:this.notifier} ),
+            CallUrlForm( {client:this.client, notifier:this.notifier} ),
             DoNotDisturb(null )
           )
         )
