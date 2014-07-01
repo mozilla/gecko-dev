@@ -50,6 +50,25 @@ loop.panel = (function(_, mozL10n) {
     }
   });
 
+  var PanelContainer = React.createClass({displayName: 'PanelContainer',
+    mixins: [sharedViews.ReactL10nMixin],
+
+    propTypes: {
+      summary: React.PropTypes.string.isRequired
+    },
+
+    render: function() {
+      return (
+        React.DOM.div( {className:"share generate-url"}, 
+          React.DOM.div( {className:"description"}, 
+            React.DOM.p(null, this.props.summary)
+          ),
+          React.DOM.div(null, this.props.children)
+        )
+      );
+    }
+  });
+
   var CallUrlResult = React.createClass({displayName: 'CallUrlResult',
     mixins: [sharedViews.ReactL10nMixin],
 
@@ -63,8 +82,12 @@ loop.panel = (function(_, mozL10n) {
     },
 
     render: function() {
+      // XXX setting elem value from a state (in the callUrl input)
+      // makes it immutable ie read only but that is fine in our case.
+      // readOnly attr will suppress a warning regarding this issue
+      // from the react lib.
       return (
-        React.DOM.div(null, 
+        PanelContainer( {summary:__("share_link_url")}, 
           React.DOM.input( {value:this.props.callUrl, readOnly:"true"} ),
           React.DOM.button( {className:"btn btn-success", 'data-l10n-id':"new_url",
                   onClick:this.handleButtonClick} )
@@ -108,22 +131,22 @@ loop.panel = (function(_, mozL10n) {
     render: function() {
       // If we have a call url, render result
       if (this.state.callUrl) {
-        return CallUrlResult( {callUrl:this.state.callUrl, retry:this.retry});
+        return (
+          CallUrlResult( {callUrl:this.state.callUrl, retry:this.retry})
+        );
       }
 
       // If we don't display the form
       var cx = React.addons.classSet;
       return (
-        // XXX setting elem value from a state (in the callUrl input)
-        // makes it immutable ie read only but that is fine in our case.
-        // readOnly attr will suppress a warning regarding this issue
-        // from the react lib
-        React.DOM.form( {className:"invite", onSubmit:this.handleFormSubmit}, 
-          React.DOM.input( {type:"text", name:"caller", ref:"caller", required:"required",
-                 className:cx({'pending': this.state.pending}),
-                 'data-l10n-id':"caller"} ),
-          React.DOM.button( {type:"submit", className:"get-url btn btn-success",
-                  'data-l10n-id':"get_a_call_url"} )
+        PanelContainer( {summary:__("get_link_to_share")}, 
+          React.DOM.form( {className:"invite", onSubmit:this.handleFormSubmit}, 
+            React.DOM.input( {type:"text", name:"caller", ref:"caller", required:"required",
+                   className:cx({'pending': this.state.pending}),
+                   'data-l10n-id':"caller"} ),
+            React.DOM.button( {type:"submit", className:"get-url btn btn-success",
+                    'data-l10n-id':"get_a_call_url"} )
+          )
         )
       );
     }
@@ -148,14 +171,6 @@ loop.panel = (function(_, mozL10n) {
       });
     },
 
-    goBack: function(event) {
-      event.preventDefault();
-      this.$(".action .result").hide();
-      this.$(".action .invite").show();
-      this.$(".description p").text(__("get_link_to_share"));
-      this.changeButtonState();
-    },
-
     changeButtonState: function() {
       var enabled = !!this.$("input[name=caller]").val();
       if (enabled) {
@@ -168,14 +183,9 @@ loop.panel = (function(_, mozL10n) {
 
     render: function() {
       return (
-        React.DOM.div( {className:"share generate-url"}, 
-          React.DOM.div( {className:"description"}, 
-            React.DOM.p( {'data-l10n-id':"get_link_to_share"})
-          ),
-          React.DOM.div( {className:"action"}, 
-            CallUrlForm( {client:this.client, notifier:this.notifier} ),
-            DoNotDisturb(null )
-          )
+        React.DOM.div(null, 
+          CallUrlForm( {client:this.client, notifier:this.notifier} ),
+          DoNotDisturb(null )
         )
       );
     }
