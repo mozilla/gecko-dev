@@ -160,6 +160,7 @@ WifiGeoPositionProvider.prototype = {
     try {
       Services.obs.addObserver(this, SETTINGS_CHANGED_TOPIC, false);
       let settings = Cc["@mozilla.org/settingsService;1"].getService(Ci.nsISettingsService);
+      settings.createLock().get(SETTINGS_WIFI_ENABLED, settingsCallback);
       settings.createLock().get(SETTINGS_DEBUG_ENABLED, settingsCallback);
     } catch(ex) {
       // This platform doesn't have the settings interface, and that is just peachy
