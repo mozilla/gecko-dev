@@ -41,7 +41,7 @@ loop.panel = (function(_, mozL10n) {
       var status = this.state.doNotDisturb ? 'Unavailable' : 'Available';
       // XXX https://github.com/facebook/react/issues/310 for === htmlFor
       return (
-        React.DOM.div(null, 
+        React.DOM.p( {className:"dnd"}, 
           React.DOM.input( {type:"checkbox", checked:this.state.doNotDisturb,
                  id:"dnd-component", onChange:this.handleCheckboxChange} ),
           React.DOM.label( {htmlFor:"dnd-component"}, status)
@@ -50,7 +50,7 @@ loop.panel = (function(_, mozL10n) {
     }
   });
 
-  var PanelContainer = React.createClass({displayName: 'PanelContainer',
+  var PanelLayout = React.createClass({displayName: 'PanelLayout',
     mixins: [sharedViews.ReactL10nMixin],
 
     propTypes: {
@@ -63,7 +63,9 @@ loop.panel = (function(_, mozL10n) {
           React.DOM.div( {className:"description"}, 
             React.DOM.p(null, this.props.summary)
           ),
-          React.DOM.div(null, this.props.children)
+          React.DOM.div( {className:"action"}, 
+            this.props.children
+          )
         )
       );
     }
@@ -87,10 +89,12 @@ loop.panel = (function(_, mozL10n) {
       // readOnly attr will suppress a warning regarding this issue
       // from the react lib.
       return (
-        PanelContainer( {summary:__("share_link_url")}, 
-          React.DOM.input( {value:this.props.callUrl, readOnly:"true"} ),
-          React.DOM.button( {className:"btn btn-success", 'data-l10n-id':"new_url",
-                  onClick:this.handleButtonClick} )
+        PanelLayout( {summary:__("share_link_url")}, 
+          React.DOM.div( {className:"invite"}, 
+            React.DOM.input( {type:"url", value:this.props.callUrl, readOnly:"true"} ),
+            React.DOM.button( {className:"btn btn-success", 'data-l10n-id':"new_url",
+                    onClick:this.handleButtonClick} )
+          )
         )
       );
     }
@@ -99,12 +103,25 @@ loop.panel = (function(_, mozL10n) {
   var CallUrlForm = React.createClass({displayName: 'CallUrlForm',
     mixins: [sharedViews.ReactL10nMixin],
 
+    propTypes: {
+      client: React.PropTypes.object.isRequired,
+      notifier: React.PropTypes.object.isRequired
+    },
+
     getInitialState: function() {
-      return {pending: false, callUrl: false};
+      return {
+        pending: false,
+        disabled: true,
+        callUrl: false
+      };
     },
 
     retry: function() {
-      this.setState({pending: false, callUrl: false});
+      this.setState(this.getInitialState());
+    },
+
+    handleTextChange: function(event) {
+      this.setState({disabled: !event.currentTarget.value});
     },
 
     handleFormSubmit: function(event) {
@@ -113,7 +130,7 @@ loop.panel = (function(_, mozL10n) {
       var callback = function(err, callUrlData) {
         this.setState({pending: false});
         if (err) {
-          this.notifier.errorL10n("unable_retrieve_url");
+          this.props.notifier.errorL10n("unable_retrieve_url");
           return;
         }
         this.onCallUrlReceived(callUrlData);
@@ -139,12 +156,15 @@ loop.panel = (function(_, mozL10n) {
       // If we don't display the form
       var cx = React.addons.classSet;
       return (
-        PanelContainer( {summary:__("get_link_to_share")}, 
+        PanelLayout( {summary:__("get_link_to_share")}, 
           React.DOM.form( {className:"invite", onSubmit:this.handleFormSubmit}, 
+
             React.DOM.input( {type:"text", name:"caller", ref:"caller", required:"required",
                    className:cx({'pending': this.state.pending}),
-                   'data-l10n-id':"caller"} ),
+                   'data-l10n-id':"caller", onChange:this.handleTextChange} ),
+
             React.DOM.button( {type:"submit", className:"get-url btn btn-success",
+                    disabled:cx({"disabled": this.state.disabled}),
                     'data-l10n-id':"get_a_call_url"} )
           )
         )
@@ -156,29 +176,13 @@ loop.panel = (function(_, mozL10n) {
    * Panel view.
    */
   var PanelView = React.createClass({displayName: 'PanelView',
-
     mixins: [sharedViews.ReactL10nMixin],
-
-    events: {
-      "keyup input[name=caller]": "changeButtonState",
-      "click a.go-back": "goBack"
-    },
 
     componentWillMount: function() {
       this.notifier = this.props.notifier;
       this.client = new loop.shared.Client({
         baseServerUrl: navigator.mozLoop.serverUrl
       });
-    },
-
-    changeButtonState: function() {
-      var enabled = !!this.$("input[name=caller]").val();
-      if (enabled) {
-        this.$(".get-url").removeClass("disabled")
-            .removeAttr("disabled", "disabled");
-      } else {
-        this.$(".get-url").addClass("disabled").attr("disabled", "disabled");
-      }
     },
 
     render: function() {

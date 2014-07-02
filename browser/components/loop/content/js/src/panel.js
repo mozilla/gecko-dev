@@ -41,11 +41,11 @@ loop.panel = (function(_, mozL10n) {
       var status = this.state.doNotDisturb ? 'Unavailable' : 'Available';
       // XXX https://github.com/facebook/react/issues/310 for === htmlFor
       return (
-        <div>
+        <p className="dnd">
           <input type="checkbox" checked={this.state.doNotDisturb}
                  id="dnd-component" onChange={this.handleCheckboxChange} />
           <label htmlFor="dnd-component">{status}</label>
-        </div>
+        </p>
       );
     }
   });
@@ -63,7 +63,9 @@ loop.panel = (function(_, mozL10n) {
           <div className="description">
             <p>{this.props.summary}</p>
           </div>
-          <div>{this.props.children}</div>
+          <div className="action">
+            {this.props.children}
+          </div>
         </div>
       );
     }
@@ -88,9 +90,11 @@ loop.panel = (function(_, mozL10n) {
       // from the react lib.
       return (
         <PanelLayout summary={__("share_link_url")}>
-          <input value={this.props.callUrl} readOnly="true" />
-          <button className="btn btn-success" data-l10n-id="new_url"
-                  onClick={this.handleButtonClick} />
+          <div className="invite">
+            <input type="url" value={this.props.callUrl} readOnly="true" />
+            <button className="btn btn-success" data-l10n-id="new_url"
+                    onClick={this.handleButtonClick} />
+          </div>
         </PanelLayout>
       );
     }
@@ -99,12 +103,25 @@ loop.panel = (function(_, mozL10n) {
   var CallUrlForm = React.createClass({
     mixins: [sharedViews.ReactL10nMixin],
 
+    propTypes: {
+      client: React.PropTypes.object.isRequired,
+      notifier: React.PropTypes.object.isRequired
+    },
+
     getInitialState: function() {
-      return {pending: false, callUrl: false};
+      return {
+        pending: false,
+        disabled: true,
+        callUrl: false
+      };
     },
 
     retry: function() {
-      this.setState({pending: false, callUrl: false});
+      this.setState(this.getInitialState());
+    },
+
+    handleTextChange: function(event) {
+      this.setState({disabled: !event.currentTarget.value});
     },
 
     handleFormSubmit: function(event) {
@@ -141,10 +158,13 @@ loop.panel = (function(_, mozL10n) {
       return (
         <PanelLayout summary={__("get_link_to_share")}>
           <form className="invite" onSubmit={this.handleFormSubmit}>
+
             <input type="text" name="caller" ref="caller" required="required"
                    className={cx({'pending': this.state.pending})}
-                   data-l10n-id="caller" />
+                   data-l10n-id="caller" onChange={this.handleTextChange} />
+
             <button type="submit" className="get-url btn btn-success"
+                    disabled={cx({"disabled": this.state.disabled})}
                     data-l10n-id="get_a_call_url" />
           </form>
         </PanelLayout>
@@ -156,29 +176,13 @@ loop.panel = (function(_, mozL10n) {
    * Panel view.
    */
   var PanelView = React.createClass({
-
     mixins: [sharedViews.ReactL10nMixin],
-
-    events: {
-      "keyup input[name=caller]": "changeButtonState",
-      "click a.go-back": "goBack"
-    },
 
     componentWillMount: function() {
       this.notifier = this.props.notifier;
       this.client = new loop.shared.Client({
         baseServerUrl: navigator.mozLoop.serverUrl
       });
-    },
-
-    changeButtonState: function() {
-      var enabled = !!this.$("input[name=caller]").val();
-      if (enabled) {
-        this.$(".get-url").removeClass("disabled")
-            .removeAttr("disabled", "disabled");
-      } else {
-        this.$(".get-url").addClass("disabled").attr("disabled", "disabled");
-      }
     },
 
     render: function() {
