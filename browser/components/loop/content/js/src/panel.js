@@ -113,7 +113,7 @@ loop.panel = (function(_, mozL10n) {
       var callback = function(err, callUrlData) {
         this.setState({pending: false});
         if (err) {
-          this.notifier.errorL10n("unable_retrieve_url");
+          this.props.notifier.errorL10n("unable_retrieve_url");
           return;
         }
         this.onCallUrlReceived(callUrlData);
