@@ -274,6 +274,8 @@ loop.panel = (function(_, mozL10n) {
 
   return {
     init: init,
+    DoNotDisturb: DoNotDisturb,
+    CallUrlForm: CallUrlForm,
     PanelView: PanelView,
     PanelRouter: PanelRouter
   };

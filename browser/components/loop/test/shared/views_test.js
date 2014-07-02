@@ -9,16 +9,6 @@ var expect = chai.expect;
 var l10n = document.webL10n || document.mozL10n;
 var TestUtils = React.addons.TestUtils;
 
-// React test utils for Loop
-// XXX this is ugly, should be cleaned up, expanded and moved to its own module.
-function stubComponent(ComponentClass, specObject) {
-  if (!TestUtils.isCompositeComponent(ComponentClass)) {
-    throw Error("stubComponent() expects a valid React component constructor.");
-  }
-  var stubbedSpec = _.extend({}, ComponentClass.originalSpec, specObject);
-  return React.createClass(stubbedSpec);
-}
-
 describe("loop.shared.views", function() {
   "use strict";
 
@@ -159,10 +149,11 @@ describe("loop.shared.views", function() {
       var stubbedView;
 
       beforeEach(function() {
-        var StubView = stubComponent(sharedViews.ReactConversationView, {
-          publish: sandbox.stub(),
-          unpublish: sandbox.stub()
-        });
+        var StubView = TestUtils.stubComponent(
+          sharedViews.ReactConversationView, {
+            publish: sandbox.stub(),
+            unpublish: sandbox.stub()
+          });
         stubbedView = TestUtils.renderIntoDocument(StubView({
           sdk: fakeSDK,
           model: model
