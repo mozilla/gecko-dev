@@ -50,7 +50,7 @@ loop.panel = (function(_, mozL10n) {
     }
   });
 
-  var PanelContainer = React.createClass({
+  var PanelLayout = React.createClass({
     mixins: [sharedViews.ReactL10nMixin],
 
     propTypes: {
@@ -87,11 +87,11 @@ loop.panel = (function(_, mozL10n) {
       // readOnly attr will suppress a warning regarding this issue
       // from the react lib.
       return (
-        <PanelContainer summary={__("share_link_url")}>
+        <PanelLayout summary={__("share_link_url")}>
           <input value={this.props.callUrl} readOnly="true" />
           <button className="btn btn-success" data-l10n-id="new_url"
                   onClick={this.handleButtonClick} />
-        </PanelContainer>
+        </PanelLayout>
       );
     }
   });
@@ -139,7 +139,7 @@ loop.panel = (function(_, mozL10n) {
       // If we don't display the form
       var cx = React.addons.classSet;
       return (
-        <PanelContainer summary={__("get_link_to_share")}>
+        <PanelLayout summary={__("get_link_to_share")}>
           <form className="invite" onSubmit={this.handleFormSubmit}>
             <input type="text" name="caller" ref="caller" required="required"
                    className={cx({'pending': this.state.pending})}
@@ -147,7 +147,7 @@ loop.panel = (function(_, mozL10n) {
             <button type="submit" className="get-url btn btn-success"
                     data-l10n-id="get_a_call_url" />
           </form>
-        </PanelContainer>
+        </PanelLayout>
       );
     }
   });
