@@ -127,22 +127,24 @@ loop.panel = (function(_, mozL10n) {
     handleFormSubmit: function(event) {
       event.preventDefault();
 
-      var nickname = this.refs.caller.getDOMNode().value;
-
-      this.props.client.requestCallUrl(nickname, function(err, callUrlData) {
-        this.setState({pending: false});
-        if (err) {
-          this.props.notifier.errorL10n("unable_retrieve_url");
-          return;
-        }
-        this.onCallUrlReceived(callUrlData);
-      }.bind(this));
-
       this.setState({pending: true});
+
+      this.props.client.requestCallUrl(
+        this.refs.caller.getDOMNode().value, this._onCallUrlReceived);
     },
 
-    onCallUrlReceived: function(response) {
-      this.setState({callUrl: response.call_url});
+    _onCallUrlReceived: function(err, callUrlData) {
+      if (err) {
+        this.props.notifier.errorL10n("unable_retrieve_url");
+        return;
+      }
+
+      this.props.notifier.clear();
+
+      this.setState({
+        pending: false,
+        callUrl: callUrlData.callUrl || callUrlData.call_url
+      });
     },
 
     render: function() {

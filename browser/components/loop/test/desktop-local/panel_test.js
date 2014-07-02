@@ -53,7 +53,6 @@ describe("loop.panel", function() {
 
   afterEach(function() {
     delete navigator.mozLoop;
-    $("#fixtures").empty();
     sandbox.restore();
   });
 
@@ -113,53 +112,51 @@ describe("loop.panel", function() {
             }));
         });
       });
+    });
 
-      describe("Events", function() {
-        it("should listen to document visibility changes", function() {
-          var fakeDocument = {
-            hidden: true,
-            addEventListener: sandbox.spy()
-          };
+    describe("Events", function() {
+      beforeEach(function() {
+        sandbox.stub(loop.panel.PanelRouter.prototype, "trigger");
+      });
 
-          var router = createTestRouter(fakeDocument);
+      it("should listen to document visibility changes", function() {
+        var fakeDocument = {
+          hidden: true,
+          addEventListener: sandbox.spy()
+        };
 
-          sinon.assert.calledOnce(fakeDocument.addEventListener);
-          sinon.assert.calledWith(fakeDocument.addEventListener,
-                                  "visibilitychange");
+        var router = createTestRouter(fakeDocument);
+
+        sinon.assert.calledOnce(fakeDocument.addEventListener);
+        sinon.assert.calledWith(fakeDocument.addEventListener,
+                                "visibilitychange");
+      });
+
+      it("should trigger panel:open when the panel document is visible",
+        function() {
+          var router = createTestRouter({
+            hidden: false,
+            addEventListener: function(name, cb) {
+              cb({currentTarget: {hidden: false}});
+            }
+          });
+
+          sinon.assert.calledOnce(router.trigger);
+          sinon.assert.calledWithExactly(router.trigger, "panel:open");
         });
 
-        it("should trigger panel:open when the panel document is visible",
-          function(done) {
-            var router = createTestRouter({
-              hidden: false,
-              addEventListener: function(name, cb) {
-                setTimeout(function() {
-                  cb({currentTarget: {hidden: false}});
-                }, 0);
-              }
-            });
-
-            router.once("panel:open", function() {
-              done();
-            });
+      it("should trigger panel:closed when the panel document is hidden",
+        function() {
+          var router = createTestRouter({
+            hidden: true,
+            addEventListener: function(name, cb) {
+              cb({currentTarget: {hidden: true}});
+            }
           });
 
-        it("should trigger panel:closed when the panel document is hidden",
-          function(done) {
-            var router = createTestRouter({
-              addEventListener: function(name, cb) {
-                hidden: true,
-                setTimeout(function() {
-                  cb({currentTarget: {hidden: true}});
-                }, 0);
-              }
-            });
-
-            router.once("panel:closed", function() {
-              done();
-            });
-          });
-      });
+          sinon.assert.calledOnce(router.trigger);
+          sinon.assert.calledWithExactly(router.trigger, "panel:closed");
+        });
     });
   });
 
@@ -189,10 +186,20 @@ describe("loop.panel", function() {
   });
 
   describe("loop.panel.CallUrlForm", function() {
-    var fakeClient, view;
+    var fakeClient, callUrlData, view;
 
     beforeEach(function() {
-      fakeClient = {};
+      callUrlData = {
+        call_url: "http://call.me/",
+        expiresAt: 1000
+      };
+
+      fakeClient = {
+        requestCallUrl: function(_, cb) {
+          cb(null, callUrlData);
+        }
+      };
+
       view = TestUtils.renderIntoDocument(loop.panel.CallUrlForm({
         notifier: notifier,
         client: fakeClient
@@ -212,12 +219,10 @@ describe("loop.panel", function() {
           TestUtils.findRenderedDOMComponentWithTag(view, "form"));
       }
 
-      it.skip("should reset all pending notifications", function() {
-        var submit = TestUtils.findRenderedDOMComponentWithTag(view, "button");
+      it("should reset all pending notifications", function() {
+        submitForm("foo");
 
-        TestUtils.Simulate.click(submit);
-
-        sinon.assert.calledOnce(view.notifier.clear, "clear");
+        sinon.assert.calledOnce(notifier.clear, "clear");
       });
 
       it("should request a call url to the server", function() {
@@ -230,6 +235,7 @@ describe("loop.panel", function() {
       });
 
       it("should set the call url form in a pending state", function() {
+        // Cancel requestCallUrl effect to keep the state pending
         fakeClient.requestCallUrl = sandbox.stub();
 
         submitForm("foo");
@@ -237,67 +243,43 @@ describe("loop.panel", function() {
         expect(view.state.pending).eql(true);
       });
 
-      it("should clear the pending state when a response is received",
-        function(done) {
-          fakeClient.requestCallUrl = function(_, cb) {
-              cb(null, "fake");
-              expect(view.state.pending).eql(false);
-              done();
-          };
+      it("should update state with the call url received", function() {
+        submitForm("foo");
 
+        expect(view.state.pending).eql(false);
+        expect(view.state.callUrl).eql(callUrlData.call_url);
+      });
+
+      it("should clear the pending state when a response is received",
+        function() {
           submitForm("foo");
+
+          expect(view.state.pending).eql(false);
         });
 
-      it("should notify the user when the operation failed", function(done) {
-        fakeClient.requestCallUrl = function(_, cb) {
-            cb("fake error");
-            sinon.assert.calledOnce(notifier.errorL10n);
-            sinon.assert.calledWithExactly(notifier.errorL10n,
-                                           "unable_retrieve_url");
-            done();
-        };
-
+      it("should update CallUrlResult with the call url", function() {
         submitForm("foo");
-      });
-    });
 
-    describe("#onCallUrlReceived", function() {
-      var callUrlData;
-
-      beforeEach(function() {
-        callUrlData = {
-          call_url: "http://call.me/",
-          expiresAt: 1000
-        };
-      });
-
-      it("should update the text field with the call url", function() {
-        var view = new loop.panel.PanelView({notifier: notifier});
-        view.render();
-
-        view.onCallUrlReceived(callUrlData);
-
-        expect(view.$("#call-url").val()).eql("http://call.me/");
+        var urlField = view.getDOMNode().querySelector("input[type='url']");
+        expect(urlField.value).eql(callUrlData.call_url);
       });
 
       it("should reset all pending notifications", function() {
-        var view = new loop.panel.PanelView({notifier: notifier}).render();
+        submitForm("foo");
 
-        view.onCallUrlReceived(callUrlData);
-
-        sinon.assert.calledOnce(view.notifier.clear);
+        sinon.assert.calledOnce(view.props.notifier.clear);
       });
-    });
 
-    describe("#render", function() {
-      it("should render a DoNotDisturb", function() {
-        var renderDnD = sandbox.stub(loop.panel.DoNotDisturb.prototype,
-                                     "render");
-        var view = new loop.panel.PanelView({notifier: notifier});
+      it("should notify the user when the operation failed", function() {
+        fakeClient.requestCallUrl = function(_, cb) {
+          cb("fake error");
+        };
 
-        view.render();
+        submitForm("foo");
 
-        sinon.assert.calledOnce(renderDnD);
+        sinon.assert.calledOnce(notifier.errorL10n);
+        sinon.assert.calledWithExactly(notifier.errorL10n,
+                                       "unable_retrieve_url");
       });
     });
   });
