@@ -20,28 +20,8 @@ function parseMMI(mmi) {
   return context.RIL._parseMMI(mmi);
 }
 
-function getWorker() {
-  let _postedMessage;
-  let _worker = newWorker({
-    postRILMessage: function(data) {
-    },
-    postMessage: function(message) {
-      _postedMessage = message;
-    },
-  });
-
-  return {
-    get postedMessage() {
-      return _postedMessage;
-    },
-    get worker() {
-      return _worker;
-    }
-  };
-}
-
 function testSendMMI(mmi, error) {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -371,7 +351,7 @@ add_test(function test_sendMMI_invalid() {
 });
 
 add_test(function test_sendMMI_short_code() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -404,7 +384,7 @@ add_test(function test_sendMMI_dial_string() {
 });
 
 function setCallForwardSuccess(mmi) {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -436,7 +416,7 @@ add_test(function test_sendMMI_call_forwarding_deactivation() {
 });
 
 add_test(function test_sendMMI_call_forwarding_interrogation() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -479,7 +459,7 @@ add_test(function test_sendMMI_call_forwarding_interrogation() {
 });
 
 add_test(function test_sendMMI_call_forwarding_interrogation_no_rules() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -548,7 +528,7 @@ add_test(function test_sendMMI_call_forwarding_CFAllConditional() {
 });
 
 add_test(function test_sendMMI_change_PIN() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -594,7 +574,7 @@ add_test(function test_sendMMI_change_PIN_new_PIN_mismatch() {
 });
 
 add_test(function test_sendMMI_change_PIN2() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -640,7 +620,7 @@ add_test(function test_sendMMI_change_PIN2_new_PIN2_mismatch() {
 });
 
 add_test(function test_sendMMI_unblock_PIN() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -686,7 +666,7 @@ add_test(function test_sendMMI_unblock_PIN_new_PIN_mismatch() {
 });
 
 add_test(function test_sendMMI_unblock_PIN2() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -732,7 +712,7 @@ add_test(function test_sendMMI_unblock_PIN2_new_PIN_mismatch() {
 });
 
 add_test(function test_sendMMI_get_IMEI() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
@@ -756,7 +736,7 @@ add_test(function test_sendMMI_get_IMEI() {
 });
 
 add_test(function test_sendMMI_get_IMEI_error() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
@@ -780,7 +760,7 @@ add_test(function test_sendMMI_get_IMEI_error() {
 });
 
 add_test(function test_sendMMI_call_barring_BAIC_interrogation_voice() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -811,7 +791,7 @@ add_test(function test_sendMMI_call_barring_BAIC_interrogation_voice() {
 });
 
 add_test(function test_sendMMI_call_barring_BAIC_activation() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
@@ -839,7 +819,7 @@ add_test(function test_sendMMI_call_barring_BAIC_activation() {
 });
 
 add_test(function test_sendMMI_call_barring_BAIC_deactivation() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
@@ -873,7 +853,7 @@ add_test(function test_sendMMI_call_barring_BAIC_procedure_not_supported() {
 });
 
 add_test(function test_sendMMI_USSD() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let ussdOptions;
@@ -899,7 +879,7 @@ add_test(function test_sendMMI_USSD() {
 });
 
 add_test(function test_sendMMI_USSD_error() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
   let ussdOptions;
@@ -925,7 +905,7 @@ add_test(function test_sendMMI_USSD_error() {
 });
 
 function setCallWaitingSuccess(mmi) {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -969,7 +949,7 @@ add_test(function test_sendMMI_call_waiting_erasure() {
 });
 
 add_test(function test_sendMMI_call_waiting_interrogation() {
-  let workerhelper = getWorker();
+  let workerhelper = newInterceptWorker();
   let worker = workerhelper.worker;
   let context = worker.ContextPool._contexts[0];
 
