@@ -1,8 +1,8 @@
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+
 var etld = Cc["@mozilla.org/network/effective-tld-service;1"]
              .getService(Ci.nsIEffectiveTLDService);
-
-var idna = Cc["@mozilla.org/network/idn-service;1"]
-           .getService(Ci.nsIIDNService);
 
 function run_test()
 {
@@ -13,7 +13,7 @@ function run_test()
   var scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
                        .getService(Ci.mozIJSSubScriptLoader);
   var srvScope = {};
-  scriptLoader.loadSubScript(uri.spec, srvScope, "utf-8");
+  scriptLoader.loadSubScript(uri.spec, srvScope);
 }
 
 function checkPublicSuffix(host, expectedSuffix)
@@ -23,12 +23,6 @@ function checkPublicSuffix(host, expectedSuffix)
     actualSuffix = etld.getBaseDomainFromHost(host);
   } catch (e if e.name == "NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS" ||
                 e.name == "NS_ERROR_ILLEGAL_VALUE") {
-  }
-  // The EffectiveTLDService always gives back punycoded labels.
-  // The test suite wants to get back what it put in.
-  if (actualSuffix !== null && expectedSuffix !== null &&
-      /(^|\.)xn--/.test(actualSuffix) && !/(^|\.)xn--/.test(expectedSuffix)) {
-    actualSuffix = idna.convertACEtoUTF8(actualSuffix);
   }
   do_check_eq(actualSuffix, expectedSuffix);
 }
