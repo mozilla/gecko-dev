@@ -24,7 +24,7 @@ loop.panel = (function(_, mozL10n) {
   /**
    * Do not disturb panel subview.
    */
-  var DoNotDisturb = React.createClass({displayName: 'DoNotDisturb',
+  var DoNotDisturb = React.createClass({
     mixins: [sharedViews.ReactL10nMixin],
 
     getInitialState: function() {
@@ -41,16 +41,16 @@ loop.panel = (function(_, mozL10n) {
       var status = this.state.doNotDisturb ? 'Unavailable' : 'Available';
       // XXX https://github.com/facebook/react/issues/310 for === htmlFor
       return (
-        React.DOM.p( {className:"dnd"}, 
-          React.DOM.input( {type:"checkbox", checked:this.state.doNotDisturb,
-                 id:"dnd-component", onChange:this.handleCheckboxChange} ),
-          React.DOM.label( {htmlFor:"dnd-component"}, status)
-        )
+        <p className="dnd">
+          <input type="checkbox" checked={this.state.doNotDisturb}
+                 id="dnd-component" onChange={this.handleCheckboxChange} />
+          <label htmlFor="dnd-component">{status}</label>
+        </p>
       );
     }
   });
 
-  var PanelLayout = React.createClass({displayName: 'PanelLayout',
+  var PanelLayout = React.createClass({
     mixins: [sharedViews.ReactL10nMixin],
 
     propTypes: {
@@ -59,19 +59,19 @@ loop.panel = (function(_, mozL10n) {
 
     render: function() {
       return (
-        React.DOM.div( {className:"share generate-url"}, 
-          React.DOM.div( {className:"description"}, 
-            React.DOM.p(null, this.props.summary)
-          ),
-          React.DOM.div( {className:"action"}, 
-            this.props.children
-          )
-        )
+        <div className="share generate-url">
+          <div className="description">
+            <p>{this.props.summary}</p>
+          </div>
+          <div className="action">
+            {this.props.children}
+          </div>
+        </div>
       );
     }
   });
 
-  var CallUrlResult = React.createClass({displayName: 'CallUrlResult',
+  var CallUrlResult = React.createClass({
     mixins: [sharedViews.ReactL10nMixin],
 
     propTypes: {
@@ -89,18 +89,18 @@ loop.panel = (function(_, mozL10n) {
       // readOnly attr will suppress a warning regarding this issue
       // from the react lib.
       return (
-        PanelLayout( {summary:__("share_link_url")}, 
-          React.DOM.div( {className:"invite"}, 
-            React.DOM.input( {type:"url", value:this.props.callUrl, readOnly:"true"} ),
-            React.DOM.button( {className:"btn btn-success", 'data-l10n-id':"new_url",
-                    onClick:this.handleButtonClick} )
-          )
-        )
+        <PanelLayout summary={__("share_link_url")}>
+          <div className="invite">
+            <input type="url" value={this.props.callUrl} readOnly="true" />
+            <button className="btn btn-success" data-l10n-id="new_url"
+                    onClick={this.handleButtonClick} />
+          </div>
+        </PanelLayout>
       );
     }
   });
 
-  var CallUrlForm = React.createClass({displayName: 'CallUrlForm',
+  var CallUrlForm = React.createClass({
     mixins: [sharedViews.ReactL10nMixin],
 
     propTypes: {
@@ -151,25 +151,25 @@ loop.panel = (function(_, mozL10n) {
       // If we have a call url, render result
       if (this.state.callUrl) {
         return (
-          CallUrlResult( {callUrl:this.state.callUrl, retry:this.retry})
+          <CallUrlResult callUrl={this.state.callUrl} retry={this.retry}/>
         );
       }
 
       // If we don't display the form
       var cx = React.addons.classSet;
       return (
-        PanelLayout( {summary:__("get_link_to_share")}, 
-          React.DOM.form( {className:"invite", onSubmit:this.handleFormSubmit}, 
+        <PanelLayout summary={__("get_link_to_share")}>
+          <form className="invite" onSubmit={this.handleFormSubmit}>
 
-            React.DOM.input( {type:"text", name:"caller", ref:"caller", required:"required",
-                   className:cx({'pending': this.state.pending}),
-                   'data-l10n-id':"caller", onChange:this.handleTextChange} ),
+            <input type="text" name="caller" ref="caller" required="required"
+                   className={cx({'pending': this.state.pending})}
+                   data-l10n-id="caller" onChange={this.handleTextChange} />
 
-            React.DOM.button( {type:"submit", className:"get-url btn btn-success",
-                    disabled:cx({"disabled": this.state.disabled}),
-                    'data-l10n-id':"get_a_call_url"} )
-          )
-        )
+            <button type="submit" className="get-url btn btn-success"
+                    disabled={cx({"disabled": this.state.disabled})}
+                    data-l10n-id="get_a_call_url" />
+          </form>
+        </PanelLayout>
       );
     }
   });
@@ -177,7 +177,7 @@ loop.panel = (function(_, mozL10n) {
   /**
    * Panel view.
    */
-  var PanelView = React.createClass({displayName: 'PanelView',
+  var PanelView = React.createClass({
     mixins: [sharedViews.ReactL10nMixin],
 
     componentWillMount: function() {
@@ -189,10 +189,10 @@ loop.panel = (function(_, mozL10n) {
 
     render: function() {
       return (
-        React.DOM.div(null, 
-          CallUrlForm( {client:this.client, notifier:this.notifier} ),
-          DoNotDisturb(null )
-        )
+        <div>
+          <CallUrlForm client={this.client} notifier={this.notifier} />
+          <DoNotDisturb />
+        </div>
       );
     }
   });
@@ -250,7 +250,7 @@ loop.panel = (function(_, mozL10n) {
       // purge pending notifications
       this._notifier.clear();
       // reset home view
-      this.loadReactComponent(PanelView( {notifier:this._notifier} ));
+      this.loadReactComponent(<PanelView notifier={this._notifier} />);
     }
   });
 

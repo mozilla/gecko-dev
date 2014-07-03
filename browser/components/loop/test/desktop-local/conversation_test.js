@@ -109,6 +109,7 @@ describe("loop.conversation", function() {
           notifier: notifier
         });
         sandbox.stub(router, "loadView");
+        sandbox.stub(router, "loadReactComponent");
       });
 
       describe("#incoming", function() {
@@ -155,15 +156,16 @@ describe("loop.conversation", function() {
 
       describe("#conversation", function() {
         it("should load the ConversationView if session is set", function() {
-          sandbox.stub(loop.shared.views.ConversationView.prototype,
-            "initialize");
           conversation.set("sessionId", "fakeSessionId");
 
           router.conversation();
 
-          sinon.assert.calledOnce(router.loadView);
-          sinon.assert.calledWith(router.loadView,
-            sinon.match.instanceOf(loop.shared.views.ConversationView));
+          sinon.assert.calledOnce(router.loadReactComponent);
+          sinon.assert.calledWith(router.loadReactComponent,
+            sinon.match(function(value) {
+              return React.addons.TestUtils.isComponentOfType(
+                value, loop.shared.views.ReactConversationView);
+            }));
         });
 
         it("should not load the ConversationView if session is not set",

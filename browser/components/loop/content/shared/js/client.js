@@ -94,7 +94,7 @@ loop.shared.Client = (function($) {
       }
       var message = "HTTP " + jqXHR.status + " " + errorThrown +
           "; " + error;
-      console.error(message);
+      console.error(message, jsonRes);
       cb(new Error(message));
     },
 
