@@ -171,19 +171,37 @@ void GrallocImage::SetData(const GrallocData& aData)
  */
 static void
 ConvertYVU420SPToRGB565(void *aYData, uint32_t aYStride,
-                        void *aUVData, uint32_t aUVStride,
+                        void *aUData, void *aVData, uint32_t aUVStride,
                         void *aOut,
                         uint32_t aWidth, uint32_t aHeight)
 {
   uint8_t *y = (uint8_t*)aYData;
-  int8_t *uv = (int8_t*)aUVData;
+  bool isCbCr;
+  int8_t *uv;
+
+  if (aUData < aVData) {
+    // The color format is YCbCr
+    isCbCr = true;
+    uv = (int8_t*)aUData;
+  } else {
+    // The color format is YCrCb
+    isCbCr = false;
+    uv = (int8_t*)aVData;
+  }
 
   uint16_t *rgb = (uint16_t*)aOut;
 
   for (size_t i = 0; i < aHeight; i++) {
     for (size_t j = 0; j < aWidth; j++) {
-      int8_t d = uv[j | 1] - 128;
-      int8_t e = uv[j & ~1] - 128;
+      int8_t d, e;
+
+      if (isCbCr) {
+        d = uv[j & ~1] - 128;
+        e = uv[j | 1] - 128;
+      } else {
+        d = uv[j | 1] - 128;
+        e = uv[j & ~1] - 128;
+      }
 
       // Constants taken from https://en.wikipedia.org/wiki/YUV
       int32_t r = (298 * y[j] + 409 * e + 128) >> 11;
@@ -204,90 +222,311 @@ ConvertYVU420SPToRGB565(void *aYData, uint32_t aYStride,
   }
 }
 
-already_AddRefed<gfxASurface>
-GrallocImage::DeprecatedGetAsSurface()
+/**
+ * Converts the format of vendor-specific YVU420(planar and semi-planar)
+ * with the help of GraphicBuffer::lockYCbCr. In this way, we can convert
+ * the YUV color format without awaring actual definition/enumeration
+ * of vendor formats.
+ */
+static status_t
+ConvertVendorYUVFormatToRGB565(android::sp<GraphicBuffer>& aBuffer,
+                               gfx::DataSourceSurface *aSurface,
+                               gfx::DataSourceSurface::MappedSurface *aMappedSurface)
 {
-  android::sp<GraphicBuffer> graphicBuffer =
-    GrallocBufferActor::GetFrom(GetSurfaceDescriptor());
+  status_t rv = BAD_VALUE;
 
-  void *buffer;
-  int32_t rv =
-    graphicBuffer->lock(android::GraphicBuffer::USAGE_SW_READ_OFTEN, &buffer);
+#if ANDROID_VERSION >= 18
+  android_ycbcr ycbcr;
 
-  if (rv) {
-    NS_WARNING("Couldn't lock graphic buffer");
-    return nullptr;
+  // Check if the vendor provides explicit addresses of Y/Cb/Cr buffer from lockYCbCr
+  rv = aBuffer->lockYCbCr(android::GraphicBuffer::USAGE_SW_READ_OFTEN, &ycbcr);
+
+  if (rv != OK) {
+    NS_WARNING("Couldn't lock graphic buffer using lockYCbCr()");
+    return rv;
   }
 
-  GraphicBufferAutoUnlock unlock(graphicBuffer);
+  GraphicBufferAutoUnlock unlock(aBuffer);
 
-  uint32_t format = graphicBuffer->getPixelFormat();
-  uint32_t omxFormat = 0;
+  uint32_t width = aSurface->GetSize().width;
+  uint32_t height = aSurface->GetSize().height;
 
-  for (int i = 0; sColorIdMap[i]; i += 2) {
-    if (sColorIdMap[i] == format) {
-      omxFormat = sColorIdMap[i + 1];
-      break;
-    }
+  if (ycbcr.chroma_step == 2) {
+    // From the system/core/include/system/graphics.h
+    // @chroma_step is the distance in bytes from one chroma pixel value to
+    // the next.  This is 2 bytes for semiplanar (because chroma values are
+    // interleaved and each chroma value is one byte) and 1 for planar.
+    ConvertYVU420SPToRGB565(ycbcr.y, ycbcr.ystride,
+                            ycbcr.cb, ycbcr.cr, ycbcr.cstride,
+                            aMappedSurface->mData,
+                            width, height);
+  } else {
+    layers::PlanarYCbCrData ycbcrData;
+    ycbcrData.mYChannel     = static_cast<uint8_t*>(ycbcr.y);
+    ycbcrData.mYStride      = ycbcr.ystride;
+    ycbcrData.mYSize        = aSurface->GetSize();
+    ycbcrData.mCbChannel    = static_cast<uint8_t*>(ycbcr.cb);
+    ycbcrData.mCrChannel    = static_cast<uint8_t*>(ycbcr.cr);
+    ycbcrData.mCbCrStride   = ycbcr.cstride;
+    ycbcrData.mCbCrSize     = aSurface->GetSize() / 2;
+    ycbcrData.mPicSize      = aSurface->GetSize();
+
+    gfx::ConvertYCbCrToRGB(ycbcrData,
+                           aSurface->GetFormat(),
+                           aSurface->GetSize(),
+                           aMappedSurface->mData,
+                           aMappedSurface->mStride);
+  }
+#endif
+
+  return rv;
+}
+
+static status_t
+DeprecatedConvertVendorYUVFormatToRGB565(android::sp<GraphicBuffer>& aBuffer,
+                               nsRefPtr<gfxImageSurface> aSurface)
+{
+  status_t rv = BAD_VALUE;
+
+#if ANDROID_VERSION >= 18
+  android_ycbcr ycbcr;
+
+  // Check if the vendor provides explicit addresses of Y/Cb/Cr buffer from lockYCbCr
+  rv = aBuffer->lockYCbCr(android::GraphicBuffer::USAGE_SW_READ_OFTEN, &ycbcr);
+
+  if (rv != OK) {
+    NS_WARNING("Couldn't lock graphic buffer using lockYCbCr()");
+    return rv;
   }
 
-  if (!omxFormat) {
+  GraphicBufferAutoUnlock unlock(aBuffer);
+
+  uint32_t width = aSurface->GetSize().width;
+  uint32_t height = aSurface->GetSize().height;
+  gfx::IntSize imageSize(width, height);
+
+  if (ycbcr.chroma_step == 2) {
+    // From the system/core/include/system/graphics.h
+    // @chroma_step is the distance in bytes from one chroma pixel value to
+    // the next.  This is 2 bytes for semiplanar (because chroma values are
+    // interleaved and each chroma value is one byte) and 1 for planar.
+    ConvertYVU420SPToRGB565(ycbcr.y, ycbcr.ystride,
+                            ycbcr.cb, ycbcr.cr, ycbcr.cstride,
+                            aSurface->Data(),
+                            width, height);
+  } else {
+    layers::PlanarYCbCrData ycbcrData;
+    ycbcrData.mYChannel     = static_cast<uint8_t*>(ycbcr.y);
+    ycbcrData.mYStride      = ycbcr.ystride;
+    ycbcrData.mYSize        = imageSize;
+    ycbcrData.mCbChannel    = static_cast<uint8_t*>(ycbcr.cb);
+    ycbcrData.mCrChannel    = static_cast<uint8_t*>(ycbcr.cr);
+    ycbcrData.mCbCrStride   = ycbcr.cstride;
+    ycbcrData.mCbCrSize     = imageSize / 2;
+    ycbcrData.mPicSize      = imageSize;
+
+    gfx::ConvertYCbCrToRGB(ycbcrData,
+                           gfx::ImageFormatToSurfaceFormat(aSurface->Format()),
+                           imageSize,
+                           aSurface->Data(),
+                           aSurface->Stride());
+  }
+#endif
+
+  return rv;
+}
+
+static status_t
+ConvertOmxYUVFormatToRGB565(android::sp<GraphicBuffer>& aBuffer,
+                            gfx::DataSourceSurface *aSurface,
+                            gfx::DataSourceSurface::MappedSurface *aMappedSurface,
+                            const layers::PlanarYCbCrData& aYcbcrData,
+                            int aOmxFormat)
+{
+  if (!aOmxFormat) {
     NS_WARNING("Unknown color format");
-    return nullptr;
+    return BAD_VALUE;
   }
 
-  nsRefPtr<gfxImageSurface> imageSurface =
-    new gfxImageSurface(gfx::ThebesIntSize(GetSize()), gfxImageFormat::RGB16_565);
+  status_t rv;
+  uint8_t *buffer;
 
-  uint32_t width = GetSize().width;
-  uint32_t height = GetSize().height;
+  rv = aBuffer->lock(android::GraphicBuffer::USAGE_SW_READ_OFTEN,
+                     reinterpret_cast<void **>(&buffer));
+  if (rv != OK) {
+    NS_WARNING("Couldn't lock graphic buffer");
+    return BAD_VALUE;
+  }
 
-  if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP_ADRENO) {
+  GraphicBufferAutoUnlock unlock(aBuffer);
+
+  uint32_t format = aBuffer->getPixelFormat();
+  uint32_t width = aSurface->GetSize().width;
+  uint32_t height = aSurface->GetSize().height;
+
+  if (format == GrallocImage::HAL_PIXEL_FORMAT_YCrCb_420_SP_ADRENO) {
     // The Adreno hardware decoder aligns image dimensions to a multiple of 32,
     // so we have to account for that here
     uint32_t alignedWidth = ALIGN(width, 32);
     uint32_t alignedHeight = ALIGN(height, 32);
     uint32_t uvOffset = ALIGN(alignedHeight * alignedWidth, 4096);
     uint32_t uvStride = 2 * ALIGN(width / 2, 32);
-    uint8_t* buffer_as_bytes = static_cast<uint8_t*>(buffer);
     ConvertYVU420SPToRGB565(buffer, alignedWidth,
-                            buffer_as_bytes + uvOffset, uvStride,
-                            imageSurface->Data(),
+                            buffer + uvOffset + 1,
+                            buffer + uvOffset,
+                            uvStride,
+                            aMappedSurface->mData,
                             width, height);
-
-    return imageSurface.forget();
-  } else if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP) {
-    uint32_t uvOffset = height * width;
-    ConvertYVU420SPToRGB565(buffer, width,
-                            buffer + uvOffset, width,
-                            imageSurface->Data(),
-                            width, height);
-
-    return imageSurface.forget();
-  } else if (format == HAL_PIXEL_FORMAT_YV12) {
-    gfx::ConvertYCbCrToRGB(mData,
-                           gfx::ImageFormatToSurfaceFormat(imageSurface->Format()),
-                           mSize,
-                           imageSurface->Data(),
-                           imageSurface->Stride());
-    return imageSurface.forget();
+    return OK;
   }
 
-  android::ColorConverter colorConverter((OMX_COLOR_FORMATTYPE)omxFormat,
-                                         OMX_COLOR_Format16bitRGB565);
+  if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP) {
+    uint32_t uvOffset = height * width;
+    ConvertYVU420SPToRGB565(buffer, width,
+                            buffer + uvOffset + 1,
+                            buffer + uvOffset,
+                            width,
+                            aMappedSurface->mData,
+                            width, height);
+    return OK;
+  }
 
+  if (format == HAL_PIXEL_FORMAT_YV12) {
+    gfx::ConvertYCbCrToRGB(aYcbcrData,
+                           aSurface->GetFormat(),
+                           aSurface->GetSize(),
+                           aSurface->GetData(),
+                           aSurface->Stride());
+    return OK;
+  }
+
+  android::ColorConverter colorConverter((OMX_COLOR_FORMATTYPE)aOmxFormat,
+                                         OMX_COLOR_Format16bitRGB565);
   if (!colorConverter.isValid()) {
     NS_WARNING("Invalid color conversion");
-    return nullptr;
+    return BAD_VALUE;
   }
 
   rv = colorConverter.convert(buffer, width, height,
                               0, 0, width - 1, height - 1 /* source crop */,
-                              imageSurface->Data(), width, height,
+                              aMappedSurface->mData, width, height,
                               0, 0, width - 1, height - 1 /* dest crop */);
-
   if (rv) {
     NS_WARNING("OMX color conversion failed");
+    return BAD_VALUE;
+  }
+
+  return OK;
+}
+
+static status_t
+DeprecatedConvertOmxYUVFormatToRGB565(android::sp<GraphicBuffer>& aBuffer,
+                            nsRefPtr<gfxImageSurface> aSurface,
+                            const layers::PlanarYCbCrData& aYcbcrData,
+                            int aOmxFormat)
+{
+  if (!aOmxFormat) {
+    NS_WARNING("Unknown color format");
+    return BAD_VALUE;
+  }
+
+  status_t rv;
+  uint8_t *buffer;
+
+  rv = aBuffer->lock(android::GraphicBuffer::USAGE_SW_READ_OFTEN,
+                     reinterpret_cast<void **>(&buffer));
+  if (rv != OK) {
+    NS_WARNING("Couldn't lock graphic buffer");
+    return BAD_VALUE;
+  }
+
+  GraphicBufferAutoUnlock unlock(aBuffer);
+
+  uint32_t format = aBuffer->getPixelFormat();
+  uint32_t width = aSurface->GetSize().width;
+  uint32_t height = aSurface->GetSize().height;
+
+  if (format == GrallocImage::HAL_PIXEL_FORMAT_YCrCb_420_SP_ADRENO) {
+    // The Adreno hardware decoder aligns image dimensions to a multiple of 32,
+    // so we have to account for that here
+    uint32_t alignedWidth = ALIGN(width, 32);
+    uint32_t alignedHeight = ALIGN(height, 32);
+    uint32_t uvOffset = ALIGN(alignedHeight * alignedWidth, 4096);
+    uint32_t uvStride = 2 * ALIGN(width / 2, 32);
+    ConvertYVU420SPToRGB565(buffer, alignedWidth,
+                            buffer + uvOffset + 1,
+                            buffer + uvOffset,
+                            uvStride,
+                            aSurface->Data(),
+                            width, height);
+    return OK;
+  }
+
+  if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP) {
+    uint32_t uvOffset = height * width;
+    ConvertYVU420SPToRGB565(buffer, width,
+                            buffer + uvOffset + 1,
+                            buffer + uvOffset,
+                            width,
+                            aSurface->Data(),
+                            width, height);
+    return OK;
+  }
+
+  if (format == HAL_PIXEL_FORMAT_YV12) {
+    gfx::ConvertYCbCrToRGB(aYcbcrData,
+                           gfx::ImageFormatToSurfaceFormat(aSurface->Format()),
+                           gfx::IntSize(width, height),
+                           aSurface->Data(),
+                           aSurface->Stride());
+    return OK;
+  }
+
+  android::ColorConverter colorConverter((OMX_COLOR_FORMATTYPE)aOmxFormat,
+                                         OMX_COLOR_Format16bitRGB565);
+  if (!colorConverter.isValid()) {
+    NS_WARNING("Invalid color conversion");
+    return BAD_VALUE;
+  }
+
+  rv = colorConverter.convert(buffer, width, height,
+                              0, 0, width - 1, height - 1 /* source crop */,
+                              aSurface->Data(), width, height,
+                              0, 0, width - 1, height - 1 /* dest crop */);
+  if (rv) {
+    NS_WARNING("OMX color conversion failed");
+    return BAD_VALUE;
+  }
+
+  return OK;
+}
+
+already_AddRefed<gfxASurface>
+GrallocImage::DeprecatedGetAsSurface()
+{
+  android::sp<GraphicBuffer> graphicBuffer =
+    GrallocBufferActor::GetFrom(GetSurfaceDescriptor());
+
+  nsRefPtr<gfxImageSurface> imageSurface =
+    new gfxImageSurface(gfx::ThebesIntSize(GetSize()), gfxImageFormat::RGB16_565);
+
+  status_t rv;
+  uint32_t omxFormat = 0;
+
+  omxFormat = GrallocImage::GetOmxFormat(graphicBuffer->getPixelFormat());
+  if (!omxFormat) {
+    rv = DeprecatedConvertVendorYUVFormatToRGB565(graphicBuffer, imageSurface);
+
+    if (rv != OK) {
+      NS_WARNING("Unknown color format");
+      return nullptr;
+    }
+
+    return imageSurface.forget();
+  }
+
+  rv = DeprecatedConvertOmxYUVFormatToRGB565(graphicBuffer, imageSurface, mData, omxFormat);
+  if (rv != OK) {
     return nullptr;
   }
 
@@ -300,37 +539,12 @@ GrallocImage::GetAsSourceSurface()
   android::sp<GraphicBuffer> graphicBuffer =
     GrallocBufferActor::GetFrom(GetSurfaceDescriptor());
 
-  void *buffer;
-  int32_t rv =
-    graphicBuffer->lock(android::GraphicBuffer::USAGE_SW_READ_OFTEN, &buffer);
-
-  if (rv) {
-    NS_WARNING("Couldn't lock graphic buffer");
+  RefPtr<gfx::DataSourceSurface> surface =
+    gfx::Factory::CreateDataSourceSurface(GetSize(), gfx::SurfaceFormat::R5G6B5);
+  if (!surface) {
+    NS_WARNING("Failed to create SourceSurface.");
     return nullptr;
   }
-
-  GraphicBufferAutoUnlock unlock(graphicBuffer);
-
-  uint32_t format = graphicBuffer->getPixelFormat();
-  uint32_t omxFormat = 0;
-
-  for (int i = 0; sColorIdMap[i]; i += 2) {
-    if (sColorIdMap[i] == format) {
-      omxFormat = sColorIdMap[i + 1];
-      break;
-    }
-  }
-
-  if (!omxFormat) {
-    NS_WARNING("Unknown color format");
-    return nullptr;
-  }
-
-  RefPtr<gfx::DataSourceSurface> surface
-    = gfx::Factory::CreateDataSourceSurface(GetSize(), gfx::SurfaceFormat::R5G6B5);
-
-  uint32_t width = GetSize().width;
-  uint32_t height = GetSize().height;
 
   gfx::DataSourceSurface::MappedSurface mappedSurface;
   if (!surface->Map(gfx::DataSourceSurface::WRITE, &mappedSurface)) {
@@ -338,62 +552,26 @@ GrallocImage::GetAsSourceSurface()
     return nullptr;
   }
 
-  if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP_ADRENO) {
-    // The Adreno hardware decoder aligns image dimensions to a multiple of 32,
-    // so we have to account for that here
-    uint32_t alignedWidth = ALIGN(width, 32);
-    uint32_t alignedHeight = ALIGN(height, 32);
-    uint32_t uvOffset = ALIGN(alignedHeight * alignedWidth, 4096);
-    uint32_t uvStride = 2 * ALIGN(width / 2, 32);
-    uint8_t* buffer_as_bytes = static_cast<uint8_t*>(buffer);
-    ConvertYVU420SPToRGB565(buffer, alignedWidth,
-                            buffer_as_bytes + uvOffset, uvStride,
-                            mappedSurface.mData,
-                            width, height);
+  int32_t rv;
+  uint32_t omxFormat = 0;
 
+  omxFormat = GrallocImage::GetOmxFormat(graphicBuffer->getPixelFormat());
+  if (!omxFormat) {
+    rv = ConvertVendorYUVFormatToRGB565(graphicBuffer, surface, &mappedSurface);
     surface->Unmap();
-    return surface;
-  }
 
-  if (format == HAL_PIXEL_FORMAT_YCrCb_420_SP) {
-    uint32_t uvOffset = height * width;
-    ConvertYVU420SPToRGB565(buffer, width,
-                            buffer + uvOffset, width,
-                            mappedSurface.mData,
-                            width, height);
-
-    surface->Unmap();
-    return surface;
-  }
-
-  if (format == HAL_PIXEL_FORMAT_YV12) {
-    gfx::ConvertYCbCrToRGB(mData,
-                           surface->GetFormat(),
-                           mSize,
-                           surface->GetData(),
-                           surface->Stride());
-    surface->Unmap();
-    return surface;
-  }
-
-  android::ColorConverter colorConverter((OMX_COLOR_FORMATTYPE)omxFormat,
-                                         OMX_COLOR_Format16bitRGB565);
-
-  if (!colorConverter.isValid()) {
-    NS_WARNING("Invalid color conversion");
-    surface->Unmap();
+    if (rv != OK) {
+    NS_WARNING("Unknown color format");
     return nullptr;
   }
 
-  rv = colorConverter.convert(buffer, width, height,
-                              0, 0, width - 1, height - 1 /* source crop */,
-                              mappedSurface.mData, width, height,
-                              0, 0, width - 1, height - 1 /* dest crop */);
+    return surface;
+  }
 
+  rv = ConvertOmxYUVFormatToRGB565(graphicBuffer, surface, &mappedSurface, mData, omxFormat);
   surface->Unmap();
 
-  if (rv) {
-    NS_WARNING("OMX color conversion failed");
+  if (rv != OK) {
     return nullptr;
   }
 
