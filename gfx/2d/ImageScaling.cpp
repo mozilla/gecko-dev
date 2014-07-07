@@ -5,7 +5,6 @@
 
 #include "ImageScaling.h"
 #include "2D.h"
-#include "DataSurfaceHelpers.h"
 
 #include <math.h>
 #include <algorithm>
@@ -78,13 +77,7 @@ ImageHalfScaler::ScaleForSize(const IntSize &aSize)
   delete [] mDataStorage;
   // Allocate 15 bytes extra to make sure we can get 16 byte alignment. We
   // should add tools for this, see bug 751696.
-  size_t bufLen = BufferSizeFromStrideAndHeight(mStride, internalSurfSize.height, 15);
-  if (bufLen == 0) {
-    mSize.SizeTo(0, 0);
-    mDataStorage = nullptr;
-    return;
-  }
-  mDataStorage = new uint8_t[bufLen];
+  mDataStorage = new uint8_t[internalSurfSize.height * mStride + 15];
 
   if (uintptr_t(mDataStorage) % 16) {
     // Our storage does not start at a 16-byte boundary. Make sure mData does!

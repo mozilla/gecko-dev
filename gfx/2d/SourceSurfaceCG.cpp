@@ -6,8 +6,6 @@
 #include "SourceSurfaceCG.h"
 #include "DrawTargetCG.h"
 #include "DataSourceSurfaceWrapper.h"
-#include "DataSurfaceHelpers.h"
-#include "mozilla/Types.h" // for decltype
 
 #include "MacIOSurface.h"
 #include "Tools.h"
@@ -92,13 +90,9 @@ CreateCGImage(void *aInfo,
       MOZ_CRASH();
   }
 
-  size_t bufLen = BufferSizeFromStrideAndHeight(aStride, aSize.height);
-  if (bufLen == 0) {
-    return nullptr;
-  }
   CGDataProviderRef dataProvider = CGDataProviderCreateWithData(aInfo,
                                                                 aData,
-                                                                bufLen,
+                                                                aSize.height * aStride,
                                                                 releaseCallback);
 
   CGImageRef image;
@@ -138,16 +132,10 @@ SourceSurfaceCG::InitFromData(unsigned char *aData,
 {
   assert(aSize.width >= 0 && aSize.height >= 0);
 
-  size_t bufLen = BufferSizeFromStrideAndHeight(aStride, aSize.height);
-  if (bufLen == 0) {
-    mImage = nullptr;
-    return false;
-  }
-
-  void *data = malloc(bufLen);
+  void *data = malloc(aStride * aSize.height);
   // Copy all the data except the stride padding on the very last
   // row since we can't guarantee that is readable.
-  memcpy(data, aData, bufLen - aStride + (aSize.width * BytesPerPixel(aFormat)));
+  memcpy(data, aData, aStride * (aSize.height - 1) + (aSize.width * BytesPerPixel(aFormat)));
 
   mFormat = aFormat;
   mImage = CreateCGImage(data, data, aSize, aStride, aFormat);
@@ -181,14 +169,8 @@ DataSourceSurfaceCG::InitFromData(unsigned char *aData,
     return false;
   }
 
-  size_t bufLen = BufferSizeFromStrideAndHeight(aStride, aSize.height);
-  if (bufLen == 0) {
-    mImage = nullptr;
-    return false;
-  }
-
-  void *data = malloc(bufLen);
-  memcpy(data, aData, bufLen - aStride + (aSize.width * BytesPerPixel(aFormat)));
+  void *data = malloc(aStride * aSize.height);
+  memcpy(data, aData, aStride * (aSize.height - 1) + (aSize.width * BytesPerPixel(aFormat)));
 
   mFormat = aFormat;
   mImage = CreateCGImage(data, data, aSize, aStride, aFormat);
@@ -320,21 +302,13 @@ SourceSurfaceCGBitmapContext::DrawTargetWillChange()
     size_t stride = CGBitmapContextGetBytesPerRow(mCg);
     size_t height = CGBitmapContextGetHeight(mCg);
 
-    size_t bufLen = BufferSizeFromStrideAndHeight(stride, height);
-    if (bufLen == 0) {
-      mDataHolder.Dealloc();
-      mData = nullptr;
-    } else {
-      static_assert(sizeof(decltype(mDataHolder[0])) == 1,
-                    "mDataHolder.Realloc() takes an object count, so its objects must be 1-byte sized if we use bufLen");
-      mDataHolder.Realloc(/* actually an object count */ bufLen);
-      mData = mDataHolder;
+    mDataHolder.Realloc(stride * height);
+    mData = mDataHolder;
 
-      // copy out the data from the CGBitmapContext
-      // we'll maintain ownership of mData until
-      // we transfer it to mImage
-      memcpy(mData, CGBitmapContextGetData(mCg), bufLen);
-    }
+    // copy out the data from the CGBitmapContext
+    // we'll maintain ownership of mData until
+    // we transfer it to mImage
+    memcpy(mData, CGBitmapContextGetData(mCg), stride*height);
 
     // drop the current image for the data associated with the CGBitmapContext
     if (mImage)
