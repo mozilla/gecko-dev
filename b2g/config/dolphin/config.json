@@ -15,8 +15,7 @@
         "{workdir}/sources.xml"
     ],
     "zip_files": [
-        ["{workdir}/out/target/product/dolphin/*.img", "out/target/product/dolphin/"],
-        ["{workdir}/boot.img", "out/target/product/dolphin/"],
+        ["{workdir}/out/target/product/scx15_sp7715ga/*.img", "out/target/product/scx15_sp7715ga/"],
         "{workdir}/flash.sh",
         "{workdir}/load-config.sh",
         "{workdir}/.config",
