@@ -342,7 +342,7 @@ TabParent::ActorDestroy(ActorDestroyReason why)
                    nullptr);
     frameLoader->DestroyChild();
 
-    if (why == AbnormalShutdown && os) {
+    if ((why == AbnormalShutdown || why == FailedConstructor) && os) {
       os->NotifyObservers(NS_ISUPPORTS_CAST(nsIFrameLoader*, frameLoader),
                           "oop-frameloader-crashed", nullptr);
       nsContentUtils::DispatchTrustedEvent(frameElement->OwnerDoc(), frameElement,
