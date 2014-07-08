@@ -3,7 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "BorrowedContext.h"
+#include "DataSurfaceHelpers.h"
 #include "DrawTargetCG.h"
+#include "Logging.h"
 #include "SourceSurfaceCG.h"
 #include "Rect.h"
 #include "ScaledFontMac.h"
@@ -1268,6 +1270,7 @@ DrawTargetCG::Init(BackendType aType,
       // 32767 is the maximum size supported by cairo
       // we clamp to that to make it easier to interoperate
       aSize.width > 32767 || aSize.height > 32767) {
+    gfxWarning() << "Failed to Init() DrawTargetCG because of bad size.";
     mColorSpace = nullptr;
     mCg = nullptr;
     return false;
@@ -1280,9 +1283,15 @@ DrawTargetCG::Init(BackendType aType,
 
   if (aData == nullptr && aType != BACKEND_COREGRAPHICS_ACCELERATED) {
     // XXX: Currently, Init implicitly clears, that can often be a waste of time
-    mData.Realloc(aStride * aSize.height);
+    size_t bufLen = BufferSizeFromStrideAndHeight(aStride, aSize.height);
+    if (bufLen == 0) {
+      mColorSpace = nullptr;
+      mCg = nullptr;
+      return false;
+    }
+    mData.Realloc(/* actually an object count */ bufLen);
     aData = static_cast<unsigned char*>(mData);
-    memset(aData, 0, aStride * aSize.height);
+    memset(aData, 0, bufLen);
   }
 
   mSize = aSize;
