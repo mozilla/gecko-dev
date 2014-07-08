@@ -5316,6 +5316,9 @@ nsLayoutUtils::SurfaceFromElement(HTMLCanvasElement* aElement,
       // so that it can un-premultiply.
       RefPtr<DataSourceSurface> data = Factory::CreateDataSourceSurface(IntSize(size.width, size.height),
                                                                         SurfaceFormat::B8G8R8A8);
+      if (!data) {
+        return result;
+      }
       memset(data->GetData(), 0, data->Stride() * size.height);
       result.mSourceSurface = data;
       nsRefPtr<gfxImageSurface> image = new gfxImageSurface(data->GetData(),
