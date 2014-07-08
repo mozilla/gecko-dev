@@ -175,20 +175,21 @@ it.ao
 // aq : http://en.wikipedia.org/wiki/.aq
 aq
 
-// ar : http://en.wikipedia.org/wiki/.ar
-*.ar
-!congresodelalengua3.ar
-!educ.ar
-!gobiernoelectronico.ar
-!mecon.ar
-!nacion.ar
-!nic.ar
-!promocion.ar
-!retina.ar
-!uba.ar
+// ar : https://nic.ar/normativa-vigente.xhtml
+ar
+com.ar
+edu.ar
+gob.ar
+gov.ar
+int.ar
+mil.ar
+net.ar
+org.ar
+tur.ar
 
 // arpa : http://en.wikipedia.org/wiki/.arpa
 // Confirmed by registry <iana-questions@icann.org> 2008-06-18
+arpa
 e164.arpa
 in-addr.arpa
 ip6.arpa
@@ -213,6 +214,7 @@ or.at
 
 // au : http://en.wikipedia.org/wiki/.au
 // http://www.auda.org.au/
+au
 // 2LDs
 com.au
 net.au
@@ -243,10 +245,9 @@ sa.edu.au
 tas.edu.au
 vic.edu.au
 wa.edu.au
-act.gov.au
-// Removed at request of Shae.Donelan@services.nsw.gov.au, 2010-03-04
-// nsw.gov.au
-nt.gov.au
+// act.gov.au  Bug 984824 - Removed at request of Greg Tankard
+// nsw.gov.au  Bug 547985 - Removed at request of <Shae.Donelan@services.nsw.gov.au>
+// nt.gov.au  Bug 940478 - Removed at request of Greg Connors <Greg.Connors@nt.gov.au>
 qld.gov.au
 sa.gov.au
 tas.gov.au
@@ -291,6 +292,7 @@ rs.ba
 // bb : http://en.wikipedia.org/wiki/.bb
 bb
 biz.bb
+co.bb
 com.bb
 edu.bb
 gov.bb
@@ -298,6 +300,7 @@ info.bb
 net.bb
 org.bb
 store.bb
+tv.bb
 
 // bd : http://en.wikipedia.org/wiki/.bd
 *.bd
@@ -349,7 +352,7 @@ z.bg
 6.bg
 7.bg
 8.bg
-9.bg	 	 	
+9.bg
 
 // bh : http://en.wikipedia.org/wiki/.bh
 bh
@@ -400,8 +403,8 @@ net.bo
 mil.bo
 tv.bo
 
-// br : http://registro.br/dominio/dpn.html
-// Updated by registry <fneves@registro.br> 2011-03-01
+// br : http://registro.br/dominio/categoria.html
+// Submitted by registry <fneves@registro.br> 2014-03-04
 br
 adm.br
 adv.br
@@ -446,6 +449,7 @@ lel.br
 mat.br
 med.br
 mil.br
+mp.br
 mus.br
 net.br
 nom.br
@@ -491,6 +495,7 @@ org.bt
 
 // bv : No registrations at this time.
 // Submitted by registry <jarle@uninett.no> 2006-06-16
+bv
 
 // bw : http://en.wikipedia.org/wiki/.bw
 // http://www.gobin.info/domainname/bw.doc
@@ -593,9 +598,12 @@ gob.cl
 co.cl
 mil.cl
 
-// cm : http://en.wikipedia.org/wiki/.cm
+// cm : http://en.wikipedia.org/wiki/.cm plus bug 981927
 cm
+co.cm
+com.cm
 gov.cm
+net.cm
 
 // cn : http://en.wikipedia.org/wiki/.cn
 // Submitted by registry <tanyaling@cnnic.cn> 2008-06-11
@@ -787,7 +795,7 @@ org.ee
 fie.ee
 
 // eg : http://en.wikipedia.org/wiki/.eg
-eg  
+eg
 com.eg
 edu.eg
 eun.eg
@@ -810,7 +818,14 @@ gob.es
 edu.es
 
 // et : http://en.wikipedia.org/wiki/.et
-*.et
+et
+com.et
+gov.et
+org.et
+edu.et
+biz.et
+name.et
+info.et
 
 // eu : http://en.wikipedia.org/wiki/.eu
 eu
@@ -869,6 +884,7 @@ ga
 
 // gb : This registry is effectively dormant
 // Submitted by registry <Damien.Shaw@ja.net> 2008-06-12
+gb
 
 // gd : http://en.wikipedia.org/wiki/.gd
 gd
@@ -886,13 +902,12 @@ pvt.ge
 // gf : http://en.wikipedia.org/wiki/.gf
 gf
 
-// gg : http://www.channelisles.net/applic/avextn.shtml
+// gg : http://www.channelisles.net/register-domains/
+// Confirmed by registry <nigel@channelisles.net> 2013-11-28
 gg
 co.gg
-org.gg
 net.gg
-sch.gg
-gov.gg
+org.gg
 
 // gh : http://en.wikipedia.org/wiki/.gh
 // see also: http://www.nic.gh/reg_now.php
@@ -923,6 +938,7 @@ gm
 
 // gn : http://psg.com/dns/gn/gn.txt
 // Submitted by registry <randy@psg.com> 2008-06-17
+gn
 ac.gn
 com.gn
 edu.gn
@@ -1003,7 +1019,7 @@ org.hk
 网絡.hk
 组织.hk
 組織.hk
-組织.hk 
+組织.hk
 
 // hm : http://en.wikipedia.org/wiki/.hm
 hm
@@ -1084,6 +1100,7 @@ id
 ac.id
 biz.id
 co.id
+desa.id
 go.id
 mil.id
 my.id
@@ -1099,16 +1116,18 @@ gov.ie
 // il : http://en.wikipedia.org/wiki/.il
 *.il
 
-// im : https://www.nic.im/pdfs/imfaqs.pdf
+// im : https://www.nic.im/
+// Submitted by registry <info@nic.im> 2013-11-15
 im
-co.im
-ltd.co.im
-plc.co.im
-net.im
-gov.im
-org.im
-nic.im
 ac.im
+co.im
+com.im
+ltd.co.im
+net.im
+org.im
+plc.co.im
+tt.im
+tv.im
 
 // in : http://en.wikipedia.org/wiki/.in
 // see also: http://www.inregistry.in/policies/
@@ -1180,294 +1199,385 @@ int.is
 it
 gov.it
 edu.it
-// list of reserved geo-names : 
+// Reserved geo-names:
 // http://www.nic.it/documenti/regolamenti-e-linee-guida/regolamento-assegnazione-versione-6.0.pdf
-// (There is also a list of reserved geo-names corresponding to Italian 
-// municipalities : http://www.nic.it/documenti/appendice-c.pdf , but it is
-// not included here.)
-agrigento.it
+// There is also a list of reserved geo-names corresponding to Italian municipalities
+// http://www.nic.it/documenti/appendice-c.pdf, but it is not included here.
+// Regions
+abr.it
+abruzzo.it
+aosta-valley.it
+aostavalley.it
+bas.it
+basilicata.it
+cal.it
+calabria.it
+cam.it
+campania.it
+emilia-romagna.it
+emiliaromagna.it
+emr.it
+friuli-v-giulia.it
+friuli-ve-giulia.it
+friuli-vegiulia.it
+friuli-venezia-giulia.it
+friuli-veneziagiulia.it
+friuli-vgiulia.it
+friuliv-giulia.it
+friulive-giulia.it
+friulivegiulia.it
+friulivenezia-giulia.it
+friuliveneziagiulia.it
+friulivgiulia.it
+fvg.it
+laz.it
+lazio.it
+lig.it
+liguria.it
+lom.it
+lombardia.it
+lombardy.it
+lucania.it
+mar.it
+marche.it
+mol.it
+molise.it
+piedmont.it
+piemonte.it
+pmn.it
+pug.it
+puglia.it
+sar.it
+sardegna.it
+sardinia.it
+sic.it
+sicilia.it
+sicily.it
+taa.it
+tos.it
+toscana.it
+trentino-a-adige.it
+trentino-aadige.it
+trentino-alto-adige.it
+trentino-altoadige.it
+trentino-s-tirol.it
+trentino-stirol.it
+trentino-sud-tirol.it
+trentino-sudtirol.it
+trentino-sued-tirol.it
+trentino-suedtirol.it
+trentinoa-adige.it
+trentinoaadige.it
+trentinoalto-adige.it
+trentinoaltoadige.it
+trentinos-tirol.it
+trentinostirol.it
+trentinosud-tirol.it
+trentinosudtirol.it
+trentinosued-tirol.it
+trentinosuedtirol.it
+tuscany.it
+umb.it
+umbria.it
+val-d-aosta.it
+val-daosta.it
+vald-aosta.it
+valdaosta.it
+valle-aosta.it
+valle-d-aosta.it
+valle-daosta.it
+valleaosta.it
+valled-aosta.it
+valledaosta.it
+vallee-aoste.it
+valleeaoste.it
+vao.it
+vda.it
+ven.it
+veneto.it
+// Provinces
 ag.it
-alessandria.it
+agrigento.it
 al.it
-ancona.it
-an.it
-aosta.it
-aoste.it
-ao.it
-arezzo.it
-ar.it
-ascoli-piceno.it
-ascolipiceno.it
-ap.it
-asti.it
-at.it
-avellino.it
-av.it
-bari.it
-ba.it
-andria-barletta-trani.it
-andriabarlettatrani.it
-trani-barletta-andria.it
-tranibarlettaandria.it
-barletta-trani-andria.it
-barlettatraniandria.it
-andria-trani-barletta.it
-andriatranibarletta.it
-trani-andria-barletta.it
-traniandriabarletta.it
-bt.it
-belluno.it
-bl.it
-benevento.it
-bn.it
-bergamo.it
-bg.it
-biella.it
-bi.it
-bologna.it
-bo.it
-bolzano.it
-bozen.it
-balsan.it
+alessandria.it
 alto-adige.it
 altoadige.it
-suedtirol.it
-bz.it
-brescia.it
-bs.it
-brindisi.it
-br.it
-cagliari.it
-ca.it
-caltanissetta.it
-cl.it
-campobasso.it
-cb.it
-carboniaiglesias.it
-carbonia-iglesias.it
-iglesias-carbonia.it
-iglesiascarbonia.it
-ci.it
-caserta.it
-ce.it
-catania.it
-ct.it
-catanzaro.it
-cz.it
-chieti.it
-ch.it
-como.it
-co.it
-cosenza.it
-cs.it
-cremona.it
-cr.it
-crotone.it
-kr.it
-cuneo.it
-cn.it
-dell-ogliastra.it
-dellogliastra.it
-ogliastra.it
-og.it
-enna.it
-en.it
-ferrara.it
-fe.it
-fermo.it
-fm.it
-firenze.it
-florence.it
-fi.it
-foggia.it
-fg.it
-forli-cesena.it
-forlicesena.it
-cesena-forli.it
-cesenaforli.it
-fc.it
-frosinone.it
-fr.it
-genova.it
-genoa.it
-ge.it
-gorizia.it
-go.it
-grosseto.it
-gr.it
-imperia.it
-im.it
-isernia.it
-is.it
-laquila.it
-aquila.it
+an.it
+ancona.it
+andria-barletta-trani.it
+andria-trani-barletta.it
+andriabarlettatrani.it
+andriatranibarletta.it
+ao.it
+aosta.it
+aoste.it
+ap.it
 aq.it
-la-spezia.it
-laspezia.it
-sp.it
-latina.it
-lt.it
-lecce.it
-le.it
-lecco.it
-lc.it
-livorno.it
-li.it
-lodi.it
-lo.it
-lucca.it
-lu.it
-macerata.it
-mc.it
-mantova.it
-mn.it
-massa-carrara.it
-massacarrara.it
-carrara-massa.it
-carraramassa.it
-ms.it
-matera.it
-mt.it
-medio-campidano.it
-mediocampidano.it
+aquila.it
+ar.it
+arezzo.it
+ascoli-piceno.it
+ascolipiceno.it
+asti.it
+at.it
+av.it
+avellino.it
+ba.it
+balsan.it
+bari.it
+barletta-trani-andria.it
+barlettatraniandria.it
+belluno.it
+benevento.it
+bergamo.it
+bg.it
+bi.it
+biella.it
+bl.it
+bn.it
+bo.it
+bologna.it
+bolzano.it
+bozen.it
+br.it
+brescia.it
+brindisi.it
+bs.it
+bt.it
+bz.it
+ca.it
+cagliari.it
+caltanissetta.it
 campidano-medio.it
 campidanomedio.it
-vs.it
-messina.it
+campobasso.it
+carbonia-iglesias.it
+carboniaiglesias.it
+carrara-massa.it
+carraramassa.it
+caserta.it
+catania.it
+catanzaro.it
+cb.it
+ce.it
+cesena-forli.it
+cesenaforli.it
+ch.it
+chieti.it
+ci.it
+cl.it
+cn.it
+co.it
+como.it
+cosenza.it
+cr.it
+cremona.it
+crotone.it
+cs.it
+ct.it
+cuneo.it
+cz.it
+dell-ogliastra.it
+dellogliastra.it
+en.it
+enna.it
+fc.it
+fe.it
+fermo.it
+ferrara.it
+fg.it
+fi.it
+firenze.it
+florence.it
+fm.it
+foggia.it
+forli-cesena.it
+forlicesena.it
+fr.it
+frosinone.it
+ge.it
+genoa.it
+genova.it
+go.it
+gorizia.it
+gr.it
+grosseto.it
+iglesias-carbonia.it
+iglesiascarbonia.it
+im.it
+imperia.it
+is.it
+isernia.it
+kr.it
+la-spezia.it
+laquila.it
+laspezia.it
+latina.it
+lc.it
+le.it
+lecce.it
+lecco.it
+li.it
+livorno.it
+lo.it
+lodi.it
+lt.it
+lu.it
+lucca.it
+macerata.it
+mantova.it
+massa-carrara.it
+massacarrara.it
+matera.it
+mb.it
+mc.it
 me.it
-milano.it
-milan.it
+medio-campidano.it
+mediocampidano.it
+messina.it
 mi.it
-modena.it
+milan.it
+milano.it
+mn.it
 mo.it
-monza.it
+modena.it
 monza-brianza.it
+monza-e-della-brianza.it
+monza.it
 monzabrianza.it
 monzaebrianza.it
 monzaedellabrianza.it
-monza-e-della-brianza.it
-mb.it
-napoli.it
-naples.it
+ms.it
+mt.it
 na.it
-novara.it
+naples.it
+napoli.it
 no.it
-nuoro.it
+novara.it
 nu.it
-oristano.it
-or.it
-padova.it
-padua.it
-pd.it
-palermo.it
-pa.it
-parma.it
-pr.it
-pavia.it
-pv.it
-perugia.it
-pg.it
-pescara.it
-pe.it
-pesaro-urbino.it
-pesarourbino.it
-urbino-pesaro.it
-urbinopesaro.it
-pu.it
-piacenza.it
-pc.it
-pisa.it
-pi.it
-pistoia.it
-pt.it
-pordenone.it
-pn.it
-potenza.it
-pz.it
-prato.it
-po.it
-ragusa.it
-rg.it
-ravenna.it
-ra.it
-reggio-calabria.it
-reggiocalabria.it
-rc.it
-reggio-emilia.it
-reggioemilia.it
-re.it
-rieti.it
-ri.it
-rimini.it
-rn.it
-roma.it
-rome.it
-rm.it
-rovigo.it
-ro.it
-salerno.it
-sa.it
-sassari.it
-ss.it
-savona.it
-sv.it
-siena.it
-si.it
-siracusa.it
-sr.it
-sondrio.it
-so.it
-taranto.it
-ta.it
-tempio-olbia.it
-tempioolbia.it
+nuoro.it
+og.it
+ogliastra.it
 olbia-tempio.it
 olbiatempio.it
+or.it
+oristano.it
 ot.it
-teramo.it
+pa.it
+padova.it
+padua.it
+palermo.it
+parma.it
+pavia.it
+pc.it
+pd.it
+pe.it
+perugia.it
+pesaro-urbino.it
+pesarourbino.it
+pescara.it
+pg.it
+pi.it
+piacenza.it
+pisa.it
+pistoia.it
+pn.it
+po.it
+pordenone.it
+potenza.it
+pr.it
+prato.it
+pt.it
+pu.it
+pv.it
+pz.it
+ra.it
+ragusa.it
+ravenna.it
+rc.it
+re.it
+reggio-calabria.it
+reggio-emilia.it
+reggiocalabria.it
+reggioemilia.it
+rg.it
+ri.it
+rieti.it
+rimini.it
+rm.it
+rn.it
+ro.it
+roma.it
+rome.it
+rovigo.it
+sa.it
+salerno.it
+sassari.it
+savona.it
+si.it
+siena.it
+siracusa.it
+so.it
+sondrio.it
+sp.it
+sr.it
+ss.it
+suedtirol.it
+sv.it
+ta.it
+taranto.it
 te.it
+tempio-olbia.it
+tempioolbia.it
+teramo.it
 terni.it
-tr.it
-torino.it
-turin.it
-to.it
-trapani.it
-tp.it
-trento.it
-trentino.it
 tn.it
+to.it
+torino.it
+tp.it
+tr.it
+trani-andria-barletta.it
+trani-barletta-andria.it
+traniandriabarletta.it
+tranibarlettaandria.it
+trapani.it
+trentino.it
+trento.it
 treviso.it
-tv.it
 trieste.it
 ts.it
-udine.it
+turin.it
+tv.it
 ud.it
-varese.it
+udine.it
+urbino-pesaro.it
+urbinopesaro.it
 va.it
+varese.it
+vb.it
+vc.it
+ve.it
 venezia.it
 venice.it
-ve.it
 verbania.it
-vb.it
 vercelli.it
-vc.it
 verona.it
-vr.it
+vi.it
 vibo-valentia.it
 vibovalentia.it
-vv.it
 vicenza.it
-vi.it
 viterbo.it
+vr.it
+vs.it
 vt.it
+vv.it
 
-// je : http://www.channelisles.net/applic/avextn.shtml
+// je : http://www.channelisles.net/register-domains/
+// Confirmed by registry <nigel@channelisles.net> 2013-11-28
 je
 co.je
-org.je
 net.je
-sch.je
-gov.je
+org.je
 
 // jm : http://www.com.jm/register.html
 *.jm
@@ -1488,7 +1598,7 @@ jobs
 
 // jp : http://en.wikipedia.org/wiki/.jp
 // http://jprs.co.jp/en/jpdomain.html
-// Updated by registry <info@jprs.jp> 2012-05-28
+// Submitted by registry <info@jprs.jp> 2014-02-28
 jp
 // jp organizational type names
 ac.jp
@@ -1592,7 +1702,6 @@ konan.aichi.jp
 kota.aichi.jp
 mihama.aichi.jp
 miyoshi.aichi.jp
-nagakute.aichi.jp
 nishio.aichi.jp
 nisshin.aichi.jp
 obu.aichi.jp
@@ -2264,7 +2373,6 @@ rikuzentakata.iwate.jp
 shiwa.iwate.jp
 shizukuishi.iwate.jp
 sumita.iwate.jp
-takizawa.iwate.jp
 tanohata.iwate.jp
 tono.iwate.jp
 yahaba.iwate.jp
@@ -3302,6 +3410,7 @@ edu.kn
 gov.kn
 
 // kp : http://www.kcce.kp/en_index.php
+kp
 com.kp
 edu.kp
 gov.kp
@@ -3379,6 +3488,7 @@ org.la
 
 // lb : http://en.wikipedia.org/wiki/.lb
 // Submitted by registry <randy@psg.com> 2008-06-17
+lb
 com.lb
 edu.lb
 gov.lb
@@ -3417,6 +3527,7 @@ hotel.lk
 
 // lr : http://psg.com/dns/lr/lr.txt
 // Submitted by registry <randy@psg.com> 2008-06-17
+lr
 com.lr
 edu.lr
 gov.lr
@@ -3559,11 +3670,21 @@ mq
 mr
 gov.mr
 
-// ms : http://en.wikipedia.org/wiki/.ms
+// ms : http://www.nic.ms/pdf/MS_Domain_Name_Rules.pdf
 ms
+com.ms
+edu.ms
+gov.ms
+net.ms
+org.ms
 
-// mt : https://www.nic.org.mt/dotmt/
-*.mt
+// mt : https://www.nic.org.mt/go/policy
+// Submitted by registry <help@nic.org.mt> 2013-11-19
+mt
+com.mt
+edu.mt
+net.mt
+org.mt
 
 // mu : http://en.wikipedia.org/wiki/.mu
 mu
@@ -4230,13 +4351,16 @@ other.nf
 store.nf
 
 // ng : http://psg.com/dns/ng/
-// Submitted by registry <randy@psg.com> 2008-06-17
-ac.ng
+ng
 com.ng
 edu.ng
-gov.ng
+name.ng
 net.ng
 org.ng
+sch.ng
+gov.ng
+mil.ng
+mobi.ng
 
 // ni : http://www.nic.ni/dominios.htm
 *.ni
@@ -4252,7 +4376,7 @@ bv.nl
 // no : http://www.norid.no/regelverk/index.en.html
 // The Norwegian registry has declined to notify us of updates. The web pages
 // referenced below are the official source of the data. There is also an
-// announce mailing list: 
+// announce mailing list:
 // https://postlister.uninett.no/sympa/info/norid-diskusjon
 no
 // Norid generic domains : http://www.norid.no/regelverk/vedlegg-c.en.html
@@ -5034,20 +5158,36 @@ com.nr
 nu
 
 // nz : http://en.wikipedia.org/wiki/.nz
-*.nz
+// Confirmed by registry <jay@nzrs.net.nz> 2014-05-19
+nz
+ac.nz
+co.nz
+cri.nz
+geek.nz
+gen.nz
+govt.nz
+health.nz
+iwi.nz
+kiwi.nz
+maori.nz
+mil.nz
+māori.nz
+net.nz
+org.nz
+parliament.nz
+school.nz
 
 // om : http://en.wikipedia.org/wiki/.om
-*.om
-!mediaphone.om
-!nawrastelecom.om
-!nawras.om
-!omanmobile.om
-!omanpost.om
-!omantel.om
-!rakpetroleum.om
-!siemens.om
-!songfest.om
-!statecouncil.om
+om
+co.om
+com.om
+edu.om
+gov.om
+med.om
+museum.om
+net.om
+org.om
+pro.om
 
 // org : http://en.wikipedia.org/wiki/.org
 org
@@ -5502,7 +5642,6 @@ oryol.ru
 palana.ru
 penza.ru
 perm.ru
-pskov.ru
 ptz.ru
 rnd.ru
 ryazan.ru
@@ -5622,7 +5761,7 @@ gov.sd
 info.sd
 
 // se : http://en.wikipedia.org/wiki/.se
-// Submitted by registry <Patrik.Wallstrom@iis.se> 2008-06-24
+// Submitted by registry <patrik.wallstrom@iis.se> 2014-03-18
 se
 a.se
 ac.se
@@ -5656,7 +5795,6 @@ pp.se
 press.se
 r.se
 s.se
-sshn.se
 t.se
 tm.se
 u.se
@@ -5687,6 +5825,7 @@ si
 
 // sj : No registrations at this time.
 // Submitted by registry <jarle@uninett.no> 2008-06-16
+sj
 
 // sk : http://en.wikipedia.org/wiki/.sk
 // list of 2nd level domains ?
@@ -5741,8 +5880,13 @@ store.st
 // su : http://en.wikipedia.org/wiki/.su
 su
 
-// sv : http://www.svnet.org.sv/svpolicy.html
-*.sv
+// sv : http://www.svnet.org.sv/niveldos.pdf
+sv
+com.sv
+edu.sv
+gob.sv
+org.sv
+red.sv
 
 // sx : http://en.wikipedia.org/wiki/.sx
 // Confirmed by registry <jcvignes@openregistry.com> 2012-05-31
@@ -5864,6 +6008,10 @@ org.to
 edu.to
 mil.to
 
+// tp : No registrations at this time.
+// Submitted by Ryan Sleevi <ryan.sleevi@gmail.com> 2014-01-03
+tp
+
 // tr : http://en.wikipedia.org/wiki/.tr
 *.tr
 !nic.tr
@@ -5917,6 +6065,7 @@ club.tw
 
 // tz : http://www.tznic.or.tz/index.php/domains
 // Confirmed by registry <manager@tznic.or.tz> 2013-01-22
+tz
 ac.tz
 co.tz
 go.tz
@@ -6029,19 +6178,19 @@ com.ug
 org.ug
 
 // uk : http://en.wikipedia.org/wiki/.uk
-// Submitted by registry <noc@nominet.org.uk> 2012-10-02
-// and tweaked by us pending further consultation.
-*.uk
+// Submitted by registry <Michael.Daly@nominet.org.uk>
+uk
+ac.uk
+co.uk
+gov.uk
+ltd.uk
+me.uk
+net.uk
+nhs.uk
+org.uk
+plc.uk
+police.uk
 *.sch.uk
-!bl.uk
-!british-library.uk
-!jet.uk
-!mod.uk
-!national-library-scotland.uk
-!nel.uk
-!nic.uk
-!nls.uk
-!parliament.uk
 
 // us : http://en.wikipedia.org/wiki/.us
 us
@@ -6125,7 +6274,7 @@ k12.de.us
 k12.fl.us
 k12.ga.us
 k12.gu.us
-// k12.hi.us  Hawaii has a state-wide DOE login: bug 614565
+// k12.hi.us  Bug 614565 - Hawaii has a state-wide DOE login
 k12.ia.us
 k12.id.us
 k12.il.us
@@ -6156,7 +6305,7 @@ k12.pa.us
 k12.pr.us
 k12.ri.us
 k12.sc.us
-k12.sd.us
+// k12.sd.us  Bug 934131 - Removed at request of James Booze <James.Booze@k12.sd.us>
 k12.tn.us
 k12.tx.us
 k12.ut.us
@@ -6165,7 +6314,7 @@ k12.vt.us
 k12.va.us
 k12.wa.us
 k12.wi.us
-k12.wv.us
+// k12.wv.us  Bug 947705 - Removed at request of Verne Britton <verne@wvnet.edu>
 k12.wy.us
 
 cc.ak.us
@@ -6277,12 +6426,12 @@ lib.vt.us
 lib.va.us
 lib.wa.us
 lib.wi.us
-lib.wv.us
+// lib.wv.us  Bug 941670 - Removed at request of Larry W Arnold <arnold@wvlc.lib.wv.us>
 lib.wy.us
 
-// k12.ma.us contains school districts in Massachusetts. The 4LDs are 
+// k12.ma.us contains school districts in Massachusetts. The 4LDs are
 //  managed indepedently except for private (PVT), charter (CHTR) and
-//  parochial (PAROCH) schools.  Those are delegated dorectly to the 
+//  parochial (PAROCH) schools.  Those are delegated dorectly to the
 //  5LD operators.   <k12-ma-hostmaster _ at _ rsuc.gweep.net>
 pvt.k12.ma.us
 chtr.k12.ma.us
@@ -6319,16 +6468,24 @@ edu.vc
 
 // ve : https://registro.nic.ve/
 // Confirmed by registry 2012-10-04
+// Updated 2014-05-20 - Bug 940478
 ve
+arts.ve
 co.ve
 com.ve
 e12.ve
 edu.ve
+firm.ve
+gob.ve
 gov.ve
 info.ve
+int.ve
 mil.ve
 net.ve
 org.ve
+rec.ve
+store.ve
+tec.ve
 web.ve
 
 // vg : http://en.wikipedia.org/wiki/.vg
@@ -6361,8 +6518,12 @@ pro.vn
 health.vn
 
 // vu : http://en.wikipedia.org/wiki/.vu
-// list of 2nd level tlds ?
+// http://www.vunic.vu/
 vu
+com.vu
+edu.vu
+net.vu
+org.vu
 
 // wf : http://www.afnic.fr/medias/documents/AFNIC-naming-policy2012.pdf
 wf
@@ -6390,74 +6551,77 @@ yt
 // http://nic.ae/english/arabicdomain/rules.jsp
 امارات
 
-// xn--54b7fta0cc ("Bangla" Bangla) : BD  
+// xn--54b7fta0cc ("Bangla" Bangla) : BD
 বাংলা
 
-// xn--fiqs8s ("China" Chinese-Han-Simplified <.Zhonggou>) : CN 
+// xn--fiqs8s ("China" Chinese-Han-Simplified <.Zhongguo>) : CN
 // CNNIC
 // http://cnnic.cn/html/Dir/2005/10/11/3218.htm
 中国
 
-// xn--fiqz9s ("China" Chinese-Han-Traditional <.Zhonggou>) : CN
+// xn--fiqz9s ("China" Chinese-Han-Traditional <.Zhongguo>) : CN
 // CNNIC
 // http://cnnic.cn/html/Dir/2005/10/11/3218.htm
 中國
 
-// xn--lgbbat1ad8j ("Algeria / Al Jazair" Arabic) : DZ  
+// xn--lgbbat1ad8j ("Algeria / Al Jazair" Arabic) : DZ
 الجزائر
 
 // xn--wgbh1c ("Egypt" Arabic .masr) : EG
 // http://www.dotmasr.eg/
 مصر
 
-// xn--node ("ge" Georgian (Mkhedruli)) : GE  
+// xn--node ("ge" Georgian (Mkhedruli)) : GE
 გე
 
 // xn--j6w193g ("Hong Kong" Chinese-Han) : HK
 // https://www2.hkirc.hk/register/rules.jsp
 香港
 
-// xn--h2brj9c ("Bharat" Devanagari) : IN  
+// xn--h2brj9c ("Bharat" Devanagari) : IN
 // India
 भारत
 
-// xn--mgbbh1a71e ("Bharat" Arabic) : IN  
+// xn--mgbbh1a71e ("Bharat" Arabic) : IN
 // India
 بھارت
 
-// xn--fpcrj9c3d ("Bharat" Telugu) : IN  
+// xn--fpcrj9c3d ("Bharat" Telugu) : IN
 // India
 భారత్
 
-// xn--gecrj9c ("Bharat" Gujarati) : IN  
+// xn--gecrj9c ("Bharat" Gujarati) : IN
 // India
 ભારત
 
-// xn--s9brj9c ("Bharat" Gurmukhi) : IN  
+// xn--s9brj9c ("Bharat" Gurmukhi) : IN
 // India
 ਭਾਰਤ
 
-// xn--45brj9c ("Bharat" Bengali) : IN  
+// xn--45brj9c ("Bharat" Bengali) : IN
 // India
 ভারত
 
-// xn--xkc2dl3a5ee0h ("India" Tamil) : IN  
+// xn--xkc2dl3a5ee0h ("India" Tamil) : IN
 // India
 இந்தியா
 
-// xn--mgba3a4f16a ("Iran" Persian) : IR  
+// xn--mgba3a4f16a ("Iran" Persian) : IR
 ایران
 
-// xn--mgba3a4fra ("Iran" Arabic) : IR  
+// xn--mgba3a4fra ("Iran" Arabic) : IR
 ايران
 
 // xn--mgbayh7gpa ("al-Ordon" Arabic) : JO
-// National Information Technology Center (NITC) 
+// National Information Technology Center (NITC)
 // Royal Scientific Society, Al-Jubeiha
 الاردن
 
-// xn--3e0b707e ("Republic of Korea" Hangul) : KR  
+// xn--3e0b707e ("Republic of Korea" Hangul) : KR
 한국
+
+// xn--80ao21a ("Kaz" Kazakh) : KZ
+қаз
 
 // xn--fzc2c9e2c ("Lanka" Sinhalese-Sinhala) : LK
 // http://nic.lk
@@ -6467,10 +6631,16 @@ yt
 // http://nic.lk
 இலங்கை
 
-// xn--mgbc0a9azcg ("Morocco / al-Maghrib" Arabic) : MA  
+// xn--mgbc0a9azcg ("Morocco / al-Maghrib" Arabic) : MA
 المغرب
 
-// xn--mgb9awbf ("Oman" Arabic) : OM  
+// xn--l1acc ("mon" Mongolian) : MN
+мон
+
+// xn--mgbx4cd0ab ("Malaysia" Malay) : MY
+مليسيا
+
+// xn--mgb9awbf ("Oman" Arabic) : OM
 عمان
 
 // xn--ygbi2ammx ("Falasteen" Arabic) : PS
@@ -6478,8 +6648,15 @@ yt
 // http://www.pnina.ps
 فلسطين
 
-// xn--90a3ac ("srb" Cyrillic) : RS  
+// xn--90a3ac ("srb" Cyrillic) : RS
+// http://www.rnids.rs/en/the-.срб-domain
 срб
+пр.срб
+орг.срб
+обр.срб
+од.срб
+упр.срб
+ак.срб
 
 // xn--p1ai ("rf" Russian-Cyrillic) : RU
 // http://www.cctld.ru/en/docs/rulesrf.php
@@ -6493,19 +6670,19 @@ yt
 // http://www.nic.net.sa/
 السعودية
 
-// xn--mgberp4a5d4a87g ("AlSaudiah" Arabic) variant : SA  
+// xn--mgberp4a5d4a87g ("AlSaudiah" Arabic) variant : SA
 السعودیة
 
-// xn--mgbqly7c0a67fbc ("AlSaudiah" Arabic) variant : SA  
+// xn--mgbqly7c0a67fbc ("AlSaudiah" Arabic) variant : SA
 السعودیۃ
 
-// xn--mgbqly7cvafr ("AlSaudiah" Arabic) variant : SA  
+// xn--mgbqly7cvafr ("AlSaudiah" Arabic) variant : SA
 السعوديه
 
-// xn--ogbpf8fl ("Syria" Arabic) : SY  
+// xn--ogbpf8fl ("Syria" Arabic) : SY
 سورية
 
-// xn--mgbtf8fl ("Syria" Arabic) variant : SY  
+// xn--mgbtf8fl ("Syria" Arabic) variant : SY
 سوريا
 
 // xn--yfro4i67o Singapore ("Singapore" Chinese-Han) : SG
@@ -6530,13 +6707,13 @@ yt
 // http://www.twnic.net/english/dn/dn_07a.htm
 台湾
 
-// xn--nnx388a ("Taiwan") variant : TW  
+// xn--nnx388a ("Taiwan") variant : TW
 臺灣
 
-// xn--j1amh ("ukr" Cyrillic) : UA  
+// xn--j1amh ("ukr" Cyrillic) : UA
 укр
 
-// xn--mgb2ddes ("AlYemen" Arabic) : YE  
+// xn--mgb2ddes ("AlYemen" Arabic) : YE
 اليمن
 
 // xxx : http://icmregistry.com
@@ -6554,39 +6731,1305 @@ xxx
 // zw : http://en.wikipedia.org/wiki/.zw
 *.zw
 
+
+// xn--80asehdb : 2013-07-14 CORE Association
+онлайн
+
+// xn--80aswg : 2013-07-14 CORE Association
+сайт
+
+// xn--ngbc5azd : 2013-07-14 International Domain Registry Pty. Ltd.
+شبكة
+
+// xn--unup4y : 2013-07-14 Spring Fields, LLC
+游戏
+
+// xn--vhquv : 2013-08-28 Dash McCook, LLC
+企业
+
+// camera : 2013-08-28 Atomic Maple, LLC
+camera
+
+// clothing : 2013-08-28 Steel Lake, LLC
+clothing
+
+// lighting : 2013-08-28 John McCook, LLC
+lighting
+
+// singles : 2013-08-28 Fern Madison, LLC
+singles
+
+// ventures : 2013-08-28 Binky Lake, LLC
+ventures
+
+// voyage : 2013-08-28 Ruby House, LLC
+voyage
+
+// guru : 2013-08-28 Pioneer Cypress, LLC
+guru
+
+// holdings : 2013-08-28 John Madison, LLC
+holdings
+
+// equipment : 2013-08-28 Corn Station, LLC
+equipment
+
+// bike : 2013-08-28 Grand Hollow, LLC
+bike
+
+// estate : 2013-08-28 Trixy Park, LLC
+estate
+
+// tattoo : 2013-08-30 Uniregistry,Corp.
+tattoo
+
+// xn--3ds443g : 2013-09-09 TLD Registry Limited
+在线
+
+// xn--fiq228c5hs : 2013-09-09 TLD Registry Limited
+中文网
+
+// land : 2013-09-10 Pine Moon, LLC
+land
+
+// plumbing : 2013-09-10 Spring Tigers, LLC
+plumbing
+
+// contractors : 2013-09-10 Magic Woods, LLC
+contractors
+
+// sexy : 2013-09-11 Uniregistry,Corp.
+sexy
+
+// menu : 2013-09-11 Wedding TLD2, LLC
+menu
+
+// xn--rhqv96g : 2013-09-11 Stable Tone Limited
+世界
+
+// uno : 2013-09-11 Dot Latin, LLC
+uno
+
+// gallery : 2013-09-13 Sugar House, LLC
+gallery
+
+// technology : 2013-09-13 Auburn Falls
+technology
+
+// xn--3bst00m : 2013-09-13 Eagle Horizon Limited
+集团
+
+// reviews : 2013-09-13 Extra Cover, LLC
+reviews
+
+// guide : 2013-09-13 Snow Moon, LLC
+guide
+
+// xn--6qq986b3x1 : 2013-09-13 Tycoon Treasure Limited
+我爱你
+
+// graphics : 2013-09-13 Over Madison, LLC
+graphics
+
+// construction : 2013-09-13 Fox Dynamite, LLC
+construction
+
+// onl : 2013-09-16 I-Registry Ltd.
+onl
+
+// xn--q9jyb4c : 2013-09-17 Charleston Road Registry
+みんな
+
+// diamonds : 2013-09-23 John Edge, LLC
+diamonds
+
+// kiwi : 2013-09-23 Dot Kiwi Limited
+kiwi
+
+// enterprises : 2013-09-23 Snow Oaks LLC
+enterprises
+
+// today : 2013-09-23 Pearl Woods, LLC
+today
+
+// futbol : 2013-09-23 Atomic Falls, LLC
+futbol
+
+// photography : 2013-09-23 Sugar Glen, LLC
+photography
+
+// tips : 2013-09-23 Corn Willow, LLC
+tips
+
+// directory : 2013-09-23 Extra Madison, LLC
+directory
+
+// kitchen : 2013-09-23 Just Goodbye, LLC
+kitchen
+
+// xn--6frz82g : 2013-09-24 Afilias Limited
+移动
+
+// kim : 2013-09-24 Afilias Limited
+kim
+
+// xn--cg4bki : 2013-09-27 Samsung SDS Co., LTD
+삼성
+
+// monash : 2013-10-01 Monash University
+monash
+
+// wed : 2013-10-02 Atgron, Inc.
+wed
+
+// pink : 2013-10-02 Afilias Limited
+pink
+
+// ruhr : 2013-10-02 regiodot GmbH & Co. KG
+ruhr
+
+// buzz : 2013-10-03 DOTSTRATEGY CO.
+buzz
+
+// careers : 2013-10-03 Wild Corner, LLC
+careers
+
+// shoes : 2013-10-03 Binky Galley, LLC
+shoes
+
+// xn--4gbrim : 2013-10-07 Suhub Electronic Establishment
+موقع
+
+// career : 2013-10-09 dotCareer, LLC
+career
+
+// otsuka : 2013-10-11 Otsuka Holdings Co. Ltd.
+otsuka
+
+// xn--fiQ64b : 2013-10-14 CITIC Group Corporation
+中信
+
+// gift : 2013-10-18 Uniregistry Corp.
+gift
+
+// recipes : 2013-10-18 Grand Island, LLC
+recipes
+
+// coffee : 2013-10-18 Trixy Cover, LLC
+coffee
+
+// luxury : 2013-10-18 Luxury Partners, LLC
+luxury
+
+// domains : 2013-10-18 Sugar Cross, LLC
+domains
+
+// photos : 2013-10-18 Sea Corner, LLC
+photos
+
+// limo : 2013-10-18 Hidden Frostbite, LLC
+limo
+
+// viajes : 2013-10-18 Black Madison, LLC
+viajes
+
+// wang : 2013-10-24 Zodiac Leo Limited
+wang
+
+// democrat : 2013-10-24 United TLD Holdco Ltd.
+democrat
+
+// mango : 2013-10-25 PUNTO FA S.L.
+mango
+
+// cab : 2013-10-25 Half Sunset, LLC
+cab
+
+// support : 2013-10-25 Grand Orchard, LLC
+support
+
+// dance : 2013-10-25 United TLD Holdco Ltd.
+dance
+
+// nagoya : 2013-10-25 GMO Registry, Inc.
+nagoya
+
+// computer : 2013-10-25 Pine Mill, LLC
+computer
+
+// wien : 2013-10-28 punkt.wien GmbH
+wien
+
+// berlin : 2013-10-31 dotBERLIN GmbH & Co. KG
+berlin
+
+// codes : 2013-10-31 Puff Willow, LLC
+codes
+
+// email : 2013-10-31 Spring Madison, LLC
+email
+
+// xn--mgbab2bd : 2013-10-31 CORE Association
+بازار
+
+// repair : 2013-11-07 Lone Sunset, LLC
+repair
+
+// holiday : 2013-11-07 Goose Woods, LLC
+holiday
+
+// center : 2013-11-07 Tin Mill, LLC
+center
+
+// systems : 2013-11-07 Dash Cypress, LLC
+systems
+
+// wiki : 2013-11-07 Top Level Design, LLC
+wiki
+
+// ceo : 2013-11-07 CEOTLD Pty Ltd
+ceo
+
+// international : 2013-11-07 Wild Way, LLC
+international
+
+// solar : 2013-11-07 Ruby Town, LLC
+solar
+
+// company : 2013-11-07 Silver Avenue, LLC
+company
+
+// education : 2013-11-07 Brice Way, LLC
+education
+
+// training : 2013-11-07 Wild Willow, LLC
+training
+
+// academy : 2013-11-07 Half Oaks, LLC
+academy
+
+// marketing : 2013-11-07 Fern Pass, LLC
+marketing
+
+// florist : 2013-11-08 Half Cypress, LLC
+florist
+
+// solutions : 2013-11-07 Silver Cover, LLC
+solutions
+
+// build : 2013-11-07 Plan Bee LLC
+build
+
+// institute : 2013-11-07 Outer Maple, LLC
+institute
+
+// builders : 2013-11-07 Atomic Madison, LLC
+builders
+
+// red : 2013-11-07 Afilias Limited
+red
+
+// blue : 2013-11-07 Afilias Limited
+blue
+
+// ninja : 2013-11-07 United TLD Holdco Ltd.
+ninja
+
+// business : 2013-11-07 Spring Cross, LLC
+business
+
+// gal : 2013-11-07 Asociación puntoGAL
+gal
+
+// social : 2013-11-07 United TLD Holdco Ltd.
+social
+
+// house : 2013-11-07 Sugar Park, LLC
+house
+
+// camp : 2013-11-07 Delta Dynamite, LLC
+camp
+
+// immobilien : 2013-11-07 United TLD Holdco Ltd.
+immobilien
+
+// moda : 2013-11-07 United TLD Holdco Ltd.
+moda
+
+// glass : 2013-11-07 Black Cover, LLC
+glass
+
+// management : 2013-11-07 John Goodbye, LLC
+management
+
+// kaufen : 2013-11-07 United TLD Holdco Ltd.
+kaufen
+
+// farm : 2013-11-07 Just Maple, LLC
+farm
+
+// xn--55qw42g : 2013-11-08 China Organizational Name Administration Center
+公益
+
+// xn--zfr164b : 2013-11-08 China Organizational Name Administration Center
+政务
+
+// club : 2013-11-08 .CLUB DOMAINS, LLC
+club
+
+// voting : 2013-11-13 Valuetainment Corp.
+voting
+
+// TOKYO : 2013-11-13 GMO Registry, Inc.
+tokyo
+
+// moe : 2013-11-13 Interlink Co., Ltd.
+moe
+
+// guitars : 2013-11-14 Uniregistry, Corp.
+guitars
+
+// bargains : 2013-11-14 Half Hallow, LLC
+bargains
+
+// xn--nqv7fs00ema : 2013-11-14 Public Interest Registry
+组织机构
+
+// desi : 2013-11-14 Desi Networks LLC
+desi
+
+// cool : 2013-11-14 Koko Lake, LLC
+cool
+
+// boutique : 2013-11-14 Over Galley, LLC
+boutique
+
+// pics : 2013-11-14 Uniregistry, Corp.
+pics
+
+// xn--c1avg : 2013-11-14 Public Interest Registry
+орг
+
+// xn--55qx5d : 2013-11-14 Computer Network Information Center of Chinese Academy of Sciences （China Internet Network Information Center）
+公司
+
+// xn--io0a7i : 2013-11-14 Computer Network Information Center of Chinese Academy of Sciences （China Internet Network Information Center）
+网络
+
+// cheap : 2013-11-14 Sand Cover, LLC
+cheap
+
+// xn--xhq521b : 2013-11-14 Guangzhou YU Wei Information Technology Co., Ltd.
+广东
+
+// photo : 2013-11-14 Uniregistry, Corp.
+photo
+
+// network : 2013-11-14 Trixy Manor, LLC
+network
+
+// zone : 2013-11-14 Outer Falls, LLC
+zone
+
+// xn--nqv7f : 2013-11-14 Public Interest Registry
+机构
+
+// link : 2013-11-14 Uniregistry, Corp.
+link
+
+// QPON : 2013-11-14 dotCOOL, Inc.
+qpon
+
+// xn--i1b6b1a6a2e : 2013-11-14 Public Interest Registry
+संगठन
+
+// agency : 2013-11-14 Steel Falls, LLC
+agency
+
+// tienda : 2013-11-14 Victor Manor, LLC
+tienda
+
+// works : 2013-11-14 Little Dynamite, LLC
+works
+
+// london : 2013-11-14 Dot London Domains Limited
+london
+
+// watch : 2013-11-14 Sand Shadow, LLC
+watch
+
+// rocks : 2013-11-14 Ruby Moon, LLC
+rocks
+
+// SHIKSHA : 2013-11-14 Afilias Limited
+shiksha
+
+// xn--d1acj3b : 2013-11-21 The Foundation for Network Initiatives “The Smart Internet”
+дети
+
+// budapest : 2013-11-21 Top Level Domain Holdings Limited
+budapest
+
+// nrw : 2013-11-21 Minds + Machines GmbH
+nrw
+
+// VOTE : 2013-11-21 Monolith Registry LLC
+vote
+
+// fishing : 2013-11-21 Top Level Domain Holdings Limited
+fishing
+
+// expert : 2013-11-21 Magic Pass, LLC
+expert
+
+// horse : 2013-11-21 Top Level Domain Holdings Limited
+horse
+
+// christmas : 2013-11-21 Uniregistry, Corp.
+christmas
+
+// cooking : 2013-11-21 Top Level Domain Holdings Limited
+cooking
+
+// xn--czru2d : 2013-11-21 Zodiac Capricorn Limited
+商城
+
+// casa : 2013-11-21 Top Level Domain Holdings Limited
+casa
+
+// rich : 2013-11-21 I-REGISTRY Ltd., Niederlassung Deutschland
+rich
+
+// VOTO : 2013-11-21 Monolith Registry LLC
+voto
+
+// tools : 2013-11-21 Pioneer North, LLC
+tools
+
+// xn--45q11c : 2013-11-21 Zodiac Scorpio Limited
+八卦
+
+// praxi : 2013-12-05 Praxi S.p.A.
+praxi
+
+// events : 2013-12-05 Pioneer Maple, LLC
+events
+
+// flights : 2013-12-05 Fox Station, LLC
+flights
+
+// report : 2013-12-05 Binky Glen, LLC
+report
+
+// partners : 2013-12-05 Magic Glen, LLC
+partners
+
+// neustar : 2013-12-05 NeuStar, Inc.
+neustar
+
+// rentals : 2013-12-05 Big Hollow,LLC
+rentals
+
+// catering : 2013-12-05 New Falls. LLC
+catering
+
+// community : 2013-12-05 Fox Orchard, LLC
+community
+
+// maison : 2013-12-05 Victor Frostbite, LLC
+maison
+
+// parts : 2013-12-05 Sea Goodbye, LLC
+parts
+
+// cleaning : 2013-12-05 Fox Shadow, LLC
+cleaning
+
+// okinawa : 2013-12-05 BusinessRalliart inc.
+okinawa
+
+// foundation : 2013-12-05 John Dale, LLC
+foundation
+
+// properties : 2013-12-05 Big Pass, LLC
+properties
+
+// vacations : 2013-12-05 Atomic Tigers, LLC
+vacations
+
+// productions : 2013-12-05 Magic Birch, LLC
+productions
+
+// industries : 2013-12-05 Outer House, LLC
+industries
+
+// haus : 2013-12-05 Pixie Edge, LLC
+haus
+
+// vision : 2013-12-05 Koko Station, LLC
+vision
+
+// mormon : 2013-12-05 IRI Domain Management, LLC (""Applicant"")
+mormon
+
+// cards : 2013-12-05 Foggy Hollow, LLC
+cards
+
+// ink : 2013-12-05 Top Level Design, LLC
+ink
+
+// villas : 2013-12-05 New Sky, LLC
+villas
+
+// consulting : 2013-12-05 Pixie Station, LLC
+consulting
+
+// cruises : 2013-12-05 Spring Way, LLC
+cruises
+
+// krd : 2013-12-05 KRG Department of Information Technology
+krd
+
+// xyz : 2013-12-05 XYZ.COM LLC
+xyz
+
+// dating : 2013-12-05 Pine Fest, LLC
+dating
+
+// exposed : 2013-12-05 Victor Beach, LLC
+exposed
+
+// condos : 2013-12-05 Pine House, LLC
+condos
+
+// eus : 2013-12-12 Puntueus Fundazioa
+eus
+
+// Caravan : 2013-12-12 Caravan International, Inc.
+caravan
+
+// actor : 2013-12-12 United TLD Holdco Ltd.
+actor
+
+// saarland : 2013-12-12 dotSaarland GmbH
+saarland
+
+// yokohama : 2013-12-12 GMO Registry, Inc.
+yokohama
+
+// pub : 2013-12-12 United TLD Holdco Ltd.
+pub
+
+// xn--p1acf : 2013-12-12 Rusnames Limited
+рус
+
+// ren : 2013-12-12 Beijing Qianxiang Wangjing Technology Development Co., Ltd.
+ren
+
+// fish : 2013-12-12 Fox Woods, LLC
+fish
+
+// BAR : 2013-12-12 Punto 2012 Sociedad Anonima Promotora de Inversion de Capital Variable
+bar
+
+// DNP : 2013-12-13 Dai Nippon Printing Co., Ltd.
+dnp
+
+// bid : 2013-12-19 dot Bid Limited
+bid
+
+// supply : 2013-12-19 Half Falls, LLC
+supply
+
+// Miami : 2013-12-19 Top Level Domain Holdings Limited
+miami
+
+// supplies : 2013-12-19 Atomic Fields, LLC
+supplies
+
+// quebec : 2013-12-19 PointQuébec Inc
+quebec
+
+// MOSCOW : 2013-12-19 Foundation for Assistance for Internet Technologies and Infrastructure Development (FAITID)
+moscow
+
+// globo : 2013-12-19 Globo Comunicação e Participações S.A
+globo
+
+// AXA : 2013-12-19 AXA SA
+axa
+
+// xn--80adxhks : 2013-12-19 Foundation for Assistance for Internet Technologies and Infrastructure Development (FAITID)
+москва
+
+// xn--czrs0t : 2013-12-19 Wild Island, LLC
+商店
+
+// vodka : 2013-12-19 Top Level Domain Holdings Limited
+vodka
+
+// REST : 2013-12-19 Punto 2012 Sociedad Anonima Promotora de Inversion de Capital Variable
+rest
+
+// frogans : 2013-12-19 OP3FT
+frogans
+
+// WTC : 2013-12-19 World Trade Centers Association, Inc.
+wtc
+
+// rodeo : 2013-12-19 Top Level Domain Holdings Limited
+rodeo
+
+// sohu : 2013-12-19 Sohu.com Limited
+sohu
+
+// BEST : 2013-12-19 BestTLD Pty Ltd
+best
+
+// country : 2013-12-19 Top Level Domain Holdings Limited
+country
+
+// KRED : 2013-12-19 KredTLD Pty Ltd
+kred
+
+// feedback : 2013-12-19 Top Level Spectrum, Inc.
+feedback
+
+// work : 2013-12-19 Top Level Domain Holdings Limited
+work
+
+// luxe : 2014-01-09 Top Level Domain Holdings Limited
+luxe
+
+// ryukyu : 2014-01-09 BusinessRalliart inc.
+ryukyu
+
+// autos : 2014-01-09 DERAutos, LLC
+autos
+
+// homes : 2014-01-09 DERHomes, LLC
+homes
+
+// jetzt : 2014-01-09 New TLD Company AB
+jetzt
+
+// yachts : 2014-01-09 DERYachts, LLC
+yachts
+
+// motorcycles : 2014-01-09 DERMotorcycles, LLC
+motorcycles
+
+// mini : 2014-01-09 Bayerische Motoren Werke Aktiengesellschaft
+mini
+
+// ggee : 2014-01-09 GMO Internet, Inc.
+ggee
+
+// beer : 2014-01-09 Top Level Domain Holdings Limited
+beer
+
+// xn--1qqw23a : 2014-01-13 Guangzhou YU Wei Information Technology Co., Ltd.
+佛山
+
+// college : 2014-01-16 XYZ.COM LLC
+college
+
+// ovh : 2014-01-16 OVH SAS
+ovh
+
+// meet : 2014-01-16 Afilias Limited
+meet
+
+// xn--ses554g : 2014-01-16 HU YI GLOBAL INFORMATION RESOURCES (HOLDING) COMPANY. HONGKONG LIMITED
+网址
+
+// gop : 2014-01-16 Republican State Leadership Committee, Inc.
+gop
+
+// blackfriday : 2014-01-16 Uniregistry, Corp.
+blackfriday
+
+// lacaixa : 2014-01-16 CAIXA D'ESTALVIS I PENSIONS DE BARCELONA
+lacaixa
+
+// xn--czr694b : 2014-01-16 HU YI GLOBAL INFORMATION RESOURCES(HOLDING) COMPANY.HONGKONG LIMITED
+商标
+
+// vegas : 2014-01-16 Dot Vegas, Inc.
+vegas
+
+// black : 2014-01-16 Afilias Limited
+black
+
+// soy : 2014-01-23 Charleston Road Registry Inc.
+soy
+
+// trade : 2014-01-23 Elite Registry Limited
+trade
+
+// gent : 2014-01-23 COMBELL GROUP NV/SA
+gent
+
+// ing : 2014-01-23 Charleston Road Registry Inc.
+ing
+
+// dad : 2014-01-23 Charleston Road Registry Inc.
+dad
+
+// shriram : 2014-01-23 Shriram Capital Ltd.
+shriram
+
+// bayern : 2014-01-23 Bayern Connect GmbH
+bayern
+
+// scot : 2014-01-23 Dot Scot Registry Limited
+scot
+
+// webcam : 2014-01-23 dot Webcam Limited
+webcam
+
+// foo : 2014-01-23 Charleston Road Registry Inc.
+foo
+
+// eat : 2014-01-23 Charleston Road Registry Inc.
+eat
+
+// nyc : 2014-01-23 The City of New York
+nyc
+
+// prod : 2014-01-23 Charleston Road Registry Inc.
+prod
+
+// how : 2014-01-23 Charleston Road Registry Inc.
+how
+
+// day : 2014-01-30 Charleston Road Registry Inc.
+day
+
+// meme : 2014-01-30 Charleston Road Registry Inc.
+meme
+
+// mov : 2014-01-30 Charleston Road Registry Inc.
+mov
+
+// paris : 2014-01-30 City of Paris
+paris
+
+// boo : 2014-01-30 Charleston Road Registry Inc.
+boo
+
+// new : 2014-01-30 Charleston Road Registry Inc.
+new
+
+// ifm : 2014-01-30 ifm electronic gmbh
+ifm
+
+// life : 2014-02-06 Trixy Oaks, LLC
+life
+
+// archi : 2014-02-06 STARTING DOT LIMITED
+archi
+
+// spiegel : 2014-02-06 SPIEGEL-Verlag Rudolf Augstein GmbH & Co. KG
+spiegel
+
+// brussels : 2014-02-06 DNS.be vzw
+brussels
+
+// church : 2014-02-06 Holly Fileds, LLC
+church
+
+// here : 2014-02-06 Charleston Road Registry Inc.
+here
+
+// dabur : 2014-02-06 Dabur India Limited
+dabur
+
+// vlaanderen : 2014-02-06 DNS.be vzw
+vlaanderen
+
+// cologne : 2014-02-06 NetCologne Gesellschaft für Telekommunikation mbH
+cologne
+
+// xn--kput3i : 2014-02-13 Beijing RITT-Net Technology Development Co., Ltd
+手机
+
+// wme : 2014-02-13 William Morris Endeavor Entertainment, LLC
+wme
+
+// nhk : 2014-02-13 Japan Broadcasting Corporation (NHK)
+nhk
+
+// suzuki : 2014-02-20 SUZUKI MOTOR CORPORATION
+suzuki
+
+// whoswho : 2014-02-20 Who's Who Registry
+whoswho
+
+// scb : 2014-02-20 The Siam Commercial Bank Public Company Limited ("SCB""\)
+scb
+
+// hamburg : 2014-02-20 Hamburg Top-Level-Domain GmbH
+hamburg
+
+// services : 2014-02-27 Fox Castle, LLC
+services
+
+// bzh : 2014-02-27 Association www.bzh
+bzh
+
+// rio : 2014-02-27 Empresa Municipal de Informática SA - IPLANRIO
+rio
+
+// cash : 2014-03-07 Delta Lake, LLC
+cash
+
+// gives : 2014-03-07 United TLD Holdco Ltd.
+gives
+
+// hiphop : 2014-03-07 Uniregistry, Corp.
+hiphop
+
+// degree : 2014-03-07 Puff House, LLC
+degree
+
+// digital : 2014-03-07 Dash Park, LLC
+digital
+
+// rehab : 2014-03-07 United TLD Holdco Ltd.
+rehab
+
+// wtf : 2014-03-07 Hidden Way, LLC
+wtf
+
+// financial : 2014-03-07 Just Cover, LLC
+financial
+
+// limited : 2014-03-07 Big Fest, LLC
+limited
+
+// discount : 2014-03-07 Holly Hill, LLC
+discount
+
+// fail : 2014-03-07 Atomic Pipe, LLC
+fail
+
+// vet : 2014-03-07 Wild Dale, LLC
+vet
+
+// ngo : 2014-03-07 Public Interest Registry
+ngo
+
+// fitness : 2014-03-07 Brice Orchard, LLC
+fitness
+
+// schule : 2014-03-07 Outer Moon, LLC
+schule
+
+// navy : 2014-03-07 United TLD Holdco Ltd.
+navy
+
+// bio : 2014-03-07 STARTING DOT LIMITED
+bio
+
+// ong : 2014-03-07 Public Interest Registry
+ong
+
+// town : 2014-03-07 Koko Moon, LLC
+town
+
+// toys : 2014-03-07 Pioneer Orchard, LLC
+toys
+
+// army : 2014-03-07 United TLD Holdco Ltd.
+army
+
+// engineering : 2014-03-07 Romeo Canyon
+engineering
+
+// capital : 2014-03-07 Delta Mill, LLC
+capital
+
+// exchange : 2014-03-07 Spring Falls, LLC
+exchange
+
+// fan : 2014-03-07 Goose Glen, LLC
+fan
+
+// market : 2014-03-07 Victor Way, LLC
+market
+
+// media : 2014-03-07 Grand Glen, LLC
+media
+
+// lease : 2014-03-07 Victor Trail, LLC
+lease
+
+// university : 2014-03-07 Little Station, LLC
+university
+
+// reisen : 2014-03-07 New Cypress, LLC
+reisen
+
+// airforce : 2014-03-07 United TLD Holdco Ltd.
+airforce
+
+// pictures : 2014-03-07 Foggy Sky, LLC
+pictures
+
+// gripe : 2014-03-07 Corn Sunset, LLC
+gripe
+
+// engineering : 2014-03-07 United TLD Holdco Ltd.
+engineering
+
+// associates : 2014-03-07 Baxter Hill, LLC
+associates
+
+// xn--mxtq1m : 2014-03-07 Net-Chinese Co., Ltd.
+政府
+
+// williamhill : 2014-03-13 William Hill Organization Limited
+williamhill
+
+// hiv : 2014-03-13 dotHIV gemeinnuetziger e.V.
+hiv
+
+// sca : 2014-03-13 SVENSKA CELLULOSA AKTIEBOLAGET SCA (publ)
+sca
+
+// reise : 2014-03-13 dotreise GmbH 
+reise
+
+// accountants : 2014-03-20 Knob Town, LLC 
+accountants
+
+// clinic : 2014-03-20 Goose Park, LLC 
+clinic
+
+// versicherung : 2014-03-20 dotversicherung-registry GmbH 
+versicherung
+
+// top : 2014-03-20 Jiangsu Bangning Science & Technology Co.,Ltd. 
+top
+
+// furniture : 2014-03-20 Lone Fields, LLC 
+furniture
+
+// dental : 2014-03-20 Tin Birch, LLC 
+dental
+
+// fund : 2014-03-20 John Castle, LLC 
+fund
+
+// creditcard : 2014-03-20 Binky Frostbite, LLC 
+creditcard
+
+// insure : 2014-03-20 Pioneer Willow, LLC 
+insure
+
+// audio : 2014-03-20 Uniregistry, Corp. 
+audio
+
+// claims : 2014-03-20 Black Corner, LLC 
+claims
+
+// loans : 2014-03-20 June Woods, LLC 
+loans
+
+// auction : 2014-03-20 Sand Galley, LLC 
+auction
+
+// attorney : 2014-03-20 Victor North, LLC 
+attorney
+
+// finance : 2014-03-20 Cotton Cypress, LLC 
+finance
+
+// investments : 2014-03-20 Holly Glen, LLC 
+investments
+
+// juegos : 2014-03-20 Uniregistry, Corp. 
+juegos
+
+// dentist : 2014-03-20 Outer Lake, LLC 
+dentist
+
+// lds : 2014-03-20 IRI Domain Management, LLC 
+lds
+
+// lawyer : 2014-03-20 Atomic Station, LLC 
+lawyer
+
+// surgery : 2014-03-20 Tin Avenue, LLC 
+surgery
+
+// gratis : 2014-03-20 Pioneer Tigers, LLC 
+gratis
+
+// software : 2014-03-20 Over Birch, LLC 
+software
+
+// mortgage : 2014-03-20 Outer Gardens, LLC 
+mortgage
+
+// republican : 2014-03-20 United TLD Holdco Ltd. 
+republican
+
+// credit : 2014-03-20 Snow Shadow, LLC 
+credit
+
+// tax : 2014-03-20 Storm Orchard, LLC 
+tax
+
+// africa : 2014-03-24 ZA Central Registry NPC trading as Registry.Africa 
+africa
+
+// joburg : 2014-03-24 ZA Central Registry NPC trading as ZA Central Registry 
+joburg
+
+// durban : 2014-03-24 ZA Central Registry NPC trading as ZA Central Registry 
+durban
+
+// capetown : 2014-03-24 ZA Central Registry NPC trading as ZA Central Registry 
+capetown
+
+// sap : 2014-03-27 SAP AG 
+sap
+
+// datsun : 2014-03-27 NISSAN MOTOR CO., LTD. 
+datsun
+
+// infiniti : 2014-03-27 NISSAN MOTOR CO., LTD. 
+infiniti
+
+// firmdale : 2014-03-27 Firmdale Holdings Limited 
+firmdale
+
+// organic : 2014-03-27 Afilias Limited 
+organic
+
+// nissan : 2014-03-27 NISSAN MOTOR CO., LTD. 
+nissan
+
+// website : 2014-04-03 DotWebsite Inc. 
+website
+
+// space : 2014-04-03 DotSpace Inc. 
+space
+
+// schmidt : 2014-04-03 SALM S.A.S. 
+schmidt
+
+// cuisinella : 2014-04-03 SALM S.A.S. 
+cuisinella
+
+// samsung : 2014-04-03 SAMSUNG SDS CO., LTD 
+samsung
+
+// crs : 2014-04-03 Federated Co operatives Limited 
+crs
+
+// doosan : 2014-04-03 Doosan Corporation 
+doosan
+
+// press : 2014-04-03 DotPress Inc. 
+press
+
+// emerck : 2014-04-03 Merck KGaA 
+emerck
+
+// erni : 2014-04-03 ERNI Group Holding AG 
+erni
+
+// direct : 2014-04-10 Half Trail, LLC 
+direct
+
+// yandex : 2014-04-10 YANDEX, LLC 
+yandex
+
+// lotto : 2014-04-10 Afilias Limited 
+lotto
+
+// toshiba : 2014-04-10 TOSHIBA Corporation 
+toshiba
+
+// bauhaus : 2014-04-17 Werkhaus GmbH 
+bauhaus
+
+// host : 2014-04-17 DotHost Inc. 
+host
+
+// ltda : 2014-04-17 DOMAIN ROBOT SERVICOS DE HOSPEDAGEM NA INTERNET LTDA 
+ltda
+
+// global : 2014-04-17 Dot GLOBAL AS 
+global
+
+// abogado : 2014-04-24 Top Level Domain Holdings Limited 
+abogado
+
+// place : 2014-04-24 Snow Galley, LLC 
+place
+
+// tirol : 2014-04-24 punkt Tirol GmbH 
+tirol
+
+// gmx : 2014-04-24 1&1 Mail & Media GmbH 
+gmx
+
+// tatar : 2014-04-24 Limited Liability Company "Coordination Center of Regional Domain of Tatarstan Republic" 
+tatar
+
+// scholarships : 2014-04-24 Scholarships.com, LLC 
+scholarships
+
+// eurovision : 2014-04-24 European Broadcasting Union (EBU) 
+eurovision
+
+// wedding : 2014-04-24 Top Level Domain Holdings Limited 
+wedding
+
+// active : 2014-05-01 The Active Network, Inc 
+active
+
+// madrid : 2014-05-01 Comunidad de Madrid 
+madrid
+
+// youtube : 2014-05-01 Charleston Road Registry Inc. 
+youtube
+
+// sharp : 2014-05-01 Sharp Corporation 
+sharp
+
+// uol : 2014-05-01 UBN INTERNET LTDA. 
+uol
+
+// physio : 2014-05-01 PhysBiz Pty Ltd 
+physio
+
+// gmail : 2014-05-01 Charleston Road Registry Inc. 
+gmail
+
+// channel : 2014-05-08 Charleston Road Registry Inc. 
+channel
+
+// fly : 2014-05-08 Charleston Road Registry Inc. 
+fly
+
+// zip : 2014-05-08 Charleston Road Registry Inc. 
+zip
+
+// esq : 2014-05-08 Charleston Road Registry Inc. 
+esq
+
+// rsvp : 2014-05-08 Charleston Road Registry Inc. 
+rsvp
+
+// wales : 2014-05-08 Nominet UK 
+wales
+
+// cymru : 2014-05-08 Nominet UK 
+cymru
+
+// green : 2014-05-08 Afilias Limited 
+green
+
+// lgbt : 2014-05-08 Afilias Limited 
+lgbt
+
+// xn--hxt814e : 2014-05-15 Zodiac Libra Limited 
+网店
+
+// cancerresearch : 2014-05-15 Australian Cancer Research Foundation 
+cancerresearch
+
+// everbank : 2014-05-15 EverBank 
+everbank
+
+// frl : 2014-05-15 FRLregistry B.V. 
+frl
+
+// property : 2014-05-22 Uniregistry, Corp. 
+property
+
+// forsale : 2014-05-22 Sea Oaks, LLC 
+forsale
+
+// seat : 2014-05-22 SEAT, S.A. (Sociedad Unipersonal) 
+seat
+
+// deals : 2014-05-22 Sand Sunset, LLC 
+deals
+
+// nra : 2014-05-22 NRA Holdings Company, INC. 
+nra
+
+// xn--fjq720a : 2014-05-22 Will Bloom, LLC 
+娱乐
+
+// realtor : 2014-05-29 Real Estate Domains LLC 
+realtor
+
+// bnpparibas : 2014-05-29 BNP Paribas 
+bnpparibas
+
+// melbourne : 2014-05-29 The Crown in right of the State of Victoria, represented by its Department of State Development, Business and Innovation 
+melbourne
+
+// hosting : 2014-05-29 Uniregistry, Corp. 
+hosting
+
+// yoga : 2014-05-29 Top Level Domain Holdings Limited 
+yoga
+
+// city : 2014-05-29 Snow Sky, LLC 
+city
+
+// bond : 2014-06-05 Bond University Limited 
+bond
+
+// click : 2014-06-05 Uniregistry, Corp. 
+click
+
+// cern : 2014-06-05 European Organization for Nuclear Research ("CERN") 
+cern
+
 // ===END ICANN DOMAINS===
 // ===BEGIN PRIVATE DOMAINS===
 
 // Amazon CloudFront : https://aws.amazon.com/cloudfront/
-// Requested by Donavan Miller <donavanm@amazon.com> 2013-03-22
+// Submitted by Donavan Miller <donavanm@amazon.com> 2013-03-22
 cloudfront.net
 
 // Amazon Elastic Compute Cloud: https://aws.amazon.com/ec2/
-// Requested by Osman Surkatty <osmans@amazon.com> 2013-04-02
-compute.amazonaws.com
-us-east-1.amazonaws.com
-compute-1.amazonaws.com
-z-1.compute-1.amazonaws.com
-z-2.compute-1.amazonaws.com
+// Submitted by Osman Surkatty <osmans@amazon.com> 2014-05-20
 ap-northeast-1.compute.amazonaws.com
 ap-southeast-1.compute.amazonaws.com
 ap-southeast-2.compute.amazonaws.com
+cn-north-1.compute.amazonaws.cn
+compute.amazonaws.cn
+compute.amazonaws.com
+compute-1.amazonaws.com
 eu-west-1.compute.amazonaws.com
 sa-east-1.compute.amazonaws.com
+us-east-1.amazonaws.com
 us-gov-west-1.compute.amazonaws.com
 us-west-1.compute.amazonaws.com
 us-west-2.compute.amazonaws.com
+z-1.compute-1.amazonaws.com
+z-2.compute-1.amazonaws.com
 
-// Amazon Elastic Beanstalk : https://aws.amazon.com/elasticbeanstalk/ 
-// Requested by Adam Stein <astein@amazon.com> 2013-04-02
+// Amazon Elastic Beanstalk : https://aws.amazon.com/elasticbeanstalk/
+// Submitted by Adam Stein <astein@amazon.com> 2013-04-02
 elasticbeanstalk.com
 
 // Amazon Elastic Load Balancing : https://aws.amazon.com/elasticloadbalancing/
-// Requested by Scott Vidmar <svidmar@amazon.com> 2013-03-27
+// Submitted by Scott Vidmar <svidmar@amazon.com> 2013-03-27
 elb.amazonaws.com
 
 // Amazon S3 : https://aws.amazon.com/s3/
-// Requested by Courtney Eckhardt <coec@amazon.com> 2013-03-22
+// Submitted by Courtney Eckhardt <coec@amazon.com> 2013-03-22
 s3.amazonaws.com
 s3-us-west-2.amazonaws.com
 s3-us-west-1.amazonaws.com
@@ -6608,26 +8051,27 @@ s3-website-sa-east-1.amazonaws.com
 s3-website-us-gov-west-1.amazonaws.com
 
 // BetaInABox
-// Requested by adrian@betainabox.com 2012-09-13
+// Submitted by adrian@betainabox.com 2012-09-13
 betainabox.com
 
 // CentralNic : http://www.centralnic.com/names/domains
-// Requested by registry <gavin.brown@centralnic.com> 2012-09-27
+// Submitted by registry <gavin.brown@centralnic.com> 2012-09-27
 ae.org
 ar.com
 br.com
 cn.com
 com.de
+com.se
 de.com
 eu.com
 gb.com
 gb.net
-gr.com
 hu.com
 hu.net
 jp.net
 jpn.com
 kr.com
+mex.com
 no.com
 qc.com
 ru.com
@@ -6637,12 +8081,37 @@ se.net
 uk.com
 uk.net
 us.com
-us.org
 uy.com
+za.bz
 za.com
+
+// Africa.com Web Solutions Ltd : https://registry.africa.com
+// Submitted by Gavin Brown <gavin.brown@centralnic.com> 2014-02-04
+africa.com
+
+// iDOT Services Limited : http://www.domain.gr.com
+// Submitted by Gavin Brown <gavin.brown@centralnic.com> 2014-02-04
+gr.com
+
+// Radix FZC : http://domains.in.net
+// Submitted by Gavin Brown <gavin.brown@centralnic.com> 2014-02-04
+in.net
+
+// US REGISTRY LLC : http://us.org
+// Submitted by Gavin Brown <gavin.brown@centralnic.com> 2014-02-04
+us.org
+
+// co.com Registry, LLC : https://registry.co.com
+// Submitted by Gavin Brown <gavin.brown@centralnic.com> 2014-02-04
+co.com
 
 // c.la : http://www.c.la/
 c.la
+
+// cloudControl : https://www.cloudcontrol.com/
+// Submitted by Tobias Wilken <tw@cloudcontrol.com> 2013-07-23
+cloudcontrolled.com
+cloudcontrolapp.com
 
 // co.ca : http://registry.co.ca/
 co.ca
@@ -6651,8 +8120,12 @@ co.ca
 co.nl
 co.no
 
+// Cupcake : https://cupcake.io/
+// Submitted by Jonathan Rudenberg <jonathan@cupcake.io> 2013-10-08
+cupcake.is
+
 // DreamHost : http://www.dreamhost.com/
-// Requested by Andrew Farmer <andrew.farmer@dreamhost.com> 2012-10-02
+// Submitted by Andrew Farmer <andrew.farmer@dreamhost.com> 2012-10-02
 dreamhosters.com
 
 // DynDNS.com : http://www.dyndns.com/services/dns/dyndns/
@@ -6936,12 +8409,29 @@ webhop.org
 worse-than.tv
 writesthisblog.com
 
+// Fastly Inc. http://www.fastly.com/
+// Submitted by Vladimir Vuksan <vladimir@fastly.com> 2013-05-31
+a.ssl.fastly.net
+b.ssl.fastly.net
+global.ssl.fastly.net
+a.prod.fastly.net
+global.prod.fastly.net
+
+// Firebase, Inc.
+// Submitted by Chris Raynor <chris@firebase.com> 2014-01-21
+firebaseapp.com
+
 // GitHub, Inc.
-// Requested by Ben Toews <btoews@github.com> 2013-04-18
+// Submitted by Ben Toews <btoews@github.com> 2014-02-06
 github.io
+githubusercontent.com
+
+// GlobeHosting, Inc.
+// Submitted by Zoltan Egresi <egresi@globehosting.com> 2013-07-12
+ro.com
 
 // Google, Inc.
-// Requested by Eduardo Vela <evn@google.com> 2012-10-24
+// Submitted by Eduardo Vela <evn@google.com> 2012-10-24
 appspot.com
 blogspot.be
 blogspot.bj
@@ -6986,14 +8476,15 @@ blogspot.tw
 codespot.com
 googleapis.com
 googlecode.com
+withgoogle.com
 
 // Heroku : https://www.heroku.com/
-// Requested by Tom Maher <tmaher@heroku.com> 2013-05-02
+// Submitted by Tom Maher <tmaher@heroku.com> 2013-05-02
 herokuapp.com
 herokussl.com
 
 // iki.fi
-// Requested by Hannu Aronsson <haa@iki.fi> 2009-11-05
+// Submitted by Hannu Aronsson <haa@iki.fi> 2009-11-05
 iki.fi
 
 // info.at : http://www.info.at/
@@ -7003,24 +8494,42 @@ info.at
 // Michau Enterprises Limited : http://www.co.pl/
 co.pl
 
+// Microsoft : http://microsoft.com
+// Submitted by Barry Dorrans <bdorrans@microsoft.com> 2014-01-24
+azurewebsites.net
+azure-mobile.net
+cloudapp.net
+
+// NFSN, Inc. : https://www.NearlyFreeSpeech.NET/
+// Submitted by Jeff Wheelhouse <support@nearlyfreespeech.net> 2014-02-02
+nfshost.com
+
 // NYC.mn : http://www.information.nyc.mn
-// Requested by Matthew Brown <mattbrown@nyc.mn> 2013-03-11
+// Submitted by Matthew Brown <mattbrown@nyc.mn> 2013-03-11
 nyc.mn
 
+// One Fold Media : http://www.onefoldmedia.com/
+// Submitted by Eddie Jones <eddie@onefoldmedia.com> 2014-06-10
+nid.io
+
 // Opera Software, A.S.A.
-// Requested by Yngve Pettersen <yngve@opera.com> 2009-11-26
+// Submitted by Yngve Pettersen <yngve@opera.com> 2009-11-26
 operaunite.com
 
+// OutSystems
+// Submitted by Duarte Santos <domain-admin@outsystemscloud.com> 2014-03-11
+outsystemscloud.com
+
 // Red Hat, Inc. OpenShift : https://openshift.redhat.com/
-// Requested by Tim Kramer <tkramer@rhcloud.com> 2012-10-24
+// Submitted by Tim Kramer <tkramer@rhcloud.com> 2012-10-24
 rhcloud.com
 
 // priv.at : http://www.nic.priv.at/
-// Requested by registry <lendl@nic.at> 2008-06-09
+// Submitted by registry <lendl@nic.at> 2008-06-09
 priv.at
 
 // ZaNiC : http://www.za.net/
-// Requested by registry <hostmaster@nic.za.net> 2009-10-03
+// Submitted by registry <hostmaster@nic.za.net> 2009-10-03
 za.net
 za.org
 
