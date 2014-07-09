@@ -4,6 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SourceSurfaceRawData.h"
+
+#include "DataSurfaceHelpers.h"
 #include "Logging.h"
 
 namespace mozilla {
@@ -29,10 +31,17 @@ bool
 SourceSurfaceAlignedRawData::Init(const IntSize &aSize,
                                   SurfaceFormat aFormat)
 {
-  mStride = GetAlignedStride<16>(aSize.width * BytesPerPixel(aFormat));
-  mArray.Realloc(mStride * aSize.height);
-  mSize = aSize;
   mFormat = aFormat;
+  mStride = GetAlignedStride<16>(aSize.width * BytesPerPixel(aFormat));
+
+  size_t bufLen = BufferSizeFromStrideAndHeight(mStride, aSize.height);
+  if (bufLen > 0) {
+    mArray.Realloc(/* actually an object count */ bufLen);
+    mSize = aSize;
+  } else {
+    mArray.Dealloc();
+    mSize.SizeTo(0, 0);
+  }
 
   return mArray != nullptr;
 }
