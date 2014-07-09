@@ -388,13 +388,15 @@ IonCache::attachStub(MacroAssembler &masm, StubAttacher &attacher, Handle<IonCod
     // Update the success path to continue after the IC initial jump.
     attacher.patchRejoinJump(masm, code);
 
-    // Update the failure path.
-    attacher.patchNextStubJump(masm, code);
-
     // Replace the STUB_ADDR constant by the address of the generated stub, such
     // as it can be kept alive even if the cache is flushed (see
     // MarkIonExitFrame).
     attacher.patchStubCodePointer(masm, code);
+
+    // Update the failure path. Note it is this patch that makes the stub
+    // accessible for parallel ICs so it should not be moved unless you really
+    // know what is going on.
+    attacher.patchNextStubJump(masm, code);
 }
 
 bool
