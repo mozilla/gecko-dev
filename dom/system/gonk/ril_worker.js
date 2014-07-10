@@ -1715,6 +1715,15 @@ RilObject.prototype = {
       options.featureStr = "";
       this.sendCdmaFlashCommand(options);
     } else {
+      // Only accept one conference request at a time..
+      if (this._hasConferenceRequest) {
+        options.success = false;
+        options.errorName = "addError";
+        options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+        this.sendChromeMessage(options);
+        return;
+      }
+
       this._hasConferenceRequest = true;
       Buf.simpleRequest(REQUEST_CONFERENCE, options);
     }
