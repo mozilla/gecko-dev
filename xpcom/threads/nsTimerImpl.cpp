@@ -648,6 +648,11 @@ NS_IMETHODIMP nsTimerEvent::Run()
 #endif
 
   mTimer->Fire();
+  // Since nsTimerImpl is not thread-safe, we should release |mTimer|
+  // here in the target thread to avoid race condition. Otherwise,
+  // ~nsTimerEvent() which calls nsTimerImpl::Release() could run in the
+  // timer thread and result in race condition.
+  mTimer = nullptr;
 
   return NS_OK;
 }
