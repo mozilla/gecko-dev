@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include "mozilla/StandardInteger.h"
-const PRTime gPreloadListExpirationTime = INT64_C(1414231532587000);
+const PRTime gPreloadListExpirationTime = INT64_C(1416045947439000);
 
 class nsSTSPreload
 {
@@ -18,12 +18,14 @@ class nsSTSPreload
 };
 
 static const nsSTSPreload kSTSPreloadList[] = {
+  { "accounts.firefox.com", true },
   { "accounts.google.com", true },
   { "aclu.org", false },
   { "activiti.alfresco.com", false },
   { "adsfund.org", true },
   { "aladdinschools.appspot.com", false },
   { "alpha.irccloud.com", false },
+  { "anycoin.me", true },
   { "api.intercom.io", false },
   { "api.simple.com", false },
   { "api.xero.com", false },
@@ -94,6 +96,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "haste.ch", true },
   { "heha.co", true },
   { "howrandom.org", true },
+  { "id.atlassian.com", true },
   { "id.mayfirst.org", false },
   { "imouto.my", false },
   { "inertianetworks.com", true },
@@ -153,16 +156,15 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "passport.yandex.ru", false },
   { "passport.yandex.ua", false },
   { "passwd.io", true },
-  { "passwordbox.com", false },
   { "paste.linode.com", false },
   { "pastebin.linode.com", false },
   { "pay.gigahost.dk", true },
   { "paymill.com", true },
   { "paymill.de", false },
-  { "piratenlogin.de", true },
   { "pixi.me", true },
   { "plus.google.com", false },
   { "plus.sandbox.google.com", false },
+  { "portal.tirol.gv.at", true },
   { "publications.qld.gov.au", false },
   { "pult.co", true },
   { "pypi.python.org", true },
@@ -176,9 +178,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "securityheaders.com", true },
   { "seifried.org", true },
   { "shodan.io", true },
-  { "silentcircle.com", false },
   { "simbolo.co.uk", false },
-  { "simple.com", false },
   { "skydrive.live.com", false },
   { "squareup.com", false },
   { "stage.wepay.com", false },
@@ -216,6 +216,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "wf-training-master.appspot.com", true },
   { "wf-trial-hrd.appspot.com", true },
   { "wiki.python.org", true },
+  { "wildbee.org", true },
   { "wiz.biz", true },
   { "writeapp.me", false },
   { "www.aclu.org", false },
@@ -253,5 +254,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.wepay.com", false },
   { "www.zenpayroll.com", false },
   { "xbrlsuccess.appspot.com", true },
+  { "z.ai", true },
   { "zenpayroll.com", false },
 };
