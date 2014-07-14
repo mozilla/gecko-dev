@@ -398,7 +398,7 @@ class AutoPropDescRooter : private JS::CustomAutoRooter
  */
 struct ShapeTable {
     static const uint32_t HASH_BITS     = mozilla::tl::BitSize<HashNumber>::value;
-    static const uint32_t MIN_ENTRIES   = 7;
+    static const uint32_t MIN_ENTRIES   = 11;
 
     // This value is low because it's common for a ShapeTable to be created
     // with an entryCount of zero.
