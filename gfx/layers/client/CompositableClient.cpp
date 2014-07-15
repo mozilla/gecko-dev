@@ -88,11 +88,16 @@ CompositableClient::GetAsyncID() const
 void
 RemoveTextureFromCompositableTracker::ReleaseTextureClient()
 {
-  if (mTextureClient) {
+  if (mTextureClient &&
+      mTextureClient->GetAllocator() &&
+      !mTextureClient->GetAllocator()->IsImageBridgeChild())
+  {
     TextureClientReleaseTask* task = new TextureClientReleaseTask(mTextureClient);
     RefPtr<ISurfaceAllocator> allocator = mTextureClient->GetAllocator();
     mTextureClient = nullptr;
     allocator->GetMessageLoop()->PostTask(FROM_HERE, task);
+  } else {
+    mTextureClient = nullptr;
   }
 }
 
