@@ -63,7 +63,7 @@ intercom.io: did not receive HSTS header
 iop.intuit.com: max-age too low: 86400
 irccloud.com: did not receive HSTS header
 jitsi.org: did not receive HSTS header
-jottit.com: did not receive HSTS header
+jottit.com: could not connect to host
 keymaster.lookout.com: did not receive HSTS header
 kiwiirc.com: max-age too low: 5256000
 ledgerscope.net: did not receive HSTS header
@@ -92,7 +92,7 @@ platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header
 prodpad.com: did not receive HSTS header
 profiles.google.com: did not receive HSTS header
-rapidresearch.me: did not receive HSTS header
+rapidresearch.me: could not connect to host
 riseup.net: did not receive HSTS header
 sah3.net: could not connect to host
 saturngames.co.uk: did not receive HSTS header
@@ -101,10 +101,8 @@ security.google.com: did not receive HSTS header
 semenkovich.com: did not receive HSTS header
 serverdensity.io: did not receive HSTS header
 shops.neonisi.com: could not connect to host
-silentcircle.com: did not receive HSTS header
 silentcircle.org: could not connect to host
 simon.butcher.name: max-age too low: 2629743
-simple.com: did not receive HSTS header
 sites.google.com: did not receive HSTS header
 sol.io: could not connect to host
 souyar.de: could not connect to host
@@ -131,7 +129,6 @@ www.elanex.biz: did not receive HSTS header
 www.gmail.com: did not receive HSTS header
 www.googlemail.com: did not receive HSTS header
 www.greplin.com: could not connect to host
-www.intercom.io: did not receive HSTS header
 www.jitsi.org: did not receive HSTS header
 www.lastpass.com: did not receive HSTS header
 www.ledgerscope.net: did not receive HSTS header
