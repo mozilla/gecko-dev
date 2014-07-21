@@ -969,6 +969,23 @@ APZCTreeManager::FlushRepaintsForOverscrollHandoffChain()
   return true;
 }
 
+void
+APZCTreeManager::SnapBackOverscrolledApzc(AsyncPanZoomController* aApzc)
+{
+  // This is called when a fling is winding down, so there is no overscroll
+  // handoff chain already built, so build it now.
+  BuildOverscrollHandoffChain(aApzc);
+  MonitorAutoLock lock(mTreeLock);
+  // Exactly one APZC along the hand-off chain can be overscrolled.
+  // Find it, and start a snap-back animation for it.
+  for (uint32_t i = 0; i < mOverscrollHandoffChain.length(); ++i) {
+    if (mOverscrollHandoffChain[i]->SnapBackIfOverscrolled()) {
+      break;
+    }
+  }
+  mOverscrollHandoffChain.clear();
+}
+
 bool
 APZCTreeManager::CanBePanned(AsyncPanZoomController* aApzc)
 {

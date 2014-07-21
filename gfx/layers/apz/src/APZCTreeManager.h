@@ -287,6 +287,7 @@ public:
   bool HandOffFling(AsyncPanZoomController* aApzc, ScreenPoint aVelocity);
 
   bool FlushRepaintsForOverscrollHandoffChain();
+  void SnapBackOverscrolledApzc(AsyncPanZoomController* aStart);
 
   /**
    * Determine whether |aApzc|, or any APZC along its overscroll handoff chain,

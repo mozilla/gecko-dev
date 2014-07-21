@@ -486,10 +486,10 @@ public:
     // If we shouldn't continue the fling, let's just stop and repaint.
     if (!shouldContinueFlingX && !shouldContinueFlingY) {
       APZC_LOG("%p ending fling animation. overscrolled=%d\n", &mApzc, mApzc.IsOverscrolled());
-      // If we are in overscroll, schedule the snap-back animation that relieves it.
-      if (mApzc.IsOverscrolled()) {
-        mDeferredTasks.append(NewRunnableMethod(&mApzc, &AsyncPanZoomController::StartSnapBack));
-      }
+      // This APZC or an APZC further down the handoff chain may be be overscrolled.
+      // Start a snap-back animation on the overscrolled APZC.
+      mDeferredTasks.append(NewRunnableMethod(&mApzc,
+          &AsyncPanZoomController::CallSnapBackOverscrolledApzc));
       return false;
     }
 
@@ -644,6 +644,11 @@ public:
   OverscrollSnapBackAnimation(AsyncPanZoomController& aApzc)
     : mApzc(aApzc)
   {
+    // Make sure the initial velocity is zero. This is normally the case
+    // since we've just stopped a fling, but in some corner cases involving
+    // handoff it could not be.
+    mApzc.mX.SetVelocity(0);
+    mApzc.mY.SetVelocity(0);
   }
 
   virtual bool Sample(FrameMetrics& aFrameMetrics,
@@ -1726,6 +1731,13 @@ bool AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, 
                                           aOverscrollHandoffChainIndex);
 }
 
+void AsyncPanZoomController::CallSnapBackOverscrolledApzc() {
+  APZCTreeManager* treeManagerLocal = mTreeManager;
+  if (treeManagerLocal) {
+    treeManagerLocal->SnapBackOverscrolledApzc(this);
+  }
+}
+
 void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
   ScreenIntPoint prevTouchPoint(mX.GetPos(), mY.GetPos());
   ScreenIntPoint touchPoint = GetFirstTouchScreenPoint(aEvent);
@@ -1910,6 +1922,16 @@ void AsyncPanZoomController::FlushRepaintForOverscrollHandoff() {
   ReentrantMonitorAutoEnter lock(mMonitor);
   RequestContentRepaint();
   UpdateSharedCompositorFrameMetrics();
+}
+
+bool AsyncPanZoomController::SnapBackIfOverscrolled() {
+  ReentrantMonitorAutoEnter lock(mMonitor);
+  if (IsOverscrolled()) {
+    APZC_LOG("%p is overscrolled, starting snap-back\n", this);
+    StartSnapBack();
+    return true;
+  }
+  return false;
 }
 
 bool AsyncPanZoomController::IsPannable() const {
