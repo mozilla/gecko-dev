@@ -166,6 +166,10 @@ public:
     rv = CollectZramReports(aHandleReport, aData);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    // Report kgsl graphics memory usage.
+    rv = CollectKgslReports(aHandleReport, aData);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     return rv;
   }
 
@@ -305,6 +309,37 @@ private:
     }
 
     return NS_OK;
+  }
+
+  // Obtain the name of a thread, omitting any numeric suffix added by a
+  // thread pool library (as in, e.g., "Binder_2" or "mozStorage #1").
+  // The empty string is returned on error.
+  //
+  // Note: if this is ever needed on kernels older than 2.6.33 (early 2010),
+  // it will have to parse /proc/<pid>/status instead, because
+  // /proc/<pid>/comm didn't exist before then.
+  void GetThreadName(pid_t aTid, nsACString& aName)
+  {
+    aName.Truncate();
+    if (aTid <= 0) {
+      return;
+    }
+    char buf[16]; // 15 chars max + '\n'
+    nsPrintfCString path("/proc/%d/comm", aTid);
+    FILE* fp = fopen(path.get(), "r");
+    if (!fp) {
+      // The fopen could also fail if the thread exited before we got here.
+      return;
+    }
+    size_t len = fread(buf, 1, sizeof(buf), fp);
+    fclose(fp);
+    // No need to strip the '\n', since isspace() includes it.
+    while (len > 0 &&
+           (isspace(buf[len - 1]) || isdigit(buf[len - 1]) ||
+            buf[len - 1] == '#' || buf[len - 1] == '_')) {
+      --len;
+    }
+    aName.Assign(buf, len);
   }
 
   nsresult ParseMapping(FILE* aFile,
@@ -813,6 +848,99 @@ private:
     }
 
     closedir(d);
+    return NS_OK;
+  }
+
+  struct AutoDir
+  {
+    AutoDir(DIR* aDir) : mDir(aDir) {}
+    ~AutoDir() { closedir(mDir); };
+    DIR* mDir;
+  };
+
+  struct AutoFile
+  {
+    AutoFile(FILE* aFile) : mFile(aFile) {}
+    ~AutoFile() { fclose(mFile); }
+    FILE* mFile;
+  };
+
+  nsresult
+  CollectKgslReports(nsIHandleReportCallback* aHandleReport,
+                     nsISupports* aData)
+  {
+    // Each process that uses kgsl memory will have an entry under
+    // /sys/kernel/debug/kgsl/proc/<pid>/mem. This file format includes a
+    // header and then entries with types as follows:
+    //   gpuaddr useraddr size id  flags type usage sglen
+    //   hexaddr hexaddr  int  int str   str  str   int
+    // We care primarily about the usage and size.
+
+    // For simplicity numbers will be uint64_t, strings 63 chars max.
+    const char* const kScanFormat =
+        "%" SCNx64 " %" SCNx64 " %" SCNu64 " %" SCNu64
+        " %63s %63s %63s %" SCNu64;
+    const int kNumFields = 8;
+    const size_t kStringSize = 64;
+
+    DIR* d = opendir("/sys/kernel/debug/kgsl/proc/");
+    if (!d) {
+      if (NS_WARN_IF(errno != ENOENT && errno != EACCES)) {
+        return NS_ERROR_FAILURE;
+      }
+      return NS_OK;
+    }
+
+    AutoDir dirGuard(d);
+
+    struct dirent* ent;
+    while ((ent = readdir(d))) {
+      const char* pid = ent->d_name;
+
+      // Skip "." and ".." (and any other dotfiles).
+      if (pid[0] == '.') {
+        continue;
+      }
+
+      nsPrintfCString memPath("/sys/kernel/debug/kgsl/proc/%s/mem", pid);
+      FILE* memFile = fopen(memPath.get(), "r");
+      if (NS_WARN_IF(!memFile)) {
+        continue;
+      }
+
+      AutoFile fileGuard(memFile);
+
+      // Attempt to map the pid to a more useful name.
+      nsAutoCString procName;
+      GetThreadName(atoi(pid), procName);
+
+      if (procName.IsEmpty()) {
+        procName.Append("pid=");
+        procName.Append(pid);
+      } else {
+        procName.Append(" (pid=");
+        procName.Append(pid);
+        procName.Append(")");
+      }
+
+      uint64_t gpuaddr, useraddr, size, id, sglen;
+      char flags[kStringSize];
+      char type[kStringSize];
+      char usage[kStringSize];
+
+      // Bypass the header line.
+      char buff[1024];
+      fgets(buff, 1024, memFile);
+
+      while (fscanf(memFile, kScanFormat, &gpuaddr, &useraddr, &size, &id,
+                    flags, type, usage, &sglen) == kNumFields) {
+        nsPrintfCString entryPath("kgsl-memory/%s/%s", procName.get(), usage);
+        REPORT(entryPath,
+               size,
+               NS_LITERAL_CSTRING("A kgsl graphics memory allocation."));
+      }
+    }
+
     return NS_OK;
   }
 
