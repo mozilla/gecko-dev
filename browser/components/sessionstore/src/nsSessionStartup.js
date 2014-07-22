@@ -40,6 +40,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+const Startup = Cu.import("resource://gre/modules/sdk/system/Startup.js", {}).exports;
 
 XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
@@ -86,6 +87,8 @@ SessionStartup.prototype = {
    * Initialize the component
    */
   init: function sss_init() {
+    Startup.init();
+
     Services.obs.notifyObservers(null, "sessionstore-init-started", null);
 
     // do not need to initialize anything in auto-started private browsing sessions
