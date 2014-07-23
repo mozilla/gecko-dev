@@ -207,44 +207,6 @@ public:
   virtual bool
   RecvParentAsyncMessages(const InfallibleTArray<AsyncParentMessageData>& aMessages) MOZ_OVERRIDE;
 
-  /**
-   * Allocate a gralloc SurfaceDescriptor remotely.
-   */
-  bool
-  AllocSurfaceDescriptorGralloc(const gfx::IntSize& aSize,
-                                const uint32_t& aFormat,
-                                const uint32_t& aUsage,
-                                SurfaceDescriptor* aBuffer);
-
-  /**
-   * Part of the allocation of gralloc SurfaceDescriptor that is
-   * executed on the ImageBridgeChild thread after invoking
-   * AllocSurfaceDescriptorGralloc.
-   *
-   * Must be called from the ImageBridgeChild thread.
-   */
-  bool
-  AllocSurfaceDescriptorGrallocNow(const gfx::IntSize& aSize,
-                                   const uint32_t& aFormat,
-                                   const uint32_t& aUsage,
-                                   SurfaceDescriptor* aBuffer);
-
-  /**
-   * Deallocate a remotely allocated gralloc buffer.
-   */
-  bool
-  DeallocSurfaceDescriptorGralloc(const SurfaceDescriptor& aBuffer);
-
-  /**
-   * Part of the deallocation of gralloc SurfaceDescriptor that is
-   * executed on the ImageBridgeChild thread after invoking
-   * DeallocSurfaceDescriptorGralloc.
-   *
-   * Must be called from the ImageBridgeChild thread.
-   */
-  bool
-  DeallocSurfaceDescriptorGrallocNow(const SurfaceDescriptor& aBuffer);
-
   TemporaryRef<ImageClient> CreateImageClient(CompositableType aType);
   TemporaryRef<ImageClient> CreateImageClientNow(CompositableType aType);
 
@@ -395,6 +357,11 @@ public:
 
   virtual bool IsSameProcess() const MOZ_OVERRIDE;
 
+  void AllocGrallocBufferNow(const gfx::IntSize& aSize,
+                             uint32_t aFormat, uint32_t aUsage,
+                             MaybeMagicGrallocBufferHandle* aHandle,
+                             PGrallocBufferChild** aChild);
+
   void SendPendingAsyncMessge();
 
 protected:
@@ -410,6 +377,8 @@ protected:
   virtual PGrallocBufferChild* AllocGrallocBuffer(const gfx::IntSize& aSize,
                                                   uint32_t aFormat, uint32_t aUsage,
                                                   MaybeMagicGrallocBufferHandle* aHandle) MOZ_OVERRIDE;
+
+  virtual void DeallocGrallocBuffer(PGrallocBufferChild* aChild) MOZ_OVERRIDE;
 };
 
 } // layers

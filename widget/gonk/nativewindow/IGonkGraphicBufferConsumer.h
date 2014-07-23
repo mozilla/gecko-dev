@@ -27,17 +27,25 @@
 #include <binder/IInterface.h>
 #include <ui/Rect.h>
 
+#include "mozilla/Types.h"
 #include "mozilla/layers/LayersSurfaces.h"
+
+namespace mozilla {
+
+namespace layers {
+class TextureClient;
+}
+}
 
 namespace android {
 // ----------------------------------------------------------------------------
 
-class IConsumerListener;
-class GraphicBuffer;
-class Fence;
+class MOZ_EXPORT IConsumerListener;
+class MOZ_EXPORT GraphicBuffer;
+class MOZ_EXPORT Fence;
 
 class IGonkGraphicBufferConsumer : public IInterface {
-    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+    typedef mozilla::layers::TextureClient TextureClient;
 public:
 
     // public facing structure for BufferSlot
@@ -97,9 +105,6 @@ public:
         // Indicates this buffer must be transformed by the inverse transform of the screen
         // it is displayed onto. This is applied after mTransform.
         bool mTransformToDisplayInverse;
-
-        // mSurfaceDescriptor is the token to remotely allocated GraphicBuffer.
-        SurfaceDescriptor mSurfaceDescriptor;
     };
 
 
