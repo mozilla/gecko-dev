@@ -378,7 +378,7 @@ ISurfaceAllocator::PlatformDestroySharedSurface(SurfaceDescriptor* aSurface)
   } else {
     PGrallocBufferChild* gbc =
       aSurface->get_SurfaceDescriptorGralloc().bufferChild();
-    unused << PGrallocBufferChild::Send__delete__(gbc);
+    DeallocGrallocBuffer(gbc);
   }
 
   *aSurface = SurfaceDescriptor();
@@ -414,6 +414,13 @@ ShadowLayerForwarder::AllocGrallocBuffer(const gfx::IntSize& aSize,
     return nullptr;
   }
   return mShadowManager->SendPGrallocBufferConstructor(aSize, aFormat, aUsage, aHandle);
+}
+
+void
+ShadowLayerForwarder::DeallocGrallocBuffer(PGrallocBufferChild* aChild)
+{
+  MOZ_ASSERT(aChild);
+  PGrallocBufferChild::Send__delete__(aChild);
 }
 
 bool
