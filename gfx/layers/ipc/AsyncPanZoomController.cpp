@@ -1764,9 +1764,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     mPaintThrottler.ClearHistory();
     mPaintThrottler.SetMaxDurations(gNumPaintDurationSamples);
 
-    mX.CancelTouch();
-    mY.CancelTouch();
-    SetState(NOTHING);
+    CancelAnimation();
 
     mFrameMetrics = aLayerMetrics;
     mLastDispatchedPaintMetrics = aLayerMetrics;
