@@ -35,7 +35,7 @@
   <project name="platform/external/bsdiff" path="external/bsdiff" revision="85a68103754b1e5473dca7becd76834848c77c35"/>
   <project name="platform/external/bzip2" path="external/bzip2" revision="960142b2e6a4269517467d44e4e953549ff56c38"/>
   <project name="platform/external/dbus" path="external/dbus" revision="07274c4eed41f20d79265f049710b5bf08a3ef20"/>
-  <project name="platform/external/dhcpcd" path="external/dhcpcd" revision="c543c0f363dee48a80ef17cff1d5b98fd426b01a"/>
+  <project name="platform/external/dhcpcd" path="external/dhcpcd" revision="e959d304cb5bf9a98b2b671cc691e37d2507b476"/>
   <project name="platform/external/dnsmasq" path="external/dnsmasq" revision="4e6e5ea3872facb3ad2d84784c108865cc8d536d"/>
   <project name="platform_external_elfcopy" path="external/elfcopy" remote="b2g" revision="62c1bed1c4505369cac2e72fbe30452a598fb690"/>
   <project name="platform_external_elfutils" path="external/elfutils" remote="b2g" revision="72940dec691fa3255e13df01f8c53b620e446066"/>
@@ -75,8 +75,8 @@
   <project name="platform/external/webp" path="external/webp" revision="4a06b031b9072f65c034fe5ece2633d978d50815"/>
   <project name="platform/external/webrtc" path="external/webrtc" revision="117f1940fa0f4529783bdefe5bf3ac255e707ace"/>
   <project name="platform/external/wpa_supplicant" path="external/wpa_supplicant" revision="550e9f4ace79b684e246f6a17d3b8d30999afc4e"/>
-  <project name="platform/external/wpa_supplicant_8" path="external/wpa_supplicant_8" revision="7a182ff25e44f2bc66448a9b9738a97ab43aaaaf"/>
-  <project name="platform/external/yaffs2" path="external/yaffs2" revision="ccb649c33105a3f537dd4e71111d7afe0dd5e95c"/>
+  <project name="platform/external/wpa_supplicant_8" path="external/wpa_supplicant_8" revision="64ba011714d21e5b6e1ba004363b86886370c8d0"/>
+  <project name="platform/external/yaffs2" path="external/yaffs2" revision="6232e2d5ab34a40d710e4b05ab0ec6e3727804e7"/>
   <project name="platform/external/zlib" path="external/zlib" revision="d381d56e7dd4572a47935b353c8893727f5f50cb"/>
   <project name="platform/frameworks/base" path="frameworks/base" revision="4da099be098bc74aaaca19284061cac7e851fdf9"/>
   <project name="platform/frameworks/opt/emoji" path="frameworks/opt/emoji" revision="7f2253709fc8ec200997a684b44ad946ba813f16"/>
