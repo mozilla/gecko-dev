@@ -2544,7 +2544,8 @@ MobileMessageDB.prototype = {
   },
 
   notifyDeletedInfo: function(info) {
-    if (!info) {
+    if (!info ||
+        (info.messageIds.length === 0 && info.threadIds.length === 0)) {
       return;
     }
 
