@@ -281,7 +281,7 @@ let AdbController = {
       // disconnected, if the user happens to be using logcat.
       dump("AdbController: ADB timer expired - disabling ADB\n");
       navigator.mozSettings.createLock().set(
-        {'devtools.debugger.remote-enabled': false});
+        {'debugger.remote-mode': 'disabled'});
     }
   },
 
@@ -457,7 +457,7 @@ SettingsListener.observe('devtools.debugger.remote-enabled', false, function(val
 #endif
 });
 
-SettingsListener.observe('debugger.remote-mode', false, function(value) {
+SettingsListener.observe('debugger.remote-mode', 'disabled', function(value) {
   if (['disabled', 'adb-only', 'adb-devtools'].indexOf(value) == -1) {
     dump('Illegal value for debugger.remote-mode: ' + value + '\n');
     return;
