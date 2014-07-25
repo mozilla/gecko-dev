@@ -43,26 +43,6 @@ namespace SystemMemoryReporter {
 #error "This won't work if we're not on Linux."
 #endif
 
-/**
- * RAII helper that will close an open DIR handle.
- */
-struct MOZ_STACK_CLASS AutoDir
-{
-  AutoDir(DIR* aDir) : mDir(aDir) {}
-  ~AutoDir() { if (mDir) closedir(mDir); };
-  DIR* mDir;
-};
-
-/**
- * RAII helper that will close an open FILE handle.
- */
-struct MOZ_STACK_CLASS AutoFile
-{
-  AutoFile(FILE* aFile) : mFile(aFile) {}
-  ~AutoFile() { if (mFile) fclose(mFile); }
-  FILE* mFile;
-};
-
 static bool
 EndsWithLiteral(const nsCString& aHaystack, const char* aNeedle)
 {
@@ -184,14 +164,6 @@ public:
 
     // Report zram usage statistics.
     rv = CollectZramReports(aHandleReport, aData);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    // Report kgsl graphics memory usage.
-    rv = CollectKgslReports(aHandleReport, aData);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    // Report ION memory usage.
-    rv = CollectIonReports(aHandleReport, aData);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return rv;
@@ -658,106 +630,6 @@ private:
     return NS_OK;
   }
 
-  nsresult
-  CollectIonReports(nsIHandleReportCallback* aHandleReport,
-                    nsISupports* aData)
-  {
-    // ION is a replacement for PMEM (and other similar allocators).
-    //
-    // More details from http://lwn.net/Articles/480055/
-    //  "Like its PMEM-like predecessors, ION manages one or more memory pools,
-    //   some of which are set aside at boot time to combat fragmentation or to
-    //   serve special hardware needs. GPUs, display controllers, and cameras
-    //   are some of the hardware blocks that may have special memory
-    //   requirements."
-    //
-    // The file format starts as follows:
-    //     client              pid             size
-    //     ----------------------------------------------------
-    //     adsprpc-smd                1             4096
-    //     fd900000.qcom,mdss_mdp     1          1658880
-    //     ----------------------------------------------------
-    //     orphaned allocations (info is from last known client):
-    //     Homescreen            24100           294912 0 1
-    //     b2g                   23987          1658880 0 1
-    //     mdss_fb0                401          1658880 0 1
-    //     b2g                   23987             4096 0 1
-    //     Built-in Keyboa       24205            61440 0 1
-    //     ----------------------------------------------------
-    //     <other stuff>
-    //
-    // For our purposes we only care about the first portion of the file noted
-    // above which contains memory alloations (both sections). The term
-    // "orphaned" is misleading, it appears that every allocation not by the
-    // first process is considered orphaned on FxOS devices.
-
-    // The first three fields of each entry interest us:
-    //   1) client - Essentially the process name. We limit client names to 63
-    //               characters, in theory they should never be greater than 15
-    //               due to thread name length limitations.
-    //   2) pid    - The ID of the allocating process, read as a uint32_t.
-    //   3) size   - The size of the allocation in bytes, read as as a uint64_t.
-    const char* const kFormatString = "%63s %" SCNu32 " %" SCNu64;
-    const size_t kNumFields = 3;
-    const size_t kStringSize = 64;
-    const char* const kIonIommuPath = "/sys/kernel/debug/ion/iommu";
-
-    FILE* iommu = fopen(kIonIommuPath, "r");
-    if (!iommu) {
-      if (NS_WARN_IF(errno != ENOENT)) {
-        return NS_ERROR_FAILURE;
-      }
-      // If ENOENT, system doesn't use ION.
-      return NS_OK;
-    }
-
-    AutoFile iommuGuard(iommu);
-
-    const size_t kBufferLen = 256;
-    char buffer[kBufferLen];
-    char client[kStringSize];
-    uint32_t pid;
-    uint64_t size;
-
-    // Ignore the header line.
-    fgets(buffer, kBufferLen, iommu);
-
-    // Ignore the separator line.
-    fgets(buffer, kBufferLen, iommu);
-
-    const char* const kSep = "----";
-    const size_t kSepLen = 4;
-
-    // Read non-orphaned entries.
-    while (fgets(buffer, kBufferLen, iommu) &&
-           strncmp(kSep, buffer, kSepLen) != 0) {
-      if (sscanf(buffer, kFormatString, client, &pid, &size) == kNumFields) {
-        nsPrintfCString entryPath("ion-memory/%s (pid=%d)", client, pid);
-        REPORT(entryPath,
-               size,
-               NS_LITERAL_CSTRING("An ION kernel memory allocation."));
-      }
-    }
-
-    // Ignore the orphaned header.
-    fgets(buffer, kBufferLen, iommu);
-
-    // Read orphaned entries.
-    while (fgets(buffer, kBufferLen, iommu) &&
-           strncmp(kSep, buffer, kSepLen) != 0) {
-      if (sscanf(buffer, kFormatString, client, &pid, &size) == kNumFields) {
-        nsPrintfCString entryPath("ion-memory/%s (pid=%d)", client, pid);
-        REPORT(entryPath,
-               size,
-               NS_LITERAL_CSTRING("An ION kernel memory allocation."));
-      }
-    }
-
-    // Ignore the rest of the file.
-
-    return NS_OK;
-  }
-
   uint64_t
   ReadSizeFromFile(const char* aFilename)
   {
@@ -941,85 +813,6 @@ private:
     }
 
     closedir(d);
-    return NS_OK;
-  }
-
-  nsresult
-  CollectKgslReports(nsIHandleReportCallback* aHandleReport,
-                     nsISupports* aData)
-  {
-    // Each process that uses kgsl memory will have an entry under
-    // /sys/kernel/debug/kgsl/proc/<pid>/mem. This file format includes a
-    // header and then entries with types as follows:
-    //   gpuaddr useraddr size id  flags type usage sglen
-    //   hexaddr hexaddr  int  int str   str  str   int
-    // We care primarily about the usage and size.
-
-    // For simplicity numbers will be uint64_t, strings 63 chars max.
-    const char* const kScanFormat =
-        "%" SCNx64 " %" SCNx64 " %" SCNu64 " %" SCNu64
-        " %63s %63s %63s %" SCNu64;
-    const int kNumFields = 8;
-    const size_t kStringSize = 64;
-
-    DIR* d = opendir("/sys/kernel/debug/kgsl/proc/");
-    if (!d) {
-      if (NS_WARN_IF(errno != ENOENT && errno != EACCES)) {
-        return NS_ERROR_FAILURE;
-      }
-      return NS_OK;
-    }
-
-    AutoDir dirGuard(d);
-
-    struct dirent* ent;
-    while ((ent = readdir(d))) {
-      const char* pid = ent->d_name;
-
-      // Skip "." and ".." (and any other dotfiles).
-      if (pid[0] == '.') {
-        continue;
-      }
-
-      nsPrintfCString memPath("/sys/kernel/debug/kgsl/proc/%s/mem", pid);
-      FILE* memFile = fopen(memPath.get(), "r");
-      if (NS_WARN_IF(!memFile)) {
-        continue;
-      }
-
-      AutoFile fileGuard(memFile);
-
-      // Attempt to map the pid to a more useful name.
-      nsAutoCString procName;
-      GetThreadName(atoi(pid), procName);
-
-      if (procName.IsEmpty()) {
-        procName.Append("pid=");
-        procName.Append(pid);
-      } else {
-        procName.Append(" (pid=");
-        procName.Append(pid);
-        procName.Append(")");
-      }
-
-      uint64_t gpuaddr, useraddr, size, id, sglen;
-      char flags[kStringSize];
-      char type[kStringSize];
-      char usage[kStringSize];
-
-      // Bypass the header line.
-      char buff[1024];
-      fgets(buff, 1024, memFile);
-
-      while (fscanf(memFile, kScanFormat, &gpuaddr, &useraddr, &size, &id,
-                    flags, type, usage, &sglen) == kNumFields) {
-        nsPrintfCString entryPath("kgsl-memory/%s/%s", procName.get(), usage);
-        REPORT(entryPath,
-               size,
-               NS_LITERAL_CSTRING("A kgsl graphics memory allocation."));
-      }
-    }
-
     return NS_OK;
   }
 
