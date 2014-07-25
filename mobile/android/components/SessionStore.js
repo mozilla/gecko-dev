@@ -9,6 +9,7 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+const Startup = Cu.import("resource://gre/modules/sdk/system/Startup.js", {}).exports;
 
 #ifdef MOZ_CRASHREPORTER
 XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
@@ -55,6 +56,8 @@ SessionStore.prototype = {
   _notifyClosedTabs: false,
 
   init: function ss_init() {
+    Startup.init();
+
     // Get file references
     this._sessionFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
     this._sessionFileBackup = this._sessionFile.clone();
@@ -102,7 +105,7 @@ SessionStore.prototype = {
       case "domwindowclosed": // catch closed windows
         this.onWindowClose(aSubject);
         break;
-      case "browser:purge-session-history": // catch sanitization 
+      case "browser:purge-session-history": // catch sanitization
         this._clearDisk();
 
         // Clear all data about closed tabs
