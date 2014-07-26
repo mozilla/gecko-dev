@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include "mozilla/StandardInteger.h"
-const PRTime gPreloadListExpirationTime = INT64_C(1416650838534000);
+const PRTime gPreloadListExpirationTime = INT64_C(1417255570959000);
 
 class nsSTSPreload
 {
@@ -37,6 +37,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "bccx.com", true },
   { "bcrook.com", false },
   { "bitbucket.org", false },
+  { "blacklane.com", true },
   { "blog.cyveillance.com", true },
   { "blog.linode.com", false },
   { "blog.lookout.com", false },
@@ -93,11 +94,12 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "gocardless.com", true },
   { "grc.com", false },
   { "grepular.com", true },
+  { "hackerone.com", true },
   { "harvestapp.com", true },
   { "haste.ch", true },
   { "heha.co", true },
   { "howrandom.org", true },
-  { "id.atlassian.com", true },
+  { "id.atlassian.com", false },
   { "id.mayfirst.org", false },
   { "imouto.my", false },
   { "inertianetworks.com", true },
@@ -172,6 +174,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "pypi.python.org", true },
   { "python.org", false },
   { "reviews.anime.my", true },
+  { "rme.li", false },
   { "roddis.net", false },
   { "romab.com", true },
   { "roundcube.mayfirst.org", false },
@@ -249,6 +252,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.noisebridge.net", false },
   { "www.opsmate.com", true },
   { "www.python.org", true },
+  { "www.rme.li", false },
   { "www.simbolo.co.uk", false },
   { "www.simple.com", false },
   { "www.therapynotes.com", false },
