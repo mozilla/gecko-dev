@@ -26,6 +26,7 @@
 #include "CameraCommon.h"
 #include "GonkConsumerBaseJB.h"
 #include "GrallocImages.h"
+#include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/LayersSurfaces.h"
 
 namespace mozilla {
@@ -51,7 +52,8 @@ public:
  */
 class GonkNativeWindow: public GonkConsumerBase
 {
-    typedef mozilla::layers::TextureClient TextureClient;
+    typedef mozilla::layers::GraphicBufferLocked GraphicBufferLocked;
+    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
   public:
     typedef GonkConsumerBase::FrameAvailableListener FrameAvailableListener;
 
@@ -64,7 +66,7 @@ class GonkNativeWindow: public GonkConsumerBase
     // the consumer usage flags passed to the graphics allocator. The
     // bufferCount parameter specifies how many buffers can be locked for user
     // access at the same time.
-    GonkNativeWindow(int bufferCount = GonkBufferQueue::MIN_UNDEQUEUED_BUFFERS);
+    GonkNativeWindow();
 
     virtual ~GonkNativeWindow();
 
@@ -110,23 +112,58 @@ class GonkNativeWindow: public GonkConsumerBase
     status_t setDefaultBufferFormat(uint32_t defaultFormat);
 
     // Get next frame from the queue, caller owns the returned buffer.
-    mozilla::TemporaryRef<TextureClient> getCurrentBuffer();
+    already_AddRefed<GraphicBufferLocked> getCurrentBuffer();
 
     // Return the buffer to the queue and mark it as FREE. After that
     // the buffer is useable again for the decoder.
-    void returnBuffer(TextureClient* client);
+    bool returnBuffer(uint32_t index, uint32_t generation, const sp<Fence>& fence);
 
-    mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+    SurfaceDescriptor* getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
 
-    void setNewFrameCallback(GonkNativeWindowNewFrameCallback* callback);
-
-    static void RecycleCallback(TextureClient* client, void* closure);
+    void setNewFrameCallback(GonkNativeWindowNewFrameCallback* aCallback);
 
 protected:
     virtual void onFrameAvailable();
 
 private:
     GonkNativeWindowNewFrameCallback* mNewFrameCallback;
+};
+
+// CameraGraphicBuffer maintains the buffer returned from GonkNativeWindow
+class CameraGraphicBuffer : public mozilla::layers::GraphicBufferLocked
+{
+    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+    typedef mozilla::layers::ImageBridgeChild ImageBridgeChild;
+
+public:
+    CameraGraphicBuffer(GonkNativeWindow* aNativeWindow,
+                        uint32_t aIndex,
+                        uint32_t aGeneration,
+                        SurfaceDescriptor aBuffer)
+        : GraphicBufferLocked(aBuffer)
+        , mNativeWindow(aNativeWindow)
+        , mIndex(aIndex)
+        , mGeneration(aGeneration)
+        , mLocked(true)
+    {
+        DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
+    }
+
+    virtual ~CameraGraphicBuffer()
+    {
+        DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
+    }
+
+protected:
+    // Unlock either returns the buffer to the native window or
+    // destroys the buffer if the window is already released.
+    virtual void Unlock() MOZ_OVERRIDE;
+
+protected:
+    wp<GonkNativeWindow> mNativeWindow;
+    uint32_t mIndex;
+    uint32_t mGeneration;
+    bool mLocked;
 };
 
 } // namespace android

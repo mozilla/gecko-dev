@@ -7,7 +7,6 @@
 #include "MediaInfo.h"
 #ifdef MOZ_OMX_DECODER
 #include "GrallocImages.h"
-#include "mozilla/layers/TextureClient.h"
 #endif
 #include "VideoUtils.h"
 #include "ImageContainer.h"
@@ -314,7 +313,7 @@ VideoData* VideoData::Create(VideoInfo& aInfo,
                              int64_t aOffset,
                              int64_t aTime,
                              int64_t aDuration,
-                             mozilla::layers::TextureClient* aBuffer,
+                             mozilla::layers::GraphicBufferLocked* aBuffer,
                              bool aKeyframe,
                              int64_t aTimecode,
                              const IntRect& aPicture)

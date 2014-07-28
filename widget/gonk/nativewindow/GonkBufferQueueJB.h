@@ -33,7 +33,6 @@
 #include <utils/threads.h>
 
 #include "mozilla/layers/LayersSurfaces.h"
-#include "mozilla/layers/TextureClient.h"
 
 #if ANDROID_VERSION == 17
 #define IGraphicBufferProducer ISurfaceTexture
@@ -47,7 +46,7 @@ class GonkBufferQueue : public BnSurfaceTexture {
 #else
 class GonkBufferQueue : public BnGraphicBufferProducer {
 #endif
-    typedef mozilla::layers::TextureClient TextureClient;
+    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
 
 public:
     enum { MIN_UNDEQUEUED_BUFFERS = 2 };
@@ -262,6 +261,7 @@ public:
 
         BufferItem()
          :
+           mSurfaceDescriptor(SurfaceDescriptor()),
            mTransform(0),
            mScalingMode(NATIVE_WINDOW_SCALING_MODE_FREEZE),
            mTimestamp(0),
@@ -273,6 +273,9 @@ public:
         // if the buffer in this slot has been acquired in the past (see
         // BufferSlot.mAcquireCalled).
         sp<GraphicBuffer> mGraphicBuffer;
+
+        // mSurfaceDescriptor is the token to remotely allocated GraphicBuffer.
+        SurfaceDescriptor mSurfaceDescriptor;
 
         // mCrop is the current crop rectangle for this buffer slot.
         Rect mCrop;
@@ -384,11 +387,15 @@ public:
     // NATIVE_WINDOW_TRANSFORM_ROT_90.  The default is 0 (no transform).
     status_t setTransformHint(uint32_t hint);
 
-    mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+    uint32_t getGeneration();
 
-    int getSlotFromTextureClientLocked(TextureClient* client) const;
+    SurfaceDescriptor *getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
 
 private:
+    // releaseBufferFreeListUnlocked releases the resources in the freeList;
+    // this must be called with mMutex unlocked.
+    void releaseBufferFreeListUnlocked(nsTArray<SurfaceDescriptor>& freeList);
+
     // freeBufferLocked frees the GraphicBuffer and sync resources for the
     // given slot.
     //void freeBufferLocked(int index);
@@ -396,7 +403,7 @@ private:
     // freeAllBuffersLocked frees the GraphicBuffer and sync resources for
     // all slots.
     //void freeAllBuffersLocked();
-    void freeAllBuffersLocked();
+    void freeAllBuffersLocked(nsTArray<SurfaceDescriptor>& freeList);
 
     // setDefaultMaxBufferCountLocked sets the maximum number of buffer slots
     // that will be used if the producer does not override the buffer slot
@@ -428,7 +435,8 @@ private:
     struct BufferSlot {
 
         BufferSlot()
-        : mBufferState(BufferSlot::FREE),
+        : mSurfaceDescriptor(SurfaceDescriptor()),
+          mBufferState(BufferSlot::FREE),
           mRequestBufferCalled(false),
           mTransform(0),
           mScalingMode(NATIVE_WINDOW_SCALING_MODE_FREEZE),
@@ -443,8 +451,8 @@ private:
         // if no buffer has been allocated.
         sp<GraphicBuffer> mGraphicBuffer;
 
-        // mTextureClient is a thin abstraction over remotely allocated GraphicBuffer.
-        mozilla::RefPtr<TextureClient> mTextureClient;
+        // mSurfaceDescriptor is the token to remotely allocated GraphicBuffer.
+        SurfaceDescriptor mSurfaceDescriptor;
 
         // BufferState represents the different states in which a buffer slot
         // can be.  All slots are initially FREE.
@@ -644,6 +652,8 @@ private:
     // mTransformHint is used to optimize for screen rotations
     uint32_t mTransformHint;
 
+    // mGeneration is the current generation of buffer slots
+    uint32_t mGeneration;
 };
 
 // ----------------------------------------------------------------------------

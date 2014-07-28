@@ -527,10 +527,9 @@ TextureClient::ShouldDeallocateInDestructor() const
   }
 
   // If we're meant to be deallocated by the host,
-  // but we haven't been shared yet or
-  // TextureFlags::DEALLOCATE_CLIENT is set, then we should
+  // but we haven't been shared yet, then we should
   // deallocate on the client instead.
-  return !IsSharedWithCompositor() || (GetFlags() & TEXTURE_DEALLOCATE_CLIENT);
+  return !IsSharedWithCompositor();
 }
 
 bool

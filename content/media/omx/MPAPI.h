@@ -7,7 +7,7 @@
 #define MPAPI_h_
 
 #include <stdint.h>
-#include "mozilla/layers/TextureClient.h"
+#include "GrallocImages.h"
 
 namespace MPAPI {
 
@@ -41,7 +41,7 @@ struct VideoFrame {
   VideoPlane Y;
   VideoPlane Cb;
   VideoPlane Cr;
-  mozilla::RefPtr<mozilla::layers::TextureClient> mGraphicBuffer;
+  nsRefPtr<mozilla::layers::GraphicBufferLocked> mGraphicBuffer;
 
   VideoFrame() :
     mTimeUs(0),

@@ -47,19 +47,35 @@ struct GraphicBufferAutoUnlock {
 };
 
 GrallocImage::GrallocImage()
-  : PlanarYCbCrImage(nullptr)
+  : PlanarYCbCrImage(nullptr),
+    mBufferAllocated(false),
+    mGraphicBufferLocked(nullptr),
+    mTextureClient(nullptr)
 {
   mFormat = ImageFormat::GRALLOC_PLANAR_YCBCR;
 }
 
 GrallocImage::~GrallocImage()
 {
+  // If we have a texture client, the latter takes over the responsibility to
+  // unlock the GraphicBufferLocked.
+  if (mGraphicBufferLocked.get() && !mTextureClient) {
+    // mBufferAllocated is set when gralloc buffer is allocated
+    // in the GrallocImage.
+    // XXX the way of handling gralloc buffer in GrallocImage is inconsistent
+    // between gralloc buffer allocation in GrallocImage and
+    // gralloc buffer allocation outside of GrallocImage
+    if (mBufferAllocated) {
+      ImageBridgeChild *ibc = ImageBridgeChild::GetSingleton();
+      ibc->DeallocSurfaceDescriptorGralloc(mGraphicBufferLocked->GetSurfaceDescriptor());
+      mBufferAllocated = false;
+    }
+  }
 }
 
 void
 GrallocImage::SetData(const Data& aData)
 {
-  MOZ_ASSERT(!mTextureClient, "TextureClient is already set");
   NS_PRECONDITION(aData.mYSize.width % 2 == 0, "Image should have even width");
   NS_PRECONDITION(aData.mYSize.height % 2 == 0, "Image should have even height");
   NS_PRECONDITION(aData.mYStride % 16 == 0, "Image should have stride of multiple of 16 pixels");
@@ -67,22 +83,33 @@ GrallocImage::SetData(const Data& aData)
   mData = aData;
   mSize = aData.mPicSize;
 
-  RefPtr<GrallocTextureClientOGL> textureClient =
-       new GrallocTextureClientOGL(ImageBridgeChild::GetSingleton(),
-                                   gfx::SurfaceFormat::UNKNOWN);
-  bool result =
-    textureClient->AllocateGralloc(mData.mYSize,
-                                   HAL_PIXEL_FORMAT_YV12,
-                                   GraphicBuffer::USAGE_SW_READ_OFTEN |
-                                   GraphicBuffer::USAGE_SW_WRITE_OFTEN |
-                                   GraphicBuffer::USAGE_HW_TEXTURE);
-  sp<GraphicBuffer> graphicBuffer = textureClient->GetGraphicBuffer();
-  if (!result || !graphicBuffer.get()) {
-    mTextureClient = nullptr;
+  if (!mGraphicBufferLocked.get()) {
+
+    SurfaceDescriptor desc;
+    ImageBridgeChild *ibc = ImageBridgeChild::GetSingleton();
+    ibc->AllocSurfaceDescriptorGralloc(aData.mYSize,
+                                       HAL_PIXEL_FORMAT_YV12,
+                                       GraphicBuffer::USAGE_SW_READ_OFTEN |
+                                       GraphicBuffer::USAGE_SW_WRITE_OFTEN |
+                                       GraphicBuffer::USAGE_HW_TEXTURE,
+                                       &desc);
+    if (desc.type() == SurfaceDescriptor::T__None) {
+      return;
+    }
+    mBufferAllocated = true;
+    mGraphicBufferLocked = new GraphicBufferLocked(desc);
+  }
+
+  sp<GraphicBuffer> graphicBuffer =
+    GrallocBufferActor::GetFrom(
+      mGraphicBufferLocked->GetSurfaceDescriptor().get_SurfaceDescriptorGralloc());
+  if (!graphicBuffer.get()) {
     return;
   }
 
-  mTextureClient = textureClient;
+  if (graphicBuffer->initCheck() != NO_ERROR) {
+    return;
+  }
 
   void* vaddr;
   if (graphicBuffer->lock(GraphicBuffer::USAGE_SW_WRITE_OFTEN,
@@ -132,7 +159,7 @@ GrallocImage::SetData(const Data& aData)
 
 void GrallocImage::SetData(const GrallocData& aData)
 {
-  mTextureClient = static_cast<GrallocTextureClientOGL*>(aData.mGraphicBuffer.get());
+  mGraphicBufferLocked = aData.mGraphicBuffer;
   mSize = aData.mPicSize;
 }
 
@@ -477,11 +504,8 @@ DeprecatedConvertOmxYUVFormatToRGB565(android::sp<GraphicBuffer>& aBuffer,
 already_AddRefed<gfxASurface>
 GrallocImage::DeprecatedGetAsSurface()
 {
-  if (!mTextureClient) {
-    return nullptr;
-  }
   android::sp<GraphicBuffer> graphicBuffer =
-    mTextureClient->GetGraphicBuffer();
+    GrallocBufferActor::GetFrom(GetSurfaceDescriptor());
 
   nsRefPtr<gfxImageSurface> imageSurface =
     new gfxImageSurface(gfx::ThebesIntSize(GetSize()), gfxImageFormat::RGB16_565);
@@ -512,11 +536,8 @@ GrallocImage::DeprecatedGetAsSurface()
 TemporaryRef<gfx::SourceSurface>
 GrallocImage::GetAsSourceSurface()
 {
-  if (!mTextureClient) {
-    return nullptr;
-  }
   android::sp<GraphicBuffer> graphicBuffer =
-    mTextureClient->GetGraphicBuffer();
+    GrallocBufferActor::GetFrom(GetSurfaceDescriptor());
 
   RefPtr<gfx::DataSourceSurface> surface =
     gfx::Factory::CreateDataSourceSurface(GetSize(), gfx::SurfaceFormat::R5G6B5);
@@ -557,33 +578,24 @@ GrallocImage::GetAsSourceSurface()
   return surface;
 }
 
-void*
-GrallocImage::GetNativeBuffer()
-{
-  if (!mTextureClient) {
-    return nullptr;
-  }
-  android::sp<android::GraphicBuffer> graphicBuffer =
-    mTextureClient->GetGraphicBuffer();
-  if (!graphicBuffer.get()) {
-    return nullptr;
-  }
-  return graphicBuffer->getNativeBuffer();
-}
-
-SurfaceDescriptor
-GrallocImage::GetSurfaceDescriptor()
-{
-  SurfaceDescriptor desc;
-  if (mTextureClient && mTextureClient->ToSurfaceDescriptor(desc)) {
-    return desc;
-  }
-  return SurfaceDescriptor();
-}
 
 TextureClient*
 GrallocImage::GetTextureClient(CompositableClient* aClient)
 {
+  if (!mTextureClient) {
+    const SurfaceDescriptor& sd = GetSurfaceDescriptor();
+    if (sd.type() != SurfaceDescriptor::TSurfaceDescriptorGralloc) {
+      return nullptr;
+    }
+    const SurfaceDescriptorGralloc& desc = sd.get_SurfaceDescriptorGralloc();
+    TextureFlags flags = desc.external() ? TEXTURE_DEALLOCATE_CLIENT : 0;
+    if (desc.isRBSwapped()) {
+      flags |= TEXTURE_RB_SWAPPED;
+    }
+    GrallocBufferActor* actor = static_cast<GrallocBufferActor*>(desc.bufferChild());
+    mTextureClient = new GrallocTextureClientOGL(actor, mSize, flags);
+    mTextureClient->SetGraphicBufferLocked(mGraphicBufferLocked);
+  }
   return mTextureClient;
 }
 

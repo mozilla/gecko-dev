@@ -1486,14 +1486,14 @@ nsGonkCameraControl::GetRecorderProfileManagerImpl()
 }
 
 void
-nsGonkCameraControl::OnNewPreviewFrame(layers::TextureClient* aBuffer)
+nsGonkCameraControl::OnNewPreviewFrame(layers::GraphicBufferLocked* aBuffer)
 {
   nsRefPtr<Image> frame = mImageContainer->CreateImage(ImageFormat::GRALLOC_PLANAR_YCBCR);
 
   GrallocImage* videoImage = static_cast<GrallocImage*>(frame.get());
 
   GrallocImage::GrallocData data;
-  data.mGraphicBuffer = aBuffer;
+  data.mGraphicBuffer = static_cast<layers::GraphicBufferLocked*>(aBuffer);
   data.mPicSize = IntSize(mCurrentConfiguration.mPreviewSize.width,
                           mCurrentConfiguration.mPreviewSize.height);
   videoImage->SetData(data);
@@ -1536,7 +1536,7 @@ OnAutoFocusComplete(nsGonkCameraControl* gc, bool aSuccess)
 }
 
 void
-OnNewPreviewFrame(nsGonkCameraControl* gc, layers::TextureClient* aBuffer)
+OnNewPreviewFrame(nsGonkCameraControl* gc, layers::GraphicBufferLocked* aBuffer)
 {
   gc->OnNewPreviewFrame(aBuffer);
 }

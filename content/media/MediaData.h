@@ -16,7 +16,6 @@
 namespace mozilla {
 
 namespace layers {
-class TextureClient;
 class Image;
 class ImageContainer;
 }
@@ -180,7 +179,7 @@ public:
                            int64_t aOffset,
                            int64_t aTime,
                            int64_t aDuration,
-                           layers::TextureClient* aBuffer,
+                           layers::GraphicBufferLocked* aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
                            const IntRect& aPicture);

@@ -14,12 +14,36 @@
 #include "gfx2DGlue.h"
 #include "gfxASurface.h"
 #include "gfxImageSurface.h"            // for gfxImageSurface
+#include "GrallocImages.h"
 
 namespace mozilla {
 namespace layers {
 
 using namespace mozilla::gfx;
 using namespace android;
+
+class GraphicBufferLockedTextureClientData : public TextureClientData {
+public:
+  GraphicBufferLockedTextureClientData(GraphicBufferLocked* aBufferLocked)
+    : mBufferLocked(aBufferLocked)
+  {
+    MOZ_COUNT_CTOR(GrallocTextureClientData);
+  }
+
+  ~GraphicBufferLockedTextureClientData()
+  {
+    MOZ_COUNT_DTOR(GrallocTextureClientData);
+    MOZ_ASSERT(!mBufferLocked, "Forgot to unlock the GraphicBufferLocked?");
+  }
+
+  virtual void DeallocateSharedData(ISurfaceAllocator*) MOZ_OVERRIDE
+  {
+    mBufferLocked = nullptr;
+  }
+
+private:
+  RefPtr<GraphicBufferLocked> mBufferLocked;
+};
 
 class GrallocTextureClientData : public TextureClientData {
 public:
@@ -32,7 +56,7 @@ public:
   ~GrallocTextureClientData()
   {
     MOZ_COUNT_DTOR(GrallocTextureClientData);
-    MOZ_ASSERT(!mGrallocActor);
+    MOZ_ASSERT(!mGrallocActor, "Forgot to unlock the GraphicBufferLocked?");
   }
 
   virtual void DeallocateSharedData(ISurfaceAllocator* allocator) MOZ_OVERRIDE
@@ -53,10 +77,18 @@ private:
 TextureClientData*
 GrallocTextureClientOGL::DropTextureData()
 {
-  TextureClientData* result = new GrallocTextureClientData(mGrallocActor);
-  mGrallocActor = nullptr;
-  mGraphicBuffer = nullptr;
-  return result;
+  if (mBufferLocked) {
+    TextureClientData* result = new GraphicBufferLockedTextureClientData(mBufferLocked);
+    mBufferLocked = nullptr;
+    mGrallocActor = nullptr;
+    mGraphicBuffer = nullptr;
+    return result;
+  } else {
+    TextureClientData* result = new GrallocTextureClientData(mGrallocActor);
+    mGrallocActor = nullptr;
+    mGraphicBuffer = nullptr;
+    return result;
+  }
 }
 
 GrallocTextureClientOGL::GrallocTextureClientOGL(GrallocBufferActor* aActor,
@@ -64,7 +96,6 @@ GrallocTextureClientOGL::GrallocTextureClientOGL(GrallocBufferActor* aActor,
                                                  TextureFlags aFlags)
 : BufferTextureClient(nullptr, gfx::SurfaceFormat::UNKNOWN, aFlags)
 , mMappedBuffer(nullptr)
-, mMediaBuffer(nullptr)
 {
   InitWith(aActor, aSize);
   MOZ_COUNT_CTOR(GrallocTextureClientOGL);
@@ -75,7 +106,6 @@ GrallocTextureClientOGL::GrallocTextureClientOGL(ISurfaceAllocator* aAllocator,
                                                  TextureFlags aFlags)
 : BufferTextureClient(aAllocator, aFormat, aFlags)
 , mMappedBuffer(nullptr)
-, mMediaBuffer(nullptr)
 {
   MOZ_COUNT_CTOR(GrallocTextureClientOGL);
 }
@@ -86,14 +116,16 @@ GrallocTextureClientOGL::~GrallocTextureClientOGL()
     if (ShouldDeallocateInDestructor()) {
     // If the buffer has never been shared we must deallocate it or it would
     // leak.
-    // We just need to wrap the actor in a SurfaceDescriptor because that's what
-    // ISurfaceAllocator uses as input, we don't care about the other parameters.
-    SurfaceDescriptor sd = SurfaceDescriptorGralloc(nullptr, mGrallocActor,
-                                                    IntSize(0, 0),
-                                                    false, false);
+    if (!mBufferLocked) {
+      // We just need to wrap the actor in a SurfaceDescriptor because that's what
+      // ISurfaceAllocator uses as input, we don't care about the other parameters.
+      SurfaceDescriptor sd = SurfaceDescriptorGralloc(nullptr, mGrallocActor,
+                                                      IntSize(0, 0),
+                                                      false, false);
 
-    ISurfaceAllocator* allocator = GetAllocator();
-    allocator->DestroySharedSurface(&sd);
+      ISurfaceAllocator* allocator = GetAllocator();
+      allocator->DestroySharedSurface(&sd);
+    }
   }
 }
 
@@ -106,6 +138,12 @@ GrallocTextureClientOGL::InitWith(GrallocBufferActor* aActor, gfx::IntSize aSize
   mGrallocActor = aActor;
   mGraphicBuffer = aActor->GetGraphicBuffer();
   mSize = aSize;
+}
+
+void
+GrallocTextureClientOGL::SetGraphicBufferLocked(GraphicBufferLocked* aBufferLocked)
+{
+  mBufferLocked = aBufferLocked;
 }
 
 bool
@@ -149,7 +187,11 @@ GrallocTextureClientOGL::UpdateSurface(gfxASurface* aSurface)
 void
 GrallocTextureClientOGL::SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle)
 {
-  mReleaseFenceHandle = aReleaseFenceHandle;
+  if (mBufferLocked) {
+    mBufferLocked->SetReleaseFenceHandle(aReleaseFenceHandle);
+  } else {
+    mReleaseFenceHandle = aReleaseFenceHandle;
+  }
 }
 
 void

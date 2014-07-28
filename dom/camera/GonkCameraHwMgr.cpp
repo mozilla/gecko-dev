@@ -22,9 +22,7 @@
 
 #include "base/basictypes.h"
 #include "nsDebug.h"
-#include "mozilla/layers/TextureClient.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/RefPtr.h"
 #include "GonkCameraControl.h"
 #include "GonkNativeWindow.h"
 #include "CameraCommon.h"
@@ -50,7 +48,7 @@ GonkCameraHardware::OnNewFrame()
   if (mClosing) {
     return;
   }
-  RefPtr<TextureClient> buffer = mNativeWindow->getCurrentBuffer();
+  nsRefPtr<GraphicBufferLocked> buffer = mNativeWindow->getCurrentBuffer();
   if (!buffer) {
     DOM_CAMERA_LOGW("received null frame");
     return;
