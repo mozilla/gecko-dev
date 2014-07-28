@@ -469,7 +469,7 @@ pref("services.push.pingInterval.default", 180000);// 3 min
 pref("services.push.pingInterval.mobile", 180000); // 3 min
 pref("services.push.pingInterval.wifi", 180000);  // 3 min
 // Adaptive ping
-pref("services.push.adaptive.enabled", true);
+pref("services.push.adaptive.enabled", false); // Bug 1044968
 pref("services.push.adaptive.lastGoodPingInterval", 180000);// 3 min
 pref("services.push.adaptive.lastGoodPingInterval.mobile", 180000);// 3 min
 pref("services.push.adaptive.lastGoodPingInterval.wifi", 180000);// 3 min
