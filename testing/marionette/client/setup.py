@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 import sys
 
-version = '0.7.9'
+version = '0.1'
 
 # dependencies
 with open('requirements.txt') as f:
@@ -25,7 +25,7 @@ if os.path.exists(transport_dir) and method:
 else:
     deps += ['marionette-transport == 0.2']
 
-setup(name='marionette_client',
+setup(name='marionette_client-mozilla-b2g32_v2_0',
       version=version,
       description="Marionette test automation client",
       long_description='See http://marionette-client.readthedocs.org/',
