@@ -3145,6 +3145,7 @@ MobileMessageDB.prototype = {
             messageRecord.type == "mms" &&
             messageRecord.delivery == DELIVERY_RECEIVED &&
             messageRecord.read == FILTER_READ_READ &&
+            messageRecord.headers["x-mms-read-report"] &&
             !messageRecord.isReadReportSent) {
           messageRecord.isReadReportSent = true;
 
