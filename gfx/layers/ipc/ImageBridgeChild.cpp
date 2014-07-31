@@ -861,10 +861,13 @@ ImageBridgeChild::AllocGrallocBufferNow(const gfx::IntSize& aSize,
                                         PGrallocBufferChild** aChild)
 {
 #ifdef MOZ_WIDGET_GONK
-  *aChild = SendPGrallocBufferConstructor(aSize,
-                                          aFormat,
-                                          aUsage,
-                                          aHandle);
+  *aChild = SendPGrallocBufferConstructor(aSize, aFormat, aUsage, aHandle);
+
+  if (aHandle->type() == MaybeMagicGrallocBufferHandle::Tnull_t) {
+    PGrallocBufferChild::Send__delete__(*aChild);
+    *aChild = nullptr;
+    return;
+  }
 #else
   NS_RUNTIMEABORT("not implemented");
   aChild = nullptr;

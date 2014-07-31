@@ -378,7 +378,7 @@ GrallocTextureClientOGL::AllocateGralloc(gfx::IntSize aSize,
                                   aAndroidFormat,
                                   aUsage,
                                   &handle);
-  if (!actor) {
+  if (!actor || handle.type() == handle.Tnull_t) {
     return false;
   }
   GrallocBufferActor* gba = static_cast<GrallocBufferActor*>(actor);

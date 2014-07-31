@@ -277,6 +277,15 @@ GrallocBufferActor::Create(const gfx::IntSize& aSize,
                            MaybeMagicGrallocBufferHandle* aOutHandle)
 {
   PROFILER_LABEL("GrallocBufferActor", "Create");
+  // If the requested size is too big (i.e. exceeds the commonly used max GL texture size)
+  // then we risk OOMing the parent process. It's better to just deny the allocation and
+  // kill the child process, which is what the following code does.
+  // TODO: actually use GL_MAX_TEXTURE_SIZE instead of hardcoding 4096
+  if (aSize.width > 4096 || aSize.height > 4096) {
+    printf_stderr("GrallocBufferActor::Create -- requested gralloc buffer is too big. Killing child instead.");
+    return nullptr;
+  }
+
   GrallocBufferActor* actor = new GrallocBufferActor();
   *aOutHandle = null_t();
   uint32_t format = aFormat;
@@ -284,22 +293,17 @@ GrallocBufferActor::Create(const gfx::IntSize& aSize,
 
   if (format == 0 || usage == 0) {
     printf_stderr("GrallocBufferActor::Create -- format and usage must be non-zero");
+    // return an empty actor and and a null_t handle.
+    // Returning a null actor instead would kill the child process and we don't want that.
     return actor;
-  }
-
-  // If the requested size is too big (i.e. exceeds the commonly used max GL texture size)
-  // then we risk OOMing the parent process. It's better to just deny the allocation and
-  // kill the child process, which is what the following code does.
-  // TODO: actually use GL_MAX_TEXTURE_SIZE instead of hardcoding 4096
-  if (aSize.width > 4096 || aSize.height > 4096) {
-    printf_stderr("GrallocBufferActor::Create -- requested gralloc buffer is too big. Killing child instead.");
-    delete actor;
-    return nullptr;
   }
 
   sp<GraphicBuffer> buffer(new GraphicBuffer(aSize.width, aSize.height, format, usage));
-  if (buffer->initCheck() != OK)
+  if (buffer->initCheck() != OK) {
+    // return an empty actor and and a null_t handle.
+    // Returning a null actor instead would kill the child process and we don't want that.
     return actor;
+  }
 
   size_t bpp = BytesPerPixelForPixelFormat(format);
   actor->mAllocBytes = aSize.width * aSize.height * bpp;
@@ -413,7 +417,15 @@ ShadowLayerForwarder::AllocGrallocBuffer(const gfx::IntSize& aSize,
       !mShadowManager->IPCOpen()) {
     return nullptr;
   }
-  return mShadowManager->SendPGrallocBufferConstructor(aSize, aFormat, aUsage, aHandle);
+
+  PGrallocBufferChild* child =
+    mShadowManager->SendPGrallocBufferConstructor(aSize, aFormat, aUsage, aHandle);
+
+  if (aHandle->type() == MaybeMagicGrallocBufferHandle::Tnull_t) {
+    PGrallocBufferChild::Send__delete__(child);
+    return nullptr;
+  }
+  return child;
 }
 
 void
@@ -494,7 +506,7 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfx::IntSize& aSize,
   }
 
   if (!gc) {
-    NS_ERROR("GrallocBufferConstructor failed by returned null");
+    NS_ERROR("GrallocBufferConstructor failed by returning null");
     return false;
   } else if (handle.Tnull_t == handle.type()) {
     NS_ERROR("GrallocBufferConstructor failed by returning handle with type Tnull_t");
