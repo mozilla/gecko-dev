@@ -92,10 +92,6 @@ this.BrowserElementParentBuilder = {
   }
 }
 
-
-// The active input method iframe.
-let activeInputFrame = null;
-
 function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
   debug("Creating new BrowserElementParent object for " + frameLoader);
   this._domRequestCounter = 0;
@@ -139,12 +135,7 @@ function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
 
   let defineDOMRequestMethod = function(domName, msgName) {
     XPCNativeWrapper.unwrap(self._frameElement)[domName] = function() {
-      if (!self._mm) {
-        return self._queueDOMRequest;
-      }
-      if (self._isAlive()) {
-        return self._sendDOMRequest(msgName);
-      }
+      return self._sendDOMRequest(msgName);
     };
   }
 
@@ -494,32 +485,6 @@ BrowserElementParent.prototype = {
   },
 
   /**
-   * If remote frame haven't been set up, we enqueue a function that get a
-   * DOMRequest until the remote frame is ready and return another DOMRequest
-   * to caller. When we get the real DOMRequest, we will help forward the
-   * success/error callback to the DOMRequest that caller got.
-   */
-  _queueDOMRequest: function(msgName, args) {
-    if (!this._pendingAPICalls) {
-      return;
-    }
-
-    let req = Services.DOMRequest.createRequest(this._window);
-    let self = this;
-    let getRealDOMRequest = function() {
-      let realReq = self._sendDOMRequest(msgName, args);
-      realReq.onsuccess = function(v) {
-        Services.DOMRequest.fireSuccess(req, v);
-      };
-      realReq.onerror = function(v) {
-        Services.DOMRequest.fireError(req, v);
-      };
-    };
-    this._pendingAPICalls.push(getRealDOMRequest);
-    return req;
-  },
-
-  /**
    * Kick off a DOMRequest in the child process.
    *
    * We'll fire an event called |msgName| on the child process, passing along
@@ -534,10 +499,22 @@ BrowserElementParent.prototype = {
   _sendDOMRequest: function(msgName, args) {
     let id = 'req_' + this._domRequestCounter++;
     let req = Services.DOMRequest.createRequest(this._window);
-    if (this._sendAsyncMsg(msgName, {id: id, args: args})) {
-      this._pendingDOMRequests[id] = req;
+    let self = this;
+    let send = function() {
+      if (!self._isAlive()) {
+        return;
+      }
+      if (self._sendAsyncMsg(msgName, {id: id, args: args})) {
+        self._pendingDOMRequests[id] = req;
+      } else {
+        Services.DOMRequest.fireErrorAsync(req, "fail");
+      }
+    };
+    if (this._mm) {
+      send();
     } else {
-      Services.DOMRequest.fireErrorAsync(req, "fail");
+      // Child haven't been loaded.
+      this._pendingAPICalls.push(send);
     }
     return req;
   },
@@ -643,13 +620,6 @@ BrowserElementParent.prototype = {
                                  Cr.NS_ERROR_INVALID_ARG);
     }
 
-    if (!this._mm) {
-      // Child haven't been loaded.
-      return this._queueDOMRequest('get-screenshot',
-                                   {width: width, height: height,
-                                    mimeType: mimeType});
-    }
-
     return this._sendDOMRequest('get-screenshot',
                                 {width: width, height: height,
                                  mimeType: mimeType});
@@ -712,46 +682,8 @@ BrowserElementParent.prototype = {
                                  Cr.NS_ERROR_INVALID_ARG);
     }
 
-    let req = Services.DOMRequest.createRequest(this._window);
-
-    // Deactivate the old input method if needed.
-    if (activeInputFrame && isActive) {
-      if (Cu.isDeadWrapper(activeInputFrame)) {
-        // If the activeInputFrame is already a dead object,
-        // we should simply set it to null directly.
-        activeInputFrame = null;
-        this._sendSetInputMethodActiveDOMRequest(req, isActive);
-      } else {
-        let reqOld = XPCNativeWrapper.unwrap(activeInputFrame)
-                                     .setInputMethodActive(false);
-        reqOld.onsuccess = function() {
-          activeInputFrame = null;
-          this._sendSetInputMethodActiveDOMRequest(req, isActive);
-        }.bind(this);
-        reqOld.onerror = function() {
-          Services.DOMRequest.fireErrorAsync(req,
-            'Failed to deactivate the old input method: ' +
-            reqOld.error + '.');
-        };
-      }
-    } else {
-      this._sendSetInputMethodActiveDOMRequest(req, isActive);
-    }
-    return req;
-  },
-
-  _sendSetInputMethodActiveDOMRequest: function(req, isActive) {
-    let id = 'req_' + this._domRequestCounter++;
-    let data = {
-      id : id,
-      args: { isActive: isActive }
-    };
-    if (this._sendAsyncMsg('set-input-method-active', data)) {
-      activeInputFrame = this._frameElement;
-      this._pendingDOMRequests[id] = req;
-    } else {
-      Services.DOMRequest.fireErrorAsync(req, 'fail');
-    }
+    return this._sendDOMRequest('set-input-method-active',
+                                {isActive: isActive});
   },
 
   _fireKeyEvent: function(data) {

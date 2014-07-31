@@ -41,7 +41,7 @@ function runTest() {
       appId: SpecialPowers.Ci.nsIScriptSecurityManager.NO_APP_ID,
       isInBrowserElement: true
     }
-  }], createFrames);
+  }], SimpleTest.waitForFocus.bind(SimpleTest, createFrames));
 }
 
 var gFrames = [];
@@ -51,29 +51,55 @@ function createFrames() {
   // Create two input method iframes.
   let loadendCount = 0;
   let countLoadend = function() {
-    ok(this.setInputMethodActive, 'Can access setInputMethodActive.');
-
     if (this === gInputFrame) {
       // The frame script running in the frame where the input is hosted.
       let appFrameScript = function appFrameScript() {
         let input = content.document.body.firstElementChild;
         input.oninput = function() {
-          sendAsyncMessage('test:InputMethod:oninput', this.value);
+          sendAsyncMessage('test:InputMethod:oninput', {
+            from: 'input',
+            value: this.value
+          });
         };
 
-        /*
-         * Bug 957213. Sometimes we need to refocus the input field to avoid
-         * intermittent test failure.
-         */
-        content.setInterval(function() {
-          input.focus();
-        }, 500);
+        input.onblur = function() {
+          // "Expected" lost of focus since the test is finished.
+          if (input.value === '#0#1hello') {
+            return;
+          }
+
+          sendAsyncMessage('test:InputMethod:oninput', {
+            from: 'input',
+            error: true,
+            value: 'Unexpected lost of focus on the input frame!'
+          });
+        };
+
+        input.focus();
       }
 
       // Inject frame script to receive input.
       let mm = SpecialPowers.getBrowserFrameMessageManager(gInputFrame);
-      mm.loadFrameScript('data:,(' + appFrameScript.toString() + ')();', false);
+      mm.loadFrameScript('data:,(' + encodeURIComponent(appFrameScript.toString()) + ')();', false);
       mm.addMessageListener("test:InputMethod:oninput", next);
+    } else {
+      ok(this.setInputMethodActive, 'Can access setInputMethodActive.');
+
+      // The frame script running in the input method frames.
+
+      let appFrameScript = function appFrameScript() {
+        content.addEventListener("message", function(evt) {
+          sendAsyncMessage('test:InputMethod:imFrameMessage', {
+            from: 'im',
+            value: evt.data
+          });
+        });
+      }
+
+      // Inject frame script to receive message.
+      let mm = SpecialPowers.getBrowserFrameMessageManager(this);
+      mm.loadFrameScript('data:,(' + appFrameScript.toString() + ')();', false);
+      mm.addMessageListener("test:InputMethod:imFrameMessage", next);
     }
 
     loadendCount++;
@@ -117,58 +143,138 @@ function startTest() {
   };
 }
 
-var gTimerId = null;
 var gCount = 0;
 
+var gFrameMsgCounts = {
+  'input': 0,
+  'im0': 0,
+  'im1': 0
+};
+
 function next(msg) {
-  gCount++;
   let wrappedMsg = SpecialPowers.wrap(msg);
-  let value = wrappedMsg.data;
+  let from = wrappedMsg.data.from;
+  let value = wrappedMsg.data.value;
+
+  if (wrappedMsg.data.error) {
+    ok(false, wrappedMsg.data.value);
+
+    return;
+  }
+
+  let fromId = from;
+  if (from === 'im') {
+    fromId += value[1];
+  }
+  gFrameMsgCounts[fromId]++;
+
   // The texts sent from the first and the second input method are '#0' and
   // '#1' respectively.
   switch (gCount) {
-    case 1:
-      is(value, '#0hello',
-         'Failed to get correct input from the first iframe.');
+    case 0:
+      switch (fromId) {
+        case 'im0':
+          if (gFrameMsgCounts.im0 === 1) {
+            is(value, '#0true', 'First frame should get the context first.');
+          } else {
+            ok(false, 'Unexpected multiple messages from im0.')
+          }
+
+          break;
+
+        case 'im1':
+          is(false, 'Shouldn\'t be hearing anything from second frame.');
+
+          break;
+
+        case 'input':
+          if (gFrameMsgCounts.input === 1) {
+            is(value, '#0hello',
+              'Failed to get correct input from the first iframe.');
+          } else {
+            ok(false, 'Unexpected multiple messages from input.')
+          }
+
+          break;
+      }
+
+      if (gFrameMsgCounts.input !== 1 ||
+          gFrameMsgCounts.im0 !== 1 ||
+          gFrameMsgCounts.im1 !== 0) {
+        return;
+      }
+
+      gCount++;
+
+      let req0 = gFrames[0].setInputMethodActive(false);
+      req0.onsuccess = function() {
+        ok(true, 'setInputMethodActive succeeded (0).');
+      };
+      req0.onerror = function() {
+        ok(false, 'setInputMethodActive failed (0): ' + this.error.name);
+      };
       let req1 = gFrames[1].setInputMethodActive(true);
       req1.onsuccess = function() {
-       ok(true, 'setInputMethodActive succeeded (1).');
+        ok(true, 'setInputMethodActive succeeded (1).');
       };
       req1.onerror = function() {
-       ok(false, 'setInputMethodActive failed (1): ' + this.error.name);
+        ok(false, 'setInputMethodActive failed (1): ' + this.error.name);
       };
+
       break;
 
-    case 2:
-      is(value, '#0#1hello',
-         'Failed to get correct input from the second iframe.');
-      // Do nothing and wait for the next input from the second iframe.
-      break;
+    case 1:
+      switch (fromId) {
+        case 'im0':
+          if (gFrameMsgCounts.im0 === 2) {
+            is(value, '#0false', 'First frame should have the context removed.');
+          } else {
+            ok(false, 'Unexpected multiple messages from im0.')
+          }
+          break;
 
-    case 3:
-      is(value, '#0#1#1hello',
-         'Failed to get correct input from the second iframe.');
+        case 'im1':
+          if (gFrameMsgCounts.im1 === 1) {
+            is(value, '#1true', 'Second frame should get the context.');
+          } else {
+            ok(false, 'Unexpected multiple messages from im0.')
+          }
+
+          break;
+
+        case 'input':
+          if (gFrameMsgCounts.input === 2) {
+            is(value, '#0#1hello',
+               'Failed to get correct input from the second iframe.');
+          } else {
+            ok(false, 'Unexpected multiple messages from input.')
+          }
+          break;
+      }
+
+      if (gFrameMsgCounts.input !== 2 ||
+          gFrameMsgCounts.im0 !== 2 ||
+          gFrameMsgCounts.im1 !== 1) {
+        return;
+      }
+
+      gCount++;
+
       // Receive the second input from the second iframe.
       // Deactive the second iframe.
       let req3 = gFrames[1].setInputMethodActive(false);
       req3.onsuccess = function() {
-        ok(true, 'setInputMethodActive(false) succeeded (3).');
+        ok(true, 'setInputMethodActive(false) succeeded (2).');
       };
       req3.onerror = function() {
-        ok(false, 'setInputMethodActive(false) failed (3): ' + this.error.name);
+        ok(false, 'setInputMethodActive(false) failed (2): ' + this.error.name);
       };
-
-      // Wait for a short while to ensure the second iframe is not active any
-      // more.
-      gTimerId = setTimeout(function() {
-        ok(true, 'Successfully deactivate the second iframe.');
-        tearDown();
-      }, 1000);
       break;
 
-    case 4:
-      ok(false, 'Failed to deactivate the second iframe in time.');
-      clearTimeout(gTimerId);
+    case 2:
+      is(fromId, 'im1', 'Message sequence unexpected (3).');
+      is(value, '#1false', 'Second frame should have the context removed.');
+
       tearDown();
       break;
   }
