@@ -125,13 +125,13 @@
   <!-- Stock Android things -->
   <project name="platform/external/icu4c" path="external/icu4c" revision="2bb01561780583cc37bc667f0ea79f48a122d8a2"/>
   <!-- dolphin specific things -->
-  <project name="device/sprd" path="device/sprd" revision="f3d927c60e4eb560d72f8710cbe86dad9340555b"/>
+  <project name="device/sprd" path="device/sprd" revision="2d18f44f3c04e012ff08b293beebba89625d22f6"/>
   <project groups="pdk" name="platform/external/wpa_supplicant_8" path="external/wpa_supplicant_8" revision="4e58336019b5cbcfd134caf55b142236cf986618"/>
   <project groups="pdk" name="platform/frameworks/av" path="frameworks/av" revision="cbd80d8c03fc639dd810b17c4b682c67abc06ee8"/>
   <project name="platform/hardware/akm" path="hardware/akm" revision="6d3be412647b0eab0adff8a2768736cf4eb68039"/>
   <project groups="invensense" name="platform/hardware/invensense" path="hardware/invensense" revision="e6d9ab28b4f4e7684f6c07874ee819c9ea0002a2"/>
   <project groups="pdk" name="platform/hardware/ril" path="hardware/ril" revision="865ce3b4a2ba0b3a31421ca671f4d6c5595f8690"/>
-  <project name="kernel/common" path="kernel" revision="eed982a4aa28fb823f1177b374544fb5b45adab3"/>
+  <project name="kernel/common" path="kernel" revision="a16c48e085d4b0b6267e2fa0192d1ff071512121"/>
   <project groups="pdk" name="platform/system/core" path="system/core" revision="b5de04ae22343b6bdaa3455aee291bdf9a872738"/>
   <project name="u-boot" path="u-boot" revision="55a63bd12a91c2a6700f33d652cfefac7b3e9fcc"/>
   <project name="vendor/sprd/gps" path="vendor/sprd/gps" revision="7feb3df0e150053e0143ef525f6e082bda320aea"/>
