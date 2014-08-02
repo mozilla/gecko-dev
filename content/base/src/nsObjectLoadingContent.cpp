@@ -29,6 +29,7 @@
 #include "nsIScriptGlobalObject.h"
 #include "nsScriptSecurityManager.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsNullPrincipal.h"
 #include "nsIStreamConverterService.h"
 #include "nsIURILoader.h"
 #include "nsIURL.h"
@@ -2368,7 +2369,7 @@ nsObjectLoadingContent::OpenChannel()
   nsCOMPtr<nsIPrincipal> ownerPrincipal;
   uint32_t sandboxFlags = doc->GetSandboxFlags();
   if (sandboxFlags & SANDBOXED_ORIGIN) {
-    ownerPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1");
+    ownerPrincipal = nsNullPrincipal::CreateWithInheritedAttributes(thisContent->NodePrincipal());
   } else {
     // Not sandboxed - we allow the content to assume its natural owner.
     ownerPrincipal = thisContent->NodePrincipal();
