@@ -72,6 +72,7 @@
 #include "nsIChannel.h"
 #include "IHistory.h"
 #include "nsViewSourceHandler.h"
+#include "nsNullPrincipal.h"
 
 // we want to explore making the document own the load group
 // so we can associate the document URI with the load group.
@@ -7340,7 +7341,8 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
   if (docFactory) {
     nsCOMPtr<nsIPrincipal> principal;
     if (mSandboxFlags & SANDBOXED_ORIGIN) {
-      principal = do_CreateInstance("@mozilla.org/nullprincipal;1");
+      principal = nsNullPrincipal::CreateWithInheritedAttributes(aPrincipal);
+      NS_ENSURE_TRUE(principal, NS_ERROR_FAILURE);
     } else {
       principal = aPrincipal;
     }
@@ -10008,7 +10010,13 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     // nsContentUtils::SetUpChannelOwner to force it to be set as the
     // channel owner.
     if (mSandboxFlags & SANDBOXED_ORIGIN) {
-        ownerPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1");
+        nsCOMPtr<nsIPrincipal> ownerPrin = do_QueryInterface(aOwner);
+        if (ownerPrin) {
+            ownerPrincipal = nsNullPrincipal::CreateWithInheritedAttributes(ownerPrin);
+            NS_ENSURE_TRUE(ownerPrincipal, NS_ERROR_FAILURE);
+        } else {
+            ownerPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1");
+        }
     } else {
         // Not sandboxed - we allow the content to assume its natural owner.
         ownerPrincipal = do_QueryInterface(aOwner);

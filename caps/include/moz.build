@@ -6,5 +6,8 @@
 
 EXPORTS += [
     'nsJSPrincipals.h',
+    'nsNullPrincipal.h',
+    'nsPrincipal.h',
+    'nsScriptSecurityManager.h'
 ]
 
