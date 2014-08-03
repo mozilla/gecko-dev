@@ -1,9 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
 const INT_MAX = 0x7FFFFFFF;
 
 const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
@@ -177,7 +174,7 @@ function test_getHistogramById() {
     Telemetry.getHistogramById("nonexistent");
     do_throw("This can't happen");
   } catch (e) {
-    
+
   }
   var h = Telemetry.getHistogramById("CYCLE_COLLECTOR");
   var s = h.snapshot();
@@ -289,7 +286,7 @@ function test_addons() {
   // Check that we can register flag histograms.
   var flag_addon = "testing-flag-addon";
   var flag_histogram = "flag-histogram";
-  expect_success(function() 
+  expect_success(function()
                  register(flag_addon, flag_histogram, 0, 1, 2, Telemetry.HISTOGRAM_FLAG))
   expect_success(function()
 		 register(flag_addon, name2, 2, 4, 4, Telemetry.HISTOGRAM_LINEAR));
