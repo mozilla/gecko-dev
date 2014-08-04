@@ -1016,7 +1016,7 @@ public:
     static void
     TraceWrappedNativesInAllScopes(JSTracer* trc, XPCJSRuntime* rt);
 
-    void TraceSelf(JSTracer *trc) {
+    void TraceInside(JSTracer *trc) {
         MOZ_ASSERT(mGlobalJSObject);
         mGlobalJSObject.trace(trc, "XPCWrappedNativeScope::mGlobalJSObject");
         if (mContentXBLScope)
@@ -1780,7 +1780,7 @@ public:
                 mScriptableInfo->Mark();
         }
 
-        GetScope()->TraceSelf(trc);
+        GetScope()->TraceInside(trc);
     }
 
     void TraceJS(JSTracer *trc) {
@@ -1905,9 +1905,6 @@ private:
 };
 
 void *xpc_GetJSPrivate(JSObject *obj);
-
-void
-TraceXPCGlobal(JSTracer *trc, JSObject *obj);
 
 /***************************************************************************/
 // XPCWrappedNative the wrapper around one instance of a native xpcom object
@@ -2096,10 +2093,10 @@ public:
         if (HasProto())
             GetProto()->TraceSelf(trc);
         else
-            GetScope()->TraceSelf(trc);
+            GetScope()->TraceInside(trc);
         if (mFlatJSObject && JS_IsGlobalObject(mFlatJSObject))
         {
-            TraceXPCGlobal(trc, mFlatJSObject);
+            xpc::TraceXPCGlobal(trc, mFlatJSObject);
         }
     }
 

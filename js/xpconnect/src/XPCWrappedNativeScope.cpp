@@ -492,6 +492,8 @@ XPCWrappedNativeScope::KillDyingScopes()
     XPCWrappedNativeScope* cur = gDyingScopes;
     while (cur) {
         XPCWrappedNativeScope* next = cur->mNext;
+        if (cur->mGlobalJSObject)
+            GetCompartmentPrivate(cur->mGlobalJSObject)->scope = nullptr;
         delete cur;
         cur = next;
     }
