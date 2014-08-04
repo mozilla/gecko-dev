@@ -201,3 +201,6 @@ user_pref('toolkit.telemetry.server', 'https://%(server)s/telemetry-dummy/');
 // actually need a functioning FxA server, so just set it to something that
 // resolves and accepts requests, even if they all fail.
 user_pref('identity.fxaccounts.auth.uri', 'https://%(server)s/fxa-dummy/');
+
+// Make sure we don't try to load snippets from the network.
+user_pref("browser.aboutHomeSnippets.updateUrl", "nonexistent://test");
