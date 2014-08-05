@@ -31,11 +31,14 @@
 #include "cryptohi.h"
 #include "hasht.h"
 #include "pk11pub.h"
-#include "pkixcheck.h"
+#include "pkix/pkixnss.h"
 #include "pkixder.h"
+#include "pkixutil.h"
+#include "prerror.h"
 #include "prinit.h"
 #include "prprf.h"
 #include "secder.h"
+#include "secerr.h"
 
 using namespace std;
 
@@ -146,6 +149,15 @@ TamperOnce(SECItem& item,
   }
 }
 
+Result
+InitInputFromSECItem(const SECItem* secItem, /*out*/ Input& input)
+{
+  if (!secItem) {
+    return Result::FATAL_ERROR_INVALID_ARGS;
+  }
+  return input.Init(secItem->data, secItem->len);
+}
+
 class Output
 {
 public:
@@ -163,10 +175,10 @@ public:
     PR_ASSERT(item->data);
 
     if (numItems >= MaxSequenceItems) {
-      return Fail(SEC_ERROR_INVALID_ARGS);
+      return Result::FATAL_ERROR_INVALID_ARGS;
     }
     if (length + item->len > 65535) {
-      return Fail(SEC_ERROR_INVALID_ARGS);
+      return Result::FATAL_ERROR_INVALID_ARGS;
     }
 
     contents[numItems] = item;
@@ -481,7 +493,7 @@ PRTimeToTimeChoice(PLArenaPool* arena, PRTime time)
                                                           : GeneralizedTime);
 }
 
-PRTime
+Time
 YMDHMS(int16_t year, int16_t month, int16_t day,
        int16_t hour, int16_t minutes, int16_t seconds)
 {
@@ -495,7 +507,10 @@ YMDHMS(int16_t year, int16_t month, int16_t day,
   tm.tm_year = year;
   tm.tm_params.tp_gmt_offset = 0;
   tm.tm_params.tp_dst_offset = 0;
-  return PR_ImplodeTime(&tm);
+  PRTime time = PR_ImplodeTime(&tm);
+  return TimeFromElapsedSecondsAD((time / PR_USEC_PER_SEC) +
+                                  (DaysBeforeYear(1970) *
+                                   Time::ONE_DAY_IN_SECONDS));
 }
 
 static SECItem*
@@ -1325,16 +1340,18 @@ CertID(OCSPResponseContext& context)
   if (!hashAlgorithm) {
     return nullptr;
   }
-  SECItem* issuerNameHash = HashedOctetString(context.arena,
-                                              context.certID.issuer,
+  SECItem issuerSECItem = UnsafeMapInputToSECItem(context.certID.issuer);
+  SECItem* issuerNameHash = HashedOctetString(context.arena, issuerSECItem,
                                               context.certIDHashAlg);
   if (!issuerNameHash) {
     return nullptr;
   }
 
+  SECItem issuerSubjectPublicKeyInfoSECItem =
+    UnsafeMapInputToSECItem(context.certID.issuerSubjectPublicKeyInfo);
   ScopedPtr<CERTSubjectPublicKeyInfo, SECKEY_DestroySubjectPublicKeyInfo>
     spki(SECKEY_DecodeDERSubjectPublicKeyInfo(
-          &context.certID.issuerSubjectPublicKeyInfo));
+           &issuerSubjectPublicKeyInfoSECItem));
   if (!spki) {
     return nullptr;
   }
@@ -1347,8 +1364,10 @@ CertID(OCSPResponseContext& context)
     { SEC_ASN1_INTEGER, 0 },
     { 0 }
   };
+  SECItem serialNumberSECItem =
+    UnsafeMapInputToSECItem(context.certID.serialNumber);
   SECItem* serialNumber = SEC_ASN1EncodeItem(context.arena, nullptr,
-                                             &context.certID.serialNumber,
+                                             &serialNumberSECItem,
                                              serialTemplate);
   if (!serialNumber) {
     return nullptr;

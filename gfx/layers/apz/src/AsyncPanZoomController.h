@@ -20,7 +20,7 @@
 #include "InputData.h"
 #include "Axis.h"
 #include "TaskThrottler.h"
-#include "gfx3DMatrix.h"
+#include "mozilla/gfx/Matrix.h"
 #include "nsRegion.h"
 
 #include "base/message_loop.h"
@@ -69,6 +69,7 @@ class AsyncPanZoomController {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncPanZoomController)
 
   typedef mozilla::MonitorAutoLock MonitorAutoLock;
+  typedef mozilla::gfx::Matrix4x4 Matrix4x4;
   typedef uint32_t TouchBehaviorFlags;
 
 public:
@@ -114,9 +115,8 @@ public:
    * based on what type of input it is. For example, a PinchGestureEvent will
    * cause scaling. This should only be called externally to this class.
    * HandleInputEvent() should be used internally.
-   * This function returns nsEventStatus_eIgnore for events that are ignored,
-   * and nsEventStatus_eConsumeDoDefault for events that are queued for
-   * processing pending a content response.
+   * See the documentation on APZCTreeManager::ReceiveInputEvent for info on
+   * return values from this function.
    */
   nsEventStatus ReceiveInputEvent(const InputData& aEvent);
 
@@ -221,9 +221,9 @@ public:
   /**
    * Returns the part of the async transform that will remain once Gecko does a
    * repaint at the desired metrics. That is, in the steady state:
-   * gfx3DMatrix(GetCurrentAsyncTransform()) === GetNontransientAsyncTransform()
+   * Matrix4x4(GetCurrentAsyncTransform()) === GetNontransientAsyncTransform()
    */
-  gfx3DMatrix GetNontransientAsyncTransform();
+  Matrix4x4 GetNontransientAsyncTransform();
 
   /**
    * Returns the transform to take something from the coordinate space of the
@@ -232,7 +232,7 @@ public:
    * processed, this is needed to transform input events properly into a space
    * gecko will understand.
    */
-  gfx3DMatrix GetTransformToLastDispatchedPaint();
+  Matrix4x4 GetTransformToLastDispatchedPaint();
 
   /**
    * Recalculates the displayport. Ideally, this should paint an area bigger
@@ -542,6 +542,14 @@ private:
    * or just the local APZC if not.
    */
   void CancelAnimationForHandoffChain();
+
+  /**
+   * Given the number of touch points in an input event and touch block they
+   * belong to, check if the event can result in a panning/zooming behavior.
+   * This is primarily used to figure out when to dispatch the pointercancel
+   * event for the pointer events spec.
+   */
+  bool ArePointerEventsConsumable(TouchBlockState* aBlock, uint32_t aTouchPoints);
 
   /**
    * Helper to set the current state. Holds the monitor before actually setting
@@ -942,19 +950,19 @@ private:
    * hit-testing to see which APZC instance should handle touch events.
    */
 public:
-  void SetLayerHitTestData(const nsIntRegion& aRegion, const gfx3DMatrix& aTransformToLayer,
-                           const gfx3DMatrix& aTransformForLayer) {
+  void SetLayerHitTestData(const nsIntRegion& aRegion, const Matrix4x4& aTransformToLayer,
+                           const Matrix4x4& aTransformForLayer) {
     mVisibleRegion = aRegion;
     mAncestorTransform = aTransformToLayer;
     mCSSTransform = aTransformForLayer;
     UpdateTransformScale();
   }
 
-  gfx3DMatrix GetAncestorTransform() const {
+  Matrix4x4 GetAncestorTransform() const {
     return mAncestorTransform;
   }
 
-  gfx3DMatrix GetCSSTransform() const {
+  Matrix4x4 GetCSSTransform() const {
     return mCSSTransform;
   }
 
@@ -974,9 +982,9 @@ private:
   nsIntRegion mVisibleRegion;
   /* This is the cumulative CSS transform for all the layers between the parent
    * APZC and this one (not inclusive) */
-  gfx3DMatrix mAncestorTransform;
+  Matrix4x4 mAncestorTransform;
   /* This is the CSS transform for this APZC's layer. */
-  gfx3DMatrix mCSSTransform;
+  Matrix4x4 mCSSTransform;
 
 
   /* ===================================================================

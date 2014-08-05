@@ -7,7 +7,6 @@
 
 #include "LayersLogging.h"
 #include <stdint.h>                     // for uint8_t
-#include "gfx3DMatrix.h"                // for gfx3DMatrix
 #include "gfxColor.h"                   // for gfxRGBA
 #include "mozilla/gfx/Matrix.h"         // for Matrix4x4, Matrix
 #include "nsDebug.h"                    // for NS_ERROR
@@ -236,3 +235,38 @@ AppendToString(std::stringstream& aStream, mozilla::gfx::SurfaceFormat format,
 
 } // namespace
 } // namespace
+
+void
+print_stderr(std::stringstream& aStr)
+{
+#if defined(ANDROID)
+  // On Android logcat output is truncated to 1024 chars per line, and
+  // we usually use std::stringstream to build up giant multi-line gobs
+  // of output. So to avoid the truncation we find the newlines and
+  // print the lines individually.
+  char line[1024];
+  while (!aStr.eof()) {
+    aStr.getline(line, sizeof(line));
+    if (!aStr.eof() || strlen(line) > 0) {
+      printf_stderr("%s\n", line);
+    }
+    if (aStr.fail()) {
+      // line was too long, skip to next newline
+      aStr.clear();
+      aStr.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+  }
+#else
+  printf_stderr("%s", aStr.str().c_str());
+#endif
+}
+
+void
+fprint_stderr(FILE* aFile, std::stringstream& aStr)
+{
+  if (aFile == stderr) {
+    print_stderr(aStr);
+  } else {
+    fprintf_stderr(aFile, "%s", aStr.str().c_str());
+  }
+}

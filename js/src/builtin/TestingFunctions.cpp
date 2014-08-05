@@ -19,8 +19,8 @@
 #endif
 #include "jswrapper.h"
 
-#include "jit/AsmJS.h"
-#include "jit/AsmJSLink.h"
+#include "asmjs/AsmJSLink.h"
+#include "asmjs/AsmJSValidate.h"
 #include "js/HashTable.h"
 #include "js/StructuredClone.h"
 #include "js/UbiNode.h"
@@ -1616,7 +1616,7 @@ EnableTraceLogger(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
-    args.rval().setBoolean(TraceLoggerEnable(logger));
+    args.rval().setBoolean(TraceLoggerEnable(logger, cx));
 
     return true;
 }

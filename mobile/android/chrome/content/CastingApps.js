@@ -42,6 +42,8 @@ var mediaPlayerTarget = {
 
 var CastingApps = {
   _castMenuId: -1,
+  mirrorStartMenuId: -1,
+  mirrorStopMenuId: -1,
 
   init: function ca_init() {
     if (!this.isEnabled()) {
@@ -66,29 +68,13 @@ var CastingApps = {
     Services.obs.addObserver(this, "Casting:Pause", false);
     Services.obs.addObserver(this, "Casting:Stop", false);
     Services.obs.addObserver(this, "Casting:Mirror", false);
+    Services.obs.addObserver(this, "ssdp-service-found", false);
+    Services.obs.addObserver(this, "ssdp-service-lost", false);
 
     BrowserApp.deck.addEventListener("TabSelect", this, true);
     BrowserApp.deck.addEventListener("pageshow", this, true);
     BrowserApp.deck.addEventListener("playing", this, true);
     BrowserApp.deck.addEventListener("ended", this, true);
-
-    NativeWindow.menu.add(
-      Strings.browser.GetStringFromName("casting.mirrorTab"),
-      "drawable://casting",
-      function() {
-        function callbackFunc(aService) {
-          let app = SimpleServiceDiscovery.findAppForService(aService);
-          if (app)
-            app.mirror(function() {
-            });
-        }
-
-        function filterFunc(aService) {
-          Cu.reportError("testing: " + aService);
-          return aService.mirror == true;
-        }
-        this.prompt(callbackFunc, filterFunc);
-      }.bind(this));
   },
 
   uninit: function ca_uninit() {
@@ -101,8 +87,61 @@ var CastingApps = {
     Services.obs.removeObserver(this, "Casting:Pause");
     Services.obs.removeObserver(this, "Casting:Stop");
     Services.obs.removeObserver(this, "Casting:Mirror");
+    Services.obs.removeObserver(this, "ssdp-service-found");
+    Services.obs.removeObserver(this, "ssdp-service-lost");
 
     NativeWindow.contextmenus.remove(this._castMenuId);
+  },
+
+  serviceAdded: function(aService) {
+    if (aService.mirror && this.mirrorStartMenuId == -1) {
+      this.mirrorStartMenuId = NativeWindow.menu.add({
+        name: Strings.browser.GetStringFromName("casting.mirrorTab"),
+        callback: function() {
+          function callbackFunc(aService) {
+            let app = SimpleServiceDiscovery.findAppForService(aService);
+            if (app)
+              app.mirror(function() {
+              });
+          }
+
+          function filterFunc(aService) {
+            return aService.mirror == true;
+          }
+          this.prompt(callbackFunc, filterFunc);
+        }.bind(this),
+        parent: NativeWindow.menu.toolsMenuID
+      });
+
+      this.mirrorStopMenuId = NativeWindow.menu.add({
+        name: Strings.browser.GetStringFromName("casting.mirrorTabStop"),
+        callback: function() {
+          if (this.tabMirror) {
+            this.tabMirror.stop();
+            this.tabMirror = null;
+          }
+          NativeWindow.menu.update(this.mirrorStartMenuId, { visible: true });
+          NativeWindow.menu.update(this.mirrorStopMenuId, { visible: false });
+        }.bind(this),
+        parent: NativeWindow.menu.toolsMenuID
+      });
+    }
+    NativeWindow.menu.update(this.mirrorStopMenuId, { visible: false });
+  },
+
+  serviceLost: function(aService) {
+    if (aService.mirror && this.mirrorStartMenuId != -1) {
+      let haveMirror = false;
+      SimpleServiceDiscovery.services.forEach(function(service) {
+        if (service.mirror) {
+          haveMirror = true;
+        }
+      });
+      if (!haveMirror) {
+        NativeWindow.menu.remove(this.mirrorStartMenuId);
+        this.mirrorStartMenuId = -1;
+      }
+    }
   },
 
   isEnabled: function isEnabled() {
@@ -130,8 +169,20 @@ var CastingApps = {
         {
           Cu.import("resource://gre/modules/TabMirror.jsm");
           this.tabMirror = new TabMirror(aData, window);
+          NativeWindow.menu.update(this.mirrorStartMenuId, { visible: false });
+          NativeWindow.menu.update(this.mirrorStopMenuId, { visible: true });
         }
         break;
+      case "ssdp-service-found":
+        {
+          this.serviceAdded(SimpleServiceDiscovery.findServiceForID(aData));
+          break;
+        }
+      case "ssdp-service-lost":
+        {
+          this.serviceLost(SimpleServiceDiscovery.findServiceForID(aData));
+          break;
+        }
     }
   },
 

@@ -1128,6 +1128,7 @@ HTMLInputElement::HTMLInputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNo
   , mNumberControlSpinnerIsSpinning(false)
   , mNumberControlSpinnerSpinsUp(false)
   , mPickerRunning(false)
+  , mSelectionCached(true)
 {
   // We are in a type=text so we now we currenty need a nsTextEditorState.
   mInputData.mState = new nsTextEditorState(this);
@@ -3250,7 +3251,7 @@ HTMLInputElement::NeedToInitializeEditorForEvent(
   // handled without the editor being initialized.  These events include:
   // mousein/move/out, overflow/underflow, and DOM mutation events.
   if (!IsSingleLineTextControl(false) ||
-      aVisitor.mEvent->eventStructType == NS_MUTATION_EVENT) {
+      aVisitor.mEvent->mClass == eMutationEventClass) {
     return false;
   }
 
@@ -4268,9 +4269,9 @@ HTMLInputElement::PostHandleEventForRangeThumb(EventChainPostVisitor& aVisitor)
   MOZ_ASSERT(mType == NS_FORM_INPUT_RANGE);
 
   if (nsEventStatus_eConsumeNoDefault == aVisitor.mEventStatus ||
-      !(aVisitor.mEvent->eventStructType == NS_MOUSE_EVENT ||
-        aVisitor.mEvent->eventStructType == NS_TOUCH_EVENT ||
-        aVisitor.mEvent->eventStructType == NS_KEY_EVENT)) {
+      !(aVisitor.mEvent->mClass == eMouseEventClass ||
+        aVisitor.mEvent->mClass == eTouchEventClass ||
+        aVisitor.mEvent->mClass == eKeyboardEventClass)) {
     return;
   }
 

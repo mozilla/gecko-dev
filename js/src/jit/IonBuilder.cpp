@@ -400,9 +400,6 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
     if (inlineScript->needsArgsObj())
         return DontInline(inlineScript, "Script that needs an arguments object");
 
-    if (!inlineScript->compileAndGo())
-        return DontInline(inlineScript, "Non-compileAndGo script");
-
     types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
     if (targetType->unknownProperties())
         return DontInline(inlineScript, "Target type has unknown properties");
@@ -992,8 +989,6 @@ IonBuilder::initScopeChain(MDefinition *callee)
     // will try to access the scope. For other scripts, the scope instructions
     // will be held live by resume points and code will still be generated for
     // them, so just use a constant undefined value.
-    if (!script()->compileAndGo())
-        return abort("non-CNG global scripts are not supported");
 
     if (JSFunction *fun = info().funMaybeLazy()) {
         if (!callee) {
@@ -1019,6 +1014,8 @@ IonBuilder::initScopeChain(MDefinition *callee)
                 return false;
         }
     } else {
+        // For CNG global scripts, the scope chain is the global object.
+        MOZ_ASSERT(script()->compileAndGo());
         scope = constant(ObjectValue(script()->global()));
     }
 
@@ -5508,8 +5505,6 @@ IonBuilder::jsop_compare(JSOp op)
 bool
 IonBuilder::jsop_newarray(uint32_t count)
 {
-    JS_ASSERT(script()->compileAndGo());
-
     JSObject *templateObject = inspector->getTemplateObject(pc);
     if (!templateObject)
         return abort("No template object for NEWARRAY");
@@ -5521,7 +5516,10 @@ IonBuilder::jsop_newarray(uint32_t count)
         return abort("New array has unknown properties");
     }
 
-    MNewArray *ins = MNewArray::New(alloc(), constraints(), count, templateObject,
+    MConstant *templateConst = MConstant::NewConstraintlessObject(alloc(), templateObject);
+    current->add(templateConst);
+
+    MNewArray *ins = MNewArray::New(alloc(), constraints(), count, templateConst,
                                     templateObject->type()->initialHeap(constraints()),
                                     MNewArray::NewArray_Allocating);
     current->add(ins);
@@ -5540,9 +5538,6 @@ IonBuilder::jsop_newarray(uint32_t count)
 bool
 IonBuilder::jsop_newobject()
 {
-    // Don't bake in the TypeObject for non-CNG scripts.
-    JS_ASSERT(script()->compileAndGo());
-
     JSObject *templateObject = inspector->getTemplateObject(pc);
     if (!templateObject)
         return abort("No template object for NEWOBJECT");
@@ -8223,7 +8218,10 @@ IonBuilder::jsop_rest()
     unsigned numFormals = info().nargs() - 1;
     unsigned numRest = numActuals > numFormals ? numActuals - numFormals : 0;
 
-    MNewArray *array = MNewArray::New(alloc(), constraints(), numRest, templateObject,
+    MConstant *templateConst = MConstant::NewConstraintlessObject(alloc(), templateObject);
+    current->add(templateConst);
+
+    MNewArray *array = MNewArray::New(alloc(), constraints(), numRest, templateConst,
                                       templateObject->type()->initialHeap(constraints()),
                                       MNewArray::NewArray_Allocating);
     current->add(array);

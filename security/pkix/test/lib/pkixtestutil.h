@@ -37,6 +37,16 @@
 
 namespace mozilla { namespace pkix { namespace test {
 
+class TestInput : public Input
+{
+public:
+  template <size_t N>
+  explicit TestInput(const char (&valueString)[N])
+    : Input(reinterpret_cast<const uint8_t(&)[N-1]>(valueString))
+  {
+  }
+};
+
 namespace {
 
 inline void
@@ -66,8 +76,8 @@ FILE* OpenFile(const char* dir, const char* filename, const char* mode);
 extern const PRTime ONE_DAY;
 
 // e.g. YMDHMS(2016, 12, 31, 1, 23, 45) => 2016-12-31:01:23:45 (GMT)
-PRTime YMDHMS(int16_t year, int16_t month, int16_t day,
-              int16_t hour, int16_t minutes, int16_t seconds);
+mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
+                           int16_t hour, int16_t minutes, int16_t seconds);
 
 SECStatus GenerateKeyPair(/*out*/ ScopedSECKEYPublicKey& publicKey,
                           /*out*/ ScopedSECKEYPrivateKey& privateKey);
@@ -84,6 +94,8 @@ const SECItem* ASCIIToDERName(PLArenaPool* arena, const char* cn);
 // in digital signatures, keys, hashes, etc.
 SECStatus TamperOnce(SECItem& item, const uint8_t* from, size_t fromLen,
                      const uint8_t* to, size_t toLen);
+
+Result InitInputFromSECItem(const SECItem* secItem, /*out*/ Input& input);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Encode Certificates

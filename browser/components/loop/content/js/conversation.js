@@ -48,26 +48,6 @@ loop.conversation = (function(OT, mozL10n) {
       }
     },
 
-    /**
-     * Used for adding different styles to the panel
-     * @returns {String} Corresponds to the client platform
-     * */
-    _getTargetPlatform: function() {
-      var platform="unknown_platform";
-
-      if (navigator.platform.indexOf("Win") !== -1) {
-        platform = "windows";
-      }
-      if (navigator.platform.indexOf("Mac") !== -1) {
-        platform = "mac";
-      }
-      if (navigator.platform.indexOf("Linux") !== -1) {
-        platform = "linux";
-      }
-
-      return platform;
-    },
-
     _handleAccept: function() {
       this.props.model.trigger("accept");
     },
@@ -97,7 +77,8 @@ loop.conversation = (function(OT, mozL10n) {
       var btnClassAccept = "btn btn-success btn-accept";
       var btnClassBlock = "btn btn-error btn-block";
       var btnClassDecline = "btn btn-error btn-decline";
-      var conversationPanelClass = "incoming-call " + this._getTargetPlatform();
+      var conversationPanelClass = "incoming-call " +
+                                  loop.shared.utils.getTargetPlatform();
       var cx = React.addons.classSet;
       var declineDropdownMenuClasses = cx({
         "native-dropdown-menu": true,
@@ -136,30 +117,6 @@ loop.conversation = (function(OT, mozL10n) {
   });
 
   /**
-   * Call ended view.
-   * @type {loop.shared.views.BaseView}
-   */
-  var EndedCallView = sharedViews.BaseView.extend({
-    template: _.template([
-      '<p>',
-      '  <button class="btn btn-info" data-l10n-id="close_window"></button>',
-      '</p>'
-    ].join("")),
-
-    className: "call-ended",
-
-    events: {
-      "click button": "closeWindow"
-    },
-
-    closeWindow: function(event) {
-      event.preventDefault();
-      // XXX For now, we just close the window.
-      window.close();
-    }
-  });
-
-  /**
    * Conversation router.
    *
    * Required options:
@@ -174,8 +131,8 @@ loop.conversation = (function(OT, mozL10n) {
       "call/accept": "accept",
       "call/decline": "decline",
       "call/ongoing": "conversation",
-      "call/ended": "ended",
-      "call/declineAndBlock": "declineAndBlock"
+      "call/declineAndBlock": "declineAndBlock",
+      "call/feedback": "feedback"
     },
 
     /**
@@ -189,7 +146,7 @@ loop.conversation = (function(OT, mozL10n) {
      * @override {loop.shared.router.BaseConversationRouter.endCall}
      */
     endCall: function() {
-      this.navigate("call/ended", {trigger: true});
+      this.navigate("call/feedback", {trigger: true});
     },
 
     /**
@@ -199,7 +156,7 @@ loop.conversation = (function(OT, mozL10n) {
      *                             by the router from the URL.
      */
     incoming: function(loopVersion) {
-      window.navigator.mozLoop.startAlerting();
+      navigator.mozLoop.startAlerting();
       this._conversation.set({loopVersion: loopVersion});
       this._conversation.once("accept", function() {
         this.navigate("call/accept", {trigger: true});
@@ -219,7 +176,7 @@ loop.conversation = (function(OT, mozL10n) {
      * Accepts an incoming call.
      */
     accept: function() {
-      window.navigator.mozLoop.stopAlerting();
+      navigator.mozLoop.stopAlerting();
       this._conversation.initiate({
         client: new loop.Client(),
         outgoing: false
@@ -230,7 +187,7 @@ loop.conversation = (function(OT, mozL10n) {
      * Declines an incoming call.
      */
     decline: function() {
-      window.navigator.mozLoop.stopAlerting();
+      navigator.mozLoop.stopAlerting();
       // XXX For now, we just close the window
       window.close();
     },
@@ -242,7 +199,7 @@ loop.conversation = (function(OT, mozL10n) {
      *   after a callUrl is received
      */
     declineAndBlock: function() {
-      window.navigator.mozLoop.stopAlerting();
+      navigator.mozLoop.stopAlerting();
       var token = navigator.mozLoop.getLoopCharPref('loopToken');
       var client = new loop.Client();
       client.deleteCallUrl(token, function(error) {
@@ -273,10 +230,17 @@ loop.conversation = (function(OT, mozL10n) {
     },
 
     /**
-     * XXX: load a view with a close button for now?
+     * Call has ended, display a feedback form.
      */
-    ended: function() {
-      this.loadView(new EndedCallView());
+    feedback: function() {
+      document.title = mozL10n.get("call_has_ended");
+
+      this.loadReactComponent(sharedViews.FeedbackView({
+        feedbackApiClient: new loop.FeedbackAPIClient({
+          baseUrl: navigator.mozLoop.getLoopCharPref("feedback.baseUrl"),
+          product: navigator.mozLoop.getLoopCharPref("feedback.product")
+        })
+      }));
     }
   });
 
@@ -286,7 +250,7 @@ loop.conversation = (function(OT, mozL10n) {
   function init() {
     // Do the initial L10n setup, we do this before anything
     // else to ensure the L10n environment is setup correctly.
-    mozL10n.initialize(window.navigator.mozLoop);
+    mozL10n.initialize(navigator.mozLoop);
 
     document.title = mozL10n.get("incoming_call_title");
 
@@ -299,7 +263,6 @@ loop.conversation = (function(OT, mozL10n) {
 
   return {
     ConversationRouter: ConversationRouter,
-    EndedCallView: EndedCallView,
     IncomingCallView: IncomingCallView,
     init: init
   };

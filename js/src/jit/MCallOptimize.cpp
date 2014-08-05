@@ -46,7 +46,7 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSFunction *target)
         return inlineArraySplice(callInfo);
 
     // Math natives.
-    if (native == js_math_abs)
+    if (native == js::math_abs)
         return inlineMathAbs(callInfo);
     if (native == js::math_floor)
         return inlineMathFloor(callInfo);
@@ -54,19 +54,19 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSFunction *target)
         return inlineMathCeil(callInfo);
     if (native == js::math_round)
         return inlineMathRound(callInfo);
-    if (native == js_math_sqrt)
+    if (native == js::math_sqrt)
         return inlineMathSqrt(callInfo);
-    if (native == math_atan2)
+    if (native == js::math_atan2)
         return inlineMathAtan2(callInfo);
     if (native == js::math_hypot)
         return inlineMathHypot(callInfo);
-    if (native == js_math_max)
+    if (native == js::math_max)
         return inlineMathMinMax(callInfo, true /* max */);
-    if (native == js_math_min)
+    if (native == js::math_min)
         return inlineMathMinMax(callInfo, false /* max */);
-    if (native == js_math_pow)
+    if (native == js::math_pow)
         return inlineMathPow(callInfo);
-    if (native == js_math_random)
+    if (native == js::math_random)
         return inlineMathRandom(callInfo);
     if (native == js::math_imul)
         return inlineMathImul(callInfo);
@@ -335,7 +335,10 @@ IonBuilder::inlineArray(CallInfo &callInfo)
     else
         templateObject->clearShouldConvertDoubleElements();
 
-    MNewArray *ins = MNewArray::New(alloc(), constraints(), initLength, templateObject,
+    MConstant *templateConst = MConstant::NewConstraintlessObject(alloc(), templateObject);
+    current->add(templateConst);
+
+    MNewArray *ins = MNewArray::New(alloc(), constraints(), initLength, templateConst,
                                     templateObject->type()->initialHeap(constraints()),
                                     allocating);
     current->add(ins);
@@ -1065,31 +1068,64 @@ IonBuilder::inlineMathFRound(CallInfo &callInfo)
 IonBuilder::InliningStatus
 IonBuilder::inlineMathMinMax(CallInfo &callInfo, bool max)
 {
-    if (callInfo.argc() < 2 || callInfo.constructing())
+    if (callInfo.argc() < 1 || callInfo.constructing())
         return InliningStatus_NotInlined;
 
     MIRType returnType = getInlineReturnType();
     if (!IsNumberType(returnType))
         return InliningStatus_NotInlined;
 
+    MDefinitionVector int32Cases(alloc());
     for (unsigned i = 0; i < callInfo.argc(); i++) {
-        MIRType argType = callInfo.getArg(i)->type();
-        if (!IsNumberType(argType))
-            return InliningStatus_NotInlined;
+        MDefinition *arg = callInfo.getArg(i);
 
-        // When one of the arguments is double, do a double MMinMax.
-        if (returnType == MIRType_Int32 && IsFloatingPointType(argType))
+        switch (arg->type()) {
+          case MIRType_Int32:
+            if (!int32Cases.append(arg))
+                return InliningStatus_Error;
+            break;
+          case MIRType_Double:
+          case MIRType_Float32:
+            // Don't force a double MMinMax for arguments that would be a NOP
+            // when doing an integer MMinMax.
+            // If the argument is NaN, the conditions below will be false and
+            // a double comparison is forced.
+            if (arg->isConstant()) {
+                double d = arg->toConstant()->value().toDouble();
+                // min(int32, d >= INT32_MAX) = int32
+                if (d >= INT32_MAX && !max)
+                    break;
+                // max(int32, d <= INT32_MIN) = int32
+                if (d <= INT32_MIN && max)
+                    break;
+            }
+
+            // Force double MMinMax if result would be different.
             returnType = MIRType_Double;
+            break;
+          default:
+            return InliningStatus_NotInlined;
+        }
     }
+
+    if (int32Cases.length() == 0)
+        returnType = MIRType_Double;
 
     callInfo.setImplicitlyUsedUnchecked();
 
+    MDefinitionVector &cases = (returnType == MIRType_Int32) ? int32Cases : callInfo.argv();
+
+    if (cases.length() == 1) {
+        current->push(cases[0]);
+        return InliningStatus_Inlined;
+    }
+
     // Chain N-1 MMinMax instructions to compute the MinMax.
-    MMinMax *last = MMinMax::New(alloc(), callInfo.getArg(0), callInfo.getArg(1), returnType, max);
+    MMinMax *last = MMinMax::New(alloc(), cases[0], cases[1], returnType, max);
     current->add(last);
 
-    for (unsigned i = 2; i < callInfo.argc(); i++) {
-        MMinMax *ins = MMinMax::New(alloc(), last, callInfo.getArg(i), returnType, max);
+    for (unsigned i = 2; i < cases.length(); i++) {
+        MMinMax *ins = MMinMax::New(alloc(), last, cases[2], returnType, max);
         current->add(ins);
         last = ins;
     }
@@ -1179,6 +1215,12 @@ IonBuilder::inlineStrCharCodeAt(CallInfo &callInfo)
     if (argType != MIRType_Int32 && argType != MIRType_Double)
         return InliningStatus_NotInlined;
 
+    // Check for STR.charCodeAt(IDX) where STR is a constant string and IDX is a
+    // constant integer.
+    InliningStatus constInlineStatus = inlineConstantCharCodeAt(callInfo);
+    if (constInlineStatus != InliningStatus_NotInlined)
+        return constInlineStatus;
+
     callInfo.setImplicitlyUsedUnchecked();
 
     MInstruction *index = MToInt32::New(alloc(), callInfo.getArg(0));
@@ -1192,6 +1234,39 @@ IonBuilder::inlineStrCharCodeAt(CallInfo &callInfo)
     MCharCodeAt *charCode = MCharCodeAt::New(alloc(), callInfo.thisArg(), index);
     current->add(charCode);
     current->push(charCode);
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineConstantCharCodeAt(CallInfo &callInfo)
+{
+    if (!callInfo.thisArg()->isConstant())
+        return InliningStatus_NotInlined;
+
+    if (!callInfo.getArg(0)->isConstant())
+        return InliningStatus_NotInlined;
+
+    const js::Value *strval = callInfo.thisArg()->toConstant()->vp();
+    const js::Value *idxval  = callInfo.getArg(0)->toConstant()->vp();
+
+    if (!strval->isString() || !idxval->isInt32())
+        return InliningStatus_NotInlined;
+
+    JSString *str = strval->toString();
+    if (!str->isLinear())
+        return InliningStatus_NotInlined;
+
+    int32_t idx = idxval->toInt32();
+    if (idx < 0 || (uint32_t(idx) >= str->length()))
+        return InliningStatus_NotInlined;
+
+    callInfo.setImplicitlyUsedUnchecked();
+
+    JSLinearString &linstr = str->asLinear();
+    jschar ch = linstr.latin1OrTwoByteChar(idx);
+    MConstant *result = MConstant::New(alloc(), Int32Value(ch));
+    current->add(result);
+    current->push(result);
     return InliningStatus_Inlined;
 }
 

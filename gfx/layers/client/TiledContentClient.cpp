@@ -25,6 +25,7 @@
 #include "nsISupportsImpl.h"            // for gfxContext::AddRef, etc
 #include "nsSize.h"                     // for nsIntSize
 #include "gfxReusableSharedImageSurfaceWrapper.h"
+#include "nsExpirationTracker.h"        // for nsExpirationTracker
 #include "nsMathUtils.h"               // for NS_roundf
 #include "gfx2DGlue.h"
 #include "LayersLogging.h"
@@ -402,9 +403,44 @@ gfxShmSharedReadLock::GetReadCount() {
   return info->readCount;
 }
 
+class TileExpiry MOZ_FINAL : public nsExpirationTracker<TileClient, 3>
+{
+  public:
+    TileExpiry() : nsExpirationTracker<TileClient, 3>(1000) {}
+  private:
+    virtual void NotifyExpired(TileClient* aTile)
+    {
+      aTile->DiscardBackBuffer();
+    }
+};
+
+TileExpiry *TileExpirer()
+{
+  static TileExpiry * sTileExpiry = new TileExpiry();
+  return sTileExpiry;
+}
+
+void
+TileClient::PrivateProtector::Set(TileClient * const aContainer, RefPtr<TextureClient> aNewValue)
+{
+  if (mBuffer) {
+    TileExpirer()->RemoveObject(aContainer);
+  }
+  mBuffer = aNewValue;
+  if (mBuffer) {
+    TileExpirer()->AddObject(aContainer);
+  }
+}
+
+void
+TileClient::PrivateProtector::Set(TileClient * const aContainer, TextureClient* aNewValue)
+{
+  Set(aContainer, RefPtr<TextureClient>(aNewValue));
+}
+
 // Placeholder
 TileClient::TileClient()
-  : mBackBuffer(nullptr)
+  : mBackBuffer()
   , mFrontBuffer(nullptr)
   , mBackLock(nullptr)
   , mFrontLock(nullptr)
@@ -412,9 +448,17 @@ TileClient::TileClient()
 {
 }
 
+TileClient::~TileClient()
+{
+  if (mExpirationState.IsTracked()) {
+    MOZ_ASSERT(mBackBuffer);
+    TileExpirer()->RemoveObject(this);
+  }
+}
+
 TileClient::TileClient(const TileClient& o)
 {
-  mBackBuffer = o.mBackBuffer;
+  mBackBuffer.Set(this, o.mBackBuffer);
   mFrontBuffer = o.mFrontBuffer;
   mBackLock = o.mBackLock;
   mFrontLock = o.mFrontLock;
@@ -431,7 +475,7 @@ TileClient&
 TileClient::operator=(const TileClient& o)
 {
   if (this == &o) return *this;
-  mBackBuffer = o.mBackBuffer;
+  mBackBuffer.Set(this, o.mBackBuffer);
   mFrontBuffer = o.mFrontBuffer;
   mBackLock = o.mBackLock;
   mFrontLock = o.mFrontLock;
@@ -465,7 +509,7 @@ TileClient::Flip()
 #endif
   RefPtr<TextureClient> frontBuffer = mFrontBuffer;
   mFrontBuffer = mBackBuffer;
-  mBackBuffer = frontBuffer;
+  mBackBuffer.Set(this, frontBuffer);
   RefPtr<gfxSharedReadLock> frontLock = mFrontLock;
   mFrontLock = mBackLock;
   mBackLock = frontLock;
@@ -582,7 +626,7 @@ TileClient::DiscardBackBuffer()
 #endif
     }
     mBackLock->ReadUnlock();
-    mBackBuffer = nullptr;
+    mBackBuffer.Set(this, nullptr);
     mBackLock = nullptr;
   }
 }
@@ -609,7 +653,7 @@ TileClient::GetBackBuffer(const nsIntRegion& aDirtyRegion, TextureClientPool *aP
       // this case we just want to drop it and not return it to the pool.
       aPool->ReportClientLost();
     }
-    mBackBuffer = aPool->GetTextureClient();
+    mBackBuffer.Set(this, aPool->GetTextureClient());
     // Create a lock for our newly created back-buffer.
     if (mManager->AsShadowForwarder()->IsSameProcess()) {
       // If our compositor is in the same process, we can save some cycles by not
@@ -1082,30 +1126,31 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
  */
 static LayerRect
 GetCompositorSideCompositionBounds(ContainerLayer* aScrollAncestor,
-                                   const gfx3DMatrix& aTransformToCompBounds,
+                                   const Matrix4x4& aTransformToCompBounds,
                                    const ViewTransform& aAPZTransform)
 {
-  gfx3DMatrix nonTransientAPZTransform = gfx3DMatrix::ScalingMatrix(
+  Matrix4x4 nonTransientAPZUntransform = Matrix4x4().Scale(
     aScrollAncestor->GetFrameMetrics().mResolution.scale,
     aScrollAncestor->GetFrameMetrics().mResolution.scale,
     1.f);
+  nonTransientAPZUntransform.Invert();
 
-  gfx3DMatrix layerTransform = gfx::To3DMatrix(aScrollAncestor->GetTransform());
+  Matrix4x4 layerTransform = aScrollAncestor->GetTransform();
+  Matrix4x4 layerUntransform = layerTransform;
+  layerUntransform.Invert();
 
   // First take off the last two "terms" of aTransformToCompBounds, which
   // are the scroll ancestor's local transform and the APZ's nontransient async
   // transform.
-  gfx3DMatrix transform = aTransformToCompBounds;
-  transform = transform * layerTransform.Inverse();
-  transform = transform * nonTransientAPZTransform.Inverse();
+  Matrix4x4 transform = aTransformToCompBounds * layerUntransform * nonTransientAPZUntransform;
 
   // Next, apply the APZ's async transform (this includes the nontransient component
   // as well).
-  transform = transform * gfx3DMatrix(aAPZTransform);
+  transform = transform * Matrix4x4(aAPZTransform);
 
   // Finally, put back the scroll ancestor's local transform.
   transform = transform * layerTransform;
-  return TransformTo<LayerPixel>(transform.Inverse(),
+  return TransformTo<LayerPixel>(To3DMatrix(transform).Inverse(),
             aScrollAncestor->GetFrameMetrics().mCompositionBounds);
 }
 

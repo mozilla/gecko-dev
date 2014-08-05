@@ -12,7 +12,6 @@
 #include "Layers.h"                     // for LayerManager, etc
 #include "TiledLayerBuffer.h"           // for TiledLayerBuffer
 #include "Units.h"                      // for CSSPoint
-#include "gfx3DMatrix.h"                // for gfx3DMatrix
 #include "gfxTypes.h"
 #include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
 #include "mozilla/RefPtr.h"             // for RefPtr
@@ -32,6 +31,7 @@
 #include "nsRect.h"                     // for nsIntRect
 #include "nsRegion.h"                   // for nsIntRegion
 #include "nsTArray.h"                   // for nsTArray, nsTArray_Impl, etc
+#include "nsExpirationTracker.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "gfxReusableSurfaceWrapper.h"
 #include "pratom.h"                     // For PR_ATOMIC_INCREMENT/DECREMENT
@@ -155,6 +155,7 @@ struct TileClient
 {
   // Placeholder
   TileClient();
+  ~TileClient();
 
   TileClient(const TileClient& o);
 
@@ -207,6 +208,8 @@ struct TileClient
     DiscardBackBuffer();
   }
 
+  nsExpirationState *GetExpirationState() { return &mExpirationState; }
+
   TileDescriptor GetTileDescriptor();
 
   /**
@@ -229,7 +232,21 @@ struct TileClient
 
   void DiscardBackBuffer();
 
-  RefPtr<TextureClient> mBackBuffer;
+  /* We wrap the back buffer in a class that disallows assignment
+   * so that we can track when ever it changes so that we can update
+   * the expiry tracker for expiring the back buffers */
+  class PrivateProtector {
+    public:
+      void Set(TileClient * container, RefPtr<TextureClient>);
+      void Set(TileClient * container, TextureClient*);
+      // Implicitly convert to TextureClient* because we can't chain
+      // implicit conversion that would happen on RefPtr<TextureClient>
+      operator TextureClient*() const { return mBuffer; }
+      RefPtr<TextureClient> operator ->() { return mBuffer; }
+    private:
+      PrivateProtector& operator=(const PrivateProtector &);
+      RefPtr<TextureClient> mBuffer;
+  } mBackBuffer;
   RefPtr<TextureClient> mFrontBuffer;
   RefPtr<gfxSharedReadLock> mBackLock;
   RefPtr<gfxSharedReadLock> mFrontLock;
@@ -240,6 +257,7 @@ struct TileClient
 #endif
   nsIntRegion mInvalidFront;
   nsIntRegion mInvalidBack;
+  nsExpirationState mExpirationState;
 
 private:
   void ValidateBackBufferFromFront(const nsIntRegion &aDirtyRegion,
@@ -270,7 +288,7 @@ struct BasicTiledLayerPaintData {
    * the closest ancestor layer which scrolls, and is used to obtain
    * the composition bounds that are relevant for this layer.
    */
-  gfx3DMatrix mTransformToCompBounds;
+  gfx::Matrix4x4 mTransformToCompBounds;
 
   /*
    * The critical displayport of the content from the nearest ancestor layer

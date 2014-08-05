@@ -13,11 +13,11 @@
 
 #include <stdint.h>
 
-#include "gfx3DMatrix.h"
 #include "gfxColor.h"
 #include "mozilla/gfx/Matrix.h"
 #include "GraphicsFilter.h"
 #include "gfxPoint.h"
+#include "gfxPoint3D.h"
 #include "gfxRect.h"
 #include "nsRect.h"
 #include "nsRegion.h"
@@ -214,32 +214,6 @@ struct ParamTraits<gfxRect>
            ReadParam(aMsg, aIter, &aResult->y) &&
            ReadParam(aMsg, aIter, &aResult->width) &&
            ReadParam(aMsg, aIter, &aResult->height);
-  }
-};
-
-template<>
-struct ParamTraits<gfx3DMatrix>
-{
-  typedef gfx3DMatrix paramType;
-
-  static void Write(Message* msg, const paramType& param)
-  {
-#define Wr(_f)  WriteParam(msg, param. _f)
-    Wr(_11); Wr(_12); Wr(_13); Wr(_14);
-    Wr(_21); Wr(_22); Wr(_23); Wr(_24);
-    Wr(_31); Wr(_32); Wr(_33); Wr(_34);
-    Wr(_41); Wr(_42); Wr(_43); Wr(_44);
-#undef Wr
-  }
-
-  static bool Read(const Message* msg, void** iter, paramType* result)
-  {
-#define Rd(_f)  ReadParam(msg, iter, &result-> _f)
-    return (Rd(_11) && Rd(_12) && Rd(_13) && Rd(_14) &&
-            Rd(_21) && Rd(_22) && Rd(_23) && Rd(_24) &&
-            Rd(_31) && Rd(_32) && Rd(_33) && Rd(_34) &&
-            Rd(_41) && Rd(_42) && Rd(_43) && Rd(_44));
-#undef Rd
   }
 };
 
@@ -766,46 +740,33 @@ struct ParamTraits<mozilla::layers::FrameMetrics>
     WriteParam(aMsg, aParam.mHasScrollgrab);
     WriteParam(aMsg, aParam.mUpdateScrollOffset);
     WriteParam(aMsg, aParam.mScrollGeneration);
-    aMsg->WriteBytes(aParam.mContentDescription,
-                     sizeof(aParam.mContentDescription));
     WriteParam(aMsg, aParam.mTransformScale);
   }
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
   {
-    const char* contentDescription;
-    if (!(ReadParam(aMsg, aIter, &aResult->mScrollableRect) &&
-          ReadParam(aMsg, aIter, &aResult->mViewport) &&
-          ReadParam(aMsg, aIter, &aResult->mScrollOffset) &&
-          ReadParam(aMsg, aIter, &aResult->mDisplayPort) &&
-          ReadParam(aMsg, aIter, &aResult->mDisplayPortMargins) &&
-          ReadParam(aMsg, aIter, &aResult->mUseDisplayPortMargins) &&
-          ReadParam(aMsg, aIter, &aResult->mCriticalDisplayPort) &&
-          ReadParam(aMsg, aIter, &aResult->mCompositionBounds) &&
-          ReadParam(aMsg, aIter, &aResult->mRootCompositionSize) &&
-          ReadParam(aMsg, aIter, &aResult->mScrollId) &&
-          ReadParam(aMsg, aIter, &aResult->mResolution) &&
-          ReadParam(aMsg, aIter, &aResult->mCumulativeResolution) &&
-          ReadParam(aMsg, aIter, &aResult->mZoom) &&
-          ReadParam(aMsg, aIter, &aResult->mDevPixelsPerCSSPixel) &&
-          ReadParam(aMsg, aIter, &aResult->mMayHaveTouchListeners) &&
-          ReadParam(aMsg, aIter, &aResult->mMayHaveTouchCaret) &&
-          ReadParam(aMsg, aIter, &aResult->mPresShellId) &&
-          ReadParam(aMsg, aIter, &aResult->mIsRoot) &&
-          ReadParam(aMsg, aIter, &aResult->mHasScrollgrab) &&
-          ReadParam(aMsg, aIter, &aResult->mUpdateScrollOffset) &&
-          ReadParam(aMsg, aIter, &aResult->mScrollGeneration) &&
-          aMsg->ReadBytes(aIter, &contentDescription,
-                          sizeof(aResult->mContentDescription)) &&
-          ReadParam(aMsg, aIter, &aResult->mTransformScale))) {
-      return false;
-    }
-    // ReadBytes() doesn't actually copy the string, it only points
-    // a pointer to the string in its internal buffer.
-    strncpy(aResult->mContentDescription, contentDescription,
-            sizeof(aResult->mContentDescription));
-    aResult->mContentDescription[sizeof(aResult->mContentDescription) - 1] = '\0';
-    return true;
+    return (ReadParam(aMsg, aIter, &aResult->mScrollableRect) &&
+            ReadParam(aMsg, aIter, &aResult->mViewport) &&
+            ReadParam(aMsg, aIter, &aResult->mScrollOffset) &&
+            ReadParam(aMsg, aIter, &aResult->mDisplayPort) &&
+            ReadParam(aMsg, aIter, &aResult->mDisplayPortMargins) &&
+            ReadParam(aMsg, aIter, &aResult->mUseDisplayPortMargins) &&
+            ReadParam(aMsg, aIter, &aResult->mCriticalDisplayPort) &&
+            ReadParam(aMsg, aIter, &aResult->mCompositionBounds) &&
+            ReadParam(aMsg, aIter, &aResult->mRootCompositionSize) &&
+            ReadParam(aMsg, aIter, &aResult->mScrollId) &&
+            ReadParam(aMsg, aIter, &aResult->mResolution) &&
+            ReadParam(aMsg, aIter, &aResult->mCumulativeResolution) &&
+            ReadParam(aMsg, aIter, &aResult->mZoom) &&
+            ReadParam(aMsg, aIter, &aResult->mDevPixelsPerCSSPixel) &&
+            ReadParam(aMsg, aIter, &aResult->mMayHaveTouchListeners) &&
+            ReadParam(aMsg, aIter, &aResult->mMayHaveTouchCaret) &&
+            ReadParam(aMsg, aIter, &aResult->mPresShellId) &&
+            ReadParam(aMsg, aIter, &aResult->mIsRoot) &&
+            ReadParam(aMsg, aIter, &aResult->mHasScrollgrab) &&
+            ReadParam(aMsg, aIter, &aResult->mUpdateScrollOffset) &&
+            ReadParam(aMsg, aIter, &aResult->mScrollGeneration) &&
+            ReadParam(aMsg, aIter, &aResult->mTransformScale));
   }
 };
 

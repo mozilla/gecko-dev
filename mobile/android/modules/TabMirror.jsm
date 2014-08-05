@@ -192,6 +192,8 @@ let TabMirror = function(deviceId, window) {
   let constraints = {
     video: {
       mediaSource: "browser",
+      browserWindow: windowId,
+      scrollWithPage: true,
       advanced: [
         { width: { min: videoWidth, max: videoWidth },
           height: { min: videoHeight, max: videoHeight }
@@ -221,6 +223,19 @@ let TabMirror = function(deviceId, window) {
 
     if (deviceId) {
       Services.androidBridge.handleGeckoMessage(obj);
+    }
+  }
+
+  return {
+    stop: function() {
+      let obj = {
+        type: "MediaPlayer:End",
+        id: deviceId
+      };
+
+      if (deviceId) {
+        Services.androidBridge.handleGeckoMessage(obj);
+      }
     }
   }
 };

@@ -444,9 +444,7 @@ gfxPlatform::Shutdown()
     gfxGradientCache::Shutdown();
     gfxAlphaBoxBlur::ShutdownBlurCache();
     gfxGraphiteShaper::Shutdown();
-#if defined(XP_MACOSX) || defined(XP_WIN) // temporary, until this is implemented on others
     gfxPlatformFontList::Shutdown();
-#endif
 
     // Free the various non-null transforms and loaded profiles
     ShutdownCMS();
@@ -858,8 +856,9 @@ gfxPlatform::InitializeSkiaCacheLimits()
     if (usingDynamicCache) {
       uint32_t totalMemory = mozilla::hal::GetTotalSystemMemory();
 
-      if (totalMemory <= 256*1024*1024) {
-        // We need a very minimal cache on 256 meg devices
+      if (totalMemory < 512*1024*1024) {
+        // We need a very minimal cache on anything smaller than 512mb.
+        // Note the large jump as we cross 512mb (from 2mb to 32mb).
         cacheSizeLimit = 2*1024*1024;
       } else if (totalMemory > 0) {
         cacheSizeLimit = totalMemory / 16;
@@ -2031,15 +2030,16 @@ gfxPlatform::UsesOffMainThreadCompositing()
       gfxPrefs::LayersOffMainThreadCompositionEnabled() ||
       gfxPrefs::LayersOffMainThreadCompositionForceEnabled() ||
       gfxPrefs::LayersOffMainThreadCompositionTestingEnabled();
-#if defined(MOZ_WIDGET_GTK) && defined(NIGHTLY_BUILD)
+#if defined(MOZ_WIDGET_GTK)
     // Linux users who chose OpenGL are being grandfathered in to OMTC
-    result |=
-      gfxPrefs::LayersAccelerationForceEnabled() ||
-      PR_GetEnv("MOZ_USE_OMTC") ||
-      PR_GetEnv("MOZ_OMTC_ENABLED"); // yeah, these two env vars do the same thing.
-                                    // I'm told that one of them is enabled on some test slaves config.
-                                    // so be slightly careful if you think you can
-                                    // remove one of them.
+    result |= gfxPrefs::LayersAccelerationForceEnabled();
+
+#if !defined(NIGHTLY_BUILD)
+    // Yeah, these two env vars do the same thing.
+    // I'm told that one of them is enabled on some test slaves config,
+    // so be slightly careful if you think you can remove one of them.
+    result &= PR_GetEnv("MOZ_USE_OMTC") || PR_GetEnv("MOZ_OMTC_ENABLED");
+#endif
 #endif
     firstTime = false;
   }

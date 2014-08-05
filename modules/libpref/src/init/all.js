@@ -311,6 +311,7 @@ pref("media.navigator.video.h264.max_br", 0);
 pref("media.navigator.video.h264.max_mbps", 0);
 pref("media.peerconnection.video.h264_enabled", false);
 pref("media.getusermedia.aec", 1);
+pref("media.getusermedia.browser.enabled", true);
 #endif
 pref("media.peerconnection.video.min_bitrate", 200);
 pref("media.peerconnection.video.start_bitrate", 300);
@@ -362,11 +363,7 @@ pref("media.navigator.enabled", true);
 #endif
 #endif
 
-// do not enable screensharing before addressing security concerns: Bug 1035577
-// do not enable screensharing before implementing app/window sharing: Bug 1036653
-// do not enable screensharing before source constraints are finalized: Bug 1033885
-// do not enable screensharing before UX is ready: Bug 1035577
-pref("media.getusermedia.screensharing.enabled", false);
+pref("media.getusermedia.screensharing.enabled", true);
 pref("media.getusermedia.screensharing.allowed_domains", "");
 
 // TextTrack support
@@ -2794,7 +2791,11 @@ pref("intl.keyboard.per_window_layout", false);
 
 #ifdef NS_ENABLE_TSF
 // Enable/Disable TSF support on Vista or later.
+#ifdef NIGHTLY_BUILD
+pref("intl.tsf.enable", true);
+#else
 pref("intl.tsf.enable", false);
+#endif
 // Force enable TSF even on WinXP or WinServer 2003.
 // Be aware, TSF framework on prior to Vista is not enough stable.
 pref("intl.tsf.force_enable", false);

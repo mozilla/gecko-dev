@@ -52,6 +52,31 @@ def isTypeCopyConstructible(type):
             (type.isInterface() and type.isGeckoInterface()))
 
 
+def idlTypeNeedsCycleCollection(type):
+    type = type.unroll()  # Takes care of sequences and nullables
+    if ((type.isPrimitive() and type.tag() in builtinNames) or
+        type.isEnum() or
+        type.isString() or
+        type.isAny() or
+        type.isObject() or
+        type.isSpiderMonkeyInterface()):
+        return False
+    elif type.isCallback() or type.isGeckoInterface():
+        return True
+    elif type.isUnion():
+        return any(idlTypeNeedsCycleCollection(t) for t in type.flatMemberTypes)
+    elif type.isMozMap():
+        if idlTypeNeedsCycleCollection(type.inner):
+            raise TypeError("Cycle collection for type %s is not supported" % type)
+        return False
+    elif type.isDictionary():
+        if any(idlTypeNeedsCycleCollection(m.type) for m in type.inner.members):
+            raise TypeError("Cycle collection for type %s is not supported" % type)
+        return False
+    else:
+        raise TypeError("Don't know whether to cycle-collect type %s" % type)
+
+
 def wantsAddProperty(desc):
     return (desc.concrete and
             desc.wrapperCache and
@@ -1160,6 +1185,8 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     declarations = set()
     unionStructs = dict()
     owningUnionStructs = dict()
+    traverseMethods = dict()
+    unlinkMethods = dict()
 
     for t, descriptor, dictionary in getAllTypes(descriptors, dictionaries, callbacks):
         # Add info for the given type.  descriptor and dictionary, if present, are
@@ -1227,8 +1254,20 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
                 assert not f.nullable()
                 addHeadersForType(f)
 
+            if idlTypeNeedsCycleCollection(t):
+                declarations.add(("mozilla::dom::%s" % CGUnionStruct.unionTypeName(t, True), False))
+                traverseMethods[name] = CGCycleCollectionTraverseForOwningUnionMethod(t)
+                unlinkMethods[name] = CGCycleCollectionUnlinkForOwningUnionMethod(t)
+
+    # The order of items in CGList is important.
+    # Since the union structs friend the unlinkMethods, the forward-declaration
+    # for these methods should come before the class declaration. Otherwise
+    # some compilers treat the friend declaration as a forward-declaration in
+    # the class scope.
     return (headers, implheaders, declarations,
-            CGList(SortedDictValues(unionStructs) +
+            CGList(SortedDictValues(traverseMethods) +
+                   SortedDictValues(unlinkMethods) +
+                   SortedDictValues(unionStructs) +
                    SortedDictValues(owningUnionStructs),
                    "\n"))
 
@@ -3263,6 +3302,47 @@ class CGIsPermittedMethod(CGAbstractMethod):
         switch = CGSwitch("propFirstChar", caseList)
         return switch.define() + "\nreturn false;\n"
 
+
+class CGCycleCollectionTraverseForOwningUnionMethod(CGAbstractMethod):
+    """
+    ImplCycleCollectionUnlink for owning union type.
+    """
+    def __init__(self, type):
+        self.type = type
+        args = [Argument("nsCycleCollectionTraversalCallback&", "aCallback"),
+                Argument("%s&" % CGUnionStruct.unionTypeName(type, True), "aUnion"),
+                Argument("const char*", "aName"),
+                Argument("uint32_t", "aFlags", "0")]
+        CGAbstractMethod.__init__(self, None, "ImplCycleCollectionTraverse", "void", args)
+
+    def definition_body(self):
+        memberNames = [getUnionMemberName(t)
+                       for t in self.type.flatMemberTypes
+                       if idlTypeNeedsCycleCollection(t)]
+        assert memberNames
+
+        conditionTemplate = 'aUnion.Is%s()'
+        functionCallTemplate = 'ImplCycleCollectionTraverse(aCallback, aUnion.GetAs%s(), "m%s", aFlags);\n'
+
+        ifStaments = (CGIfWrapper(CGGeneric(functionCallTemplate % (m, m)),
+                                  conditionTemplate % m)
+                      for m in memberNames)
+
+        return CGElseChain(ifStaments).define()
+
+
+class CGCycleCollectionUnlinkForOwningUnionMethod(CGAbstractMethod):
+    """
+    ImplCycleCollectionUnlink for owning union type.
+    """
+    def __init__(self, type):
+        args = [Argument("%s&" % CGUnionStruct.unionTypeName(type, True), "aUnion")]
+        CGAbstractMethod.__init__(self, None, "ImplCycleCollectionUnlink", "void", args)
+
+    def definition_body(self):
+        return "aUnion.Uninit();\n"
+
+
 builtinNames = {
     IDLType.Tags.bool: 'bool',
     IDLType.Tags.int8: 'int8_t',
@@ -4486,7 +4566,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                         declArgs=declArgs,
                                         holderArgs=holderArgs)
 
-    if type.isDOMString():
+    if type.isDOMString() or type.isScalarValueString():
         assert not isEnforceRange and not isClamp
 
         treatAs = {
@@ -4504,11 +4584,17 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         nullBehavior = treatAs[treatNullAs]
 
         def getConversionCode(varName):
+            normalizeCode = ""
+            if type.isScalarValueString():
+                normalizeCode = "NormalizeScalarValueString(cx, %s);\n" % varName
+
             conversionCode = (
                 "if (!ConvertJSValueToString(cx, ${val}, %s, %s, %s)) {\n"
                 "%s"
-                "}\n" % (nullBehavior, undefinedBehavior, varName,
-                         exceptionCodeIndented.define()))
+                "}\n"
+                "%s" % (nullBehavior, undefinedBehavior, varName,
+                        exceptionCodeIndented.define(), normalizeCode))
+
             if defaultValue is None:
                 return conversionCode
 
@@ -5423,7 +5509,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         wrappingCode += wrapAndSetPtr(wrap, failed)
         return (wrappingCode, False)
 
-    if type.isDOMString():
+    if type.isDOMString() or type.isScalarValueString():
         if type.nullable():
             return (wrapAndSetPtr("xpc::StringToJsval(cx, %s, ${jsvalHandle})" % result), False)
         else:
@@ -5701,7 +5787,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
         if returnType.nullable():
             result = CGTemplatedType("Nullable", result)
         return result, None, None, None
-    if returnType.isDOMString():
+    if returnType.isDOMString() or returnType.isScalarValueString():
         if isMember:
             return CGGeneric("nsString"), "ref", None, None
         return CGGeneric("DOMString"), "ref", None, None
@@ -8091,7 +8177,7 @@ def getUnionAccessorSignatureType(type, descriptorProvider):
         typeName = CGGeneric(type.name)
         return CGWrapper(typeName, post=" const &")
 
-    if type.isDOMString():
+    if type.isDOMString() or type.isScalarValueString():
         return CGGeneric("const nsAString&")
 
     if type.isByteString():
@@ -8464,7 +8550,11 @@ class CGUnionStruct(CGThing):
         else:
             disallowCopyConstruction = True
 
-        friend = "  friend class %sArgument;\n" % str(self.type) if not self.ownsMembers else ""
+        if self.ownsMembers:
+            friend = "  friend void ImplCycleCollectionUnlink(%s& aUnion);\n" % CGUnionStruct.unionTypeName(self.type, True)
+        else:
+            friend = "  friend class %sArgument;\n" % str(self.type)
+
         bases = [ClassBase("AllOwningUnionBase")] if self.ownsMembers else []
         return CGClass(selfName,
                        bases=bases,
@@ -9547,13 +9637,14 @@ class CGProxyUnwrap(CGAbstractMethod):
             type=self.descriptor.nativeType)
 
 
-class CGDOMJSProxyHandler_getOwnPropertyDescriptor(ClassMethod):
+class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
     def __init__(self, descriptor):
         args = [Argument('JSContext*', 'cx'),
                 Argument('JS::Handle<JSObject*>', 'proxy'),
                 Argument('JS::Handle<jsid>', 'id'),
+                Argument('bool', 'ignoreNamedProps'),
                 Argument('JS::MutableHandle<JSPropertyDescriptor>', 'desc')]
-        ClassMethod.__init__(self, "getOwnPropertyDescriptor", "bool", args,
+        ClassMethod.__init__(self, "getOwnPropDescriptor", "bool", args,
                              virtual=True, override=True, const=True)
         self.descriptor = descriptor
 
@@ -9624,6 +9715,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(ClassMethod):
             condition = "!HasPropertyOnPrototype(cx, proxy, id)"
             if self.descriptor.interface.getExtendedAttribute('OverrideBuiltins'):
                 condition = "(!isXray || %s)" % condition
+            condition = "!ignoreNamedProps && " + condition
             if self.descriptor.supportsIndexedProperties():
                 condition = "!IsArrayIndex(index) && " + condition
             namedGet = (CGIfWrapper(CGProxyNamedGetter(self.descriptor, templateValues),
@@ -10282,7 +10374,7 @@ class CGDOMJSProxyHandler(CGClass):
     def __init__(self, descriptor):
         assert (descriptor.supportsIndexedProperties() or
                 descriptor.supportsNamedProperties())
-        methods = [CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor),
+        methods = [CGDOMJSProxyHandler_getOwnPropDescriptor(descriptor),
                    CGDOMJSProxyHandler_defineProperty(descriptor),
                    ClassUsingDeclaration("mozilla::dom::DOMProxyHandler",
                                          "defineProperty"),
@@ -10695,7 +10787,7 @@ def initIdsClassMethod(identifiers, atomCacheName):
         Argument("JSContext*", "cx"),
         Argument("%s*" % atomCacheName, "atomsCache")
     ], static=True, body=body, visibility="private")
-        
+
 class CGDictionary(CGThing):
     def __init__(self, dictionary, descriptorProvider):
         self.dictionary = dictionary
@@ -10822,6 +10914,20 @@ class CGDictionary(CGThing):
                 return Init(cx, json);
                 """))
 
+    def toJSONMethod(self):
+        return ClassMethod(
+            "ToJSON", "bool",
+            [Argument('nsAString&', 'aJSON')],
+            body=dedent("""
+                MOZ_ASSERT(NS_IsMainThread());
+                AutoJSAPI jsapi;
+                jsapi.Init();
+                JSContext *cx = jsapi.cx();
+                JSAutoCompartment ac(cx, xpc::GetSafeJSContextGlobal()); // Usage approved by bholley
+                JS::Rooted<JS::Value> obj(cx);
+                return ToObjectInternal(cx, &obj) && StringifyToJSON(cx, &obj, aJSON);
+            """))
+
     def toObjectInternalMethod(self):
         body = ""
         if self.needToInitIds:
@@ -10870,7 +10976,7 @@ class CGDictionary(CGThing):
     def initIdsMethod(self):
         assert self.needToInitIds
         return initIdsClassMethod([m.identifier.name for m in self.dictionary.members],
-                                  "%sAtoms" % self.makeClassName(self.dictionary))             
+                                  "%sAtoms" % self.makeClassName(self.dictionary))
 
     def traceDictionaryMethod(self):
         body = ""
@@ -10949,10 +11055,12 @@ class CGDictionary(CGThing):
         methods.append(self.initFromJSONMethod())
         try:
             methods.append(self.toObjectInternalMethod())
+            methods.append(self.toJSONMethod())
         except MethodNotNewObjectError:
             # If we can't have a ToObjectInternal() because one of our members
             # can only be returned from [NewObject] methods, then just skip
-            # generating ToObjectInternal().
+            # generating ToObjectInternal() and ToJSON (since the latter depens
+            # on the former).
             pass
         methods.append(self.traceDictionaryMethod())
 
@@ -11540,6 +11648,8 @@ class CGBindingRoot(CGThing):
 
         bindingHeaders["WrapperFactory.h"] = descriptors
         bindingHeaders["mozilla/dom/DOMJSClass.h"] = descriptors
+        bindingHeaders["mozilla/dom/ScriptSettings.h"] = dictionaries # AutoJSAPI
+        bindingHeaders["xpcpublic.h"] = dictionaries ## xpc::GetSafeJSContextGlobal
 
         # Do codegen for all the dictionaries.  We have to be a bit careful
         # here, because we have to generate these in order from least derived
@@ -11695,7 +11805,7 @@ class CGNativeMember(ClassMethod):
             return (result.define(),
                     "%s(%s)" % (result.define(), defaultReturnArg),
                     "return ${declName};\n")
-        if type.isDOMString():
+        if type.isDOMString() or type.isScalarValueString():
             if isMember:
                 # No need for a third element in the isMember case
                 return "nsString", None, None
@@ -11815,7 +11925,7 @@ class CGNativeMember(ClassMethod):
     def getArgs(self, returnType, argList):
         args = [self.getArg(arg) for arg in argList]
         # Now the outparams
-        if returnType.isDOMString():
+        if returnType.isDOMString() or returnType.isScalarValueString():
             args.append(Argument("nsString&", "aRetVal"))
         elif returnType.isByteString():
             args.append(Argument("nsCString&", "aRetVal"))
@@ -11941,7 +12051,7 @@ class CGNativeMember(ClassMethod):
 
             return type.name, True, True
 
-        if type.isDOMString():
+        if type.isDOMString() or type.isScalarValueString():
             if isMember:
                 declType = "nsString"
             else:
@@ -13744,7 +13854,7 @@ class CGEventGetter(CGNativeMember):
         memberName = CGDictionary.makeMemberName(self.member.identifier.name)
         if (type.isPrimitive() and type.tag() in builtinNames) or type.isEnum() or type.isGeckoInterface():
             return "return " + memberName + ";\n"
-        if type.isDOMString() or type.isByteString():
+        if type.isDOMString() or type.isByteString() or type.isScalarValueString():
             return "aRetVal = " + memberName + ";\n"
         if type.isSpiderMonkeyInterface() or type.isObject():
             return fill(
@@ -14015,7 +14125,7 @@ class CGEventClass(CGBindingImplClass):
         retVal = ""
         for m in self.descriptor.interface.members:
             # Unroll the type so we pick up sequences of interfaces too.
-            if m.isAttr() and m.type.unroll().isGeckoInterface():
+            if m.isAttr() and idlTypeNeedsCycleCollection(m.type):
                 retVal += ("  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(" +
                            CGDictionary.makeMemberName(m.identifier.name) +
                            ")\n")
@@ -14027,7 +14137,7 @@ class CGEventClass(CGBindingImplClass):
             if m.isAttr():
                 name = CGDictionary.makeMemberName(m.identifier.name)
                 # Unroll the type so we pick up sequences of interfaces too.
-                if m.type.unroll().isGeckoInterface():
+                if idlTypeNeedsCycleCollection(m.type):
                     retVal += "  NS_IMPL_CYCLE_COLLECTION_UNLINK(" + name + ")\n"
                 elif m.type.isAny():
                     retVal += "  tmp->" + name + ".setUndefined();\n"
@@ -14118,7 +14228,7 @@ class CGEventClass(CGBindingImplClass):
             nativeType = CGGeneric(type.unroll().inner.identifier.name)
             if type.nullable():
                 nativeType = CGTemplatedType("Nullable", nativeType)
-        elif type.isDOMString():
+        elif type.isDOMString() or type.isScalarValueString():
             nativeType = CGGeneric("nsString")
         elif type.isByteString():
             nativeType = CGGeneric("nsCString")

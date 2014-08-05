@@ -28,8 +28,9 @@
 #include "hasht.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Vector.h"
+#include "pkix/Result.h"
+#include "pkix/Time.h"
 #include "prerror.h"
-#include "prtime.h"
 #include "seccomon.h"
 
 namespace mozilla { namespace pkix {
@@ -58,7 +59,8 @@ public:
   // If it is in the cache, returns by reference the error code of the cached
   // status and the time through which the status is considered trustworthy.
   bool Get(const mozilla::pkix::CertID& aCertID,
-           /* out */ PRErrorCode& aErrorCode, /* out */ PRTime& aValidThrough);
+           /*out*/ mozilla::pkix::Result& aResult,
+           /*out*/ mozilla::pkix::Time& aValidThrough);
 
   // Caches the status of the given certificate (issued by the given issuer).
   // The status is considered trustworthy through the given time.
@@ -69,8 +71,10 @@ public:
   // A status with a more recent thisUpdate will not be replaced with a
   // status with a less recent thisUpdate unless the less recent status
   // indicates the certificate is revoked.
-  SECStatus Put(const mozilla::pkix::CertID& aCertID, PRErrorCode aErrorCode,
-                PRTime aThisUpdate, PRTime aValidThrough);
+  mozilla::pkix::Result Put(const mozilla::pkix::CertID& aCertID,
+                            mozilla::pkix::Result aResult,
+                            mozilla::pkix::Time aThisUpdate,
+                            mozilla::pkix::Time aValidThrough);
 
   // Removes everything from the cache.
   void Clear();
@@ -79,12 +83,19 @@ private:
   class Entry
   {
   public:
-    SECStatus Init(const mozilla::pkix::CertID& aCertID, PRErrorCode aErrorCode,
-                   PRTime aThisUpdate, PRTime aValidThrough);
+    Entry(mozilla::pkix::Result aResult,
+          mozilla::pkix::Time aThisUpdate,
+          mozilla::pkix::Time aValidThrough)
+      : mResult(aResult)
+      , mThisUpdate(aThisUpdate)
+      , mValidThrough(aValidThrough)
+    {
+    }
+    mozilla::pkix::Result Init(const mozilla::pkix::CertID& aCertID);
 
-    PRErrorCode mErrorCode;
-    PRTime mThisUpdate;
-    PRTime mValidThrough;
+    mozilla::pkix::Result mResult;
+    mozilla::pkix::Time mThisUpdate;
+    mozilla::pkix::Time mValidThrough;
     // The SHA-384 hash of the concatenation of the DER encodings of the
     // issuer name and issuer key, followed by the serial number.
     // See the documentation for CertIDHash in OCSPCache.cpp.

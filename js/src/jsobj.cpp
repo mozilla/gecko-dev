@@ -37,12 +37,12 @@
 #include "jswatchpoint.h"
 #include "jswrapper.h"
 
+#include "asmjs/AsmJSModule.h"
 #include "builtin/Eval.h"
 #include "builtin/Object.h"
 #include "builtin/SymbolObject.h"
 #include "frontend/BytecodeCompiler.h"
 #include "gc/Marking.h"
-#include "jit/AsmJSModule.h"
 #include "jit/BaselineJIT.h"
 #include "js/MemoryMetrics.h"
 #include "js/OldDebugAPI.h"
@@ -2519,7 +2519,7 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
      * makes changes to the objects that might confuse the tracing code.
      */
     JS::Zone *zone = a->zone();
-    if (zone->needsBarrier()) {
+    if (zone->needsIncrementalBarrier()) {
         MarkChildren(zone->barrierTracer(), a);
         MarkChildren(zone->barrierTracer(), b);
     }

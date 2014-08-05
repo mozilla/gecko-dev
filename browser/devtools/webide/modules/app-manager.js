@@ -6,6 +6,7 @@ const {Cu} = require("chrome");
 
 let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 
+const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const {Devices} = Cu.import("resource://gre/modules/devtools/Devices.jsm");
 const {Services} = Cu.import("resource://gre/modules/Services.jsm");
 const {FileUtils} = Cu.import("resource://gre/modules/FileUtils.jsm");
@@ -191,6 +192,9 @@ exports.AppManager = AppManager = {
   },
 
   isProjectRunning: function() {
+    if (this.selectedProject.type == "mainProcess") {
+      return true;
+    }
     let manifest = this.getProjectManifestURL(this.selectedProject);
     return manifest && this._runningApps.has(manifest);
   },
@@ -206,6 +210,14 @@ exports.AppManager = AppManager = {
   },
 
   getTarget: function() {
+    if (this.selectedProject.type == "mainProcess") {
+      return devtools.TargetFactory.forRemoteTab({
+        form: this._listTabsResponse,
+        client: this.connection.client,
+        chrome: true
+      });
+    }
+
     let manifest = this.getProjectManifestURL(this.selectedProject);
     if (!manifest) {
       console.error("Can't find manifestURL for selected project");
@@ -261,7 +273,9 @@ exports.AppManager = AppManager = {
       if (this.selectedProject) {
         if (this.selectedProject.type == "runtimeApp") {
           this.runRuntimeApp();
-        } else {
+        }
+        if (this.selectedProject.type == "packaged" ||
+            this.selectedProject.type == "hosted") {
           this.validateProject(this.selectedProject);
         }
       }
@@ -286,6 +300,7 @@ exports.AppManager = AppManager = {
     this._selectedRuntime = value;
     if (!value &&
       this.selectedProject &&
+      this.selectedProject.type == "mainProcess" &&
       this.selectedProject.type == "runtimeApp") {
       this.selectedProject = null;
     }
@@ -297,33 +312,45 @@ exports.AppManager = AppManager = {
   },
 
   connectToRuntime: function(runtime) {
-    if (this.connection.status == Connection.Status.CONNECTED) {
-      return promise.reject("Already connected");
+
+    if (this.connection.status == Connection.Status.CONNECTED &&
+        this.selectedRuntime === runtime) {
+      // Already connected
+      return promise.resolve();
     }
-    this.selectedRuntime = runtime;
+
     let deferred = promise.defer();
 
-    let onConnectedOrDisconnected = () => {
-      this.connection.off(Connection.Events.CONNECTED, onConnectedOrDisconnected);
-      this.connection.off(Connection.Events.DISCONNECTED, onConnectedOrDisconnected);
-      if (this.connection.status == Connection.Status.CONNECTED) {
-        deferred.resolve();
-      } else {
+    this.disconnectRuntime().then(() => {
+      this.selectedRuntime = runtime;
+
+      let onConnectedOrDisconnected = () => {
+        this.connection.off(Connection.Events.CONNECTED, onConnectedOrDisconnected);
+        this.connection.off(Connection.Events.DISCONNECTED, onConnectedOrDisconnected);
+        if (this.connection.status == Connection.Status.CONNECTED) {
+          deferred.resolve();
+        } else {
+          deferred.reject();
+        }
+      }
+      this.connection.on(Connection.Events.CONNECTED, onConnectedOrDisconnected);
+      this.connection.on(Connection.Events.DISCONNECTED, onConnectedOrDisconnected);
+      try {
+        this.selectedRuntime.connect(this.connection).then(
+          () => {},
+          () => {deferred.reject()});
+      } catch(e) {
+        console.error(e);
         deferred.reject();
       }
-    }
-    this.connection.on(Connection.Events.CONNECTED, onConnectedOrDisconnected);
-    this.connection.on(Connection.Events.DISCONNECTED, onConnectedOrDisconnected);
-    try {
-      this.selectedRuntime.connect(this.connection).then(
-        () => {},
-        () => {deferred.reject()});
-    } catch(e) {
-      console.error(e);
-      deferred.reject();
-    }
+    }, deferred.reject);
 
     return deferred.promise;
+  },
+
+  isMainProcessDebuggable: function() {
+    return this._listTabsResponse &&
+           this._listTabsResponse.consoleActor;
   },
 
   get deviceFront() {

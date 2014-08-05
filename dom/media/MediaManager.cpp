@@ -54,6 +54,13 @@
 #include "MediaPermissionGonk.h"
 #endif
 
+#if defined(XP_MACOSX)
+#include "nsCocoaFeatures.h"
+#endif
+#if defined (XP_WIN)
+#include "mozilla/WindowsVersion.h"
+#endif
+
 // GetCurrentTime is defined in winbase.h as zero argument macro forwarding to
 // GetTickCount() and conflicts with MediaStream::GetCurrentTime.
 #ifdef GetCurrentTime
@@ -1530,6 +1537,23 @@ MediaManager::GetUserMedia(bool aPrivileged,
   }
 #endif
 
+  if (c.mVideo.IsMediaTrackConstraints() && !aPrivileged) {
+    auto& tc = c.mVideo.GetAsMediaTrackConstraints();
+    // only allow privileged content to set the window id
+    if (tc.mBrowserWindow.WasPassed()) {
+      tc.mBrowserWindow.Construct(-1);
+    }
+
+    if (tc.mAdvanced.WasPassed()) {
+      uint32_t length = tc.mAdvanced.Value().Length();
+      for (uint32_t i = 0; i < length; i++) {
+        if (tc.mAdvanced.Value()[i].mBrowserWindow.WasPassed()) {
+          tc.mAdvanced.Value()[i].mBrowserWindow.Construct(-1);
+        }
+      }
+    }
+  }
+
   // Pass callbacks and MediaStreamListener along to GetUserMediaRunnable.
   nsRefPtr<GetUserMediaRunnable> runnable;
   if (c.mFake) {
@@ -1548,12 +1572,24 @@ MediaManager::GetUserMedia(bool aPrivileged,
     auto& tc = c.mVideo.GetAsMediaTrackConstraints();
     // deny screensharing request if support is disabled
     if (tc.mMediaSource != dom::MediaSourceEnum::Camera) {
-      if (!Preferences::GetBool("media.getusermedia.screensharing.enabled", false)) {
+      if (tc.mMediaSource == dom::MediaSourceEnum::Browser) {
+        if (!Preferences::GetBool("media.getusermedia.browser.enabled", false)) {
+          return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
+        }
+      } else if (!Preferences::GetBool("media.getusermedia.screensharing.enabled", false)) {
         return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
       }
       /* Deny screensharing if the requesting document is not from a host
        on the whitelist. */
-      if (!HostHasPermission(*docURI)) {
+      // Block screen/window sharing on Mac OSX 10.6 and WinXP until proved that they work
+      if (
+#if defined(XP_MACOSX)
+          !nsCocoaFeatures::OnLionOrLater() ||
+#endif
+#if defined (XP_WIN)
+          !IsVistaOrLater() ||
+#endif
+          (!aPrivileged && !HostHasPermission(*docURI))) {
         return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
       }
     }
