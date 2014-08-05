@@ -1,12 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ 
+   http://creativecommons.org/publicdomain/zero/1.0/
 */
 /* A testcase to make sure reading the failed profile lock count works.  */
-
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
 
 Cu.import("resource://gre/modules/Services.jsm", this);
 

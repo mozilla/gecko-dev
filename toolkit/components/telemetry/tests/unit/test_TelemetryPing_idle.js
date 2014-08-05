@@ -3,8 +3,6 @@
 
 // Check that TelemetryPing notifies correctly on idle-daily.
 
-const Cu = Components.utils;
-
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
 

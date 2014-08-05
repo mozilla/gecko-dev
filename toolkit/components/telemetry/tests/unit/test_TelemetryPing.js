@@ -1,5 +1,5 @@
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ 
+   http://creativecommons.org/publicdomain/zero/1.0/
 */
 /* This testcase triggers two telemetry pings.
  *
@@ -7,11 +7,6 @@
  * ping populates these histograms. One of those histograms is then
  * checked in the second request.
  */
-
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
 
 Cu.import("resource://testing-common/httpd.js", this);
 Cu.import("resource://gre/modules/Services.jsm");
@@ -139,10 +134,10 @@ function decodeRequestPayload(request) {
 function checkPayloadInfo(payload, reason) {
   // get rid of the non-deterministic field
   const expected_info = {
-    OS: "XPCShell", 
-    appID: "xpcshell@tests.mozilla.org", 
-    appVersion: "1", 
-    appName: "XPCShell", 
+    OS: "XPCShell",
+    appID: "xpcshell@tests.mozilla.org",
+    appVersion: "1",
+    appName: "XPCShell",
     appBuildID: "2007010101",
     platformBuildID: "2007010101",
     flashVersion: FLASH_VERSION
@@ -215,7 +210,7 @@ function checkPayload(request, reason, successfulPings) {
   let rh = Telemetry.registeredHistograms([]);
   for (let name of rh) {
     if (/SQLITE/.test(name) && name in payload.histograms) {
-      do_check_true(("STARTUP_" + name) in payload.histograms); 
+      do_check_true(("STARTUP_" + name) in payload.histograms);
     }
   }
   do_check_false(IGNORE_HISTOGRAM in payload.histograms);
@@ -295,7 +290,7 @@ let PluginHost = {
     if (iid.equals(Ci.nsIPluginHost)
      || iid.equals(Ci.nsISupports))
       return this;
-  
+
     throw Components.results.NS_ERROR_NO_INTERFACE;
   }
 }
