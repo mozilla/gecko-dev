@@ -83,13 +83,13 @@ private:
   void StartGPS();
   void ShutdownGPS();
   void InjectLocation(double latitude, double longitude, float accuracy);
+  void RequestSettingValue(const char* aKey);
 #ifdef MOZ_B2G_RIL
   void SetupAGPS();
   int32_t GetDataConnectionState();
   void SetAGpsDataConn(nsAString& aApn);
   void RequestDataConnection();
   void ReleaseDataConnection();
-  void RequestSettingValue(char* aKey);
   void RequestSetID(uint32_t flags);
   void SetReferenceLocation();
 #endif
