@@ -203,20 +203,12 @@ MobileConnection::GetLastKnownHomeNetwork(nsString& aRetVal) const
 MobileConnectionInfo*
 MobileConnection::Voice() const
 {
-  if (!mProvider) {
-    return nullptr;
-  }
-
   return mVoice;
 }
 
 MobileConnectionInfo*
 MobileConnection::Data() const
 {
-  if (!mProvider) {
-    return nullptr;
-  }
-
   return mData;
 }
 
