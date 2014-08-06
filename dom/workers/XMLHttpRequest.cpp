@@ -1540,6 +1540,8 @@ XMLHttpRequest::XMLHttpRequest(WorkerPrivate* aWorkerPrivate)
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   SetIsDOMBinding();
+
+  mozilla::HoldJSObjects(this);
 }
 
 XMLHttpRequest::~XMLHttpRequest()
@@ -2307,7 +2309,4 @@ void
 XMLHttpRequest::UpdateState(const StateData& aStateData)
 {
   mStateData = aStateData;
-  if (JSVAL_IS_GCTHING(mStateData.mResponse)) {
-    mozilla::HoldJSObjects(this);
-  }
 }
