@@ -270,8 +270,10 @@ GonkCameraParameters::GetTranslated(uint32_t aKey, nsAString& aValue)
   }
   if (aKey == CAMERA_PARAM_ISOMODE) {
     rv = MapIsoFromGonk(val, aValue);
-  } else {
+  } else if (val) {
     aValue.AssignASCII(val);
+  } else {
+    aValue.Truncate(0);
   }
   return rv;
 }
