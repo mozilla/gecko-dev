@@ -775,15 +775,6 @@ var WifiManager = (function() {
       manager.connectionInfo.id = -1;
       return true;
     }
-    // Association reject is triggered mostly on incorrect WEP key.
-    if (eventData.indexOf("CTRL-EVENT-ASSOC-REJECT") === 0) {
-      notify("passwordmaybeincorrect");
-      if (manager.authenticationFailuresCount > MAX_RETRIES_ON_AUTHENTICATION_FAILURE) {
-        manager.authenticationFailuresCount = 0;
-        notify("disconnected", {ssid: manager.connectionInfo.ssid});
-      }
-      return true;
-    }
     if (eventData.indexOf("CTRL-EVENT-EAP-FAILURE") === 0) {
       if (event.indexOf("EAP authentication failed") !== -1) {
         notify("passwordmaybeincorrect");
