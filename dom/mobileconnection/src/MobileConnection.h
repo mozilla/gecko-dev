@@ -41,6 +41,9 @@ public:
   void
   Shutdown();
 
+  virtual void
+  DisconnectFromOwner() MOZ_OVERRIDE;
+
   nsPIDOMWindow*
   GetParentObject() const
   {
@@ -154,6 +157,9 @@ public:
   IMPL_EVENT_HANDLER(iccchange)
   IMPL_EVENT_HANDLER(radiostatechange)
   IMPL_EVENT_HANDLER(clirmodechange)
+
+private:
+  ~MobileConnection();
 
 private:
   uint32_t mClientId;
