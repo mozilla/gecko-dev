@@ -605,6 +605,14 @@ CallNewScriptHookForAllScripts(JSContext *cx, HandleScript script)
     CallNewScriptHook(cx, script, function);
 }
 
+static void
+LeaveParseTaskZone(JSRuntime *rt, ParseTask *task)
+{
+    // Mark the zone as no longer in use by an ExclusiveContext, and available
+    // to be collected by the GC.
+    rt->clearUsedByExclusiveThread(parseTask->cx->zone());
+}
+
 JSScript *
 GlobalWorkerThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void *token)
 {
@@ -625,12 +633,11 @@ GlobalWorkerThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
     }
     JS_ASSERT(parseTask);
 
-    // Mark the zone as no longer in use by an ExclusiveContext, and available
-    // to be collected by the GC.
-    rt->clearUsedByExclusiveThread(parseTask->cx->zone());
     if (!maybecx) {
+        LeaveParseTaskZone(rt, parseTask);
         return nullptr;
     }
+
     JSContext *cx = maybecx;
     JS_ASSERT(cx->compartment());
 
@@ -643,8 +650,11 @@ GlobalWorkerThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
         !GlobalObject::ensureConstructor(cx, global, JSProto_RegExp) ||
         !GlobalObject::ensureConstructor(cx, global, JSProto_Iterator))
     {
+        LeaveParseTaskZone(rt, parseTask);
         return nullptr;
     }
+
+    LeaveParseTaskZone(rt, parseTask);
 
     // Point the prototypes of any objects in the script's compartment to refer
     // to the corresponding prototype in the new compartment. This will briefly
