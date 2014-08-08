@@ -610,7 +610,7 @@ LeaveParseTaskZone(JSRuntime *rt, ParseTask *task)
 {
     // Mark the zone as no longer in use by an ExclusiveContext, and available
     // to be collected by the GC.
-    rt->clearUsedByExclusiveThread(parseTask->cx->zone());
+    rt->clearUsedByExclusiveThread(task->cx->zone());
 }
 
 JSScript *
