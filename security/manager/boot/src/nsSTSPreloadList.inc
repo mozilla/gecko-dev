@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include "mozilla/StandardInteger.h"
-const PRTime gPreloadListExpirationTime = INT64_C(1417860380322000);
+const PRTime gPreloadListExpirationTime = INT64_C(1418465184497000);
 
 class nsSTSPreload
 {
@@ -75,6 +75,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "ebanking.indovinabank.com.vn", false },
   { "ecosystem.atlassian.net", true },
   { "eff.org", true },
+  { "emailprivacytester.com", true },
   { "encircleapp.com", true },
   { "entropia.de", false },
   { "errors.zenpayroll.com", false },
@@ -143,6 +144,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mnsure.org", true },
   { "mobile.usaa.com", false },
   { "mudcrab.us", true },
+  { "mwe.st", true },
   { "my.onlime.ch", false },
   { "my.xero.com", false },
   { "mylookout.com", false },
@@ -165,7 +167,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "pastebin.linode.com", false },
   { "pay.gigahost.dk", true },
   { "paymill.com", true },
-  { "paymill.de", false },
+  { "paymill.de", true },
   { "pixi.me", true },
   { "plus.google.com", false },
   { "plus.sandbox.google.com", false },
@@ -181,6 +183,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "roundcube.mayfirst.org", false },
   { "sakaki.anime.my", true },
   { "sandbox.mydigipass.com", false },
+  { "schokokeks.org", false },
   { "securityheaders.com", true },
   { "seifried.org", true },
   { "shodan.io", true },
@@ -201,6 +204,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "tinfoilsecurity.com", false },
   { "torproject.org", false },
   { "twitter.com", false },
+  { "ub3rk1tten.com", true },
   { "ubertt.org", true },
   { "usaa.com", false },
   { "vmoagents.com", false },
@@ -255,6 +259,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.noisebridge.net", false },
   { "www.opsmate.com", true },
   { "www.python.org", true },
+  { "www.schokokeks.org", false },
   { "www.simbolo.co.uk", false },
   { "www.simple.com", false },
   { "www.therapynotes.com", false },

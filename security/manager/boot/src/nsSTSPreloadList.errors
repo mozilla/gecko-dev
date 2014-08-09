@@ -40,7 +40,6 @@ dropbox.com: max-age too low: 2592000
 dropcam.com: did not receive HSTS header
 edmodo.com: did not receive HSTS header
 email.lookout.com: could not connect to host
-emailprivacytester.com: did not receive HSTS header
 encrypted.google.com: did not receive HSTS header
 epoxate.com: did not receive HSTS header
 errors.zenpayroll.com: could not connect to host
@@ -60,7 +59,6 @@ hackerone-user-content.com: could not connect to host
 haste.ch: could not connect to host
 history.google.com: did not receive HSTS header
 hostedtalkgadget.google.com: did not receive HSTS header
-howrandom.org: could not connect to host
 in.xero.com: max-age too low: 3600
 intercom.io: did not receive HSTS header
 iop.intuit.com: max-age too low: 86400
@@ -96,10 +94,9 @@ play.google.com: did not receive HSTS header
 prodpad.com: did not receive HSTS header
 profiles.google.com: did not receive HSTS header
 rapidresearch.me: could not connect to host
-riseup.net: did not receive HSTS header
+riseup.net: could not connect to host
 sah3.net: could not connect to host
 saturngames.co.uk: did not receive HSTS header
-schokokeks.org: did not receive HSTS header
 script.google.com: did not receive HSTS header
 security.google.com: did not receive HSTS header
 semenkovich.com: did not receive HSTS header
@@ -119,12 +116,13 @@ ssl.panoramio.com: did not receive HSTS header
 stocktrade.de: could not connect to host
 sunshinepress.org: could not connect to host
 surfeasy.com: did not receive HSTS header
+surkatty.org: could not connect to host
 talk.google.com: did not receive HSTS header
 talkgadget.google.com: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header
 uprotect.it: could not connect to host
 wallet.google.com: did not receive HSTS header
-webmail.mayfirst.org: could not connect to host
+webmail.mayfirst.org: did not receive HSTS header
 whonix.org: did not receive HSTS header
 www.cueup.com: could not connect to host
 www.developer.mydigipass.com: could not connect to host
@@ -144,6 +142,5 @@ www.paypal.com: max-age too low: 14400
 www.rme.li: did not receive HSTS header
 www.roddis.net: did not receive HSTS header
 www.sandbox.mydigipass.com: could not connect to host
-www.schokokeks.org: did not receive HSTS header
 www.surfeasy.com: did not receive HSTS header
 zoo24.de: max-age too low: 2592000
