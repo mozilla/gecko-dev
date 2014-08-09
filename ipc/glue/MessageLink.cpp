@@ -15,6 +15,7 @@
 #include "mozilla/Preferences.h"
 #endif
 
+#include "mozilla/Assertions.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
 #include "nsXULAppAPI.h"
@@ -58,25 +59,26 @@ MessageLink::MessageLink(MessageChannel *aChan)
 
 MessageLink::~MessageLink()
 {
+#ifdef DEBUG
     mChan = nullptr;
+#endif
 }
 
 ProcessLink::ProcessLink(MessageChannel *aChan)
-  : MessageLink(aChan),
-    mExistingListener(nullptr)
+  : MessageLink(aChan)
+  , mTransport(nullptr)
+  , mIOLoop(nullptr)
+  , mExistingListener(nullptr)
 {
 }
 
 ProcessLink::~ProcessLink()
 {
-    mIOLoop = 0;
-    if (mTransport) {
-        mTransport->set_listener(0);
-        
-        // we only hold a weak ref to the transport, which is "owned"
-        // by GeckoChildProcess/GeckoThread
-        mTransport = 0;
-    }
+#ifdef DEBUG
+    mTransport = nullptr;
+    mIOLoop = nullptr;
+    mExistingListener = nullptr;
+#endif
 }
 
 void 
@@ -286,7 +288,8 @@ ProcessLink::OnEchoMessage(Message* msg)
 void
 ProcessLink::OnChannelOpened()
 {
-    mChan->AssertLinkThread();
+    AssertIOThread();
+
     {
         MonitorAutoLock lock(*mChan->mMonitor);
 
@@ -351,7 +354,11 @@ void
 ProcessLink::OnChannelError()
 {
     AssertIOThread();
+
     MonitorAutoLock lock(*mChan->mMonitor);
+
+    MOZ_ALWAYS_TRUE(this == mTransport->set_listener(mExistingListener));
+
     mChan->OnChannelErrorFromLink();
 }
 
@@ -363,6 +370,9 @@ ProcessLink::OnCloseChannel()
     mTransport->Close();
 
     MonitorAutoLock lock(*mChan->mMonitor);
+
+    MOZ_ALWAYS_TRUE(this == mTransport->set_listener(mExistingListener));
+
     mChan->mChannelState = ChannelClosed;
     mChan->mMonitor->Notify();
 }
