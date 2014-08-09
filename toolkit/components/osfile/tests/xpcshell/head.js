@@ -3,9 +3,17 @@
 
 "use strict";
 
-let {utils: Cu, interfaces: Ci} = Components;
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+const Cr = Components.results;
+const CC = Components.Constructor;
 
 let {XPCOMUtils} = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
+
+// We also need a valid nsIXulAppInfo service as Webapps.jsm is querying it
+Cu.import("resource://testing-common/AppInfo.jsm");
+updateAppInfo();
 
 // Bug 1014484 can only be reproduced by loading OS.File first from the
 // CommonJS loader, so we do not want OS.File to be loaded eagerly for

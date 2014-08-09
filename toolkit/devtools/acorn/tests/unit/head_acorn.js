@@ -1,5 +1,10 @@
 "use strict";
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+
+// We also need a valid nsIXulAppInfo service as Webapps.jsm is querying it
+Cu.import("resource://testing-common/AppInfo.jsm");
+updateAppInfo();
+
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const { require } = devtools;
 
