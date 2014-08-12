@@ -451,10 +451,6 @@ SettingsListener.observe('devtools.debugger.remote-enabled', false, function(val
   } catch(e) {
     dump("Error while initializing devtools: " + e + "\n" + e.stack + "\n");
   }
-
-#ifdef MOZ_WIDGET_GONK
-  AdbController.setRemoteDebuggerState(value);
-#endif
 });
 
 SettingsListener.observe('debugger.remote-mode', 'disabled', function(value) {
