@@ -3909,7 +3909,16 @@ RilObject.prototype = {
       } else {
         if (newCall.state === CALL_STATE_DIALING ||
             newCall.state === CALL_STATE_ALERTING) {
-          newCall.isEmergency = pendingOutgoingCall.isEmergency;
+          // MO
+
+          // We only set |isEmergency| when it is a call triggered by user.
+          // In other cases, the correct value wil be set in TelephonyService.
+          if (pendingOutgoingCall) {
+            newCall.isEmergency = pendingOutgoingCall.isEmergency;
+          }
+        } else {
+          // MT
+          newCall.isEmergency = false;
         }
         this._addNewVoiceCall(newCall);
       }
@@ -3936,10 +3945,6 @@ RilObject.prototype = {
       newCall.isOutgoing = false;
     } else if (newCall.state == CALL_STATE_DIALING) {
       newCall.isOutgoing = true;
-    }
-
-    if (newCall.isEmergency === undefined) {
-      newCall.isEmergency = false;
     }
 
     // Set flag for conference.

@@ -814,14 +814,17 @@ TelephonyProvider.prototype = {
     if (call) {
       call.state = aCall.state;
       call.isConference = aCall.isConference;
-      call.isEmergency = aCall.isEmergency;
       call.isActive = aCall.isActive;
+      call.isEmergency = aCall.isEmergency != null ?
+                         aCall.isEmergency : call.isEmergency;
       call.isSwitchable = aCall.isSwitchable != null ?
                           aCall.isSwitchable : call.isSwitchable;
       call.isMergeable = aCall.isMergeable != null ?
                          aCall.isMergeable : call.isMergeable;
     } else {
       call = aCall;
+      call.isEmergency = aCall.isEmergency != null ?
+                         aCall.isEmergency : this._isEmergencyNumber(aCall.number);
       call.isSwitchable = aCall.isSwitchable != null ?
                           aCall.isSwitchable : true;
       call.isMergeable = aCall.isMergeable != null ?
