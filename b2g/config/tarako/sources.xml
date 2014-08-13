@@ -96,7 +96,7 @@
   <!-- sprd things -->
   <project name="kernel/common" path="kernel" remote="sprd-aosp" revision="b6e014027599da36392ce11c37c05c777c7eac05"/>
   <project name="u-boot" path="u-boot" remote="sprd-aosp" revision="4abd266bec37da758b933c395e84529cfd6a2852"/>
-  <project name="device/sprd" path="device/sprd" remote="sprd-aosp" revision="8ab04981f7cd21bb3880d2d8f3c8f7795a600a3d"/>
+  <project name="device/sprd" path="device/sprd" remote="sprd-aosp" revision="a215a4d275fef594d3725161062c008a7fba4e73"/>
   <project name="vendor/sprd/proprietories" path="vendor/sprd/proprietories" remote="sprd-aosp" revision="dfea1aeb93e98aebb33c156943bdae22fc0e4c07"/>
   <project name="orangutan" path="orangutan" remote="sprd-b2g" revision="b3bdf5bc26b745de75c2f37548f250f63242a313"/>
 </manifest>
