@@ -248,3 +248,4 @@ ProfilerActor.prototype.requestTypes = {
 };
 
 DebuggerServer.addGlobalActor(ProfilerActor, "profilerActor");
+DebuggerServer.addTabActor(ProfilerActor, "profilerActor");

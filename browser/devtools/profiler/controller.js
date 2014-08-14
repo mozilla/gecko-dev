@@ -256,6 +256,12 @@ ProfilerController.prototype = {
       });
     };
 
+    if (this.target.form && this.target.form.profilerActor) {
+      this.actor = this.target.form.profilerActor;
+      this.isConnected = true;
+      return void register();
+    }
+
     if (this.target.root) {
       this.actor = this.target.root.profilerActor;
       this.isConnected = true;
