@@ -145,13 +145,6 @@ class LocalRunner(Runner):
         # Bug 775416 - Ensure that binary options are passed in first
         commands[1:1] = self.cmdargs
 
-        # If running on OS X 10.5 or older, wrap |cmd| so that it will
-        # be executed as an i386 binary, in case it's a 32-bit/64-bit universal
-        # binary.
-        if mozinfo.isMac and hasattr(platform, 'mac_ver') and \
-                platform.mac_ver()[0][:4] < '10.6':
-            commands = ["arch", "-arch", "i386"] + commands
-
         return commands
 
     def get_repositoryInfo(self):
