@@ -367,7 +367,8 @@ GonkGPSGeolocationProvider::SetAGpsDataConn(nsAString& aApn)
 
 
   bool hasUpdateNetworkAvailability = false;
-  if (mAGpsRilInterface->size >= sizeof(AGpsRilInterface) &&
+  if (mAGpsRilInterface &&
+      mAGpsRilInterface->size >= sizeof(AGpsRilInterface) &&
       mAGpsRilInterface->update_network_availability) {
     hasUpdateNetworkAvailability = true;
   }
@@ -452,7 +453,8 @@ GonkGPSGeolocationProvider::RequestSetID(uint32_t flags)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!mRadioInterface) {
+  if (!mRadioInterface ||
+      !mAGpsInterface) {
     return;
   }
 
@@ -490,7 +492,8 @@ GonkGPSGeolocationProvider::SetReferenceLocation()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!mRadioInterface) {
+  if (!mRadioInterface ||
+      !mAGpsRilInterface) {
     return;
   }
 
@@ -548,9 +551,7 @@ GonkGPSGeolocationProvider::SetReferenceLocation()
         }
       }
     }
-    if (mAGpsRilInterface) {
-      mAGpsRilInterface->set_ref_location(&location, sizeof(location));
-    }
+    mAGpsRilInterface->set_ref_location(&location, sizeof(location));
   }
 }
 
