@@ -688,6 +688,7 @@ struct TransportSecurityPreload {
 
 /* Sort hostnames for binary search. */
 static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
+  { "2mdn.net", true, true, false, -1, &kPinset_google_root_pems },
   { "accounts.firefox.com", true, true, false, 4, &kPinset_mozilla_fxa },
   { "accounts.google.com", true, true, false, -1, &kPinset_google_root_pems },
   { "addons.mozilla.net", true, false, true, 2, &kPinset_mozilla },
@@ -1011,12 +1012,13 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "www.twitter.com", true, false, false, -1, &kPinset_twitterCom },
   { "xbrlsuccess.appspot.com", true, true, false, -1, &kPinset_google_root_pems },
   { "youtu.be", true, true, false, -1, &kPinset_google_root_pems },
+  { "youtube-nocookie.com", true, true, false, -1, &kPinset_google_root_pems },
   { "youtube.com", true, true, false, -1, &kPinset_google_root_pems },
   { "ytimg.com", true, true, false, -1, &kPinset_google_root_pems },
 };
 
-static const int kPublicKeyPinningPreloadListLength = 325;
+static const int kPublicKeyPinningPreloadListLength = 327;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1416047871912000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1416651608894000);
