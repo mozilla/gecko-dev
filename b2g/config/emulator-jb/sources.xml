@@ -125,7 +125,7 @@
   <!-- Emulator specific things -->
   <project name="device/generic/armv7-a-neon" path="device/generic/armv7-a-neon" revision="3a9a17613cc685aa232432566ad6cc607eab4ec1"/>
   <project name="device_generic_goldfish" path="device/generic/goldfish" remote="b2g" revision="197cd9492b9fadaa915c5daf36ff557f8f4a8d1c"/>
-  <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="683623c76338dccd65e698bfb5c4cfee8808d799"/>
+  <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="30d0dfa566651fea8031551e86cec6018b7bbb12"/>
   <project name="platform/external/wpa_supplicant_8" path="external/wpa_supplicant_8" revision="0e56e450367cd802241b27164a2979188242b95f"/>
   <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="9f28c4faea3b2f01db227b2467b08aeba96d9bec"/>
   <project name="platform/development" path="development" revision="1f18cfe031ce23b7fb838fe3d4379dd802b49e71"/>
