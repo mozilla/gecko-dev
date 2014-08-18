@@ -50,10 +50,16 @@ MediaDecoderStateMachine* MediaOmxDecoder::CreateStateMachine()
   return new MediaDecoderStateMachine(this, mReader);
 }
 
-void MediaOmxDecoder::SetCanOffloadAudio(bool aCanOffloadAudio)
+void MediaOmxDecoder::SetPlatformCanOffloadAudio(bool aCanOffloadAudio)
 {
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   mCanOffloadAudio = aCanOffloadAudio;
+}
+
+bool MediaOmxDecoder::CheckDecoderCanOffloadAudio()
+{
+  return (mCanOffloadAudio && !mFallbackToStateMachine && !mOutputStreams.Length() &&
+      mInitialPlaybackRate == 1.0);
 }
 
 void MediaOmxDecoder::MetadataLoaded(int aChannels,
@@ -66,8 +72,7 @@ void MediaOmxDecoder::MetadataLoaded(int aChannels,
   MediaDecoder::MetadataLoaded(aChannels, aRate, aHasAudio, aHasVideo, aTags);
 
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  if (!mCanOffloadAudio || mFallbackToStateMachine || mOutputStreams.Length() ||
-      mInitialPlaybackRate != 1.0) {
+  if (!CheckDecoderCanOffloadAudio()) {
     DECODER_LOG(PR_LOG_DEBUG, ("In %s Offload Audio check failed",
         __PRETTY_FUNCTION__));
     return;
@@ -86,6 +91,7 @@ void MediaOmxDecoder::MetadataLoaded(int aChannels,
   }
 
   mAudioOffloadPlayer = nullptr;
+  mFallbackToStateMachine = true;
   DECODER_LOG(PR_LOG_DEBUG, ("In %s Unable to start offload audio %d."
       "Switching to normal mode", __PRETTY_FUNCTION__, err));
 }

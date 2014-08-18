@@ -1094,6 +1094,11 @@ void MediaDecoderStateMachine::StartPlayback()
   NS_ASSERTION(!IsPlaying(), "Shouldn't be playing when StartPlayback() is called");
   AssertCurrentThreadInMonitor();
 
+  if (mDecoder->CheckDecoderCanOffloadAudio()) {
+    DECODER_LOG(PR_LOG_DEBUG, "Offloading playback");
+    return;
+  }
+
   mDecoder->NotifyPlaybackStarted();
   mPlayStartTime = TimeStamp::Now();
 
