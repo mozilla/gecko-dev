@@ -906,9 +906,7 @@ public:
    * and passes it on to APZCTreeManager::DispatchScroll() in the event of
    * overscroll.
    * Returns true iff. this APZC, or an APZC further down the
-   * handoff chain, accepted the scroll (possibly entering an overscrolled
-   * state). If this return false, the caller APZC knows that it should enter
-   * an overscrolled state itself if it can.
+   * handoff chain, accepted the scroll.
    */
   bool AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                      uint32_t aOverscrollHandoffChainIndex = 0);
