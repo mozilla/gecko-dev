@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 "use strict";
 
 const Cc = Components.classes;
@@ -39,6 +38,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "BrowserToolboxProcess",
                                   "resource:///modules/devtools/ToolboxProcess.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPI",
                                   "resource://gre/modules/devtools/Console.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "XPIUtils",
+                                  "resource://gre/modules/sdk/XPIUtils.js");
 
 XPCOMUtils.defineLazyServiceGetter(this, "Blocklist",
                                    "@mozilla.org/extensions/blocklist;1",
@@ -82,6 +83,7 @@ const PREF_INSTALL_REQUIREBUILTINCERTS = "extensions.install.requireBuiltInCerts
 const PREF_INSTALL_DISTRO_ADDONS      = "extensions.installDistroAddons";
 const PREF_BRANCH_INSTALLED_ADDON     = "extensions.installedDistroAddon.";
 const PREF_SHOWN_SELECTION_UI         = "extensions.shownSelectionUI";
+const PREF_NATIVE_JETPACK             = "extensions.addon-sdk.native.enabled";
 
 const PREF_EM_MIN_COMPAT_APP_VERSION      = "extensions.minCompatibleAppVersion";
 const PREF_EM_MIN_COMPAT_PLATFORM_VERSION = "extensions.minCompatiblePlatformVersion";
@@ -102,6 +104,7 @@ const DIR_TRASH                       = "trash";
 const FILE_DATABASE                   = "extensions.json";
 const FILE_OLD_CACHE                  = "extensions.cache";
 const FILE_INSTALL_MANIFEST           = "install.rdf";
+const FILE_PACKAGE_JSON               = "package.json";
 const FILE_XPI_ADDONS_LIST            = "extensions.ini";
 
 const KEY_PROFILEDIR                  = "ProfD";
@@ -708,6 +711,22 @@ function getRDFProperty(aDs, aResource, aProperty) {
   return getRDFValue(aDs.GetTarget(aResource, EM_R(aProperty), true));
 }
 
+function validateAddon({ addon }) {
+  if (!(addon.type in TYPES))
+    throw new Error("Install manifest specifies unknown type: " + addon.type);
+
+  if (addon.type != "multipackage") {
+    if (!addon.id)
+      throw Error("No ID in install manifest");
+
+    if (!gIDTest.test(addon.id))
+      throw Error("Illegal add-on ID " + addon.id);
+
+    if (!addon.version)
+      throw Error("No version in install manifest");
+  }
+}
+
 /**
  * Reads an AddonInternal object from an RDF stream.
  *
@@ -836,17 +855,7 @@ function loadManifestFromRDF(aUri, aStream) {
     }
   }
 
-  if (!(addon.type in TYPES))
-    throw new Error("Install manifest specifies unknown type: " + addon.type);
-
-  if (addon.type != "multipackage") {
-    if (!addon.id)
-      throw new Error("No ID in install manifest");
-    if (!gIDTest.test(addon.id))
-      throw new Error("Illegal add-on ID " + addon.id);
-    if (!addon.version)
-      throw new Error("No version in install manifest");
-  }
+  validateAddon({ addon: addon });
 
   addon.strictCompatibility = !(addon.type in COMPATIBLE_BY_DEFAULT_TYPES) ||
                               getRDFProperty(ds, root, "strictCompatibility") == "true";
@@ -1013,7 +1022,8 @@ function loadManifestFromDir(aDir) {
   }
 
   let file = aDir.clone();
-  file.append(FILE_INSTALL_MANIFEST);
+  let useJSON = XPIUtils.hasPackageJSON({ container: file });
+  file.append(useJSON ? FILE_PACKAGE_JSON : FILE_INSTALL_MANIFEST);
   if (!file.exists() || !file.isFile())
     throw new Error("Directory " + aDir.path + " does not contain a valid " +
                     "install manifest");
@@ -1054,7 +1064,9 @@ function loadManifestFromDir(aDir) {
  * @throws if the XPI file does not contain a valid install manifest
  */
 function loadManifestFromZipReader(aZipReader) {
-  let zis = aZipReader.getInputStream(FILE_INSTALL_MANIFEST);
+  let useJSON = XPIUtils.hasPackageJSON({ container: aZipReader });
+
+  let zis = aZipReader.getInputStream(useJSON ? FILE_PACKAGE_JSON : FILE_INSTALL_MANIFEST);
   let bis = Cc["@mozilla.org/network/buffered-input-stream;1"].
             createInstance(Ci.nsIBufferedInputStream);
   bis.init(zis, 4096);

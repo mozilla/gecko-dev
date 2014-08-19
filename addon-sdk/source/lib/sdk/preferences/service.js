@@ -14,8 +14,9 @@ module.metadata = {
 const MAX_INT = 0x7FFFFFFF;
 const MIN_INT = -0x80000000;
 
-const {Cc,Ci,Cr} = require("chrome");
+const { Cc, Ci, Cr, Cu } = require("chrome");
 
+const { get } = Cu.import("resource://gre/modules/sdk/Preferences.js", {}).Preferences;
 const prefService = Cc["@mozilla.org/preferences-service;1"].
                 getService(Ci.nsIPrefService);
 const prefSvc = prefService.getBranch(null);
@@ -51,30 +52,8 @@ function Branch(branchName) {
     keys: getPrefKeys
   }, Branch.prototype);
 }
+exports.Branch = Branch;
 
-function get(name, defaultValue) {
-  switch (prefSvc.getPrefType(name)) {
-  case Ci.nsIPrefBranch.PREF_STRING:
-    return prefSvc.getComplexValue(name, Ci.nsISupportsString).data;
-
-  case Ci.nsIPrefBranch.PREF_INT:
-    return prefSvc.getIntPref(name);
-
-  case Ci.nsIPrefBranch.PREF_BOOL:
-    return prefSvc.getBoolPref(name);
-
-  case Ci.nsIPrefBranch.PREF_INVALID:
-    return defaultValue;
-
-  default:
-    // This should never happen.
-    throw new Error("Error getting pref " + name +
-                    "; its value's type is " +
-                    prefSvc.getPrefType(name) +
-                    ", which I don't know " +
-                    "how to handle.");
-  }
-}
 exports.get = get;
 
 function set(name, value) {
@@ -172,6 +151,3 @@ function setLocalized(name, value) {
   defaultBranch.setCharPref(name, value);
 }
 exports.setLocalized = setLocalized;
-
-exports.Branch = Branch;
-
