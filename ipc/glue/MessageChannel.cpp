@@ -205,12 +205,14 @@ MessageChannel::MessageChannel(MessageListener *aListener)
     mDispatchingUrgentMessageCount(0),
     mRemoteStackDepthGuess(false),
     mSawInterruptOutMsg(false),
-    mAbortOnError(false)
+    mAbortOnError(false),
+    mFlags(REQUIRE_DEFAULT)
 {
     MOZ_COUNT_CTOR(ipc::MessageChannel);
 
 #ifdef OS_WIN
     mTopFrame = nullptr;
+    mIsSyncWaitingOnNonMainThread = false;
 #endif
 
     mDequeueOneTask = new RefCountedTask(NewRunnableMethod(
