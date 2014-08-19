@@ -30,8 +30,6 @@ ParamTraits<FenceHandle>::Write(Message* aMsg,
   flattenable->flatten(data, nbytes, fds, nfds);
 
   aMsg->WriteSize(nbytes);
-  aMsg->WriteSize(nfds);
-
   aMsg->WriteBytes(data, nbytes);
   for (size_t n = 0; n < nfds; ++n) {
     // These buffers can't die in transit because they're created
@@ -46,15 +44,14 @@ ParamTraits<FenceHandle>::Read(const Message* aMsg,
                                void** aIter, paramType* aResult)
 {
   size_t nbytes;
-  size_t nfds;
   const char* data;
 
   if (!aMsg->ReadSize(aIter, &nbytes) ||
-      !aMsg->ReadSize(aIter, &nfds) ||
       !aMsg->ReadBytes(aIter, &data, nbytes)) {
     return false;
   }
 
+  size_t nfds = aMsg->num_fds();
   int fds[nfds];
 
   for (size_t n = 0; n < nfds; ++n) {

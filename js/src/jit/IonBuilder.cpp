@@ -5256,6 +5256,7 @@ IonBuilder::makeCallHelper(JSFunction *target, CallInfo &callInfo, bool cloneAtC
         // MCall accordingly.
         types::TemporaryTypeSet *thisTypes = thisArg->resultTypeSet();
         if (thisTypes &&
+            thisTypes->getKnownTypeTag() == JSVAL_TYPE_OBJECT &&
             TestAreKnownDOMTypes(thisTypes) &&
             testShouldDOMCall(thisTypes, target, JSJitInfo::Method))
         {
