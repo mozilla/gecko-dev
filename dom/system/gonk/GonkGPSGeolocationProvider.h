@@ -21,6 +21,7 @@
 #include "nsCOMPtr.h"
 #include "nsIGeolocationProvider.h"
 #include "nsIObserver.h"
+#include "nsIDOMGeoPosition.h"
 #ifdef MOZ_B2G_RIL
 #include "nsIRadioInterfaceLayer.h"
 #include "nsISettingsService.h"
@@ -115,9 +116,9 @@ private:
   nsCOMPtr<nsIRadioInterface> mRadioInterface;
 #endif
   nsCOMPtr<nsIGeolocationUpdate> mLocationCallback;
-  PRTime mLastGPSDerivedLocationTime;
   nsCOMPtr<nsIThread> mInitThread;
   nsCOMPtr<nsIGeolocationProvider> mNetworkLocationProvider;
+  nsCOMPtr<nsIDOMGeoPosition> mLastGPSPosition;
 
   class NetworkLocationUpdate : public nsIGeolocationUpdate
   {
