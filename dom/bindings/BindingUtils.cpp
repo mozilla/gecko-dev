@@ -42,6 +42,7 @@
 #include "mozilla/dom/HTMLAppletElementBinding.h"
 #include "mozilla/dom/Promise.h"
 #include "WorkerPrivate.h"
+#include "nsDOMClassInfo.h"
 
 namespace mozilla {
 namespace dom {
@@ -1682,8 +1683,9 @@ ReparentWrapper(JSContext* aCx, JS::Handle<JSObject*> aObjArg)
   js::AssertSameCompartment(aCx, aObjArg);
 
   // Check if we're near the stack limit before we get anywhere near the
-  // transplanting code.
-  JS_CHECK_RECURSION(aCx, return NS_ERROR_FAILURE);
+  // transplanting code. We use a conservative check since we'll use a little
+  // more space before we actually hit the critical "can't fail" path.
+  JS_CHECK_RECURSION_CONSERVATIVE(aCx, return NS_ERROR_FAILURE);
 
   JS::Rooted<JSObject*> aObj(aCx, aObjArg);
   const DOMClass* domClass = GetDOMClass(aObj);
@@ -2456,11 +2458,44 @@ CreateGlobalOptions<nsGlobalWindow>::TraceGlobal(JSTracer* aTrc, JSObject* aObj)
   xpc::TraceXPCGlobal(aTrc, aObj);
 }
 
+static bool sRegisteredDOMNames = false;
+
+nsresult
+RegisterDOMNames()
+{
+  if (sRegisteredDOMNames) {
+    return NS_OK;
+  }
+
+  nsresult rv = nsDOMClassInfo::Init();
+  if (NS_FAILED(rv)) {
+    NS_ERROR("Could not initialize nsDOMClassInfo");
+    return rv;
+  }
+
+  // Register new DOM bindings
+  nsScriptNameSpaceManager* nameSpaceManager = GetNameSpaceManager();
+  if (!nameSpaceManager) {
+    NS_ERROR("Could not initialize nsScriptNameSpaceManager");
+    return NS_ERROR_FAILURE;
+  }
+  mozilla::dom::Register(nameSpaceManager);
+
+  sRegisteredDOMNames = true;
+
+  return NS_OK;
+}
+
 /* static */
 bool
 CreateGlobalOptions<nsGlobalWindow>::PostCreateGlobal(JSContext* aCx,
                                                       JS::Handle<JSObject*> aGlobal)
 {
+  nsresult rv = RegisterDOMNames();
+  if (NS_FAILED(rv)) {
+    return Throw(aCx, rv);
+  }
+
   return XPCWrappedNativeScope::GetNewOrUsed(aCx, aGlobal);
 }
 
