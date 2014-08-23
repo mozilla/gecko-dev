@@ -1,6 +1,8 @@
+accelerated.de: did not receive HSTS header
 admin.google.com: did not receive HSTS header
 adsfund.org: could not connect to host
 airbnb.com: did not receive HSTS header
+ansdell.net: did not receive HSTS header
 api.lookout.com: could not connect to host
 api.mega.co.nz: could not connect to host
 api.recurly.com: did not receive HSTS header
@@ -13,10 +15,12 @@ bassh.net: did not receive HSTS header
 bccx.com: could not connect to host
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
+blog.lookout.com: did not receive HSTS header
 braintreegateway.com: did not receive HSTS header
 braintreepayments.com: did not receive HSTS header
 browserid.org: did not receive HSTS header
 business.medbank.com.mt: did not receive HSTS header
+ca.gparent.org: could not connect to host
 carlolly.co.uk: did not receive HSTS header
 cert.se: max-age too low: 2628001
 checkout.google.com: did not receive HSTS header
@@ -52,6 +56,7 @@ gmail.com: did not receive HSTS header
 googlemail.com: did not receive HSTS header
 googleplex.com: could not connect to host
 goto.google.com: did not receive HSTS header
+gparent.org: could not connect to host
 greplin.com: did not receive HSTS header
 groups.google.com: did not receive HSTS header
 hackerone-user-content.com: could not connect to host
@@ -72,6 +77,10 @@ ledgerscope.net: did not receive HSTS header
 liberty.lavabit.com: could not connect to host
 lifeguard.aecom.com: did not receive HSTS header
 lists.mayfirst.org: did not receive HSTS header
+loenshotel.de: could not connect to host
+login.corp.google.com: max-age too low: 7776000
+logotype.se: did not receive HSTS header
+m.gparent.org: could not connect to host
 mail.google.com: did not receive HSTS header
 market.android.com: did not receive HSTS header
 mobilethreat.net: could not connect to host
@@ -123,6 +132,7 @@ sunshinepress.org: could not connect to host
 surfeasy.com: did not receive HSTS header
 talk.google.com: did not receive HSTS header
 talkgadget.google.com: did not receive HSTS header
+tektoria.de: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header
 uprotect.it: could not connect to host
 wallet.google.com: did not receive HSTS header
