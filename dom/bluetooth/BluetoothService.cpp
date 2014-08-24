@@ -20,6 +20,7 @@
 #include "BluetoothUtils.h"
 
 #include "jsapi.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/unused.h"
@@ -741,6 +742,8 @@ BluetoothService::Get()
   }
 
   sBluetoothService = service;
+  ClearOnShutdown(&sBluetoothService);
+
   return sBluetoothService;
 }
 
