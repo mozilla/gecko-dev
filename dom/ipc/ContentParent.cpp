@@ -751,14 +751,6 @@ ContentParent::PreallocatedProcessReady()
 #endif
 }
 
-void
-ContentParent::RunAfterPreallocatedProcessReady(nsIRunnable* aRequest)
-{
-#ifdef MOZ_NUWA_PROCESS
-    PreallocatedProcessManager::RunAfterPreallocatedProcessReady(aRequest);
-#endif
-}
-
 /*static*/ TabParent*
 ContentParent::CreateBrowserOrApp(const TabContext& aContext,
                                   Element* aFrameElement)

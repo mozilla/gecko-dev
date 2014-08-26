@@ -91,7 +91,6 @@ public:
     static void JoinAllSubprocesses();
 
     static bool PreallocatedProcessReady();
-    static void RunAfterPreallocatedProcessReady(nsIRunnable* aRequest);
 
     static already_AddRefed<ContentParent>
     GetNewOrUsed(bool aForBrowserElement = false,
