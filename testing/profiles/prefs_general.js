@@ -204,3 +204,7 @@ user_pref('identity.fxaccounts.auth.uri', 'https://%(server)s/fxa-dummy/');
 
 // Make sure we don't try to load snippets from the network.
 user_pref("browser.aboutHomeSnippets.updateUrl", "nonexistent://test");
+
+// Ensure UITour won't hit the network
+user_pref("browser.uitour.pinnedTabUrl", "http://%(server)s/uitour-dummy/pinnedTab");
+user_pref("browser.uitour.url", "http://%(server)s/uitour-dummy/tour");
