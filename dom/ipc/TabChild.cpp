@@ -1433,6 +1433,8 @@ TabChild::DestroyWindow()
             runnable->Dispatch();
         }
     }
+
+    mCachedFileDescriptorInfos.Clear();
 }
 
 bool
