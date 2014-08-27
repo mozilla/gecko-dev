@@ -30,6 +30,7 @@ int main(int argc, char* argv[], char* envp[]){
     full_profile_path = (char*) malloc(strlen(cwd) + strlen(GAIA_PATH) + 2);
     if (!full_profile_path) {
         error(NOMEM);
+        free(full_path);
         return -2;
     }
     sprintf(full_path, "%s/%s", cwd, B2G_NAME);
