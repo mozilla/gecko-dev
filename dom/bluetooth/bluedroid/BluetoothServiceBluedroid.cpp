@@ -730,29 +730,51 @@ BondStateChangedCallback(bt_status_t aStatus, bt_bdaddr_t* aRemoteBdAddress,
     return;
   }
 
-  bool bonded;
-  if (aState == BT_BOND_STATE_NONE) {
-    bonded = false;
-    sAdapterBondedAddressArray.RemoveElement(remoteBdAddress);
-  } else if (aState == BT_BOND_STATE_BONDED) {
-    bonded = true;
-    sAdapterBondedAddressArray.AppendElement(remoteBdAddress);
+  switch (aStatus) {
+    case BT_STATUS_SUCCESS: {
+      bool bonded;
+      if (aState == BT_BOND_STATE_NONE) {
+        bonded = false;
+        sAdapterBondedAddressArray.RemoveElement(remoteBdAddress);
+      } else if (aState == BT_BOND_STATE_BONDED) {
+        bonded = true;
+        sAdapterBondedAddressArray.AppendElement(remoteBdAddress);
+      }
+
+      // Update bonded address list to BluetoothAdapter
+      InfallibleTArray<BluetoothNamedValue> propertiesChangeArray;
+      BT_APPEND_NAMED_VALUE(propertiesChangeArray, "Devices",
+                            sAdapterBondedAddressArray);
+
+      BluetoothValue value(propertiesChangeArray);
+      BluetoothSignal signal(NS_LITERAL_STRING("PropertyChanged"),
+                             NS_LITERAL_STRING(KEY_ADAPTER),
+                             BluetoothValue(propertiesChangeArray));
+      NS_DispatchToMainThread(new DistributeBluetoothSignalTask(signal));
+
+      // Redirect to main thread to avoid racing problem
+      NS_DispatchToMainThread(
+        new BondStateChangedCallbackTask(remoteBdAddress, bonded));
+      break;
+    }
+    case BT_STATUS_BUSY:
+    case BT_STATUS_AUTH_FAILURE:
+    case BT_STATUS_RMT_DEV_DOWN: {
+      InfallibleTArray<BluetoothNamedValue> propertiesArray;
+      BluetoothSignal signal(NS_LITERAL_STRING("Cancel"),
+                             NS_LITERAL_STRING(KEY_LOCAL_AGENT),
+                             BluetoothValue(propertiesArray));
+      nsRefPtr<DistributeBluetoothSignalTask>
+        t = new DistributeBluetoothSignalTask(signal);
+      if (NS_FAILED(NS_DispatchToMainThread(t))) {
+        BT_WARNING("Failed to dispatch to main thread!");
+      }
+      break;
+    }
+    default:
+      BT_WARNING("Got an unhandled status of BondStateChangedCallback!");
+      break;
   }
-
-  // Update bonded address list to BluetoothAdapter
-  InfallibleTArray<BluetoothNamedValue> propertiesChangeArray;
-  BT_APPEND_NAMED_VALUE(propertiesChangeArray, "Devices",
-                        sAdapterBondedAddressArray);
-
-  BluetoothValue value(propertiesChangeArray);
-  BluetoothSignal signal(NS_LITERAL_STRING("PropertyChanged"),
-                         NS_LITERAL_STRING(KEY_ADAPTER),
-                         BluetoothValue(propertiesChangeArray));
-  NS_DispatchToMainThread(new DistributeBluetoothSignalTask(signal));
-
-  // Redirect to main thread to avoid racing problem
-  NS_DispatchToMainThread(
-    new BondStateChangedCallbackTask(remoteBdAddress, bonded));
 }
 
 static void
