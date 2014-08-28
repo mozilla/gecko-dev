@@ -17,7 +17,7 @@
   </project>
   <project name="librecovery" path="librecovery" remote="b2g" revision="1f6a1fe07f81c5bc5e1d079c9b60f7f78ca2bf4f"/>
   <project name="fake-libdvm" path="dalvik" remote="b2g" revision="d50ae982b19f42f0b66d08b9eb306be81687869f"/>
-  <project name="gaia" path="gaia" remote="mozillaorg" revision="05653cb12d324649687dad3eeb2ea373a2ad84d4"/>
+  <project name="gaia" path="gaia" remote="mozillaorg" revision="59e74a8adf64946119deee2f96ed79935f3535f7"/>
   <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="c83c152b624e22eb323489cecc0eb0f335799b9e"/>
   <project name="moztt" path="external/moztt" remote="b2g" revision="7beaabe1187b688ef560607912577c614a038533"/>
   <project name="apitrace" path="external/apitrace" remote="apitrace" revision="4a7d860ef54cf6e119238b247522a85c13d17dd6"/>
