@@ -1071,6 +1071,7 @@ BluetoothServiceBluedroid::SetProperty(BluetoothObjectType aType,
   const nsString propName = aValue.name();
   bt_property_t prop;
   bt_scan_mode_t scanMode;
+  uint32_t timeout;
   nsCString str;
 
   // For Bluedroid, it's necessary to check property name for SetProperty
@@ -1086,7 +1087,9 @@ BluetoothServiceBluedroid::SetProperty(BluetoothObjectType aType,
 
   if (aValue.value().type() == BluetoothValue::Tuint32_t) {
     // Set discoverable timeout
-    prop.val = (void*)aValue.value().get_uint32_t();
+    timeout = aValue.value().get_uint32_t();
+    prop.val = (void*) &timeout;
+    prop.len = sizeof(uint32_t);
   } else if (aValue.value().type() == BluetoothValue::TnsString) {
     // Set name
     str = NS_ConvertUTF16toUTF8(aValue.value().get_nsString());
