@@ -610,6 +610,20 @@ DiscoveryStateChangedCallback(bt_discovery_state_t aState)
   if (NS_FAILED(NS_DispatchToMainThread(t))) {
     BT_WARNING("Failed to dispatch to main thread!");
   }
+
+  // Distribute "PropertyChanged" signal to notify adapter about this change
+  // since Bluedroid don' treat "discovering" as a property of adapter.
+  InfallibleTArray<BluetoothNamedValue> props;
+  BT_APPEND_NAMED_VALUE(props, "Discovering", BluetoothValue(isDiscovering));
+  BluetoothSignal propertyChangedSignal(NS_LITERAL_STRING("PropertyChanged"),
+                         NS_LITERAL_STRING(KEY_ADAPTER),
+                         BluetoothValue(props));
+
+  nsRefPtr<DistributeBluetoothSignalTask>
+    task = new DistributeBluetoothSignalTask(propertyChangedSignal);
+  if (NS_FAILED(NS_DispatchToMainThread(task))) {
+    BT_WARNING("Failed to dispatch to main thread!");
+  }
 }
 
 static void
