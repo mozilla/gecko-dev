@@ -72,13 +72,19 @@ AlarmsManager.prototype = {
         break;
     }
 
+    // Run JSON.stringify() in the sand box with the principal of the calling
+    // web page to ensure no cross-origin object is involved. A "Permission
+    // Denied" error will be thrown in case of privilege violation.
+    let sandbox = new Cu.Sandbox(this._window.document.nodePrincipal);
+    sandbox.data = aData;
+    let data = Cu.evalInSandbox("JSON.stringify(data)", sandbox);
     let request = this.createRequest();
     this._cpmm.sendAsyncMessage(
       "AlarmsManager:Add",
       { requestId: this.getRequestId(request),
         date: aDate,
         ignoreTimezone: isIgnoreTimezone,
-        data: aData,
+        data: JSON.parse(data),
         pageURL: this._pageURL,
         manifestURL: this._manifestURL }
     );
