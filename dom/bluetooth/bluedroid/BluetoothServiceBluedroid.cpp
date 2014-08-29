@@ -42,6 +42,8 @@
     }                                                                  \
   } while(0)
 
+#define MAX_UUID_SIZE 16
+
 using namespace mozilla;
 using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
@@ -50,6 +52,7 @@ USING_BLUETOOTH_NAMESPACE
 static nsString sAdapterBdAddress;
 static nsString sAdapterBdName;
 static InfallibleTArray<nsString> sAdapterBondedAddressArray;
+static InfallibleTArray<nsString> sAdapterUuidsArray;
 
 // Static variables below should only be used on *main thread*
 static const bt_interface_t* sBtInterface;
@@ -392,8 +395,22 @@ AdapterPropertiesCallback(bt_status_t aStatus, int aNumProperties,
       props.AppendElement(
         BluetoothNamedValue(NS_LITERAL_STRING("Devices"), propertyValue));
     } else if (p.type == BT_PROPERTY_UUIDS) {
-      //FIXME: This will be implemented in the later patchset
-      continue;
+      int uuidListLength = p.len / MAX_UUID_SIZE;
+      for (size_t i = 0; i < uuidListLength; i++) {
+        uint16_t uuidServiceClass = UuidToServiceClassInt(
+          (bt_uuid_t*)(p.val +(i * MAX_UUID_SIZE)));
+        BluetoothServiceClass serviceClass =
+          BluetoothUuidHelper::GetBluetoothServiceClass(uuidServiceClass);
+
+        // Get Uuid string from BluetoothServiceClass
+        nsString uuid;
+        BluetoothUuidHelper::GetString(serviceClass, uuid);
+        sAdapterUuidsArray.AppendElement(uuid);
+      }
+
+      propertyValue = sAdapterUuidsArray;
+      props.AppendElement(BluetoothNamedValue(NS_LITERAL_STRING("UUIDs"),
+                          propertyValue));
     } else {
       BT_LOGD("Unhandled adapter property type: %d", p.type);
       continue;
@@ -945,6 +962,10 @@ BluetoothServiceBluedroid::GetDefaultAdapterPathInternal(
   v.get_ArrayOfBluetoothNamedValue().AppendElement(
     BluetoothNamedValue(NS_LITERAL_STRING("Devices"),
                         sAdapterBondedAddressArray));
+
+  v.get_ArrayOfBluetoothNamedValue().AppendElement(
+    BluetoothNamedValue(NS_LITERAL_STRING("UUIDs"),
+                        sAdapterUuidsArray));
 
   DispatchBluetoothReply(aRunnable, v, EmptyString());
 

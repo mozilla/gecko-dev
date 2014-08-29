@@ -18,6 +18,9 @@ class BluetoothNamedValue;
 class BluetoothValue;
 class BluetoothReplyRunnable;
 
+uint16_t
+UuidToServiceClassInt(bt_uuid_t* aUuid);
+
 const bt_interface_t*
 GetBluetoothInterface();
 

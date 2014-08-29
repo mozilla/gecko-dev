@@ -23,6 +23,15 @@
 
 BEGIN_BLUETOOTH_NAMESPACE
 
+uint16_t
+UuidToServiceClassInt(bt_uuid_t* aUuid)
+{
+  // extract short UUID 0000xxxx-0000-1000-8000-00805f9b34fb
+  uint16_t shortUuid;
+  memcpy(&shortUuid, &(aUuid->uu[2]) , sizeof(uint16_t));
+  return ntohs(shortUuid);
+}
+
 const bt_interface_t*
 GetBluetoothInterface()
 {
