@@ -66,6 +66,7 @@ VideoContentMetrics* VPMContentAnalysis::ComputeContentMetrics(
   // Compute spatial metrics: 3 spatial prediction errors.
   (this->*ComputeSpatialMetrics)();
 
+#if !defined(WEBRTC_GONK)
   // Compute motion metrics
   if (first_frame_ == false)
     ComputeMotionMetrics();
@@ -74,6 +75,7 @@ VideoContentMetrics* VPMContentAnalysis::ComputeContentMetrics(
   memcpy(prev_frame_, orig_frame_, width_ * height_);
 
   first_frame_ =  false;
+#endif
   ca_Init_ = true;
 
   return ContentMetrics();
@@ -135,8 +137,10 @@ int32_t VPMContentAnalysis::Initialize(int width, int height) {
     return VPM_MEMORY;
   }
 
+#if !defined(WEBRTC_GONK)
   prev_frame_ = new uint8_t[width_ * height_];  // Y only.
   if (prev_frame_ == NULL) return VPM_MEMORY;
+#endif
 
   return VPM_OK;
 }
