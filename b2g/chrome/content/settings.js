@@ -474,6 +474,10 @@ SettingsListener.observe('debugger.remote-mode', 'disabled', function(value) {
   } catch(e) {
     dump("Error while initializing devtools: " + e + "\n" + e.stack + "\n");
   }
+
+#ifdef MOZ_WIDGET_GONK
+  AdbController.setRemoteDebuggerState(value != 'disabled');
+#endif
 });
 
 // If debug access to certified apps is allowed, we need to preserve system
