@@ -25,6 +25,8 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 
+#include "prdtoa.h"
+
 class nsIPrincipal;
 
 #ifdef MOZ_ENABLE_QT5GEOPOSITION
@@ -86,6 +88,10 @@ class nsGeolocationRequest MOZ_FINAL
   int32_t WatchId() { return mWatchId; }
  private:
   virtual ~nsGeolocationRequest();
+
+  double GridAlgorithm(int32_t aRadius, double aKmSize, double aCoord);
+  double CalcLatByGridAlgorithm(int32_t aRadius, double aLatitude);
+  double CalcLonByGridAlgorithm(int32_t aRadius, double aLongitude, double aLatitude);
 
   bool mIsWatchPositionRequest;
 
@@ -486,6 +492,29 @@ nsGeolocationRequest::StopTimeoutTimer()
     mTimeoutTimer->Cancel();
     mTimeoutTimer = nullptr;
   }
+}
+
+double
+nsGeolocationRequest::GridAlgorithm(int32_t aRadius, double aKmSize, double aCoord)
+{
+  double gridSize = (aKmSize * aRadius) / 3600;
+  double belongsTo = aCoord / gridSize;
+  return (floor(belongsTo) * gridSize + ceil(belongsTo) * gridSize) / 2;
+}
+
+double
+nsGeolocationRequest::CalcLatByGridAlgorithm(int32_t aRadius, double aLatitude)
+{
+  double kmSize = 32.39;
+  return GridAlgorithm(aRadius, kmSize, aLatitude);
+}
+
+double
+nsGeolocationRequest::CalcLonByGridAlgorithm(int32_t aRadius, double aLongitude, double aLatitude)
+{
+  double fi = (aLatitude * 3.14) / 180;
+  double kmSize = 3600 / (cos(fi) * 111.27);
+  return GridAlgorithm(aRadius, kmSize, aLongitude);
 }
 
 void
