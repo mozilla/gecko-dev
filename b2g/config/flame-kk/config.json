@@ -28,7 +28,7 @@
         "VARIANT": "user",
         "MOZILLA_OFFICIAL": "1",
         "MOZ_TELEMETRY_REPORTING": "1",
-        "B2G_UPDATE_CHANNEL": "nightly-b2g32",
+        "B2G_UPDATE_CHANNEL": "nightly-b2g32"
     },
     "b2g_manifest": "flame-kk.xml",
     "b2g_manifest_intree": true,
