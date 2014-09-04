@@ -19,6 +19,7 @@
 #include "nsWeakPtr.h"
 #include "nsCycleCollectionParticipant.h"
 
+#include "nsGeoBlurSettings.h"
 #include "nsGeoPosition.h"
 #include "nsIDOMGeoGeolocation.h"
 #include "nsIDOMGeoPosition.h"
@@ -36,6 +37,7 @@
 
 class nsGeolocationService;
 class nsGeolocationRequest;
+class nsGeoBlurSetting;
 
 namespace mozilla {
 namespace dom {
@@ -72,6 +74,8 @@ public:
 
   void HandleMozsettingChanged(const char16_t* aData);
   void HandleMozsettingValue(const bool aValue);
+  void HandleMozsettingRadiusIndexValue(int32_t value);
+  void HandleMozsettingCoordsValue(JSString* value);
 
   // Management of the Geolocation objects
   void AddLocator(mozilla::dom::Geolocation* locator);
@@ -208,6 +212,7 @@ private:
 
   // Pending requests are used when the service is not ready
   nsTArray<nsRefPtr<nsGeolocationRequest> > mPendingRequests;
+
 };
 
 class PositionError MOZ_FINAL : public nsIDOMGeoPositionError,
