@@ -10,6 +10,7 @@
 #include "nsISettingsService.h"
 
 #include "nsGeolocation.h"
+#include "nsGeoBlurSettings.h"
 #include "nsDOMClassInfoID.h"
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
@@ -24,6 +25,8 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
+
+#include "nsJSUtils.h"
 
 class nsIPrincipal;
 
@@ -49,6 +52,10 @@ class nsIPrincipal;
 
 // The settings key.
 #define GEO_SETINGS_ENABLED          "geolocation.enabled"
+#define GEO_BLUR_RADIUS              "geolocation.blur.radius"
+#define GEO_BLUR_COORDS              "geolocation.blur.coords"
+
+static nsGeoBlurSettings sGlobalBlurSettings;
 
 using mozilla::unused;          // <snicker>
 using namespace mozilla;
@@ -86,6 +93,10 @@ class nsGeolocationRequest MOZ_FINAL
   int32_t WatchId() { return mWatchId; }
  private:
   virtual ~nsGeolocationRequest();
+
+  double GridAlgorithm(int32_t aRadius, double aKmSize, double aCoord);
+  double CalcLatByGridAlgorithm(int32_t aRadius, double aLatitude);
+  double CalcLonByGridAlgorithm(int32_t aRadius, double aLongitude, double aLatitude);
 
   bool mIsWatchPositionRequest;
 
@@ -129,22 +140,50 @@ public:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
-    // The geolocation is enabled by default:
-    bool value = true;
-    if (aResult.isBoolean()) {
-      value = aResult.toBoolean();
+    if(aName.EqualsASCII(GEO_SETINGS_ENABLED)) {
+      // The geolocation is enabled by default:
+      bool value = true;
+      if (aResult.isBoolean()) {
+        value = aResult.toBoolean();
+      }
+
+      MozSettingValue(value);
+    } else if(aName.EqualsASCII(GEO_BLUR_RADIUS)) {
+      int32_t value = GEO_BLUR_RADIUS_INDEX_PRECISE;
+      if (aResult.isInt32()) {
+        value = aResult.toInt32();
+      }
+
+      MozSettingRadiusIndexValue(value);
+    } else if(aName.EqualsASCII(GEO_BLUR_COORDS)) {
+      JSString* value = nullptr;
+      if (aResult.isString()) {
+        value = aResult.toString();
+      }
+
+      MozSettingCoordsValue(value);
     }
 
-    MozSettingValue(value);
     return NS_OK;
   }
 
   NS_IMETHOD HandleError(const nsAString& aName)
   {
-    NS_WARNING("Unable to get value for '" GEO_SETINGS_ENABLED "'");
+    if(aName.EqualsASCII(GEO_SETINGS_ENABLED)) {
+      NS_WARNING("Unable to get value for '" GEO_SETINGS_ENABLED "'");
 
-    // Default it's enabled:
-    MozSettingValue(true);
+      // Default it's enabled:
+      MozSettingValue(true);
+    } else if(aName.EqualsASCII(GEO_BLUR_RADIUS)) {
+      NS_WARNING("Unable to get value for '" GEO_BLUR_RADIUS "'");
+
+      MozSettingRadiusIndexValue(GEO_BLUR_RADIUS_INDEX_PRECISE);
+    } else if(aName.EqualsASCII(GEO_BLUR_COORDS)) {
+      NS_WARNING("Unable to get value for '" GEO_BLUR_COORDS "'");
+
+      MozSettingCoordsValue(nullptr);
+    }
+
     return NS_OK;
   }
 
@@ -153,6 +192,22 @@ public:
     nsRefPtr<nsGeolocationService> gs = nsGeolocationService::GetGeolocationService();
     if (gs) {
       gs->HandleMozsettingValue(aValue);
+    }
+  }
+
+  void MozSettingRadiusIndexValue(int32_t value)
+  {
+    nsRefPtr<nsGeolocationService> gs = nsGeolocationService::GetGeolocationService();
+    if (gs) {
+      gs->HandleMozsettingRadiusIndexValue(value);
+    }
+  }
+
+  void MozSettingCoordsValue(JSString* value)
+  {
+    nsRefPtr<nsGeolocationService> gs = nsGeolocationService::GetGeolocationService();
+    if (gs) {
+      gs->HandleMozsettingCoordsValue(value);
     }
   }
 };
@@ -488,6 +543,29 @@ nsGeolocationRequest::StopTimeoutTimer()
   }
 }
 
+double
+nsGeolocationRequest::GridAlgorithm(int32_t aRadius, double aKmSize, double aCoord)
+{
+  double gridSize = (aKmSize * aRadius) / 3600;
+  double belongsTo = aCoord / gridSize;
+  return (floor(belongsTo) * gridSize + ceil(belongsTo) * gridSize) / 2;
+}
+
+double
+nsGeolocationRequest::CalcLatByGridAlgorithm(int32_t aRadius, double aLatitude)
+{
+  double kmSize = 32.39;
+  return GridAlgorithm(aRadius, kmSize, aLatitude);
+}
+
+double
+nsGeolocationRequest::CalcLonByGridAlgorithm(int32_t aRadius, double aLongitude, double aLatitude)
+{
+  double fi = (aLatitude * 3.14) / 180;
+  double kmSize = 3600 / (cos(fi) * 111.27);
+  return GridAlgorithm(aRadius, kmSize, aLongitude);
+}
+
 void
 nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition)
 {
@@ -648,6 +726,14 @@ nsresult nsGeolocationService::Init()
     nsRefPtr<GeolocationSettingsCallback> callback = new GeolocationSettingsCallback();
     rv = settingsLock->Get(GEO_SETINGS_ENABLED, callback);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    callback = new GeolocationSettingsCallback();
+    rv = settingsLock->Get(GEO_BLUR_RADIUS, callback);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    callback = new GeolocationSettingsCallback();
+    rv = settingsLock->Get(GEO_BLUR_COORDS, callback);
+    NS_ENSURE_SUCCESS(rv, rv);
   } else {
     // If we cannot obtain the settings service, we continue
     // assuming that the geolocation is enabled:
@@ -732,16 +818,25 @@ nsGeolocationService::HandleMozsettingChanged(const char16_t* aData)
     }
 
     bool match;
-    if (!JS_StringEqualsAscii(cx, key.toString(), GEO_SETINGS_ENABLED, &match) || !match) {
-      return;
-    }
-
     JS::Rooted<JS::Value> value(cx);
-    if (!JS_GetProperty(cx, obj, "value", &value) || !value.isBoolean()) {
-      return;
+
+    if (JS_StringEqualsAscii(cx, key.toString(), GEO_SETINGS_ENABLED, &match) && match) {
+      if (JS_GetProperty(cx, obj, "value", &value) && value.isBoolean()) {
+        HandleMozsettingValue(value.toBoolean());
+      }
     }
 
-    HandleMozsettingValue(value.toBoolean());
+    if (JS_StringEqualsAscii(cx, key.toString(), GEO_BLUR_RADIUS, &match) && match) {
+      if (JS_GetProperty(cx, obj, "value", &value) && value.isInt32()) {
+        HandleMozsettingRadiusIndexValue(value.toInt32());
+      }
+    }
+
+    if (JS_StringEqualsAscii(cx, key.toString(), GEO_BLUR_COORDS, &match) && match) {
+      if (JS_GetProperty(cx, obj, "value", &value) && value.isString()) {
+        HandleMozsettingCoordsValue(value.toString());
+      }
+    }
 }
 
 void
@@ -763,6 +858,26 @@ nsGeolocationService::HandleMozsettingValue(const bool aValue)
         mGeolocators[i]->ServiceReady();
       }
     }
+}
+
+void
+nsGeolocationService::HandleMozsettingRadiusIndexValue(int32_t value)
+{
+  sGlobalBlurSettings.ClearCoords();
+  sGlobalBlurSettings.SetRadiusIndex(value);
+}
+
+void
+nsGeolocationService::HandleMozsettingCoordsValue(JSString* value)
+{
+  nsString str;
+  if(value)
+  {
+    AutoSafeJSContext cx;
+    AssignJSString(cx, str, value);
+  }
+
+  sGlobalBlurSettings.SetCoords(str);
 }
 
 NS_IMETHODIMP
