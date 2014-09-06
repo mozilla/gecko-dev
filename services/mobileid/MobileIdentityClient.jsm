@@ -34,7 +34,7 @@ this.MobileIdentityClient = function(aServerUrl) {
     throw new Error(ERROR_INTERNAL_HTTP_NOT_ALLOWED);
   }
 
-  this.hawk = new HawkClient(SERVER_URL);
+  this.hawk = new HawkClient(serverUrl);
   this.hawk.observerPrefix = "MobileId:hawk";
 };
 
@@ -141,7 +141,12 @@ this.MobileIdentityClient.prototype = {
       (responseText) => {
         log.debug("MobileIdentityClient -> responseText " + responseText);
         try {
-          let response = JSON.parse(responseText);
+          let response;
+          // We parse the response body unless we are handling a 204 response,
+          // which MUST NOT include a message body.
+          if (response.status != 204) {
+            response = JSON.parse(responseText);
+          }
           deferred.resolve(response);
         } catch (err) {
           deferred.reject({error: err});

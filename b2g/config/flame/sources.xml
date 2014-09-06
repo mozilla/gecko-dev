@@ -12,13 +12,13 @@
   <!--original fetch url was https://git.mozilla.org/releases-->
   <remote fetch="https://git.mozilla.org/releases" name="mozillaorg"/>
   <!-- B2G specific things. -->
-  <project name="platform_build" path="build" remote="b2g" revision="74465af039d2809454afdfef285285bb63146e1b">
+  <project name="platform_build" path="build" remote="b2g" revision="8986df0f82e15ac2798df0b6c2ee3435400677ac">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
   <project name="librecovery" path="librecovery" remote="b2g" revision="891e5069c0ad330d8191bf8c7b879c814258c89f"/>
   <project name="fake-libdvm" path="dalvik" remote="b2g" revision="d50ae982b19f42f0b66d08b9eb306be81687869f"/>
-  <project name="gaia" path="gaia" remote="mozillaorg" revision="449d8db9b3ea1f9262db822c37ef2143477172b7"/>
-  <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="b89cbb6a0880826513b421d2c5a6fb401dfbc3c1"/>
+  <project name="gaia" path="gaia" remote="mozillaorg" revision="f02a8e4ef0fabeb28593fa660a0a4ca8a5fe67e5"/>
+  <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="c4765e55870c241a5d25499d65323f3e87d26143"/>
   <project name="moztt" path="external/moztt" remote="b2g" revision="ce95d372e6d285725b96490afdaaf489ad8f9ca9"/>
   <project name="apitrace" path="external/apitrace" remote="apitrace" revision="4a7d860ef54cf6e119238b247522a85c13d17dd6"/>
   <project name="valgrind" path="external/valgrind" remote="b2g" revision="daa61633c32b9606f58799a3186395fd2bbb8d8c"/>
