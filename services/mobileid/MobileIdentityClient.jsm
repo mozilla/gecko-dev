@@ -141,13 +141,10 @@ this.MobileIdentityClient.prototype = {
       (responseText) => {
         log.debug("MobileIdentityClient -> responseText " + responseText);
         try {
-          let response;
-          // We parse the response body unless we are handling a 204 response,
-          // which MUST NOT include a message body.
-          if (response.status != 204) {
-            response = JSON.parse(responseText);
+          if (responseText && responseText.length) {
+            responseText = JSON.parse(responseText);
           }
-          deferred.resolve(response);
+          deferred.resolve(responseText);
         } catch (err) {
           deferred.reject({error: err});
         }
