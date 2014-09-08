@@ -3782,7 +3782,7 @@ GetMessagesCursor.prototype = {
       }
       let domMessage =
         self.mmdb.createDomMessageFromRecord(event.target.result);
-      self.callback.notifyCursorResult(domMessage);
+      self.callback.notifyCursorResult([domMessage], 1);
     };
     getRequest.onerror = function(event) {
       if (DEBUG) {
@@ -3863,7 +3863,7 @@ GetThreadsCursor.prototype = {
                                            threadRecord.body,
                                            threadRecord.unreadCount,
                                            threadRecord.lastMessageType);
-      self.callback.notifyCursorResult(thread);
+      self.callback.notifyCursorResult([thread], 1);
     };
     getRequest.onerror = function(event) {
       if (DEBUG) {

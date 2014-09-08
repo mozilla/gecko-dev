@@ -413,7 +413,8 @@ MobileMessageManager::GetMessages(nsIDOMMozSmsFilter* aFilter,
                                                getter_AddRefs(continueCallback));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  cursorCallback->mDOMCursor = new DOMCursor(GetOwner(), continueCallback);
+  cursorCallback->mDOMCursor =
+    new MobileMessageCursor(GetOwner(), continueCallback);
   NS_ADDREF(*aCursor = cursorCallback->mDOMCursor);
 
   return NS_OK;
@@ -454,7 +455,8 @@ MobileMessageManager::GetThreads(nsIDOMDOMCursor** aCursor)
                                               getter_AddRefs(continueCallback));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  cursorCallback->mDOMCursor = new DOMCursor(GetOwner(), continueCallback);
+  cursorCallback->mDOMCursor =
+    new MobileMessageCursor(GetOwner(), continueCallback);
   NS_ADDREF(*aCursor = cursorCallback->mDOMCursor);
 
   return NS_OK;
