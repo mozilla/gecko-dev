@@ -471,8 +471,12 @@ struct Class
         return flags & JSCLASS_EMULATES_UNDEFINED;
     }
 
+    bool isJSFunction() const {
+        return this == js::FunctionClassPtr;
+    }
+
     bool isCallable() const {
-        return this == js::FunctionClassPtr || call;
+        return isJSFunction() || call;
     }
 
     bool isProxy() const {
