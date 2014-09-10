@@ -541,6 +541,10 @@ JSObject::create(js::ExclusiveContext *cx, js::gc::AllocKind kind, js::gc::Initi
     if (span && clasp != &js::ArrayBufferObject::class_)
         obj->initializeSlotRange(0, span);
 
+    // JSFunction's fixed slots expect POD-style initialization.
+    if (type->clasp()->isJSFunction())
+        memset(obj->fixedSlots(), 0, sizeof(js::HeapSlot) * GetGCKindSlots(kind));
+
     return obj;
 }
 
