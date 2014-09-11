@@ -556,6 +556,7 @@ public:
 
     virtual bool IsInGonkEmulator() const { return false; }
 
+    bool HasEnoughTotalSystemMemoryForSkiaGL();
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
@@ -627,6 +628,8 @@ protected:
 
     // max number of entries in word cache
     int32_t mWordCacheMaxEntries;
+
+    uint32_t mTotalSystemMemory;
 
 private:
     /**
