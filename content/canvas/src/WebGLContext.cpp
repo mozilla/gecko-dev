@@ -203,6 +203,7 @@ WebGLContext::WebGLContext()
 
 WebGLContext::~WebGLContext()
 {
+    RemovePostRefreshObserver();
     DestroyResourcesAndContext();
     WebGLMemoryTracker::RemoveWebGLContext(this);
 
@@ -1403,6 +1404,14 @@ WebGLContext::GetSurfaceSnapshot(bool* aPremultAlpha)
                     DrawOptions(1.0f, CompositionOp::OP_SOURCE));
 
     return dt->Snapshot();
+}
+
+void
+WebGLContext::DidRefresh()
+{
+    if (gl) {
+        gl->FlushIfHeavyGLCallsSinceLastFlush();
+    }
 }
 
 //
