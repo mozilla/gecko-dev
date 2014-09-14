@@ -654,7 +654,7 @@ let settingsToObserve = {
     prefName: 'dom.browser_frames.useAsyncPanZoom',
     defaultValue: false
   },
-  'apz.overscroll.enabled': true,
+  'apz.overscroll.enabled': false,
   'debug.fps.enabled': {
     prefName: 'layers.acceleration.draw-fps',
     defaultValue: false
@@ -695,6 +695,10 @@ let settingsToObserve = {
   'ril.sms.strict7BitEncoding.enabled': {
     prefName: 'dom.sms.strict7BitEncoding',
     defaultValue: false
+  },
+  'ril.sms.maxReadAheadEntries': {
+    prefName: 'dom.sms.maxReadAheadEntries',
+    defaultValue: 7
   },
   'ui.touch.radius.leftmm': {
     resetToPref: true
