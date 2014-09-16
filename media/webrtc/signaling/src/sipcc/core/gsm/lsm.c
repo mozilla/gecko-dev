@@ -642,16 +642,13 @@ lsm_open_rx (lsm_lcb_t *lcb, cc_action_data_open_rcv_t *data,
             lsm_get_ms_ui_call_handle(lcb->line, lcb->call_id, lcb->ui_id),
             dcb->peerconnection,
             media->level,
-            &default_addr, &port_allocated,
-            &candidates, &candidate_ct);
+            &default_addr, &port_allocated);
 
           if (!status) {
             sstrncpy(dcb->ice_default_candidate_addr, default_addr, sizeof(dcb->ice_default_candidate_addr));
             cpr_free(default_addr);
 
             data->port = (uint16_t)port_allocated;
-            media->candidate_ct = candidate_ct;
-            media->candidatesp = candidates;
             rc = CC_RC_SUCCESS;
           }
         }

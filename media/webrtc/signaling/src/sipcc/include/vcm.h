@@ -452,9 +452,7 @@ short vcmRxAllocICE(cc_mcapid_t mcap_id,
         const char *peerconnection,
         uint16_t level,
         char **default_addr, /* Out */
-        int *default_port, /* Out */
-        char ***candidates, /* Out */
-        int *candidate_ct /* Out */
+        int *default_port /* Out */
 );
 
 

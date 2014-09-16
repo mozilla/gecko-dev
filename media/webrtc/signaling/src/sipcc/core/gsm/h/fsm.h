@@ -198,9 +198,6 @@ typedef struct fsmdef_media_t_ {
 
     void *video;
 
-    /* ICE Candidates */
-    char **candidatesp;
-    int candidate_ct;
     /*
      * rtcp-mux indicates media stream is muxed for RTP and RTCP
      */
