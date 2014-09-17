@@ -526,15 +526,11 @@ short vcmRxAllocICE(cc_mcapid_t mcap_id,
                    const char *peerconnection,
                    uint16_t level,
                    char **default_addrp, /* Out */
-                   int *default_portp, /* Out */
-                   char ***candidatesp, /* Out */
-                   int *candidate_ctp /* Out */
+                   int *default_portp /* Out */
                    )
 {
   *default_addrp = nullptr;
   *default_portp = -1;
-  *candidatesp = nullptr;
-  *candidate_ctp = 0;
 
   // draft-ivov-mmusic-trickle-ice-01.txt says to use port 9
   // but "::" instead of "0.0.0.0". Since we don't do any
@@ -661,6 +657,7 @@ short vcmSetIceSessionParams(const char *peerconnection,
 
   return 0;
 }
+
 
 /* Set ice candidate for trickle ICE.
  *

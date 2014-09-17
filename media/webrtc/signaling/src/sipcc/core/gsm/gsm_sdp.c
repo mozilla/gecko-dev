@@ -525,7 +525,6 @@ gsmsdp_init_media (fsmdef_media_t *media)
     media->flags = 0;                    /* clear all flags      */
     media->cap_index = CC_MAX_MEDIA_CAP; /* max is invalid value */
     media->video = NULL;
-    media->candidate_ct = 0;
     media->rtcp_mux = FALSE;
     media->audio_level = TRUE;
     media->audio_level_id = 1;
@@ -5287,12 +5286,6 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
                                                  media->setup);
                   }
 
-                  /* Set ICE */
-                  for (j=0; j<media->candidate_ct; j++) {
-                    gsmsdp_set_ice_attribute (SDP_ATTR_ICE_CANDIDATE, media->level,
-                                              sdp_p->src_sdp, media->candidatesp[j]);
-                  }
-
                   /* Set RTCPMux if we have it turned on in our config
                      and the other side requests it */
                   config_get_value(CFGID_RTCPMUX, &rtcpmux, sizeof(rtcpmux));
@@ -5814,13 +5807,7 @@ gsmsdp_add_media_line (fsmdef_dcb_t *dcb_p, const cc_media_cap_t *media_cap,
 
           /* Add a=setup attribute */
           gsmsdp_set_setup_attribute(level, dcb_p->sdp->src_sdp, media->setup);
-          /*
-           * wait until here to set ICE candidates as SDP is now initialized
-           */
-          for (i=0; i<media->candidate_ct; i++) {
-            gsmsdp_set_ice_attribute (SDP_ATTR_ICE_CANDIDATE, level, dcb_p->sdp->src_sdp, media->candidatesp[i]);
-          }
-
+ 
           config_get_value(CFGID_RTCPMUX, &rtcpmux, sizeof(rtcpmux));
           if (SDP_MEDIA_APPLICATION != media_cap->type && rtcpmux) {
             gsmsdp_set_rtcp_mux_attribute (SDP_ATTR_RTCP_MUX, level, dcb_p->sdp->src_sdp, TRUE);
