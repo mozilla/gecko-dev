@@ -470,6 +470,12 @@ public:
   MediaEngineAudioSource* GetSource();
 };
 
+// we could add MediaManager if needed
+typedef void (*WindowListenerCallback)(MediaManager *aThis,
+                                       uint64_t aWindowID,
+                                       StreamListeners *aListeners,
+                                       void *aData);
+
 class MediaManager MOZ_FINAL : public nsIMediaManagerService,
                                public nsIObserver
 {
@@ -542,8 +548,9 @@ private:
 
   ~MediaManager() {}
 
-  nsresult MediaCaptureWindowStateInternal(nsIDOMWindow* aWindow, bool* aVideo,
-                                           bool* aAudio);
+  void IterateWindowListeners(nsPIDOMWindow *aWindow,
+                              WindowListenerCallback aCallback,
+                              void *aData);
 
   void StopMediaStreams();
 
