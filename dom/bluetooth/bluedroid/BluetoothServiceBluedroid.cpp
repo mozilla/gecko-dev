@@ -697,6 +697,28 @@ SspRequestCallback(bt_bdaddr_t* aRemoteBdAddress, bt_bdname_t* aRemoteBdName,
   }
 }
 
+class BondErrorTask : public nsRunnable
+{
+  nsString mErrorStr;
+public:
+  BondErrorTask(const nsAString& aErrorStr) : mErrorStr(aErrorStr)
+  { }
+
+  NS_IMETHOD
+  Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    if (!sBondingRunnableArray.IsEmpty()) {
+      DispatchBluetoothReply(sBondingRunnableArray[0],
+                             BluetoothValue(true), mErrorStr);
+      sBondingRunnableArray.RemoveElementAt(0);
+    }
+
+    return NS_OK;
+  }
+};
+
 class BondStateChangedCallbackTask : public nsRunnable
 {
   nsString mRemoteDeviceBdAddress;
@@ -760,7 +782,8 @@ BondStateChangedCallback(bt_status_t aStatus, bt_bdaddr_t* aRemoteBdAddress,
   }
 
   switch (aStatus) {
-    case BT_STATUS_SUCCESS: {
+    case BT_STATUS_SUCCESS:
+    {
       bool bonded;
       if (aState == BT_BOND_STATE_NONE) {
         bonded = false;
@@ -788,7 +811,8 @@ BondStateChangedCallback(bt_status_t aStatus, bt_bdaddr_t* aRemoteBdAddress,
     }
     case BT_STATUS_BUSY:
     case BT_STATUS_AUTH_FAILURE:
-    case BT_STATUS_RMT_DEV_DOWN: {
+    case BT_STATUS_RMT_DEV_DOWN:
+    {
       InfallibleTArray<BluetoothNamedValue> propertiesArray;
       BluetoothSignal signal(NS_LITERAL_STRING("Cancel"),
                              NS_LITERAL_STRING(KEY_LOCAL_AGENT),
@@ -798,6 +822,9 @@ BondStateChangedCallback(bt_status_t aStatus, bt_bdaddr_t* aRemoteBdAddress,
       if (NS_FAILED(NS_DispatchToMainThread(t))) {
         BT_WARNING("Failed to dispatch to main thread!");
       }
+
+      NS_DispatchToMainThread(
+        new BondErrorTask(NS_LITERAL_STRING("Authentication failure")));
       break;
     }
     default:
