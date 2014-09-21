@@ -116,6 +116,7 @@ WEBIDL_FILES = [
     'DummyBinding.webidl',
     'DynamicsCompressorNode.webidl',
     'Element.webidl',
+    'EngineeringMode.webidl',
     'Event.webidl',
     'EventHandler.webidl',
     'EventListener.webidl',
