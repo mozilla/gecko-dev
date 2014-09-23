@@ -2029,7 +2029,7 @@ void MediaDecoderStateMachine::DecodeSeek()
     StartDecoding();
   }
 
-  if (newCurrentTime != mediaTime) {
+  if (newCurrentTime != GetMediaTime()) {
     UpdatePlaybackPositionInternal(newCurrentTime);
     if (mDecoder->GetDecodedStream()) {
       SetSyncPointForMediaStream();
