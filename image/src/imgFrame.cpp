@@ -344,16 +344,9 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
       target->FillRect(ToRect(available), ColorPattern(mSinglePixelColor),
                        DrawOptions(1.0f, CompositionOp::OP_SOURCE));
     } else {
-      gfxMatrix imageSpaceToUserSpace = aUserSpaceToImageSpace;
-      imageSpaceToUserSpace.Invert();
       SurfacePattern pattern(aSurface,
                              ExtendMode::REPEAT,
-                             Matrix(imageSpaceToUserSpace.xx,
-                                    imageSpaceToUserSpace.xy,
-                                    imageSpaceToUserSpace.yx,
-                                    imageSpaceToUserSpace.yy,
-                                    imageSpaceToUserSpace.x0,
-                                    imageSpaceToUserSpace.y0));
+                             Matrix::Translation(mDecoded.x, mDecoded.y));
       target->FillRect(ToRect(available), pattern);
     }
 
