@@ -2069,12 +2069,18 @@ XrayToString(JSContext *cx, unsigned argc, Value *vp)
         return false;
     }
 
-    RootedObject obj(cx, XrayTraits::getTargetObject(wrapper));
-
     static const char start[] = "[object XrayWrapper ";
     static const char end[] = "]";
-    if (UseDOMXray(obj))
+
+    RootedObject obj(cx, XrayTraits::getTargetObject(wrapper));
+    XrayType type = GetXrayType(obj);
+    if (type == XrayForDOMObject)
         return NativeToString(cx, wrapper, obj, start, end, args.rval());
+
+    if (type != XrayForWrappedNative) {
+        JS_ReportError(cx, "XrayToString called on an incompatible object");
+        return false;
+    }
 
     nsAutoString result;
     result.AppendASCII(start);
@@ -2676,12 +2682,13 @@ template class SCSecurityXrayXPCWN;
 static nsQueryInterface
 do_QueryInterfaceNative(JSContext* cx, HandleObject wrapper)
 {
-    nsISupports* nativeSupports;
+    nsISupports* nativeSupports = nullptr;
     if (IsWrapper(wrapper) && WrapperFactory::IsXrayWrapper(wrapper)) {
         RootedObject target(cx, XrayTraits::getTargetObject(wrapper));
-        if (GetXrayType(target) == XrayForDOMObject) {
+        XrayType type = GetXrayType(target);
+        if (type == XrayForDOMObject) {
             nativeSupports = UnwrapDOMObjectToISupports(target);
-        } else {
+        } else if (type == XrayForWrappedNative) {
             XPCWrappedNative *wn = XPCWrappedNative::Get(target);
             nativeSupports = wn->Native();
         }
