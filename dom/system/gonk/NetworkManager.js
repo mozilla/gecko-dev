@@ -10,6 +10,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/systemlibs.js");
+Cu.import("resource://gre/modules/Promise.jsm");
 
 const NETWORKMANAGER_CONTRACTID = "@mozilla.org/network/manager;1";
 const NETWORKMANAGER_CID =
@@ -239,12 +240,6 @@ NetworkManager.prototype = {
             gNetworkService.removeDefaultRoute(network);
             this.setAndConfigureActive();
 #ifdef MOZ_B2G_RIL
-            // Resolve and add extra host route. For example, mms proxy or mmsc.
-            // IMPORTANT: The offline state of DNSService will be set implicitly in
-            //            setAndConfigureActive() by modifying Services.io.offline.
-            //            Always setExtraHostRoute() after setAndConfigureActive().
-            this.setExtraHostRoute(network);
-
             // Update data connection when Wifi connected/disconnected
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
               for (let i = 0; i < this.mRil.numRadioInterfaces; i++) {
@@ -264,12 +259,6 @@ NetworkManager.prototype = {
             // Remove host route for data calls
             if (this.isNetworkTypeMobile(network.type)) {
               gNetworkService.removeHostRoute(network);
-            }
-            // Remove extra host route. For example, mms proxy or mmsc.
-            this.removeExtraHostRoute(network);
-            // Remove secondary default route for dun.
-            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
-              this.removeSecondaryDefaultRoute(network);
             }
 #endif
             // Remove routing table in /proc/net/route
@@ -366,12 +355,9 @@ NetworkManager.prototype = {
 
   getNetworkId: function(network) {
     let id = "device";
-    if (this.isNetworkTypeMobile(network.type)) {
-      if (!(network instanceof Ci.nsIRilNetworkInterface)) {
-        throw Components.Exception("Mobile network not an nsIRilNetworkInterface",
-                                   Cr.NS_ERROR_INVALID_ARG);
-      }
-      id = "ril" + network.serviceId;
+    if (network instanceof Ci.nsIRilNetworkInterface) {
+      let rilNetwork = network.QueryInterface(Ci.nsIRilNetworkInterface);
+      id = "ril" + rilNetwork.serviceId;
     }
 
     return id + "-" + network.type;
@@ -459,62 +445,6 @@ NetworkManager.prototype = {
             this.isNetworkTypeSecondaryMobile(type));
   },
 
-  setExtraHostRoute: function(network) {
-    if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
-      if (!(network instanceof Ci.nsIRilNetworkInterface)) {
-        debug("Network for MMS must be an instance of nsIRilNetworkInterface");
-        return;
-      }
-
-      network = network.QueryInterface(Ci.nsIRilNetworkInterface);
-
-      debug("Adding mmsproxy and/or mmsc route for " + network.name);
-
-      let hostToResolve = network.mmsProxy;
-      // Workaround an xpconnect issue with undefined string objects.
-      // See bug 808220
-      if (!hostToResolve || hostToResolve === "undefined") {
-        hostToResolve = network.mmsc;
-      }
-
-      let mmsHosts = this.resolveHostname([hostToResolve]);
-      if (mmsHosts.length == 0) {
-        debug("No valid hostnames can be added. Stop adding host route.");
-        return;
-      }
-
-      gNetworkService.addHostRouteWithResolve(network, mmsHosts);
-    }
-  },
-
-  removeExtraHostRoute: function(network) {
-    if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
-      if (!(network instanceof Ci.nsIRilNetworkInterface)) {
-        debug("Network for MMS must be an instance of nsIRilNetworkInterface");
-        return;
-      }
-
-      network = network.QueryInterface(Ci.nsIRilNetworkInterface);
-
-      debug("Removing mmsproxy and/or mmsc route for " + network.name);
-
-      let hostToResolve = network.mmsProxy;
-      // Workaround an xpconnect issue with undefined string objects.
-      // See bug 808220
-      if (!hostToResolve || hostToResolve === "undefined") {
-        hostToResolve = network.mmsc;
-      }
-
-      let mmsHosts = this.resolveHostname([hostToResolve]);
-      if (mmsHosts.length == 0) {
-        debug("No valid hostnames can be removed. Stop removing host route.");
-        return;
-      }
-
-      gNetworkService.removeHostRouteWithResolve(network, mmsHosts);
-    }
-  },
-
   setSecondaryDefaultRoute: function(network) {
     let gateways = network.getGateways();
     for (let i = 0; i < gateways.length; i++) {
@@ -556,6 +486,37 @@ NetworkManager.prototype = {
     }
   },
 #endif // MOZ_B2G_RIL
+
+  isValidatedNetwork: function(network) {
+    let isValid = false;
+    try {
+      isValid = (this.getNetworkId(network) in this.networkInterfaces);
+    } catch (e) {
+      debug("Invalid network interface: " + e);
+    }
+
+    return isValid;
+  },
+
+  addHostRoute: function(network, host) {
+    if (!this.isValidatedNetwork(network)) {
+      return Promise.reject("Invalid network interface.");
+    }
+
+    return this.resolveHostname(host)
+      .then((ipAddresses)
+        => gNetworkService.addHostRouteWithResolve(network, ipAddresses));
+  },
+
+  removeHostRoute: function(network, host) {
+    if (!this.isValidatedNetwork(network)) {
+      return Promise.reject("Invalid network interface.");
+    }
+
+    return this.resolveHostname(host)
+      .then((ipAddresses)
+        => gNetworkService.removeHostRouteWithResolve(network, ipAddresses));
+  },
 
   /**
    * Determine the active interface and configure it.
@@ -635,43 +596,56 @@ NetworkManager.prototype = {
     }
   },
 
-#ifdef MOZ_B2G_RIL
-  resolveHostname: function(hosts) {
-    let retval = [];
-
-    for (let hostname of hosts) {
-      // Sanity check for null, undefined and empty string... etc.
-      if (!hostname) {
-        continue;
-      }
-
-      try {
-        let uri = Services.io.newURI(hostname, null, null);
-        hostname = uri.host;
-      } catch (e) {}
-
-      // An extra check for hostnames that cannot be made by newURI(...).
-      // For example, an IP address like "10.1.1.1".
-      if (hostname.match(this.REGEXP_IPV4) ||
-          hostname.match(this.REGEXP_IPV6)) {
-        retval.push(hostname);
-        continue;
-      }
-
-      try {
-        let hostnameIps = gDNSService.resolve(hostname, 0);
-        while (hostnameIps.hasMore()) {
-          retval.push(hostnameIps.getNextAddrAsString());
-          debug("Found IP at: " + JSON.stringify(retval));
-        }
-      } catch (e) {
-        debug("Failed to resolve '" + hostname + "', exception: " + e);
-      }
+  resolveHostname: function(hostname) {
+    // Sanity check for null, undefined and empty string... etc.
+    if (!hostname) {
+      return Promise.reject(new Error("hostname is empty: " + hostname));
     }
 
-    return retval;
+    if (hostname.match(this.REGEXP_IPV4) ||
+        hostname.match(this.REGEXP_IPV6)) {
+      return Promise.resolve([hostname]);
+    }
+
+    let deferred = Promise.defer();
+    let listener = {
+      QueryInterface: function(aIID) {
+        if (aIID.equals(Ci.nsIDNSListener) ||
+            aIID.equals(Ci.nsISupports)) {
+          return this;
+        }
+        throw Cr.NS_ERROR_NO_INTERFACE;
+      },
+
+      onLookupComplete: function(aRequest, aRecord, aStatus) {
+        if (!Components.isSuccessCode(aStatus)) {
+          deferred.reject(new Error(
+            "Failed to resolve '" + hostname + "', with status: " + aStatus));
+          return;
+        }
+
+        let retval = [];
+        while (aRecord.hasMore()) {
+          retval.push(aRecord.getNextAddrAsString());
+        }
+
+        if (!retval.length) {
+          deferred.reject(new Error("No valid address after DNS lookup!"));
+          return;
+        }
+
+        if (DEBUG) debug("hostname is resolved: " + hostname);
+        if (DEBUG) debug("Addresses: " + JSON.stringify(retval));
+
+        deferred.resolve(retval);
+      }
+    };
+
+    // TODO: Bug 992772 - Resolve the hostname with specified networkInterface.
+    gDNSService.asyncResolve(hostname, 0, listener, Services.tm.mainThread);
+
+    return deferred.promise;
   },
-#endif
 
   convertConnectionType: function(network) {
     // If there is internal interface change (e.g., MOBILE_MMS, MOBILE_SUPL),
