@@ -339,23 +339,15 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
     if (!target)
       return SurfaceWithFormat();
 
-    Rect fillRect(aFill.x, aFill.y, aFill.width, aFill.height);
     // Fill 'available' with whatever we've got
     if (mSinglePixel) {
-      target->FillRect(fillRect, ColorPattern(mSinglePixelColor),
+      target->FillRect(ToRect(available), ColorPattern(mSinglePixelColor),
                        DrawOptions(1.0f, CompositionOp::OP_SOURCE));
     } else {
-      gfxMatrix imageSpaceToUserSpace = aUserSpaceToImageSpace;
-      imageSpaceToUserSpace.Invert();
       SurfacePattern pattern(aSurface,
                              ExtendMode::REPEAT,
-                             Matrix(imageSpaceToUserSpace.xx,
-                                    imageSpaceToUserSpace.xy,
-                                    imageSpaceToUserSpace.yx,
-                                    imageSpaceToUserSpace.yy,
-                                    imageSpaceToUserSpace.x0,
-                                    imageSpaceToUserSpace.y0));
-      target->FillRect(fillRect, pattern);
+                             Matrix::Translation(mDecoded.x, mDecoded.y));
+      target->FillRect(ToRect(available), pattern);
     }
 
     RefPtr<SourceSurface> newsurf = target->Snapshot();
@@ -432,7 +424,7 @@ bool imgFrame::Draw(gfxContext *aContext, GraphicsFilter aFilter,
                "We must be allowed to sample *some* source pixels!");
 
   RefPtr<SourceSurface> surf = GetSurface();
-  if (!surf) {
+  if (!surf && !mSinglePixel) {
     return false;
   }
 
