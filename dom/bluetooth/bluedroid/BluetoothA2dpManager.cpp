@@ -181,7 +181,7 @@ public:
   }
 private:
   uint8_t mNumAttr;
-  btrc_media_attr_t* mPlayerAttrs;
+  nsAutoArrayPtr<btrc_media_attr_t> mPlayerAttrs;
 };
 
 class UpdatePassthroughCmdTask : public nsRunnable
@@ -335,7 +335,12 @@ AvrcpGetElementAttrCallback(uint8_t aNumAttr, btrc_media_attr_t* aPlayerAttrs)
 {
   MOZ_ASSERT(!NS_IsMainThread());
 
-  NS_DispatchToMainThread(new UpdateElementAttrsTask(aNumAttr, aPlayerAttrs));
+  btrc_media_attr_t* attrs = new btrc_media_attr_t[aNumAttr];
+  for (uint8_t i = 0; i < aNumAttr; ++i) {
+    attrs[i] = aPlayerAttrs[i];
+  }
+
+  NS_DispatchToMainThread(new UpdateElementAttrsTask(aNumAttr, attrs));
 }
 
 /*
