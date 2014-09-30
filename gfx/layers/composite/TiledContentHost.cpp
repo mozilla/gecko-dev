@@ -29,7 +29,7 @@ class Layer;
 TiledLayerBufferComposite::TiledLayerBufferComposite()
   : mFrameResolution(1.0)
   , mHasDoubleBufferedTiles(false)
-  , mUninitialized(true)
+  , mIsValid(false)
 {}
 
 /* static */ void
@@ -42,7 +42,7 @@ TiledLayerBufferComposite::TiledLayerBufferComposite(ISurfaceAllocator* aAllocat
                                                      const SurfaceDescriptorTiles& aDescriptor,
                                                      const nsIntRegion& aOldPaintedRegion)
 {
-  mUninitialized = false;
+  mIsValid = true;
   mHasDoubleBufferedTiles = false;
   mValidRegion = aDescriptor.validRegion();
   mPaintedRegion = aDescriptor.paintedRegion();
@@ -55,6 +55,8 @@ TiledLayerBufferComposite::TiledLayerBufferComposite(ISurfaceAllocator* aAllocat
   nsIntRegion oldPaintedRegion(aOldPaintedRegion);
   oldPaintedRegion.And(oldPaintedRegion, mValidRegion);
   mPaintedRegion.Or(mPaintedRegion, oldPaintedRegion);
+
+  bool isSameProcess = aAllocator->IsSameProcess();
 
   const InfallibleTArray<TileDescriptor>& tiles = aDescriptor.tiles();
   for(size_t i = 0; i < tiles.Length(); i++) {
@@ -73,6 +75,17 @@ TiledLayerBufferComposite::TiledLayerBufferComposite(ISurfaceAllocator* aAllocat
         if (ipcLock.type() == TileLock::TShmemSection) {
           sharedLock = gfxShmSharedReadLock::Open(aAllocator, ipcLock.get_ShmemSection());
         } else {
+          if (!isSameProcess) {
+            // Trying to use a memory based lock instead of a shmem based one in
+            // the cross-process case is a bad security violation.
+            NS_ERROR("A client process may be trying to peek at the host's address space!");
+            // This tells the TiledContentHost that deserialization failed so that
+            // it can propagate the error.
+            mIsValid = false;
+
+            mRetainedTiles.Clear();
+            return;
+          }
           sharedLock = reinterpret_cast<gfxMemorySharedReadLock*>(ipcLock.get_uintptr_t());
           if (sharedLock) {
             // The corresponding AddRef is in TiledClient::GetTileDescriptor
@@ -237,7 +250,7 @@ TiledContentHost::Attach(Layer* aLayer,
   static_cast<ThebesLayerComposite*>(aLayer)->EnsureTiled();
 }
 
-void
+bool
 TiledContentHost::UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
                                       const SurfaceDescriptorTiles& aTiledDescriptor)
 {
@@ -260,6 +273,14 @@ TiledContentHost::UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
     mLowPrecisionTiledBuffer =
       TiledLayerBufferComposite(aAllocator, aTiledDescriptor,
                                 mLowPrecisionTiledBuffer.GetPaintedRegion());
+    if (!mLowPrecisionTiledBuffer.IsValid()) {
+      // Something bad happened. Stop here, return false (kills the child process),
+      // and do as little work as possible on the received data as it appears
+      // to be corrupted.
+      mPendingLowPrecisionUpload = false;
+      mPendingUpload = false;
+      return false;
+    }
   } else {
     if (mPendingUpload) {
       mTiledBuffer.ReadUnlock();
@@ -272,7 +293,16 @@ TiledContentHost::UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
     }
     mTiledBuffer = TiledLayerBufferComposite(aAllocator, aTiledDescriptor,
                                              mTiledBuffer.GetPaintedRegion());
+    if (!mTiledBuffer.IsValid()) {
+      // Something bad happened. Stop here, return false (kills the child process),
+      // and do as little work as possible on the received data as it appears
+      // to be corrupted.
+      mPendingLowPrecisionUpload = false;
+      mPendingUpload = false;
+      return false;
+    }
   }
+  return true;
 }
 
 void
