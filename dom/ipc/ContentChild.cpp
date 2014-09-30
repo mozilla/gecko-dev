@@ -477,6 +477,13 @@ ContentChild* ContentChild::sSingleton;
 static void
 InitOnContentProcessCreated()
 {
+#ifdef MOZ_NUWA_PROCESS
+    // Wait until we are forked from Nuwa
+    if (IsNuwaProcess()) {
+        return;
+    }
+#endif
+
     // This will register cross-process observer.
     mozilla::dom::time::InitializeDateCacheCleaner();
 }
