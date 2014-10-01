@@ -360,13 +360,16 @@ public:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
+    mozilla::ScopedClose fd(aFd); // Close received socket fd on error
+
     if (mImpl->IsShutdownOnMainThread()) {
       BT_LOGD("mConsumer is null, aborting receive!");
       return;
     }
 
     mImpl->mConsumer->SetAddress(aBdAddress);
-    XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new AcceptTask(mImpl, aFd));
+    XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
+                                     new AcceptTask(mImpl, fd.forget()));
   }
 
   void OnError(BluetoothStatus aStatus) MOZ_OVERRIDE
