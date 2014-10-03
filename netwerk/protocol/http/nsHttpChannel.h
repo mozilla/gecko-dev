@@ -327,8 +327,7 @@ private:
     bool MustValidateBasedOnQueryUrl() const;
     bool IsResumable(int64_t partialLen, int64_t contentLength,
                      bool ignoreMissingPartialLen = false) const;
-    nsresult MaybeSetupByteRangeRequest(int64_t partialLen, int64_t contentLength,
-                                        bool ignoreMissingPartialLen = false);
+    nsresult MaybeSetupByteRangeRequest(int64_t partialLen, int64_t contentLength);
     nsresult SetupByteRangeRequest(int64_t partialLen);
     nsresult OpenCacheInputStream(nsICacheEntry* cacheEntry, bool startBuffering);
 
