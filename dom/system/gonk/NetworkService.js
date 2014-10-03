@@ -10,9 +10,10 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
 
 const NETWORKSERVICE_CONTRACTID = "@mozilla.org/network/service;1";
-const NETWORKSERVICE_CID = Components.ID("{baec696c-c78d-42db-8b44-603f8fbfafb4}");
+const NETWORKSERVICE_CID = Components.ID("{28babd1c-4491-11e4-97f1-f708c17b2926}");
 
 XPCOMUtils.defineLazyServiceGetter(this, "gNetworkWorker",
                                    "@mozilla.org/network/worker;1",
@@ -358,26 +359,42 @@ NetworkService.prototype = {
 
   addHostRouteWithResolve: function(network, hosts) {
     if(DEBUG) debug("Going to add host route after dns resolution on " + network.name);
+    let deferred = Promise.defer();
+
     let gateways = network.getGateways();
     let options = {
       cmd: "addHostRoute",
       ifname: network.name,
       gateways: gateways,
-      hostnames: hosts
+      hostnames: hosts,
+      isAsync: false
     };
-    this.controlMessage(options);
+
+    this.controlMessage(options, function() {
+      deferred.resolve();
+    });
+
+    return deferred.promise;
   },
 
   removeHostRouteWithResolve: function(network, hosts) {
     if(DEBUG) debug("Going to remove host route after dns resolution on " + network.name);
+    let deferred = Promise.defer();
+
     let gateways = network.getGateways();
     let options = {
       cmd: "removeHostRoute",
       ifname: network.name,
       gateways: gateways,
-      hostnames: hosts
+      hostnames: hosts,
+      isAsync: false
     };
-    this.controlMessage(options);
+
+    this.controlMessage(options, function() {
+      deferred.resolve();
+    });
+
+    return deferred.promise;
   },
 
   addSecondaryRoute: function(ifname, route) {

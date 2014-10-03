@@ -104,7 +104,7 @@ interface nsIUpdateUpStreamCallback : nsISupports
 /**
  * Provide network services.
  */
-[scriptable, uuid(f96461fa-e844-45d2-a6c3-8cd23ab0916b)]
+[scriptable, uuid(28babd1c-4491-11e4-97f1-f708c17b2926)]
 interface nsINetworkService : nsISupports
 {
   /**
@@ -282,8 +282,10 @@ interface nsINetworkService : nsISupports
    *        The network interface we want to add to the host route.
    * @param hosts
    *        The array of host names we want to add.
+   *
+   * @return A deferred promise that resolves after completed.
    */
-  void addHostRouteWithResolve(in nsINetworkInterface network, in jsval hosts);
+  jsval addHostRouteWithResolve(in nsINetworkInterface network, in jsval hosts);
 
   /**
    * Remove host route with resolve.
@@ -292,8 +294,10 @@ interface nsINetworkService : nsISupports
    *        The network interface we want to remove from the host route.
    * @param hosts
    *        The array of host names we want to remove.
+   *
+   * @return A deferred promise that resolves after completed.
    */
-  void removeHostRouteWithResolve(in nsINetworkInterface network, in jsval hosts);
+  jsval removeHostRouteWithResolve(in nsINetworkInterface network, in jsval hosts);
 
   /**
    * Add route to secondary routing table.
