@@ -114,9 +114,6 @@ static bool PrepareLayerRects(nsIntRect aVisible, const gfxMatrix& aTransform,
                               hwc_rect_t* aSourceCrop,
                               hwc_rect_t* aVisibleRegionScreen);
 
-/* Converts hwc_rect_t to nsIntRect */
-static nsIntRect HwcToIntRect(hwc_rect_t aRect);
-
 };
 
 } // namespace mozilla
