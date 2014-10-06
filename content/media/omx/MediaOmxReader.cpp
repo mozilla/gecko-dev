@@ -47,6 +47,7 @@ MediaOmxReader::MediaOmxReader(AbstractMediaDecoder *aDecoder)
   , mVideoSeekTimeUs(-1)
   , mAudioSeekTimeUs(-1)
   , mSkipCount(0)
+  , mIsWaitingResources(false)
 {
 #ifdef PR_LOGGING
   if (!gMediaDecoderLog) {
@@ -71,10 +72,16 @@ nsresult MediaOmxReader::Init(MediaDecoderReader* aCloneDonor)
 
 bool MediaOmxReader::IsWaitingMediaResources()
 {
-  if (!mOmxDecoder.get()) {
-    return false;
+  return mIsWaitingResources;
+}
+
+void MediaOmxReader::UpdateIsWaitingMediaResources()
+{
+  if (mOmxDecoder.get()) {
+    mIsWaitingResources = mOmxDecoder->IsWaitingMediaResources();
+  } else {
+    mIsWaitingResources = false;
   }
-  return mOmxDecoder->IsWaitingMediaResources();
 }
 
 bool MediaOmxReader::IsDormantNeeded()
@@ -128,6 +135,11 @@ nsresult MediaOmxReader::InitOmxDecoder()
   return NS_OK;
 }
 
+void MediaOmxReader::PreReadMetadata()
+{
+  UpdateIsWaitingMediaResources();
+}
+
 nsresult MediaOmxReader::ReadMetadata(MediaInfo* aInfo,
                                       MetadataTags** aTags)
 {
@@ -142,16 +154,24 @@ nsresult MediaOmxReader::ReadMetadata(MediaInfo* aInfo,
     return rv;
   }
 
-  if (!mOmxDecoder->TryLoad()) {
+  if (!mOmxDecoder->AllocateMediaResources()) {
     return NS_ERROR_FAILURE;
   }
-
+  // Bug 1050667, both MediaDecoderStateMachine and MediaOmxReader
+  // relies on IsWaitingMediaResources() function. And the waiting state will be
+  // changed by binder thread, so we store the waiting state in a cache value to
+  // make them in consistent state.
+  UpdateIsWaitingMediaResources();
 #ifdef MOZ_AUDIO_OFFLOAD
   CheckAudioOffload();
 #endif
 
   if (IsWaitingMediaResources()) {
     return NS_OK;
+  }
+  // After resources are available, set the metadata.
+  if (!mOmxDecoder->EnsureMetadata()) {
+    return NS_ERROR_FAILURE;
   }
 
   // Set the total duration (the max of the audio and video track).
