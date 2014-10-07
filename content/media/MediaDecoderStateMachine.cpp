@@ -2028,12 +2028,10 @@ void MediaDecoderStateMachine::DecodeSeek()
     stopEvent = NS_NewRunnableMethod(mDecoder, &MediaDecoder::SeekingStopped);
     StartDecoding();
   }
-
-  if (newCurrentTime != mediaTime) {
-    UpdatePlaybackPositionInternal(newCurrentTime);
-    if (mDecoder->GetDecodedStream()) {
-      SetSyncPointForMediaStream();
-    }
+  // Ensure timestamps are up to date
+  UpdatePlaybackPositionInternal(newCurrentTime);
+  if (mDecoder->GetDecodedStream()) {
+    SetSyncPointForMediaStream();
   }
 
   // Try to decode another frame to detect if we're at the end...
