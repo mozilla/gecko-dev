@@ -122,7 +122,7 @@ FrameManager.prototype = {
         this.currentRemoteFrame = frame;
         this.addMessageManagerListeners(mm);
         mm.sendAsyncMessage("Marionette:restart", {});
-        return;
+        return oopFrame.id;
       }
     }
 
@@ -135,6 +135,7 @@ FrameManager.prototype = {
     aFrame.messageManager = Cu.getWeakReference(mm);
     remoteFrames.push(aFrame);
     this.currentRemoteFrame = aFrame;
+    return oopFrame.id;
   },
 
   /*
