@@ -646,13 +646,19 @@ void BluetoothHfpManager::ProcessDialCall(char *aNumber)
   } else if (message[0] == '>') {
     mDialingRequestProcessed = false;
     nsAutoCString newMsg("ATD");
-    newMsg += StringHead(message, message.Length() - 1);
+
+    int end = message.FindChar(';');
+    newMsg += StringHead(message, (end < 0) ? message.Length() : end);
+
     BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::NOTIFY_DIALER,
                         NS_ConvertUTF8toUTF16(newMsg));
     BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::POST_TASK_RESPOND_TO_BLDN);
   } else {
     nsAutoCString newMsg("ATD");
-    newMsg += StringHead(message, message.Length() - 1);
+
+    int end = message.FindChar(';');
+    newMsg += StringHead(message, (end < 0) ? message.Length() : end);
+
     BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::NOTIFY_DIALER,
                         NS_ConvertUTF8toUTF16(newMsg));
     SendResponse(BTHF_AT_RESPONSE_OK);

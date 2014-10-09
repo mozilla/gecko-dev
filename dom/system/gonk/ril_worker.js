@@ -2320,7 +2320,7 @@ RilObject.prototype = {
     if (RILQUIRKS_DATA_REGISTRATION_ON_DEMAND) {
       let request = options.attach ? RIL_REQUEST_GPRS_ATTACH :
                                      RIL_REQUEST_GPRS_DETACH;
-      this.context.Buf.simpleRequest(request);
+      this.context.Buf.simpleRequest(request, options);
     } else if (RILQUIRKS_SUBSCRIPTION_CONTROL && options.attach) {
       this.context.Buf.simpleRequest(REQUEST_SET_DATA_SUBSCRIPTION, options);
     }
@@ -2992,7 +2992,8 @@ RilObject.prototype = {
         // ("Yes/No") command with command qualifier set to "Yes/No", it shall
         // supply the value '01' when the answer is "positive" and the value
         // '00' when the answer is "negative" in the Text string data object.
-        text = response.isYesNo ? 0x01 : 0x00;
+        text = response.isYesNo ? String.fromCharCode(0x01)
+                                : String.fromCharCode(0x00);
       } else {
         text = response.input;
       }
@@ -5768,22 +5769,38 @@ RilObject.prototype[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(
   this[REQUEST_DATA_CALL_LIST](length, options);
 };
 RilObject.prototype[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
-  let ICCIOHelper = this.context.ICCIOHelper;
-  if (!length) {
-    ICCIOHelper.processICCIOError(options);
+  if (options.rilRequestError) {
+    if (options.onerror) {
+      options.onerror(RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError] ||
+                      GECKO_ERROR_GENERIC_FAILURE);
+    }
     return;
   }
 
-  // Don't need to read rilRequestError since we can know error status from
-  // sw1 and sw2.
   let Buf = this.context.Buf;
   options.sw1 = Buf.readInt32();
   options.sw2 = Buf.readInt32();
-  if (options.sw1 != ICC_STATUS_NORMAL_ENDING) {
-    ICCIOHelper.processICCIOError(options);
+
+  // See 3GPP TS 11.11, clause 9.4.1 for operation success results.
+  if (options.sw1 !== ICC_STATUS_NORMAL_ENDING &&
+      options.sw1 !== ICC_STATUS_NORMAL_ENDING_WITH_EXTRA &&
+      options.sw1 !== ICC_STATUS_WITH_SIM_DATA &&
+      options.sw1 !== ICC_STATUS_WITH_RESPONSE_DATA) {
+    if (DEBUG) {
+      this.context.debug("ICC I/O Error EF id = 0x" + options.fileId.toString(16) +
+                         ", command = 0x" + options.command.toString(16) +
+                         ", sw1 = 0x" + options.sw1.toString(16) +
+                         ", sw2 = 0x" + options.sw2.toString(16));
+    }
+    if (options.onerror) {
+      // We can get fail cause from sw1/sw2 (See TS 11.11 clause 9.4.1 and
+      // ISO 7816-4 clause 6). But currently no one needs this information,
+      // so simply reports "GenericFailure" for now.
+      options.onerror(GECKO_ERROR_GENERIC_FAILURE);
+    }
     return;
   }
-  ICCIOHelper.processICCIO(options);
+  this.context.ICCIOHelper.processICCIO(options);
 };
 RilObject.prototype[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, options) {
   if (DEBUG) {
@@ -6562,7 +6579,17 @@ RilObject.prototype[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TEC
   this._processRadioTech(radioTech[0]);
 };
 RilObject.prototype[REQUEST_SET_UICC_SUBSCRIPTION] = null;
-RilObject.prototype[REQUEST_SET_DATA_SUBSCRIPTION] = null;
+RilObject.prototype[REQUEST_SET_DATA_SUBSCRIPTION] = function REQUEST_SET_DATA_SUBSCRIPTION(length, options) {
+  if (!options.rilMessageType) {
+    // The request was made by ril_worker itself. Don't report.
+    return;
+  }
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  this.sendChromeMessage(options);
+};
 RilObject.prototype[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOCK_RETRY_COUNT(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
@@ -6571,8 +6598,24 @@ RilObject.prototype[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOC
   options.retryCount = length ? this.context.Buf.readInt32List()[0] : -1;
   this.sendChromeMessage(options);
 };
-RilObject.prototype[RIL_REQUEST_GPRS_ATTACH] = null;
-RilObject.prototype[RIL_REQUEST_GPRS_DETACH] = null;
+RilObject.prototype[RIL_REQUEST_GPRS_ATTACH] = function RIL_REQUEST_GPRS_ATTACH(length, options) {
+  if (!options.rilMessageType) {
+    // The request was made by ril_worker itself. Don't report.
+    return;
+  }
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  this.sendChromeMessage(options);
+};
+RilObject.prototype[RIL_REQUEST_GPRS_DETACH] = function RIL_REQUEST_GPRS_DETACH(length, options) {
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  this.sendChromeMessage(options);
+};
 RilObject.prototype[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED() {
   let radioState = this.context.Buf.readInt32();
   let newState;
@@ -12153,28 +12196,6 @@ ICCIOHelperObject.prototype = {
       options.callback(options);
     }
   },
-
-  /**
-   * Process ICC IO error.
-   */
-  processICCIOError: function(options) {
-    let requestError = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-    if (DEBUG) {
-      // See GSM11.11, TS 51.011 clause 9.4, and ISO 7816-4 for the error
-      // description.
-      let errorMsg = "ICC I/O Error code " + requestError +
-                     " EF id = " + options.fileId.toString(16) +
-                     " command = " + options.command.toString(16);
-      if (options.sw1 && options.sw2) {
-        errorMsg += "(" + options.sw1.toString(16) +
-                    "/" + options.sw2.toString(16) + ")";
-      }
-      this.context.debug(errorMsg);
-    }
-    if (options.onerror) {
-      options.onerror(requestError);
-    }
-  },
 };
 ICCIOHelperObject.prototype[ICC_COMMAND_SEEK] = null;
 ICCIOHelperObject.prototype[ICC_COMMAND_READ_BINARY] = function ICC_COMMAND_READ_BINARY(options) {
@@ -14248,6 +14269,12 @@ ICCContactHelperObject.prototype = {
         ICCRecordHelper.readADNLike(ICC_EF_FDN, onsuccess, onerror);
         break;
       case "sdn":
+        let ICCUtilsHelper = this.context.ICCUtilsHelper;
+        if (!ICCUtilsHelper.isICCServiceAvailable("SDN")) {
+          onerror(CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
+          break;
+        }
+
         ICCRecordHelper.readADNLike(ICC_EF_SDN, onsuccess, onerror);
         break;
       default:

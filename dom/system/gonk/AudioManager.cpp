@@ -618,6 +618,11 @@ AudioManager::SetForceForUse(int32_t aUsage, int32_t aForce)
     status_t status = AudioSystem::setForceUse(
                         (audio_policy_force_use_t)aUsage,
                         (audio_policy_forced_cfg_t)aForce);
+
+    if (aUsage == AUDIO_POLICY_FORCE_FOR_MEDIA) {
+      AudioSystem::setForceUse(AUDIO_POLICY_FORCE_FOR_PROPRIETARY, (audio_policy_forced_cfg_t)aForce);
+    }
+
     return status ? NS_ERROR_FAILURE : NS_OK;
   }
 
@@ -656,6 +661,15 @@ AudioManager::SetFmRadioAudioEnabled(bool aFmRadioAudioEnabled)
       aFmRadioAudioEnabled ? AUDIO_POLICY_DEVICE_STATE_AVAILABLE :
       AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE, "");
     InternalSetAudioRoutes(GetCurrentSwitchState(SWITCH_HEADPHONES));
+
+    if (aFmRadioAudioEnabled) {
+      String8 cmd("AudioSetFmDigitalEnable=1");
+      AudioSystem::setParameters(0, cmd);
+    } else {
+      String8 cmd("AudioSetFmDigitalEnable=0");
+      AudioSystem::setParameters(0, cmd);
+    }
+
     // sync volume with music after powering on fm radio
     if (aFmRadioAudioEnabled) {
       int32_t volIndex = mCurrentStreamVolumeTbl[AUDIO_STREAM_MUSIC];
@@ -675,10 +689,8 @@ AudioManager::SetAudioChannelVolume(int32_t aChannel, int32_t aIndex) {
   switch (static_cast<AudioChannel>(aChannel)) {
     case AudioChannel::Content:
       // sync FMRadio's volume with content channel.
-      if (IsDeviceOn(AUDIO_DEVICE_OUT_FM)) {
-        status = SetStreamVolumeIndex(AUDIO_STREAM_FM, aIndex);
-        NS_ENSURE_SUCCESS(status, status);
-      }
+      status = SetStreamVolumeIndex(AUDIO_STREAM_FM, aIndex);
+      NS_ENSURE_SUCCESS(status, status);
       status = SetStreamVolumeIndex(AUDIO_STREAM_MUSIC, aIndex);
       NS_ENSURE_SUCCESS(status, status);
       status = SetStreamVolumeIndex(AUDIO_STREAM_SYSTEM, aIndex);
@@ -782,7 +794,7 @@ AudioManager::SetStreamVolumeIndex(int32_t aStream, int32_t aIndex) {
   if (aStream == AUDIO_STREAM_BLUETOOTH_SCO) {
     device = AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET;
   } else if (aStream == AUDIO_STREAM_FM) {
-    device = AUDIO_DEVICE_OUT_FM;
+    device = AudioSystem::getDevicesForStream(AUDIO_STREAM_FM);
   }
 
   if (device != 0) {

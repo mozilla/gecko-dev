@@ -849,6 +849,22 @@ MediaEngineWebRTCVideoSource::OnTakePictureComplete(uint8_t* aData, uint32_t aLe
   mCallbackMonitor.Notify();
 }
 
+uint32_t
+MediaEngineWebRTCVideoSource::ConvertPixelFormatToFOURCC(int aFormat)
+{
+  switch (aFormat) {
+  case HAL_PIXEL_FORMAT_YCrCb_420_SP:
+    return libyuv::FOURCC_NV21;
+  case HAL_PIXEL_FORMAT_YV12:
+    return libyuv::FOURCC_YV12;
+  default: {
+    LOG((" xxxxx Unknown pixel format %d", aFormat));
+    MOZ_ASSERT(false, "Unknown pixel format.");
+    return libyuv::FOURCC_ANY;
+    }
+  }
+}
+
 void
 MediaEngineWebRTCVideoSource::RotateImage(layers::Image* aImage, uint32_t aWidth, uint32_t aHeight) {
   layers::GrallocImage *nativeImage = static_cast<layers::GrallocImage*>(aImage);
@@ -884,7 +900,7 @@ MediaEngineWebRTCVideoSource::RotateImage(layers::Image* aImage, uint32_t aWidth
                         aWidth, aHeight,
                         aWidth, aHeight,
                         static_cast<libyuv::RotationMode>(mRotation),
-                        libyuv::FOURCC_NV21);
+                        ConvertPixelFormatToFOURCC(graphicBuffer->getPixelFormat()));
   graphicBuffer->unlock();
 
   const uint8_t lumaBpp = 8;

@@ -1102,7 +1102,7 @@ var WifiManager = (function() {
 
         function doStartWifiTethering() {
           cancelWaitForDriverReadyTimer();
-          WifiNetworkInterface.name = manager.ifname;
+          WifiNetworkInterface.name = libcutils.property_get("wifi.tethering.interface", manager.ifname);
           gNetworkManager.setWifiTethering(enabled, WifiNetworkInterface,
                                            configuration, function(result) {
             if (result) {
@@ -2948,6 +2948,12 @@ WifiWorker.prototype = {
       debug("Invalid SSID value.");
       return null;
     }
+    // Truncate ssid if its length of encoded to utf8 is longer than 32.
+    while (unescape(encodeURIComponent(ssid)).length > 32)
+    {
+      ssid = ssid.substring(0, ssid.length-1);
+    }
+
     if (securityType != WIFI_SECURITY_TYPE_NONE &&
         securityType != WIFI_SECURITY_TYPE_WPA_PSK &&
         securityType != WIFI_SECURITY_TYPE_WPA2_PSK) {
