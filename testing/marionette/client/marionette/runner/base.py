@@ -471,6 +471,14 @@ class BaseMarionetteOptions(OptionParser):
                         dest='shuffle',
                         default=False,
                         help='run tests in a random order')
+        self.add_option('--gecko-log',
+                        dest='gecko_log',
+                        action='store',
+                        help="Define the path to store log file. If the path is"
+                             " a directory, the real log file will be created"
+                             " given the format gecko-(timestamp).log. If it is"
+                             " a file, if will be used directly. Default: 'gecko.log'")
+ 
 
     def parse_args(self, args=None, values=None):
         options, tests = OptionParser.parse_args(self, args, values)
@@ -525,7 +533,7 @@ class BaseMarionetteTestRunner(object):
                  logcat_dir=None, xml_output=None, repeat=0, gecko_path=None,
                  testvars=None, tree=None, type=None, device_serial=None,
                  symbols_path=None, timeout=None, es_servers=None, shuffle=False,
-                 sdcard=None, **kwargs):
+                 sdcard=None, gecko_log=None, **kwargs):
         self.address = address
         self.emulator = emulator
         self.emulatorBinary = emulatorBinary
@@ -561,6 +569,7 @@ class BaseMarionetteTestRunner(object):
         self.es_servers = es_servers
         self.shuffle = shuffle
         self.sdcard = sdcard
+        self.gecko_log = gecko_log
         self.mixin_run_tests = []
         self.manifest_skipped_tests = []
 
@@ -652,7 +661,7 @@ class BaseMarionetteTestRunner(object):
                                          profile=self.profile,
                                          baseurl=self.baseurl,
                                          timeout=self.timeout,
-                                         device_serial=self.device_serial)
+                                         device_serial=self.device_serial, gecko_log=self.gecko_log)
         elif self.address:
             host, port = self.address.split(':')
             try:

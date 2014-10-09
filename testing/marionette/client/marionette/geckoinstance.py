@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import os
+import time
 
 from mozprofile import Profile
 from mozrunner import Runner
@@ -19,13 +20,14 @@ class GeckoInstance(object):
                       "browser.sessionstore.resume_from_crash": False,
                       "browser.warnOnQuit": False}
 
-    def __init__(self, host, port, bin, profile, app_args=None):
+    def __init__(self, host, port, bin, profile, app_args=None, gecko_log=None):
         self.marionette_host = host
         self.marionette_port = port
         self.bin = bin
         self.profile = profile
         self.app_args = app_args or []
         self.runner = None
+        self.gecko_log = gecko_log
 
     def start(self):
         profile_path = self.profile
@@ -37,7 +39,13 @@ class GeckoInstance(object):
             runner_class = CloneRunner
             profile_args["path_from"] = profile_path
 
-        self.gecko_log = os.path.abspath('gecko.log')
+        if self.gecko_log is None:
+            self.gecko_log = 'gecko.log'
+        elif os.path.isdir(self.gecko_log):
+            fname = "gecko-%d.log" % time.time()
+            self.gecko_log = os.path.join(self.gecko_log, fname)
+
+        self.gecko_log = os.path.realpath(self.gecko_log)
         if os.access(self.gecko_log, os.F_OK):
             os.remove(self.gecko_log)
         self.runner = runner_class.create(
