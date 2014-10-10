@@ -409,7 +409,7 @@ this.MobileIdentityManager = {
   onUICancel: function() {
     log.debug("UI cancel");
     if (this.activeVerificationFlow) {
-      this.activeVerificationFlow.cleanup(true);
+      this.rejectVerification();
     }
   },
 
@@ -459,7 +459,7 @@ this.MobileIdentityManager = {
     }
     this.activeVerificationDeferred.reject(aReason);
     this.activeVerificationDeferred = null;
-    this.cleanupVerification(true);
+    this.cleanupVerification(true /* unregister */);
   },
 
   resolveVerification: function(aResult) {
@@ -471,11 +471,11 @@ this.MobileIdentityManager = {
     this.cleanupVerification();
   },
 
-  cleanupVerification: function() {
+  cleanupVerification: function(aUnregister = false) {
     if (!this.activeVerificationFlow) {
       return;
     }
-    this.activeVerificationFlow.cleanup();
+    this.activeVerificationFlow.cleanup(aUnregister);
     this.activeVerificationFlow = null;
   },
 
