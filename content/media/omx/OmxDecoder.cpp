@@ -273,7 +273,8 @@ OmxDecoder::OmxDecoder(MediaResource *aResource,
   mIsVideoSeeking(false),
   mAudioMetadataRead(false),
   mAudioPaused(false),
-  mVideoPaused(false)
+  mVideoPaused(false),
+  mVideoLastFrameTime(-1)
 {
   mLooper = new ALooper;
   mLooper->setName("OmxDecoder");
@@ -778,7 +779,15 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
       mIsVideoSeeking = true;
     }
     MediaSource::ReadOptions options;
-    options.setSeekTo(aTimeUs, MediaSource::ReadOptions::SEEK_PREVIOUS_SYNC);
+    MediaSource::ReadOptions::SeekMode seekMode;
+    // If the last timestamp of decoded frame is smaller than seekTime,
+    // seek to next key frame. Otherwise seek to the previos one.
+    if (mVideoLastFrameTime > aTimeUs || mVideoLastFrameTime == -1) {
+      seekMode = MediaSource::ReadOptions::SEEK_PREVIOUS_SYNC;
+    } else {
+      seekMode = MediaSource::ReadOptions::SEEK_NEXT_SYNC;
+    }
+    options.setSeekTo(aTimeUs, seekMode);
     err = mVideoSource->read(&mVideoBuffer, &options);
     {
       Mutex::Autolock autoLock(mSeekLock);
@@ -850,6 +859,7 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
     if (aKeyframeSkip && timeUs < aTimeUs) {
       aFrame->mShouldSkip = true;
     }
+    mVideoLastFrameTime = timeUs;
   }
   else if (err == INFO_FORMAT_CHANGED) {
     // If the format changed, update our cached info.
