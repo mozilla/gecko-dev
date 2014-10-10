@@ -90,7 +90,6 @@ function getErrorClass(errorCode) {
     case SSL_ERROR_BAD_CERT_DOMAIN:
     case SEC_ERROR_EXPIRED_CERTIFICATE:
     case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
-    case SEC_ERROR_CA_CERT_INVALID:
       return Ci.nsINSSErrorsService.ERROR_CLASS_BAD_CERT;
     default:
       return Ci.nsINSSErrorsService.ERROR_CLASS_SSL_PROTOCOL;
