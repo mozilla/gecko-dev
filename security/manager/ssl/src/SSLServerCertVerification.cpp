@@ -299,6 +299,7 @@ MapCertErrorToProbeValue(PRErrorCode errorCode)
   switch (errorCode)
   {
     case SEC_ERROR_UNKNOWN_ISSUER:                     return  2;
+    case SEC_ERROR_CA_CERT_INVALID:                    return  3;
     case SEC_ERROR_UNTRUSTED_ISSUER:                   return  4;
     case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:         return  5;
     case SEC_ERROR_UNTRUSTED_CERT:                     return  6;
@@ -333,6 +334,7 @@ MozillaPKIXDetermineCertOverrideErrors(CERTCertificate* cert,
   // called if CertVerifier::VerifyCert succeeded.
   switch (defaultErrorCodeToReport) {
     case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
+    case SEC_ERROR_CA_CERT_INVALID:
     case SEC_ERROR_UNKNOWN_ISSUER:
     {
       collectedErrors = nsICertOverrideService::ERROR_UNTRUSTED;
@@ -567,6 +569,7 @@ PRErrorCodeToOverrideType(PRErrorCode errorCode)
     case SEC_ERROR_UNTRUSTED_CERT:
     case SEC_ERROR_INADEQUATE_KEY_USAGE:
     case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
+    case SEC_ERROR_CA_CERT_INVALID:
       // We group all these errors as "cert not trusted"
       return nsICertOverrideService::ERROR_UNTRUSTED;
     case SSL_ERROR_BAD_CERT_DOMAIN:

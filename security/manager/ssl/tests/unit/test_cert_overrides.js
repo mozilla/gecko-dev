@@ -53,7 +53,7 @@ function check_telemetry() {
                     .snapshot();
   do_check_eq(histogram.counts[ 0], 0);
   do_check_eq(histogram.counts[ 2], 8 + 1); // SEC_ERROR_UNKNOWN_ISSUER
-  do_check_eq(histogram.counts[ 3], 0);     // SEC_ERROR_CA_CERT_INVALID
+  do_check_eq(histogram.counts[ 3], 2);     // SEC_ERROR_CA_CERT_INVALID
   do_check_eq(histogram.counts[ 4], 0 + 5); // SEC_ERROR_UNTRUSTED_ISSUER
   do_check_eq(histogram.counts[ 5], 0 + 1); // SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE
   do_check_eq(histogram.counts[ 6], 0 + 1); // SEC_ERROR_UNTRUSTED_CERT
@@ -109,8 +109,9 @@ function add_simple_tests(useMozillaPKIX) {
                            Ci.nsICertOverrideService.ERROR_UNTRUSTED,
                            getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
   } else {
-    add_non_overridable_test("selfsigned.example.com",
-                             SEC_ERROR_CA_CERT_INVALID);
+    add_cert_override_test("selfsigned.example.com",
+                           Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                           getXPCOMStatusFromNSS(SEC_ERROR_CA_CERT_INVALID));
   }
   add_cert_override_test("unknownissuer.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
@@ -142,8 +143,9 @@ function add_simple_tests(useMozillaPKIX) {
                            Ci.nsICertOverrideService.ERROR_UNTRUSTED,
                            getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
   } else {
-    add_non_overridable_test("selfsigned-inadequateEKU.example.com",
-                             SEC_ERROR_CA_CERT_INVALID);
+    add_cert_override_test("selfsigned-inadequateEKU.example.com",
+                           Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                           getXPCOMStatusFromNSS(SEC_ERROR_CA_CERT_INVALID));
   }
 
   // SEC_ERROR_INADEQUATE_KEY_USAGE is overridable in general for
