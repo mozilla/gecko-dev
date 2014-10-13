@@ -1117,7 +1117,7 @@ DataConnectionHandler.prototype = {
   _compareDataCallOptions: function(dataCall, newDataCall) {
     return dataCall.apnProfile.apn == newDataCall.apn &&
            dataCall.apnProfile.user == newDataCall.user &&
-           dataCall.apnProfile.password == newDataCall.password &&
+           dataCall.apnProfile.password == newDataCall.passwd &&
            dataCall.chappap == newDataCall.chappap &&
            dataCall.pdptype == newDataCall.pdptype;
   },
