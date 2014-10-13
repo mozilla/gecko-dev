@@ -20,11 +20,11 @@
         "{workdir}/sources.xml"
     ],
     "upload_platform": "emulator-kk",
-    "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-aurora",
+    "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-beta",
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
-            "root": "https://hg.mozilla.org/gaia-l10n"
+            "root": "https://hg.mozilla.org/releases/gaia-l10n/v2_1"
         }
     },
     "b2g_manifest": "emulator-kk.xml",
