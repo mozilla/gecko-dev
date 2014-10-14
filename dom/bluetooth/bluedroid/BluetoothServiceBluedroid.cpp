@@ -245,6 +245,12 @@ ClassToIcon(uint32_t aClass, nsAString& aRetIcon)
       break;
   }
 
+  // Bug 1082454, in case multiple major services classes, force to support A2DP
+  // SNK device if rendering bit presented. See also: Bug 1075321
+  if (HAS_RENDERING(aClass)) {
+    aRetIcon.AssignLiteral("audio-card");
+  }
+
   if (aRetIcon.IsEmpty()) {
     if (HAS_AUDIO(aClass)) {
       /**
