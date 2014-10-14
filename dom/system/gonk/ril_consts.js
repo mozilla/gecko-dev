@@ -488,6 +488,10 @@ this.CALL_PRESENTATION_PAYPHONE = 3;
 // Call forwarding actions, see TS 27.007 7.11 "mode"
 this.CALL_FORWARD_ACTION_QUERY_STATUS = 2;
 
+this.GECKO_PHONE_STATE_IDLE = "idle";
+this.GECKO_PHONE_STATE_RINGING = "ringing";
+this.GECKO_PHONE_STATE_INCALL = "incall";
+
 // ICC commands, see TS 27.007 +CRSM commands
 this.ICC_COMMAND_SEEK = 0xa2;
 this.ICC_COMMAND_READ_BINARY = 0xb0;

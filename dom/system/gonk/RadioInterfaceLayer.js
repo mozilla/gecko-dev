@@ -1070,6 +1070,12 @@ DataConnectionHandler.prototype = {
   // Apn settings to be setup after data call are cleared.
   _pendingApnSettings: null,
 
+  // Cache if voice and data concurrent is allowed.
+  _isConcurrentAllowed: false,
+
+  // Cached phone state.
+  _phoneState: RIL.GECKO_PHONE_STATE_IDLE,
+
   debug: function(s) {
     dump("-*- DataConnectionHandler[" + this.clientId + "]: " + s + "\n");
   },
@@ -1348,6 +1354,15 @@ DataConnectionHandler.prototype = {
       return;
     }
 
+    if (networkInterface.enabled && !this._isConcurrentAllowed &&
+        this._phoneState !== RIL.GECKO_PHONE_STATE_IDLE) {
+      if (DEBUG) {
+        this.debug("Disconnect data call when it cannot coexist with voice call.");
+      }
+      networkInterface.disconnect();
+      return;
+    }
+
     if (!this.dataCallSettings.enabled || defaultDataCallConnected) {
       if (DEBUG) {
         this.debug("Data call settings: nothing to do.");
@@ -1368,6 +1383,13 @@ DataConnectionHandler.prototype = {
     }
     if (this._pendingApnSettings) {
       if (DEBUG) this.debug("We're changing apn settings, ignore any changes.");
+      return;
+    }
+    if (!this._isConcurrentAllowed &&
+        this._phoneState !== RIL.GECKO_PHONE_STATE_IDLE) {
+      if (DEBUG) {
+        this.debug("Don't connect data call when it cannot coexist with voice call.");
+      }
       return;
     }
 
@@ -1495,6 +1517,25 @@ DataConnectionHandler.prototype = {
         gDataConnectionManager.notifyDataCallStateChange(this.clientId);
       }
     }
+  },
+
+  notifyDataChanged: function(aDataInfo) {
+    let type = aDataInfo.type;
+    this._isConcurrentAllowed =
+      (RIL.GECKO_RADIO_TECH.indexOf(type) >= RIL.NETWORK_CREG_TECH_UMTS);
+    if (DEBUG) {
+      this.debug("notifyDataChanged: radioTech=" + type +
+                 ", _isConcurrentAllowed=" + this._isConcurrentAllowed);
+    }
+    this.updateRILNetworkInterface();
+  },
+
+  notifyPhoneStateChanged: function(aState) {
+    if (DEBUG) {
+      this.debug("notifyPhoneStateChanged: " + aState);
+    }
+    this._phoneState = aState;
+    this.updateRILNetworkInterface();
   },
 };
 
@@ -2091,6 +2132,9 @@ RadioInterface.prototype = {
                                                       message.callIndex,
                                                       message.notification);
         break;
+      case "phoneStateChanged":
+        connHandler.notifyPhoneStateChanged(message.state);
+        break;
       case "datacallerror":
         connHandler.handleDataCallError(message);
         break;
@@ -2432,6 +2476,7 @@ RadioInterface.prototype = {
     }
 
     let connHandler = gDataConnectionManager.getConnectionHandler(this.clientId);
+    connHandler.notifyDataChanged(dataInfo);
     connHandler.updateRILNetworkInterface();
   },
 

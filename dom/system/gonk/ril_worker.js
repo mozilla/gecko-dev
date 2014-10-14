@@ -568,6 +568,8 @@ RilObject.prototype = {
      * { options: options of the corresponding dialing request }
      */
     this.pendingMO = null;
+
+    this.phoneState = GECKO_PHONE_STATE_IDLE;
   },
 
   /**
@@ -4146,6 +4148,9 @@ RilObject.prototype = {
       this._ensureConference();
     }
 
+    // Update phone state according to calls.
+    this._updatePhoneState();
+
     // Update audio state.
     let message = {rilMessageType: "audioStateChanged",
                    state: this._detectAudioState()};
@@ -4279,6 +4284,27 @@ RilObject.prototype = {
       message.errorMsg = RIL_DATACALL_FAILCAUSE_TO_GECKO_DATACALL_ERROR[errorCode];
     }
     this.sendChromeMessage(message);
+  },
+
+  _updatePhoneState: function() {
+    let phoneState = this.phoneState;
+    let callIndexes = Object.keys(this.currentCalls);
+
+    if (callIndexes.length === 0) {
+      this.phoneState = GECKO_PHONE_STATE_IDLE;
+    } else if (callIndexes.length === 1 &&
+               this.currentCalls[callIndexes[0]].state === CALL_STATE_INCOMING) {
+      this.phoneState = GECKO_PHONE_STATE_RINGING;
+    } else {
+      this.phoneState = GECKO_PHONE_STATE_INCALL;
+    }
+
+    if (this.phoneState !== phoneState) {
+      this.sendChromeMessage({
+        rilMessageType: "phoneStateChanged",
+        state: this.phoneState
+      });
+    }
   },
 
   /**
