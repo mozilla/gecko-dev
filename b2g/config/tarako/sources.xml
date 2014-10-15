@@ -44,6 +44,7 @@
   <project name="platform/external/fdlibm" path="external/fdlibm" revision="6d128260b94c366d4066c8452e6a8d23533db244"/>
   <project name="platform/external/flac" path="external/flac" revision="e3b0a1fcadcfd1cfd2ebe217ada8ae12ceb3e292"/>
   <project name="platform/external/freetype" path="external/freetype" revision="fb1c87a78e8b6b239789e4a985a488a054759a6e"/>
+  <project name="platform/external/fsck_msdos" path="external/fsck_msdos" revision="ae9694c4c240d0bb6a2595e3c0629862278ef31b"/>
   <project name="platform/external/giflib" path="external/giflib" revision="6dbee1b36e184a0d39314254924a61837bd1ed3a"/>
   <project name="platform/external/gtest" path="external/gtest" revision="8c212ebe53bb2baab3575f03069016f1fb11e449"/>
   <project name="platform/external/harfbuzz" path="external/harfbuzz" revision="6b66309486b04d2107ab745a48d37c659da468fd"/>
