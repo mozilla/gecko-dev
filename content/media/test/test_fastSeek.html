@@ -51,9 +51,10 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=778077
          v.name + " seekTo=" + v.target + " currentTime (" + v.currentTime +
          ") should be end up roughly after keyframe (" + keyframe + ") after fastSeek");
 
-      ok(v.currentTime <= v.target,
-         v.name + " seekTo=" + v.target + " currentTime (" + v.currentTime +
-         ") should be end up less than target after fastSeek");
+      var nextKeyframe = (v.keyframeIndex+1 < v.keyframes.length) ? v.keyframes[v.keyframeIndex+1] : v.duration;
+      ok(v.currentTime < nextKeyframe + 0.05,
+	 v.name + " seekTo=" + v.target + " currentTime (" + v.currentTime +
+         ") should be end up less than keyframe+0.05 after fastSeek");
 
       v.keyframeIndex++
       if (v.keyframeIndex == v.keyframes.length) {
