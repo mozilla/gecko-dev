@@ -8973,6 +8973,10 @@ else
     _INTL_API=no
 fi
 
+if test "$MOZ_WIDGET_TOOLKIT" = "cocoa"; then
+    USE_ICU=1
+fi
+
 MOZ_CONFIG_ICU()
 
 if test -n "$MOZ_NATIVE_ICU"; then

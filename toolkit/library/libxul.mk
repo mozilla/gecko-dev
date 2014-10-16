@@ -55,9 +55,13 @@ EXTRA_DSO_LDOPTS += \
   $(SQLITE_LIBS) \
   $(NULL)
 
-ifdef ENABLE_INTL_API
+ifdef USE_ICU
 ifdef JS_SHARED_LIBRARY
 EXTRA_DSO_LDOPTS += $(MOZ_ICU_LIBS)
+else
+ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+EXTRA_DSO_LDOPTS += $(MOZ_ICU_LIBS)
+endif
 endif
 endif
 
