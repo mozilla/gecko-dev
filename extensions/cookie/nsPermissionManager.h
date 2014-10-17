@@ -152,7 +152,7 @@ public:
         if (mPermissions[i].mType == aType)
           return mPermissions[i];
 
-      // unknown permission... return relevant data 
+      // unknown permission... return relevant data
       return PermissionEntry(-1, aType, nsIPermissionManager::UNKNOWN_ACTION,
                              nsIPermissionManager::EXPIRE_NEVER, 0);
     }
@@ -195,7 +195,8 @@ public:
                        uint32_t aExpireType,
                        int64_t  aExpireTime,
                        NotifyOperationType aNotifyOperation,
-                       DBOperationType aDBOperation);
+                       DBOperationType aDBOperation,
+                       const bool aIgnoreSessionPermissions = false);
 
   /**
    * Initialize the "webapp-uninstall" observing.

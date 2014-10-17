@@ -424,7 +424,8 @@ nsPermissionManager::Init()
       NS_ENSURE_SUCCESS(rv, rv);
 
       AddInternal(principal, perm.type, perm.capability, 0, perm.expireType,
-                  perm.expireTime, eNotify, eNoDBOperation);
+                  perm.expireTime, eNotify, eNoDBOperation,
+                  true /* ignoreSessionPermissions */);
     }
 
     // Stop here; we don't need the DB in the child process
@@ -680,7 +681,8 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
                                  uint32_t              aExpireType,
                                  int64_t               aExpireTime,
                                  NotifyOperationType   aNotifyOperation,
-                                 DBOperationType       aDBOperation)
+                                 DBOperationType       aDBOperation,
+                                 const bool            aIgnoreSessionPermissions)
 {
   nsAutoCString host;
   nsresult rv = GetHostForPrincipal(aPrincipal, host);
@@ -702,6 +704,12 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
     ContentParent::GetAll(cplist);
     for (uint32_t i = 0; i < cplist.Length(); ++i) {
       ContentParent* cp = cplist[i];
+      // On platforms where we use a preallocated template process we don't
+      // want to notify this process about session specific permissions so
+      // new tabs or apps created on it won't inherit the session permissions.
+      if (cp->IsPreallocated() &&
+          aExpireType == nsIPermissionManager::EXPIRE_SESSION)
+        continue;
       if (cp->NeedsPermissionsUpdate())
         unused << cp->SendAddPermission(permission);
     }
@@ -767,6 +775,16 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
       } else {
         // we're reading from the database - use the id already assigned
         id = aID;
+      }
+
+      // When we do the initial addition of the permissions we don't want to
+      // inherit session specific permissions from other tabs or apps
+      // so we ignore them and set the permission to PROMPT_ACTION if it was
+      // previously allowed or denied by the user.
+      if (aIgnoreSessionPermissions &&
+          aExpireType == nsIPermissionManager::EXPIRE_SESSION) {
+        aPermission = nsIPermissionManager::PROMPT_ACTION;
+        aExpireType = nsIPermissionManager::EXPIRE_NEVER;
       }
 
       entry->GetPermissions().AppendElement(PermissionEntry(id, typeIndex, aPermission, aExpireType, aExpireTime));
