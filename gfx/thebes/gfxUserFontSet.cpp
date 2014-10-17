@@ -192,23 +192,32 @@ public:
         return ots::TABLE_ACTION_DEFAULT;
     }
 
-    virtual void Message(const char *format, ...) MSGFUNC_FMT_ATTR MOZ_OVERRIDE {
+    virtual void Message(int level, const char* format,
+                         ...) MSGFUNC_FMT_ATTR MOZ_OVERRIDE {
         va_list va;
         va_start(va, format);
 
-        // buf should be more than adequate for any message OTS generates,
-        // so we don't worry about checking the result of vsnprintf()
-        char buf[512];
-        (void)vsnprintf(buf, sizeof(buf), format, va);
+        nsCString msg;
+        msg.AppendPrintf(format, va);
 
         va_end(va);
 
-        mProxy->mFontSet->LogMessage(mFamily, mProxy, buf);
+        if (level > 0) {
+            // For warnings (rather than errors that cause the font to fail),
+            // we only report the first instance of any given message.
+            if (mWarningsIssued.Contains(msg)) {
+                return;
+            }
+            mWarningsIssued.PutEntry(msg);
+        }
+
+        mProxy->mFontSet->LogMessage(mFamily, mProxy, msg.get());
     }
 
 private:
     gfxMixedFontFamily *mFamily;
     gfxProxyFontEntry  *mProxy;
+    nsTHashtable<nsCStringHashKey> mWarningsIssued;
 };
 
 // Call the OTS library to sanitize an sfnt before attempting to use it.
