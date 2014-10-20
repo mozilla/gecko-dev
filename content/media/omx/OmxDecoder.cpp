@@ -41,6 +41,9 @@ PRLogModuleInfo *gOmxDecoderLog;
 #define LOG(x...)
 #endif
 
+#define LOG_TAG "OmxDecoder"
+#include <android/log.h>
+#define ALOG(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 using namespace MPAPI;
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -787,14 +790,35 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
     } else {
       seekMode = MediaSource::ReadOptions::SEEK_NEXT_SYNC;
     }
-    options.setSeekTo(aTimeUs, seekMode);
-    err = mVideoSource->read(&mVideoBuffer, &options);
-    {
-      Mutex::Autolock autoLock(mSeekLock);
-      mIsVideoSeeking = false;
-      PostReleaseVideoBuffer(nullptr, FenceHandle());
-    }
 
+    bool findNextBuffer = true;
+    while (findNextBuffer) {
+      options.setSeekTo(aTimeUs, seekMode);
+      findNextBuffer = false;
+      err = mVideoSource->read(&mVideoBuffer, &options);
+      {
+        Mutex::Autolock autoLock(mSeekLock);
+        mIsVideoSeeking = false;
+        PostReleaseVideoBuffer(nullptr, FenceHandle());
+      }
+      // If there is no next Keyframe, jump to the previous key frame.
+      if (err == ERROR_END_OF_STREAM && seekMode == MediaSource::ReadOptions::SEEK_NEXT_SYNC) {
+         seekMode = MediaSource::ReadOptions::SEEK_PREVIOUS_SYNC;
+	 findNextBuffer = true;
+	 {
+	   Mutex::Autolock autoLock(mSeekLock);
+	   mIsVideoSeeking = true;
+	 }
+	 continue;
+      } else if (err != OK) {
+	ALOG("Unexpected error when seeking to %lld", aTimeUs);
+        break;
+      }
+      if (mVideoBuffer->range_length() == 0) {
+        ReleaseVideoBuffer();
+	findNextBuffer = true;
+      }
+    }
     aDoSeek = false;
   } else {
     err = mVideoSource->read(&mVideoBuffer);
