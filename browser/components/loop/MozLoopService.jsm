@@ -23,6 +23,8 @@ const LOOP_SESSION_TYPE = {
 // See LOG_LEVELS in Console.jsm. Common examples: "All", "Info", "Warn", & "Error".
 const PREF_LOG_LEVEL = "loop.debug.loglevel";
 
+const EMAIL_OR_PHONE_RE = /^(:?\S+@\S+|\+\d+)$/;
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
@@ -55,6 +57,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "HawkClient",
 
 XPCOMUtils.defineLazyModuleGetter(this, "deriveHawkCredentials",
                                   "resource://services-common/hawkrequest.js");
+
+XPCOMUtils.defineLazyModuleGetter(this, "LoopContacts",
+                                  "resource:///modules/loop/LoopContacts.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "LoopStorage",
                                   "resource:///modules/loop/LoopStorage.jsm");
@@ -786,17 +791,46 @@ let MozLoopServiceInternal = {
    * Starts a call, saves the call data, and opens a chat window.
    *
    * @param {Object} callData The data associated with the call including an id.
-   * @param {Boolean} conversationType Whether or not the call is "incoming"
-   *                                   or "outgoing"
+   * @param {String} conversationType Whether or not the call is "incoming"
+   *                                  or "outgoing"
    */
   _startCall: function(callData, conversationType) {
-    this.callsData.inUse = true;
-    this.callsData.data = callData;
-    this.openChatWindow(
-      null,
-      // No title, let the page set that, to avoid flickering.
-      "",
-      "about:loopconversation#" + conversationType + "/" + callData.callId);
+    const openChat = () => {
+      this.callsData.inUse = true;
+      this.callsData.data = callData;
+
+      this.openChatWindow(
+        null,
+        // No title, let the page set that, to avoid flickering.
+        "",
+        "about:loopconversation#" + conversationType + "/" + callData.callId);
+    };
+
+    if (conversationType == "incoming" && ("callerId" in callData) &&
+        EMAIL_OR_PHONE_RE.test(callData.callerId)) {
+      LoopContacts.search({
+        q: callData.callerId,
+        field: callData.callerId.contains("@") ? "email" : "tel"
+      }, (err, contacts) => {
+        if (err) {
+          // Database error, helas!
+          openChat();
+          return;
+        }
+
+        for (let contact of contacts) {
+          if (contact.blocked) {
+            // Blocked! Send a busy signal back to the caller.
+            this._returnBusy(callData);
+            return;
+          }
+        }
+
+        openChat();
+      })
+    } else {
+      openChat();
+    }
   },
 
   /**
@@ -1209,13 +1243,10 @@ this.MozLoopService = {
    * isn't already activated, check whether it's time for it to become active.
    * If so, activate the loop service.
    *
-   * @param {Object} buttonNode DOM node representing the Loop button -- if we
-   *                            change from inactive to active, we need this
-   *                            in order to unhide the Loop button.
    * @param {Function} doneCb   [optional] Callback that is called when the
    *                            check has completed.
    */
-  checkSoftStart(buttonNode, doneCb) {
+  checkSoftStart(doneCb) {
     if (!Services.prefs.getBoolPref("loop.throttled")) {
       if (typeof(doneCb) == "function") {
         doneCb(new Error("Throttling is not active"));
@@ -1280,9 +1311,6 @@ this.MozLoopService = {
         // Hot diggity! It's our turn! Activate the service.
         log.info("MozLoopService: Activating Loop via soft-start");
         Services.prefs.setBoolPref("loop.throttled", false);
-        if (buttonNode) {
-          buttonNode.hidden = false;
-        }
         this.initialize();
       }
       if (typeof(doneCb) == "function") {
@@ -1607,11 +1635,21 @@ this.MozLoopService = {
     MozLoopServiceInternal.clearError("profile");
   }),
 
-  openFxASettings: function() {
-    let url = new URL("/settings", gFxAOAuthClient.parameters.content_uri);
-    let win = Services.wm.getMostRecentWindow("navigator:browser");
-    win.switchToTabHavingURI(url.toString(), true);
-  },
+  openFxASettings: Task.async(function() {
+    try {
+      let fxAOAuthClient = yield MozLoopServiceInternal.promiseFxAOAuthClient();
+      if (!fxAOAuthClient) {
+        log.error("Could not get the OAuth client");
+        return;
+      }
+
+      let url = new URL("/settings", fxAOAuthClient.parameters.content_uri);
+      let win = Services.wm.getMostRecentWindow("navigator:browser");
+      win.switchToTabHavingURI(url.toString(), true);
+    } catch (ex) {
+      log.error("Error opening FxA settings", ex);
+    }
+  }),
 
   /**
    * Performs a hawk based request to the loop server.

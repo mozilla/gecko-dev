@@ -126,7 +126,8 @@ loop.store = (function() {
         "cancelCall",
         "retryCall",
         "mediaConnected",
-        "setMute"
+        "setMute",
+        "fetchEmailLink"
       ]);
     },
 
@@ -304,15 +305,46 @@ loop.store = (function() {
     },
 
     /**
+     * Fetches a new call URL intended to be sent over email when a contact
+     * can't be reached.
+     */
+    fetchEmailLink: function() {
+      // XXX This is an empty string as a conversation identifier. Bug 1015938 implements
+      // a user-set string.
+      this.client.requestCallUrl("", function(err, callUrlData) {
+        if (err) {
+          this.trigger("error:emailLink");
+          return;
+        }
+        this.set("emailLink", callUrlData.callUrl);
+      }.bind(this));
+    },
+
+    /**
      * Obtains the outgoing call data from the server and handles the
      * result.
      */
     _setupOutgoingCall: function() {
       var contactAddresses = [];
+      var contact = this.get("contact");
 
-      this.get("contact").email.forEach(function(address) {
-        contactAddresses.push(address.value);
-      });
+      function appendContactValues(property, strip) {
+        if (contact.hasOwnProperty(property)) {
+          contact[property].forEach(function(item) {
+            if (strip) {
+              contactAddresses.push(item.value
+                .replace(/^(\+)?(.*)$/g, function(m, prefix, number) {
+                  return (prefix || "") + number.replace(/[\D]+/g, "");
+                }));
+            } else {
+              contactAddresses.push(item.value);
+            }
+          });
+        }
+      }
+
+      appendContactValues("email");
+      appendContactValues("tel", true);
 
       this.client.setupOutgoingCall(contactAddresses,
         this.get("callType"),
@@ -374,6 +406,12 @@ loop.store = (function() {
         this._websocket.close();
         delete this._websocket;
       }
+
+      // XXX: The internal callId is different from
+      // this.get("callId"), see bug 1084228 for more info.
+      var locationHash = new loop.shared.utils.Helper().locationHash();
+      var callId = locationHash.match(/\#outgoing\/(.*)/)[1];
+      navigator.mozLoop.releaseCallData(callId);
     },
 
     /**

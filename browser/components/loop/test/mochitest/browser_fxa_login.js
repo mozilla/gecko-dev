@@ -18,7 +18,7 @@ function* checkFxA401() {
       "Check friendlyDetails");
   ise(err.friendlyDetailsButtonLabel, getLoopString("retry_button"),
       "Check friendlyDetailsButtonLabel");
-  let loopButton = document.getElementById("loop-call-button");
+  let loopButton = document.getElementById("loop-button-throttled");
   is(loopButton.getAttribute("state"), "error",
      "state of loop button should be error after a 401 with login");
 
@@ -265,7 +265,7 @@ add_task(function* basicAuthorizationAndRegistration() {
   let visibleEmail = loopDoc.getElementsByClassName("user-identity")[0];
   is(visibleEmail.textContent, "Guest", "Guest should be displayed on the panel when not logged in");
   is(MozLoopService.userProfile, null, "profile should be null before log-in");
-  let loopButton = document.getElementById("loop-call-button");
+  let loopButton = document.getElementById("loop-button-throttled");
   is(loopButton.getAttribute("state"), "", "state of loop button should be empty when not logged in");
 
   let tokenData = yield MozLoopService.logInToFxA();
@@ -390,4 +390,42 @@ add_task(function* loginWithRegistration401() {
   });
 
   yield checkFxA401();
+});
+
+add_task(function* openFxASettings() {
+  yield resetFxA();
+
+  // Since the default b-c window has a blank tab, open a new non-blank tab to
+  // force switchToTabHavingURI to open a new tab instead of reusing the current
+  // blank tab.
+  gBrowser.selectedTab = gBrowser.addTab(BASE_URL);
+
+  let params = {
+    client_id: "client_id",
+    content_uri: BASE_URL + "/content",
+    oauth_uri: BASE_URL + "/oauth",
+    profile_uri: BASE_URL + "/profile",
+    state: "state",
+    test_error: "token_401",
+  };
+  yield promiseOAuthParamsSetup(BASE_URL, params);
+
+  let deferredTab = Promise.defer();
+  let progressListener = {
+    onLocationChange: function onLocationChange(aBrowser) {
+      gBrowser.removeTabsProgressListener(progressListener);
+      let contentURI = Services.io.newURI(params.content_uri, null, null);
+      is(aBrowser.currentURI.spec, Services.io.newURI("/settings", null, contentURI).spec,
+         "Check settings tab URL");
+      deferredTab.resolve();
+    },
+  };
+  gBrowser.addTabsProgressListener(progressListener);
+
+  MozLoopService.openFxASettings();
+
+  yield deferredTab.promise;
+  while (gBrowser.tabs.length > 1) {
+    gBrowser.removeTab(gBrowser.tabs[1]);
+  }
 });
