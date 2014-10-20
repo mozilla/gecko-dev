@@ -24,10 +24,16 @@ struct DialRequest
   bool isEmergency;
 };
 
+struct HangUpConferenceRequest
+{
+  uint32_t clientId;
+};
+
 union IPCTelephonyRequest
 {
   EnumerateCallsRequest;
   DialRequest;
+  HangUpConferenceRequest;
 };
 
 sync protocol PTelephony {
