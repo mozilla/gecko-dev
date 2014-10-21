@@ -245,6 +245,12 @@ ClassToIcon(uint32_t aClass, nsAString& aRetIcon)
       break;
   }
 
+  // Bug 1082454, in case multiple major services classes, force to support A2DP
+  // SNK device if rendering bit presented. See also: Bug 1075321
+  if (HAS_RENDERING(aClass)) {
+    aRetIcon.AssignLiteral("audio-card");
+  }
+
   if (aRetIcon.IsEmpty()) {
     if (HAS_AUDIO(aClass)) {
       /**
@@ -449,7 +455,18 @@ public:
 
     if (sRequestedDeviceCountArray.IsEmpty()) {
       // This is possible because the callback would be called after turning
-      // Bluetooth on.
+      // Bluetooth on, or simply remote device properties get updated.
+      // See also bug 1076553 for new API fix
+      BluetoothValue value = mProps;
+      BluetoothSignal signal(NS_LITERAL_STRING("DeviceFound"),
+                             NS_LITERAL_STRING(KEY_ADAPTER), value);
+      nsRefPtr<DistributeBluetoothSignalTask>
+        t = new DistributeBluetoothSignalTask(signal);
+
+      if (NS_FAILED(NS_DispatchToMainThread(t))) {
+        BT_WARNING("Failed to dispatch to main thread!");
+      }
+
       return NS_OK;
     }
 
