@@ -89,6 +89,90 @@ let tests = [
             userClear: true,
             duration: {timeUnit: iccManager.STK_TIME_UNIT_SECOND,
                        timeInterval: 0x0A}}},
+  {command: "D026810301210082028102" +
+            "8D" +
+            "1B" +
+            "00" + // 7BIT
+            "D4F79BBD4ED341D4F29C0E3A4A9F55A8" +
+            "0E8687C158A09B304905",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_12",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x00, 7BIT"}},
+  {command: "D029810301210082028102" +
+            "8D" +
+            "1E" +
+            "04" + // 8BIT
+            "546F6F6C6B697420546573742047524F" +
+            "55503A307830302C2038424954",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_13",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x00, 8BIT"}},
+  {command: "D046810301210082028102" +
+            "8D" +
+            "3B" +
+            "08" + // UCS2
+            "0054006F006F006C006B006900740020" +
+            "0054006500730074002000470052004F" +
+            "00550050003A0030007800300030002C" +
+            "00200055004300530032",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_14",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x00, UCS2"}},
+  {command: "D026810301210082028102" +
+            "8D" +
+            "1B" +
+            "12" + // 7BIT + Class 2
+            "D4F79BBD4ED341D4F29C0E3A4A9F55A8" +
+            "0E868FC158A09B304905",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_15",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x10, 7BIT"}},
+  {command: "D029810301210082028102" +
+            "8D" +
+            "1E" +
+            "16" + // 8BIT + Class 2
+            "546F6F6C6B697420546573742047524F" +
+            "55503A307831302C2038424954",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_16",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x10, 8BIT"}},
+  {command: "D046810301210082028102" +
+            "8D" +
+            "3B" +
+            "1A" + // UCS2 + Class 2
+            "0054006F006F006C006B006900740020" +
+            "0054006500730074002000470052004F" +
+            "00550050003A0030007800310030002C" +
+            "00200055004300530032",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_17",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x10, UCS2"}},
+  {command: "D026810301210082028102" +
+            "8D" +
+            "1B" +
+            "F2" + // 7BIT + Class 2
+            "D4F79BBD4ED341D4F29C0E3A4A9F55A8" +
+            "0E8637C258A09B304905",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_18",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0xF0, 7BIT"}},
+  {command: "D029810301210082028102" +
+            "8D" +
+            "1E" +
+            "F6" + // 8BIT + Class 2
+            "546F6F6C6B697420546573742047524F" +
+            "55503A307846302C2038424954",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_29",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0xF0, 8BIT"}},
 ];
 
 runNextTest();
