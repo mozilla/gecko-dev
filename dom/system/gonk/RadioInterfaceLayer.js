@@ -2239,6 +2239,9 @@ RadioInterface.prototype = {
   handleUnsolicitedWorkerMessage: function(message) {
     let connHandler = gDataConnectionManager.getConnectionHandler(this.clientId);
     switch (message.rilMessageType) {
+      case "audioStateChanged":
+        gTelephonyService.notifyAudioStateChanged(this.clientId, message.state);
+        break;
       case "callRing":
         gTelephonyService.notifyCallRing();
         break;

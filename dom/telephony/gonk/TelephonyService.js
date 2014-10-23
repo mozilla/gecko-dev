@@ -43,9 +43,6 @@ const DIAL_ERROR_INVALID_STATE_ERROR = "InvalidStateError";
 const DIAL_ERROR_OTHER_CONNECTION_IN_USE = "OtherConnectionInUse";
 const DIAL_ERROR_BAD_NUMBER = RIL.GECKO_CALL_ERROR_BAD_NUMBER;
 
-const AUDIO_STATE_NO_CALL  = 0;
-const AUDIO_STATE_INCOMING = 1;
-const AUDIO_STATE_IN_CALL  = 2;
 const AUDIO_STATE_NAME = [
   "PHONE_STATE_NORMAL",
   "PHONE_STATE_RINGTONE",
@@ -109,6 +106,7 @@ function TelephonyService() {
   this._numClients = gRadioInterfaceLayer.numRadioInterfaces;
   this._listeners = [];
   this._currentCalls = {};
+  this._audioStates = {};
 
   this._cdmaCallWaitingNumber = null;
 
@@ -127,6 +125,7 @@ function TelephonyService() {
   for (let i = 0; i < this._numClients; ++i) {
     this._enumerateCallsForClient(i);
     this._isActiveCall[i] = {};
+    this._audioStates[i] = RIL.AUDIO_STATE_NO_CALL;
   }
 }
 TelephonyService.prototype = {
@@ -230,28 +229,19 @@ TelephonyService.prototype = {
       this._numActiveCall--;
     }
     this._isActiveCall[aCall.clientId][aCall.callIndex] = active;
-
-    if (incoming && !this._numActiveCall) {
-      // Change the phone state into RINGTONE only when there's no active call.
-      this._updateCallAudioState(AUDIO_STATE_INCOMING);
-    } else if (this._numActiveCall) {
-      this._updateCallAudioState(AUDIO_STATE_IN_CALL);
-    } else {
-      this._updateCallAudioState(AUDIO_STATE_NO_CALL);
-    }
   },
 
-  _updateCallAudioState: function(aAudioState) {
+  _updateAudioState: function(aAudioState) {
     switch (aAudioState) {
-      case AUDIO_STATE_NO_CALL:
+      case RIL.AUDIO_STATE_NO_CALL:
         gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_NORMAL;
         break;
 
-      case AUDIO_STATE_INCOMING:
+      case RIL.AUDIO_STATE_INCOMING:
         gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_RINGTONE;
         break;
 
-      case AUDIO_STATE_IN_CALL:
+      case RIL.AUDIO_STATE_IN_CALL:
         gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_IN_CALL;
         if (this.speakerEnabled) {
           gAudioManager.setForceForUse(nsIAudioManager.USE_COMMUNICATION,
@@ -262,7 +252,7 @@ TelephonyService.prototype = {
 
     if (DEBUG) {
       debug("Put audio system into " + AUDIO_STATE_NAME[aAudioState] + ": " +
-            gAudioManager.phoneState);
+            aAudioState + ", result is: " + gAudioManager.phoneState);
     }
   },
 
@@ -797,6 +787,17 @@ TelephonyService.prototype = {
   /**
    * nsIGonkTelephonyService interface.
    */
+
+  notifyAudioStateChanged: function(aClientId, aState) {
+    this._audioStates[aClientId] = aState;
+
+    let audioState = aState;
+    for (let i = 0; i < this._numClients; ++i) {
+      audioState = Math.max(audioState, this._audioStates[i]);
+    }
+
+    this._updateAudioState(audioState);
+  },
 
   /**
    * Handle call disconnects by updating our current state and the audio system.
