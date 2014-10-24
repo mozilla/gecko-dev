@@ -121,7 +121,7 @@ private:
   DoRequest(const EnumerateCallsRequest& aRequest);
 
   bool
-  DoRequest(const DialRequest& aRequest);+
+  DoRequest(const DialRequest& aRequest);
 
   bool
   DoRequest(const HangUpConferenceRequest& aRequest);
