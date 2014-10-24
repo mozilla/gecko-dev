@@ -1913,24 +1913,11 @@ RilObject.prototype = {
     }
   },
 
-  // Flag indicating whether user has requested making a conference call.
-  _hasConferenceRequest: false,
-
   conferenceCall: function(options) {
     if (this._isCdma) {
       options.featureStr = "";
       this.sendCdmaFlashCommand(options);
     } else {
-      // Only accept one conference request at a time..
-      if (this._hasConferenceRequest) {
-        options.success = false;
-        options.errorName = "addError";
-        options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-        this.sendChromeMessage(options);
-        return;
-      }
-
-      this._hasConferenceRequest = true;
       this.telephonyRequestQueue.push(REQUEST_CONFERENCE,
                                       this.sendRilRequestConference, options);
     }
@@ -4106,11 +4093,6 @@ RilObject.prototype = {
 
       oldCall.state = newCall.state;
       changedCalls.add(oldCall);
-
-      // Clear pending conference request.
-      if (this._hasConferenceRequest && !oldCall.isMpty && newCall.isMpty) {
-        this._hasConferenceRequest = false;
-      }
     }
 
     // Handle pendingMO.
@@ -5595,7 +5577,6 @@ RilObject.prototype[REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = function REQ
 RilObject.prototype[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
-    this._hasConferenceRequest = false;
     options.errorName = "addError";
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     this.sendChromeMessage(options);
