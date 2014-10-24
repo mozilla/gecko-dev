@@ -751,16 +751,6 @@ TelephonyService.prototype = {
     });
   },
 
-  hangUpConference: function(aClientId, aCallback) {
-    this._sendToRilWorker(aClientId, "hangUpConference", null, response => {
-      if (!response.success) {
-        aCallback.notifyError(response.errorMsg);
-      } else {
-        aCallback.notifySuccess();
-      }
-    });
-  },
-
   holdConference: function(aClientId) {
     this._sendToRilWorker(aClientId, "holdConference");
   },

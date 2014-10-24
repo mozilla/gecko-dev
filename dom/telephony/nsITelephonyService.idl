@@ -203,7 +203,7 @@ interface nsITelephonyCallback : nsISupports
  * XPCOM component (in the content process) that provides the telephony
  * information.
  */
-[scriptable, uuid(f69c2bc7-19da-422f-b71e-5b61efa90809)]
+[scriptable, uuid(4ff3ecb7-b024-4752-9dd6-c3623c6e6b8a)]
 interface nsITelephonyService : nsISupports
 {
   const unsigned short CALL_STATE_UNKNOWN = 0;
@@ -259,8 +259,6 @@ interface nsITelephonyService : nsISupports
 
   void conferenceCall(in unsigned long clientId);
   void separateCall(in unsigned long clientId, in unsigned long callIndex);
-  void hangUpConference(in unsigned long clientId,
-                        in nsITelephonyCallback callback);
   void holdConference(in unsigned long clientId);
   void resumeConference(in unsigned long clientId);
 

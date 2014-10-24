@@ -122,9 +122,6 @@ private:
 
   bool
   DoRequest(const DialRequest& aRequest);
-
-  bool
-  DoRequest(const HangUpConferenceRequest& aRequest);
 };
 
 END_TELEPHONY_NAMESPACE
