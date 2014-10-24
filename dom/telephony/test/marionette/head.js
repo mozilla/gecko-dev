@@ -162,25 +162,14 @@ let emulator = (function() {
   }
 
   /**
-   * Convenient helper to compare two call lists. Size should be the same and
-   * order is not important.
-   */
-  function checkCalls(actualCalls, expectedCalls) {
-    if (actualCalls.length == expectedCalls.length) {
-      let expectedSet = new Set(expectedCalls);
-      for (let i = 0; i < actualCalls.length; ++i) {
-        ok(expectedSet.has(actualCalls[i]), "should contain the call");
-      }
-    }
-  }
-
-  /**
    * Convenient helper to check mozTelephony.active and mozTelephony.calls.
    */
   function checkTelephonyActiveAndCalls(active, calls) {
     is(telephony.active, active, "telephony.active");
     is(telephony.calls.length, calls.length, "telephony.calls");
-    checkCalls(telephony.calls, calls);
+    for (let i = 0; i < calls.length; ++i) {
+      is(telephony.calls[i], calls[i]);
+    }
   }
 
   /**
@@ -190,7 +179,9 @@ let emulator = (function() {
   function checkConferenceStateAndCalls(state, calls) {
     is(conference.state, state, "conference.state");
     is(conference.calls.length, calls.length, "conference.calls");
-    checkCalls(conference.calls, calls);
+    for (let i = 0; i < calls.length; i++) {
+      is(conference.calls[i], calls[i]);
+    }
   }
 
   /**
