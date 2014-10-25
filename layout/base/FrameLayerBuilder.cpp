@@ -3589,13 +3589,7 @@ ContainerState::PostprocessRetainedLayers(nsIntRegion* aOpaqueRegionForContainer
         data->mAnimatedGeometryRoot = animatedGeometryRootToCover;
         data->mFixedPosFrameForLayerData = e->mFixedPosFrameForLayerData;
       }
-
-      nsIntRegion clippedOpaque = e->mOpaqueRegion;
-      const nsIntRect* clipRect = e->mLayer->GetClipRect();
-      if (clipRect) {
-        clippedOpaque.AndWith(*clipRect);
-      }
-      data->mOpaqueRegion.Or(data->mOpaqueRegion, clippedOpaque);
+      data->mOpaqueRegion.Or(data->mOpaqueRegion, e->mOpaqueRegion);
       if (e->mHideAllLayersBelow) {
         hideAll = true;
       }
