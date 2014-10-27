@@ -4099,6 +4099,8 @@ RilObject.prototype = {
       if (currentCall.isMpty == newCall.isMpty &&
           newCall.state != currentCall.state) {
         currentCall.state = newCall.state;
+        currentCall.number =
+          this._formatInternationalNumber(newCall.number, newCall.toa);
         if (currentCall.isConference) {
           conferenceChanged = true;
         }
@@ -4231,13 +4233,17 @@ RilObject.prototype = {
     return AUDIO_STATE_IN_CALL;
   },
 
-  _addNewVoiceCall: function(newCall) {
-    // Format international numbers appropriately.
-    if (newCall.number && newCall.toa == TOA_INTERNATIONAL &&
-        newCall.number[0] != "+") {
-      newCall.number = "+" + newCall.number;
+  // Format international numbers appropriately.
+  _formatInternationalNumber: function(number, toa) {
+    if (number && toa == TOA_INTERNATIONAL && number[0] != "+") {
+      number = "+" + number;
     }
 
+    return number;
+  },
+
+  _addNewVoiceCall: function(newCall) {
+    newCall.number = this._formatInternationalNumber(newCall.number, newCall.toa);
     if (newCall.state == CALL_STATE_INCOMING) {
       newCall.isOutgoing = false;
     } else if (newCall.state == CALL_STATE_DIALING) {
