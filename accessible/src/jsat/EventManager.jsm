@@ -285,6 +285,9 @@ this.EventManager.prototype = {
       }
       case Events.DOCUMENT_LOAD_COMPLETE:
       {
+        if (aEvent.accessible === aEvent.accessibleDocument) {
+          break;
+        }
         this.contentScope.contentControl.autoMove(
           aEvent.accessible, { delay: 500 });
         break;
