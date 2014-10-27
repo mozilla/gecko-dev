@@ -800,8 +800,9 @@ TelephonyService.prototype = {
     let call = this._currentCalls[aClientId][aCall.callIndex];
     if (call) {
       call.state = aCall.state;
-      call.isConference = aCall.isConference;
+      call.number = aCall.number;
       call.isEmergency = aCall.isEmergency;
+      call.isConference = aCall.isConference;
       call.isSwitchable = aCall.isSwitchable != null ?
                           aCall.isSwitchable : call.isSwitchable;
       call.isMergeable = aCall.isMergeable != null ?

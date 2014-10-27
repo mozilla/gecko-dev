@@ -4173,6 +4173,9 @@ RilObject.prototype = {
       }
 
       oldCall.state = newCall.state;
+      oldCall.number =
+        this._formatInternationalNumber(newCall.number, newCall.toa);
+      oldCall.isEmergency = this._isEmergencyNumber(oldCall.number);
       changedCalls.add(oldCall);
     }
 
@@ -4257,13 +4260,18 @@ RilObject.prototype = {
     return AUDIO_STATE_IN_CALL;
   },
 
-  _addVoiceCall: function(newCall) {
-    // Format international numbers appropriately.
-    if (newCall.number && newCall.toa == TOA_INTERNATIONAL &&
-        newCall.number[0] != "+") {
-      newCall.number = "+" + newCall.number;
+  // Format international numbers appropriately.
+  _formatInternationalNumber: function(number, toa) {
+    if (number && toa == TOA_INTERNATIONAL && number[0] != "+") {
+      number = "+" + number;
     }
 
+    return number;
+  },
+
+  _addVoiceCall: function(newCall) {
+    newCall.number = this._formatInternationalNumber(newCall.number, newCall.toa);
+    newCall.isEmergency = this._isEmergencyNumber(newCall.number);
     newCall.isOutgoing = !(newCall.state == CALL_STATE_INCOMING);
     newCall.isConference = false;
 
