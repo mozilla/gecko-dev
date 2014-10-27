@@ -3352,6 +3352,9 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
     case certificate_unknown: 	error = SSL_ERROR_CERTIFICATE_UNKNOWN_ALERT;
 			        					  break;
     case illegal_parameter: 	error = SSL_ERROR_ILLEGAL_PARAMETER_ALERT;break;
+    case inappropriate_fallback:
+        error = SSL_ERROR_INAPPROPRIATE_FALLBACK_ALERT;
+        break;
 
     /* All alerts below are TLS only. */
     case unknown_ca: 		error = SSL_ERROR_UNKNOWN_CA_ALERT;       break;
@@ -4873,6 +4876,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     int              num_suites;
     int              actual_count = 0;
     PRBool           isTLS = PR_FALSE;
+    PRBool           requestingResume = PR_FALSE, fallbackSCSV = PR_FALSE;
     PRInt32          total_exten_len = 0;
     unsigned         paddingExtensionLen;
     unsigned         numCompressionMethods;
@@ -5015,6 +5019,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
 
     if (sid) {
+	requestingResume = PR_TRUE;
 	SSL_AtomicIncrementLong(& ssl3stats.sch_sid_cache_hits );
 
 	PRINT_BUF(4, (ss, "client, found session-id:", sid->u.ssl3.sessionID,
@@ -5129,8 +5134,15 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
     	return SECFailure;	/* count_cipher_suites has set error code. */
     }
+
+    fallbackSCSV = ss->opt.enableFallbackSCSV && (!requestingResume ||
+						  ss->version < sid->version);
+    /* make room for SCSV */
     if (ss->ssl3.hs.sendingSCSV) {
-	++num_suites;   /* make room for SCSV */
+	++num_suites;
+    }
+    if (fallbackSCSV) {
+	++num_suites;
     }
 
     /* count compression methods */
@@ -5229,6 +5241,15 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     if (ss->ssl3.hs.sendingSCSV) {
 	/* Add the actual SCSV */
 	rv = ssl3_AppendHandshakeNumber(ss, TLS_EMPTY_RENEGOTIATION_INFO_SCSV,
+					sizeof(ssl3CipherSuite));
+	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
+	    return rv;	/* err set by ssl3_AppendHandshake* */
+	}
+	actual_count++;
+    }
+    if (fallbackSCSV) {
+	rv = ssl3_AppendHandshakeNumber(ss, TLS_FALLBACK_SCSV,
 					sizeof(ssl3CipherSuite));
 	if (rv != SECSuccess) {
 	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
@@ -7709,6 +7730,19 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     rv = ssl3_ConsumeHandshakeVariable(ss, &suites, 2, &b, &length);
     if (rv != SECSuccess) {
 	goto loser;		/* malformed */
+    }
+
+    /* If the ClientHello version is less than our maximum version, check for a
+     * TLS_FALLBACK_SCSV and reject the connection if found. */
+    if (ss->vrange.max > ss->clientHelloVersion) {
+	for (i = 0; i + 1 < suites.len; i += 2) {
+	    PRUint16 suite_i = (suites.data[i] << 8) | suites.data[i + 1];
+	    if (suite_i != TLS_FALLBACK_SCSV)
+		continue;
+	    desc = inappropriate_fallback;
+	    errCode = SSL_ERROR_INAPPROPRIATE_FALLBACK_ALERT;
+	    goto alert_loser;
+	}
     }
 
     /* grab the list of compression methods. */

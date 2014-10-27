@@ -182,6 +182,9 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  */
 #define SSL_ENABLE_ALPN 26
 
+#define SSL_ENABLE_FALLBACK_SCSV       28 /* Send fallback SCSV in
+                                           * handshakes. */
+
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */
 SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRBool on);

@@ -98,6 +98,7 @@ typedef enum {
     protocol_version        = 70,
     insufficient_security   = 71,
     internal_error          = 80,
+    inappropriate_fallback  = 86,	/* could also be sent for SSLv3 */
     user_canceled           = 90,
     no_renegotiation        = 100,
 

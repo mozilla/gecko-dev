@@ -208,6 +208,11 @@
  */
 #define TLS_EMPTY_RENEGOTIATION_INFO_SCSV       0x00FF
 
+/* TLS_FALLBACK_SCSV is a signaling cipher suite value that indicates that a
+ * handshake is the result of TLS version fallback.
+ */
+#define TLS_FALLBACK_SCSV                       0x5600
+
 /* Cipher Suite Values starting with 0xC000 are defined in informational
  * RFCs.
  */
