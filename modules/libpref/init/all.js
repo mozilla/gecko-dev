@@ -381,10 +381,10 @@ pref("media.getusermedia.screensharing.enabled", true);
 #endif
 
 #ifdef RELEASE_BUILD
-pref("media.getusermedia.screensharing.allowed_domains", "webex.com,*.webex.com,collaborate.com,*.collaborate.com");
+pref("media.getusermedia.screensharing.allowed_domains", "webex.com,*.webex.com,collaborate.com,*.collaborate.com,projectsquared.com,*.projectsquared.com");
 #else
  // temporary value, not intended for release - bug 1049087
-pref("media.getusermedia.screensharing.allowed_domains", "mozilla.github.io,webex.com,*.webex.com,collaborate.com,*.collaborate.com");
+pref("media.getusermedia.screensharing.allowed_domains", "mozilla.github.io,webex.com,*.webex.com,collaborate.com,*.collaborate.com,projectsquared.com,*.projectsquared.com");
 #endif
 // OS/X 10.6 and XP have screen/window sharing off by default due to various issues - Caveat emptor
 pref("media.getusermedia.screensharing.allow_on_old_platforms", false);
@@ -1207,7 +1207,11 @@ pref("network.http.bypass-cachelock-threshold", 250);
 pref("network.http.spdy.enabled", true);
 pref("network.http.spdy.enabled.v3", true);
 pref("network.http.spdy.enabled.v3-1", true);
+#ifdef EARLY_BETA_OR_EARLIER
 pref("network.http.spdy.enabled.http2draft", true);
+#else
+pref("network.http.spdy.enabled.http2draft", false);
+#endif
 pref("network.http.spdy.enforce-tls-profile", true);
 pref("network.http.spdy.chunk-size", 16000);
 pref("network.http.spdy.timeout", 180);
