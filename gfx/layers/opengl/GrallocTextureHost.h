@@ -7,6 +7,7 @@
 #define MOZILLA_GFX_GRALLOCTEXTUREHOST_H
 #ifdef MOZ_WIDGET_GONK
 
+#include "mozilla/layers/CompositorOGL.h"
 #include "mozilla/layers/TextureHostOGL.h"
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
 #include <ui/GraphicBuffer.h>
@@ -69,7 +70,7 @@ public:
   bool Lock();
 
 protected:
-  CompositorOGL* mCompositor;
+  RefPtr<CompositorOGL> mCompositor;
   GrallocTextureHostOGL* mTextureHost;
   android::sp<android::GraphicBuffer> mGraphicBuffer;
   EGLImage mEGLImage;

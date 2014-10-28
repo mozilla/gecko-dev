@@ -20,6 +20,7 @@
 #include "mozilla/gfx/Matrix.h"         // for Matrix4x4
 #include "mozilla/gfx/Point.h"          // for IntSize, IntPoint
 #include "mozilla/gfx/Types.h"          // for SurfaceFormat, etc
+#include "mozilla/layers/CompositorOGL.h"  // for CompositorOGL
 #include "mozilla/layers/CompositorTypes.h"  // for TextureFlags
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
 #include "mozilla/layers/TextureHost.h"  // for TextureHost, etc
@@ -342,7 +343,7 @@ public:
 
 protected:
   gfx::IntSize mSize;
-  CompositorOGL* mCompositor;
+  RefPtr<CompositorOGL> mCompositor;
   gl::SharedTextureHandle mSharedHandle;
   gfx::SurfaceFormat mFormat;
   SharedTextureShareType mShareType;
@@ -395,7 +396,7 @@ public:
 
 protected:
   gfx::IntSize mSize;
-  CompositorOGL* mCompositor;
+  RefPtr<CompositorOGL> mCompositor;
   gl::SharedTextureHandle mSharedHandle;
   gl::SharedTextureShareType mShareType;
 
@@ -444,7 +445,7 @@ public:
 
 protected:
   const gfx::IntSize mSize;
-  CompositorOGL* mCompositor;
+  RefPtr<CompositorOGL> mCompositor;
   const GLuint mTex;
   const gfx::SurfaceFormat mFormat;
   const GLenum mTextureTarget;
