@@ -385,7 +385,8 @@ TelephonyParent::SupplementaryServiceNotification(uint32_t aClientId,
 
 NS_IMPL_ISUPPORTS(TelephonyRequestParent,
                   nsITelephonyListener,
-                  nsITelephonyCallback)
+                  nsITelephonyCallback,
+                  nsITelephonyDialCallback)
 
 TelephonyRequestParent::TelephonyRequestParent()
   : mActorDestroyed(false)
@@ -426,12 +427,20 @@ TelephonyRequestParent::DoRequest(const DialRequest& aRequest)
     do_GetService(TELEPHONY_SERVICE_CONTRACTID);
   if (service) {
     service->Dial(aRequest.clientId(), aRequest.number(),
-                   aRequest.isEmergency(), this);
+                  aRequest.isEmergency(), this);
   } else {
-    return NS_SUCCEEDED(NotifyDialError(NS_LITERAL_STRING("InvalidStateError")));
+    return NS_SUCCEEDED(NotifyError(NS_LITERAL_STRING("InvalidStateError")));
   }
 
   return true;
+}
+
+nsresult
+TelephonyRequestParent::SendResponse(const IPCTelephonyResponse& aResponse)
+{
+  NS_ENSURE_TRUE(!mActorDestroyed, NS_ERROR_FAILURE);
+
+  return Send__delete__(this, aResponse) ? NS_OK : NS_ERROR_FAILURE;
 }
 
 // nsITelephonyListener
@@ -524,23 +533,23 @@ TelephonyRequestParent::SupplementaryServiceNotification(uint32_t aClientId,
   MOZ_CRASH("Not a TelephonyParent!");
 }
 
-// nsITelephonyCallback
+// nsITelephonyDialCallback
 
 NS_IMETHODIMP
-TelephonyRequestParent::NotifyDialError(const nsAString& aError)
+TelephonyRequestParent::NotifySuccess()
 {
-  NS_ENSURE_TRUE(!mActorDestroyed, NS_ERROR_FAILURE);
-
-  return (SendNotifyDialError(nsString(aError)) &&
-          Send__delete__(this, DialResponse())) ? NS_OK : NS_ERROR_FAILURE;
+  return SendResponse(SuccessResponse());
 }
 
 NS_IMETHODIMP
-TelephonyRequestParent::NotifyDialSuccess(uint32_t aCallIndex,
-                                          const nsAString& aNumber)
+TelephonyRequestParent::NotifyError(const nsAString& aError)
 {
-  NS_ENSURE_TRUE(!mActorDestroyed, NS_ERROR_FAILURE);
+  return SendResponse(ErrorResponse(nsAutoString(aError)));
+}
 
-  return (SendNotifyDialSuccess(aCallIndex, nsString(aNumber)) &&
-          Send__delete__(this, DialResponse())) ? NS_OK : NS_ERROR_FAILURE;
+NS_IMETHODIMP
+TelephonyRequestParent::NotifyDialCallSuccess(uint32_t aCallIndex,
+                                              const nsAString& aNumber)
+{
+  return SendResponse(DialResponseCallSuccess(aCallIndex, nsAutoString(aNumber)));
 }

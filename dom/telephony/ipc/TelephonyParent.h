@@ -98,7 +98,7 @@ private:
 
 class TelephonyRequestParent : public PTelephonyRequestParent
                              , public nsITelephonyListener
-                             , public nsITelephonyCallback
+                             , public nsITelephonyDialCallback
 {
   friend class TelephonyParent;
 
@@ -106,6 +106,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSITELEPHONYLISTENER
   NS_DECL_NSITELEPHONYCALLBACK
+  NS_DECL_NSITELEPHONYDIALCALLBACK
 
 protected:
   TelephonyRequestParent();
@@ -113,6 +114,9 @@ protected:
 
   virtual void
   ActorDestroy(ActorDestroyReason why);
+
+  nsresult
+  SendResponse(const IPCTelephonyResponse& aResponse);
 
 private:
   bool mActorDestroyed;
