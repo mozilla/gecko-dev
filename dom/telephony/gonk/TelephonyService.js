@@ -628,6 +628,18 @@ TelephonyService.prototype = {
     }).bind(this));
   },
 
+  hangUpConference: function(aClientId, aCallback) {
+    this._getClient(aClientId).sendWorkerMessage("hangUpConference", null,
+                                                 (function(response) {
+      if (!response.success) {
+        aCallback.notifyError(response.errorMsg);
+      } else {
+        aCallback.notifySuccess();
+      }
+      return false;
+    }).bind(this));
+  },
+
   holdConference: function(aClientId) {
     this._getClient(aClientId).sendWorkerMessage("holdConference");
   },
