@@ -8584,7 +8584,7 @@ GsmPDUHelperObject.prototype = {
     switch (msg.encoding) {
       case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
         msg.body = this.readSeptetsToString.call(bufAdapter,
-                                                 (length * 8 / 7), 0,
+                                                 Math.floor(length * 8 / 7), 0,
                                                  PDU_NL_IDENTIFIER_DEFAULT,
                                                  PDU_NL_IDENTIFIER_DEFAULT);
         if (msg.hasLanguageIndicator) {
@@ -8737,7 +8737,7 @@ GsmPDUHelperObject.prototype = {
     case 0:
       // GSM Default alphabet.
       resultString = this.readSeptetsToString(
-        ((len - 1) * 8 - spareBits) / 7, 0,
+        Math.floor(((len - 1) * 8 - spareBits) / 7), 0,
         PDU_NL_IDENTIFIER_DEFAULT,
         PDU_NL_IDENTIFIER_DEFAULT);
       break;
@@ -11102,7 +11102,8 @@ StkProactiveCmdHelperObject.prototype = {
     length--; // -1 for the codingScheme.
     switch (text.codingScheme & 0x0c) {
       case STK_TEXT_CODING_GSM_7BIT_PACKED:
-        text.textString = GsmPDUHelper.readSeptetsToString(length * 8 / 7, 0, 0, 0);
+        text.textString =
+          GsmPDUHelper.readSeptetsToString(Math.floor(length * 8 / 7), 0, 0, 0);
         break;
       case STK_TEXT_CODING_GSM_8BIT:
         text.textString =
