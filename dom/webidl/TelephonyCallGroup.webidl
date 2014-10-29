@@ -17,6 +17,10 @@ interface TelephonyCallGroup : EventTarget {
   [Throws]
   void remove(TelephonyCall call);
 
+  // Promise<void>
+  [NewObject, Throws]
+  Promise hangUp();
+
   [Throws]
   void hold();
 
