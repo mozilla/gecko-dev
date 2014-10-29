@@ -1140,17 +1140,38 @@ RilObject.prototype = {
   },
 
   /**
+   * PLMN name display priority: EONS > ONS > NITZ (done by rild) > PLMN.
+   *
+   * @return true if PLMN name is overridden, false otherwise.
+   */
+  overrideNetworkName: function() {
+    if (!this.operator) {
+      return false;
+    }
+
+    if (this.overrideEonsNetworkName()) {
+      if (DEBUG) {
+        this.context.debug("Network name is overridden by EONS");
+      }
+      return true;
+    } else if (this.overrideOnsNetworkName()) {
+      if (DEBUG) {
+        this.context.debug("Network name is overridden by ONS");
+      }
+      return true;
+    }
+
+    return false;
+  },
+
+  /**
    * Check if operator name needs to be overriden by current voiceRegistrationState
    * , EFOPL and EFPNN. See 3GPP TS 31.102 clause 4.2.58 EFPNN and 4.2.59 EFOPL
    *  for detail.
    *
    * @return true if operator name is overridden, false otherwise.
    */
-  overrideICCNetworkName: function() {
-    if (!this.operator) {
-      return false;
-    }
-
+  overrideEonsNetworkName: function() {
     // We won't get network name using PNN and OPL if voice registration isn't
     // ready.
     if (!this.voiceRegistrationState.cell ||
@@ -1179,6 +1200,30 @@ RilObject.prototype = {
 
     this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
     return true;
+  },
+
+  /**
+   * Check if operator name needs to be overriden by current voiceRegistrationState
+   * , CPHS Operator Name String and Operator Name Shortform. See B.4.1.2
+   * Network Operator Namefor detail.
+   *
+   * @return true if operator name is overridden, false otherwise.
+   */
+  overrideOnsNetworkName: function() {
+    if (!this.iccInfo.ons) {
+      return false;
+    }
+
+    // If ONS exists, only replace alpha long/short while under HPLMN.
+    if (!this.voiceRegistrationState.roaming) {
+      this.operator.longName = this.iccInfo.ons;
+      this.operator.shortName = this.iccInfo.ons_short_form || "";
+
+      this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
+      return true;
+    }
+
+    return false;
   },
 
   /**
@@ -4012,10 +4057,10 @@ RilObject.prototype = {
         ICCUtilsHelper.handleICCInfoChange();
       }
 
-      // NETWORK_INFO_OPERATOR message will be sent out by overrideICCNetworkName
+      // NETWORK_INFO_OPERATOR message will be sent out by overrideNetworkName
       // itself if operator name is overridden after checking, or we have to
       // do it by ourself.
-      if (!this.overrideICCNetworkName()) {
+      if (!this.overrideNetworkName()) {
         this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
       }
     }
@@ -11932,6 +11977,8 @@ ICCFileHelperObject.prototype = {
       case ICC_EF_MSISDN:
       case ICC_EF_SMS:
         return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM;
+      case ICC_EF_ONS:
+      case ICC_EF_ONSF:
       case ICC_EF_AD:
       case ICC_EF_MBDN:
       case ICC_EF_MWIS:
@@ -11956,6 +12003,8 @@ ICCFileHelperObject.prototype = {
    */
   getUSimEFPath: function(fileId) {
     switch (fileId) {
+      case ICC_EF_ONS:
+      case ICC_EF_ONSF:
       case ICC_EF_AD:
       case ICC_EF_FDN:
       case ICC_EF_MBDN:
@@ -12871,6 +12920,10 @@ SimRecordHelperObject.prototype = {
     this.context.RIL.getIMSI();
     this.readAD();
     this.readSST();
+
+    // CPHS ONS related EFs reading.
+    this.readOperatorNameString();
+    this.readOperatorNameShortForm();
   },
 
   /**
@@ -12967,6 +13020,61 @@ SimRecordHelperObject.prototype = {
 
     this.context.ICCIOHelper.loadTransparentEF({
       fileId: ICC_EF_AD,
+      callback: callback.bind(this)
+    });
+  },
+
+  /**
+   * Process CHPS Operator Name String/Operator Name Short Form.
+   *
+   * @return A string corresponding to the CPHS ONS.
+   */
+  _processCphsOnsResponse: function() {
+      let Buf = this.context.Buf;
+      let strLen = Buf.readInt32();
+      // Each octet is encoded into two chars.
+      let octetLen = strLen / 2;
+      let ons = this.context.ICCPDUHelper.readAlphaIdentifier(octetLen);
+      Buf.readStringDelimiter(strLen);
+
+      return ons;
+  },
+
+  /**
+   * Read CPHS Operator Name String from the SIM.
+   */
+  readOperatorNameString: function() {
+    function callback() {
+      let RIL = this.context.RIL;
+      RIL.iccInfo.ons = this._processCphsOnsResponse();
+      if (DEBUG) {
+        this.context.debug("CPHS Operator Name String = " + RIL.iccInfo.ons);
+      }
+      RIL.overrideNetworkName();
+    }
+
+    this.context.ICCIOHelper.loadTransparentEF({
+      fileId: ICC_EF_ONS,
+      callback: callback.bind(this)
+    });
+  },
+
+  /**
+   * Read CPHS Operator Name Shortform from the SIM.
+   */
+  readOperatorNameShortForm: function() {
+    function callback() {
+      let RIL = this.context.RIL;
+      RIL.iccInfo.ons_short_form = this._processCphsOnsResponse();
+      if (DEBUG) {
+        this.context.debug("CPHS Operator Name Shortform = " +
+                           RIL.iccInfo.ons_short_form);
+      }
+      RIL.overrideNetworkName();
+    }
+
+    this.context.ICCIOHelper.loadTransparentEF({
+      fileId: ICC_EF_ONSF,
       callback: callback.bind(this)
     });
   },
@@ -13475,7 +13583,7 @@ SimRecordHelperObject.prototype = {
         ICCIOHelper.loadNextRecord(options);
       } else {
         RIL.iccInfoPrivate.OPL = opl;
-        RIL.overrideICCNetworkName();
+        RIL.overrideNetworkName();
       }
     }
 
@@ -13545,7 +13653,7 @@ SimRecordHelperObject.prototype = {
           }
         }
         RIL.iccInfoPrivate.PNN = pnn;
-        RIL.overrideICCNetworkName();
+        RIL.overrideNetworkName();
       }
     }
 

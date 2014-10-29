@@ -500,6 +500,10 @@ this.ICC_COMMAND_GET_RESPONSE = 0xc0;
 this.ICC_COMMAND_UPDATE_BINARY = 0xd6;
 this.ICC_COMMAND_UPDATE_RECORD = 0xdc;
 
+// CPHS SIM constants
+this.ICC_EF_ONS = 0x6f14;
+this.ICC_EF_ONSF = 0x6f18;
+
 // ICC constants, GSM SIM file ids from TS 51.011
 this.ICC_EF_ICCID  = 0x2fe2;
 this.ICC_EF_IMG    = 0x4f20;
