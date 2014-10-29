@@ -369,7 +369,7 @@ TelephonyService.prototype = {
 
     if (this.isDialing) {
       if (DEBUG) debug("Already has a dialing call. Drop.");
-      aTelephonyCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
+      aTelephonyCallback.notifyError(DIAL_ERROR_INVALID_STATE_ERROR);
       return;
     }
 
@@ -389,7 +389,7 @@ TelephonyService.prototype = {
     // any new call on other SIM.
     if (hasCallsOnOtherClient.call(this, aClientId)) {
       if (DEBUG) debug("Already has a call on other sim. Drop.");
-      aTelephonyCallback.notifyDialError(DIAL_ERROR_OTHER_CONNECTION_IN_USE);
+      aTelephonyCallback.notifyError(DIAL_ERROR_OTHER_CONNECTION_IN_USE);
       return;
     }
 
@@ -412,7 +412,7 @@ TelephonyService.prototype = {
 
     if (numCallsOnLine.call(this, aClientId) >= 2) {
       if (DEBUG) debug("Has more than 2 calls on line. Drop.");
-      aTelephonyCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
+      aTelephonyCallback.notifyError(DIAL_ERROR_INVALID_STATE_ERROR);
       return;
     }
 
@@ -427,14 +427,14 @@ TelephonyService.prototype = {
       // Note: isPlainPhoneNumber also accepts USSD and SS numbers
       if (DEBUG) debug("Number '" + aNumber + "' is not viable. Drop.");
       let errorMsg = RIL.RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[RIL.CALL_FAIL_UNOBTAINABLE_NUMBER];
-      aTelephonyCallback.notifyDialError(errorMsg);
+      aTelephonyCallback.notifyError(errorMsg);
       return;
     }
 
-    function onCdmaDialSuccess() {
+    function onCdmaDialSuccess(aCallIndex, aNumber) {
       let indexes = Object.keys(this._currentCalls[aClientId]);
       if (indexes.length != 1 ) {
-        aTelephonyCallback.notifyDialSuccess();
+        aTelephonyCallback.notifyDialCallSuccess(aCallIndex, aNumber);
         return;
       }
 
@@ -450,7 +450,7 @@ TelephonyService.prototype = {
         isMergeable: true,
         parentId: indexes[0]
       };
-      aTelephonyCallback.notifyDialSuccess();
+      aTelephonyCallback.notifyDialCallSuccess(CDMA_SECOND_CALL_INDEX, aNumber);
 
       // Manual update call state according to the request response.
       this.notifyCallStateChanged(aClientId, childCall);
@@ -473,14 +473,16 @@ TelephonyService.prototype = {
     }, (function(response) {
       this.isDialing = false;
       if (!response.success) {
-        aTelephonyCallback.notifyDialError(response.errorMsg);
+        aTelephonyCallback.notifyError(response.errorMsg);
         return false;
       }
 
       if (response.isCdma) {
-        onCdmaDialSuccess.call(this);
+        let callIndex = response.callIndex;
+        onCdmaDialSuccess.call(this, callIndex, response.number);
       } else {
-        aTelephonyCallback.notifyDialSuccess(response.callIndex);
+        aTelephonyCallback.notifyDialCallSuccess(response.callIndex,
+                                                 response.number);
       }
       return false;
     }).bind(this));
