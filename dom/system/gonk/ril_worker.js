@@ -5900,6 +5900,12 @@ RilObject.prototype[REQUEST_GET_CLIR] = function REQUEST_GET_CLIR(length, option
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+
+    if (options.callback) {
+      // Prevent DataCloneError when sending chrome messages.
+      delete options.callback;
+    }
+
     this.sendChromeMessage(options);
     return;
   }
@@ -6007,6 +6013,12 @@ RilObject.prototype[REQUEST_QUERY_CALL_FORWARD_STATUS] =
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+
+    if (options.callback) {
+      // Prevent DataCloneError when sending chrome messages.
+      delete options.callback;
+    }
+
     this.sendChromeMessage(options);
     return;
   }
