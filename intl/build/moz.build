@@ -12,6 +12,8 @@ LIBRARY_NAME = 'i18n'
 
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
+    '../icu/source/common',
+    '../icu/source/i18n',
     '../locale/src',
     '../lwbrk/src',
     '../strres/src',
