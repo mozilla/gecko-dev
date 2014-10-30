@@ -232,11 +232,6 @@ WebappsActor.prototype = {
     let reg = DOMApplicationRegistry;
     let self = this;
 
-    if (aId in reg.webapps && !reg.webapps[aId].sideloaded &&
-        !this._isUnrestrictedAccessAllowed()) {
-      throw new Error("Replacing non-sideloaded apps is not permitted.");
-    }
-
     // Clean up the deprecated manifest cache if needed.
     if (aId in reg._manifestCache) {
       delete reg._manifestCache[aId];
@@ -249,7 +244,6 @@ WebappsActor.prototype = {
     aApp.basePath = reg.getWebAppsBasePath();
     aApp.localId = (aId in reg.webapps) ? reg.webapps[aId].localId
                                         : reg._nextLocalId();
-    aApp.sideloaded = true;
 
     reg.webapps[aId] = aApp;
     reg.updatePermissionsForApp(aId);
@@ -377,21 +371,24 @@ WebappsActor.prototype = {
         return AppsUtils.loadJSONAsync(manFile);
       }
     }
-    function writeManifest(resolution) {
+    function checkSideloading(aManifest) {
+      return self._getAppType(aManifest.type);
+    }
+    function writeManifest(aAppType) {
       // Move manifest.webapp to the destination directory.
       // The destination directory for this app.
       let installDir = DOMApplicationRegistry._getAppDir(aId);
       if (aManifest) {
         let manFile = OS.Path.join(installDir.path, "manifest.webapp");
         return DOMApplicationRegistry._writeFile(manFile, JSON.stringify(aManifest)).then(() => {
-          return resolution;
+          return aAppType;
         });
       } else {
         let manFile = aDir.clone();
         manFile.append("manifest.webapp");
         manFile.moveTo(installDir, "manifest.webapp");
       }
-      return promise.resolve(resolution);
+      return null;
     }
     function readMetadata(aAppType) {
       if (aMetadata) {
@@ -404,7 +401,7 @@ WebappsActor.prototype = {
           throw("Error parsing metadata.json.");
         }
         if (!aMetadata.origin) {
-          throw("Missing 'origin' property in metadata.json.");
+          throw("Missing 'origin' property in metadata.json");
         }
         return { metadata: aMetadata, appType: aAppType };
       });
@@ -412,8 +409,9 @@ WebappsActor.prototype = {
     let runnable = {
       run: function run() {
         try {
-          let metadata, appType;
           readManifest().
+            then(writeManifest).
+            then(checkSideloading).
             then(readMetadata).
             then(function ({ metadata, appType }) {
               let origin = metadata.origin;
@@ -428,8 +426,6 @@ WebappsActor.prototype = {
                 receipts: aReceipts,
               };
 
-              return writeManifest(app);
-            }).then(function (app) {
               self._registerApp(deferred, app, aId, aDir);
             }, function (error) {
               self._sendError(deferred, error, aId);
@@ -475,7 +471,6 @@ WebappsActor.prototype = {
             manifest = JSON.parse(jsonString);
           } catch(e) {
             self._sendError(deferred, "Error Parsing manifest.webapp: " + e, aId);
-            return;
           }
 
           let appType = self._getAppType(manifest.type);
@@ -496,14 +491,6 @@ WebappsActor.prototype = {
               self._sendError(deferred, "Invalid origin in webapp's manifest", aId);
             }
             id = uri.prePath.substring(6);
-          }
-
-          // Prevent overriding preinstalled apps
-          if (id in DOMApplicationRegistry.webapps &&
-              DOMApplicationRegistry.webapps[id].removable === false &&
-              !self._isUnrestrictedAccessAllowed()) {
-            self._sendError(deferred, "The application " + id + " can't be overridden.");
-            return;
           }
 
           // Only after security checks are made and after final app id is computed
@@ -587,9 +574,9 @@ WebappsActor.prototype = {
 
     // Check that we are not overriding a preinstalled application.
     if (appId in reg.webapps && reg.webapps[appId].removable === false) {
-      return { error: "installationFailed",
-               message: "The application " + appId + " can't be overridden."
-             };
+      return { error: "badParameterType",
+               message: "The application " + appId + " can't be overriden."
+             }
     }
 
     let appDir = FileUtils.getDir("TmpD", ["b2g", appId], false, false);
@@ -681,36 +668,38 @@ WebappsActor.prototype = {
       return { error: "appNotFound" };
     }
 
-    if (!this._isAppAllowedForURL(app.manifestURL)) {
-      return { error: "forbidden" };
-    }
-
-    return reg.getManifestFor(manifestURL).then(function (manifest) {
-      app.manifest = manifest;
-      return { app: app };
+    return this._isAppAllowedForURL(app.manifestURL).then(allowed => {
+      if (!allowed) {
+        return { error: "forbidden" };
+      }
+      return reg.getManifestFor(manifestURL).then(function (manifest) {
+        app.manifest = manifest;
+        return { app: app };
+      });
     });
   },
 
-  _isUnrestrictedAccessAllowed: function() {
+  _areCertifiedAppsAllowed: function wa__areCertifiedAppsAllowed() {
     let pref = "devtools.debugger.forbid-certified-apps";
     return !Services.prefs.getBoolPref(pref);
   },
 
-  _isAppAllowed: function(aApp) {
-    if (this._isUnrestrictedAccessAllowed()) {
+  _isAppAllowedForManifest: function wa__isAppAllowedForManifest(aManifest) {
+    if (this._areCertifiedAppsAllowed()) {
       return true;
     }
-    return aApp.sideloaded;
+    let type = this._getAppType(aManifest.type);
+    return type !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED;
   },
 
   _filterAllowedApps: function wa__filterAllowedApps(aApps) {
-    return aApps.filter(app => this._isAppAllowed(app));
+    return aApps.filter(app => this._isAppAllowedForManifest(app.manifest));
   },
 
   _isAppAllowedForURL: function wa__isAppAllowedForURL(aManifestURL) {
-    let reg = DOMApplicationRegistry;
-    let app = reg.getAppByManifestURL(aManifestURL);
-    return this._isAppAllowed(app);
+    return this._findManifestByURL(aManifestURL).then(manifest => {
+      return this._isAppAllowedForManifest(manifest);
+    });
   },
 
   uninstall: function wa_actorUninstall(aRequest) {
@@ -718,12 +707,8 @@ WebappsActor.prototype = {
 
     let manifestURL = aRequest.manifestURL;
     if (!manifestURL) {
-      return { error: "missingParameter",
-               message: "missing parameter manifestURL" };
-    }
-
-    if (!this._isAppAllowedForURL(manifestURL)) {
-      return { error: "forbidden" };
+      return Promise.resolve({ error: "missingParameter",
+                         message: "missing parameter manifestURL" });
     }
 
     return DOMApplicationRegistry.uninstall(manifestURL);
@@ -883,12 +868,17 @@ WebappsActor.prototype = {
       if (apps.indexOf(manifestURL) != -1) {
         continue;
       }
-      if (this._isAppAllowedForURL(manifestURL)) {
-        apps.push(manifestURL);
-      }
+
+      appPromises.push(this._isAppAllowedForURL(manifestURL).then(allowed => {
+        if (allowed) {
+          apps.push(manifestURL);
+        }
+      }));
     }
 
-    return { apps: apps };
+    return promise.all(appPromises).then(() => {
+      return { apps: apps };
+    });
   },
 
   getAppActor: function ({ manifestURL }) {
@@ -923,30 +913,32 @@ WebappsActor.prototype = {
       return notFoundError;
     }
 
-    if (!this._isAppAllowedForURL(manifestURL)) {
-      return notFoundError;
-    }
+    return this._isAppAllowedForURL(manifestURL).then(allowed => {
+      if (!allowed) {
+        return notFoundError;
+      }
 
-    // Only create a new actor, if we haven't already
-    // instanciated one for this connection.
-    let map = this._appActorsMap;
-    let mm = appFrame.QueryInterface(Ci.nsIFrameLoaderOwner)
-                     .frameLoader
-                     .messageManager;
-    let actor = map.get(mm);
-    if (!actor) {
-      let onConnect = actor => {
-        map.set(mm, actor);
-        return { actor: actor };
-      };
-      let onDisconnect = mm => {
-        map.delete(mm);
-      };
-      return DebuggerServer.connectToChild(this.conn, appFrame, onDisconnect)
-                           .then(onConnect);
-    }
+      // Only create a new actor, if we haven't already
+      // instanciated one for this connection.
+      let map = this._appActorsMap;
+      let mm = appFrame.QueryInterface(Ci.nsIFrameLoaderOwner)
+                       .frameLoader
+                       .messageManager;
+      let actor = map.get(mm);
+      if (!actor) {
+        let onConnect = actor => {
+          map.set(mm, actor);
+          return { actor: actor };
+        };
+        let onDisconnect = mm => {
+          map.delete(mm);
+        };
+        return DebuggerServer.connectToChild(this.conn, appFrame, onDisconnect)
+                             .then(onConnect);
+      }
 
-    return { actor: actor };
+      return { actor: actor };
+    });
   },
 
   watchApps: function () {
@@ -981,12 +973,14 @@ WebappsActor.prototype = {
       return;
     }
 
-    if (this._isAppAllowedForURL(manifestURL)) {
-      this.conn.send({ from: this.actorID,
-                       type: "appOpen",
-                       manifestURL: manifestURL
-                     });
-    }
+    this._isAppAllowedForURL(manifestURL).then(allowed => {
+      if (allowed) {
+        this.conn.send({ from: this.actorID,
+                         type: "appOpen",
+                         manifestURL: manifestURL
+                       });
+      }
+    });
   },
 
   onAppFrameDestroyed: function (frame, isLastAppFrame) {
@@ -1000,12 +994,14 @@ WebappsActor.prototype = {
       return;
     }
 
-    if (this._isAppAllowedForURL(manifestURL)) {
-      this.conn.send({ from: this.actorID,
-                       type: "appClose",
-                       manifestURL: manifestURL
-                     });
-    }
+    this._isAppAllowedForURL(manifestURL).then(allowed => {
+      if (allowed) {
+        this.conn.send({ from: this.actorID,
+                         type: "appClose",
+                         manifestURL: manifestURL
+                       });
+      }
+    });
   },
 
   observe: function (subject, topic, data) {

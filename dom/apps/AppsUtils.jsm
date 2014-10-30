@@ -107,7 +107,6 @@ function _setAppProperties(aObj, aApp) {
   aObj.redirects = aApp.redirects;
   aObj.widgetPages = aApp.widgetPages || [];
   aObj.kind = aApp.kind;
-  aObj.sideloaded = aApp.sideloaded;
 }
 
 this.AppsUtils = {
