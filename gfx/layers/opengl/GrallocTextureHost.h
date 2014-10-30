@@ -135,6 +135,7 @@ private:
   NewSurfaceDescriptorGralloc mGrallocHandle;
   RefPtr<GrallocTextureSourceOGL> mTextureSource;
   gfx::IntSize mSize; // See comment in textureClientOGL.h
+  bool mIsOpaque;
 };
 
 } // namespace layers

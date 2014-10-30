@@ -310,6 +310,7 @@ GrallocTextureSourceOGL::DeallocateDeviceData()
 GrallocTextureHostOGL::GrallocTextureHostOGL(TextureFlags aFlags,
                                              const NewSurfaceDescriptorGralloc& aDescriptor)
   : TextureHost(aFlags)
+  , mIsOpaque(aDescriptor.isOpaque())
 {
   gfx::SurfaceFormat format = gfx::SurfaceFormat::UNKNOWN;
   mGrallocHandle = aDescriptor;
