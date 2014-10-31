@@ -71,12 +71,18 @@ startTestCommon(function() {
       return Promise.resolve()
 
         // If MCC/MNC doesn't match any, report given home network name.
-        .then(() => test("Foo1", "Bar1", "123", "456", 0x0000, TEST_CELL_ID))
-        .then(() => test("Foo2", "Bar2", "123", "456", 0x0001, TEST_CELL_ID))
-        .then(() => test("Foo3", "Bar3", "123", "456", 0x0002, TEST_CELL_ID))
-        .then(() => test("Foo4", "Bar4", "123", "456", 0x0010, TEST_CELL_ID))
-        .then(() => test("Foo5", "Bar5", "123", "456", 0x0011, TEST_CELL_ID))
-        .then(() => test("Foo6", "Bar6", "123", "456", 0xFFFE, TEST_CELL_ID))
+        .then(() => test("Foo1", "Bar1", "123", "456", 0x0000, TEST_CELL_ID,
+                         "Android", ""))
+        .then(() => test("Foo2", "Bar2", "123", "456", 0x0001, TEST_CELL_ID,
+                         "Android", ""))
+        .then(() => test("Foo3", "Bar3", "123", "456", 0x0002, TEST_CELL_ID,
+                         "Android", ""))
+        .then(() => test("Foo4", "Bar4", "123", "456", 0x0010, TEST_CELL_ID,
+                         "Android", ""))
+        .then(() => test("Foo5", "Bar5", "123", "456", 0x0011, TEST_CELL_ID,
+                         "Android", ""))
+        .then(() => test("Foo6", "Bar6", "123", "456", 0xFFFE, TEST_CELL_ID,
+                         "Android", ""))
 
         // Full ranged network.  Report network name from PNN.
         .then(() => test("Foo1", "Bar1", "001", "01", 0x0000, TEST_CELL_ID,
@@ -88,26 +94,31 @@ startTestCommon(function() {
 
         // Ranged network.  Report network name from PNN if lac is inside the
         // inclusive range 0x01..0x10.
-        .then(() => test("Foo1", "Bar1", "001", "02", 0x0000, TEST_CELL_ID))
+        .then(() => test("Foo1", "Bar1", "001", "02", 0x0000, TEST_CELL_ID,
+                         "Android", ""))
         .then(() => test("Foo2", "Bar2", "001", "02", 0x0001, TEST_CELL_ID,
                          "Test2", ""))
         .then(() => test("Foo3", "Bar3", "001", "02", 0x0002, TEST_CELL_ID,
                          "Test2", ""))
         .then(() => test("Foo4", "Bar4", "001", "02", 0x0010, TEST_CELL_ID,
                          "Test2", ""))
-        .then(() => test("Foo5", "Bar5", "001", "02", 0xFFFE, TEST_CELL_ID))
+        .then(() => test("Foo5", "Bar5", "001", "02", 0xFFFE, TEST_CELL_ID,
+                         "Android", ""))
 
         // Single entry network.  Report network name from PNN if lac matches.
-        .then(() => test("Foo1", "Bar1", "001", "03", 0x0000, TEST_CELL_ID))
+        .then(() => test("Foo1", "Bar1", "001", "03", 0x0000, TEST_CELL_ID,
+                         "Android", ""))
         .then(() => test("Foo2", "Bar2", "001", "03", 0x0011, TEST_CELL_ID,
                          "Test3", ""))
-        .then(() => test("Foo3", "Bar3", "001", "03", 0xFFFE, TEST_CELL_ID))
+        .then(() => test("Foo3", "Bar3", "001", "03", 0xFFFE, TEST_CELL_ID,
+                         "Android", ""))
 
         // Test if we match MNC "01" and "001" correctly.
         .then(() => test("Foo1", "Bar1", "001", "001", 0x0012, TEST_CELL_ID,
                          "Test4", ""))
 
         // Reset back to initial values.
-        .then(() => test(longName, shortName, mcc, mnc, lac, cid));
+        .then(() => test(longName, shortName, mcc, mnc, lac, cid,
+                         "Android", ""));
     });
 });

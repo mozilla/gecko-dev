@@ -182,6 +182,14 @@ add_test(function test_fetch_sim_recodes() {
       ifCalled.push("readSST");
     };
 
+    simRecord.readOperatorNameString = function() {
+      ifCalled.push("readOperatorNameString");
+    };
+
+    simRecord.readOperatorNameShortForm = function() {
+      ifCalled.push("readOperatorNameShortForm");
+    };
+
     simRecord.fetchSimRecords();
 
     for (let i = 0; i < expectCalled.length; i++ ) {
@@ -192,7 +200,8 @@ add_test(function test_fetch_sim_recodes() {
     }
   }
 
-  let expectCalled = ["getIMSI", "readAD", "readSST"];
+  let expectCalled = ["getIMSI", "readAD", "readSST", "readOperatorNameString",
+                      "readOperatorNameShortForm"];
   testFetchSimRecordes(expectCalled);
 
   run_next_test();
@@ -599,6 +608,69 @@ add_test(function test_update_display_condition() {
   do_test_spn(0x01, true, true);
   do_test_spn(0x02, true, false);
   do_test_spn(0x03, true, false);
+
+  run_next_test();
+});
+
+/**
+ * Verify the result of CPHS ONS overriding.
+ */
+add_test(function test_cphs_ons() {
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let record = context.SimRecordHelper;
+  let helper = context.GsmPDUHelper;
+  let ril    = context.RIL;
+  let buf    = context.Buf;
+  let io     = context.ICCIOHelper;
+
+  // Create empty operator object.
+  ril.operator = {};
+  ril.operator.longName = "PLMN Long Name";
+  ril.operator.shortName = "PLMN Short Name";
+
+  function do_test_ons(roaming) {
+    // ONS
+    let ons = [0x4F, 0x4E, 0x53];
+    // ONS Short
+    let ons_short = [0x4F, 0x4E, 0x53, 0x20, 0x53, 0x68, 0x6F, 0x72, 0x74];
+
+    ril.voiceRegistrationState.roaming = roaming;
+
+    io.loadTransparentEF = function fakeLoadTransparentEF(options) {
+      let ons_hex_data = (options.fileId == ICC_EF_ONS) ? ons :
+        ons_short;
+
+      // Write data size
+      buf.writeInt32(ons_hex_data.length * 2);
+
+      // Write data
+      for (let i = 0; i < ons_hex_data.length; i++) {
+        helper.writeHexOctet(ons_hex_data[i]);
+      }
+
+      // Write string delimiter.
+      buf.writeStringDelimiter(ons_hex_data.length * 2);
+
+      if (options.callback) {
+        options.callback(options);
+      }
+    };
+
+    record.readOperatorNameString();
+    record.readOperatorNameShortForm();
+  }
+
+  // Roaming case
+  do_test_ons(true);
+
+  do_check_eq(ril.operator.longName, "PLMN Long Name");
+  do_check_eq(ril.operator.shortName, "PLMN Short Name");
+
+  // Home case
+  do_test_ons(false);
+  do_check_eq(ril.operator.longName, "ONS");
+  do_check_eq(ril.operator.shortName, "ONS Short");
 
   run_next_test();
 });
