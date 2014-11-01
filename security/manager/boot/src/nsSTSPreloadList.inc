@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1425568952815000);
+const PRTime gPreloadListExpirationTime = INT64_C(1425722874911000);
 
 class nsSTSPreload
 {
@@ -107,6 +107,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "crm.onlime.ch", false },
   { "crypto.cat", false },
   { "cryptopartyatx.org", true },
+  { "cube.de", true },
   { "cupcake.io", true },
   { "cupcake.is", true },
   { "cybershambles.com", true },
@@ -133,6 +134,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "donmez.ws", false },
   { "download.jitsi.org", false },
   { "drive.google.com", true },
+  { "dropbox.com", false },
   { "ebanking.indovinabank.com.vn", false },
   { "ecosystem.atlassian.net", true },
   { "edyou.eu", true },
@@ -445,7 +447,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "vocaloid.my", true },
   { "w-spotlight.appspot.com", true },
   { "wallet.google.com", true },
-  { "webandmore.de", true },
+  { "webandmore.de", false },
   { "webcollect.org.uk", true },
   { "webfilings-eu-mirror.appspot.com", true },
   { "webfilings-eu.appspot.com", true },
@@ -478,6 +480,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.braintreepayments.com", false },
   { "www.capitainetrain.com", false },
   { "www.cyveillance.com", true },
+  { "www.dropbox.com", true },
   { "www.dropcam.com", false },
   { "www.entropia.de", false },
   { "www.eternalgoth.co.uk", true },
