@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<blocklist xmlns="http://www.mozilla.org/2006/addons-blocklist" lastupdate="1414626195000">
+<blocklist xmlns="http://www.mozilla.org/2006/addons-blocklist" lastupdate="1414797849000">
   <emItems>
       <emItem  blockID="i58" id="webmaster@buzzzzvideos.info">
                         <versionRange  minVersion="0" maxVersion="*">
@@ -347,6 +347,12 @@
                     <prefs>
               </prefs>
     </emItem>
+      <emItem  blockID="i766" id="/^[a-z0-9]+@foxysecure[a-z0-9]*\.com$/">
+                        <versionRange  minVersion="0" maxVersion="*" severity="1">
+                    </versionRange>
+                    <prefs>
+              </prefs>
+    </emItem>
       <emItem  blockID="i196" id="info@wxdownloadmanager.com">
                         <versionRange  minVersion="0" maxVersion="*" severity="3">
                     </versionRange>
@@ -581,6 +587,14 @@
                         <versionRange  minVersion="0" maxVersion="*" severity="3">
                     </versionRange>
                     <prefs>
+              </prefs>
+    </emItem>
+      <emItem  blockID="i770" id="{8dc5c42e-9204-2a64-8b97-fa94ff8a241f}">
+                        <versionRange  minVersion="0" maxVersion="*" severity="3">
+                    </versionRange>
+                    <prefs>
+                  <pref>browser.startup.homepage</pref>
+                  <pref>browser.search.defaultenginename</pref>
               </prefs>
     </emItem>
       <emItem  blockID="i40" id="{28387537-e3f9-4ed7-860c-11e69af4a8a0}">
@@ -1244,6 +1258,14 @@
                     <prefs>
               </prefs>
     </emItem>
+      <emItem  blockID="i768" id="{f2548724-373f-45fe-be6a-3a85e87b7711}">
+                        <versionRange  minVersion="0" maxVersion="*" severity="3">
+                    </versionRange>
+                    <prefs>
+                  <pref>browser.startup.homepage</pref>
+                  <pref>browser.search.defaultenginename</pref>
+              </prefs>
+    </emItem>
       <emItem  blockID="i246" id="support@vide1flash2.com">
                         <versionRange  minVersion="0" maxVersion="*" severity="3">
                     </versionRange>
@@ -1613,6 +1635,14 @@
                     <prefs>
               </prefs>
     </emItem>
+      <emItem  blockID="i774" id="x77IjS@xU.net">
+                        <versionRange  minVersion="0" maxVersion="*" severity="1">
+                    </versionRange>
+                    <prefs>
+                  <pref>browser.startup.homepage</pref>
+                  <pref>browser.search.defaultenginename</pref>
+              </prefs>
+    </emItem>
       <emItem  blockID="i174" id="info@thebflix.com">
                         <versionRange  minVersion="0" maxVersion="*" severity="3">
                     </versionRange>
@@ -1857,6 +1887,12 @@
                   <pref>browser.search.defaultenginename</pref>
               </prefs>
     </emItem>
+      <emItem  blockID="i772" id="{72b98dbc-939a-4e0e-b5a9-9fdbf75963ef}">
+                        <versionRange  minVersion="0" maxVersion="*" severity="3">
+                    </versionRange>
+                    <prefs>
+              </prefs>
+    </emItem>
       <emItem  blockID="i224" id="{336D0C35-8A85-403a-B9D2-65C292C39087}">
                         <versionRange  minVersion="0" maxVersion="*" severity="1">
                     </versionRange>
@@ -1901,6 +1937,14 @@
     </emItem>
       <emItem  blockID="i10" id="{8CE11043-9A15-4207-A565-0C94C42D590D}">
                           <prefs>
+              </prefs>
+    </emItem>
+      <emItem  blockID="i776" id="g@uzcERQ6ko.net">
+                        <versionRange  minVersion="0" maxVersion="*" severity="1">
+                    </versionRange>
+                    <prefs>
+                  <pref>browser.startup.homepage</pref>
+                  <pref>browser.search.defaultenginename</pref>
               </prefs>
     </emItem>
       <emItem  blockID="i748" id="{32da2f20-827d-40aa-a3b4-2fc4a294352e}">
