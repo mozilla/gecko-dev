@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1423908606444000);
+const PRTime gPreloadListExpirationTime = INT64_C(1425722874911000);
 
 class nsSTSPreload
 {
@@ -134,6 +134,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "donmez.ws", false },
   { "download.jitsi.org", false },
   { "drive.google.com", true },
+  { "dropbox.com", false },
   { "ebanking.indovinabank.com.vn", false },
   { "ecosystem.atlassian.net", true },
   { "edyou.eu", true },
@@ -201,7 +202,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "hostix.de", true },
   { "howrandom.org", true },
   { "iban.is", true },
-  { "id.atlassian.com", false },
+  { "id.atlassian.com", true },
   { "id.mayfirst.org", false },
   { "ihrlotto.de", true },
   { "imouto.my", false },
@@ -244,7 +245,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "lb-toner.de", true },
   { "library.linode.com", false },
   { "linode.com", false },
-  { "linx.net", false },
+  { "linx.net", true },
   { "lockify.com", true },
   { "loenshotel.de", true },
   { "loftboard.eu", true },
@@ -255,6 +256,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "login.xero.com", false },
   { "lolicore.ch", true },
   { "lookout.com", false },
+  { "ludwig.im", true },
   { "lumi.do", false },
   { "luneta.nearbuysystems.com", false },
   { "mach-politik.ch", true },
@@ -270,7 +272,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "market.android.com", true },
   { "markusueberallassetmanagement.de", true },
   { "mathiasbynens.be", true },
-  { "matteomarescotti.name", true },
   { "mattmccutchen.net", true },
   { "mbp.banking.co.at", false },
   { "mediacru.sh", true },
@@ -325,6 +326,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "pay.gigahost.dk", true },
   { "paymill.com", true },
   { "paymill.de", true },
+  { "paypal.com", false },
   { "pdf.yt", true },
   { "picksin.club", true },
   { "pierre-schmitz.com", true },
@@ -339,7 +341,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "prowhisky.de", true },
   { "pubkey.is", true },
   { "publications.qld.gov.au", false },
-  { "pult.co", true },
+  { "pult.co", false },
   { "pypi.python.org", true },
   { "python.org", false },
   { "qetesh.de", true },
@@ -352,7 +354,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "riccy.org", true },
   { "riesenmagnete.de", true },
   { "rippleunion.com", true },
-  { "rme.li", false },
   { "roddis.net", false },
   { "romab.com", true },
   { "rosenkeller.org", true },
@@ -446,7 +447,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "vocaloid.my", true },
   { "w-spotlight.appspot.com", true },
   { "wallet.google.com", true },
-  { "webandmore.de", true },
+  { "webandmore.de", false },
   { "webcollect.org.uk", true },
   { "webfilings-eu-mirror.appspot.com", true },
   { "webfilings-eu.appspot.com", true },
@@ -479,6 +480,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.braintreepayments.com", false },
   { "www.capitainetrain.com", false },
   { "www.cyveillance.com", true },
+  { "www.dropbox.com", true },
   { "www.dropcam.com", false },
   { "www.entropia.de", false },
   { "www.eternalgoth.co.uk", true },
