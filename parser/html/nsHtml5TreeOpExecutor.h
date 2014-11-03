@@ -173,7 +173,7 @@ class nsHtml5TreeOpExecutor : public nsHtml5DocumentBuilder,
                   
     void RunFlushLoop();
 
-    void FlushDocumentWrite();
+    nsresult FlushDocumentWrite();
 
     void MaybeSuspend();
 
