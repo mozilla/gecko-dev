@@ -33,6 +33,7 @@
 
 #include <arpa/inet.h>
 #include <netdb.h>
+#include "nsIOService.h"
 #include "nsPrintfCString.h"
 
 #include "prlog.h"
@@ -947,6 +948,12 @@ struct RtspConnectionHandler : public AHandler {
 
                 if (track->mNumAccessUnitsReceiveds == 0) {
                     LOGI("stream ended? aborting.");
+                    if (gIOService->IsOffline()) {
+                        sp<AMessage> reply = new AMessage(kWhatDisconnected, id());
+                        reply->setInt32("result", ERROR_CONNECTION_LOST);
+                        mConn->disconnect(reply);
+                        break;
+                    }
                     sp<AMessage> endStreamMsg = new AMessage('endofstream', id());
                     endStreamMsg->setSize("trackIndex", trackIndex);
                     endStreamMsg->post();
