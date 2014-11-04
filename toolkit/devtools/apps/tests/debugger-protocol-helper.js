@@ -114,6 +114,46 @@ addMessageListener("install", function (aMessage) {
   }
 });
 
+addMessageListener("getAppActor", function (aMessage) {
+  let { manifestURL } = aMessage;
+  let request = {type: "getAppActor", manifestURL: manifestURL};
+  webappActorRequest(request, function (aResponse) {
+    sendAsyncMessage("appActor", aResponse);
+  });
+});
+
+let Frames = [];
+addMessageListener("addFrame", function (aMessage) {
+  let win = Services.wm.getMostRecentWindow("navigator:browser");
+  let doc = win.document;
+  let frame = doc.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
+  frame.setAttribute("mozbrowser", "true");
+  if (aMessage.mozapp) {
+    frame.setAttribute("mozapp", aMessage.mozapp);
+  }
+  if (aMessage.remote) {
+    frame.setAttribute("remote", aMessage.remote);
+  }
+  if (aMessage.src) {
+    frame.setAttribute("src", aMessage.src);
+  }
+  doc.documentElement.appendChild(frame);
+  Frames.push(frame);
+  sendAsyncMessage("frameAdded");
+});
+
+addMessageListener("tweak-app-object", function (aMessage) {
+  let appId = aMessage.appId;
+  Cu.import('resource://gre/modules/Webapps.jsm');
+  let reg = DOMApplicationRegistry;
+  if ("removable" in aMessage) {
+    reg.webapps[appId].removable = aMessage.removable;
+  }
+  if ("sideloaded" in aMessage) {
+    reg.webapps[appId].sideloaded = aMessage.sideloaded;
+  }
+});
+
 addMessageListener("cleanup", function () {
   webappActorRequest({type: "unwatchApps"}, function () {
     gClient.close();
