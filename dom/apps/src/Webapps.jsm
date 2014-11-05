@@ -2789,10 +2789,17 @@ this.DOMApplicationRegistry = {
       });
 
       let zipFile = yield this._getPackage(requestChannel, id, oldApp, aNewApp);
-      let hash = yield this._computeFileHash(zipFile.path);
 
       let responseStatus = requestChannel.responseStatus;
-      let oldPackage = (responseStatus == 304 || hash == oldApp.packageHash);
+      let oldPackage = responseStatus == 304;
+
+      // If the response was 304 we probably won't have anything to hash.
+      let hash = null;
+      if (!oldPackage) {
+        hash = yield this._computeFileHash(zipFile.path);
+      }
+
+      oldPackage = oldPackage || (hash == oldApp.packageHash);
 
       if (oldPackage) {
         debug("package's etag or hash unchanged; sending 'applied' event");
