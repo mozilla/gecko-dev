@@ -211,7 +211,9 @@ public class GeckoAppShell
     public static native void dispatchMemoryPressure();
 
     public static void registerGlobalExceptionHandler() {
-        systemUncaughtHandler = Thread.getDefaultUncaughtExceptionHandler();
+        if (systemUncaughtHandler == null) {
+            systemUncaughtHandler = Thread.getDefaultUncaughtExceptionHandler();
+        }
 
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
@@ -2526,7 +2528,7 @@ public class GeckoAppShell
             getGeckoInterface().notifyWakeLockChanged(topic, state);
     }
 
-    @WrapElementForJNI
+    @WrapElementForJNI(allowMultithread = true)
     public static void registerSurfaceTextureFrameListener(Object surfaceTexture, final int id) {
         ((SurfaceTexture)surfaceTexture).setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
             @Override
