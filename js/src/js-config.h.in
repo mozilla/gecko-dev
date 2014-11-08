@@ -34,8 +34,8 @@
 /* Define to 1 if SpiderMonkey should use Generational GC. */
 #undef JSGC_GENERATIONAL
 
-/* Define to 1 if SpiderMonkey should use Compacting GC. */
-#undef JSGC_COMPACTING
+/* Define to 1 if SpiderMonkey should use Exact Rooting. */
+#undef JSGC_USE_EXACT_ROOTING
 
 /* Define to 1 if the <endian.h> header is present and
    useable.  See jscpucfg.h.  */
