@@ -6071,6 +6071,12 @@ RilObject.prototype[REQUEST_QUERY_CALL_WAITING] =
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+
+    if (options.callback) {
+      // Prevent DataCloneError when sending chrome messages.
+      delete options.callback;
+    }
+
     this.sendChromeMessage(options);
     return;
   }
@@ -6091,6 +6097,12 @@ RilObject.prototype[REQUEST_SET_CALL_WAITING] = function REQUEST_SET_CALL_WAITIN
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+
+    if (options.callback) {
+      // Prevent DataCloneError when sending chrome messages.
+      delete options.callback;
+    }
+
     this.sendChromeMessage(options);
     return;
   }
