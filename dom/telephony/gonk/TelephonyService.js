@@ -696,7 +696,6 @@ TelephonyService.prototype = {
 
     aCall.clientId = aClientId;
     aCall.state = nsITelephonyService.CALL_STATE_DISCONNECTED;
-    aCall.isEmergency = this._isEmergencyNumber(aCall.number);
     let duration = ("started" in aCall && typeof aCall.started == "number") ?
       new Date().getTime() - aCall.started : 0;
     let data = {
@@ -801,9 +800,8 @@ TelephonyService.prototype = {
     let call = this._currentCalls[aClientId][aCall.callIndex];
     if (call) {
       call.state = aCall.state;
-      call.number = aCall.number;
       call.isConference = aCall.isConference;
-      call.isEmergency = this._isEmergencyNumber(aCall.number);
+      call.isEmergency = aCall.isEmergency;
       call.isSwitchable = aCall.isSwitchable != null ?
                           aCall.isSwitchable : call.isSwitchable;
       call.isMergeable = aCall.isMergeable != null ?
