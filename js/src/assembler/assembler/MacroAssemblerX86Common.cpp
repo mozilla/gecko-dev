@@ -42,6 +42,7 @@ void MacroAssemblerX86Common::setSSECheckState()
     flags_edx = cpuinfo[3];
 #else
     _asm {
+        xor ecx, ecx // some older processors don't fill ecx, see further below.
         mov eax, 1 // cpuid function 1 gives us the standard feature set
         cpuid;
         mov flags_ecx, ecx;
@@ -59,7 +60,11 @@ void MacroAssemblerX86Common::setSSECheckState()
          );
 #else
     // On 32-bit x86, we must preserve ebx; the compiler needs it for PIC mode.
+    // Some older processors don't fill the ecx register with cpuid, so clobber
+    // it before calling cpuid, so that there's no risk of picking random bits
+    // indicating SSE3/SSE4 are present.
     asm (
+         "xor %%ecx, %%ecx;"
          "movl $0x1, %%eax;"
          "pushl %%ebx;"
          "cpuid;"
@@ -84,6 +89,7 @@ void MacroAssemblerX86Common::setSSECheckState()
          );
 #else
     asm (
+         "xor %%ecx, %%ecx;"
          "movl $0x1, %eax;"
          "pushl %ebx;"
          "cpuid;"
