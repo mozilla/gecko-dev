@@ -22,6 +22,7 @@
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "nsWrapperCache.h"
 #include "nsIObserver.h"
+#include "nsIDOMEventListener.h"
 #include "nsLayoutUtils.h"
 
 #include "GLContextProvider.h"
@@ -62,7 +63,7 @@ class nsIDocShell;
 namespace mozilla {
 
 class WebGLContextLossHandler;
-class WebGLMemoryPressureObserver;
+class WebGLObserver;
 class WebGLContextBoundObject;
 class WebGLActiveInfo;
 class WebGLExtensionBase;
@@ -149,7 +150,7 @@ class WebGLContext :
     friend class WebGLExtensionDrawBuffers;
     friend class WebGLExtensionLoseContext;
     friend class WebGLExtensionVertexArray;
-    friend class WebGLMemoryPressureObserver;
+    friend class WebGLObserver;
     friend class WebGLMemoryTracker;
 
     enum {
@@ -928,8 +929,9 @@ protected:
     bool mMinCapability;
     bool mDisableExtensions;
     bool mIsMesa;
-    bool mLoseContextOnHeapMinimize;
+    bool mLoseContextOnMemoryPressure;
     bool mCanLoseContextInForeground;
+    bool mRestoreWhenVisible;
     bool mShouldPresent;
     bool mBackbufferNeedsClear;
     bool mDisableFragHighP;
@@ -1173,7 +1175,7 @@ protected:
                              GLenum type,
                              const GLvoid *data);
 
-    void ForceLoseContext();
+    void ForceLoseContext(bool simulateLosing = false);
     void ForceRestoreContext();
 
     nsTArray<WebGLRefPtr<WebGLTexture> > mBound2DTextures;
@@ -1282,7 +1284,7 @@ protected:
     ForceDiscreteGPUHelperCGL mForceDiscreteGPUHelper;
 #endif
 
-    nsRefPtr<WebGLMemoryPressureObserver> mMemoryPressureObserver;
+    nsRefPtr<WebGLObserver> mContextObserver;
 
 public:
     // console logging helpers
@@ -1380,19 +1382,29 @@ WebGLContext::ValidateObject(const char* info, ObjectType *aObject)
     return ValidateObjectAssumeNonNull(info, aObject);
 }
 
-class WebGLMemoryPressureObserver MOZ_FINAL
+// Listen visibilitychange and memory-pressure event for context lose/restore
+class WebGLObserver MOZ_FINAL
     : public nsIObserver
+    , public nsIDOMEventListener
 {
 public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
+    NS_DECL_NSIDOMEVENTLISTENER
 
-  WebGLMemoryPressureObserver(WebGLContext *context)
-    : mContext(context)
-  {}
+    WebGLObserver(WebGLContext* aContext);
+    ~WebGLObserver();
+
+    void Destroy();
+
+    void RegisterVisibilityChangeEvent();
+    void UnregisterVisibilityChangeEvent();
+
+    void RegisterMemoryPressureEvent();
+    void UnregisterMemoryPressureEvent();
 
 private:
-  WebGLContext *mContext;
+    WebGLContext* mContext;
 };
 
 } // namespace mozilla
