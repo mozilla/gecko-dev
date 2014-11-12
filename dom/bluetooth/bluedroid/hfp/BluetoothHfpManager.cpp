@@ -200,6 +200,12 @@ IsValidDtmf(const char aChar) {
          (aChar >= 'A' && aChar <= 'D');
 }
 
+static bool
+IsSupportedChld(const int aChld) {
+  // We currently only support CHLD=0~3.
+  return (aChld >= 0 && aChld <= 3);
+}
+
 class BluetoothHfpManager::GetVolumeTask : public nsISettingsServiceCallback
 {
 public:
@@ -618,6 +624,13 @@ BluetoothHfpManager::ProcessDtmfCmd(char aDtmf)
 void
 BluetoothHfpManager::ProcessAtChld(bthf_chld_type_t aChld)
 {
+  if (!IsSupportedChld((int)aChld)) {
+    // We currently don't support Enhanced Call Control.
+    // AT+CHLD=1x and AT+CHLD=2x will be ignored
+    SendResponse(BTHF_AT_RESPONSE_ERROR);
+    return;
+  }
+
   nsAutoCString message("CHLD=");
   message.AppendInt((int)aChld);
   BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::NOTIFY_DIALER,
