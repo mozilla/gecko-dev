@@ -18,6 +18,7 @@ public:
   static bool OnMountainLionOrLater();
   static bool SupportCoreAnimationPlugins();
   static bool OnMavericksOrLater();
+  static bool OnYosemiteOrLater();
 
 private:
   static void InitializeVersionNumbers();
