@@ -51,20 +51,14 @@ yes)
     ;;
 esac
 
-if test -n "$ENABLE_INTL_API"; then
-    USE_ICU=1
-fi
-
 if test -n "$EXPOSE_INTL_API"; then
     AC_DEFINE(EXPOSE_INTL_API)
 fi
 
+dnl Settings for the implementation of the ECMAScript Internationalization API
 if test -n "$ENABLE_INTL_API"; then
     AC_DEFINE(ENABLE_INTL_API)
-fi
 
-dnl Settings for the implementation of the ECMAScript Internationalization API
-if test -n "$USE_ICU"; then
     icudir="$_topsrcdir/intl/icu/source"
     if test ! -d "$icudir"; then
         icudir="$_topsrcdir/../../intl/icu/source"
@@ -121,11 +115,10 @@ fi
 
 AC_SUBST(DBG_SUFFIX)
 AC_SUBST(ENABLE_INTL_API)
-AC_SUBST(USE_ICU)
 AC_SUBST(ICU_LIB_NAMES)
 AC_SUBST(MOZ_ICU_LIBS)
 
-if test -n "$USE_ICU" -a -z "$MOZ_NATIVE_ICU"; then
+if test -n "$ENABLE_INTL_API" -a -z "$MOZ_NATIVE_ICU"; then
     dnl We build ICU as a static library for non-shared js builds and as a shared library for shared js builds.
     if test -z "$MOZ_SHARED_ICU"; then
         AC_DEFINE(U_STATIC_IMPLEMENTATION)
@@ -142,7 +135,7 @@ AC_DEFUN([MOZ_SUBCONFIGURE_ICU], [
 
 if test -z "$BUILDING_JS" -o -n "$JS_STANDALONE"; then
 
-    if test -n "$USE_ICU" -a -z "$MOZ_NATIVE_ICU"; then
+    if test -n "$ENABLE_INTL_API" -a -z "$MOZ_NATIVE_ICU"; then
         # Set ICU compile options
         ICU_CPPFLAGS=""
         # don't use icu namespace automatically in client code

@@ -5,7 +5,7 @@
 STANDALONE_MAKEFILE = 1
 
 # Ensure that this happens before including rules.mk
-ifdef USE_ICU
+ifdef ENABLE_INTL_API
   ifndef MOZ_NATIVE_ICU
   # Library names: On Windows, ICU uses modified library names for static
   # and debug libraries.
@@ -43,11 +43,11 @@ ifdef USE_ICU
       endif
     endif # MOZ_SHARED_ICU
   endif # !MOZ_NATIVE_ICU
-endif # USE_ICU
+endif # ENABLE_INTL_API
 
 include $(topsrcdir)/config/rules.mk
 
-ifdef USE_ICU
+ifdef ENABLE_INTL_API
 ifndef MOZ_NATIVE_ICU
 ifdef .PYMAKE
 ICU_MAKE = $(GMAKE)
