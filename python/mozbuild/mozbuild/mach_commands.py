@@ -367,6 +367,23 @@ class Build(MachCommandBase):
                     allow_parallel=False, ensure_exit_code=False, num_jobs=jobs,
                     silent=not verbose, force_pymake=pymake)
 
+                make_extra = self.mozconfig['make_extra'] or []
+                make_extra = dict(m.split('=', 1) for m in make_extra)
+
+                # For universal builds, we need to run the automation steps in
+                # the first architecture from MOZ_BUILD_PROJECTS
+                projects = make_extra.get('MOZ_BUILD_PROJECTS')
+                if projects:
+                    subdir = os.path.join(self.topobjdir, projects.split()[0])
+                else:
+                    subdir = self.topobjdir
+                moz_automation = os.getenv('MOZ_AUTOMATION') or make_extra.get('export MOZ_AUTOMATION', None)
+                if moz_automation and status == 0:
+                    status = self._run_make(target='automation/build', directory=subdir,
+                        line_handler=output.on_line, log=False, print_directory=False,
+                        ensure_exit_code=False, num_jobs=jobs, silent=not verbose,
+                        force_pymake=pymake)
+
                 self.log(logging.WARNING, 'warning_summary',
                     {'count': len(monitor.warnings_database)},
                     '{count} compiler warnings present.')
@@ -415,15 +432,20 @@ class Build(MachCommandBase):
         # Only for full builds because incremental builders likely don't
         # need to be burdened with this.
         if not what:
-            # Fennec doesn't have useful output from just building. We should
-            # arguably make the build action useful for Fennec. Another day...
-            if self.substs['MOZ_BUILD_APP'] != 'mobile/android':
-                app_path = self.get_binary_path('app')
-                print('To take your build for a test drive, run: %s' % app_path)
-            app = self.substs['MOZ_BUILD_APP']
-            if app in ('browser', 'mobile/android'):
-                print('For more information on what to do now, see '
-                    'https://developer.mozilla.org/docs/Developer_Guide/So_You_Just_Built_Firefox')
+            try:
+                # Fennec doesn't have useful output from just building. We should
+                # arguably make the build action useful for Fennec. Another day...
+                if self.substs['MOZ_BUILD_APP'] != 'mobile/android':
+                    app_path = self.get_binary_path('app')
+                    print('To take your build for a test drive, run: %s' % app_path)
+                app = self.substs['MOZ_BUILD_APP']
+                if app in ('browser', 'mobile/android'):
+                    print('For more information on what to do now, see '
+                        'https://developer.mozilla.org/docs/Developer_Guide/So_You_Just_Built_Firefox')
+            except Exception:
+                # Ignore Exceptions in case we can't find config.status (such
+                # as when doing OSX Universal builds)
+                pass
 
         return status
 
@@ -901,6 +923,7 @@ class MachDebug(MachCommandBase):
     @CommandArgument('--verbose', '-v', action='store_true',
         help='Print verbose output.')
     def environment(self, verbose=False):
+        state_dir = self._mach_context.state_dir
         import platform
         print('platform:\n\t%s' % platform.platform())
         print('python version:\n\t%s' % sys.version)
@@ -908,7 +931,7 @@ class MachDebug(MachCommandBase):
         print('mach cwd:\n\t%s' % self._mach_context.cwd)
         print('os cwd:\n\t%s' % os.getcwd())
         print('mach directory:\n\t%s' % self._mach_context.topdir)
-        print('state directory:\n\t%s' % self._mach_context.state_dir)
+        print('state directory:\n\t%s' % state_dir)
 
         try:
             mb = MozbuildObject.from_environment(cwd=self._mach_context.cwd)

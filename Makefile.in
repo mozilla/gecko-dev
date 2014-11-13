@@ -132,6 +132,7 @@ install-manifests: install-tests
 install-tests: $(install_manifest_depends)
 	$(call py_action,process_install_manifest,$(if $(NO_REMOVE),--no-remove )_tests _build_manifests/install/tests)
 
+include $(topsrcdir)/build/moz-automation.mk
 
 # _tests should be purged during cleaning. However, we don't want it purged
 # during PGO builds because it contains some auto-generated files.
@@ -168,7 +169,7 @@ endif
 endif
 
 default all::
-	$(call BUILDSTATUS,TIERS export $(if $(COMPILE_ENVIRONMENT),$(if $(MOZ_PSEUDO_DERECURSE),compile ))libs tools)
+	$(call BUILDSTATUS,TIERS export $(if $(COMPILE_ENVIRONMENT),$(if $(MOZ_PSEUDO_DERECURSE),compile ))libs tools $(if $(MOZ_AUTOMATION),$(MOZ_AUTOMATION_TIERS)))
 
 include $(topsrcdir)/config/rules.mk
 
@@ -251,6 +252,30 @@ endif
 MOZ_SOURCE_STAMP := $(MOZ_SOURCE_STAMP)
 export MOZ_SOURCE_STAMP
 endif
+
+.PHONY: update-packaging
+update-packaging:
+	$(MAKE) -C tools/update-packaging
+
+.PHONY: pretty-package
+pretty-package:
+	unset MOZ_SIGN_CMD && $(MAKE) package MOZ_PKG_PRETTYNAMES=1
+
+.PHONY: pretty-package-tests
+pretty-package-tests:
+	unset MOZ_SIGN_CMD && $(MAKE) package-tests MOZ_PKG_PRETTYNAMES=1
+
+.PHONY: pretty-l10n-check
+pretty-l10n-check:
+	unset MOZ_SIGN_CMD && $(MAKE) l10n-check MOZ_PKG_PRETTYNAMES=1
+
+.PHONY: pretty-update-packaging
+pretty-update-packaging:
+	unset MOZ_SIGN_CMD && $(MAKE) -C tools/update-packaging MOZ_PKG_PRETTYNAMES=1
+
+.PHONY: pretty-installer
+pretty-installer:
+	unset MOZ_SIGN_CMD && $(MAKE) installer MOZ_PKG_PRETTYNAMES=1
 
 #XXX: this is a hack, since we don't want to clobber for MSVC
 # PGO support, but we can't do this test in client.mk
