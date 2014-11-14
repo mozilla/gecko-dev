@@ -296,6 +296,17 @@ public:
    */
   TextureFlags GetFlags() const { return mFlags; }
 
+  bool HasFlags(TextureFlags aFlags) const
+  {
+    return (mFlags & aFlags) == aFlags;
+  }
+
+  void AddFlags(TextureFlags aFlags);
+
+  void RemoveFlags(TextureFlags aFlags);
+
+  void RecycleTexture(TextureFlags aFlags);
+
   /**
    * valid only for TextureFlags::RECYCLE TextureClient.
    * When called this texture client will grab a strong reference and release
@@ -323,6 +334,17 @@ public:
    * to access the shared data.
    */
   bool IsValid() const { return mValid; }
+
+  /**
+   * Called when TextureClient is added to CompositableClient.
+   */
+  void SetAddedToCompositableClient();
+
+  /**
+   * If this method retuns false, TextureClient is already added to CompositableClient,
+   * since its creation or recycling.
+   */
+  bool IsAddedToCompositableClient() const { return mAddedToCompositableClient; }
 
   /**
    * kee the passed object alive until the IPDL actor is destroyed. This can
@@ -431,12 +453,6 @@ protected:
    */
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) = 0;
 
-  void AddFlags(TextureFlags  aFlags)
-  {
-    MOZ_ASSERT(!IsSharedWithCompositor());
-    mFlags |= aFlags;
-  }
-
   ISurfaceAllocator* GetAllocator()
   {
     return mAllocator;
@@ -450,6 +466,7 @@ protected:
   gl::GfxTextureWasteTracker mWasteTracker;
   bool mShared;
   bool mValid;
+  bool mAddedToCompositableClient;
 
   RefPtr<TextureReadbackSink> mReadbackSink;
 

@@ -86,6 +86,8 @@ public:
 
   virtual bool RecvRemoveTexture() MOZ_OVERRIDE;
 
+  virtual bool RecvRecycleTexture(const TextureFlags& aTextureFlags) MOZ_OVERRIDE;
+
   TextureHost* GetTextureHost() { return mTextureHost; }
 
   void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
@@ -300,6 +302,15 @@ void TextureHost::Finalize()
     DeallocateSharedData();
     DeallocateDeviceData();
   }
+}
+
+void
+TextureHost::RecycleTexture(TextureFlags aFlags)
+{
+  MOZ_ASSERT(GetFlags() & TextureFlags::RECYCLE);
+  MOZ_ASSERT(aFlags & TextureFlags::RECYCLE);
+  MOZ_ASSERT(!HasRecycleCallback());
+  mFlags = aFlags;
 }
 
 void
@@ -795,6 +806,16 @@ TextureParent::ClearTextureHost()
 
   mTextureHost->mActor = nullptr;
   mTextureHost = nullptr;
+}
+
+bool
+TextureParent::RecvRecycleTexture(const TextureFlags& aTextureFlags)
+{
+  if (!mTextureHost) {
+    return true;
+  }
+  mTextureHost->RecycleTexture(aTextureFlags);
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
