@@ -1419,6 +1419,10 @@ class LIRGraph
         static bool match(const Value &lhs, const Value &rhs) {
             return lhs == rhs;
         }
+
+#ifdef DEBUG
+        bool canOptimizeOutIfUnused();
+#endif
     };
 
 
