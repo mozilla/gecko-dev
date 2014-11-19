@@ -653,7 +653,7 @@ AudioManager::GetForceForUse(int32_t aUsage, int32_t* aForce) {
 NS_IMETHODIMP
 AudioManager::GetFmRadioAudioEnabled(bool *aFmRadioAudioEnabled)
 {
-  *aFmRadioAudioEnabled = IsDeviceOn(AUDIO_DEVICE_OUT_FM);
+  *aFmRadioAudioEnabled = IsDeviceOn(AUDIO_DEVICE_IN_FM);
   return NS_OK;
 }
 
@@ -663,7 +663,7 @@ AudioManager::SetFmRadioAudioEnabled(bool aFmRadioAudioEnabled)
   if (static_cast<
       status_t (*) (AudioSystem::audio_devices, AudioSystem::device_connection_state, const char *)
       >(AudioSystem::setDeviceConnectionState)) {
-    AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_OUT_FM,
+    AudioSystem::setDeviceConnectionState(AUDIO_DEVICE_IN_FM,
       aFmRadioAudioEnabled ? AUDIO_POLICY_DEVICE_STATE_AVAILABLE :
       AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE, "");
     InternalSetAudioRoutes(GetCurrentSwitchState(SWITCH_HEADPHONES));
