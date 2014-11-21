@@ -613,8 +613,9 @@ Notification::ShowInternal()
           return;
         }
 
+        bool rv;
         appNotifier->ShowAppNotification(mIconUrl, mTitle, mBody,
-                                         observer, val);
+                                         observer, val, &rv);
         return;
       }
     }

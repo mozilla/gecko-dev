@@ -52,6 +52,7 @@ var MockServices = (function () {
         data: aDetails.data || undefined
       };
       this.showAlertNotification(aImageUrl, aTitle, aText, true, "", listener, aDetails.id);
+      return true;
     },
 
     closeAlert: function(name) {

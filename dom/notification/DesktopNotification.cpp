@@ -86,8 +86,9 @@ DesktopNotification::PostDesktopNotification()
         return NS_ERROR_FAILURE;
       }
 
+      bool rv;
       return appNotifier->ShowAppNotification(mIconURL, mTitle, mDescription,
-                                              mObserver, val);
+                                              mObserver, val, &rv);
     }
   }
 #endif

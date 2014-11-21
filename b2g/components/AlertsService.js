@@ -46,8 +46,13 @@ const kTopicAlertShow          = "alertshow";
 const kTopicAlertFinished      = "alertfinished";
 const kTopicAlertClickCallback = "alertclickcallback";
 
+const kAllowOverwritePrefName  =
+  "dom.notifications.mozchromenotifications.allow_resend_overwrite";
+
 function AlertsService() {
+  this.trySetPrefValue();
   Services.obs.addObserver(this, "xpcom-shutdown", false);
+  Services.prefs.addObserver(kAllowOverwritePrefName, this, false);
   cpmm.addMessageListener(kMessageAppNotificationReturn, this);
 }
 
@@ -57,10 +62,26 @@ AlertsService.prototype = {
                                          Ci.nsIAppNotificationService,
                                          Ci.nsIObserver]),
 
+  trySetPrefValue: function() {
+    try {
+      this.allowResendOverwrite =
+        Services.prefs.getBoolPref(kAllowOverwritePrefName);
+    } catch (ex) {
+      this.allowResendOverwrite = false;
+    }
+  },
+
   observe: function(aSubject, aTopic, aData) {
     switch (aTopic) {
+      case "nsPref:changed":
+        if (aData === kAllowOverwritePrefName) {
+          this.trySetPrefValue();
+        }
+        break;
+
       case "xpcom-shutdown":
         Services.obs.removeObserver(this, "xpcom-shutdown");
+        Services.prefs.removeObserver(kAllowOverwritePrefName, this);
         cpmm.removeMessageListener(kMessageAppNotificationReturn, this);
         break;
     }
@@ -97,6 +118,32 @@ AlertsService.prototype = {
           "app-notif-" + uuidGenerator.generateUUID() : aDetails.id;
 
     let dataObj = this.deserializeStructuredClone(aDetails.data);
+
+    if (this._listeners[uid]) {
+      // Is the notification we are dealing with is a resent one?
+      let currentIsResend = (aDetails.resent === true);
+
+      // Was the previous notification a resent one?
+      let oldIsResend = (this._listeners[uid].resent === true);
+
+      // Does the user allows resent notification to overwrite non resent ?
+      let denyOverwrite = this.allowResendOverwrite !== true;
+
+      // Are we in a case where we are trying to overwrite non resent with
+      // resent ?
+      let tentativeOverwrite = !oldIsResend && currentIsResend;
+
+      /**
+       * If the current notification is a resent one and the previously
+       * recorded one was not a resent, let's check if we are allowed to
+       * overwrite. We do allow, however, to do multiple resends.
+       **/
+      if (tentativeOverwrite && denyOverwrite) {
+        Cu.reportError("Notification " + uid + ": overwriting tentative by resend.");
+        return false;
+      }
+    }
+
     this._listeners[uid] = {
       observer: aAlertListener,
       title: aTitle,
@@ -109,7 +156,8 @@ AlertsService.prototype = {
       dir: aDetails.dir || undefined,
       tag: aDetails.tag || undefined,
       timestamp: aDetails.timestamp || undefined,
-      dataObj: dataObj || undefined
+      dataObj: dataObj || undefined,
+      resent: aDetails.resent || undefined
     };
 
     cpmm.sendAsyncMessage(kMessageAppNotificationSend, {
@@ -119,6 +167,8 @@ AlertsService.prototype = {
       uid: uid,
       details: aDetails
     });
+
+    return true;
   },
 
   // AlertsService.js custom implementation

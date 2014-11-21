@@ -7,14 +7,14 @@
 interface nsIObserver;
 
 // Notification service that also provides the manifest URL
-[scriptable, uuid(50cb17d2-dc8a-4aa6-bcd3-94d76af14e20)]
+[scriptable, uuid(9db1b1ac-eb66-4f7e-a81b-0e8853d4f301)]
 interface nsIAppNotificationService : nsISupports
 {
-    void showAppNotification(in AString  imageUrl,
-                             in AString  title,
-                             in AString  text,
-                             in nsIObserver alertListener,
-                             // details should be a WebIDL
-                             // AppNotificationServiceOptions Dictionary object
-                             in jsval    details);
+    boolean showAppNotification(in AString  imageUrl,
+                                in AString  title,
+                                in AString  text,
+                                in nsIObserver alertListener,
+                                // details should be a WebIDL
+                                // AppNotificationServiceOptions Dictionary object
+                                in jsval    details);
 };

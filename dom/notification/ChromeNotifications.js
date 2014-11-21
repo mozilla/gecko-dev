@@ -48,7 +48,7 @@ ChromeNotifications.prototype = {
     let resentNotifications = 0;
 
     notifications.forEach(function(notification) {
-      appNotifier.showAppNotification(
+      let rv = appNotifier.showAppNotification(
         notification.icon,
         notification.title,
         notification.body,
@@ -61,10 +61,13 @@ ChromeNotifications.prototype = {
           tag: notification.tag,
           dbId: notification.id,
           timestamp: notification.timestamp,
-          data: notification.data
+          data: notification.data,
+          resent: true
         }
       );
-      resentNotifications++;
+      if (rv) {
+        resentNotifications++;
+      }
     });
 
     try {
