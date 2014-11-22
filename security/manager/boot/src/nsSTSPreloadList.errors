@@ -8,7 +8,7 @@ apis.google.com: did not receive HSTS header (error ignored - included regardles
 app.manilla.com: could not connect to host
 appengine.google.com: did not receive HSTS header (error ignored - included regardless)
 appseccalifornia.org: did not receive HSTS header
-azprep.us: did not receive HSTS header
+azprep.us: could not connect to host
 bccx.com: could not connect to host
 bedeta.de: could not connect to host
 betnet.fr: could not connect to host
@@ -84,19 +84,21 @@ m.gparent.org: could not connect to host
 mail.google.com: did not receive HSTS header (error ignored - included regardless)
 market.android.com: did not receive HSTS header (error ignored - included regardless)
 markusueberallassetmanagement.de: could not connect to host
-matteomarescotti.name: max-age too low: 0
+matteomarescotti.name: could not connect to host
 mobilethreat.net: could not connect to host
 mobilethreatnetwork.net: could not connect to host
 mudcrab.us: could not connect to host
 my.alfresco.com: did not receive HSTS header
 mydigipass.com: did not receive HSTS header
 mykolab.com: did not receive HSTS header
+neg9.org: did not receive HSTS header
 neonisi.com: could not connect to host
 netzpolitik.org: did not receive HSTS header
 nexth.de: could not connect to host
 nexth.net: could not connect to host
 nexth.us: could not connect to host
 noexpect.org: could not connect to host
+npw.net: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 openshift.redhat.com: did not receive HSTS header
 ottospora.nl: could not connect to host
 passwordbox.com: did not receive HSTS header
@@ -109,9 +111,9 @@ prodpad.com: did not receive HSTS header
 profiles.google.com: did not receive HSTS header (error ignored - included regardless)
 promecon-gmbh.de: did not receive HSTS header
 rapidresearch.me: could not connect to host
+redports.org: could not connect to host
 riseup.net: did not receive HSTS header
 rme.li: did not receive HSTS header
-robteix.com: did not receive HSTS header
 sah3.net: could not connect to host
 saturngames.co.uk: did not receive HSTS header
 script.google.com: did not receive HSTS header (error ignored - included regardless)

@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1426936092670000);
+const PRTime gPreloadListExpirationTime = INT64_C(1427540947947000);
 
 class nsSTSPreload
 {
@@ -207,7 +207,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "id.atlassian.com", true },
   { "id.mayfirst.org", false },
   { "ihrlotto.de", true },
-  { "imouto.my", false },
+  { "imouto.my", true },
   { "in.xero.com", false },
   { "irische-segenswuensche.info", true },
   { "isitchristmas.com", true },
@@ -264,7 +264,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mach-politik.ch", true },
   { "mail.de", true },
   { "mail.google.com", true },
-  { "mailbox.org", false },
+  { "mailbox.org", true },
   { "makeyourlaws.org", true },
   { "malnex.de", true },
   { "manage.zenpayroll.com", false },
@@ -300,7 +300,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mylookout.com", false },
   { "mynigma.org", true },
   { "nachsenden.info", true },
-  { "neg9.org", false },
   { "neilwynne.com", false },
   { "netzbit.de", true },
   { "ng-security.com", true },
@@ -356,6 +355,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "riccy.org", true },
   { "riesenmagnete.de", true },
   { "rippleunion.com", true },
+  { "robteix.com", true },
   { "roddis.net", false },
   { "romab.com", true },
   { "rosenkeller.org", true },
