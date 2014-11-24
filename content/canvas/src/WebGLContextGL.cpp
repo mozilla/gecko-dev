@@ -3868,7 +3868,8 @@ WebGLContext::LoseContext()
     if (IsContextLost())
         return ErrorInvalidOperation("loseContext: Context is already lost.");
 
-    ForceLoseContext(true);
+    ForceLoseContext();
+    mLastLossWasSimulated = true;
 }
 
 void

@@ -54,7 +54,6 @@
 #include "mozilla/Telemetry.h"
 
 #include "nsIObserverService.h"
-#include "nsIDOMEvent.h"
 #include "mozilla/Services.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -74,135 +73,28 @@ using namespace mozilla::gfx;
 using namespace mozilla::gl;
 using namespace mozilla::layers;
 
-WebGLObserver::WebGLObserver(WebGLContext* aContext)
-    : mContext(aContext)
-{
-}
-
-WebGLObserver::~WebGLObserver()
-{
-}
-
-void
-WebGLObserver::Destroy()
-{
-    UnregisterMemoryPressureEvent();
-    UnregisterVisibilityChangeEvent();
-    mContext = nullptr;
-}
-
-void
-WebGLObserver::RegisterVisibilityChangeEvent()
-{
-    if (!mContext) {
-        return;
-    }
-
-    HTMLCanvasElement* canvasElement = mContext->GetCanvas();
-
-    MOZ_ASSERT(canvasElement);
-
-    if (canvasElement) {
-        nsIDocument* document = canvasElement->OwnerDoc();
-
-        document->AddSystemEventListener(NS_LITERAL_STRING("visibilitychange"),
-                                         this,
-                                         true,
-                                         false);
-    }
-}
-
-void
-WebGLObserver::UnregisterVisibilityChangeEvent()
-{
-    if (!mContext) {
-        return;
-    }
-
-    HTMLCanvasElement* canvasElement = mContext->GetCanvas();
-
-    if (canvasElement) {
-        nsIDocument* document = canvasElement->OwnerDoc();
-
-        document->RemoveSystemEventListener(NS_LITERAL_STRING("visibilitychange"),
-                                            this,
-                                            true);
-    }
-}
-
-void
-WebGLObserver::RegisterMemoryPressureEvent()
-{
-    if (!mContext) {
-        return;
-    }
-
-    nsCOMPtr<nsIObserverService> observerService =
-        mozilla::services::GetObserverService();
-
-    MOZ_ASSERT(observerService);
-
-    if (observerService) {
-        observerService->AddObserver(this, "memory-pressure", false);
-    }
-}
-
-void
-WebGLObserver::UnregisterMemoryPressureEvent()
-{
-    if (!mContext) {
-        return;
-    }
-
-    nsCOMPtr<nsIObserverService> observerService =
-        mozilla::services::GetObserverService();
-
-    MOZ_ASSERT(observerService);
-
-    if (observerService) {
-        observerService->RemoveObserver(this, "memory-pressure");
-    }
-}
-
 NS_IMETHODIMP
-WebGLObserver::Observe(nsISupports* aSubject,
-                       const char* aTopic,
-                       const char16_t* aSomeData)
+WebGLMemoryPressureObserver::Observe(nsISupports* aSubject,
+                                     const char* aTopic,
+                                     const char16_t* aSomeData)
 {
-    if (!mContext || strcmp(aTopic, "memory-pressure")) {
+    if (strcmp(aTopic, "memory-pressure"))
         return NS_OK;
-    }
 
-    bool wantToLoseContext = mContext->mLoseContextOnMemoryPressure;
+    bool wantToLoseContext = true;
 
     if (!mContext->mCanLoseContextInForeground &&
         ProcessPriorityManager::CurrentProcessIsForeground())
     {
         wantToLoseContext = false;
+    } else if (!nsCRT::strcmp(aSomeData,
+                              MOZ_UTF16("heap-minimize")))
+    {
+        wantToLoseContext = mContext->mLoseContextOnHeapMinimize;
     }
 
     if (wantToLoseContext) {
         mContext->ForceLoseContext();
-    }
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-WebGLObserver::HandleEvent(nsIDOMEvent* aEvent)
-{
-    nsAutoString type;
-    aEvent->GetType(type);
-    if (!mContext || !type.EqualsLiteral("visibilitychange")) {
-        return NS_OK;
-    }
-
-    HTMLCanvasElement* canvasElement = mContext->GetCanvas();
-
-    MOZ_ASSERT(canvasElement);
-
-    if (canvasElement && !canvasElement->OwnerDoc()->Hidden()) {
-        mContext->ForceRestoreContext();
     }
 
     return NS_OK;
@@ -285,9 +177,8 @@ WebGLContext::WebGLContext()
     mLastLossWasSimulated = false;
     mContextLossHandler = new WebGLContextLossHandler(this);
     mContextStatus = ContextNotLost;
-    mLoseContextOnMemoryPressure = false;
+    mLoseContextOnHeapMinimize = false;
     mCanLoseContextInForeground = true;
-    mRestoreWhenVisible = false;
 
     mAlreadyGeneratedWarnings = 0;
     mAlreadyWarnedAboutFakeVertexAttrib0 = false;
@@ -298,9 +189,6 @@ WebGLContext::WebGLContext()
         GenerateWarning("webgl.max-warnings-per-context size is too large (seems like a negative value wrapped)");
         mMaxWarnings = 0;
     }
-
-    mContextObserver = new WebGLObserver(this);
-    MOZ_RELEASE_ASSERT(mContextObserver, "Can't alloc WebGLContextObserver");
 
     mLastUseIndex = 0;
 
@@ -315,8 +203,6 @@ WebGLContext::WebGLContext()
 
 WebGLContext::~WebGLContext()
 {
-    mContextObserver->Destroy();
-
     RemovePostRefreshObserver();
     DestroyResourcesAndContext();
     WebGLMemoryTracker::RemoveWebGLContext(this);
@@ -328,7 +214,15 @@ WebGLContext::~WebGLContext()
 void
 WebGLContext::DestroyResourcesAndContext()
 {
-    mContextObserver->UnregisterMemoryPressureEvent();
+    if (mMemoryPressureObserver) {
+        nsCOMPtr<nsIObserverService> observerService
+            = mozilla::services::GetObserverService();
+        if (observerService) {
+            observerService->RemoveObserver(mMemoryPressureObserver,
+                                            "memory-pressure");
+        }
+        mMemoryPressureObserver = nullptr;
+    }
 
     if (!gl)
         return;
@@ -1395,10 +1289,6 @@ WebGLContext::UpdateContextLossStatus()
         if (mLastLossWasSimulated)
             return;
 
-        // Restore when the app is visible
-        if (mRestoreWhenVisible)
-            return;
-
         ForceRestoreContext();
         return;
     }
@@ -1432,22 +1322,16 @@ WebGLContext::UpdateContextLossStatus()
 }
 
 void
-WebGLContext::ForceLoseContext(bool simulateLosing)
+WebGLContext::ForceLoseContext()
 {
     printf_stderr("WebGL(%p)::ForceLoseContext\n", this);
     MOZ_ASSERT(!IsContextLost());
     mContextStatus = ContextLostAwaitingEvent;
     mContextLostErrorSet = false;
+    mLastLossWasSimulated = false;
 
     // Burn it all!
     DestroyResourcesAndContext();
-    mLastLossWasSimulated = simulateLosing;
-
-    // Register visibility change observer to defer the context restoring.
-    // Restore the context when the app is visible.
-    if (mRestoreWhenVisible && !mLastLossWasSimulated) {
-        mContextObserver->RegisterVisibilityChangeEvent();
-    }
 
     // Queue up a task, since we know the status changed.
     EnqueueUpdateContextLossStatus();
@@ -1459,8 +1343,6 @@ WebGLContext::ForceRestoreContext()
     printf_stderr("WebGL(%p)::ForceRestoreContext\n", this);
     mContextStatus = ContextLostAwaitingRestore;
     mAllowContextRestore = true; // Hey, you did say 'force'.
-
-    mContextObserver->UnregisterVisibilityChangeEvent();
 
     // Queue up a task, since we know the status changed.
     EnqueueUpdateContextLossStatus();
