@@ -26,6 +26,8 @@ browser.jar:
 *       skin/classic/browser/browser-lightweightTheme.css
         skin/classic/browser/click-to-play-warning-stripes.png
 *       skin/classic/browser/content-contextmenu.svg
+        skin/classic/browser/dots.png                                (../shared/dots.png)
+        skin/classic/browser/dots@2x.png                             (../shared/dots@2x.png)
 *       skin/classic/browser/engineManager.css
         skin/classic/browser/fullscreen-darknoise.png
         skin/classic/browser/Geolocation-16.png
@@ -40,6 +42,8 @@ browser.jar:
         skin/classic/browser/keyhole-forward-mask.svg
         skin/classic/browser/KUI-background.png
         skin/classic/browser/livemark-folder.png
+        skin/classic/browser/magnifier.png                          (../shared/magnifier.png)
+        skin/classic/browser/magnifier@2x.png                       (../shared/magnifier@2x.png)
         skin/classic/browser/mask.png                               (../shared/mask.png)
         skin/classic/browser/mask@2x.png                            (../shared/mask@2x.png)
         skin/classic/browser/menu-back.png
@@ -75,6 +79,11 @@ browser.jar:
         skin/classic/browser/reload-stop-go.png
         skin/classic/browser/searchbar.css
         skin/classic/browser/searchbar-dropdown-arrow.png
+        skin/classic/browser/search-pref.png                         (../shared/search/search-pref.png)
+        skin/classic/browser/search-indicator.png                    (../shared/search/search-indicator.png)
+        skin/classic/browser/search-indicator-add-engine.png         (../shared/search/search-indicator-add-engine.png)
+        skin/classic/browser/search-engine-placeholder.png           (../shared/search/search-engine-placeholder.png)
+        skin/classic/browser/badge-add-engine.png                    (../shared/search/badge-add-engine.png)
         skin/classic/browser/Secure24.png
         skin/classic/browser/setDesktopBackground.css
         skin/classic/browser/slowStartup-16.png
@@ -446,6 +455,8 @@ browser.jar:
         skin/classic/aero/browser/click-to-play-warning-stripes.png
 *       skin/classic/aero/browser/content-contextmenu.svg
 *       skin/classic/aero/browser/engineManager.css
+        skin/classic/aero/browser/dots.png                           (../shared/dots.png)
+        skin/classic/aero/browser/dots@2x.png                        (../shared/dots@2x.png)
         skin/classic/aero/browser/fullscreen-darknoise.png
         skin/classic/aero/browser/Geolocation-16.png
         skin/classic/aero/browser/Geolocation-64.png
@@ -459,6 +470,8 @@ browser.jar:
         skin/classic/aero/browser/keyhole-forward-mask.svg
         skin/classic/aero/browser/KUI-background.png
         skin/classic/aero/browser/livemark-folder.png                (livemark-folder-aero.png)
+        skin/classic/aero/browser/magnifier.png                      (../shared/magnifier.png)
+        skin/classic/aero/browser/magnifier@2x.png                   (../shared/magnifier@2x.png)
         skin/classic/aero/browser/mask.png                           (../shared/mask.png)
         skin/classic/aero/browser/mask@2x.png                        (../shared/mask@2x.png)
         skin/classic/aero/browser/menu-back.png                      (menu-back-aero.png)
@@ -497,6 +510,11 @@ browser.jar:
         skin/classic/aero/browser/reload-stop-go.png
         skin/classic/aero/browser/searchbar.css
         skin/classic/aero/browser/searchbar-dropdown-arrow.png       (searchbar-dropdown-arrow-aero.png)
+        skin/classic/aero/browser/search-pref.png                    (../shared/search/search-pref.png)
+        skin/classic/aero/browser/search-indicator.png               (../shared/search/search-indicator.png)
+        skin/classic/aero/browser/search-indicator-add-engine.png    (../shared/search/search-indicator-add-engine.png)
+        skin/classic/aero/browser/search-engine-placeholder.png      (../shared/search/search-engine-placeholder.png)
+        skin/classic/aero/browser/badge-add-engine.png               (../shared/search/badge-add-engine.png)
         skin/classic/aero/browser/Secure24.png                       (Secure24-aero.png)
         skin/classic/aero/browser/setDesktopBackground.css
         skin/classic/aero/browser/slowStartup-16.png

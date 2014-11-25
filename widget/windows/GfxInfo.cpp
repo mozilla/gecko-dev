@@ -965,6 +965,13 @@ GfxInfo::GetGfxDriverInfo()
     IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7, IntelGMAX3000, V(7,15,10,1666));
     IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7, IntelGMAX4500HD, V(7,15,10,1666));
 
+    // Bug 1074378
+    APPEND_TO_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7,
+      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorIntel),
+      (GfxDeviceFamily*) GfxDriverInfo::GetDeviceFamily(IntelGMAX4500HD),
+      GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
+      DRIVER_EQUAL, V(8,15,10,1749), "8.15.10.2342");
+
     /* OpenGL on any Intel hardware is discouraged */
     APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
       (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorIntel), GfxDriverInfo::allDevices,
@@ -1011,21 +1018,6 @@ GfxInfo::GetGfxDriverInfo()
         (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAMD), GfxDriverInfo::allDevices,
       nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
       DRIVER_BETWEEN_INCLUSIVE_START, V(14,1,0,0), V(14,2,0,0), "ATI Catalyst 14.6+");
-
-    // Disable acclerated layers on some ATI drivers because they add a frame of delay to D3D11 apps
-    // See bug 1092260
-    APPEND_TO_DRIVER_BLOCKLIST_RANGE( DRIVER_OS_ALL,
-        (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorATI), GfxDriverInfo::allDevices,
-      nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
-      DRIVER_BETWEEN_INCLUSIVE_START, V(8,653,0,0), V(8,691,0,0), "ATI Catalyst 14.6+");
-    APPEND_TO_DRIVER_BLOCKLIST_RANGE( DRIVER_OS_ALL,
-        (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorATI), GfxDriverInfo::allDevices,
-      nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
-      DRIVER_BETWEEN_INCLUSIVE_START, V(8,653,0,0), V(8,691,0,0), "ATI Catalyst 14.6+");
-    APPEND_TO_DRIVER_BLOCKLIST_RANGE( DRIVER_OS_ALL,
-        (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorATI), GfxDriverInfo::allDevices,
-      nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
-      DRIVER_BETWEEN_INCLUSIVE_START, V(8,653,0,0), V(8,691,0,0), "ATI Catalyst 14.6+");
 
     /* Disable D3D9 layers on NVIDIA 6100/6150/6200 series due to glitches
      * whilst scrolling. See bugs: 612007, 644787 & 645872.

@@ -24,6 +24,8 @@ browser.jar:
 * skin/classic/browser/browser-lightweightTheme.css
   skin/classic/browser/click-to-play-warning-stripes.png
 * skin/classic/browser/content-contextmenu.svg
+  skin/classic/browser/dots.png                             (../shared/dots.png)
+  skin/classic/browser/dots@2x.png                          (../shared/dots@2x.png)
 * skin/classic/browser/engineManager.css
   skin/classic/browser/fullscreen-darknoise.png
   skin/classic/browser/Geolocation-16.png
@@ -35,6 +37,8 @@ browser.jar:
   skin/classic/browser/identity-icons-https-mixed-active.png
   skin/classic/browser/identity-icons-https-mixed-display.png
   skin/classic/browser/Info.png
+  skin/classic/browser/magnifier.png                        (../shared/magnifier.png)
+  skin/classic/browser/magnifier@2x.png                     (../shared/magnifier@2x.png)
   skin/classic/browser/mask.png                             (../shared/mask.png)
   skin/classic/browser/mask@2x.png                          (../shared/mask@2x.png)
   skin/classic/browser/menuPanel.png
@@ -60,6 +64,11 @@ browser.jar:
   skin/classic/browser/privatebrowsing-mask.png
   skin/classic/browser/reload-stop-go.png
   skin/classic/browser/searchbar.css
+  skin/classic/browser/search-pref.png                      (../shared/search/search-pref.png)
+  skin/classic/browser/search-indicator.png                 (../shared/search/search-indicator.png)
+  skin/classic/browser/search-indicator-add-engine.png      (../shared/search/search-indicator-add-engine.png)
+  skin/classic/browser/search-engine-placeholder.png        (../shared/search/search-engine-placeholder.png)
+  skin/classic/browser/badge-add-engine.png                 (../shared/search/badge-add-engine.png)
   skin/classic/browser/Secure.png
   skin/classic/browser/Security-broken.png
   skin/classic/browser/setDesktopBackground.css
