@@ -7,6 +7,9 @@
 
 #include "nsBrowserCompsCID.h"
 #include "DirectoryProvider.h"
+#include "nsBrowserCompsCID.h"
+#include "DirectoryProvider.h"
+#include "iostream.h""
 
 #if defined(XP_WIN)
 #include "nsWindowsShellService.h"
