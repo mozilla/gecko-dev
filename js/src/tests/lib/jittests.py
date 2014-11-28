@@ -146,10 +146,10 @@ class Test:
                         test.jitflags.append('--debugjit')
                     elif name == 'ion-eager':
                         test.jitflags.append('--ion-eager')
-                    elif name == 'no-ion':
-                        test.jitflags.append('--no-ion')
                     elif name == 'dump-bytecode':
                         test.jitflags.append('--dump-bytecode')
+                    elif name.startswith('--'): # // |jit-test| --ion-gvn=off; --no-sse4
+                        test.jitflags.append(name)
                     else:
                         print('warning: unrecognized |jit-test| attribute %s' % part)
 
