@@ -36,6 +36,7 @@ csawctf.poly.edu: did not receive HSTS header
 discovery.lookout.com: did not receive HSTS header
 dl.google.com: did not receive HSTS header (error ignored - included regardless)
 docs.google.com: did not receive HSTS header (error ignored - included regardless)
+download.jitsi.org: did not receive HSTS header
 drive.google.com: did not receive HSTS header (error ignored - included regardless)
 dropcam.com: did not receive HSTS header
 ed.gs: did not receive HSTS header
@@ -73,6 +74,7 @@ itriskltd.com: did not receive HSTS header
 jottit.com: could not connect to host
 keymaster.lookout.com: did not receive HSTS header
 kiwiirc.com: max-age too low: 5256000
+klaxn.com: could not connect to host
 ledgerscope.net: did not receive HSTS header
 liberty.lavabit.com: could not connect to host
 lifeguard.aecom.com: max-age too low: 86400
@@ -83,7 +85,6 @@ lumi.do: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FA
 m.gparent.org: could not connect to host
 mail.google.com: did not receive HSTS header (error ignored - included regardless)
 market.android.com: did not receive HSTS header (error ignored - included regardless)
-markusueberallassetmanagement.de: could not connect to host
 matteomarescotti.name: could not connect to host
 mobilethreat.net: could not connect to host
 mobilethreatnetwork.net: could not connect to host
@@ -91,7 +92,6 @@ mudcrab.us: could not connect to host
 my.alfresco.com: did not receive HSTS header
 mydigipass.com: did not receive HSTS header
 mykolab.com: did not receive HSTS header
-neg9.org: did not receive HSTS header
 neonisi.com: could not connect to host
 netzpolitik.org: did not receive HSTS header
 nexth.de: could not connect to host
@@ -103,7 +103,7 @@ openshift.redhat.com: did not receive HSTS header
 ottospora.nl: could not connect to host
 passwordbox.com: did not receive HSTS header
 payroll.xero.com: max-age too low: 3600
-piratenlogin.de: did not receive HSTS header
+piratenlogin.de: could not connect to host
 platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header (error ignored - included regardless)
 pressfreedomfoundation.org: did not receive HSTS header
@@ -115,7 +115,7 @@ redports.org: could not connect to host
 riseup.net: did not receive HSTS header
 rme.li: did not receive HSTS header
 sah3.net: could not connect to host
-saturngames.co.uk: did not receive HSTS header
+saturngames.co.uk: could not connect to host
 script.google.com: did not receive HSTS header (error ignored - included regardless)
 security.google.com: did not receive HSTS header (error ignored - included regardless)
 semenkovich.com: did not receive HSTS header
@@ -143,6 +143,8 @@ translate.googleapis.com: did not receive HSTS header (error ignored - included 
 uprotect.it: could not connect to host
 wallet.google.com: did not receive HSTS header (error ignored - included regardless)
 webmail.mayfirst.org: did not receive HSTS header
+wf-training-master.appspot.com: could not connect to host
+wf-training-master.appspot.com: could not connect to host (error ignored - included regardless)
 whonix.org: did not receive HSTS header
 wiz.biz: did not receive HSTS header
 www.calyxinstitute.org: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
