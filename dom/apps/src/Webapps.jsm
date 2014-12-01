@@ -3603,31 +3603,39 @@ this.DOMApplicationRegistry = {
     let appClone = AppsUtils.cloneAppObject(app);
     Services.obs.notifyObservers(null, "webapps-uninstall", JSON.stringify(appClone));
 
+    // Will store a promise that will fullfill when the activities have been unregistered.
+    // Note that on systems were activities are not supported this will fulfill immediately.
+    let activitiesUnregistered;
+
     if (supportSystemMessages()) {
-      this._readManifests([{ id: id }]).then((aResult) => {
+      activitiesUnregistered = this._readManifests([{ id: id }]).then(aResult => {
         this._unregisterActivities(aResult[0].manifest, app);
       });
+    } else {
+      activitiesUnregistered = Promise.resolve(null);
     }
 
-    let dir = this._getAppDir(id);
-    try {
-      dir.remove(true);
-    } catch (e) {}
-
-    delete this.webapps[id];
-
-    this._saveApps().then(() => {
-      this.broadcastMessage("Webapps:Uninstall:Broadcast:Return:OK", appClone);
-      // Catch exception on callback call to ensure notifying observers after
+    activitiesUnregistered.then(() => {
+      let dir = this._getAppDir(id);
       try {
-        if (aOnSuccess) {
-          aOnSuccess();
+        dir.remove(true);
+      } catch (e) {}
+
+      delete this.webapps[id];
+
+      this._saveApps().then(() => {
+        this.broadcastMessage("Webapps:Uninstall:Broadcast:Return:OK", appClone);
+        // Catch exception on callback call to ensure notifying observers after
+        try {
+          if (aOnSuccess) {
+            aOnSuccess();
+          }
+        } catch(ex) {
+          Cu.reportError("DOMApplicationRegistry: Exception on app uninstall: " +
+                         ex + "\n" + ex.stack);
         }
-      } catch(ex) {
-        Cu.reportError("DOMApplicationRegistry: Exception on app uninstall: " +
-                       ex + "\n" + ex.stack);
-      }
-      this.broadcastMessage("Webapps:RemoveApp", { id: id });
+        this.broadcastMessage("Webapps:RemoveApp", { id: id });
+      });
     });
   },
 
