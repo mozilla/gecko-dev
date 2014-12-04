@@ -435,6 +435,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLMediaElement)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLMediaElement, nsGenericHTMLElement)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaSource)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSrcStream)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPlaybackStream)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSrcAttrStream)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSourcePointer)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLoadBlockedDoc)
@@ -3005,6 +3006,25 @@ void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)
 
   mSrcStream = aStream;
 
+  nsIDOMWindow* window = OwnerDoc()->GetInnerWindow();
+  if (!window) {
+    return;
+  }
+
+  // Now that we have access to |mSrcStream| we can pipe it to our shadow
+  // version |mPlaybackStream|. If two media elements are playing the
+  // same realtime DOMMediaStream, this allows them to pause playback
+  // independently of each other.
+  mPlaybackStream = DOMMediaStream::CreateTrackUnionStream(window);
+  mPlaybackStreamInputPort = mPlaybackStream->GetStream()->AsProcessedStream()->
+    AllocateInputPort(mSrcStream->GetStream(), MediaInputPort::FLAG_BLOCK_OUTPUT);
+
+  nsRefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
+  mPlaybackStream->CombineWithPrincipal(principal);
+
+  // Let |mSrcStream| decide when the stream has finished.
+  GetSrcMediaStream()->AsProcessedStream()->SetAutofinish(true);
+
   nsRefPtr<MediaStream> stream = mSrcStream->GetStream();
   if (stream) {
     stream->SetAudioChannelType(mAudioChannel);
@@ -3059,6 +3079,8 @@ void HTMLMediaElement::EndSrcMediaStreamPlayback()
   }
   mSrcStream->DisconnectTrackListListeners(AudioTracks(), VideoTracks());
 
+  mPlaybackStreamInputPort->Destroy();
+
   // Kill its reference to this element
   mMediaStreamListener->Forget();
   mMediaStreamListener = nullptr;
@@ -3081,6 +3103,8 @@ void HTMLMediaElement::EndSrcMediaStreamPlayback()
     stream->ChangeExplicitBlockerCount(-1);
   }
   mSrcStream = nullptr;
+  mPlaybackStreamInputPort = nullptr;
+  mPlaybackStream = nullptr;
 }
 
 void HTMLMediaElement::ProcessMediaFragmentURI()
