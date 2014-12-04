@@ -7852,7 +7852,7 @@ nsGlobalWindow::CallerInnerWindow()
     if (scopeProto && xpc::IsSandboxPrototypeProxy(scopeProto) &&
         (scopeProto = js::CheckedUnwrap(scopeProto, /* stopAtOuter = */ false)))
     {
-      global = xpc::NativeGlobal(scopeProto);
+      global = xpc::GetNativeForGlobal(scopeProto);
       NS_ENSURE_TRUE(global, nullptr);
     }
   }
