@@ -12654,18 +12654,8 @@ nsGlobalWindow::SecurityCheckURL(const char *aURL)
   nsCOMPtr<nsPIDOMWindow> sourceWindow;
   JSContext* topCx = nsContentUtils::GetCurrentJSContext();
   if (topCx) {
-    nsCOMPtr<nsPIDOMWindow> entryWindow =
-      do_QueryInterface(nsJSUtils::GetDynamicScriptGlobal(topCx));
-    if (entryWindow) {
-      nsIPrincipal* entryPrin =
-        static_cast<nsGlobalWindow*>(entryWindow.get())->GetPrincipal();
-      nsIPrincipal* subjectPrin = nsContentUtils::GetSubjectPrincipal();
-      if (subjectPrin->SubsumesConsideringDomain(entryPrin)) {
-        sourceWindow = entryWindow;
-      }
-    }
+    sourceWindow = do_QueryInterface(nsJSUtils::GetDynamicScriptGlobal(topCx));
   }
-
   if (!sourceWindow) {
     sourceWindow = this;
   }
