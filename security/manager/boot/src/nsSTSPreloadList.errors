@@ -33,6 +33,7 @@ crbug.com: did not receive HSTS header
 crowdcurity.com: did not receive HSTS header
 crypto.is: did not receive HSTS header
 csawctf.poly.edu: did not receive HSTS header
+cybershambles.com: could not connect to host
 discovery.lookout.com: did not receive HSTS header
 dl.google.com: did not receive HSTS header (error ignored - included regardless)
 docs.google.com: did not receive HSTS header (error ignored - included regardless)
@@ -141,10 +142,9 @@ talkgadget.google.com: did not receive HSTS header (error ignored - included reg
 tektoria.de: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header (error ignored - included regardless)
 uprotect.it: could not connect to host
+viennan.net: did not receive HSTS header
 wallet.google.com: did not receive HSTS header (error ignored - included regardless)
 webmail.mayfirst.org: did not receive HSTS header
-wf-training-master.appspot.com: could not connect to host
-wf-training-master.appspot.com: could not connect to host (error ignored - included regardless)
 whonix.org: did not receive HSTS header
 wiz.biz: did not receive HSTS header
 www.calyxinstitute.org: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
