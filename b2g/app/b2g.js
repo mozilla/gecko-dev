@@ -1033,3 +1033,13 @@ pref("dom.mapped_arraybuffer.enabled", true);
 
 // UDPSocket API
 pref("dom.udpsocket.enabled", true);
+
+pref("dom.mozSettings.SettingsDB.debug.enabled", true);
+pref("dom.mozSettings.SettingsManager.debug.enabled", true);
+pref("dom.mozSettings.SettingsRequestManager.debug.enabled", true);
+pref("dom.mozSettings.SettingsService.debug.enabled", true);
+
+pref("dom.mozSettings.SettingsDB.verbose.enabled", false);
+pref("dom.mozSettings.SettingsManager.verbose.enabled", false);
+pref("dom.mozSettings.SettingsRequestManager.verbose.enabled", false);
+pref("dom.mozSettings.SettingsService.verbose.enabled", false);
