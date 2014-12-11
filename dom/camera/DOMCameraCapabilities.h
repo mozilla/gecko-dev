@@ -26,6 +26,8 @@ class RecorderProfileManager;
 
 namespace dom {
 
+class CameraClosedListenerProxy;
+
 class CameraCapabilities MOZ_FINAL : public nsISupports
                                    , public nsWrapperCache
 {
@@ -73,6 +75,8 @@ public:
   double ExposureCompensationStep() const;
   void GetRecorderProfiles(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) const;
   void GetIsoModes(nsTArray<nsString>& aRetVal) const;
+
+  void OnHardwareClosed();
 
 protected:
   ~CameraCapabilities();

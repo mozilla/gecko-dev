@@ -30,7 +30,7 @@ class RecorderProfileManager;
 class CameraControlImpl : public ICameraControl
 {
 public:
-  CameraControlImpl(uint32_t aCameraId);
+  CameraControlImpl();
   virtual void AddListener(CameraControlListener* aListener) MOZ_OVERRIDE;
   virtual void RemoveListener(CameraControlListener* aListener) MOZ_OVERRIDE;
 
@@ -50,9 +50,6 @@ public:
   virtual nsresult ResumeContinuousFocus() MOZ_OVERRIDE;
 
   already_AddRefed<RecorderProfileManager> GetRecorderProfileManager();
-  uint32_t GetCameraId() { return mCameraId; }
-
-  virtual void Shutdown() MOZ_OVERRIDE;
 
   // Event handlers called directly from outside this class.
   void OnShutter();
@@ -80,7 +77,7 @@ protected:
   // don't want that reference to keep the thread object around unnecessarily,
   // so we make it a weak reference. The strong dynamic references will keep
   // the thread object alive as needed.
-  static nsWeakPtr sCameraThread;
+  static StaticRefPtr<nsIThread> sCameraThread;
   nsCOMPtr<nsIThread> mCameraThread;
 
   virtual ~CameraControlImpl();
@@ -132,8 +129,6 @@ protected:
 
   void OnShutterInternal();
   void OnClosedInternal();
-
-  uint32_t mCameraId;
 
   CameraControlListener::CameraListenerConfiguration mCurrentConfiguration;
 
