@@ -71,7 +71,7 @@ GetOpaqueRect(Layer* aLayer)
 {
   nsIntRect result;
   gfx::Matrix matrix;
-  bool is2D = aLayer->GetBaseTransform().Is2D(&matrix);
+  bool is2D = aLayer->GetLocalTransform().Is2D(&matrix);
 
   // Just bail if there's anything difficult to handle.
   if (!is2D || aLayer->GetMaskLayer() ||
@@ -206,7 +206,7 @@ ContainerPrepare(ContainerT* aContainer,
     nsIntRegion savedVisibleRegion;
     bool restoreVisibleRegion = false;
     gfx::Matrix matrix;
-    bool is2D = layerToRender->GetLayer()->GetBaseTransform().Is2D(&matrix);
+    bool is2D = layerToRender->GetLayer()->GetLocalTransform().Is2D(&matrix);
     if (i + 1 < children.Length() &&
         is2D && !matrix.HasNonIntegerTranslation()) {
       LayerComposite* nextLayer = static_cast<LayerComposite*>(children.ElementAt(i + 1)->ImplData());
