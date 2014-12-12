@@ -5492,6 +5492,13 @@ RilObject.prototype = {
       return;
     }
 
+    // See 3GPP TS 11.14, 6.4.22 SET UP IDLE MODE TEXT
+    // Also see Bug 1106449 for short term work around.
+    if (cmdDetails.typeOfCommand === STK_CMD_REFRESH &&
+        cmdDetails.commandQualifier === STK_REFRESH_FILE_CHANGE ) {
+      return;
+    }
+
     cmdDetails.rilMessageType = "stkcommand";
     cmdDetails.options =
       this.context.StkCommandParamsFactory.createParam(cmdDetails, ctlvs);
