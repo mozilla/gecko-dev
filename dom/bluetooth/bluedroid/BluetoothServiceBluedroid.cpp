@@ -354,8 +354,9 @@ AdapterPropertiesCallback(bt_status_t aStatus, int aNumProperties,
   InfallibleTArray<BluetoothNamedValue> props;
 
   for (int i = 0; i < aNumProperties; i++) {
-    bt_property_t p = aProperties[i];
-
+    bt_property_t p;
+    // See Bug 989976, consider aProperties address is not aligned
+    memcpy(&p, &aProperties[i], sizeof(p));
     if (p.type == BT_PROPERTY_BDADDR) {
       BdAddressTypeToString((bt_bdaddr_t*)p.val, sAdapterBdAddress);
       propertyValue = sAdapterBdAddress;
@@ -399,6 +400,8 @@ AdapterPropertiesCallback(bt_status_t aStatus, int aNumProperties,
       propertyValue = sAdapterBondedAddressArray;
       BT_APPEND_NAMED_VALUE(props, "Devices", propertyValue);
     } else if (p.type == BT_PROPERTY_UUIDS) {
+      sAdapterUuidsArray.Clear();
+
       int uuidListLength = p.len / MAX_UUID_SIZE;
       for (size_t i = 0; i < uuidListLength; i++) {
         uint16_t uuidServiceClass = UuidToServiceClassInt(
