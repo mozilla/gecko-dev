@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1428750448335000);
+const PRTime gPreloadListExpirationTime = INT64_C(1429355268429000);
 
 class nsSTSPreload
 {
@@ -34,6 +34,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "anycoin.me", true },
   { "apadvantage.com", true },
   { "api.intercom.io", false },
+  { "api.lookout.com", false },
   { "api.simple.com", false },
   { "api.xero.com", false },
   { "apis.google.com", true },
@@ -102,7 +103,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "code.google.com", true },
   { "codereview.appspot.com", false },
   { "codereview.chromium.org", true },
-  { "config.schokokeks.org", false },
+  { "config.schokokeks.org", true },
   { "conformal.com", true },
   { "conrad-kostecki.de", true },
   { "controlcenter.gigahost.dk", true },
@@ -147,7 +148,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "entropia.de", false },
   { "errors.zenpayroll.com", false },
   { "espra.com", true },
-  { "ethitter.com", true },
   { "eurotramp.com", true },
   { "explodie.org", true },
   { "f-droid.org", true },
@@ -356,7 +356,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "riesenmagnete.de", true },
   { "rippleunion.com", true },
   { "robteix.com", true },
-  { "roddis.net", false },
   { "romab.com", true },
   { "rosenkeller.org", true },
   { "roundcube.mayfirst.org", false },
@@ -365,7 +364,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "sakaki.anime.my", true },
   { "salaervergleich.com", true },
   { "sandbox.mydigipass.com", false },
-  { "schokokeks.org", false },
+  { "schokokeks.org", true },
   { "schwarzer.it", true },
   { "scrambl.is", true },
   { "script.google.com", true },
@@ -456,7 +455,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "webfilings.appspot.com", true },
   { "webmail.gigahost.dk", false },
   { "webmail.onlime.ch", false },
-  { "webmail.schokokeks.org", false },
+  { "webmail.schokokeks.org", true },
   { "websenat.de", true },
   { "welches-kinderfahrrad.de", true },
   { "wepay.com", false },
@@ -505,7 +504,8 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.opsmate.com", true },
   { "www.paypal.com", false },
   { "www.python.org", true },
-  { "www.schokokeks.org", false },
+  { "www.roddis.net", true },
+  { "www.schokokeks.org", true },
   { "www.simbolo.co.uk", false },
   { "www.simple.com", false },
   { "www.therapynotes.com", false },
