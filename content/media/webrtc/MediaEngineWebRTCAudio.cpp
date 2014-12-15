@@ -365,6 +365,9 @@ MediaEngineWebRTCAudioSource::Stop(SourceMediaStream *aSource, TrackID aID)
       // Already stopped - this is allowed
       return NS_OK;
     }
+
+    aSource->EndTrack(aID);
+
     if (!mSources.IsEmpty()) {
       return NS_OK;
     }
@@ -376,7 +379,6 @@ MediaEngineWebRTCAudioSource::Stop(SourceMediaStream *aSource, TrackID aID)
     }
 
     mState = kStopped;
-    aSource->EndTrack(aID);
   }
 
   mVoERender->DeRegisterExternalMediaProcessing(mChannel, webrtc::kRecordingPerChannel);
