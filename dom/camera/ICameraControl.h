@@ -220,9 +220,6 @@ public:
   virtual nsresult Get(uint32_t aKey, nsTArray<double>& aValues) = 0;
 
   virtual already_AddRefed<RecorderProfileManager> GetRecorderProfileManager() = 0;
-  virtual uint32_t GetCameraId() = 0;
-
-  virtual void Shutdown() = 0;
 
 protected:
   virtual ~ICameraControl() { }
