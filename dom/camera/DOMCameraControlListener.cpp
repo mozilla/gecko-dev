@@ -15,7 +15,7 @@ using namespace mozilla::dom;
 
 DOMCameraControlListener::DOMCameraControlListener(nsDOMCameraControl* aDOMCameraControl,
                                                    CameraPreviewMediaStream* aStream)
-  : mDOMCameraControl(new nsMainThreadPtrHolder<nsDOMCameraControl>(aDOMCameraControl))
+  : mDOMCameraControl(new nsMainThreadPtrHolder<nsISupports>(static_cast<DOMMediaStream*>(aDOMCameraControl)))
   , mStream(aStream)
 {
   DOM_CAMERA_LOGT("%s:%d : this=%p, camera=%p, stream=%p\n",
@@ -31,7 +31,7 @@ DOMCameraControlListener::~DOMCameraControlListener()
 class DOMCameraControlListener::DOMCallback : public nsRunnable
 {
 public:
-  DOMCallback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl)
+  DOMCallback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl)
     : mDOMCameraControl(aDOMCameraControl)
   {
     MOZ_COUNT_CTOR(DOMCameraControlListener::DOMCallback);
@@ -51,15 +51,17 @@ public:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
-    nsRefPtr<nsDOMCameraControl> camera = mDOMCameraControl.get();
-    if (camera) {
-      RunCallback(camera);
+    nsRefPtr<nsDOMCameraControl> camera = do_QueryObject(mDOMCameraControl.get());
+    if (!camera) {
+      DOM_CAMERA_LOGE("do_QueryObject failed to get an nsDOMCameraControl\n");
+      return NS_ERROR_INVALID_ARG;
     }
+    RunCallback(camera);
     return NS_OK;
   }
 
 protected:
-  nsMainThreadPtrHandle<nsDOMCameraControl> mDOMCameraControl;
+  nsMainThreadPtrHandle<nsISupports> mDOMCameraControl;
 };
 
 // Specific callback handlers
@@ -69,7 +71,7 @@ DOMCameraControlListener::OnHardwareStateChange(HardwareState aState)
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl,
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl,
              HardwareState aState)
       : DOMCallback(aDOMCameraControl)
       , mState(aState)
@@ -94,7 +96,7 @@ DOMCameraControlListener::OnPreviewStateChange(PreviewState aState)
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl,
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl,
              PreviewState aState)
       : DOMCallback(aDOMCameraControl)
       , mState(aState)
@@ -147,7 +149,7 @@ DOMCameraControlListener::OnRecorderStateChange(RecorderState aState,
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl,
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl,
              RecorderState aState,
              int32_t aStatus,
              int32_t aTrackNum)
@@ -178,7 +180,7 @@ DOMCameraControlListener::OnConfigurationChange(const CameraListenerConfiguratio
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl,
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl,
              const CameraListenerConfiguration& aConfiguration)
       : DOMCallback(aDOMCameraControl)
       , mConfiguration(aConfiguration)
@@ -227,7 +229,7 @@ DOMCameraControlListener::OnAutoFocusMoving(bool aIsMoving)
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl, bool aIsMoving)
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl, bool aIsMoving)
       : DOMCallback(aDOMCameraControl)
       , mIsMoving(aIsMoving)
     { }
@@ -251,7 +253,7 @@ DOMCameraControlListener::OnFacesDetected(const nsTArray<ICameraControl::Face>& 
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl,
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl,
              const nsTArray<ICameraControl::Face>& aFaces)
       : DOMCallback(aDOMCameraControl)
       , mFaces(aFaces)
@@ -276,7 +278,7 @@ DOMCameraControlListener::OnShutter()
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl)
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl)
       : DOMCallback(aDOMCameraControl)
     { }
 
@@ -311,7 +313,7 @@ DOMCameraControlListener::OnAutoFocusComplete(bool aAutoFocusSucceeded)
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl,
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl,
              bool aAutoFocusSucceeded)
       : DOMCallback(aDOMCameraControl)
       , mAutoFocusSucceeded(aAutoFocusSucceeded)
@@ -336,7 +338,7 @@ DOMCameraControlListener::OnTakePictureComplete(uint8_t* aData, uint32_t aLength
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl,
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl,
              uint8_t* aData, uint32_t aLength, const nsAString& aMimeType)
       : DOMCallback(aDOMCameraControl)
       , mData(aData)
@@ -369,7 +371,7 @@ DOMCameraControlListener::OnUserError(UserContext aContext, nsresult aError)
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl,
+    Callback(nsMainThreadPtrHandle<nsISupports> aDOMCameraControl,
              UserContext aContext,
              nsresult aError)
       : DOMCallback(aDOMCameraControl)
