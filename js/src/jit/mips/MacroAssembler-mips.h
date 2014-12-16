@@ -546,6 +546,10 @@ class MacroAssemblerMIPSCompat : public MacroAssemblerMIPS
         as_nop();
     }
 
+    void jump(JitCode *code) {
+        branch(code);
+    }
+
     void neg32(Register reg) {
         ma_negu(reg, reg);
     }
@@ -921,8 +925,7 @@ public:
         ma_or(frameSizeReg, frameSizeReg, Imm32(type));
     }
 
-    void handleFailureWithHandler(void *handler);
-    void handleFailureWithHandlerTail();
+    void handleFailureWithHandlerTail(void *handler);
 
     /////////////////////////////////////////////////////////////////
     // Common interface.

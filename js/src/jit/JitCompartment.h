@@ -153,8 +153,9 @@ class JitRuntime
     // need for explicit interrupt checks.
     JSC::ExecutableAllocator *ionAlloc_;
 
-    // Shared post-exception-handler tail
+    // Shared exception-handler tail.
     JitCode *exceptionTail_;
+    JitCode *exceptionTailParallel_;
 
     // Shared post-bailout-handler tail.
     JitCode *bailoutTail_;
@@ -232,7 +233,7 @@ class JitRuntime
     js::Value ionReturnOverride_;
 
   private:
-    JitCode *generateExceptionTailStub(JSContext *cx);
+    JitCode *generateExceptionTailStub(JSContext *cx, void *handler);
     JitCode *generateBailoutTailStub(JSContext *cx);
     JitCode *generateEnterJIT(JSContext *cx, EnterJitType type);
     JitCode *generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void **returnAddrOut);
@@ -310,6 +311,9 @@ class JitRuntime
 
     JitCode *getExceptionTail() const {
         return exceptionTail_;
+    }
+    JitCode *getExceptionTailParallel() const {
+        return exceptionTailParallel_;
     }
 
     JitCode *getBailoutTail() const {
