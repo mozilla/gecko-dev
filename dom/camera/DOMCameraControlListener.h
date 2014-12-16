@@ -35,7 +35,7 @@ public:
 protected:
   virtual ~DOMCameraControlListener();
 
-  nsMainThreadPtrHandle<nsISupports> mDOMCameraControl;
+  nsMainThreadPtrHandle<nsDOMCameraControl> mDOMCameraControl;
   CameraPreviewMediaStream* mStream;
 
   class DOMCallback;

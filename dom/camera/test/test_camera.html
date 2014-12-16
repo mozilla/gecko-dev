@@ -230,10 +230,8 @@ SimpleTest.waitForExplicitFinish();
 
 window.addEventListener('beforeunload', function() {
   Camera.viewfinder.mozSrcObject = null;
-  if (Camera.cameraObj) {
-    Camera.cameraObj.release();
-    Camera.cameraObj = null;
-  }
+  Camera.cameraObj.release();
+  Camera.cameraObj = null;
 });
 
 Camera.setUp();

@@ -10,7 +10,6 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "nsWeakPtr.h"
 #include "nsIObserver.h"
 #include "nsHashKeys.h"
 #include "nsWrapperCache.h"
@@ -31,7 +30,7 @@ namespace mozilla {
   }
 }
 
-typedef nsTArray<nsWeakPtr> CameraControls;
+typedef nsTArray<nsRefPtr<mozilla::nsDOMCameraControl> > CameraControls;
 typedef nsClassHashtable<nsUint64HashKey, CameraControls> WindowTable;
 typedef mozilla::dom::Optional<mozilla::dom::OwningNonNull<mozilla::dom::CameraErrorCallback>>
           OptionalNonNullCameraErrorCallback;
