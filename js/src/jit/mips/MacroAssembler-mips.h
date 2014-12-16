@@ -460,6 +460,10 @@ class MacroAssemblerMIPSCompat : public MacroAssemblerMIPS
         as_nop();
     }
 
+    void jump(JitCode *code) {
+        branch(code);
+    }
+
     void neg32(Register reg) {
         ma_negu(reg, reg);
     }
@@ -818,8 +822,7 @@ public:
 
     void linkExitFrame();
     void linkParallelExitFrame(const Register &pt);
-    void handleFailureWithHandler(void *handler);
-    void handleFailureWithHandlerTail();
+    void handleFailureWithHandlerTail(void *handler);
 
     /////////////////////////////////////////////////////////////////
     // Common interface.

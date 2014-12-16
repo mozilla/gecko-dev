@@ -677,6 +677,9 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void jump(Label *label) {
         as_b(label);
     }
+    void jump(JitCode *code) {
+        branch(code);
+    }
     void jump(Register reg) {
         ma_bx(reg);
     }
@@ -1151,8 +1154,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     void linkExitFrame();
     void linkParallelExitFrame(const Register &pt);
-    void handleFailureWithHandler(void *handler);
-    void handleFailureWithHandlerTail();
+    void handleFailureWithHandlerTail(void *handler);
 
     /////////////////////////////////////////////////////////////////
     // Common interface.
