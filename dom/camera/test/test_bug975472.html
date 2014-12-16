@@ -55,15 +55,23 @@ var tests = [
   {
     key: "set-picture-size-after-release",
     func: function testSetPictureSize(camera) {
-      camera.setPictureSize({ width: 0, height: 0 });
-      next();
+      try {
+        camera.setPictureSize({ width: 0, height: 0 });
+      } catch(e) {
+        ok(e.name === "NS_ERROR_NOT_AVAILABLE", "Error: " + e.name);
+        next();
+      }
     }
   },
   {
     key: "set-thumbnail-size-after-release",
     func: function testSetThumbnailSize(camera) {
-      camera.setThumbnailSize({ width: 0, height: 0 });
-      next();
+      try {
+        camera.setThumbnailSize({ width: 0, height: 0 });
+      } catch(e) {
+        ok(e.name === "NS_ERROR_NOT_AVAILABLE", "Error: " + e.name);
+        next();
+      }
     }
   },
   {
@@ -76,8 +84,12 @@ var tests = [
   {
     key: "resume-preview-after-release",
     func: function testResumePreview(camera) {
-      camera.resumePreview();
-      next();
+      try {
+        camera.resumePreview();
+      } catch(e) {
+        ok(e.name === "NS_ERROR_NOT_AVAILABLE", "Error: " + e.name);
+        next();
+      }
     }
   },
   {
@@ -113,7 +125,7 @@ var tests = [
         ok(false, "startRecording() process succeeded incorrectly");
       }
       function onError(error) {
-        ok(error === "GeneralFailure", "startRecording() failed with: " + error);
+        ok(error === "HardwareClosed", "startRecording() failed with: " + error);
         next();
       }
       var recordingOptions = {
@@ -129,8 +141,12 @@ var tests = [
   {
     key: "stop-recording-after-release",
     func: function testStopRecording(camera) {
-      camera.stopRecording();
-      next();
+      try {
+        camera.stopRecording();
+      } catch(e) {
+        ok(e.name === "NS_ERROR_NOT_AVAILABLE", "Error: " + e.name);
+        next();
+      }
     }
   },
   {

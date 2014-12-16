@@ -110,6 +110,7 @@ void
 CameraPreviewMediaStream::Destroy()
 {
   MutexAutoLock lock(mMutex);
+  mMainThreadDestroyed = true;
   DestroyImpl();
 }
 
