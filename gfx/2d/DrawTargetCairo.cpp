@@ -499,10 +499,9 @@ DrawTargetCairo::Snapshot()
 
   IntSize size = GetSize();
 
-  cairo_content_t content = cairo_surface_get_content(mSurface);
   mSnapshot = new SourceSurfaceCairo(mSurface,
                                      size,
-                                     CairoContentToGfxFormat(content),
+                                     GfxFormatForCairoSurface(mSurface),
                                      this);
   return mSnapshot;
 }
@@ -1303,7 +1302,7 @@ DrawTargetCairo::InitAlreadyReferenced(cairo_surface_t* aSurface, const IntSize&
   mContext = cairo_create(aSurface);
   mSurface = aSurface;
   mSize = aSize;
-  mFormat = aFormat ? *aFormat : CairoContentToGfxFormat(cairo_surface_get_content(aSurface));
+  mFormat = aFormat ? *aFormat : GfxFormatForCairoSurface(aSurface);
 
   // Cairo image surface have a bug where they will allocate a mask surface (for clipping)
   // the size of the clip extents, and don't take the surface extents into account.
