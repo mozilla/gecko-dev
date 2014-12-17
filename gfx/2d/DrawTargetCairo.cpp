@@ -437,10 +437,9 @@ DrawTargetCairo::Snapshot()
 
   IntSize size = GetSize();
 
-  cairo_content_t content = cairo_surface_get_content(mSurface);
   mSnapshot = new SourceSurfaceCairo(mSurface,
                                      size,
-                                     CairoContentToGfxFormat(content),
+                                     GfxFormatForCairoSurface(mSurface),
                                      this);
   return mSnapshot;
 }
@@ -1243,7 +1242,7 @@ DrawTargetCairo::InitAlreadyReferenced(cairo_surface_t* aSurface, const IntSize&
   mContext = cairo_create(aSurface);
   mSurface = aSurface;
   mSize = aSize;
-  mFormat = aFormat ? *aFormat : CairoContentToGfxFormat(cairo_surface_get_content(aSurface));
+  mFormat = aFormat ? *aFormat : GfxFormatForCairoSurface(aSurface);
 
   if (mFormat == SurfaceFormat::B8G8R8A8 ||
       mFormat == SurfaceFormat::R8G8B8A8) {
