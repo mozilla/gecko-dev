@@ -16,17 +16,18 @@
 
 using namespace mozilla;
 
-/* static */ StaticRefPtr<nsIThread> CameraControlImpl::sCameraThread;
+nsWeakPtr CameraControlImpl::sCameraThread;
 
-CameraControlImpl::CameraControlImpl()
+CameraControlImpl::CameraControlImpl(uint32_t aCameraId)
   : mListenerLock(PR_NewRWLock(PR_RWLOCK_RANK_NONE, "CameraControlImpl.Listeners.Lock"))
+  , mCameraId(aCameraId)
   , mPreviewState(CameraControlListener::kPreviewStopped)
   , mHardwareState(CameraControlListener::kHardwareClosed)
 {
   DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
 
   // reuse the same camera thread to conserve resources
-  nsCOMPtr<nsIThread> ct = do_QueryInterface(sCameraThread);
+  nsCOMPtr<nsIThread> ct = do_QueryReferent(sCameraThread);
   if (ct) {
     mCameraThread = ct.forget();
   } else {
@@ -36,7 +37,7 @@ CameraControlImpl::CameraControlImpl()
     }
 
     // keep a weak reference to the new thread
-    sCameraThread = mCameraThread;
+    sCameraThread = do_GetWeakReference(mCameraThread);
   }
 
   // Care must be taken with the mListenerLock read-write lock to prevent
@@ -57,8 +58,6 @@ CameraControlImpl::CameraControlImpl()
 
 CameraControlImpl::~CameraControlImpl()
 {
-  DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
-
   MOZ_ASSERT(mListenerLock, "mListenerLock missing in ~CameraControlImpl()");
   if (mListenerLock) {
     PR_DestroyRWLock(mListenerLock);
@@ -70,6 +69,12 @@ already_AddRefed<RecorderProfileManager>
 CameraControlImpl::GetRecorderProfileManager()
 {
   return GetRecorderProfileManagerImpl();
+}
+
+void
+CameraControlImpl::Shutdown()
+{
+  DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
 }
 
 void
