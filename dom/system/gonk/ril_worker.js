@@ -97,6 +97,26 @@ BufObject.prototype = {
     // Maps tokens we send out with requests to the request type, so that
     // when we get a response parcel back, we know what request it was for.
     this.mTokenRequestMap = new Map();
+
+    // Remapping the request type to different values based on RIL version.
+    // We only have to do this for SUBSCRIPTION right now, so I just make it
+    // simple. A generic logic or structure could be discussed if we have more
+    // use cases, especially the cases from different partners.
+    this._requestMap = {};
+    // RIL version 8.
+    // For the CAF's proprietary parcels. Please see
+    // https://www.codeaurora.org/cgit/quic/la/platform/hardware/ril/tree/include/telephony/ril.h?h=b2g_jb_3.2
+    let map = {};
+    map[REQUEST_SET_UICC_SUBSCRIPTION] = 114;
+    map[REQUEST_SET_DATA_SUBSCRIPTION] = 115;
+    this._requestMap[8] = map;
+    // RIL version 9.
+    // For the CAF's proprietary parcels. Please see
+    // https://www.codeaurora.org/cgit/quic/la/platform/hardware/ril/tree/include/telephony/ril.h?h=b2g_kk_3.5
+    map = {};
+    map[REQUEST_SET_UICC_SUBSCRIPTION] = 115;
+    map[REQUEST_SET_DATA_SUBSCRIPTION] = 116;
+    this._requestMap[9] = map;
   },
 
   /**
@@ -184,20 +204,20 @@ BufObject.prototype = {
    * simple. A generic logic or structure could be discussed if we have more
    * use cases, especially the cases from different partners.
    */
+  _requestMap: null,
   _reMapRequestType: function(type) {
-    let newType = type;
-    switch (type) {
-      case REQUEST_SET_UICC_SUBSCRIPTION:
-      case REQUEST_SET_DATA_SUBSCRIPTION:
-        if (this.context.RIL.version < 9) {
-          // Shift the CAF's proprietary parcels. Please see
-          // https://www.codeaurora.org/cgit/quic/la/platform/hardware/ril/tree/include/telephony/ril.h?h=b2g_jb_3.2
-          newType = type - 1;
+    for (let version in this._requestMap) {
+      if (this.context.RIL.version <= version) {
+        let newType = this._requestMap[version][type];
+        if (newType) {
+          if (DEBUG) {
+            this.context.debug("Remap request type to " + newType);
+          }
+          return newType;
         }
-        break;
+      }
     }
-
-    return newType;
+    return type;
   }
 };
 
@@ -1453,10 +1473,6 @@ RilObject.prototype = {
    * Open Logical UICC channel (aid) for Secure Element access
    */
   iccOpenChannel: function(options) {
-    if (DEBUG) {
-      this.context.debug("iccOpenChannel: " + JSON.stringify(options));
-    }
-
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_SIM_OPEN_CHANNEL, options);
     Buf.writeString(options.aid);
@@ -1467,31 +1483,15 @@ RilObject.prototype = {
    * Exchange APDU data on an open Logical UICC channel
    */
   iccExchangeAPDU: function(options) {
-    if (DEBUG) this.context.debug("iccExchangeAPDU: " + JSON.stringify(options));
-
-    let cla = options.apdu.cla;
-    let command = options.apdu.command;
-    let channel = options.channel;
-    let path = options.apdu.path || "";
-    let data = options.apdu.data || "";
-    let data2 = options.apdu.data2 || "";
-
-    let p1 = options.apdu.p1;
-    let p2 = options.apdu.p2;
-    let p3 = options.apdu.p3; // Extra
-
     let Buf = this.context.Buf;
-    Buf.newParcel(REQUEST_SIM_ACCESS_CHANNEL, options);
-    Buf.writeInt32(cla);
-    Buf.writeInt32(command);
-    Buf.writeInt32(channel);
-    Buf.writeString(path); // path
-    Buf.writeInt32(p1);
-    Buf.writeInt32(p2);
-    Buf.writeInt32(p3);
-    Buf.writeString(data); // generic data field.
-    Buf.writeString(data2);
-
+    Buf.newParcel(REQUEST_SIM_TRANSMIT_APDU_CHANNEL, options);
+    Buf.writeInt32(options.channel);
+    Buf.writeInt32(options.apdu.cla);
+    Buf.writeInt32(options.apdu.command);
+    Buf.writeInt32(options.apdu.p1);
+    Buf.writeInt32(options.apdu.p2);
+    Buf.writeInt32(options.apdu.p3);
+    Buf.writeString(options.apdu.data);
     Buf.sendParcel();
   },
 
@@ -1499,8 +1499,6 @@ RilObject.prototype = {
    * Close Logical UICC channel
    */
   iccCloseChannel: function(options) {
-    if (DEBUG) this.context.debug("iccCloseChannel: " + JSON.stringify(options));
-
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_SIM_CLOSE_CHANNEL, options);
     Buf.writeInt32(1);
@@ -6129,47 +6127,6 @@ RilObject.prototype[REQUEST_CHANGE_BARRING_PASSWORD] =
   options.statusMessage = MMI_SM_KS_PASSWORD_CHANGED;
   this.sendChromeMessage(options);
 };
-RilObject.prototype[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNEL(length, options) {
-  if (options.rilRequestError) {
-    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-    this.sendChromeMessage(options);
-    return;
-  }
-
-  options.channel = this.context.Buf.readInt32();
-  if (DEBUG) {
-    this.context.debug("Setting channel number in options: " + options.channel);
-  }
-  this.sendChromeMessage(options);
-};
-RilObject.prototype[REQUEST_SIM_CLOSE_CHANNEL] = function REQUEST_SIM_CLOSE_CHANNEL(length, options) {
-  if (options.rilRequestError) {
-    options.error = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-    this.sendChromeMessage(options);
-    return;
-  }
-
-  // No return value
-  this.sendChromeMessage(options);
-};
-RilObject.prototype[REQUEST_SIM_ACCESS_CHANNEL] = function REQUEST_SIM_ACCESS_CHANNEL(length, options) {
-  if (options.rilRequestError) {
-    options.error = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-    this.sendChromeMessage(options);
-  }
-
-  let Buf = this.context.Buf;
-  options.sw1 = Buf.readInt32();
-  options.sw2 = Buf.readInt32();
-  options.simResponse = Buf.readString();
-  if (DEBUG) {
-    this.context.debug("Setting return values for RIL[REQUEST_SIM_ACCESS_CHANNEL]: [" +
-                       options.sw1 + "," +
-                       options.sw2 + ", " +
-                       options.simResponse + "]");
-  }
-  this.sendChromeMessage(options);
-};
 RilObject.prototype[REQUEST_QUERY_NETWORK_SELECTION_MODE] = function REQUEST_QUERY_NETWORK_SELECTION_MODE(length, options) {
   this._receivedNetworkInfo(NETWORK_INFO_NETWORK_SELECTION_MODE);
 
@@ -6709,12 +6666,64 @@ RilObject.prototype[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TEC
   let radioTech = this.context.Buf.readInt32List();
   this._processRadioTech(radioTech[0]);
 };
+RilObject.prototype[REQUEST_GET_CELL_INFO_LIST] = null;
+RilObject.prototype[REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE] = null;
+RilObject.prototype[REQUEST_SET_INITIAL_ATTACH_APN] = null;
+RilObject.prototype[REQUEST_IMS_REGISTRATION_STATE] = null;
+RilObject.prototype[REQUEST_IMS_SEND_SMS] = null;
+RilObject.prototype[REQUEST_SIM_TRANSMIT_APDU_BASIC] = null;
+RilObject.prototype[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNEL(length, options) {
+  if (options.rilRequestError) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+    this.sendChromeMessage(options);
+    return;
+  }
+
+  options.channel = this.context.Buf.readInt32();
+  if (DEBUG) {
+    this.context.debug("Setting channel number in options: " + options.channel);
+  }
+  this.sendChromeMessage(options);
+};
+RilObject.prototype[REQUEST_SIM_CLOSE_CHANNEL] = function REQUEST_SIM_CLOSE_CHANNEL(length, options) {
+  this.sendDefaultResponse(options);
+};
+RilObject.prototype[REQUEST_SIM_TRANSMIT_APDU_CHANNEL] = function REQUEST_SIM_TRANSMIT_APDU_CHANNEL(length, options) {
+  if (options.rilRequestError) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+    this.sendChromeMessage(options);
+    return;
+  }
+
+  let Buf = this.context.Buf;
+  options.sw1 = Buf.readInt32();
+  options.sw2 = Buf.readInt32();
+  options.simResponse = Buf.readString();
+  if (DEBUG) {
+    this.context.debug("Setting return values for RIL[REQUEST_SIM_TRANSMIT_APDU_CHANNEL]: [" +
+                       options.sw1 + "," +
+                       options.sw2 + ", " +
+                       options.simResponse + "]");
+  }
+  this.sendChromeMessage(options);
+};
+RilObject.prototype[REQUEST_NV_READ_ITEM] = null;
+RilObject.prototype[REQUEST_NV_WRITE_ITEM] = null;
+RilObject.prototype[REQUEST_NV_WRITE_CDMA_PRL] = null;
+RilObject.prototype[REQUEST_NV_RESET_CONFIG] = null;
 RilObject.prototype[REQUEST_SET_UICC_SUBSCRIPTION] = function REQUEST_SET_UICC_SUBSCRIPTION(length, options) {
   // Resend data subscription after uicc subscription.
   if (this._attachDataRegistration) {
     this.setDataRegistration({attach: true});
   }
 };
+RilObject.prototype[REQUEST_ALLOW_DATA] = null;
+RilObject.prototype[REQUEST_GET_HARDWARE_CONFIG] = null;
+RilObject.prototype[REQUEST_SIM_AUTHENTICATION] = null;
+RilObject.prototype[REQUEST_GET_DC_RT_INFO] = null;
+RilObject.prototype[REQUEST_SET_DC_RT_INFO_RATE] = null;
+RilObject.prototype[REQUEST_SET_DATA_PROFILE] = null;
+RilObject.prototype[REQUEST_SHUTDOWN] = null;
 RilObject.prototype[REQUEST_SET_DATA_SUBSCRIPTION] = function REQUEST_SET_DATA_SUBSCRIPTION(length, options) {
   if (!options.rilMessageType) {
     // The request was made by ril_worker itself. Don't report.
@@ -7109,6 +7118,12 @@ RilObject.prototype[UNSOLICITED_VOICE_RADIO_TECH_CHANGED] = function UNSOLICITED
   //       See Bug 866038.
   this._processRadioTech(this.context.Buf.readInt32List()[0]);
 };
+RilObject.prototype[UNSOLICITED_CELL_INFO_LIST] = null;
+RilObject.prototype[UNSOLICITED_RESPONSE_IMS_NETWORK_STATE_CHANGED] = null;
+RilObject.prototype[UNSOLICITED_UICC_SUBSCRIPTION_STATUS_CHANGED] = null;
+RilObject.prototype[UNSOLICITED_SRVCC_STATE_NOTIFY] = null;
+RilObject.prototype[UNSOLICITED_HARDWARE_CONFIG_CHANGED] = null;
+RilObject.prototype[UNSOLICITED_DC_RT_INFO_CHANGED] = null;
 
 /**
  * This object exposes the functionality to parse and serialize PDU strings
