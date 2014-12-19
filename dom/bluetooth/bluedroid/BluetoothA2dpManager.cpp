@@ -801,8 +801,16 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
   const BluetoothValue& value = arr[0].value();
   MOZ_ASSERT(value.type() == BluetoothValue::TnsString);
   SinkState newState = StatusStringToSinkState(value.get_nsString());
-  NS_ENSURE_TRUE_VOID((newState != SinkState::SINK_UNKNOWN) &&
-                      (newState != mSinkState));
+
+  /**
+   * Ensure newState:
+   * - is not SINK_UNKNOWN, and
+   * - differs from mSinkState OR mSinkState is default sink state
+   * (in case bluetooth stack does not update intermediate SINK_CONNECTING state).
+   */
+  bool isDefaultSinkState = (mSinkState == SINK_DISCONNECTED);
+  NS_ENSURE_TRUE_VOID(newState != SinkState::SINK_UNKNOWN &&
+                     (newState != mSinkState || isDefaultSinkState));
 
   SinkState prevState = mSinkState;
   mSinkState = newState;
