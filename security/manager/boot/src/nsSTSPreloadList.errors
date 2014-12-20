@@ -67,7 +67,8 @@ hoerbuecher-und-hoerspiele.de: did not receive HSTS header
 honeytracks.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 hostedtalkgadget.google.com: did not receive HSTS header (error ignored - included regardless)
 howrandom.org: could not connect to host
-inertianetworks.com: did not receive HSTS header
+iban.is: could not connect to host
+inertianetworks.com: could not connect to host
 intercom.io: did not receive HSTS header
 iop.intuit.com: max-age too low: 86400
 irccloud.com: did not receive HSTS header
@@ -139,7 +140,8 @@ ssl.panoramio.com: did not receive HSTS header
 stocktrade.de: could not connect to host
 sunshinepress.org: could not connect to host
 surfeasy.com: did not receive HSTS header
-talk.google.com: did not receive HSTS header (error ignored - included regardless)
+talk.google.com: could not connect to host
+talk.google.com: could not connect to host (error ignored - included regardless)
 talkgadget.google.com: did not receive HSTS header (error ignored - included regardless)
 tektoria.de: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header (error ignored - included regardless)
@@ -149,6 +151,7 @@ wallet.google.com: did not receive HSTS header (error ignored - included regardl
 webmail.mayfirst.org: did not receive HSTS header
 whonix.org: did not receive HSTS header
 wiz.biz: did not receive HSTS header
+www.apollo-auto.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 www.calyxinstitute.org: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 www.cueup.com: could not connect to host
 www.developer.mydigipass.com: could not connect to host
