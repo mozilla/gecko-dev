@@ -394,7 +394,16 @@ this.DOMApplicationRegistry = {
   // Installs a 3rd party app.
   installPreinstalledApp: function installPreinstalledApp(aId) {
 #ifdef MOZ_WIDGET_GONK
-    let app = this.webapps[aId];
+    // In some cases, the app might be already installed under a different ID but
+    // with the same manifestURL. In that case, the only content of the webapp will
+    // be the id of the old version, which is the one we'll keep.
+    let destId  = this.webapps[aId].oldId || aId;
+    // We don't need the oldId anymore
+    if (destId !== aId) {
+      delete this.webapps[aId];
+    }
+
+    let app = this.webapps[destId];
     let baseDir, isPreinstalled = false;
     try {
       baseDir = FileUtils.getDir("coreAppsDir", ["webapps", aId], false);
@@ -434,10 +443,10 @@ this.DOMApplicationRegistry = {
     }
 
     debug("Installing 3rd party app : " + aId +
-          " from " + baseDir.path);
+          " from " + baseDir.path + " to " + destId);
 
-    // We copy this app to DIRECTORY_NAME/$aId, and set the base path as needed.
-    let destDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", aId], true, true);
+    // We copy this app to DIRECTORY_NAME/$destId, and set the base path as needed.
+    let destDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", destId], true, true);
 
     filesToMove.forEach(function(aFile) {
         let file = baseDir.clone();
@@ -457,7 +466,7 @@ this.DOMApplicationRegistry = {
       return isPreinstalled;
     }
 
-    app.origin = "app://" + aId;
+    app.origin = "app://" + destId;
 
     // Do this for all preinstalled apps... we can't know at this
     // point if the updates will be signed or not and it doesn't
@@ -482,7 +491,7 @@ this.DOMApplicationRegistry = {
       // If we are unable to extract the manifest, cleanup and remove this app.
       debug("Cleaning up: " + e);
       destDir.remove(true);
-      delete this.webapps[aId];
+      delete this.webapps[destId];
     } finally {
       zipReader.close();
     }
@@ -558,7 +567,13 @@ this.DOMApplicationRegistry = {
       for (let id in data) {
         // Core apps have ids matching their domain name (eg: dialer.gaiamobile.org)
         // Use that property to check if they are new or not.
-        if (!(id in this.webapps)) {
+        // Note that in some cases, the id might change, but the
+        // manifest URL wont. So consider that the app is old if
+        // the id does not exist already and if there's no other id
+        // for the manifestURL.
+        var oldId = (id in this.webapps) ? id :
+                      this._appIdForManifestURL(data[id].manifestURL);
+        if (!oldId) {
           this.webapps[id] = data[id];
           this.webapps[id].basePath = appDir.path;
 
@@ -575,8 +590,14 @@ this.DOMApplicationRegistry = {
           // we fall into this case if the app is present in /system/b2g/webapps/webapps.json
           // and in /data/local/webapps/webapps.json: this happens when updating gaia apps
           // Confere bug 989876
-          this.webapps[id].updateTime = data[id].updateTime;
-          this.webapps[id].lastUpdateCheck = data[id].updateTime;
+          // We also should fall in this case when the app is a preinstalled third party app.
+          this.webapps[oldId].updateTime = data[id].updateTime;
+          this.webapps[oldId].lastUpdateCheck = data[id].updateTime;
+          // If the id for the app has changed on the update, keep a pointer to the old one
+          // since we'll need this to update the app files.
+          if (id !== oldId) {
+            this.webapps[id] = {oldId: oldId};
+          }
         }
       }
     }.bind(this)).then(null, Cu.reportError);
@@ -3582,31 +3603,39 @@ this.DOMApplicationRegistry = {
     let appClone = AppsUtils.cloneAppObject(app);
     Services.obs.notifyObservers(null, "webapps-uninstall", JSON.stringify(appClone));
 
+    // Will store a promise that will fullfill when the activities have been unregistered.
+    // Note that on systems were activities are not supported this will fulfill immediately.
+    let activitiesUnregistered;
+
     if (supportSystemMessages()) {
-      this._readManifests([{ id: id }]).then((aResult) => {
+      activitiesUnregistered = this._readManifests([{ id: id }]).then(aResult => {
         this._unregisterActivities(aResult[0].manifest, app);
       });
+    } else {
+      activitiesUnregistered = Promise.resolve(null);
     }
 
-    let dir = this._getAppDir(id);
-    try {
-      dir.remove(true);
-    } catch (e) {}
-
-    delete this.webapps[id];
-
-    this._saveApps().then(() => {
-      this.broadcastMessage("Webapps:Uninstall:Broadcast:Return:OK", appClone);
-      // Catch exception on callback call to ensure notifying observers after
+    activitiesUnregistered.then(() => {
+      let dir = this._getAppDir(id);
       try {
-        if (aOnSuccess) {
-          aOnSuccess();
+        dir.remove(true);
+      } catch (e) {}
+
+      delete this.webapps[id];
+
+      this._saveApps().then(() => {
+        this.broadcastMessage("Webapps:Uninstall:Broadcast:Return:OK", appClone);
+        // Catch exception on callback call to ensure notifying observers after
+        try {
+          if (aOnSuccess) {
+            aOnSuccess();
+          }
+        } catch(ex) {
+          Cu.reportError("DOMApplicationRegistry: Exception on app uninstall: " +
+                         ex + "\n" + ex.stack);
         }
-      } catch(ex) {
-        Cu.reportError("DOMApplicationRegistry: Exception on app uninstall: " +
-                       ex + "\n" + ex.stack);
-      }
-      this.broadcastMessage("Webapps:RemoveApp", { id: id });
+        this.broadcastMessage("Webapps:RemoveApp", { id: id });
+      });
     });
   },
 

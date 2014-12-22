@@ -104,18 +104,26 @@ var Camera = {
   takePictureSuccess: function taken_foto(blob) {
     var img = new Image();
     var test = this._currentTest;
+    var onPreviewStateChange = function(newState) {
+      if (newState === 'started') {
+        ok(true, "viewfinder is ready and playing after resume");
+        Camera.cameraObj.onPreviewStateChange = null;
+        Camera._testsCompleted++;
+        if(Camera._testsCompleted == Camera._tests.length) {
+          ok(true, "test finishing");
+          SimpleTest.finish();
+        } else {
+          Camera.runTests();
+        }
+      }
+    }
+    Camera.cameraObj.onPreviewStateChange = onPreviewStateChange;
     img.onload = function Imgsize() {
       ok(this.width == test.pictureSize.width, "The image taken has the width " + 
                                               this.width + " pictureSize width = " + test.pictureSize.width);
       ok(this.height == test.pictureSize.height, "The image taken has the height " + 
                                               this.height + " picturesize height = " + test.pictureSize.height);
-      Camera._testsCompleted++;
-      if(Camera._testsCompleted == Camera._tests.length) {
-        ok(true, "test finishing");
-        SimpleTest.finish();
-      } else {
-        Camera.runTests();
-      }
+      Camera.cameraObj.resumePreview();
     }
     ok(blob.size > 100 , "Blob Size Gathered = " + blob.size);
     ok("image/" + test.fileFormat ==  blob.type, "Blob Type = " + blob.type);
@@ -216,8 +224,10 @@ SimpleTest.waitForExplicitFinish();
 
 window.addEventListener('beforeunload', function() {
   Camera.viewfinder.mozSrcObject = null;
-  Camera.cameraObj.release();
-  Camera.cameraObj = null;
+  if (Camera.cameraObj) {
+    Camera.cameraObj.release();
+    Camera.cameraObj = null;
+  }
 });
 
 Camera.setUp();

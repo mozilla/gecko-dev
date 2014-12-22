@@ -141,6 +141,7 @@ protected:
 
   int32_t RationalizeRotation(int32_t aRotation);
 
+  uint32_t mCameraId;
   android::sp<android::GonkCameraHardware> mCameraHw;
 
   Size                      mLastPictureSize;
@@ -159,6 +160,10 @@ protected:
 
   android::MediaProfiles*   mMediaProfiles;
   nsRefPtr<android::GonkRecorder> mRecorder;
+  // Touching mRecorder happens inside this monitor because the destructor
+  // can run on any thread, and we need to be able to clean up properly if
+  // GonkCameraControl goes away.
+  ReentrantMonitor          mRecorderMonitor;
 
   // Camcorder profile settings for the desired quality level
   nsRefPtr<GonkRecorderProfileManager> mProfileManager;
