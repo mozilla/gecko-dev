@@ -2161,6 +2161,12 @@ public:
   }
 };
 
+void
+BluetoothDBusService::ConfigHciDumpLog(bool aEnabled)
+{
+  // Only available for BT HAL interface
+}
+
 nsresult
 BluetoothDBusService::StartInternal()
 {

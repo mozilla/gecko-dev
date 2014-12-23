@@ -1423,6 +1423,20 @@ BluetoothServiceBluedroid::GetBluetoothInterface()
 }
 
 void
+BluetoothServiceBluedroid::ConfigHciDumpLog(bool aEnabled)
+{
+  if(!sBtInterface) {
+    BT_LOGR("sBtInterface is null");
+  }
+
+  BT_LOGR("Config HCI dump: %d", aEnabled);
+  int ret = sBtInterface->config_hci_snoop_log(aEnabled);
+  if (ret != BT_STATUS_SUCCESS) {
+    BT_LOGR("Fail to ConfigHciDumpLog");
+  }
+}
+
+void
 BluetoothServiceBluedroid::Connect(const nsAString& aDeviceAddress,
                                    uint32_t aCod,
                                    uint16_t aServiceUuid,
