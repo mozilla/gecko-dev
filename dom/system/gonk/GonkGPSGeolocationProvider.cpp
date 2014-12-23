@@ -36,8 +36,11 @@
 #ifdef MOZ_B2G_RIL
 #include "nsIDOMIccInfo.h"
 #include "nsIMobileConnectionInfo.h"
+#include "nsIMobileConnectionProvider.h"
 #include "nsIMobileCellInfo.h"
+#include "nsIMobileNetworkInfo.h"
 #include "nsIRadioInterfaceLayer.h"
+#include "nsRadioInterfaceLayer.h"
 #endif
 
 #define SETTING_DEBUG_ENABLED "geolocation.debugging.enabled"
@@ -476,23 +479,29 @@ GonkGPSGeolocationProvider::SetReferenceLocation()
     return;
   }
 
-  nsCOMPtr<nsIRilContext> rilCtx;
-  mRadioInterface->GetRilContext(getter_AddRefs(rilCtx));
-
   AGpsRefLocation location;
 
   // TODO: Bug 772750 - get mobile connection technology from rilcontext
   location.type = AGPS_REF_LOCATION_TYPE_UMTS_CELLID;
 
-  if (rilCtx) {
-    nsCOMPtr<nsIDOMMozIccInfo> iccInfo;
-    rilCtx->GetIccInfo(getter_AddRefs(iccInfo));
-    if (iccInfo) {
+  nsCOMPtr<nsIMobileConnectionProvider> connection =
+    do_GetService(NS_RILCONTENTHELPER_CONTRACTID);
+  NS_ENSURE_TRUE_VOID(connection);
+
+  nsCOMPtr<nsIMobileConnectionInfo> voice;
+  // TODO: Bug 878748 - B2G GPS: acquire correct RadioInterface instance in
+  // MultiSIM configuration
+  connection->GetVoiceConnectionInfo(0 /* Client Id */, getter_AddRefs(voice));
+
+  if (voice) {
+    nsCOMPtr<nsIMobileNetworkInfo> networkInfo;
+    voice->GetNetwork(getter_AddRefs(networkInfo));
+    if (networkInfo) {
       nsresult result;
       nsAutoString mcc, mnc;
 
-      iccInfo->GetMcc(mcc);
-      iccInfo->GetMnc(mnc);
+      networkInfo->GetMcc(mcc);
+      networkInfo->GetMnc(mnc);
 
       location.u.cellID.mcc = mcc.ToInteger(&result);
       if (result != NS_OK) {
@@ -505,34 +514,43 @@ GonkGPSGeolocationProvider::SetReferenceLocation()
         NS_WARNING("Cannot parse mnc to integer");
         location.u.cellID.mnc = 0;
       }
+    } else {
+      NS_WARNING("Cannot get mobile network info.");
+      location.u.cellID.mcc = 0;
+      location.u.cellID.mnc = 0;
     }
-    nsCOMPtr<nsIMobileConnectionInfo> voice;
-    rilCtx->GetVoice(getter_AddRefs(voice));
-    if (voice) {
-      nsCOMPtr<nsIMobileCellInfo> cell;
-      voice->GetCell(getter_AddRefs(cell));
-      if (cell) {
-        int32_t lac;
-        int64_t cid;
 
-        cell->GetGsmLocationAreaCode(&lac);
-        // The valid range of LAC is 0x0 to 0xffff which is defined in
-        // hardware/ril/include/telephony/ril.h
-        if (lac >= 0x0 && lac <= 0xffff) {
-          location.u.cellID.lac = lac;
-        }
+    nsCOMPtr<nsIMobileCellInfo> cell;
+    voice->GetCell(getter_AddRefs(cell));
+    if (cell) {
+      int32_t lac;
+      int64_t cid;
 
-        cell->GetGsmCellId(&cid);
-        // The valid range of cell id is 0x0 to 0xffffffff which is defined in
-        // hardware/ril/include/telephony/ril.h
-        if (cid >= 0x0 && cid <= 0xffffffff) {
-          location.u.cellID.cid = cid;
-        }
+      cell->GetGsmLocationAreaCode(&lac);
+      // The valid range of LAC is 0x0 to 0xffff which is defined in
+      // hardware/ril/include/telephony/ril.h
+      if (lac >= 0x0 && lac <= 0xffff) {
+        location.u.cellID.lac = lac;
       }
+
+      cell->GetGsmCellId(&cid);
+      // The valid range of cell id is 0x0 to 0xffffffff which is defined in
+      // hardware/ril/include/telephony/ril.h
+      if (cid >= 0x0 && cid <= 0xffffffff) {
+        location.u.cellID.cid = cid;
+      }
+    } else {
+      NS_WARNING("Cannot get mobile gell info.");
+      location.u.cellID.lac = -1;
+      location.u.cellID.cid = -1;
     }
-    if (mAGpsRilInterface) {
-      mAGpsRilInterface->set_ref_location(&location, sizeof(location));
-    }
+  } else {
+    NS_WARNING("Cannot get mobile connection info.");
+    return;
+  }
+
+  if (mAGpsRilInterface) {
+    mAGpsRilInterface->set_ref_location(&location, sizeof(location));
   }
 }
 
