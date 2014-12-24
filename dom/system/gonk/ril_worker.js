@@ -277,11 +277,6 @@ TelephonyRequestQueue.prototype = {
       return;
     }
 
-    // We only need to keep one entry for queryQueue.
-    if (queue === this.queryQueue) {
-      queue.splice(1, queue.length - 1);
-    }
-
     this.currentQueue = queue;
     for (let entry of queue) {
       this._executeEntry(entry);
@@ -1603,13 +1598,13 @@ RilObject.prototype = {
   /**
    * Get current calls.
    */
-  getCurrentCalls: function() {
+  getCurrentCalls: function(options) {
     this.telephonyRequestQueue.push(REQUEST_GET_CURRENT_CALLS,
-                                    this.sendRilRequestGetCurrentCalls, null);
+                                    this.sendRilRequestGetCurrentCalls, options);
   },
 
-  sendRilRequestGetCurrentCalls: function() {
-    this.context.Buf.simpleRequest(REQUEST_GET_CURRENT_CALLS);
+  sendRilRequestGetCurrentCalls: function(options) {
+    this.context.Buf.simpleRequest(REQUEST_GET_CURRENT_CALLS, options);
   },
 
   /**
@@ -4171,9 +4166,7 @@ RilObject.prototype = {
   /**
    * Helpers for processing call state changes.
    */
-  _processCalls: function(newCalls, failCause) {
-    if (DEBUG) this.context.debug("_processCalls: " + JSON.stringify(newCalls) +
-                                  " failCause: " + failCause);
+  _processCalls: function(newCalls, forceUpdate, failCause) {
     // Let's get the failCause first if there are removed calls. Otherwise, we
     // need to trigger another async request when removing call and it cause
     // the order of callDisconnected and conferenceCallStateChanged
@@ -4181,9 +4174,9 @@ RilObject.prototype = {
     if (failCause === undefined) {
       for each (let currentCall in this.currentCalls) {
         if (!newCalls[currentCall.callIndex] && !currentCall.hangUpLocal) {
-          this.getFailCauseCode((function(newCalls, failCause) {
-            this._processCalls(newCalls, failCause);
-          }).bind(this, newCalls));
+          this.getFailCauseCode((function(newCalls, forceUpdate, failCause) {
+            this._processCalls(newCalls, forceUpdate, failCause);
+          }).bind(this, newCalls, forceUpdate));
           return;
         }
       }
@@ -4205,12 +4198,12 @@ RilObject.prototype = {
     // Handle remained calls.
     for (let newCall of remainedCalls) {
       let oldCall = this.currentCalls[newCall.callIndex];
-      if (oldCall.state == newCall.state) {
+      if (oldCall.state == newCall.state && !forceUpdate) {
         continue;
       }
 
       if (oldCall.state == CALL_STATE_WAITING &&
-          newCall.state == CALL_STATE_INCOMING) {
+          newCall.state == CALL_STATE_INCOMING && !forceUpdate) {
         // Update the call internally but we don't notify chrome since these two
         // states are viewed as the same one there.
         oldCall.state = newCall.state;
@@ -4249,8 +4242,8 @@ RilObject.prototype = {
       }
     }
 
-    // Update audio state. We have to send the message before callstatechange
-    // to make sure that the audio state is ready first.
+    // Update audio state. We have to send this message before callStateChange
+    // and callDisconnected to make sure that the audio state is ready first.
     this.sendChromeMessage({
       rilMessageType: "audioStateChanged",
       state: this._detectAudioState()
@@ -4267,7 +4260,7 @@ RilObject.prototype = {
     }
 
     // Notify conference state change.
-    if (this.currentConferenceState != newConferenceState) {
+    if (this.currentConferenceState != newConferenceState || forceUpdate) {
       this.currentConferenceState = newConferenceState;
       let message = {rilMessageType: "conferenceCallStateChanged",
                      state: newConferenceState};
@@ -5678,7 +5671,8 @@ RilObject.prototype[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CA
 
     calls[call.callIndex] = call;
   }
-  this._processCalls(calls);
+
+  this._processCalls(calls, options.forceUpdate);
 };
 RilObject.prototype[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
   if (options.rilRequestError === 0) {
@@ -5720,6 +5714,10 @@ RilObject.prototype[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQU
   RilObject.prototype[REQUEST_HANGUP].call(this, length, options);
 };
 RilObject.prototype[REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE(length, options) {
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    this.getCurrentCalls({ forceUpdate: true });
+  }
 };
 RilObject.prototype[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, options) {
   options.success = (options.rilRequestError === 0);
