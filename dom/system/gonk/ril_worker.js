@@ -1822,6 +1822,12 @@ RilObject.prototype = {
   },
 
   sendHangUpForegroundRequest: function(options) {
+    for each (let currentCall in this.currentCalls) {
+      if (currentCall.state == CALL_STATE_ACTIVE) {
+        currentCall.hangUpLocal = true;
+      }
+    }
+
     this.telephonyRequestQueue.push(REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND,
                                     this.sendRilRequestHangUpForeground,
                                     options);
@@ -1833,6 +1839,28 @@ RilObject.prototype = {
   },
 
   sendHangUpBackgroundRequest: function(options) {
+    let waitingCalls = [];
+    let heldCalls = [];
+
+    for each (let currentCall in this.currentCalls) {
+      switch (currentCall.state) {
+        case CALL_STATE_WAITING:
+          waitingCalls.push(currentCall);
+          break;
+        case CALL_STATE_HOLDING:
+          heldCalls.push(currentCall);
+          break;
+      }
+    }
+
+    // When both a held and a waiting call exist, the request shall apply to
+    // the waiting call.
+    if (waitingCalls.length) {
+      waitingCalls.forEach(call => call.hangUpLocal = true);
+    } else {
+      heldCalls.forEach(call => call.hangUpLocal = true);
+    }
+
     this.telephonyRequestQueue.push(REQUEST_HANGUP_WAITING_OR_BACKGROUND,
                                     this.sendRilRequestHangUpWaiting, options);
   },
