@@ -1425,6 +1425,7 @@ BluetoothServiceBluedroid::GetBluetoothInterface()
 void
 BluetoothServiceBluedroid::ConfigHciDumpLog(bool aEnabled)
 {
+#if ANDROID_VERSION >= 19
   if(!sBtInterface) {
     BT_LOGR("sBtInterface is null");
   }
@@ -1434,6 +1435,7 @@ BluetoothServiceBluedroid::ConfigHciDumpLog(bool aEnabled)
   if (ret != BT_STATUS_SUCCESS) {
     BT_LOGR("Fail to ConfigHciDumpLog");
   }
+#endif
 }
 
 void
