@@ -2638,33 +2638,6 @@ RilObject.prototype = {
       return true;
     }
 
-    function _isValidChangePasswordRequest(mmiServiceCode) {
-      if (mmi.procedure !== MMI_PROCEDURE_REGISTRATION &&
-          mmi.procedure !== MMI_PROCEDURE_ACTIVATION) {
-        _sendMMIError(MMI_ERROR_KS_INVALID_ACTION, mmiServiceCode);
-        return false;
-      }
-
-      if (mmi.sia !== "" && mmi.sia !== MMI_ZZ_BARRING_SERVICE) {
-        _sendMMIError(MMI_ERROR_KS_NOT_SUPPORTED, mmiServiceCode);
-        return false;
-      }
-
-      let validPassword = si => /^[0-9]{4}$/.test(si);
-      if (!validPassword(mmi.sib) || !validPassword(mmi.sic) ||
-          !validPassword(mmi.pwd)) {
-        _sendMMIError(MMI_ERROR_KS_INVALID_PASSWORD, mmiServiceCode);
-        return false;
-      }
-
-      if (mmi.sic != mmi.pwd) {
-        _sendMMIError(MMI_ERROR_KS_MISMATCH_PASSWORD, mmiServiceCode);
-        return false;
-      }
-
-      return true;
-    }
-
     let _isRadioAvailable = (function(mmiServiceCode) {
       if (this.radioState !== GECKO_RADIOSTATE_READY) {
         _sendMMIError(GECKO_ERROR_RADIO_NOT_AVAILABLE, mmiServiceCode);
@@ -2841,19 +2814,6 @@ RilObject.prototype = {
         }
         options.isSetCLIR = true;
         this.setCLIR(options);
-        return;
-
-      // Change call barring password
-      case MMI_SC_CHANGE_PASSWORD:
-        if (!_isRadioAvailable(MMI_KS_SC_CHANGE_PASSWORD) ||
-            !_isValidChangePasswordRequest(MMI_KS_SC_CHANGE_PASSWORD)) {
-          return;
-        }
-
-        options.mmiServiceCode = MMI_KS_SC_CHANGE_PASSWORD;
-        options.pin = mmi.sib;
-        options.newPin = mmi.sic;
-        this.changeCallBarringPassword(options);
         return;
 
       // Call barring
@@ -6292,13 +6252,6 @@ RilObject.prototype[REQUEST_CHANGE_BARRING_PASSWORD] =
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
-
-  if (options.rilMessageType != "sendMMI") {
-    this.sendChromeMessage(options);
-    return;
-  }
-
-  options.statusMessage = MMI_SM_KS_PASSWORD_CHANGED;
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNEL(length, options) {
