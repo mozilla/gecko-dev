@@ -1078,3 +1078,6 @@ pref("dom.mozSettings.SettingsService.verbose.enabled", false);
 // IndexedDB transactions to be opened as readonly or keep everything as
 // readwrite.
 pref("dom.mozSettings.allowForceReadOnly", false);
+
+//enable nested oop
+pref("dom.ipc.tabs.nested.enabled", true);
