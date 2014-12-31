@@ -46,6 +46,9 @@ pref("offline-apps.allow_by_default", true);
 // TCPSocket
 pref("dom.mozTCPSocket.enabled", true);
 
+// Browser API https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
+pref("dom.mozBrowserFramesEnabled", true);
+
 // Enable smooth scrolling
 pref("general.smoothScroll", true);
 
