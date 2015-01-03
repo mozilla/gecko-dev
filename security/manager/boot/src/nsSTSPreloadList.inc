@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1430564880284000);
+const PRTime gPreloadListExpirationTime = INT64_C(1431169667113000);
 
 class nsSTSPreload
 {
@@ -193,7 +193,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "haste.ch", true },
   { "haufschild.de", true },
   { "hausverbrauch.de", true },
-  { "heha.co", true },
+  { "heha.co", false },
   { "helichat.de", true },
   { "help.simpletax.ca", false },
   { "helpium.de", true },
@@ -444,7 +444,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "ukrainians.ch", true },
   { "unterfrankenclan.de", true },
   { "usaa.com", false },
-  { "viennan.net", true },
   { "vmoagents.com", false },
   { "vocaloid.my", true },
   { "w-spotlight.appspot.com", true },

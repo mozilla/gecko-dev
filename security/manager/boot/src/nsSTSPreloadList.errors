@@ -12,6 +12,7 @@ bccx.com: could not connect to host
 bedeta.de: could not connect to host
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
+bitfactory.ws: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 blog.lookout.com: did not receive HSTS header
 braintreegateway.com: did not receive HSTS header
 braintreepayments.com: did not receive HSTS header
@@ -146,7 +147,9 @@ talk.google.com: could not connect to host (error ignored - included regardless)
 talkgadget.google.com: did not receive HSTS header (error ignored - included regardless)
 tektoria.de: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header (error ignored - included regardless)
+unterfrankenclan.de: could not connect to host
 uprotect.it: could not connect to host
+viennan.net: did not receive HSTS header
 wallet.google.com: did not receive HSTS header (error ignored - included regardless)
 webmail.mayfirst.org: did not receive HSTS header
 whonix.org: did not receive HSTS header
