@@ -12,6 +12,7 @@
 #include "Blur.h"
 #include <map>
 #include "FilterProcessing.h"
+#include "Logging.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/DebugOnly.h"
 
@@ -1568,7 +1569,16 @@ FilterNodeTileSoftware::Render(const IntRect& aRect)
           return nullptr;
         }
       }
-      MOZ_ASSERT(input->GetFormat() == target->GetFormat(), "different surface formats from the same input?");
+
+      if (input->GetFormat() != target->GetFormat()) {
+        // Different rectangles of the input can have different formats. If
+        // that happens, just convert everything to B8G8R8A8.
+        target = FilterProcessing::ConvertToB8G8R8A8(target);
+        input = FilterProcessing::ConvertToB8G8R8A8(input);
+        if (MOZ2D_WARN_IF(!target) || MOZ2D_WARN_IF(!input)) {
+          return nullptr;
+        }
+      }
 
       CopyRect(input, target, srcRect - srcRect.TopLeft(), destRect.TopLeft() - aRect.TopLeft());
     }
