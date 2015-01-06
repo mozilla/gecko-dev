@@ -103,7 +103,7 @@ function test() {
     },
     {
       name: "home page search",
-      searchURL: base + "&channel=np&source=hp",
+      searchURL: base,
       run: function () {
         // Bug 992270: Ignore uncaught about:home exceptions (related to snippets from IndexedDB)
         ignoreAllUncaughtExceptions(true);
