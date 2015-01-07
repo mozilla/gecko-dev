@@ -22,4 +22,5 @@ copy:build/buildconfig.py
 packages.txt:testing/mozbase/packages.txt
 objdir:build
 gyp.pth:media/webrtc/trunk/tools/gyp/pylib
+redo.pth:python/redo
 requests.pth:python/requests
