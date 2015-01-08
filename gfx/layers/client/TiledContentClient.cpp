@@ -27,7 +27,7 @@
 #include "nsSize.h"                     // for nsIntSize
 #include "gfxReusableSharedImageSurfaceWrapper.h"
 #include "nsExpirationTracker.h"        // for nsExpirationTracker
-#include "nsMathUtils.h"               // for NS_roundf
+#include "nsMathUtils.h"               // for NS_lroundf
 #include "gfx2DGlue.h"
 #include "LayersLogging.h"
 #include "UnitTransforms.h"             // for TransformTo
@@ -1177,11 +1177,11 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
                          dirtyRect->height);
       drawRect.Scale(mResolution);
 
-      gfx::IntRect copyRect(NS_roundf((dirtyRect->x - mSinglePaintBufferOffset.x) * mResolution),
-                            NS_roundf((dirtyRect->y - mSinglePaintBufferOffset.y) * mResolution),
+      gfx::IntRect copyRect(NS_lroundf((dirtyRect->x - mSinglePaintBufferOffset.x) * mResolution),
+                            NS_lroundf((dirtyRect->y - mSinglePaintBufferOffset.y) * mResolution),
                             drawRect.width,
                             drawRect.height);
-      gfx::IntPoint copyTarget(NS_roundf(drawRect.x), NS_roundf(drawRect.y));
+      gfx::IntPoint copyTarget(NS_lroundf(drawRect.x), NS_lroundf(drawRect.y));
       // Mark the newly updated area as invalid in the back buffer
       aTile.mInvalidBack.Or(aTile.mInvalidBack, nsIntRect(copyTarget.x, copyTarget.y, copyRect.width, copyRect.height));
 
@@ -1221,11 +1221,11 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
                          dirtyRect->height);
       drawRect.Scale(mResolution);
 
-      gfx::IntRect copyRect(NS_roundf((dirtyRect->x - mSinglePaintBufferOffset.x) * mResolution),
-                            NS_roundf((dirtyRect->y - mSinglePaintBufferOffset.y) * mResolution),
+      gfx::IntRect copyRect(NS_lroundf((dirtyRect->x - mSinglePaintBufferOffset.x) * mResolution),
+                            NS_lroundf((dirtyRect->y - mSinglePaintBufferOffset.y) * mResolution),
                             drawRect.width,
                             drawRect.height);
-      gfx::IntPoint copyTarget(NS_roundf(drawRect.x), NS_roundf(drawRect.y));
+      gfx::IntPoint copyTarget(NS_lroundf(drawRect.x), NS_lroundf(drawRect.y));
       drawTarget->CopySurface(source, copyRect, copyTarget);
 
       // Mark the newly updated area as invalid in the front buffer
