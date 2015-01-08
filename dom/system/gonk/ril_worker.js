@@ -4338,7 +4338,7 @@ RilObject.prototype = {
   _addVoiceCall: function(newCall) {
     newCall.number = this._formatInternationalNumber(newCall.number, newCall.toa);
     newCall.isEmergency = this._isEmergencyNumber(newCall.number);
-    newCall.isOutgoing = !(newCall.state == CALL_STATE_INCOMING);
+    newCall.isOutgoing = !newCall.isMT;
     newCall.isConference = false;
 
     this.currentCalls[newCall.callIndex] = newCall;
