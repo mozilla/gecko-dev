@@ -979,7 +979,7 @@ RegExpCompartment::sweep(JSRuntime *rt)
         // Because of this we only treat the marked_ bit as a hint, and destroy
         // the RegExpShared if it was accidentally marked earlier but wasn't
         // marked by the current trace.
-        bool keep = shared->marked() && !IsStringAboutToBeFinalized(shared->source.unsafeGet());
+        bool keep = shared->marked() && IsStringMarked(shared->source.unsafeGet());
 #if !defined(JS_YARR) && defined(JS_ION)
         if (keep && shared->jitCode)
             keep = !IsJitCodeAboutToBeFinalized(shared->jitCode.unsafeGet());
