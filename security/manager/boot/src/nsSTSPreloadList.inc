@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1431169667113000);
+const PRTime gPreloadListExpirationTime = INT64_C(1431774714063000);
 
 class nsSTSPreload
 {
@@ -92,7 +92,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "checkout.google.com", true },
   { "chrome-devtools-frontend.appspot.com", true },
   { "chrome.google.com", true },
-  { "chromiumcodereview.appspot.com", false },
+  { "chromiumcodereview.appspot.com", true },
   { "clapping-rhymes.com", true },
   { "cloud.google.com", true },
   { "cloudcert.org", true },
@@ -101,7 +101,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "cloudup.com", true },
   { "code-poets.co.uk", true },
   { "code.google.com", true },
-  { "codereview.appspot.com", false },
+  { "codereview.appspot.com", true },
   { "codereview.chromium.org", true },
   { "config.schokokeks.org", true },
   { "conformal.com", true },
@@ -334,8 +334,8 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "pierre-schmitz.com", true },
   { "pixi.me", true },
   { "play.google.com", false },
-  { "plus.google.com", false },
-  { "plus.sandbox.google.com", false },
+  { "plus.google.com", true },
+  { "plus.sandbox.google.com", true },
   { "portal.tirol.gv.at", true },
   { "posteo.de", true },
   { "profiles.google.com", true },
