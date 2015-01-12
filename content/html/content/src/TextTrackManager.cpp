@@ -91,13 +91,12 @@ TextTrackManager::TextTrackManager(HTMLMediaElement *aMediaElement)
   : mMediaElement(aMediaElement)
   , performedTrackSelection(false)
 {
-  bool hasHadScriptObject = true;
-  nsIScriptGlobalObject* scriptObject =
-    mMediaElement->OwnerDoc()->GetScriptHandlingObject(hasHadScriptObject);
+  nsISupports* parentObject =
+    mMediaElement->OwnerDoc()->GetParentObject();
 
-  NS_ENSURE_TRUE_VOID(scriptObject || !hasHadScriptObject);
+  NS_ENSURE_TRUE_VOID(parentObject);
 
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(scriptObject);
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(parentObject);
   mNewCues = new TextTrackCueList(window);
   mTextTracks = new TextTrackList(window, this);
   mPendingTextTracks = new TextTrackList(window, this);
@@ -111,7 +110,7 @@ TextTrackManager::TextTrackManager(HTMLMediaElement *aMediaElement)
 }
 
 TextTrackList*
-TextTrackManager::TextTracks() const
+TextTrackManager::GetTextTracks() const
 {
   return mTextTracks;
 }

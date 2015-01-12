@@ -534,7 +534,7 @@ public:
 
   void SetMozAudioChannelType(AudioChannel aValue, ErrorResult& aRv);
 
-  TextTrackList* TextTracks();
+  TextTrackList* GetTextTracks();
 
   already_AddRefed<TextTrack> AddTextTrack(TextTrackKind aKind,
                                            const nsAString& aLabel,

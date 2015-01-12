@@ -3892,11 +3892,11 @@ NS_IMETHODIMP HTMLMediaElement::WindowVolumeChanged()
   return NS_OK;
 }
 
-/* readonly attribute TextTrackList textTracks; */
+/* readonly attribute TextTrackList? textTracks; */
 TextTrackList*
-HTMLMediaElement::TextTracks()
+HTMLMediaElement::GetTextTracks()
 {
-  return GetOrCreateTextTrackManager()->TextTracks();
+  return GetOrCreateTextTrackManager()->GetTextTracks();
 }
 
 already_AddRefed<TextTrack>
