@@ -1352,6 +1352,15 @@ void MediaDecoderStateMachine::SetDormant(bool aDormant)
   DECODER_LOG("SetDormant=%d", aDormant);
 
   if (aDormant) {
+    if (mState == DECODER_STATE_SEEKING) {
+      if (mSeekTarget.IsValid()) {
+        mQueuedSeekTarget = mSeekTarget;
+      } else if (mCurrentSeekTarget.IsValid()) {
+        mQueuedSeekTarget = mCurrentSeekTarget;
+      }
+    }
+    mSeekTarget.Reset();
+    mCurrentSeekTarget.Reset();
     ScheduleStateMachine();
     SetState(DECODER_STATE_DORMANT);
     mDecoder->GetReentrantMonitor().NotifyAll();
@@ -1535,8 +1544,50 @@ void MediaDecoderStateMachine::Seek(const SeekTarget& aTarget)
   // in that case MediaDecoder shouldn't be calling us.
   NS_ASSERTION(mState != DECODER_STATE_SEEKING,
                "We shouldn't already be seeking");
-  NS_ASSERTION(mState >= DECODER_STATE_DECODING,
-               "We should have loaded metadata");
+  NS_ASSERTION(mState > DECODER_STATE_DECODING_METADATA,
+               "We should have got duration already");
+
+  if (mState < DECODER_STATE_DECODING) {
+    DECODER_LOG("Seek() Not Enough Data to continue at this stage, queuing seek");
+    mQueuedSeekTarget = aTarget;
+    return;
+  }
+  mQueuedSeekTarget.Reset();
+
+  StartSeek(aTarget);
+}
+
+void
+MediaDecoderStateMachine::EnqueueStartQueuedSeekTask()
+{
+  nsCOMPtr<nsIRunnable> event =
+    NS_NewRunnableMethod(this, &MediaDecoderStateMachine::StartQueuedSeek);
+  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+}
+
+void
+MediaDecoderStateMachine::StartQueuedSeek()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  if (!mQueuedSeekTarget.IsValid()) {
+    return;
+  }
+  StartSeek(mQueuedSeekTarget);
+  mQueuedSeekTarget.Reset();
+}
+
+void
+MediaDecoderStateMachine::StartSeek(const SeekTarget& aTarget)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  AssertCurrentThreadInMonitor();
+
+  MOZ_ASSERT(mState >= DECODER_STATE_DECODING);
+
+  if (mState == DECODER_STATE_SHUTDOWN) {
+    return;
+  }
 
   // Bound the seek time to be inside the media range.
   NS_ASSERTION(mStartTime != -1, "Should know start time by now");
@@ -2081,6 +2132,9 @@ MediaDecoderStateMachine::FinishDecodeMetadata()
     StartPlayback();
   }
 
+  if (mQueuedSeekTarget.IsValid()) {
+    EnqueueStartQueuedSeekTask();
+  }
   return NS_OK;
 }
 
@@ -2383,6 +2437,8 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         mDecodeTaskQueue->AwaitIdle();
         mReader->ReleaseMediaResources();
       }
+      mAudioRequestPending = false;
+      mVideoRequestPending = false;
       return NS_OK;
     }
 
