@@ -5559,6 +5559,7 @@ RilObject.prototype = {
     // Also see Bug 1106449 for short term work around.
     if (cmdDetails.typeOfCommand === STK_CMD_REFRESH &&
         cmdDetails.commandQualifier === STK_REFRESH_FILE_CHANGE ) {
+      this.context.StkCommandParamsFactory.createParam(cmdDetails, ctlvs);
       return;
     }
 
