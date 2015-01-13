@@ -23,7 +23,8 @@
     ],
     "env": {
         "VARIANT": "user",
-        "MOZILLA_OFFICIAL": "1"
+        "MOZILLA_OFFICIAL": "1",
+        "B2G_UPDATE_CHANNEL": "nightly-b2g30"
     },
     "b2g_manifest": "dolphin.xml",
     "b2g_manifest_branch": "v1.4",
