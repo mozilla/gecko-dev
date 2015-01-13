@@ -1095,6 +1095,9 @@ pref("dom.mozSettings.SettingsService.verbose.enabled", false);
 // readwrite.
 pref("dom.mozSettings.allowForceReadOnly", false);
 
+// RequestSync API is enabled by default on B2G.
+pref("dom.requestSync.enabled", true);
+
 // Only enable for kit kat and above devices
 // kit kat == 19, L = 21, 20 is kit-kat for wearables
 // 15 is for the ICS emulators which will fallback to software vsync
