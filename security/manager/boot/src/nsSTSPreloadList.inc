@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1431169801475000);
+const PRTime gPreloadListExpirationTime = INT64_C(1431775284216000);
 
 class nsSTSPreload
 {
@@ -158,7 +158,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "chrisjean.com", true },
   { "chrome-devtools-frontend.appspot.com", true },
   { "chrome.google.com", true },
-  { "chromiumcodereview.appspot.com", false },
+  { "chromiumcodereview.appspot.com", true },
   { "chulado.com", true },
   { "cktennis.com", true },
   { "clapping-rhymes.com", true },
@@ -173,7 +173,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "code-poets.co.uk", true },
   { "code.google.com", true },
   { "codepref.com", true },
-  { "codereview.appspot.com", false },
+  { "codereview.appspot.com", true },
   { "codereview.chromium.org", true },
   { "coffeeetc.co.uk", true },
   { "coinapult.com", true },
@@ -191,7 +191,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "cryptopartyatx.org", true },
   { "cspbuilder.info", true },
   { "cube.de", true },
-  { "cujanovic.com", true },
   { "cupcake.io", true },
   { "cupcake.is", true },
   { "curlybracket.co.uk", true },
@@ -255,7 +254,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "enorekcah.com", true },
   { "entropia.de", false },
   { "errors.zenpayroll.com", false },
-  { "esec.rs", true },
   { "espra.com", true },
   { "ethack.org", true },
   { "ethitter.com", true },
@@ -598,7 +596,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "passport.yandex.ua", false },
   { "passwd.io", true },
   { "password.codes", true },
-  { "passwords.google.com", true },
   { "paste.linode.com", false },
   { "pastebin.linode.com", false },
   { "patt.us", true },
@@ -615,10 +612,10 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "picksin.club", true },
   { "pierre-schmitz.com", true },
   { "pixi.me", true },
-  { "play.google.com", true },
+  { "play.google.com", false },
   { "plothost.com", true },
-  { "plus.google.com", false },
-  { "plus.sandbox.google.com", false },
+  { "plus.google.com", true },
+  { "plus.sandbox.google.com", true },
   { "portal.tirol.gv.at", true },
   { "posteo.de", true },
   { "powerplannerapp.com", true },
@@ -694,7 +691,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "shiinko.com", false },
   { "shipard.com", true },
   { "shodan.io", true },
-  { "shohruh.uz", false },
   { "shopontarget.com", true },
   { "shortdiary.me", true },
   { "silentcircle.com", false },
@@ -757,7 +753,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "tapka.cz", true },
   { "tatort-fanpage.de", true },
   { "tauchkater.de", true },
-  { "taxsquirrel.com", true },
   { "techhipster.net", true },
   { "tegelsensanitaironline.nl", true },
   { "tekshrek.com", true },
@@ -819,7 +814,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "unterfrankenclan.de", true },
   { "uptrends.com", true },
   { "usaa.com", false },
-  { "uzstyle.com", false },
   { "vaddder.com", true },
   { "vhost.co.id", true },
   { "viasinc.com", false },
