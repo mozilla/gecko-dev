@@ -2501,10 +2501,25 @@ RadioInterface.prototype = {
   },
 
   setCellBroadcastSearchList: function(newSearchList) {
-    if ((newSearchList == this._cellBroadcastSearchList) ||
-          (newSearchList && this._cellBroadcastSearchList &&
-            newSearchList.gsm == this._cellBroadcastSearchList.gsm &&
-            newSearchList.cdma == this._cellBroadcastSearchList.cdma)) {
+    function isEqual(newSearchList, oldSearchList) {
+      function getSearchString(aSearchList, aProp) {
+        if (typeof aSearchList === "string" ||
+            aSearchList instanceof String) {
+          return aSearchList;
+        }
+        // convert undefined to "";
+        return (aSearchList && aSearchList[aProp]) || "";
+      }
+
+      let newGsm = getSearchString(newSearchList, "gsm");
+      let oldGsm = getSearchString(oldSearchList, "gsm");
+      let newCdma = getSearchString(newSearchList, "cdma");
+      let oldCdma = getSearchString(oldSearchList, "cdma");
+
+      return (newGsm == oldGsm) && (newCdma == oldCdma);
+    }
+
+    if (isEqual(newSearchList, this._cellBroadcastSearchList)) {
       return;
     }
 
