@@ -6,6 +6,7 @@
 #define PublicKeyPinningService_h
 
 #include "cert.h"
+#include "nsStringFwd.h"
 #include "pkix/Time.h"
 
 namespace mozilla {
@@ -29,6 +30,13 @@ public:
                                 const char* hostname,
                                 mozilla::pkix::Time time,
                                 bool enforceTestMode);
+
+  /**
+   * Given a hostname of potentially mixed case with potentially multiple
+   * trailing '.' (see bug 1118522), canonicalizes it to lowercase with no
+   * trailing '.'.
+   */
+  static nsAutoCString CanonicalizeHostname(const char* hostname);
 };
 
 }} // namespace mozilla::psm
