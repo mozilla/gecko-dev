@@ -198,7 +198,21 @@ public:
   void Play();
 
   // Seeks to the decoder to aTarget asynchronously.
+  // Must be called from the main thread.
   void Seek(const SeekTarget& aTarget);
+
+  // Dispatches a task to the main thread to seek to mQueuedSeekTarget.
+  // This is threadsafe and can be called on any thread.
+  void EnqueueStartQueuedSeekTask();
+
+  // Seeks to the decoder to mQueuedSeekTarget asynchronously.
+  // Must be called from the main thread.
+  void StartQueuedSeek();
+
+  // Seeks to the decoder to aTarget asynchronously.
+  // Must be called from the main thread.
+  // The decoder monitor must be held with exactly one lock count.
+  void StartSeek(const SeekTarget& aTarget);
 
   // Returns the current playback position in seconds.
   // Called from the main thread to get the current frame time. The decoder
@@ -721,6 +735,11 @@ protected:
   // The decoder monitor lock must be obtained before reading or writing
   // this value. Accessed on main and decode thread.
   SeekTarget mSeekTarget;
+
+  // Position to seek to in microseconds when DecodeFirstFrame completes.
+  // The decoder monitor lock must be obtained before reading or writing
+  // this value. Accessed on main and decode thread.
+  SeekTarget mQueuedSeekTarget;
 
   // The position that we're currently seeking to. This differs from
   // mSeekTarget, as mSeekTarget is the target we'll seek to next, whereas
