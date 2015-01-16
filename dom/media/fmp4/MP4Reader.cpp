@@ -92,6 +92,7 @@ InvokeAndRetry(ThisType* aThisVal, ReturnType(ThisType::*aMethod)(), MP4Stream* 
     if (NS_WARN_IF(!stream->LastReadFailed(&failure))) {
       return result;
     }
+    stream->ClearFailedRead();
 
     if (NS_WARN_IF(failure == prevFailure)) {
       NS_WARNING(nsPrintfCString("Failed reading the same block twice: offset=%lld, count=%lu",
@@ -525,6 +526,14 @@ MP4Reader::RequestVideoData(bool aSkipToNextKeyframe,
   MOZ_ASSERT(GetTaskQueue()->IsCurrentThreadIn());
   VLOG("RequestVideoData skip=%d time=%lld", aSkipToNextKeyframe, aTimeThreshold);
 
+  if (mShutdown) {
+    NS_WARNING("RequestVideoData on shutdown MP4Reader!");
+    MonitorAutoLock lock(mVideo.mMonitor);
+    nsRefPtr<VideoDataPromise> p = mVideo.mPromise.Ensure(__func__);
+    p->Reject(CANCELED, __func__);
+    return p;
+  }
+
   MOZ_ASSERT(HasVideo() && mPlatform && mVideo.mDecoder);
 
   bool eos = false;
@@ -555,7 +564,12 @@ MP4Reader::RequestAudioData()
   VLOG("RequestAudioData");
   MonitorAutoLock lock(mAudio.mMonitor);
   nsRefPtr<AudioDataPromise> p = mAudio.mPromise.Ensure(__func__);
-  ScheduleUpdate(kAudio);
+  if (!mShutdown) {
+    ScheduleUpdate(kAudio);
+  } else {
+    NS_WARNING("RequestAudioData on shutdown MP4Reader!");
+    p->Reject(CANCELED, __func__);
+  }
   return p;
 }
 
@@ -740,12 +754,16 @@ MP4Reader::ResetDecode()
   Flush(kVideo);
   {
     MonitorAutoLock mon(mDemuxerMonitor);
-    mDemuxer->SeekVideo(0);
+    if (mDemuxer) {
+      mDemuxer->SeekVideo(0);
+    }
   }
   Flush(kAudio);
   {
     MonitorAutoLock mon(mDemuxerMonitor);
-    mDemuxer->SeekAudio(0);
+    if (mDemuxer) {
+      mDemuxer->SeekAudio(0);
+    }
   }
   return MediaDecoderReader::ResetDecode();
 }
