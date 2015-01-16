@@ -260,15 +260,16 @@ private:
 
   // mMonitor protects mImage access/changes, and transitions of mState
   // from kStarted to kStopped (which are combined with EndTrack() and
-  // image changes).  Note that mSources is not accessed from other threads
-  // for video and is not protected.
+  // image changes).
+  // mMonitor also protects mSources[] access/changes.
+  // mSources[] is accessed from webrtc threads.
+
   Monitor mMonitor; // Monitor for processing WebRTC frames.
+  nsTArray<SourceMediaStream*> mSources; // When this goes empty, we shut down HW
   int mWidth, mHeight;
   nsRefPtr<layers::Image> mImage;
   nsRefPtr<layers::ImageContainer> mImageContainer;
   bool mHasDirectListeners;
-
-  nsTArray<SourceMediaStream *> mSources; // When this goes empty, we shut down HW
 
   bool mInitDone;
   bool mInSnapshotMode;

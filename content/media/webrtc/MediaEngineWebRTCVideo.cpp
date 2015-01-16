@@ -485,10 +485,15 @@ MediaEngineWebRTCVideoSource::Allocate(const VideoTrackConstraintsN &aConstraint
     }
     mState = kAllocated;
     LOG(("Video device %d allocated", mCaptureIndex));
-  } else if (mSources.IsEmpty()) {
-    LOG(("Video device %d reallocated", mCaptureIndex));
   } else {
-    LOG(("Video device %d allocated shared", mCaptureIndex));
+#ifdef PR_LOGGING
+    MonitorAutoLock lock(mMonitor);
+    if (mSources.IsEmpty()) {
+      LOG(("Video device %d reallocated", mCaptureIndex));
+    } else {
+      LOG(("Video device %d allocated shared", mCaptureIndex));
+    }
+#endif
   }
 #endif
 
@@ -499,7 +504,13 @@ nsresult
 MediaEngineWebRTCVideoSource::Deallocate()
 {
   LOG((__FUNCTION__));
-  if (mSources.IsEmpty()) {
+  bool empty;
+  {
+    MonitorAutoLock lock(mMonitor);
+    empty = mSources.IsEmpty();
+  }
+  if (empty) {
+    // If empty, no callbacks to deliver data should be occuring
 #ifdef MOZ_B2G_CAMERA
     ReentrantMonitorAutoEnter sync(mCallbackMonitor);
 #endif
@@ -554,7 +565,10 @@ MediaEngineWebRTCVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
     return NS_ERROR_FAILURE;
   }
 
-  mSources.AppendElement(aStream);
+  {
+    MonitorAutoLock lock(mMonitor);
+    mSources.AppendElement(aStream);
+  }
 
   aStream->AddTrack(aID, USECS_PER_S, 0, new VideoSegment());
   aStream->AdvanceKnownTracksTime(STREAM_TIME_MAX);
@@ -603,25 +617,26 @@ nsresult
 MediaEngineWebRTCVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
 {
   LOG((__FUNCTION__));
-  if (!mSources.RemoveElement(aSource)) {
-    // Already stopped - this is allowed
-    return NS_OK;
-  }
-
-  aSource->EndTrack(aID);
-
-  if (!mSources.IsEmpty()) {
-    return NS_OK;
-  }
-#ifdef MOZ_B2G_CAMERA
-  ReentrantMonitorAutoEnter sync(mCallbackMonitor);
-#endif
-  if (mState != kStarted) {
-    return NS_ERROR_FAILURE;
-  }
-
   {
     MonitorAutoLock lock(mMonitor);
+
+    if (!mSources.RemoveElement(aSource)) {
+      // Already stopped - this is allowed
+      return NS_OK;
+    }
+
+    aSource->EndTrack(aID);
+
+    if (!mSources.IsEmpty()) {
+      return NS_OK;
+    }
+#ifdef MOZ_B2G_CAMERA
+    ReentrantMonitorAutoEnter sync(mCallbackMonitor);
+#endif
+    if (mState != kStarted) {
+      return NS_ERROR_FAILURE;
+    }
+
     mState = kStopped;
     // Drop any cached image so we don't start with a stale image on next
     // usage
@@ -714,8 +729,19 @@ MediaEngineWebRTCVideoSource::Shutdown()
   ReentrantMonitorAutoEnter sync(mCallbackMonitor);
 #endif
   if (mState == kStarted) {
-    while (!mSources.IsEmpty()) {
-      Stop(mSources[0], kVideoTrack); // XXX change to support multiple tracks
+    SourceMediaStream *source;
+    bool empty;
+
+    while (1) {
+      {
+        MonitorAutoLock lock(mMonitor);
+        empty = mSources.IsEmpty();
+        if (empty) {
+          break;
+        }
+        source = mSources[0];
+      }
+      Stop(source, kVideoTrack); // XXX change to support multiple tracks
     }
     MOZ_ASSERT(mState == kStopped);
   }
