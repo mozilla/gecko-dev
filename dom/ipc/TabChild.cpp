@@ -978,8 +978,8 @@ TabChild::Observe(nsISupports *aSubject,
         // until we we get an inner size.
         if (HasValidInnerSize()) {
           InitializeRootMetrics();
-          utils->SetResolution(mLastRootMetrics.mPresShellResolution,
-                               mLastRootMetrics.mPresShellResolution);
+          utils->SetResolutionAndScaleTo(mLastRootMetrics.mPresShellResolution,
+                                         mLastRootMetrics.mPresShellResolution);
           HandlePossibleViewportChange(mInnerSize);
         }
       }
