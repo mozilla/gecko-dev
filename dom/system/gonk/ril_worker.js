@@ -3171,7 +3171,7 @@ RilObject.prototype = {
         text = response.input;
       }
 
-      if (text) {
+      if (text !== undefined) {
         GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_TEXT_STRING |
                                    COMPREHENSIONTLV_FLAG_CR);
 
