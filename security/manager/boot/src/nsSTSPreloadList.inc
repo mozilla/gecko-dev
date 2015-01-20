@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1432379677237000);
+const PRTime gPreloadListExpirationTime = INT64_C(1432681598324000);
 
 class nsSTSPreload
 {
@@ -36,7 +36,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "admin.google.com", true },
   { "adorai.tk", true },
   { "adsfund.org", true },
-  { "afp548.com", true },
   { "ahoyconference.com", true },
   { "aie.de", true },
   { "aiticon.com", true },
@@ -231,7 +230,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "depechemode-live.com", true },
   { "derevtsov.com", false },
   { "derhil.de", true },
-  { "destinationbijoux.fr", true },
   { "detectify.com", false },
   { "developer.mydigipass.com", false },
   { "devh.de", true },
@@ -443,7 +441,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "kartonmodellbau.org", true },
   { "kdex.de", true },
   { "kdyby.org", true },
-  { "keeleysam.com", true },
   { "keepclean.me", true },
   { "keeperapp.com", true },
   { "keepersecurity.com", true },
@@ -458,8 +455,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "kingmanhall.org", true },
   { "kinogb.net", false },
   { "kinsights.com", false },
-  { "kirkforcongress.com", true },
-  { "kirkforsenate.com", true },
   { "kitsta.com", true },
   { "klatschreime.de", true },
   { "klausbrinch.dk", true },
@@ -1021,5 +1016,4 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "zeropush.com", true },
   { "zixiao.wang", true },
   { "zlavomat.sk", true },
-  { "zotero.org", true },
 };
