@@ -922,13 +922,16 @@
 
           var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
 
-          // Check for unmodified left-click, and use default behavior
           var searchBar = BrowserSearch.searchBar;
-          searchBar.telemetrySearchDetails = {
-            index: controller.selection.currentIndex,
-            kind: "mouse"
-          };
+          var popupForSearchBar = searchBar && searchBar.textbox == this.mInput;
+          if (popupForSearchBar) {
+            searchBar.telemetrySearchDetails = {
+              index: controller.selection.currentIndex,
+              kind: "mouse"
+            };
+          }
 
+          // Check for unmodified left-click, and use default behavior
           if (aEvent.button == 0 && !aEvent.shiftKey && !aEvent.ctrlKey &&
               !aEvent.altKey && !aEvent.metaKey) {
             controller.handleEnter(true);
@@ -936,7 +939,7 @@
           }
 
           // Check for middle-click or modified clicks on the search bar
-          if (searchBar && searchBar.textbox == this.mInput) {
+          if (popupForSearchBar) {
             // Handle search bar popup clicks
             var search = controller.getValueAt(this.selectedIndex);
 
@@ -1149,7 +1152,8 @@
 
         let header = document.getAnonymousElementByAttribute(this, "anonid",
                                                              "search-panel-one-offs-header")
-        header.collapsed = list.collapsed = !engines.length;
+        // header is a xul:deck so collapsed doesn't work on it, see bug 589569.
+        header.hidden = list.collapsed = !engines.length;
 
         // 49px is the min-width of each search engine button,
         // adapt this const when changing the css.

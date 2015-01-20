@@ -2,23 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#if defined(XP_WIN)
-#  define MOZALLOC_EXPORT __declspec(dllexport)
-#endif
-
 #include "VolatileBuffer.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/mozalloc.h"
-#include "mozilla/WindowsVersion.h"
 
-#include <windows.h>
+#include <fcntl.h>
+#include <linux/ashmem.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef MOZ_MEMORY
 extern "C" int posix_memalign(void** memptr, size_t alignment, size_t size);
-#endif
-
-#ifndef MEM_RESET_UNDO
-#define MEM_RESET_UNDO 0x1000000
 #endif
 
 #define MIN_VOLATILE_ALLOC_SIZE 8192
@@ -26,11 +22,11 @@ extern "C" int posix_memalign(void** memptr, size_t alignment, size_t size);
 namespace mozilla {
 
 VolatileBuffer::VolatileBuffer()
-  : mBuf(nullptr)
+  : mMutex("VolatileBuffer")
+  , mBuf(nullptr)
   , mSize(0)
   , mLockCount(0)
-  , mHeap(false)
-  , mFirstLock(true)
+  , mFd(-1)
 {
 }
 
@@ -39,53 +35,59 @@ VolatileBuffer::Init(size_t aSize, size_t aAlignment)
 {
   MOZ_ASSERT(!mSize && !mBuf, "Init called twice");
   MOZ_ASSERT(!(aAlignment % sizeof(void *)),
-             "Alignment must be multiple of pointer size");
+         "Alignment must be multiple of pointer size");
 
   mSize = aSize;
   if (aSize < MIN_VOLATILE_ALLOC_SIZE) {
     goto heap_alloc;
   }
 
-  static bool sUndoSupported = IsWin8OrLater();
-  if (!sUndoSupported) {
+  mFd = open("/" ASHMEM_NAME_DEF, O_RDWR);
+  if (mFd < 0) {
     goto heap_alloc;
   }
 
-  mBuf = VirtualAllocEx(GetCurrentProcess(),
-                        nullptr,
-                        mSize,
-                        MEM_COMMIT | MEM_RESERVE,
-                        PAGE_READWRITE);
-  if (mBuf) {
+  if (ioctl(mFd, ASHMEM_SET_SIZE, mSize) < 0) {
+    goto heap_alloc;
+  }
+
+  mBuf = mmap(nullptr, mSize, PROT_READ | PROT_WRITE, MAP_SHARED, mFd, 0);
+  if (mBuf != MAP_FAILED) {
     return true;
   }
 
 heap_alloc:
+  mBuf = nullptr;
+  if (mFd >= 0) {
+    close(mFd);
+    mFd = -1;
+  }
+
 #ifdef MOZ_MEMORY
   posix_memalign(&mBuf, aAlignment, aSize);
 #else
-  mBuf = _aligned_malloc(aSize, aAlignment);
+  mBuf = memalign(aAlignment, aSize);
 #endif
-  mHeap = true;
   return !!mBuf;
 }
 
 VolatileBuffer::~VolatileBuffer()
 {
+  MOZ_ASSERT(mLockCount == 0, "Being destroyed with non-zero lock count?");
+
   if (OnHeap()) {
-#ifdef MOZ_MEMORY
     free(mBuf);
-#else
-    _aligned_free(mBuf);
-#endif
   } else {
-    VirtualFreeEx(GetCurrentProcess(), mBuf, 0, MEM_RELEASE);
+    munmap(mBuf, mSize);
+    close(mFd);
   }
 }
 
 bool
 VolatileBuffer::Lock(void** aBuf)
 {
+  MutexAutoLock lock(mMutex);
+
   MOZ_ASSERT(mBuf, "Attempting to lock an uninitialized VolatileBuffer");
 
   *aBuf = mBuf;
@@ -93,55 +95,35 @@ VolatileBuffer::Lock(void** aBuf)
     return true;
   }
 
-  // MEM_RESET_UNDO's behavior is undefined when called on memory that
-  // hasn't been MEM_RESET.
-  if (mFirstLock) {
-    mFirstLock = false;
-    return true;
-  }
-
-  void* addr = VirtualAllocEx(GetCurrentProcess(),
-                              mBuf,
-                              mSize,
-                              MEM_RESET_UNDO,
-                              PAGE_READWRITE);
-  return !!addr;
+  // Zero offset and zero length means we want to pin/unpin the entire thing.
+  struct ashmem_pin pin = { 0, 0 };
+  return ioctl(mFd, ASHMEM_PIN, &pin) == ASHMEM_NOT_PURGED;
 }
 
 void
 VolatileBuffer::Unlock()
 {
+  MutexAutoLock lock(mMutex);
+
   MOZ_ASSERT(mLockCount > 0, "VolatileBuffer unlocked too many times!");
   if (--mLockCount || OnHeap()) {
     return;
   }
 
-  void* addr = VirtualAllocEx(GetCurrentProcess(),
-                              mBuf,
-                              mSize,
-                              MEM_RESET,
-                              PAGE_READWRITE);
-  MOZ_ASSERT(addr, "Failed to MEM_RESET");
+  struct ashmem_pin pin = { 0, 0 };
+  ioctl(mFd, ASHMEM_UNPIN, &pin);
 }
 
 bool
 VolatileBuffer::OnHeap() const
 {
-  return mHeap;
+  return mFd < 0;
 }
 
 size_t
 VolatileBuffer::HeapSizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
 {
-  if (OnHeap()) {
-#ifdef MOZ_MEMORY
-    return aMallocSizeOf(mBuf);
-#else
-    return mSize;
-#endif
-  }
-
-  return 0;
+  return OnHeap() ? aMallocSizeOf(mBuf) : 0;
 }
 
 size_t
@@ -151,7 +133,7 @@ VolatileBuffer::NonHeapSizeOfExcludingThis() const
     return 0;
   }
 
-  return (mSize + 4095) & ~4095;
+  return (mSize + (PAGE_SIZE - 1)) & PAGE_MASK;
 }
 
 } // namespace mozilla
