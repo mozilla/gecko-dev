@@ -19,6 +19,7 @@
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
 #include "nsRect.h"                     // for nsIntRect
 #include "LayersLogging.h"
+#include "mozilla/layers/CompositorChild.h"
 
 namespace mozilla {
 namespace layers {
@@ -184,6 +185,36 @@ ClientTiledThebesLayer::BeginPaint()
 }
 
 bool
+ClientTiledThebesLayer::IsScrollingOnCompositor(const FrameMetrics& aParentMetrics)
+{
+  CompositorChild* compositor = nullptr;
+  if (Manager() && Manager()->AsClientLayerManager()) {
+    compositor = Manager()->AsClientLayerManager()->GetCompositorChild();
+  }
+
+  if (!compositor) {
+    return false;
+  }
+
+  FrameMetrics compositorMetrics;
+  if (!compositor->LookupCompositorFrameMetrics(aParentMetrics.GetScrollId(),
+                                                compositorMetrics)) {
+    return false;
+  }
+
+  // 1 is a tad high for a fuzzy equals epsilon however if our scroll delta
+  // is so small then we have nothing to gain from using paint heuristics.
+  float COORDINATE_EPSILON = 1.f;
+
+  return !FuzzyEqualsAdditive(compositorMetrics.GetScrollOffset().x,
+                              aParentMetrics.GetScrollOffset().x,
+                              COORDINATE_EPSILON) ||
+         !FuzzyEqualsAdditive(compositorMetrics.GetScrollOffset().y,
+                              aParentMetrics.GetScrollOffset().y,
+                              COORDINATE_EPSILON);
+}
+
+bool
 ClientTiledThebesLayer::UseFastPath()
 {
   LayerMetricsWrapper scrollAncestor;
@@ -197,7 +228,13 @@ ClientTiledThebesLayer::UseFastPath()
                                  || gfxPrefs::UseLowPrecisionBuffer()
                                  || !parentMetrics.mCriticalDisplayPort.IsEmpty();
   bool isFixed = GetIsFixedPosition() || GetParent()->GetIsFixedPosition();
-  return !multipleTransactionsNeeded || isFixed || parentMetrics.mDisplayPort.IsEmpty();
+  bool isScrollable = parentMetrics.IsScrollable();
+
+  return !multipleTransactionsNeeded || isFixed || !isScrollable
+#if !defined(MOZ_WIDGET_ANDROID) || defined(MOZ_ANDROID_APZ)
+         || !IsScrollingOnCompositor(parentMetrics)
+#endif
+         ;
 }
 
 bool
