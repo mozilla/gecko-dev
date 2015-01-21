@@ -7394,9 +7394,14 @@ nsGlobalWindow::FireAbuseEvents(bool aBlocked, bool aWindow,
   nsCOMPtr<nsPIDOMWindow> contextWindow;
 
   if (cx) {
-    nsIScriptContext *currentCX = nsJSUtils::GetDynamicScriptContext(cx);
-    if (currentCX) {
-      contextWindow = do_QueryInterface(currentCX->GetGlobalObject());
+    contextWindow = do_QueryInterface(nsJSUtils::GetDynamicScriptGlobal(cx));
+    if (contextWindow) {
+      nsIPrincipal* entryPrin =
+        static_cast<nsGlobalWindow*>(contextWindow.get())->GetPrincipal();
+      nsIPrincipal* subjectPrin = nsContentUtils::GetSubjectPrincipal();
+      if (!subjectPrin->SubsumesConsideringDomain(entryPrin)) {
+        contextWindow = nullptr;
+      }
     }
   }
   if (!contextWindow) {
