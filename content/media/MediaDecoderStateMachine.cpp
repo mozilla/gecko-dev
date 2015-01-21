@@ -311,6 +311,8 @@ void MediaDecoderStateMachine::SendStreamAudio(AudioData* aAudio,
   if (offset >= aAudio->mFrames)
     return;
 
+  size_t framesToWrite = aAudio->mFrames - offset;
+
   aAudio->EnsureAudioBuffer();
   nsRefPtr<SharedBuffer> buffer = aAudio->mAudioBuffer;
   AudioDataValue* bufferData = static_cast<AudioDataValue*>(buffer->Data());
@@ -318,10 +320,10 @@ void MediaDecoderStateMachine::SendStreamAudio(AudioData* aAudio,
   for (uint32_t i = 0; i < aAudio->mChannels; ++i) {
     channels.AppendElement(bufferData + i*aAudio->mFrames + offset);
   }
-  aOutput->AppendFrames(buffer.forget(), channels, aAudio->mFrames);
-  DECODER_LOG(PR_LOG_DEBUG, ("%p Decoder writing %d frames of data to MediaStream for AudioData at %lld",
-                             mDecoder.get(), aAudio->mFrames - int32_t(offset), aAudio->mTime));
-  aStream->mAudioFramesWritten += aAudio->mFrames - int32_t(offset);
+  aOutput->AppendFrames(buffer.forget(), channels, framesToWrite);
+  DECODER_LOG(PR_LOG_DEBUG, ("%p Decoder writing %u frames of data to MediaStream for AudioData at %lld",
+                             mDecoder.get(), static_cast<unsigned>(framesToWrite), aAudio->mTime));
+  aStream->mAudioFramesWritten += framesToWrite;
 }
 
 static void WriteVideoToMediaStream(layers::Image* aImage,
