@@ -2387,6 +2387,13 @@ TabParent::SetIsDocShellActive(bool isActive)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+TabParent::GetTabId(uint64_t* aId)
+{
+  *aId = GetTabId();
+  return NS_OK;
+}
+
 bool
 TabParent::RecvRemotePaintIsReady()
 {

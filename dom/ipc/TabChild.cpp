@@ -3356,6 +3356,14 @@ TabChild::EnableDisableCommands(const nsAString& aAction,
                                            aEnabledCommands, aDisabledCommands);
 }
 
+
+NS_IMETHODIMP
+TabChild::GetTabId(uint64_t* aId)
+{
+  *aId = GetTabId();
+  return NS_OK;
+}
+
 bool
 TabChild::DoSendBlockingMessage(JSContext* aCx,
                                 const nsAString& aMessage,
