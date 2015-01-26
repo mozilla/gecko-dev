@@ -1519,17 +1519,30 @@ bool
 HasPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
                        JS::Handle<jsid> id)
 {
-  JS::Rooted<JSObject*> obj(cx, proxy);
-  Maybe<JSAutoCompartment> ac;
-  if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
-    obj = js::UncheckedUnwrap(obj);
-    ac.construct(cx, obj);
-  }
+  JS::Rooted<JSObject*> curr(cx, proxy);
+  while (true) {
+    JS::Rooted<JSObject*> proto(cx);
+    if (!js::GetObjectProto(cx, curr, &proto)) {
+      JS_ClearPendingException(cx);
+      return true; // Fail safe.
+    }
 
-  bool found;
-  // We ignore an error from GetPropertyOnPrototype.  We pass nullptr
-  // for vp so that GetPropertyOnPrototype won't actually do a get.
-  return !GetPropertyOnPrototype(cx, obj, id, &found, nullptr) || found;
+    if (!proto) {
+      return false;
+    }
+
+    bool hasProp;
+    if (!JS_HasPropertyById(cx, proto, id, &hasProp)) {
+      JS_ClearPendingException(cx);
+      return true; // Fail safe.
+    }
+
+    if (hasProp) {
+      return true;
+    }
+
+    curr = proto;
+  }
 }
 
 bool
