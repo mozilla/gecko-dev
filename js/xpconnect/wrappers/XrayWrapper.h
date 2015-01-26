@@ -11,7 +11,10 @@
 
 #include "WrapperFactory.h"
 
+#include "jsapi.h"
 #include "jswrapper.h"
+
+#include "WrapperFactory.h"
 
 // Xray wrappers re-resolve the original native properties on the native
 // object and always directly access to those properties.
@@ -515,7 +518,13 @@ class XrayWrapper : public Base {
         getPrototypeOfHelper(JSContext *cx, JS::HandleObject wrapper,
                              JS::HandleObject target, JS::MutableHandleObject protop) const
     {
-        return Base::getPrototypeOf(cx, wrapper, protop);
+        if (!Base::getPrototypeOf(cx, wrapper, protop))
+            return false;
+        if (WrapperFactory::IsXrayWrapper(protop))
+            return true;
+
+        protop.set(JS_GetObjectPrototype(cx, wrapper));
+        return !!protop.get();
     }
     bool getPrototypeOfHelper(JSContext *cx, JS::HandleObject wrapper,
                               JS::HandleObject target, JS::MutableHandleObject protop) const
