@@ -8,6 +8,7 @@ function testSetupMenu(command, expect) {
   is(command.typeOfCommand, iccManager.STK_CMD_SET_UP_MENU, expect.name);
   is(command.commandQualifier, expect.commandQualifier, expect.name);
   is(command.options.title, expect.title, expect.name);
+  is(command.options.presentationType, undefined, expect.name);
   for (let index in command.options.items) {
     is(command.options.items[index].identifier, expect.items[index].identifier, expect.name);
     is(command.options.items[index].text, expect.items[index].text, expect.name);
