@@ -77,7 +77,6 @@
   <project name="platform/external/mdnsresponder" path="external/mdnsresponder" revision="15dd90d06fce6f13243a2c24248a64b3381f7e25"/>
   <project name="platform/external/mksh" path="external/mksh" revision="1b182dd7e82bdd41dd2791831b68252d86a61c82"/>
   <project name="platform/external/netcat" path="external/netcat" revision="7fddee20c8f2b792a85ed5cd663c241af7db282b"/>
-  <project name="platform/external/netperf" path="external/netperf" revision="8665619efddab9dea468beaa6569829c76aa7c13"/>
   <project name="platform/external/openssl" path="external/openssl" revision="2d1bb4b8633349cca0bd3319149629cc39c73b97"/>
   <project name="platform/external/ping" path="external/ping" revision="ea46d4544bd58b406cac525b4036264da2a81404"/>
   <project name="platform/external/ping6" path="external/ping6" revision="501b3d22cd27e732f7c2e66ac2ca9d7e668e690a"/>
