@@ -442,11 +442,35 @@ var shell = {
   visibleNormalAudioActive: false,
 
   handleEvent: function shell_handleEvent(evt) {
+    function checkReloadKey() {
+      if (evt.type !== 'keyup') {
+        return false;
+      }
+
+      try {
+        let key = JSON.parse(Services.prefs.getCharPref('b2g.reload_key'));
+        return (evt.keyCode  == key.key   &&
+                evt.ctrlKey  == key.ctrl  &&
+                evt.altKey   == key.alt   &&
+                evt.shiftKey == key.shift &&
+                evt.metaKey  == key.meta);
+      } catch(e) {
+        debug('Failed to get key: ' + e);
+      }
+
+      return false;
+    }
+
     let content = this.contentBrowser.contentWindow;
     switch (evt.type) {
       case 'keydown':
       case 'keyup':
-        this.broadcastHardwareKeys(evt);
+        if (checkReloadKey()) {
+          debug('Reloading ' + getContentWindow().location);
+          getContentWindow().location.reload(true);
+        } else {
+          this.broadcastHardwareKeys(evt);
+        }
         break;
       case 'mozfullscreenchange':
         // When the screen goes fullscreen make sure to set the focus to the

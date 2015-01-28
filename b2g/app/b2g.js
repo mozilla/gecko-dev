@@ -1135,3 +1135,4 @@ pref("full-screen-api.ignore-widgets", false);
 pref("javascript.options.discardSystemSource", false);
 pref("devtools.debugger.prompt-connection", false);
 pref("devtools.debugger.forbid-certified-apps", false);
+pref("b2g.reload_key", '{ "key": 116, "shift": false, "ctrl": false, "alt": false, "meta": false }');
