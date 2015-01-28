@@ -1119,3 +1119,19 @@ pref("gfx.vsync.hw-vsync.enabled", false);
 pref("gfx.vsync.compositor", false);
 pref("gfx.touch.resample", false);
 #endif
+
+
+// HTMLRUNNER
+pref("dom.ipc.tabs.disabled", false);
+pref("browser.dom.window.dump.enabled", true);
+pref("selectioncaret.enabled", false);
+pref("browser.ignoreNativeFrameTextSelection", false);
+pref("dom.meta-viewport.enabled", false);
+pref("layers.async-pan-zoom.enabled", true);
+// pref("layers.acceleration.disabled", false);
+// pref("apz.subframe.enabled", false);
+// pref("dom.browser_frames.useAsyncPanZoom", false);
+pref("full-screen-api.ignore-widgets", false);
+pref("javascript.options.discardSystemSource", false);
+pref("devtools.debugger.prompt-connection", false);
+pref("devtools.debugger.forbid-certified-apps", false);

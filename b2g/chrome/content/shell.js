@@ -329,6 +329,12 @@ var shell = {
                   .sessionHistory = Cc["@mozilla.org/browser/shistory;1"]
                                       .createInstance(Ci.nsISHistory);
 
+    systemAppFrame.contentWindow
+                  .QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIWebNavigation)
+                  .QueryInterface(Ci.nsIDocShell)
+                  .windowDraggingAllowed = true;
+
     // On firefox mulet, shell.html is loaded in a tab
     // and we have to listen on the chrome event handler
     // to catch key events

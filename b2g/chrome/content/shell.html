@@ -5,6 +5,8 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml "
       id="shell"
+      fullscreenbutton="true"
+      chromemargin="0,0,0,0"
       windowtype="navigator:browser"
 #ifdef ANDROID
       sizemode="fullscreen"
@@ -23,15 +25,9 @@
           src="chrome://b2g/content/shell.js"> </script>
 
 #ifndef MOZ_WIDGET_GONK
-  <!-- various task that has to happen only on desktop -->
-  <script type="application/javascript;version=1.8"
-          src="chrome://b2g/content/desktop.js"> </script>
-  <!-- this script handles the screen argument for desktop builds -->
-  <script type="application/javascript;version=1.8"
-          src="chrome://b2g/content/screen.js"> </script>
-  <!-- this script handles the "runapp" argument for desktop builds -->
-  <script type="application/javascript;version=1.8"
-          src="chrome://b2g/content/runapp.js"> </script>
+  <script type="application/javascript;version=1.8">
+    window.resizeTo(800, 500);
+  </script>
 #else
   <!-- this file is only loaded on Gonk to manage ADB state -->
   <script type="application/javascript;version=1.8"

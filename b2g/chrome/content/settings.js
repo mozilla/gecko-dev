@@ -495,7 +495,7 @@ let settingsToObserve = {
     defaultValue: 0
   },
   'app.update.interval': 86400,
-  'apz.overscroll.enabled': true,
+  'apz.overscroll.enabled': false,
   'debug.fps.enabled': {
     prefName: 'layers.acceleration.draw-fps',
     defaultValue: false
