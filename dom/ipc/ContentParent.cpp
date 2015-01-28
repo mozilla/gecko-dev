@@ -1305,6 +1305,14 @@ ContentParent::ForwardKnownInfo()
     if (!mMetamorphosed) {
         return;
     }
+#ifdef MOZ_WIDGET_GONK
+    InfallibleTArray<VolumeInfo> volumeInfo;
+    nsRefPtr<nsVolumeService> vs = nsVolumeService::GetSingleton();
+    if (vs) {
+        vs->GetVolumesForIPC(&volumeInfo);
+        unused << SendVolumes(volumeInfo);
+    }
+#endif /* MOZ_WIDGET_GONK */
 }
 
 namespace {
