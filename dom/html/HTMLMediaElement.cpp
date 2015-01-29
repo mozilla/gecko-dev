@@ -928,22 +928,22 @@ void HTMLMediaElement::NotifyMediaStreamTracksAvailable(DOMMediaStream* aStream)
     return;
   }
 
+  bool oldHasAudio = mHasAudio;
   bool oldHasVideo = mHasVideo;
 
-  nsAutoTArray<nsRefPtr<AudioStreamTrack>,1> audioTracks;
-  mSrcStream->GetAudioTracks(audioTracks);
-  nsAutoTArray<nsRefPtr<VideoStreamTrack>,1> videoTracks;
-  mSrcStream->GetVideoTracks(videoTracks);
-
-  mHasAudio = !audioTracks.IsEmpty();
-  mHasVideo = !videoTracks.IsEmpty();
+  uint8_t hints = mSrcStream->GetHintContents();
+  MOZ_ASSERT(hints, "Hints should have been set when tracks become available");
+  mHasAudio = hints & DOMMediaStream::HINT_CONTENTS_AUDIO;
+  mHasVideo = hints & DOMMediaStream::HINT_CONTENTS_VIDEO;
 
   if (IsVideo() && oldHasVideo != mHasVideo) {
     // We are a video element and mHasVideo changed so update the screen wakelock
     NotifyOwnerDocumentActivityChanged();
   }
 
-  UpdateReadyStateForData(mLastNextFrameStatus);
+  if ((oldHasAudio != mHasAudio) || (oldHasVideo != mHasVideo)) {
+    UpdateReadyStateForData(mLastNextFrameStatus);
+  }
 }
 
 void HTMLMediaElement::LoadFromSourceChildren()
