@@ -3378,6 +3378,14 @@ RilObject.prototype = {
       GsmPDUHelper.writeHexOctet(size / 4);
     });
 
+    // Event List
+    if (options.eventList != null) {
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                 COMPREHENSIONTLV_FLAG_CR);
+      GsmPDUHelper.writeHexOctet(1);
+      GsmPDUHelper.writeHexOctet(options.eventList);
+    }
+
     // Device Identifies
     GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_DEVICE_ID |
                                COMPREHENSIONTLV_FLAG_CR);
@@ -3399,14 +3407,6 @@ RilObject.prototype = {
                                  COMPREHENSIONTLV_FLAG_CR);
       GsmPDUHelper.writeHexOctet(0);
       // Help Request doesn't have value
-    }
-
-    // Event List
-    if (options.eventList != null) {
-      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                 COMPREHENSIONTLV_FLAG_CR);
-      GsmPDUHelper.writeHexOctet(1);
-      GsmPDUHelper.writeHexOctet(options.eventList);
     }
 
     // Location Status
