@@ -198,7 +198,8 @@ js::ToBooleanSlow(HandleValue v)
 bool
 js::BooleanGetPrimitiveValueSlow(HandleObject wrappedBool)
 {
-    JSObject *obj = wrappedBool->as<ProxyObject>().target();
-    JS_ASSERT(obj);
+    JSObject *obj = CheckedUnwrap(wrappedBool);
+    if (!obj || !obj->is<BooleanObject>())
+        return false;
     return obj->as<BooleanObject>().unbox();
 }
