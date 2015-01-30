@@ -8,7 +8,7 @@
 
 /* NOTE: this interface is completely undesigned, not stable and likely to change */
 
-[scriptable, uuid(27212e99-ed25-449b-b79f-32ecb88d251e)]
+[scriptable, uuid(f5b38c7d-142e-4a94-8097-b2e083f8c19b)]
 interface nsIGfxInfo : nsISupports
 {
   /*
@@ -86,6 +86,8 @@ interface nsIGfxInfo : nsISupports
   const long FEATURE_WEBRTC_HW_ACCELERATION = 10;
   /* Whether Direct3D 11 is supported for layers. */
   const long FEATURE_DIRECT3D_11_LAYERS = 11;
+  /* Whether DXVA is supported for video decoding. */
+  const long FEATURE_DXVA = 12;
 
   /*
    * A set of return values from GetFeatureStatus
