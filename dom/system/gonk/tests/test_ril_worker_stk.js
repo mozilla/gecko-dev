@@ -1543,18 +1543,18 @@ add_test(function test_stk_event_download_location_status() {
     //                  TLV_LOCATION_INFO_GSM_SIZE(9)
     do_check_eq(pduHelper.readHexOctet(), 19);
 
+    // Event List, Type-Length-Value
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_LOCATION_STATUS);
+
     // Device Identifies, Type-Length-Value(Source ID-Destination ID)
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    // Event List, Type-Length-Value
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_LOCATION_STATUS);
 
     // Location Status, Type-Length-Value
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_LOCATION_STATUS |
@@ -1625,18 +1625,18 @@ add_test(function test_stk_event_download_language_selection() {
     //                  TLV_LANGUAGE(4)
     do_check_eq(pduHelper.readHexOctet(), 11);
 
+    // Event List, Type-Length-Value
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_LANGUAGE_SELECTION);
+
     // Device Identifies, Type-Length-Value(Source ID-Destination ID)
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    // Event List, Type-Length-Value
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_LANGUAGE_SELECTION);
 
     // Language, Type-Length-Value
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_LANGUAGE);
@@ -1680,18 +1680,18 @@ add_test(function test_stk_event_download_user_activity() {
     // BER length, 7 = TLV_DEVICE_ID_SIZE(4) + TLV_EVENT_LIST_SIZE(3)
     do_check_eq(pduHelper.readHexOctet(), 7);
 
+    // Event List, Type-Length-Value
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_USER_ACTIVITY);
+
     // Device Identities, Type-Length-Value(Source ID-Destination ID)
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    // Event List, Type-Length-Value
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_USER_ACTIVITY);
 
     run_next_test();
   };
@@ -1729,18 +1729,18 @@ add_test(function test_stk_event_download_idle_screen_available() {
     // BER length, 7 = TLV_DEVICE_ID_SIZE(4) + TLV_EVENT_LIST_SIZE(3)
     do_check_eq(pduHelper.readHexOctet(), 7);
 
+    // Event List, Type-Length-Value
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_IDLE_SCREEN_AVAILABLE);
+
     // Device Identities, Type-Length-Value(Source ID-Destination ID)
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_DISPLAY);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    // Event List, Type-Length-Value
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_IDLE_SCREEN_AVAILABLE);
 
     run_next_test();
   };
@@ -1780,18 +1780,18 @@ add_test(function test_stk_event_download_browser_termination() {
     //                  ++TLV_BROWSER_TERMINATION_CAUSE(3)
     do_check_eq(pduHelper.readHexOctet(), 10);
 
+    // Event List, Type-Length-Value
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_BROWSER_TERMINATION);
+
     // Device Identities, Type-Length-Value(Source ID-Destination ID)
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
                                           COMPREHENSIONTLV_FLAG_CR);
     do_check_eq(pduHelper.readHexOctet(), 2);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
     do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
-
-    // Event List, Type-Length-Value
-    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                          COMPREHENSIONTLV_FLAG_CR);
-    do_check_eq(pduHelper.readHexOctet(), 1);
-    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_BROWSER_TERMINATION);
 
     // Browser Termination Case, Type-Length-Value
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_BROWSER_TERMINATION_CAUSE |
