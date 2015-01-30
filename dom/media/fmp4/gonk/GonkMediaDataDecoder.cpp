@@ -160,12 +160,6 @@ GonkMediaDataDecoder::IsWaitingMediaResources() {
   return mDecoder->IsWaitingResources();
 }
 
-bool
-GonkMediaDataDecoder::IsDormantNeeded() {
-
-  return mDecoder.get() ? true : false;
-}
-
 void
 GonkMediaDataDecoder::AllocateMediaResources()
 {
