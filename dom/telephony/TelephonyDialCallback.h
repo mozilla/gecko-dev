@@ -27,7 +27,7 @@ public:
   NS_DECL_NSITELEPHONYDIALCALLBACK
 
   TelephonyDialCallback(nsPIDOMWindow* aWindow, Telephony* aTelephony,
-                        Promise* aPromise, uint32_t aServiceId);
+                        Promise* aPromise);
 
   NS_FORWARD_NSITELEPHONYCALLBACK(TelephonyCallback::)
 
@@ -36,7 +36,6 @@ private:
 
   nsCOMPtr<nsPIDOMWindow> mWindow;
   nsRefPtr<Telephony> mTelephony;
-  uint32_t mServiceId;
 
   nsString mServiceCode;
 };

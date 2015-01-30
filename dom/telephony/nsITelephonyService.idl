@@ -189,19 +189,23 @@ interface nsITelephonyCallback : nsISupports
 /**
  * A callback interface for handling asynchronous response for telephony.dial.
  */
-[scriptable, uuid(4481212f-72e9-4aef-97e1-5397af782113)]
+[scriptable, uuid(8389dfc6-f70b-46c5-80ec-4af41a013230)]
 interface nsITelephonyDialCallback : nsITelephonyCallback
 {
   /**
    * Called when a dial request is treated as a call setup and the result
    * succeeds.
    *
+   * @param clientId
+            Indicate the RIL client, 0 ~ (number of client - 1).
    * @param callIndex
    *        Call index from RIL.
    * @param number
    *        Dialed out phone number (ex: Temporary CLIR prefix will be removed)
    */
-  void notifyDialCallSuccess(in unsigned long callIndex, in AString number);
+  void notifyDialCallSuccess(in unsigned long cliendId,
+                             in unsigned long callIndex,
+                             in AString number);
 };
 
 %{C++

@@ -564,8 +564,10 @@ TelephonyRequestParent::NotifyError(const nsAString& aError)
 }
 
 NS_IMETHODIMP
-TelephonyRequestParent::NotifyDialCallSuccess(uint32_t aCallIndex,
+TelephonyRequestParent::NotifyDialCallSuccess(uint32_t aClientId,
+                                              uint32_t aCallIndex,
                                               const nsAString& aNumber)
 {
-  return SendResponse(DialResponseCallSuccess(aCallIndex, nsAutoString(aNumber)));
+  return SendResponse(DialResponseCallSuccess(aClientId, aCallIndex,
+                                              nsAutoString(aNumber)));
 }

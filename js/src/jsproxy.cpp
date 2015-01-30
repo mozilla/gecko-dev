@@ -1091,6 +1091,16 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
     virtual bool isExtensible(JSContext *cx, HandleObject proxy, bool *extensible) const MOZ_OVERRIDE;
 
     /* Spidermonkey extensions. */
+    // A scripted proxy should not be treated as generic in most contexts.
+    virtual bool nativeCall(JSContext *cx, IsAcceptableThis test, NativeImpl impl,
+                            CallArgs args) const MOZ_OVERRIDE;
+    virtual bool objectClassIs(HandleObject obj, ESClassValue classValue,
+                               JSContext *cx) const MOZ_OVERRIDE;
+    virtual bool regexp_toShared(JSContext *cx, HandleObject proxy,
+                                 RegExpGuard *g) const MOZ_OVERRIDE;
+    virtual bool boxedValue_unbox(JSContext *cx, HandleObject proxy,
+                                  MutableHandleValue vp) const MOZ_OVERRIDE;
+
     virtual bool call(JSContext *cx, HandleObject proxy, const CallArgs &args) const MOZ_OVERRIDE;
     virtual bool construct(JSContext *cx, HandleObject proxy, const CallArgs &args) const MOZ_OVERRIDE;
     virtual bool isScripted() const MOZ_OVERRIDE { return true; }
@@ -2172,6 +2182,50 @@ ScriptedDirectProxyHandler::construct(JSContext *cx, HandleObject proxy, const C
         return false;
     }
     return true;
+}
+
+bool
+ScriptedDirectProxyHandler::nativeCall(JSContext *cx, IsAcceptableThis test, NativeImpl impl,
+                                       CallArgs args) const
+{
+    ReportIncompatible(cx, args);
+    return false;
+}
+
+bool
+ScriptedDirectProxyHandler::objectClassIs(HandleObject proxy, ESClassValue classValue,
+                                          JSContext *cx) const
+{
+    // Special case IsArray. In every other instance ES wants to have exactly
+    // one object type and not a proxy around it, so return false.
+    if (classValue != ESClass_IsArray)
+        return false;
+
+    // In ES6 IsArray is supposed to poke at the Proxy target, instead we do this here.
+    // The reason for this is that we have proxies for which looking at the target might
+    // be impossible. So instead we use our little objectClassIs function that just works
+    // already across different wrappers.
+    RootedObject target(cx, proxy->as<ProxyObject>().target());
+    if (!target)
+        return false;
+
+    return IsArray(target, cx);
+}
+
+bool
+ScriptedDirectProxyHandler::regexp_toShared(JSContext *cx, HandleObject proxy,
+                                            RegExpGuard *g) const
+{
+    MOZ_CRASH("Should not end up in ScriptedDirectProxyHandler::regexp_toShared");
+    return false;
+}
+
+bool
+ScriptedDirectProxyHandler::boxedValue_unbox(JSContext *cx, HandleObject proxy,
+                                             MutableHandleValue vp) const
+{
+    MOZ_CRASH("Should not end up in ScriptedDirectProxyHandler::boxedValue_unbox");
+    return false;
 }
 
 const char ScriptedDirectProxyHandler::family = 0;

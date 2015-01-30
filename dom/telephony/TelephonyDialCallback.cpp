@@ -12,10 +12,8 @@ NS_IMPL_ISUPPORTS_INHERITED(TelephonyDialCallback, TelephonyCallback,
 
 TelephonyDialCallback::TelephonyDialCallback(nsPIDOMWindow* aWindow,
                                              Telephony* aTelephony,
-                                             Promise* aPromise,
-                                             uint32_t aServiceId)
-  : TelephonyCallback(aPromise), mWindow(aWindow), mTelephony(aTelephony),
-    mServiceId(aServiceId)
+                                             Promise* aPromise)
+  : TelephonyCallback(aPromise), mWindow(aWindow), mTelephony(aTelephony)
 {
   MOZ_ASSERT(mTelephony);
 }
@@ -23,12 +21,13 @@ TelephonyDialCallback::TelephonyDialCallback(nsPIDOMWindow* aWindow,
 // nsITelephonyDialCallback
 
 NS_IMETHODIMP
-TelephonyDialCallback::NotifyDialCallSuccess(uint32_t aCallIndex,
+TelephonyDialCallback::NotifyDialCallSuccess(uint32_t aClientId,
+                                             uint32_t aCallIndex,
                                              const nsAString& aNumber)
 {
   nsRefPtr<TelephonyCallId> id = mTelephony->CreateCallId(aNumber);
   nsRefPtr<TelephonyCall> call =
-    mTelephony->CreateCall(id, mServiceId, aCallIndex,
+    mTelephony->CreateCall(id, aClientId, aCallIndex,
                            nsITelephonyService::CALL_STATE_DIALING);
 
   mPromise->MaybeResolve(call);

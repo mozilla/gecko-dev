@@ -202,6 +202,7 @@ TelephonyRequestChild::DoResponse(const DialResponseCallSuccess& aResponse)
 {
   MOZ_ASSERT(mCallback);
   nsCOMPtr<nsITelephonyDialCallback> callback = do_QueryInterface(mCallback);
-  callback->NotifyDialCallSuccess(aResponse.callIndex(), aResponse.number());
+  callback->NotifyDialCallSuccess(aResponse.clientId(), aResponse.callIndex(),
+                                  aResponse.number());
   return true;
 }
