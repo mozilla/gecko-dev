@@ -19,6 +19,7 @@
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
 #include "nsRect.h"                     // for nsIntRect
 #include "LayersLogging.h"
+#include "mozilla/layers/CompositorChild.h"
 
 namespace mozilla {
 namespace layers {
@@ -184,6 +185,36 @@ ClientTiledThebesLayer::BeginPaint()
 }
 
 bool
+ClientTiledThebesLayer::IsScrollingOnCompositor(const FrameMetrics& aParentMetrics)
+{
+  CompositorChild* compositor = nullptr;
+  if (Manager() && Manager()->AsClientLayerManager()) {
+    compositor = Manager()->AsClientLayerManager()->GetCompositorChild();
+  }
+
+  if (!compositor) {
+    return false;
+  }
+
+  FrameMetrics compositorMetrics;
+  if (!compositor->LookupCompositorFrameMetrics(aParentMetrics.GetScrollId(),
+                                                compositorMetrics)) {
+    return false;
+  }
+
+  // 1 is a tad high for a fuzzy equals epsilon however if our scroll delta
+  // is so small then we have nothing to gain from using paint heuristics.
+  float COORDINATE_EPSILON = 1.f;
+
+  return !FuzzyEqualsAdditive(compositorMetrics.GetScrollOffset().x,
+                              aParentMetrics.GetScrollOffset().x,
+                              COORDINATE_EPSILON) ||
+         !FuzzyEqualsAdditive(compositorMetrics.GetScrollOffset().y,
+                              aParentMetrics.GetScrollOffset().y,
+                              COORDINATE_EPSILON);
+}
+
+bool
 ClientTiledThebesLayer::UseFastPath()
 {
   LayerMetricsWrapper scrollAncestor;
@@ -197,7 +228,13 @@ ClientTiledThebesLayer::UseFastPath()
                                  || gfxPrefs::UseLowPrecisionBuffer()
                                  || !parentMetrics.mCriticalDisplayPort.IsEmpty();
   bool isFixed = GetIsFixedPosition() || GetParent()->GetIsFixedPosition();
-  return !multipleTransactionsNeeded || isFixed || parentMetrics.mDisplayPort.IsEmpty();
+  bool isScrollable = parentMetrics.IsScrollable();
+
+  return !multipleTransactionsNeeded || isFixed || !isScrollable
+#if !defined(MOZ_WIDGET_ANDROID) || defined(MOZ_ANDROID_APZ)
+         || !IsScrollingOnCompositor(parentMetrics)
+#endif
+         ;
 }
 
 bool
@@ -377,20 +414,36 @@ ClientTiledThebesLayer::RenderLayer()
       ToClientLayer(GetMaskLayer())->RenderLayer();
     }
 
-    // In some cases we can take a fast path and just be done with it.
-    if (UseFastPath()) {
-      TILING_LOG("TILING %p: Taking fast-path\n", this);
-      mValidRegion = neededRegion;
-      mContentClient->mTiledBuffer.PaintThebes(mValidRegion, invalidRegion, callback, data);
-      ClientManager()->Hold(this);
-      mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
-      return;
-    }
-
     // For more complex cases we need to calculate a bunch of metrics before we
     // can do the paint.
     BeginPaint();
     if (mPaintData.mPaintFinished) {
+      return;
+    }
+
+    // In some cases we can take a fast path and just be done with it.
+    if (UseFastPath()) {
+      TILING_LOG("TILING %p: Taking fast-path\n", this);
+      mValidRegion = neededRegion;
+
+      // Make sure that tiles that fall outside of the visible region or outside of the
+      // critical displayport are discarded on the first update. Also make sure that we
+      // only draw stuff inside the critical displayport on the first update.
+      if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
+        mValidRegion.And(mValidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
+        invalidRegion.And(invalidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
+      }
+
+      if (invalidRegion.IsEmpty()) {
+        EndPaint();
+        return;
+      }
+
+      mContentClient->mTiledBuffer.SetFrameResolution(mPaintData.mResolution);
+      mContentClient->mTiledBuffer.PaintThebes(mValidRegion, invalidRegion, callback, data);
+      ClientManager()->Hold(this);
+      mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
+      EndPaint();
       return;
     }
 
