@@ -1677,7 +1677,7 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
   aBuilder->SetIsCompositingCheap(temp);
   layerBuilder->DidEndTransaction();
 
-  if (document) {
+  if (document && widgetTransaction) {
     StartPendingAnimations(document, layerManager->GetAnimationReadyTime());
   }
 
