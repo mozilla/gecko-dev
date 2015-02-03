@@ -43,6 +43,7 @@
 #include "nsIXPConnect.h"
 #include "nsIXULRuntime.h"
 #include "nsPIDOMWindow.h"
+#include "nsGlobalWindow.h"
 #include "nsIMarkupDocumentViewer.h"
 #include "nsIContentViewer.h"
 #include "nsIWindowProvider.h"
@@ -1346,9 +1347,14 @@ nsWindowWatcher::URIfromURL(const char *aURL,
      in nsGlobalWindow.cpp.) */
   JSContext *cx = nsContentUtils::GetCurrentJSContext();
   if (cx) {
-    nsIScriptContext *scriptcx = nsJSUtils::GetDynamicScriptContext(cx);
-    if (scriptcx) {
-      baseWindow = do_QueryInterface(scriptcx->GetGlobalObject());
+    baseWindow = do_QueryInterface(nsJSUtils::GetDynamicScriptGlobal(cx));
+    if (baseWindow) {
+      nsIPrincipal* entryPrin =
+        static_cast<nsGlobalWindow*>(baseWindow.get())->GetPrincipal();
+      nsIPrincipal* subjectPrin = nsContentUtils::SubjectPrincipal();
+      if (!subjectPrin->SubsumesConsideringDomain(entryPrin)) {
+        baseWindow = nullptr;
+      }
     }
   }
 
