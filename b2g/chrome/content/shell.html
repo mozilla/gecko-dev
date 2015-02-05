@@ -27,6 +27,10 @@
 #ifndef MOZ_WIDGET_GONK
   <script type="application/javascript;version=1.8">
     window.resizeTo(800, 500);
+    setTimeout(() => {
+      Services.prefs.setCharPref('devtools.debugger.unix-domain-socket', 6000);
+      navigator.mozSettings.createLock().set({'debugger.remote-mode': 'adb-devtools'});
+    }, 2000);
   </script>
 #else
   <!-- this file is only loaded on Gonk to manage ADB state -->
