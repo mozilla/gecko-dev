@@ -263,7 +263,8 @@
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  z-index: 2147483647 !important;
+  /* z-index is INT_MAX - 1, so Gaia can put UI elements on top of it */
+  z-index: 2147483646 !important;
   background: black;
   width: 100% !important;
   height: 100% !important;
