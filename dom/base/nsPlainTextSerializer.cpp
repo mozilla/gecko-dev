@@ -22,6 +22,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/BinarySearch.h"
+#include "nsComputedDOMStyle.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -89,6 +90,8 @@ nsPlainTextSerializer::nsPlainTextSerializer()
   mInWhitespace = false;
   mPreFormatted = false;
   mStartedOutput = false;
+
+  mPreformattedBlockBoundary = false;
 
   // initialize the tag stack to zero:
   // The stack only ever contains pointers to static atoms, so they don't
@@ -165,6 +168,8 @@ nsPlainTextSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
 
   mLineBreakDue = false;
   mFloatingLines = -1;
+
+  mPreformattedBlockBoundary = false;
 
   if (mFlags & nsIDocumentEncoder::OutputFormatted) {
     // Get some prefs that controls how we do formatted output
@@ -356,6 +361,7 @@ nsPlainTextSerializer::AppendElementStart(Element* aElement,
 
   if (isContainer) {
     rv = DoOpenContainer(id);
+    mPreformatStack.push(IsElementPreformatted(mElement));
   }
   else {
     rv = DoAddLeaf(id);
@@ -389,6 +395,7 @@ nsPlainTextSerializer::AppendElementEnd(Element* aElement,
   rv = NS_OK;
   if (isContainer) {
     rv = DoCloseContainer(id);
+    mPreformatStack.pop();
   }
 
   mElement = nullptr;
@@ -432,6 +439,16 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
     // Ignore child nodes.
     mIgnoredChildNodeLevel++;
     return NS_OK;
+  }
+
+  if (mFlags & nsIDocumentEncoder::OutputForPlainTextClipboardCopy) {
+    if (mPreformattedBlockBoundary && DoOutput()) {
+      // Should always end a line, but get no more whitespace
+      if (mFloatingLines < 0)
+        mFloatingLines = 0;
+      mLineBreakDue = true;
+    }
+    mPreformattedBlockBoundary = false;
   }
 
   if (mFlags & nsIDocumentEncoder::OutputRaw) {
@@ -667,7 +684,7 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
 
   // Else make sure we'll separate block level tags,
   // even if we're about to leave, before doing any other formatting.
-  else if (nsContentUtils::IsHTMLBlock(aTag)) {
+  else if (IsElementBlock(mElement)) {
     EnsureVerticalSpace(0);
   }
 
@@ -762,6 +779,14 @@ nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
   if (ShouldReplaceContainerWithPlaceholder(mElement->Tag())) {
     mIgnoredChildNodeLevel--;
     return NS_OK;
+  }
+
+  if (mFlags & nsIDocumentEncoder::OutputForPlainTextClipboardCopy) {
+    if (DoOutput() && IsInPre() && IsElementBlock(mElement)) {
+      // If we're closing a preformatted block element, output a line break
+      // when we find a new container.
+      mPreformattedBlockBoundary = true;
+    }
   }
 
   if (mFlags & nsIDocumentEncoder::OutputRaw) {
@@ -884,8 +909,7 @@ nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
   else if (aTag == nsGkAtoms::q) {
     Write(NS_LITERAL_STRING("\""));
   }
-  else if (nsContentUtils::IsHTMLBlock(aTag)
-           && aTag != nsGkAtoms::script) {
+  else if (IsElementBlock(mElement) && aTag != nsGkAtoms::script) {
     // All other blocks get 1 vertical space after them
     // in formatted mode, otherwise 0.
     // This is hard. Sometimes 0 is a better number, but
@@ -1034,6 +1058,8 @@ nsPlainTextSerializer::DoAddText(bool aIsLineBreak, const nsAString& aText)
 nsresult
 nsPlainTextSerializer::DoAddLeaf(nsIAtom* aTag)
 {
+  mPreformattedBlockBoundary = false;
+
   // If we don't want any output, just return
   if (!DoOutput()) {
     return NS_OK;
@@ -1537,7 +1563,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
 
     // This mustn't be mixed with intelligent wrapping without clearing
     // the mCurrentLine buffer before!!!
-    NS_ASSERTION(mCurrentLine.IsEmpty(),
+    NS_ASSERTION(mCurrentLine.IsEmpty() || IsInPre(),
                  "Mixed wrapping data and nonwrapping data on the same line");
     if (!mCurrentLine.IsEmpty()) {
       FlushLine();
@@ -1755,29 +1781,38 @@ nsPlainTextSerializer::GetIdForContent(nsIContent* aContent)
   return localName->IsStaticAtom() ? localName : nullptr;
 }
 
-/**
- * Returns true if we currently are inside a <pre>. The check is done
- * by traversing the tag stack looking for <pre> until we hit a block
- * level tag which is assumed to override any <pre>:s below it in
- * the stack. To do this correctly to a 100% would require access
- * to style which we don't support in this converter.
- */  
 bool
 nsPlainTextSerializer::IsInPre()
 {
-  int32_t i = mTagStackIndex;
-  while(i > 0) {
-    if (mTagStack[i - 1] == nsGkAtoms::pre)
-      return true;
-    if (nsContentUtils::IsHTMLBlock(mTagStack[i - 1])) {
-      // We assume that every other block overrides a <pre>
-      return false;
-    }
-    --i;
-  }
+  return !mPreformatStack.empty() && mPreformatStack.top();
+}
 
-  // Not a <pre> in the whole stack
-  return false;
+bool
+nsPlainTextSerializer::IsElementPreformatted(Element* aElement)
+{
+  nsRefPtr<nsStyleContext> styleContext =
+    nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement, nullptr,
+                                                         nullptr);
+  if (styleContext) {
+    const nsStyleText* textStyle = styleContext->StyleText();
+    return textStyle->WhiteSpaceOrNewlineIsSignificant();
+  }
+  // Fall back to looking at the tag, in case there is no style information.
+  return GetIdForContent(aElement) == nsGkAtoms::pre;
+}
+
+bool
+nsPlainTextSerializer::IsElementBlock(Element* aElement)
+{
+  nsRefPtr<nsStyleContext> styleContext =
+    nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement, nullptr,
+                                                         nullptr);
+  if (styleContext) {
+    const nsStyleDisplay* displayStyle = styleContext->StyleDisplay();
+    return displayStyle->IsBlockOutsideStyle();
+  }
+  // Fall back to looking at the tag, in case there is no style information.
+  return nsContentUtils::IsHTMLBlock(GetIdForContent(aElement));
 }
 
 /**
