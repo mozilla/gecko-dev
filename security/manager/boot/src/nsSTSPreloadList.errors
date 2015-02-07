@@ -8,6 +8,7 @@ app.manilla.com: could not connect to host
 appengine.google.com: did not receive HSTS header (error ignored - included regardless)
 appseccalifornia.org: did not receive HSTS header
 azprep.us: could not connect to host
+baer.im: did not receive HSTS header
 barcodeberlin.com: did not receive HSTS header
 bccx.com: could not connect to host
 bedeta.de: could not connect to host
@@ -47,7 +48,6 @@ encrypted.google.com: did not receive HSTS header (error ignored - included rega
 epoxate.com: did not receive HSTS header
 errors.zenpayroll.com: could not connect to host
 espra.com: could not connect to host
-explodie.org: could not connect to host
 fatzebra.com.au: did not receive HSTS header
 gamesdepartment.co.uk: did not receive HSTS header
 getlantern.org: did not receive HSTS header
@@ -81,7 +81,6 @@ kitsta.com: could not connect to host
 kiwiirc.com: max-age too low: 5256000
 klaxn.com: could not connect to host
 koop-bremen.de: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
-ledgerscope.net: did not receive HSTS header
 liberty.lavabit.com: could not connect to host
 library.linode.com: did not receive HSTS header
 lifeguard.aecom.com: max-age too low: 86400
@@ -96,7 +95,6 @@ market.android.com: did not receive HSTS header (error ignored - included regard
 matteomarescotti.name: could not connect to host
 mobilethreat.net: could not connect to host
 mobilethreatnetwork.net: could not connect to host
-mudcrab.us: could not connect to host
 my.alfresco.com: did not receive HSTS header
 mydigipass.com: did not receive HSTS header
 mykolab.com: did not receive HSTS header
@@ -121,6 +119,7 @@ rapidresearch.me: could not connect to host
 redports.org: could not connect to host
 riseup.net: did not receive HSTS header
 rme.li: did not receive HSTS header
+robteix.com: did not receive HSTS header
 roddis.net: did not receive HSTS header
 sah3.net: could not connect to host
 saturngames.co.uk: could not connect to host
@@ -164,7 +163,6 @@ www.gmail.com: did not receive HSTS header (error ignored - included regardless)
 www.googlemail.com: did not receive HSTS header (error ignored - included regardless)
 www.greplin.com: could not connect to host
 www.jitsi.org: did not receive HSTS header
-www.ledgerscope.net: did not receive HSTS header
 www.logentries.com: did not receive HSTS header
 www.moneybookers.com: did not receive HSTS header
 www.neonisi.com: could not connect to host

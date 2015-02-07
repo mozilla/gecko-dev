@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1433589796930000);
+const PRTime gPreloadListExpirationTime = INT64_C(1434193865969000);
 
 class nsSTSPreload
 {
@@ -48,7 +48,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "archlinux.de", true },
   { "arivo.com.br", true },
   { "auf-feindgebiet.de", true },
-  { "baer.im", true },
   { "bank.simple.com", false },
   { "baruch.me", true },
   { "bassh.net", true },
@@ -246,6 +245,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "launchkey.com", true },
   { "lavalite.de", true },
   { "lb-toner.de", true },
+  { "ledgerscope.net", false },
   { "linode.com", false },
   { "linx.net", true },
   { "lockify.com", true },
@@ -316,12 +316,12 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "packagist.org", false },
   { "pajonzeck.de", true },
   { "palava.tv", true },
-  { "passport.yandex.by", false },
-  { "passport.yandex.com", false },
-  { "passport.yandex.com.tr", false },
-  { "passport.yandex.kz", false },
-  { "passport.yandex.ru", false },
-  { "passport.yandex.ua", false },
+  { "passport.yandex.by", true },
+  { "passport.yandex.com", true },
+  { "passport.yandex.com.tr", true },
+  { "passport.yandex.kz", true },
+  { "passport.yandex.ru", true },
+  { "passport.yandex.ua", true },
   { "passwd.io", true },
   { "paste.linode.com", false },
   { "pastebin.linode.com", false },
@@ -357,7 +357,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "riccy.org", true },
   { "riesenmagnete.de", true },
   { "rippleunion.com", true },
-  { "robteix.com", true },
   { "romab.com", true },
   { "rosenkeller.org", true },
   { "roundcube.mayfirst.org", false },
@@ -497,6 +496,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.intercom.io", false },
   { "www.irccloud.com", false },
   { "www.lastpass.com", false },
+  { "www.ledgerscope.net", false },
   { "www.linode.com", false },
   { "www.lookout.com", false },
   { "www.makeyourlaws.org", true },
