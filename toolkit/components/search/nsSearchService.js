@@ -407,9 +407,8 @@ loadListener.prototype = {
   onStatus: function (aRequest, aContext, aStatus, aStatusArg) {}
 }
 
-// Hacky method that tries to determine if this user is in a US geography, and
-// using an en-US build.
-function getIsUS() {
+// Method to determine if we should be using geo-specific defaults
+function geoSpecificDefaultsEnabled() {
   let geoSpecificDefaults = false;
   try {
     geoSpecificDefaults = Services.prefs.getBoolPref("browser.search.geoSpecificDefaults");
@@ -420,25 +419,87 @@ function getIsUS() {
     distroID = Services.prefs.getCharPref("distribution.id");
   } catch (e) {}
 
-  if (!geoSpecificDefaults || distroID) {
+  return (geoSpecificDefaults && !distroID);
+}
+
+// Some notes on countryCode and region prefs:
+// * A "countryCode" pref is set via a geoip lookup.  It always reflects the
+//   result of that geoip request.
+// * A "region" pref, once set, is the region actually used for search.  In
+//   most cases it will be identical to the countryCode pref.
+// * The value of "region" and "countryCode" will only not agree in one edge
+//   case - 34/35 users who have previously been configured to use US defaults
+//   based purely on a timezone check will have "region" forced to US,
+//   regardless of what countryCode geoip returns.
+// * We may want to know if we are in the US before we have *either*
+//   countryCode or region - in which case we fallback to a timezone check,
+//   but we don't persist that value anywhere in the expectation we will
+//   eventually get a countryCode/region.
+
+// A method that "migrates" prefs if necessary.
+function migrateRegionPrefs() {
+  // If we already have a "region" pref there's nothing to do.
+  if (Services.prefs.prefHasUserValue("browser.search.region")) {
+    return;
+  }
+
+  // If we have 'isUS' but no 'countryCode' then we are almost certainly
+  // a profile from Fx 34/35 that set 'isUS' based purely on a timezone
+  // check. If this said they were US, we force region to be US.
+  // (But if isUS was false, we leave region alone - we will do a geoip request
+  // and set the region accordingly)
+  try {
+    if (Services.prefs.getBoolPref("browser.search.isUS") &&
+        !Services.prefs.prefHasUserValue("browser.search.countryCode")) {
+      Services.prefs.setCharPref("browser.search.region", "US");
+    }
+  } catch (ex) {
+    // no isUS pref, nothing to do.
+  }
+  // If we have a countryCode pref but no region pref, just force region
+  // to be the countryCode.
+  try {
+    let countryCode = Services.prefs.getCharPref("browser.search.countryCode");
+    if (!Services.prefs.prefHasUserValue("browser.search.region")) {
+      Services.prefs.setCharPref("browser.search.region", countryCode);
+    }
+  } catch (ex) {
+    // no countryCode pref, nothing to do.
+  }
+}
+
+// A method to determine if we are in the United States (US) for the search
+// service.
+// It uses a browser.search.region pref (which typically comes from a geoip
+// request) or if that doesn't exist, falls back to a hacky timezone check.
+function getIsUS() {
+  // Regardless of the region or countryCode, non en-US builds are not
+  // considered to be in the US from the POV of the search service.
+  if (getLocale() != "en-US") {
     return false;
   }
 
-  // If we've set the pref before, just return that result.
-  let cachePref = "browser.search.isUS";
+  // If we've got a region pref, trust it.
   try {
-    return Services.prefs.getBoolPref(cachePref);
+    return Services.prefs.getCharPref("browser.search.region") == "US";
   } catch(e) {}
 
-  if (getLocale() != "en-US") {
-    Services.prefs.setBoolPref(cachePref, false);
-    return false;
-  }
+  // So we are en-US but have no region pref - fallback to hacky timezone check.
   let isNA = isUSTimezone();
-  Services.prefs.setBoolPref(cachePref, isNA);
+  LOG("getIsUS() fell back to a timezone check with the result=" + isNA);
   return isNA;
 }
 
+// Helper method to modify preference keys with geo-specific modifiers, if needed.
+function getGeoSpecificPrefName(basepref) {
+  if (!geoSpecificDefaultsEnabled())
+    return basepref;
+  if (getIsUS())
+    return basepref + ".US";
+  return basepref;
+}
+
+// A method that tries to determine if this user is in a US geography.
 function isUSTimezone() {
   // Timezone assumptions! We assume that if the system clock's timezone is
   // between Newfoundland and Hawaii, that the user is in North America.
@@ -481,11 +542,9 @@ let ensureKnownCountryCode = Task.async(function* () {
 function storeCountryCode(cc) {
   // Set the country-code itself.
   Services.prefs.setCharPref("browser.search.countryCode", cc);
-  // and update our "isUS" cache pref if it is US - that will prevent a
-  // fallback to the timezone check.
-  // However, only do this if the locale also matches.
-  if (getLocale() == "en-US") {
-    Services.prefs.setBoolPref("browser.search.isUS", (cc == "US"));
+  // And set the region pref if we don't already have a value.
+  if (!Services.prefs.prefHasUserValue("browser.search.region")) {
+    Services.prefs.setCharPref("browser.search.region", cc);
   }
   // and telemetry...
   let isTimezoneUS = isUSTimezone();
@@ -510,6 +569,7 @@ function fetchCountryCode() {
     // generic catch-all that doesn't fit into other categories.
   };
   let endpoint = Services.urlFormatter.formatURLPref("browser.search.geoip.url");
+  LOG("_fetchCountryCode starting with endpoint " + endpoint);
   // As an escape hatch, no endpoint means no geoip.
   if (!endpoint) {
     return Promise.resolve();
@@ -1963,10 +2023,7 @@ Engine.prototype = {
     let defaultPrefB = Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF);
     let nsIPLS = Ci.nsIPrefLocalizedString;
     let defaultEngine;
-    let pref = "defaultenginename";
-    if (getIsUS()) {
-      pref += ".US";
-    }
+    let pref = getGeoSpecificPrefName("defaultenginename");
     try {
       defaultEngine = defaultPrefB.getComplexValue(pref, nsIPLS).data;
     } catch (ex) {}
@@ -3122,6 +3179,7 @@ SearchService.prototype = {
   _syncInit: function SRCH_SVC__syncInit() {
     LOG("_syncInit start");
     this._initStarted = true;
+    migrateRegionPrefs();
     try {
       this._syncLoadEngines();
     } catch (ex) {
@@ -3147,6 +3205,7 @@ SearchService.prototype = {
    * succeeds.
    */
   _asyncInit: function SRCH_SVC__asyncInit() {
+    migrateRegionPrefs();
     return Task.spawn(function() {
       LOG("_asyncInit start");
       try {
@@ -3186,13 +3245,7 @@ SearchService.prototype = {
     let nsIPLS = Ci.nsIPrefLocalizedString;
     let defaultEngine;
 
-    let defPref;
-    if (getIsUS()) {
-      defPref = "defaultenginename.US";
-    } else {
-      defPref = "defaultenginename";
-    }
-
+    let defPref = getGeoSpecificPrefName("defaultenginename");
     try {
       defaultEngine = defaultPrefB.getComplexValue(defPref, nsIPLS).data;
     } catch (ex) {
@@ -3973,12 +4026,10 @@ SearchService.prototype = {
       }
       catch (e) { }
 
+      let prefNameBase = getGeoSpecificPrefName(BROWSER_SEARCH_PREF + "order");
       while (true) {
-        prefName = BROWSER_SEARCH_PREF + "order.";
-        if (getIsUS()) {
-          prefName += "US.";
-        }
-        engineName = getLocalizedPref(prefName + (++i));
+        prefName = prefNameBase + "." + (++i);
+        engineName = getLocalizedPref(prefName);
         if (!engineName)
           break;
 
@@ -4139,12 +4190,9 @@ SearchService.prototype = {
     }
 
     // Now look through the "browser.search.order" branch.
+    let prefNameBase = getGeoSpecificPrefName(BROWSER_SEARCH_PREF + "order");
     for (var j = 1; ; j++) {
-      var prefName = BROWSER_SEARCH_PREF + "order.";
-      if (getIsUS()) {
-        prefName += "US.";
-      }
-      prefName += j;
+      let prefName = prefNameBase + "." + j;
       engineName = getLocalizedPref(prefName);
       if (!engineName)
         break;
@@ -4357,7 +4405,7 @@ SearchService.prototype = {
   get defaultEngine() {
     this._ensureInitialized();
     if (!this._defaultEngine) {
-      let defPref = BROWSER_SEARCH_PREF + "defaultenginename";
+      let defPref = getGeoSpecificPrefName(BROWSER_SEARCH_PREF + "defaultenginename");
       let defaultEngine = this.getEngineByName(getLocalizedPref(defPref, ""))
       if (!defaultEngine)
         defaultEngine = this._getSortedEngines(false)[0] || null;
@@ -4385,7 +4433,8 @@ SearchService.prototype = {
 
     this._defaultEngine = newDefaultEngine;
 
-    let defPref = BROWSER_SEARCH_PREF + "defaultenginename";
+    let defPref = getGeoSpecificPrefName(BROWSER_SEARCH_PREF + "defaultenginename");
+
     // If we change the default engine in the future, that change should impact
     // users who have switched away from and then back to the build's "default"
     // engine. So clear the user pref when the defaultEngine is set to the
