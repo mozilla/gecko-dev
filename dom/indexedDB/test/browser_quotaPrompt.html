@@ -38,6 +38,7 @@
         let request = indexedDB.open(window.location.pathname, version++);
         request.onerror = errorHandler;
         request.onupgradeneeded = function(event) {
+          let db = event.target.result;
           db.deleteObjectStore("foo");
           db.onversionchange = function () { db.close(); };
           request.transaction.oncomplete = function(event) {
