@@ -2,13 +2,13 @@ import os
 from setuptools import setup, find_packages
 import sys
 
-version = '0.8.3'
+version = '0.1'
 
 # dependencies
 with open('requirements.txt') as f:
     deps = f.read().splitlines()
 
-setup(name='marionette_client',
+setup(name='marionette_client-mozilla-b2g34_v2_1',
       version=version,
       description="Marionette test automation client",
       long_description='See http://marionette-client.readthedocs.org/',
