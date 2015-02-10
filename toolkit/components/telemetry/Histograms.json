@@ -7158,6 +7158,46 @@
     "n_buckets": 16,
     "description": "The number of entries in persistent DataStorage (HSTS and HPKP data, basically)"
   },
+  "PWMGR_BLOCKLIST_NUM_SITES": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 100,
+    "n_buckets" : 10,
+    "extended_statistics_ok": true,
+    "description": "The number of sites for which the user has explicitly rejected saving logins"
+  },
+  "PWMGR_NUM_PASSWORDS_PER_HOSTNAME": {
+    "expires_in_version": "never",
+    "kind": "linear",
+    "high": 21,
+    "n_buckets" : 20,
+    "description": "The number of passwords per hostname"
+  },
+  "PWMGR_NUM_SAVED_PASSWORDS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 750,
+    "n_buckets" : 50,
+    "extended_statistics_ok": true,
+    "description": "Total number of saved logins, including those that cannot be decrypted"
+  },
+  "PWMGR_LOGIN_LAST_USED_DAYS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 750,
+    "n_buckets" : 40,
+    "description": "Time in days each saved login was last used"
+  },
+  "PWMGR_SAVING_ENABLED": {
+    "expires_in_version": "never",
+    "kind": "boolean",
+    "description": "Number of users who have password saving on globally"
+  },
+  "PWMGR_USERNAME_PRESENT": {
+    "expires_in_version": "never",
+    "kind": "boolean",
+    "description": "Whether a saved login has a username"
+  },
   "FENNEC_SYNC11_MIGRATION_SENTINELS_SEEN": {
     "expires_in_version": "45",
     "kind": "count",
