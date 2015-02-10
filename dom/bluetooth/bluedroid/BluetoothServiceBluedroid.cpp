@@ -52,6 +52,7 @@ USING_BLUETOOTH_NAMESPACE
 static nsString sAdapterBdAddress;
 static nsString sAdapterBdName;
 static InfallibleTArray<nsString> sAdapterBondedAddressArray;
+static InfallibleTArray<nsString> sAdapterUuidsArray;
 static BluetoothInterface* sBtInterface;
 static nsTArray<nsRefPtr<BluetoothProfileController> > sControllerArray;
 static InfallibleTArray<BluetoothNamedValue> sRemoteDevicesPack;
@@ -569,6 +570,9 @@ BluetoothServiceBluedroid::GetDefaultAdapterPathInternal(
 
   BT_APPEND_NAMED_VALUE(v.get_ArrayOfBluetoothNamedValue(),
                         "Devices", sAdapterBondedAddressArray);
+
+  BT_APPEND_NAMED_VALUE(v.get_ArrayOfBluetoothNamedValue(),
+                        "UUIDs", sAdapterUuidsArray);
 
   DispatchBluetoothReply(aRunnable, v, EmptyString());
 
@@ -1322,8 +1326,23 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
       BT_APPEND_NAMED_VALUE(props, "Devices", propertyValue);
 
     } else if (p.mType == PROPERTY_UUIDS) {
-      //FIXME: This will be implemented in the later patchset
-      continue;
+      sAdapterUuidsArray.Clear();
+
+      for (size_t j = 0; j < p.mUuidArray.Length(); j++) {
+        uint16_t uuidServiceClass = UuidToServiceClassInt(p.mUuidArray[j]);
+
+        BluetoothServiceClass serviceClass =
+          BluetoothUuidHelper::GetBluetoothServiceClass(uuidServiceClass);
+
+        // Get Uuid string from BluetoothServiceClass
+        nsString uuid;
+        BluetoothUuidHelper::GetString(serviceClass, uuid);
+        sAdapterUuidsArray.AppendElement(uuid);
+      }
+
+      propertyValue = sAdapterUuidsArray;
+      props.AppendElement(BluetoothNamedValue(NS_LITERAL_STRING("UUIDs"),
+                          propertyValue));
     } else if (p.mType == PROPERTY_UNKNOWN) {
       /* Bug 1065999: working around unknown properties */
       continue;
