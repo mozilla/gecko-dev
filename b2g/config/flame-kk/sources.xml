@@ -15,7 +15,7 @@
   <remote fetch="https://git.mozilla.org/external/t2m-foxfone" name="t2m"/>
   <default remote="caf" revision="LNX.LA.3.5.2.1.1" sync-j="4"/>
   <!-- B2G specific things. -->
-  <project name="platform_build" path="build" remote="b2g" revision="e06971db7acf7a35c32eb74d675a4e12e288e6be">
+  <project name="platform_build" path="build" remote="b2g" revision="e9c68a8f768d569622fe09d05a5be59d0bd86baa">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
   <project name="gaia" path="gaia" remote="mozillaorg" revision="2989f2b2bd12fcc0e9c017d2db766e76a55873b8"/>
