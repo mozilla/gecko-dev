@@ -1262,7 +1262,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     }
 
     bool isRelazifiable() const {
-        return (selfHosted() || lazyScript) && !types_ &&
+        return (selfHosted() || lazyScript) &&
                !isGenerator() && !hasBaselineScript() && !hasAnyIonScript();
     }
     void setLazyScript(js::LazyScript *lazy) {
