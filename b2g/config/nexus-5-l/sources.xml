@@ -155,7 +155,7 @@
   <project name="platform/hardware/qcom/sensors" path="hardware/qcom/sensors" revision="3724fd91ef5183684d97e2bf1d7ff948faabe090"/>
   <project name="platform/hardware/qcom/wlan" path="hardware/qcom/wlan" revision="2e54754cc0529d26ccac37ed291600048adbf6c0"/>
   <project name="platform/hardware/ril" path="hardware/ril" revision="71dfa8228ad0d6cdf6bac0426ac59404ab74b7f3"/>
-  <project name="platform_system_bluetoothd" path="system/bluetoothd" remote="b2g" revision="02e006438ce45b9eb36bc7c875130941276a9c08"/>
+  <project name="platform_system_bluetoothd" path="system/bluetoothd" remote="b2g" revision="1c734cd4dec912e701f074e37a9894b7724bfaa6"/>
   <project name="platform_system_nfcd" path="system/nfcd" remote="b2g" revision="de927361215b03e8aaa39ff25b3e691520417cb4"/>
   <project name="platform_system_libfdio" path="system/libfdio" remote="b2g" revision="20c8dbc33dafc442f9c5412a4a47585284e60866"/>
 </manifest>
