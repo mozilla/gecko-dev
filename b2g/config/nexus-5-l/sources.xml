@@ -15,7 +15,7 @@
   <project name="platform_build" path="build" remote="b2g" revision="7f2ee9f4cb926684883fc2a2e407045fd9db2199">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
-  <project name="gaia" path="gaia" remote="mozillaorg" revision="ab9029f2b203e2a36e8f81edd17fa5ff81c874b5"/>
+  <project name="gaia" path="gaia" remote="mozillaorg" revision="be274f1b1f283853f0c3afe6eb65d39ccbe20f44"/>
   <project name="fake-libdvm" path="dalvik" remote="b2g" revision="d50ae982b19f42f0b66d08b9eb306be81687869f"/>
   <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="4e87ee8f630b8c94916291406ce07a0de13641a7"/>
   <project name="librecovery" path="librecovery" remote="b2g" revision="9410c63fe0c5d9ae20bcbb5f7fbcbc80c80f39eb"/>
@@ -155,7 +155,7 @@
   <project name="platform/hardware/qcom/sensors" path="hardware/qcom/sensors" revision="3724fd91ef5183684d97e2bf1d7ff948faabe090"/>
   <project name="platform/hardware/qcom/wlan" path="hardware/qcom/wlan" revision="2e54754cc0529d26ccac37ed291600048adbf6c0"/>
   <project name="platform/hardware/ril" path="hardware/ril" revision="71dfa8228ad0d6cdf6bac0426ac59404ab74b7f3"/>
-  <project name="platform_system_bluetoothd" path="system/bluetoothd" remote="b2g" revision="29dcf992a6ebac3c49248a73c59a4086c84b75b6"/>
+  <project name="platform_system_bluetoothd" path="system/bluetoothd" remote="b2g" revision="02e006438ce45b9eb36bc7c875130941276a9c08"/>
   <project name="platform_system_nfcd" path="system/nfcd" remote="b2g" revision="de927361215b03e8aaa39ff25b3e691520417cb4"/>
   <project name="platform_system_libfdio" path="system/libfdio" remote="b2g" revision="20c8dbc33dafc442f9c5412a4a47585284e60866"/>
 </manifest>
