@@ -30,7 +30,6 @@
 #include "nsQueryContentEventResult.h"
 #include "nsView.h"
 #include "mozilla/dom/CustomEvent.h"
-#include "mozilla/dom/SelectionStateChangedEvent.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/Preferences.h"
 
@@ -947,45 +946,25 @@ TouchCaret::DispatchTapEvent()
     return;
   }
 
-  nsRefPtr<nsCaret> caret = presShell->GetCaret();
-  if (!caret) {
+  nsCOMPtr<nsIDocument> doc = presShell->GetDocument();
+  if (!doc) {
     return;
   }
 
-  Selection* sel = static_cast<dom::Selection*>(caret->GetSelection());
-  if (!sel) {
+  ErrorResult res;
+  nsRefPtr<dom::Event> domEvent =
+    doc->CreateEvent(NS_LITERAL_STRING("CustomEvent"), res);
+  if (res.Failed()) {
     return;
   }
 
-  nsIDocument* doc = presShell->GetDocument();
-
-  MOZ_ASSERT(doc);
-
-  SelectionStateChangedEventInit init;
-  init.mBubbles = true;
-
-  // XXX: Do we need to flush layout?
-  presShell->FlushPendingNotifications(Flush_Layout);
-  nsRect rect = nsContentUtils::GetSelectionBoundingRect(sel);
-  nsRefPtr<dom::DOMRect>domRect = new dom::DOMRect(ToSupports(doc));
-
-  domRect->SetLayoutRect(rect);
-  init.mBoundingClientRect = domRect;
-  init.mVisible = false;
-
-  sel->Stringify(init.mSelectedText);
-
-  dom::Sequence<SelectionState> state;
-  state.AppendElement(SelectionState::Taponcaret);
-  init.mStates = state;
-
-  nsRefPtr<SelectionStateChangedEvent> event =
-    SelectionStateChangedEvent::Constructor(doc, NS_LITERAL_STRING("mozselectionstatechanged"), init);
-
-  event->SetTrusted(true);
-  event->GetInternalNSEvent()->mFlags.mOnlyChromeDispatch = true;
+  dom::CustomEvent* customEvent = static_cast<dom::CustomEvent*>(domEvent.get());
+  customEvent->InitCustomEvent(NS_LITERAL_STRING("touchcarettap"),
+                               true, false, nullptr);
+  customEvent->SetTrusted(true);
+  customEvent->GetInternalNSEvent()->mFlags.mOnlyChromeDispatch = true;
   bool ret;
-  doc->DispatchEvent(event, &ret);
+  doc->DispatchEvent(domEvent, &ret);
 }
 
 void

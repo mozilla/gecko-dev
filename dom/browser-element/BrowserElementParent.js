@@ -199,6 +199,7 @@ BrowserElementParent.prototype = {
       "got-set-input-method-active": this._gotDOMRequestResult,
       "selectionstatechanged": this._handleSelectionStateChanged,
       "scrollviewchange": this._handleScrollViewChange,
+      "touchcarettap": this._handleTouchCaretTap
     };
 
     let mmSecuritySensitiveCalls = {
@@ -434,6 +435,12 @@ BrowserElementParent.prototype = {
 
   _handleScrollViewChange: function(data) {
     let evt = this._createEvent("scrollviewchange", data.json,
+                                /* cancelable = */ false);
+    this._frameElement.dispatchEvent(evt);
+  },
+
+  _handleTouchCaretTap: function(data) {
+    let evt = this._createEvent("touchcarettap", data.json,
                                 /* cancelable = */ false);
     this._frameElement.dispatchEvent(evt);
   },

@@ -500,7 +500,7 @@ SelectionCarets::UpdateSelectionCarets()
   nsIFrame* commonAncestorFrame =
     nsLayoutUtils::FindNearestCommonAncestorFrame(startFrame, endFrame);
 
-  nsRect selectionRectInRootFrame = nsContentUtils::GetSelectionBoundingRect(selection);
+  nsRect selectionRectInRootFrame = GetSelectionBoundingRect(selection);
   nsRect selectionRectInCommonAncestorFrame = selectionRectInRootFrame;
   nsLayoutUtils::TransformRect(rootFrame, commonAncestorFrame,
                                selectionRectInCommonAncestorFrame);
@@ -607,10 +607,9 @@ SelectionCarets::SelectWord()
       SELECTIONCARETS_LOG("Select a editable content %p with empty text",
                           editingHost);
       // Long tap on the content with empty text, no action for
-      // selectioncarets but need to dispatch the taponcaret event
+      // selectioncarets but need to dispatch the touchcarettap event
       // to support the short cut mode
-      DispatchSelectionStateChangedEvent(GetSelection(),
-                                         SelectionState::Taponcaret);
+      DispatchCustomEvent(NS_LITERAL_STRING("touchcarettap"));
       return NS_OK;
     }
   } else {
@@ -1029,6 +1028,37 @@ GetSelectionStates(int16_t aReason)
   return states;
 }
 
+nsRect
+SelectionCarets::GetSelectionBoundingRect(Selection* aSel)
+{
+  nsRect res;
+  // Bounding client rect may be empty after calling GetBoundingClientRect
+  // when range is collapsed. So we get caret's rect when range is
+  // collapsed.
+  if (aSel->IsCollapsed()) {
+    nsIFrame* frame = nsCaret::GetGeometry(aSel, &res);
+    if (frame) {
+      nsIFrame* relativeTo =
+        nsLayoutUtils::GetContainingBlockForClientRect(frame);
+      res = nsLayoutUtils::TransformFrameRectToAncestor(frame, res, relativeTo);
+    }
+  } else {
+    int32_t rangeCount = aSel->GetRangeCount();
+    nsLayoutUtils::RectAccumulator accumulator;
+    for (int32_t idx = 0; idx < rangeCount; ++idx) {
+      nsRange* range = aSel->GetRangeAt(idx);
+      nsRange::CollectClientRects(&accumulator, range,
+                                  range->GetStartParent(), range->StartOffset(),
+                                  range->GetEndParent(), range->EndOffset(),
+                                  true, false);
+    }
+    res = accumulator.mResultRect.IsEmpty() ? accumulator.mFirstRect :
+      accumulator.mResultRect;
+  }
+
+  return res;
+}
+
 void
 SelectionCarets::DispatchCustomEvent(const nsAString& aEvent)
 {
@@ -1067,7 +1097,7 @@ SelectionCarets::DispatchSelectionStateChangedEvent(Selection* aSelection,
   if (aSelection) {
     // XXX: Do we need to flush layout?
     mPresShell->FlushPendingNotifications(Flush_Layout);
-    nsRect rect = nsContentUtils::GetSelectionBoundingRect(aSelection);
+    nsRect rect = GetSelectionBoundingRect(aSelection);
     nsRefPtr<DOMRect>domRect = new DOMRect(ToSupports(doc));
 
     domRect->SetLayoutRect(rect);
