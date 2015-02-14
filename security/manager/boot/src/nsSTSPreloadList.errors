@@ -33,7 +33,7 @@ crate.io: did not receive HSTS header
 crbug.com: did not receive HSTS header
 crowdcurity.com: did not receive HSTS header
 crypto.is: did not receive HSTS header
-csawctf.poly.edu: did not receive HSTS header
+csawctf.poly.edu: could not connect to host
 cybershambles.com: could not connect to host
 discovery.lookout.com: did not receive HSTS header
 dl.google.com: did not receive HSTS header (error ignored - included regardless)
@@ -76,6 +76,7 @@ irccloud.com: did not receive HSTS header
 itriskltd.com: did not receive HSTS header
 jonas-keidel.de: could not connect to host
 jottit.com: could not connect to host
+k-dev.de: could not connect to host
 keymaster.lookout.com: did not receive HSTS header
 kitsta.com: could not connect to host
 kiwiirc.com: max-age too low: 5256000
@@ -93,6 +94,7 @@ mail.google.com: did not receive HSTS header (error ignored - included regardles
 manage.zenpayroll.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 market.android.com: did not receive HSTS header (error ignored - included regardless)
 matteomarescotti.name: could not connect to host
+mediacru.sh: could not connect to host
 mobilethreat.net: could not connect to host
 mobilethreatnetwork.net: could not connect to host
 my.alfresco.com: did not receive HSTS header
