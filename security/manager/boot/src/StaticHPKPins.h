@@ -123,10 +123,6 @@ static const char kGOOGLE_PIN_Entrust_G2Fingerprint[] =
 static const char kGOOGLE_PIN_Entrust_SSLFingerprint[] =
   "nsxRNo6G40YPZsKV5JQt1TCA8nseQQr/LRqp1Oa8fnw=";
 
-/* GOOGLE_PIN_GTECyberTrustGlobalRoot */
-static const char kGOOGLE_PIN_GTECyberTrustGlobalRootFingerprint[] =
-  "EGn6R6CqT4z3ERscrqNl7q7RC//zJmDe9uBhS/rnCHU=";
-
 /* GOOGLE_PIN_GoDaddySecure */
 static const char kGOOGLE_PIN_GoDaddySecureFingerprint[] =
   "MrZLZnJ6IGPkBm87lYywqu5Xal7O/ZUzmbuIdHMdlYc=";
@@ -139,13 +135,13 @@ static const char kGOOGLE_PIN_LibertylavabitcomFingerprint[] =
 static const char kGOOGLE_PIN_RapidSSLFingerprint[] =
   "lT09gPUeQfbYrlxRtpsHrjDblj9Rpz+u7ajfCrg4qDM=";
 
-/* GOOGLE_PIN_ThawtePremiumServer */
-static const char kGOOGLE_PIN_ThawtePremiumServerFingerprint[] =
-  "9TwiBZgX3Zb0AGUWOdL4V+IQcKWavtkHlADZ9pVQaQA=";
-
 /* GOOGLE_PIN_Tor2web */
 static const char kGOOGLE_PIN_Tor2webFingerprint[] =
   "99ogQzjMuUTBkG1ZP7FME0K4kvBEti8Buzu4nZjRItM=";
+
+/* GTE CyberTrust Global Root */
+static const char kGTE_CyberTrust_Global_RootFingerprint[] =
+  "EGn6R6CqT4z3ERscrqNl7q7RC//zJmDe9uBhS/rnCHU=";
 
 /* GeoTrust Global CA */
 static const char kGeoTrust_Global_CAFingerprint[] =
@@ -246,6 +242,10 @@ static const char kTC_TrustCenter_Universal_CA_IIIFingerprint[] =
 /* TestSPKI */
 static const char kTestSPKIFingerprint[] =
   "AAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+/* Thawte Premium Server CA */
+static const char kThawte_Premium_Server_CAFingerprint[] =
+  "9TwiBZgX3Zb0AGUWOdL4V+IQcKWavtkHlADZ9pVQaQA=";
 
 /* Tor1 */
 static const char kTor1Fingerprint[] =
@@ -557,7 +557,7 @@ static const char* kPinset_twitterCDN_sha256_Data[] = {
   kVerisign_Class_3_Public_Primary_Certification_Authority___G2Fingerprint,
   kAddTrust_Low_Value_Services_RootFingerprint,
   kUTN_USERFirst_Object_Root_CAFingerprint,
-  kGOOGLE_PIN_GTECyberTrustGlobalRootFingerprint,
+  kGTE_CyberTrust_Global_RootFingerprint,
   kGeoTrust_Global_CA_2Fingerprint,
   kEntrust_net_Premium_2048_Secure_Server_CAFingerprint,
   kDigiCert_Assured_ID_Root_CAFingerprint,
@@ -635,7 +635,7 @@ static const StaticPinset kPinset_lavabit = {
 
 static const char* kPinset_dropbox_sha256_Data[] = {
   kGOOGLE_PIN_EntrustRootEC1Fingerprint,
-  kGOOGLE_PIN_ThawtePremiumServerFingerprint,
+  kThawte_Premium_Server_CAFingerprint,
   kthawte_Primary_Root_CA___G3Fingerprint,
   kthawte_Primary_Root_CAFingerprint,
   kEntrust_net_Premium_2048_Secure_Server_CAFingerprint,
@@ -1006,4 +1006,4 @@ static const int kPublicKeyPinningPreloadListLength = 328;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1430566147335000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1432379826011000);
