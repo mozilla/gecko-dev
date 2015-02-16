@@ -5,6 +5,7 @@
 
 #include "mozilla/layers/APZThreadUtils.h"
 
+#include "base/task.h"
 #include "mozilla/layers/Compositor.h"
 
 namespace mozilla {

@@ -8,7 +8,9 @@
 
 #include "FrameMetrics.h"
 #include "mozilla/EventForwards.h"
+#include "nsCOMPtr.h"
 #include "nsIDOMWindowUtils.h"
+#include "nsRefPtr.h"
 
 class nsIContent;
 class nsIDocument;

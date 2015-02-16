@@ -6,7 +6,9 @@
 #include "APZCCallbackHelper.h"
 
 #include "gfxPlatform.h" // For gfxPlatform::UseTiling
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/TabParent.h"
+#include "mozilla/TouchEvents.h"
 #include "nsIScrollableFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsIDOMElement.h"
@@ -15,6 +17,7 @@
 #include "nsIDocument.h"
 #include "nsIDOMWindow.h"
 #include "nsIFrame.h"
+#include "nsRefreshDriver.h"
 
 #define APZCCH_LOG(...)
 // #define APZCCH_LOG(...) printf_stderr("APZCCH: " __VA_ARGS__)

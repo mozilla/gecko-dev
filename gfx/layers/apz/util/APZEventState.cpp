@@ -7,12 +7,20 @@
 
 #include "ActiveElementManager.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/TouchEvents.h"
 #include "nsCOMPtr.h"
 #include "nsDocShell.h"
+#include "nsIDocument.h"
+#include "nsIDOMMouseEvent.h"
+#include "nsIPresShell.h"
+#include "nsIScrollableFrame.h"
+#include "nsIScrollbarMediator.h"
 #include "nsITimer.h"
 #include "nsIWeakReferenceUtils.h"
 #include "nsIWidget.h"
+#include "nsLayoutUtils.h"
 
 #define APZES_LOG(...)
 // #define APZES_LOG(...) printf_stderr("APZCCH: " __VA_ARGS__)
