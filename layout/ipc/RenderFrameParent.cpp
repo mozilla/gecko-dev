@@ -416,18 +416,6 @@ RenderFrameParent::OwnerContentChanged(nsIContent* aContent)
   }
 }
 
-nsEventStatus
-RenderFrameParent::NotifyInputEvent(WidgetInputEvent& aEvent,
-                                    ScrollableLayerGuid* aOutTargetGuid,
-                                    uint64_t* aOutInputBlockId)
-{
-  if (GetApzcTreeManager()) {
-    return GetApzcTreeManager()->ReceiveInputEvent(
-        aEvent, aOutTargetGuid, aOutInputBlockId);
-  }
-  return nsEventStatus_eIgnore;
-}
-
 void
 RenderFrameParent::ActorDestroy(ActorDestroyReason why)
 {
