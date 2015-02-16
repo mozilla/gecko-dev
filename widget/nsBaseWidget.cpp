@@ -922,7 +922,7 @@ void nsBaseWidget::CreateCompositor()
 already_AddRefed<GeckoContentController>
 nsBaseWidget::CreateRootContentController()
 {
-  nsRefPtr<GeckoContentController> controller = new ChromeProcessController(this);
+  nsRefPtr<GeckoContentController> controller = new ChromeProcessController(this, mAPZEventState);
   return controller.forget();
 }
 
