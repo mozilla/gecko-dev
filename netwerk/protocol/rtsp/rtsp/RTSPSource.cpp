@@ -408,6 +408,10 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
 
         case RtspConnectionHandler::kWhatAccessUnit:
         {
+            if (!isValidState()) {
+                LOGI("We're disconnected, dropping access unit.");
+                break;
+            }
             size_t trackIndex;
             CHECK(msg->findSize("trackIndex", &trackIndex));
             CHECK_LT(trackIndex, mTracks.size());
@@ -464,6 +468,10 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
 
         case RtspConnectionHandler::kWhatEOS:
         {
+            if (!isValidState()) {
+                LOGI("We're disconnected, dropping end-of-stream message.");
+                break;
+            }
             size_t trackIndex;
             CHECK(msg->findSize("trackIndex", &trackIndex));
             CHECK_LT(trackIndex, mTracks.size());
@@ -484,6 +492,10 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
 
         case RtspConnectionHandler::kWhatSeekDiscontinuity:
         {
+            if (!isValidState()) {
+                LOGI("We're disconnected, dropping seek discontinuity message.");
+                break;
+            }
             size_t trackIndex;
             CHECK(msg->findSize("trackIndex", &trackIndex));
             CHECK_LT(trackIndex, mTracks.size());
@@ -499,6 +511,11 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
 
         case RtspConnectionHandler::kWhatNormalPlayTimeMapping:
         {
+            if (!isValidState()) {
+                LOGI("We're disconnected, dropping normal play time mapping "
+                     "message.");
+                break;
+            }
             size_t trackIndex;
             CHECK(msg->findSize("trackIndex", &trackIndex));
             CHECK_LT(trackIndex, mTracks.size());
@@ -738,5 +755,13 @@ void RTSPSource::onTrackEndOfStream(size_t trackIndex)
     data.AssignLiteral("END_OF_STREAM");
 
     mListener->OnMediaDataAvailable(trackIndex, data, data.Length(), 0, meta.get());
+}
+
+inline bool RTSPSource::isValidState()
+{
+    if (mState == DISCONNECTED || mTracks.size() == 0) {
+        return false;
+    }
+    return true;
 }
 }  // namespace android
