@@ -212,11 +212,11 @@ SpeakerManager::HandleEvent(nsIDOMEvent* aEvent)
 void
 SpeakerManager::SetAudioChannelActive(bool isActive)
 {
-  if (!isActive && !mVisible) {
+  if (mForcespeaker) {
     SpeakerManagerService *service =
       SpeakerManagerService::GetSpeakerManagerService();
     if (service) {
-      service->ForceSpeaker(false, mVisible);
+      service->ForceSpeaker(isActive, mVisible);
     }
   }
 }
