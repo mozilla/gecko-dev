@@ -125,10 +125,10 @@ class TabChild::DelayedFireSingleTapEvent MOZ_FINAL : public nsITimerCallback
 public:
   NS_DECL_ISUPPORTS
 
-  DelayedFireSingleTapEvent(TabChild* aTabChild,
+  DelayedFireSingleTapEvent(nsIWidget* aWidget,
                             LayoutDevicePoint& aPoint,
                             nsITimer* aTimer)
-    : mTabChild(do_GetWeakReference(static_cast<nsITabChild*>(aTabChild)))
+    : mWidget(do_GetWeakReference(aWidget))
     , mPoint(aPoint)
     // Hold the reference count until we are called back.
     , mTimer(aTimer)
@@ -137,9 +137,9 @@ public:
 
   NS_IMETHODIMP Notify(nsITimer*) MOZ_OVERRIDE
   {
-    nsCOMPtr<nsITabChild> tabChild = do_QueryReferent(mTabChild);
-    if (tabChild) {
-      static_cast<TabChild*>(tabChild.get())->FireSingleTapEvent(mPoint);
+    nsCOMPtr<nsIWidget> widget = do_QueryReferent(mWidget);
+    if (widget) {
+      APZCCallbackHelper::FireSingleTapEvent(mPoint, widget);
     }
     mTimer = nullptr;
     return NS_OK;
@@ -154,7 +154,7 @@ private:
   {
   }
 
-  nsWeakPtr mTabChild;
+  nsWeakPtr mWidget;
   LayoutDevicePoint mPoint;
   nsCOMPtr<nsITimer> mTimer;
 };
@@ -601,46 +601,6 @@ TabChildBase::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
 
     DispatchMessageManagerMessage(NS_LITERAL_STRING("Viewport:Change"), data);
     return newMetrics;
-}
-
-nsEventStatus
-TabChildBase::DispatchSynthesizedMouseEvent(uint32_t aMsg, uint64_t aTime,
-                                            const LayoutDevicePoint& aRefPoint,
-                                            nsIWidget* aWidget)
-{
-  MOZ_ASSERT(aMsg == NS_MOUSE_MOVE || aMsg == NS_MOUSE_BUTTON_DOWN ||
-             aMsg == NS_MOUSE_BUTTON_UP || aMsg == NS_MOUSE_MOZLONGTAP);
-
-  WidgetMouseEvent event(true, aMsg, nullptr,
-                         WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
-  event.refPoint = LayoutDeviceIntPoint(aRefPoint.x, aRefPoint.y);
-  event.time = aTime;
-  event.button = WidgetMouseEvent::eLeftButton;
-  event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
-  event.ignoreRootScrollFrame = true;
-  if (aMsg != NS_MOUSE_MOVE) {
-    event.clickCount = 1;
-  }
-  event.widget = aWidget;
-
-  return DispatchWidgetEvent(event);
-}
-
-nsEventStatus
-TabChildBase::DispatchWidgetEvent(WidgetGUIEvent& event)
-{
-  if (!event.widget)
-    return nsEventStatus_eConsumeNoDefault;
-
-  if (TabParent* capturer = TabParent::GetEventCapturer()) {
-    if (capturer->TryCapture(event)) {
-      return nsEventStatus_eConsumeNoDefault;
-    }
-  }
-  nsEventStatus status;
-  NS_ENSURE_SUCCESS(event.widget->DispatchEvent(&event, status),
-                    nsEventStatus_eConsumeNoDefault);
-  return status;
 }
 
 bool
@@ -2134,14 +2094,14 @@ TabChild::RecvHandleSingleTap(const CSSPoint& aPoint, const ScrollableLayerGuid&
     // If the active element isn't visually affected by the :active style, we
     // have no need to wait the extra sActiveDurationMs to make the activation
     // visually obvious to the user.
-    FireSingleTapEvent(currentPoint);
+    APZCCallbackHelper::FireSingleTapEvent(currentPoint, mWidget);
     return true;
   }
 
   TABC_LOG("Active element uses style, scheduling timer for click event\n");
   nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID);
   nsRefPtr<DelayedFireSingleTapEvent> callback =
-    new DelayedFireSingleTapEvent(this, currentPoint, timer);
+    new DelayedFireSingleTapEvent(mWidget, currentPoint, timer);
   nsresult rv = timer->InitWithCallback(callback,
                                         sActiveDurationMs,
                                         nsITimer::TYPE_ONE_SHOT);
@@ -2151,20 +2111,6 @@ TabChild::RecvHandleSingleTap(const CSSPoint& aPoint, const ScrollableLayerGuid&
     callback->ClearTimer();
   }
   return true;
-}
-
-void
-TabChild::FireSingleTapEvent(LayoutDevicePoint aPoint)
-{
-  if (mDestroyed) {
-    return;
-  }
-  TABC_LOG("Dispatching single-tap component events to %s\n",
-    Stringify(aPoint).c_str());
-  int time = 0;
-  DispatchSynthesizedMouseEvent(NS_MOUSE_MOVE, time, aPoint, mWidget);
-  DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_DOWN, time, aPoint, mWidget);
-  DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_UP, time, aPoint, mWidget);
 }
 
 bool
@@ -2194,7 +2140,7 @@ TabChild::RecvHandleLongTap(const CSSPoint& aPoint, const ScrollableLayerGuid& a
       * mWidget->GetDefaultScale();
     int time = 0;
     nsEventStatus status =
-      DispatchSynthesizedMouseEvent(NS_MOUSE_MOZLONGTAP, time, currentPoint, mWidget);
+        APZCCallbackHelper::DispatchSynthesizedMouseEvent(NS_MOUSE_MOZLONGTAP, time, currentPoint, mWidget);
     eventHandled = (status == nsEventStatus_eConsumeNoDefault);
     TABC_LOG("MOZLONGTAP event handled: %d\n", eventHandled);
   }
@@ -2321,7 +2267,7 @@ TabChild::RecvRealMouseEvent(const WidgetMouseEvent& event)
 {
   WidgetMouseEvent localEvent(event);
   localEvent.widget = mWidget;
-  DispatchWidgetEvent(localEvent);
+  APZCCallbackHelper::DispatchWidgetEvent(localEvent);
   return true;
 }
 
@@ -2346,7 +2292,7 @@ TabChild::RecvMouseWheelEvent(const WidgetWheelEvent& aEvent,
 
   WidgetWheelEvent event(aEvent);
   event.widget = mWidget;
-  DispatchWidgetEvent(event);
+  APZCCallbackHelper::DispatchWidgetEvent(event);
 
   if (IsAsyncPanZoomEnabled()) {
     SendContentReceivedInputBlock(aGuid, aInputBlockId, event.mFlags.mDefaultPrevented);
@@ -2440,9 +2386,9 @@ TabChild::UpdateTapState(const WidgetTouchEvent& aEvent, nsEventStatus aStatus)
 
   case NS_TOUCH_END:
     if (!nsIPresShell::gPreventMouseEvents) {
-      DispatchSynthesizedMouseEvent(NS_MOUSE_MOVE, time, currentPoint, mWidget);
-      DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_DOWN, time, currentPoint, mWidget);
-      DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_UP, time, currentPoint, mWidget);
+      APZCCallbackHelper::DispatchSynthesizedMouseEvent(NS_MOUSE_MOVE, time, currentPoint, mWidget);
+      APZCCallbackHelper::DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_DOWN, time, currentPoint, mWidget);
+      APZCCallbackHelper::DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_UP, time, currentPoint, mWidget);
     }
     // fall through
   case NS_TOUCH_CANCEL:
@@ -2681,7 +2627,7 @@ TabChild::RecvRealTouchEvent(const WidgetTouchEvent& aEvent,
   WidgetTouchEvent localEvent(aEvent);
   localEvent.widget = mWidget;
   // Dispatch event to content (potentially a long-running operation)
-  nsEventStatus status = DispatchWidgetEvent(localEvent);
+  nsEventStatus status = APZCCallbackHelper::DispatchWidgetEvent(localEvent);
 
   if (!IsAsyncPanZoomEnabled()) {
     UpdateTapState(localEvent, status);
@@ -2786,7 +2732,7 @@ TabChild::RecvRealKeyEvent(const WidgetKeyboardEvent& event,
 
   WidgetKeyboardEvent localEvent(event);
   localEvent.widget = mWidget;
-  nsEventStatus status = DispatchWidgetEvent(localEvent);
+  nsEventStatus status = APZCCallbackHelper::DispatchWidgetEvent(localEvent);
 
   if (event.message == NS_KEY_DOWN) {
     mIgnoreKeyPressEvent = status == nsEventStatus_eConsumeNoDefault;
@@ -2823,7 +2769,7 @@ TabChild::RecvCompositionEvent(const WidgetCompositionEvent& event)
 {
   WidgetCompositionEvent localEvent(event);
   localEvent.widget = mWidget;
-  DispatchWidgetEvent(localEvent);
+  APZCCallbackHelper::DispatchWidgetEvent(localEvent);
   return true;
 }
 
@@ -2832,7 +2778,7 @@ TabChild::RecvSelectionEvent(const WidgetSelectionEvent& event)
 {
   WidgetSelectionEvent localEvent(event);
   localEvent.widget = mWidget;
-  DispatchWidgetEvent(localEvent);
+  APZCCallbackHelper::DispatchWidgetEvent(localEvent);
   return true;
 }
 
