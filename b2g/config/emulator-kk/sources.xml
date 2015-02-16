@@ -12,10 +12,10 @@
   <!--original fetch url was https://git.mozilla.org/releases-->
   <remote fetch="https://git.mozilla.org/releases" name="mozillaorg"/>
   <!-- B2G specific things. -->
-  <project name="platform_build" path="build" remote="b2g" revision="e06971db7acf7a35c32eb74d675a4e12e288e6be">
+  <project name="platform_build" path="build" remote="b2g" revision="cdaa0a4ac28c781709df8c318ed079e9e475503a">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
-  <project name="gaia" path="gaia" remote="mozillaorg" revision="2989f2b2bd12fcc0e9c017d2db766e76a55873b8"/>
+  <project name="gaia" path="gaia" remote="mozillaorg" revision="ecb1bbc3b9c00f82df172427f65d6f67e34ed533"/>
   <project name="fake-libdvm" path="dalvik" remote="b2g" revision="d50ae982b19f42f0b66d08b9eb306be81687869f"/>
   <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="c4765e55870c241a5d25499d65323f3e87d26143"/>
   <project name="librecovery" path="librecovery" remote="b2g" revision="891e5069c0ad330d8191bf8c7b879c814258c89f"/>

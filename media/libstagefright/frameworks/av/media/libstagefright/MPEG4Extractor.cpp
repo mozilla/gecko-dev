@@ -38,6 +38,7 @@
 #include <media/stagefright/MediaSource.h>
 #include <media/stagefright/MetaData.h>
 #include <utils/String8.h>
+#include "nsTArray.h"
 
 namespace stagefright {
 
@@ -104,6 +105,7 @@ private:
     bool mWantsNALFragments;
 
     uint8_t *mSrcBuffer;
+    FallibleTArray<uint8_t> mSrcBackend;
 
     size_t parseNALSize(const uint8_t *data) const;
     status_t parseChunk(off64_t *offset);
@@ -146,6 +148,11 @@ private:
 
     MPEG4Source(const MPEG4Source &);
     MPEG4Source &operator=(const MPEG4Source &);
+
+    bool ensureSrcBufferAllocated(int32_t size);
+    // Ensure that we have enough data in mMediaBuffer to copy our data.
+    // Returns false if not and clear mMediaBuffer.
+    bool ensureMediaBufferAllocated(int32_t size);
 };
 
 // This custom data source wraps an existing one and satisfies requests
@@ -2454,7 +2461,7 @@ status_t MPEG4Source::start(MetaData *params) {
 
     mGroup->add_buffer(new MediaBuffer(max_size));
 
-    mSrcBuffer = new uint8_t[max_size];
+    mSrcBuffer = mSrcBackend.Elements();
 
     mStarted = true;
 
@@ -2471,8 +2478,7 @@ status_t MPEG4Source::stop() {
         mBuffer = NULL;
     }
 
-    delete[] mSrcBuffer;
-    mSrcBuffer = NULL;
+    mSrcBackend.Clear();
 
     delete mGroup;
     mGroup = NULL;
@@ -3031,6 +3037,30 @@ size_t MPEG4Source::parseNALSize(const uint8_t *data) const {
     return 0;
 }
 
+bool MPEG4Source::ensureSrcBufferAllocated(int32_t aSize) {
+    if (mSrcBackend.Length() >= aSize) {
+        return true;
+    }
+    if (!mSrcBackend.SetLength(aSize)) {
+        ALOGE("Error insufficient memory, requested %u bytes (had:%u)",
+              aSize, mSrcBackend.Length());
+        return false;
+    }
+    mSrcBuffer = mSrcBackend.Elements();
+    return true;
+}
+
+bool MPEG4Source::ensureMediaBufferAllocated(int32_t aSize) {
+  if (mBuffer->size() < aSize) {
+      ALOGE("Error insufficient memory, requested %u bytes (had:%u)",
+            aSize, mBuffer->size());
+      mBuffer->release();
+      mBuffer = NULL;
+      return false;
+  }
+  return true;
+}
+
 status_t MPEG4Source::read(
         MediaBuffer **out, const ReadOptions *options) {
     Mutex::Autolock autoLock(mLock);
@@ -3153,6 +3183,9 @@ status_t MPEG4Source::read(
 
     if (!mIsAVC || mWantsNALFragments) {
         if (newBuffer) {
+            if (!ensureMediaBufferAllocated(size)) {
+                return ERROR_MALFORMED;
+            }
             ssize_t num_bytes_read =
                 mDataSource->readAt(offset, (uint8_t *)mBuffer->data(), size);
 
@@ -3231,9 +3264,15 @@ status_t MPEG4Source::read(
         int32_t drm = 0;
         bool usesDRM = (mFormat->findInt32(kKeyIsDRM, &drm) && drm != 0);
         if (usesDRM) {
+            if (!ensureMediaBufferAllocated(size)) {
+                return ERROR_MALFORMED;
+            }
             num_bytes_read =
                 mDataSource->readAt(offset, (uint8_t*)mBuffer->data(), size);
         } else {
+            if (!ensureSrcBufferAllocated(size)) {
+                return ERROR_MALFORMED;
+            }
             num_bytes_read = mDataSource->readAt(offset, mSrcBuffer, size);
         }
 
@@ -3273,7 +3312,9 @@ status_t MPEG4Source::read(
                     continue;
                 }
 
-                CHECK(dstOffset + 4 <= mBuffer->size());
+                if (!ensureMediaBufferAllocated(dstOffset + 4 + nalLength)) {
+                    return ERROR_MALFORMED;
+                }
 
                 dstData[dstOffset++] = 0;
                 dstData[dstOffset++] = 0;
@@ -3428,6 +3469,9 @@ status_t MPEG4Source::fragmentedRead(
 
     if (!mIsAVC || mWantsNALFragments) {
         if (newBuffer) {
+            if (!ensureMediaBufferAllocated(size)) {
+                return ERROR_MALFORMED;
+            }
             ssize_t num_bytes_read =
                 mDataSource->readAt(offset, (uint8_t *)mBuffer->data(), size);
 
@@ -3506,9 +3550,15 @@ status_t MPEG4Source::fragmentedRead(
         int32_t drm = 0;
         bool usesDRM = (mFormat->findInt32(kKeyIsDRM, &drm) && drm != 0);
         if (usesDRM) {
+            if (!ensureMediaBufferAllocated(size)) {
+                return ERROR_MALFORMED;
+            }
             num_bytes_read =
                 mDataSource->readAt(offset, (uint8_t*)mBuffer->data(), size);
         } else {
+            if (!ensureSrcBufferAllocated(size)) {
+                return ERROR_MALFORMED;
+            }
             num_bytes_read = mDataSource->readAt(offset, mSrcBuffer, size);
         }
 
@@ -3549,7 +3599,9 @@ status_t MPEG4Source::fragmentedRead(
                     continue;
                 }
 
-                CHECK(dstOffset + 4 <= mBuffer->size());
+                if (!ensureMediaBufferAllocated(dstOffset + 4 + nalLength)) {
+                    return ERROR_MALFORMED;
+                }
 
                 dstData[dstOffset++] = 0;
                 dstData[dstOffset++] = 0;
