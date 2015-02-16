@@ -148,6 +148,8 @@ private:
 
     void onTrackEndOfStream(size_t trackIndex);
 
+    inline bool isValidState();
+
     nsMainThreadPtrHandle<nsIStreamingProtocolListener> mListener;
     int mPrintCount;
 
