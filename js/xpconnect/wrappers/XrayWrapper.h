@@ -131,7 +131,7 @@ class XrayWrapper : public Base {
     {
         if (!Base::getPrototypeOf(cx, wrapper, protop))
             return false;
-        if (WrapperFactory::IsXrayWrapper(protop))
+        if (!protop || WrapperFactory::IsXrayWrapper(protop))
             return true;
 
         protop.set(JS_GetObjectPrototype(cx, wrapper));
