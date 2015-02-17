@@ -1137,3 +1137,4 @@ pref("devtools.debugger.prompt-connection", false);
 pref("devtools.debugger.forbid-certified-apps", false);
 pref("b2g.reload_key", '{ "key": 116, "shift": false, "ctrl": false, "alt": false, "meta": false }');
 pref("image.high_quality_downscaling.enabled", true);
+pref("layout.css.scroll-snap.enabled", true);
