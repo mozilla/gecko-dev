@@ -2187,6 +2187,8 @@ void MediaDecoderStateMachine::DecodeSeek()
 
   if (!currentTimeChanged) {
     DECODER_LOG("Seek !currentTimeChanged...");
+    mDropAudioUntilNextDiscontinuity = false;
+    mDropVideoUntilNextDiscontinuity = false;
     mDecodeToSeekTarget = false;
     nsresult rv = mDecodeTaskQueue->Dispatch(
       NS_NewRunnableMethod(this, &MediaDecoderStateMachine::SeekCompleted));
