@@ -175,6 +175,7 @@ AppendToString(std::stringstream& aStream, const FrameMetrics& m,
   if (m.GetDoSmoothScroll()) {
     AppendToString(aStream, m.GetSmoothScrollOffset(), "] [ss=");
   }
+  AppendToString(aStream, m.GetFlingSnapGeneration(), "] [fsg=");
   AppendToString(aStream, m.GetDisplayPort(), "] [dp=");
   AppendToString(aStream, m.GetCriticalDisplayPort(), "] [cdp=");
   AppendToString(aStream, m.GetBackgroundColor(), "] [color=");

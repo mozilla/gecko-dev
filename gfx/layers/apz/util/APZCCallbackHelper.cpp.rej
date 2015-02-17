@@ -1,0 +1,43 @@
+diff a/gfx/layers/apz/util/APZCCallbackHelper.cpp b/gfx/layers/apz/util/APZCCallbackHelper.cpp	(rejected hunks)
+@@ -143,16 +143,20 @@ APZCCallbackHelper::UpdateRootFrame(nsID
+         // displayport because tile-alignment depends on the scroll position, and the
+         // scroll position here is out of our control. See bug 966507 comment 21 for a
+         // more detailed explanation.
+         RecenterDisplayPort(aMetrics);
+     }
+ 
+     aMetrics.SetScrollOffset(actualScrollOffset);
+ 
++    if (aMetrics.GetFlingSnapGeneration() != sf->CurrentFlingSnapGeneration()) {
++      sf->FlingSnap(aMetrics.GetFlingSnapOffset(), aMetrics.GetFlingSnapGeneration());
++    }
++
+     // The pres shell resolution is updated by the the async zoom since the
+     // last paint.
+     float presShellResolution = aMetrics.GetPresShellResolution()
+                               * aMetrics.GetAsyncZoom().scale;
+     aUtils->SetResolutionAndScaleTo(presShellResolution, presShellResolution);
+ 
+     // Finally, we set the displayport.
+     nsCOMPtr<nsIContent> content = nsLayoutUtils::FindContentFor(aMetrics.GetScrollId());
+@@ -216,16 +220,20 @@ APZCCallbackHelper::UpdateSubFrame(nsICo
+         CSSRect baseCSS = aMetrics.CalculateCompositedRectInCssPixels();
+         nsRect base(0, 0,
+                     baseCSS.width * nsPresContext::AppUnitsPerCSSPixel(),
+                     baseCSS.height * nsPresContext::AppUnitsPerCSSPixel());
+         nsLayoutUtils::SetDisplayPortBaseIfNotSet(aContent, base);
+     }
+ 
+     aMetrics.SetScrollOffset(actualScrollOffset);
++
++    if (aMetrics.GetFlingSnapGeneration() != sf->CurrentFlingSnapGeneration()) {
++      sf->FlingSnap(aMetrics.GetFlingSnapOffset(), aMetrics.GetFlingSnapGeneration());
++    }
+ }
+ 
+ already_AddRefed<nsIDOMWindowUtils>
+ APZCCallbackHelper::GetDOMWindowUtils(const nsIDocument* aDoc)
+ {
+     nsCOMPtr<nsIDOMWindowUtils> utils;
+     nsCOMPtr<nsIDOMWindow> window = aDoc->GetDefaultView();
+     if (window) {

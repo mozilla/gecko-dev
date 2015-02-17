@@ -2090,7 +2090,17 @@ pref("layout.css.scroll-snap.enabled", false);
 
 // Set the threshold distance in pixels below which scrolling will snap to an
 // edge, when scroll snapping is set to "proximity".
-pref("layout.css.scroll-snap-proximity-threshold", 200);
+pref("layout.css.scroll-snap.proximity-threshold", 200);
+
+// When selecting the snap point for CSS scroll snapping, the velocity of the
+// scroll frame is clamped to this speed, in app units / ms.
+pref("layout.css.scroll-snap.prediction-max-velocity", 250000);
+
+// When selecting the snap point for CSS scroll snapping, the velocity of the
+// scroll frame is integrated over this duration, in ms.  The snap point best
+// suited for this position is selected, enabling the user to perform fling
+// gestures.
+pref("layout.css.scroll-snap.prediction-sensitivity", "250.0");
 
 // Is support for basic shapes in clip-path enabled?
 pref("layout.css.clip-path-shapes.enabled", false);
