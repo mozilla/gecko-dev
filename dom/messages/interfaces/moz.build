@@ -6,7 +6,6 @@
 
 XPIDL_SOURCES += [
     'nsIDOMNavigatorSystemMessages.idl',
-    'nsISystemMessageCache.idl',
     'nsISystemMessageGlue.idl',
     'nsISystemMessagesInternal.idl',
 ]

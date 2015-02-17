@@ -6,11 +6,10 @@
 
 interface nsIURI;
 interface nsIDOMWindow;
-interface nsIMessageSender;
 
 // Implemented by the contract id @mozilla.org/system-message-internal;1
 
-[scriptable, uuid(40ac21c0-58c4-4565-889b-f4afa2ea8d0e)]
+[scriptable, uuid(6296a314-2abf-4cd0-9097-5e81ee6832e2)]
 interface nsISystemMessagesInternal : nsISupports
 {
   /*
@@ -43,12 +42,6 @@ interface nsISystemMessagesInternal : nsISupports
    * @param manifestURI   The webapp's manifest URI.
    */
   void registerPage(in DOMString type, in nsIURI pageURI, in nsIURI manifestURI);
-
-  /*
-   * Refresh the system message cache in a content process.
-   * @param manifestURI The webapp's manifest URI.
-   */
-  void refreshCache(in nsIMessageSender childMM, in nsIURI manifestURI);
 };
 
 [scriptable, uuid(002f0e82-91f0-41de-ad43-569a2b9d12df)]

@@ -126,6 +126,8 @@ nsVolumeService::Callback(const nsAString& aTopic, const nsAString& aState)
 
 NS_IMETHODIMP nsVolumeService::GetVolumeByName(const nsAString& aVolName, nsIVolume **aResult)
 {
+  GetVolumesFromParent();
+
   MonitorAutoLock autoLock(mArrayMonitor);
 
   nsRefPtr<nsVolume> vol = FindVolumeByName(aVolName);
@@ -140,6 +142,8 @@ NS_IMETHODIMP nsVolumeService::GetVolumeByName(const nsAString& aVolName, nsIVol
 NS_IMETHODIMP
 nsVolumeService::GetVolumeByPath(const nsAString& aPath, nsIVolume **aResult)
 {
+  GetVolumesFromParent();
+
   NS_ConvertUTF16toUTF8 utf8Path(aPath);
   char realPathBuf[PATH_MAX];
 
@@ -190,6 +194,8 @@ nsVolumeService::GetVolumeByPath(const nsAString& aPath, nsIVolume **aResult)
 NS_IMETHODIMP
 nsVolumeService::CreateOrGetVolumeByPath(const nsAString& aPath, nsIVolume** aResult)
 {
+  GetVolumesFromParent();
+
   nsresult rv = GetVolumeByPath(aPath, aResult);
   if (rv == NS_OK) {
     return NS_OK;
@@ -214,6 +220,8 @@ nsVolumeService::CreateOrGetVolumeByPath(const nsAString& aPath, nsIVolume** aRe
 NS_IMETHODIMP
 nsVolumeService::GetVolumeNames(nsIArray** aVolNames)
 {
+  GetVolumesFromParent();
+
   NS_ENSURE_ARG_POINTER(aVolNames);
   MonitorAutoLock autoLock(mArrayMonitor);
 
@@ -272,7 +280,7 @@ nsVolumeService::GetVolumesForIPC(nsTArray<VolumeInfo>* aResult)
 }
 
 void
-nsVolumeService::RecvVolumesFromParent(const nsTArray<VolumeInfo>& aVolumes)
+nsVolumeService::GetVolumesFromParent()
 {
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
     // We are the parent. Therefore our volumes are already correct.
@@ -282,8 +290,12 @@ nsVolumeService::RecvVolumesFromParent(const nsTArray<VolumeInfo>& aVolumes)
     // We've already done this, no need to do it again.
     return;
   }
-  for (uint32_t i = 0; i < aVolumes.Length(); i++) {
-    const VolumeInfo& volInfo(aVolumes[i]);
+  mGotVolumesFromParent = true;
+
+  nsTArray<VolumeInfo> result;
+  ContentChild::GetSingleton()->SendGetVolumes(&result);
+  for (uint32_t i = 0; i < result.Length(); i++) {
+    const VolumeInfo& volInfo(result[i]);
     nsRefPtr<nsVolume> vol = new nsVolume(volInfo.name(),
                                           volInfo.mountPoint(),
                                           volInfo.volState(),

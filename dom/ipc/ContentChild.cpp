@@ -89,7 +89,6 @@
 #include "nsAnonymousTemporaryFile.h"
 #include "nsISpellChecker.h"
 #include "nsClipboardProxy.h"
-#include "nsISystemMessageCache.h"
 
 #include "IHistory.h"
 #include "nsNetUtil.h"
@@ -529,10 +528,6 @@ InitOnContentProcessCreated()
     }
     PostForkPreload();
 #endif
-
-    nsCOMPtr<nsISystemMessageCache> smc =
-        do_GetService("@mozilla.org/system-message-cache;1");
-    NS_WARN_IF(!smc);
 
     // This will register cross-process observer.
     mozilla::dom::time::InitializeDateCacheCleaner();
@@ -2131,18 +2126,6 @@ ContentChild::RecvLastPrivateDocShellDestroyed()
 {
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     obs->NotifyObservers(nullptr, "last-pb-context-exited", nullptr);
-    return true;
-}
-
-bool
-ContentChild::RecvVolumes(nsTArray<VolumeInfo>&& aVolumes)
-{
-#ifdef MOZ_WIDGET_GONK
-    nsRefPtr<nsVolumeService> vs = nsVolumeService::GetSingleton();
-    if (vs) {
-        vs->RecvVolumesFromParent(aVolumes);
-    }
-#endif
     return true;
 }
 
