@@ -1615,9 +1615,10 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
                      1.0f/containerParameters.mYScale);
   root->SetScaleToResolution(presShell->ScaleToResolution(),
       containerParameters.mXScale);
-  root->SetForceDispatchToContentRegion(
-      aBuilder->IsBuildingLayerEventRegions() &&
-      nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(presShell));
+  if (aBuilder->IsBuildingLayerEventRegions() &&
+      nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(presShell)) {
+    root->SetEventRegionsOverride(EventRegionsOverride::ForceDispatchToContent);
+  }
 
   if (gfxPrefs::LayoutUseContainersForRootFrames()) {
     bool isRoot = presContext->IsRootContentDocument();
@@ -4080,7 +4081,9 @@ nsDisplaySubDocument::BuildLayer(nsDisplayListBuilder* aBuilder,
   }
 
   nsRefPtr<Layer> layer = nsDisplayOwnLayer::BuildLayer(aBuilder, aManager, params);
-  layer->AsContainerLayer()->SetForceDispatchToContentRegion(mForceDispatchToContentRegion);
+  if (mForceDispatchToContentRegion) {
+    layer->AsContainerLayer()->SetEventRegionsOverride(EventRegionsOverride::ForceDispatchToContent);
+  }
   return layer.forget();
 }
 

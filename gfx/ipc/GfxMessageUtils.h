@@ -1127,6 +1127,13 @@ struct ParamTraits<APZStateChange>
              APZStateChange::APZStateChangeSentinel>
 {};
 
+template<>
+struct ParamTraits<mozilla::layers::EventRegionsOverride>
+  : public BitFlagsEnumSerializer<
+            mozilla::layers::EventRegionsOverride,
+            mozilla::layers::EventRegionsOverride::ALL_BITS>
+{};
+
 } /* namespace IPC */
 
 #endif /* __GFXMESSAGEUTILS_H__ */
