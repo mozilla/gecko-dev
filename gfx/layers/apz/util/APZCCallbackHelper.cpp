@@ -141,6 +141,10 @@ ScrollFrame(nsIContent* aContent,
 
   aMetrics.SetScrollOffset(actualScrollOffset);
 
+  if (aMetrics.GetFlingSnapGeneration() != sf->CurrentFlingSnapGeneration()) {
+    sf->FlingSnap(aMetrics.GetFlingSnapOffset(), aMetrics.GetFlingSnapGeneration());
+  }
+
   // APZ transforms inputs assuming we applied the exact scroll offset it
   // requested (|apzScrollOffset|). Since we may not have, record the difference
   // between what APZ asked for and what we actually applied, and apply it to

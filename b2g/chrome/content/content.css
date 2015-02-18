@@ -17,6 +17,10 @@ xul|window xul|scrollbar {
   }
 }
 
+.moz-noscrollbars > xul|scrollbar {
+  display: none;
+}
+
 html xul|scrollbar[root="true"] {
   position: relative;
   z-index: 2147483647;

@@ -2028,9 +2028,26 @@ void AsyncPanZoomController::AcceptFling(const ParentLayerPoint& aVelocity,
   mX.SetVelocity(mX.GetVelocity() + aVelocity.x);
   mY.SetVelocity(mY.GetVelocity() + aVelocity.y);
   SetState(FLING);
-  StartAnimation(new FlingAnimation(*this,
+  FlingAnimation *fling = new FlingAnimation(*this,
       aOverscrollHandoffChain,
-      !aHandoff));  // only apply acceleration if this is an initial fling
+      !aHandoff);  // only apply acceleration if this is an initial fling
+
+  float friction = gfxPrefs::APZFlingFriction();
+  ParentLayerPoint velocity(mX.GetVelocity(), mY.GetVelocity());
+  ParentLayerPoint predictedDelta;
+  if (velocity.x != 0.0f) {
+    predictedDelta.x = -velocity.x / log(1.0 - friction);
+  }
+  if (velocity.y != 0.0f) {
+    predictedDelta.y = -velocity.y / log(1.0 - friction);
+  }
+  CSSPoint predictedDestination = mFrameMetrics.GetScrollOffset() + predictedDelta / mFrameMetrics.GetZoom();
+
+  APZC_LOG("%p fling snapping.  friction: %f velocity: %f, %f predictedDelta: %f, %f position: %f, %f predictedDestination: %f, %f\n", this, friction, velocity.x, velocity.y, (float)predictedDelta.x, (float)predictedDelta.y, (float)mFrameMetrics.GetScrollOffset().x, (float)mFrameMetrics.GetScrollOffset().y, (float)predictedDestination.x, (float)predictedDestination.y);
+
+  mFrameMetrics.DoFlingSnap(predictedDestination);
+
+  StartAnimation(fling);
 }
 
 bool AsyncPanZoomController::AttemptFling(ParentLayerPoint aVelocity,

@@ -231,6 +231,9 @@ var shell = {
     let startManifestURL =
       Cc['@mozilla.org/commandlinehandler/general-startup;1?type=b2gbootstrap']
         .getService(Ci.nsISupports).wrappedJSObject.startManifestURL;
+    if (!startManifestURL) { // temporary start mozilla.github.io
+      startManifestURL = 'http://mozilla.github.io/browser.html/';
+    }
     if (startManifestURL) {
       Cu.import('resource://gre/modules/Bootstraper.jsm');
       Bootstraper.ensureSystemAppInstall(startManifestURL)
@@ -328,6 +331,12 @@ var shell = {
                   .getInterface(Ci.nsIWebNavigation)
                   .sessionHistory = Cc["@mozilla.org/browser/shistory;1"]
                                       .createInstance(Ci.nsISHistory);
+
+    systemAppFrame.contentWindow
+                  .QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIWebNavigation)
+                  .QueryInterface(Ci.nsIDocShell)
+                  .windowDraggingAllowed = true;
 
     // On firefox mulet, shell.html is loaded in a tab
     // and we have to listen on the chrome event handler
@@ -436,11 +445,35 @@ var shell = {
   visibleNormalAudioActive: false,
 
   handleEvent: function shell_handleEvent(evt) {
+    function checkReloadKey() {
+      if (evt.type !== 'keyup') {
+        return false;
+      }
+
+      try {
+        let key = JSON.parse(Services.prefs.getCharPref('b2g.reload_key'));
+        return (evt.keyCode  == key.key   &&
+                evt.ctrlKey  == key.ctrl  &&
+                evt.altKey   == key.alt   &&
+                evt.shiftKey == key.shift &&
+                evt.metaKey  == key.meta);
+      } catch(e) {
+        debug('Failed to get key: ' + e);
+      }
+
+      return false;
+    }
+
     let content = this.contentBrowser.contentWindow;
     switch (evt.type) {
       case 'keydown':
       case 'keyup':
-        this.broadcastHardwareKeys(evt);
+        if (checkReloadKey()) {
+          debug('Reloading ' + getContentWindow().location);
+          getContentWindow().location.reload(true);
+        } else {
+          this.broadcastHardwareKeys(evt);
+        }
         break;
       case 'mozfullscreenchange':
         // When the screen goes fullscreen make sure to set the focus to the

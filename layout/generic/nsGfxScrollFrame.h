@@ -127,6 +127,70 @@ public:
     ScrollFrameHelper *mHelper;
   };
 
+  class VelocityQueue MOZ_FINAL {
+  public:
+    VelocityQueue(nsPresContext *aPresContext)
+      : mPresContext(aPresContext) {}
+
+    ~VelocityQueue() {}
+
+    // Sample() is to be called periodically when scroll movement occurs.
+    // It takes scroll position samples used by GetVelocity()
+    //
+    // Using the last iteration's scroll position, stored in
+    // mScrollVelocityLastPosition, a delta of the scroll position is calculated
+    // and accumulated in mScrollVelocityAccumulator until the refresh driver
+    // returns a new timestamp for MostRecentRefresh().
+    //
+    // When there is a new timestamp from the refresh driver, the accumulated
+    // change in scroll position is divided by the delta of the timestamp to
+    // get an average velocity over that period.  This velocity is pushed into
+    // mScrollVelocityQueue as a std::pair associating each velocity with the
+    // duration over which it was sampled.
+    //
+    // Samples are removed from mScrollVelocityQueue, leaving only those necessary
+    // to determine the average velocity over the recent relevant period, which
+    // has a duration set by the apz.max_velocity_queue_size preference.
+    //
+    // The velocity of each sample is clamped to a value set by the
+    // layout.css.scroll-snap.prediction-max-velocity.
+    //
+    // As the average velocity will later be integrated over a duration set by
+    // the layout.css.scroll-snap.prediction-sensitivity preference and the
+    // velocity samples are clamped to a set value, the maximum expected
+    // scroll offset can be calculated.  This maximum offset is used to clamp
+    // mScrollVelocityAccumulator, eliminating samples that would otherwise
+    // result in scroll snap position selection that is not consistent with the
+    // user's perception of scroll velocity.
+    void Sample(const nsPoint& aScrollPosition);
+
+    // Discards velocity samples, resulting in velocity of 0 returned by
+    // GetVelocity until move scroll position updates.
+    void Reset();
+
+    // Get scroll velocity averaged from recent movement, in appunits / ms
+    nsPoint GetVelocity();
+  private:
+    // A queue of (timestamp, velocity) pairs; these are the historical
+    // velocities at the given timestamps. Timestamps are in milliseconds,
+    // velocities are in app units per ms.
+    nsTArray<std::pair<uint32_t, nsPoint> > mScrollVelocityQueue;
+
+    // Accumulates the distance and direction travelled by the scroll frame since
+    // mScrollVelocitySampleTime.
+    nsPoint mScrollVelocityAccumulator;
+
+    // Time that mScrollVelocityAccumulator was last reset and began accumulating.
+    TimeStamp mScrollVelocitySampleTime;
+
+    // Scroll offset at the mScrollVelocityAccumulator was last reset and began
+    // accumulating.
+    nsPoint mScrollVelocityLastPosition;
+
+    // PresContext of the containing frame, used to get timebase
+    nsPresContext* mPresContext;
+  };
+
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
@@ -178,6 +242,10 @@ public:
   gfxSize GetResolution() const;
   void SetResolution(const gfxSize& aResolution);
   void SetResolutionAndScaleTo(const gfxSize& aResolution);
+  void FlingSnap(const mozilla::CSSPoint& aDestination,
+                 uint32_t aFlingSnapGeneration);
+  void ScrollSnap();
+  void ScrollSnap(const nsPoint &aDestination);
 
 protected:
   nsRect GetScrollRangeForClamping() const;
@@ -194,8 +262,10 @@ public:
    * This is a closed-ended range --- aRange.XMost()/aRange.YMost() are allowed.
    */
   void ScrollTo(nsPoint aScrollPosition, nsIScrollableFrame::ScrollMode aMode,
-                const nsRect* aRange = nullptr) {
-    ScrollToWithOrigin(aScrollPosition, aMode, nsGkAtoms::other, aRange);
+                const nsRect* aRange = nullptr,
+                nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP) {
+    ScrollToWithOrigin(aScrollPosition, aMode, nsGkAtoms::other, aRange,
+                       aSnap);
   }
   /**
    * @note This method might destroy the frame, pres shell and other objects.
@@ -220,11 +290,22 @@ public:
    */
   void ScrollBy(nsIntPoint aDelta, nsIScrollableFrame::ScrollUnit aUnit,
                 nsIScrollableFrame::ScrollMode aMode, nsIntPoint* aOverflow,
-                nsIAtom* aOrigin = nullptr, bool aIsMomentum = false);
+                nsIAtom* aOrigin = nullptr,
+                nsIScrollableFrame::ScrollMomentum aIsMomentum = nsIScrollableFrame::NOT_MOMENTUM,
+                nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP);
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    */
   void ScrollToRestoredPosition();
+  /**
+   * GetSnapPointForDestination determines which point to snap to after
+   * scrolling. aCurrPos gives the position before scrolling and aDestination
+   * gives the position after scrolling, with no snapping. Behaviour is
+   * dependent on the value of aUnit.
+   */
+  bool GetSnapPointForDestination(nsIScrollableFrame::ScrollUnit aUnit,
+                                  nsPoint aStartPos,
+                                  nsPoint &aDestination);
 
   nsSize GetLineScrollAmount() const;
   nsSize GetPageScrollAmount() const;
@@ -332,6 +413,7 @@ public:
   nsIAtom* LastScrollOrigin() const { return mLastScrollOrigin; }
   nsIAtom* LastSmoothScrollOrigin() const { return mLastSmoothScrollOrigin; }
   uint32_t CurrentScrollGeneration() const { return mScrollGeneration; }
+  uint32_t CurrentFlingSnapGeneration() const { return mCurrentFlingSnapGeneration; }
   nsPoint LastScrollDestination() const { return mDestination; }
   void ResetScrollInfoIfGeneration(uint32_t aGeneration) {
     if (aGeneration == mScrollGeneration) {
@@ -380,6 +462,7 @@ public:
   nsIAtom* mLastScrollOrigin;
   nsIAtom* mLastSmoothScrollOrigin;
   uint32_t mScrollGeneration;
+  uint32_t mCurrentFlingSnapGeneration;
   nsRect mScrollPort;
   // Where we're currently scrolling to, if we're scrolling asynchronously.
   // If we're not in the middle of an asynchronous scroll then this is
@@ -462,9 +545,15 @@ public:
   // SetResolutionAndScaleTo or restored via RestoreState.
   bool mIsResolutionSet:1;
 
+  // True if the events synthesized by OSX to produce momentum scrolling should
+  // be ignored.  Reset when the next real, non-synthesized scroll event occurs.
+  bool mIgnoreMomentumScroll:1;
+
   // True if the frame's resolution has been set via SetResolutionAndScaleTo.
   // Only meaningful for root scroll frames.
   bool mScaleToResolution:1;
+
+  VelocityQueue mVelocityQueue;
 
 protected:
   /**
@@ -473,7 +562,8 @@ protected:
   void ScrollToWithOrigin(nsPoint aScrollPosition,
                           nsIScrollableFrame::ScrollMode aMode,
                           nsIAtom *aOrigin, // nullptr indicates "other" origin
-                          const nsRect* aRange);
+                          const nsRect* aRange,
+                          nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP);
 
   void CompleteAsyncScroll(const nsRect &aRange, nsIAtom* aOrigin = nullptr);
 
@@ -661,8 +751,10 @@ public:
    * @note This method might destroy the frame, pres shell and other objects.
    */
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                        const nsRect* aRange = nullptr) MOZ_OVERRIDE {
-    mHelper.ScrollTo(aScrollPosition, aMode, aRange);
+                        const nsRect* aRange = nullptr,
+                        nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP)
+                        MOZ_OVERRIDE {
+    mHelper.ScrollTo(aScrollPosition, aMode, aRange, aSnap);
   }
   /**
    * @note This method might destroy the frame, pres shell and other objects.
@@ -687,8 +779,17 @@ public:
    */
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow, nsIAtom* aOrigin = nullptr,
-                        bool aIsMomentum = false) MOZ_OVERRIDE {
-    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aIsMomentum);
+                        nsIScrollableFrame::ScrollMomentum aIsMomentum = nsIScrollableFrame::NOT_MOMENTUM,
+                        nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP)
+                        MOZ_OVERRIDE {
+    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aIsMomentum, aSnap);
+  }
+  virtual void FlingSnap(const mozilla::CSSPoint& aDestination,
+                         uint32_t aFlingSnapGeneration) MOZ_OVERRIDE {
+    mHelper.FlingSnap(aDestination, aFlingSnapGeneration);
+  }
+  virtual void ScrollSnap() MOZ_OVERRIDE {
+    mHelper.ScrollSnap();
   }
   /**
    * @note This method might destroy the frame, pres shell and other objects.
@@ -744,6 +845,9 @@ public:
   }
   virtual uint32_t CurrentScrollGeneration() MOZ_OVERRIDE {
     return mHelper.CurrentScrollGeneration();
+  }
+  virtual uint32_t CurrentFlingSnapGeneration() MOZ_OVERRIDE {
+    return mHelper.CurrentFlingSnapGeneration();
   }
   virtual nsPoint LastScrollDestination() MOZ_OVERRIDE {
     return mHelper.LastScrollDestination();
@@ -1025,8 +1129,9 @@ public:
    * @note This method might destroy the frame, pres shell and other objects.
    */
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                        const nsRect* aRange = nullptr) MOZ_OVERRIDE {
-    mHelper.ScrollTo(aScrollPosition, aMode, aRange);
+                        const nsRect* aRange = nullptr,
+                        ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP) MOZ_OVERRIDE {
+    mHelper.ScrollTo(aScrollPosition, aMode, aRange, aSnap);
   }
   /**
    * @note This method might destroy the frame, pres shell and other objects.
@@ -1048,8 +1153,17 @@ public:
    */
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow, nsIAtom* aOrigin = nullptr,
-                        bool aIsMomentum = false) MOZ_OVERRIDE {
-    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aIsMomentum);
+                        nsIScrollableFrame::ScrollMomentum aIsMomentum = nsIScrollableFrame::NOT_MOMENTUM,
+                        nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP)
+                        MOZ_OVERRIDE {
+    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aIsMomentum, aSnap);
+  }
+  virtual void FlingSnap(const mozilla::CSSPoint& aDestination,
+                         uint32_t aFlingSnapGeneration) MOZ_OVERRIDE {
+    mHelper.FlingSnap(aDestination, aFlingSnapGeneration);
+  }
+  virtual void ScrollSnap() MOZ_OVERRIDE {
+    mHelper.ScrollSnap();
   }
   /**
    * @note This method might destroy the frame, pres shell and other objects.
@@ -1105,6 +1219,9 @@ public:
   }
   virtual uint32_t CurrentScrollGeneration() MOZ_OVERRIDE {
     return mHelper.CurrentScrollGeneration();
+  }
+  virtual uint32_t CurrentFlingSnapGeneration() MOZ_OVERRIDE {
+    return mHelper.CurrentFlingSnapGeneration();
   }
   virtual nsPoint LastScrollDestination() MOZ_OVERRIDE {
     return mHelper.LastScrollDestination();

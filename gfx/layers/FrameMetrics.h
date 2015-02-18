@@ -58,6 +58,8 @@ public:
     , mScrollGeneration(0)
     , mDoSmoothScroll(false)
     , mSmoothScrollOffset(0, 0)
+    , mFlingSnapGeneration(0)
+    , mFlingSnapOffset(0, 0)
     , mRootCompositionSize(0, 0)
     , mDisplayPortMargins(0, 0, 0, 0)
     , mUseDisplayPortMargins(false)
@@ -98,6 +100,8 @@ public:
            mExtraResolution == aOther.mExtraResolution &&
            mBackgroundColor == aOther.mBackgroundColor &&
            mDoSmoothScroll == aOther.mDoSmoothScroll &&
+           mFlingSnapOffset == aOther.mFlingSnapOffset &&
+           mFlingSnapGeneration == aOther.mFlingSnapGeneration &&
            mLineScrollAmount == aOther.mLineScrollAmount;
   }
   bool operator!=(const FrameMetrics& aOther) const
@@ -343,6 +347,21 @@ public:
     return mSmoothScrollOffset;
   }
 
+  void DoFlingSnap(const CSSPoint& aFlingSnapOffset)
+  {
+    mFlingSnapOffset = aFlingSnapOffset;
+    // We add 1 to mScrollGeneration to create the next mFlingSnapGeneration.
+    // This ensures that only one fling snap happens per scroll generation while
+    // also enabling a fling snap to occur even if mScrollGeneration has not yet
+    // been incremented by the first scroll.
+    mFlingSnapGeneration = mScrollGeneration + 1;
+  }
+
+  const CSSPoint& GetFlingSnapOffset() const
+  {
+    return mFlingSnapOffset;
+  }
+
   void SetZoom(const CSSToParentLayerScale& aZoom)
   {
     mZoom = aZoom;
@@ -373,6 +392,11 @@ public:
   bool GetDoSmoothScroll() const
   {
     return mDoSmoothScroll;
+  }
+
+  uint32_t GetFlingSnapGeneration() const
+  {
+    return mFlingSnapGeneration;
   }
 
   uint32_t GetScrollGeneration() const
@@ -631,6 +655,17 @@ private:
   // smoothly transition to mScrollOffset rather than be updated instantly.
   bool mDoSmoothScroll;
   CSSPoint mSmoothScrollOffset;
+
+  // mFlingSnapGeneration is used to signal a request to perform CSS scroll
+  // snapping by recording the scroll generation of the last request.
+  // A value of 0 indicates that no request has ever been made.
+  uint32_t mFlingSnapGeneration;
+
+  // When performing a CSS scroll snap requested by mFlingSnapGeneration,
+  // mFlingSnapOffset is passed the expected distance scrolled if the last fling
+  // was allowed to complete without any interruption or snapping.  This value
+  // is used to select the most appropriate scroll snap point.
+  CSSPoint mFlingSnapOffset;
 
   // The size of the root scrollable's composition bounds, but in local CSS pixels.
   CSSSize mRootCompositionSize;

@@ -190,6 +190,9 @@ partial interface Window {
   void scrollTo(optional ScrollToOptions options);
   void scrollBy(unrestricted double x, unrestricted double y);
   void scrollBy(optional ScrollToOptions options);
+  // mozScrollSnap is used by chrome to perform scroll snapping after the
+  // user performs actions that may affect scroll position
+  [ChromeOnly] void mozScrollSnap();
   [Replaceable, Throws] readonly attribute long scrollX;
   [Throws] readonly attribute long pageXOffset;
   [Replaceable, Throws] readonly attribute long scrollY;

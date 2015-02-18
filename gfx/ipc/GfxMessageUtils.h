@@ -750,6 +750,8 @@ struct ParamTraits<mozilla::layers::FrameMetrics>
     WriteParam(aMsg, aParam.mBackgroundColor);
     WriteParam(aMsg, aParam.mDoSmoothScroll);
     WriteParam(aMsg, aParam.mSmoothScrollOffset);
+    WriteParam(aMsg, aParam.mFlingSnapGeneration);
+    WriteParam(aMsg, aParam.mFlingSnapOffset);
     WriteParam(aMsg, aParam.GetLineScrollAmount());
     WriteParam(aMsg, aParam.GetContentDescription());
   }
@@ -792,6 +794,8 @@ struct ParamTraits<mozilla::layers::FrameMetrics>
             ReadParam(aMsg, aIter, &aResult->mBackgroundColor) &&
             ReadParam(aMsg, aIter, &aResult->mDoSmoothScroll) &&
             ReadParam(aMsg, aIter, &aResult->mSmoothScrollOffset) &&
+            ReadParam(aMsg, aIter, &aResult->mFlingSnapGeneration) &&
+            ReadParam(aMsg, aIter, &aResult->mFlingSnapOffset) &&
             ReadParam(aMsg, aIter, &aResult->mLineScrollAmount) &&
             ReadContentDescription(aMsg, aIter, aResult));
   }
