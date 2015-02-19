@@ -265,12 +265,14 @@ public:
                       const nsACString &host,
                       nsIDNSListener   *listener,
                       uint16_t          flags,
-                      uint16_t          af)
+                      uint16_t          af,
+                      const nsACString &netInterface)
         : mResolver(res)
         , mHost(host)
         , mListener(listener)
         , mFlags(flags)
-        , mAF(af) {}
+        , mAF(af)
+        , mNetworkInterface(netInterface) {}
 
     void OnLookupComplete(nsHostResolver *, nsHostRecord *, nsresult) MOZ_OVERRIDE;
     // Returns TRUE if the DNS listener arg is the same as the member listener
@@ -285,6 +287,7 @@ public:
     nsCOMPtr<nsIDNSListener> mListener;
     uint16_t                 mFlags;
     uint16_t                 mAF;
+    nsCString                mNetworkInterface;
 };
 
 void
@@ -344,7 +347,8 @@ NS_IMETHODIMP
 nsDNSAsyncRequest::Cancel(nsresult reason)
 {
     NS_ENSURE_ARG(NS_FAILED(reason));
-    mResolver->DetachCallback(mHost.get(), mFlags, mAF, this, reason);
+    mResolver->DetachCallback(mHost.get(), mFlags, mAF, mNetworkInterface.get(),
+                              this, reason);
     return NS_OK;
 }
 
@@ -672,6 +676,18 @@ nsDNSService::AsyncResolve(const nsACString  &aHostname,
                            nsIEventTarget    *target_,
                            nsICancelable    **result)
 {
+    return AsyncResolveExtended(aHostname, flags, EmptyCString(), listener, target_,
+                                result);
+}
+
+NS_IMETHODIMP
+nsDNSService::AsyncResolveExtended(const nsACString  &aHostname,
+                                   uint32_t           flags,
+                                   const nsACString  &aNetworkInterface,
+                                   nsIDNSListener    *listener,
+                                   nsIEventTarget    *target_,
+                                   nsICancelable    **result)
+{
     // grab reference to global host resolver and IDN service.  beware
     // simultaneous shutdown!!
     nsRefPtr<nsHostResolver> res;
@@ -713,13 +729,14 @@ nsDNSService::AsyncResolve(const nsACString  &aHostname,
     }
 
     if (target) {
-      listener = new DNSListenerProxy(listener, target);
+        listener = new DNSListenerProxy(listener, target);
     }
 
     uint16_t af = GetAFForLookup(hostname, flags);
 
     nsDNSAsyncRequest *req =
-            new nsDNSAsyncRequest(res, hostname, listener, flags, af);
+        new nsDNSAsyncRequest(res, hostname, listener, flags, af,
+                              aNetworkInterface);
     if (!req)
         return NS_ERROR_OUT_OF_MEMORY;
     NS_ADDREF(*result = req);
@@ -729,7 +746,9 @@ nsDNSService::AsyncResolve(const nsACString  &aHostname,
 
     // addref for resolver; will be released when OnLookupComplete is called.
     NS_ADDREF(req);
-    nsresult rv = res->ResolveHost(req->mHost.get(), flags, af, req);
+    nsresult rv = res->ResolveHost(req->mHost.get(), flags, af,
+                                   req->mNetworkInterface.get(),
+                                   req);
     if (NS_FAILED(rv)) {
         NS_RELEASE(req);
         NS_RELEASE(*result);
@@ -742,6 +761,17 @@ nsDNSService::CancelAsyncResolve(const nsACString  &aHostname,
                                  uint32_t           aFlags,
                                  nsIDNSListener    *aListener,
                                  nsresult           aReason)
+{
+    return CancelAsyncResolveExtended(aHostname, aFlags, EmptyCString(), aListener,
+                                      aReason);
+}
+
+NS_IMETHODIMP
+nsDNSService::CancelAsyncResolveExtended(const nsACString  &aHostname,
+                                         uint32_t           aFlags,
+                                         const nsACString  &aNetworkInterface,
+                                         nsIDNSListener    *aListener,
+                                         nsresult           aReason)
 {
     // grab reference to global host resolver and IDN service.  beware
     // simultaneous shutdown!!
@@ -767,7 +797,9 @@ nsDNSService::CancelAsyncResolve(const nsACString  &aHostname,
 
     uint16_t af = GetAFForLookup(hostname, aFlags);
 
-    res->CancelAsyncRequest(hostname.get(), aFlags, af, aListener, aReason);
+    res->CancelAsyncRequest(hostname.get(), aFlags, af,
+                            nsPromiseFlatCString(aNetworkInterface).get(), aListener,
+                            aReason);
     return NS_OK;
 }
 
@@ -819,7 +851,7 @@ nsDNSService::Resolve(const nsACString &aHostname,
 
     uint16_t af = GetAFForLookup(hostname, flags);
 
-    nsresult rv = res->ResolveHost(hostname.get(), flags, af, &syncReq);
+    nsresult rv = res->ResolveHost(hostname.get(), flags, af, "", &syncReq);
     if (NS_SUCCEEDED(rv)) {
         // wait for result
         while (!syncReq.mDone)
