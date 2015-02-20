@@ -12,7 +12,7 @@
   <!--original fetch url was https://git.mozilla.org/releases-->
   <remote fetch="https://git.mozilla.org/releases" name="mozillaorg"/>
   <!-- B2G specific things. -->
-  <project name="platform_build" path="build" remote="b2g" revision="0ca5e1456dfd417c3e4e72bb8eae02069136b99b">
+  <project name="platform_build" path="build" remote="b2g" revision="52775e03a2d8532429dff579cb2cd56718e488c3">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
   <project name="gaia" path="gaia" remote="mozillaorg" revision="ce79d35b92261e7cbfeaefebf87859ebeb0979b4"/>
@@ -50,7 +50,7 @@
   <project name="platform/external/e2fsprogs" path="external/e2fsprogs" revision="6bf16cd4eefe67583db6efd8ecf72571f5d8d249"/>
   <project name="platform/external/elfutils" path="external/elfutils" revision="17541cad868bfd18e6148d4fa3dc3a7d20a25732"/>
   <project name="platform/external/expat" path="external/expat" revision="f49624e0fef9915a3a8326b46e91cb4c464555e4"/>
-  <project name="platform/external/f2fs-tools" path="external/f2fs-tools" revision="756442210a6c95ffe0cd2c43335eb0777bbc428d"/>
+  <project name="platform/external/f2fs-tools" path="external/f2fs-tools" revision="dc532e5316488cc41668e918c2105f6c051d0767"/>
   <project name="platform/external/fdlibm" path="external/fdlibm" revision="de3b2c981c66345b51fbf0822e4058c36eecb9ac"/>
   <project name="platform/external/flac" path="external/flac" revision="4477379717f7b0fa20a8f0614f970c70d373cb7b"/>
   <project name="platform/external/freetype" path="external/freetype" revision="33a0a0c5b597e7b5ab2cada25ae411d9bb42ff26"/>
