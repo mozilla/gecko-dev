@@ -1587,7 +1587,8 @@ TabParent::GetChildProcessOffset(int32_t* aOutCssX, int32_t* aOutCssY)
 {
   NS_ENSURE_ARG(aOutCssX);
   NS_ENSURE_ARG(aOutCssY);
-  CSSPoint offset = LayoutDevicePoint(GetChildProcessOffset())
+  nsIntPoint childOffset = GetChildProcessOffset();
+  CSSPoint offset = LayoutDevicePoint(childOffset.x, childOffset.y)
       * GetLayoutDeviceToCSSScale();
   *aOutCssX = offset.x;
   *aOutCssY = offset.y;
