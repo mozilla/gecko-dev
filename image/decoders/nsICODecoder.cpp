@@ -58,7 +58,7 @@ nsICODecoder::GetNumColors()
 }
 
 
-nsICODecoder::nsICODecoder(RasterImage& aImage)
+nsICODecoder::nsICODecoder(RasterImage* aImage)
  : Decoder(aImage)
 {
   mPos = mImageOffset = mCurrIcon = mNumIcons = mBPP = mRowBytes = 0;
@@ -249,7 +249,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
   }
 
   uint16_t colorDepth = 0;
-  nsIntSize prefSize = mImage.GetRequestedResolution();
+  nsIntSize prefSize = mImage->GetRequestedResolution();
   if (prefSize.width == 0 && prefSize.height == 0) {
     prefSize.SizeTo(PREFICONSIZE, PREFICONSIZE);
   }
@@ -638,12 +638,12 @@ nsICODecoder::NeedsNewFrame() const
 }
 
 nsresult
-nsICODecoder::AllocateFrame()
+nsICODecoder::AllocateFrame(const nsIntSize& aTargetSize /* = nsIntSize() */)
 {
   nsresult rv;
 
   if (mContainedDecoder) {
-    rv = mContainedDecoder->AllocateFrame();
+    rv = mContainedDecoder->AllocateFrame(aTargetSize);
     mCurrentFrame = mContainedDecoder->GetCurrentFrameRef();
     mProgress |= mContainedDecoder->TakeProgress();
     mInvalidRect.Union(mContainedDecoder->TakeInvalidRect());
@@ -652,7 +652,7 @@ nsICODecoder::AllocateFrame()
 
   // Grab a strong ref that we'll later hand over to the contained decoder. This
   // lets us avoid creating a RawAccessFrameRef off-main-thread.
-  rv = Decoder::AllocateFrame();
+  rv = Decoder::AllocateFrame(aTargetSize);
   mRefForContainedDecoder = GetCurrentFrameRef();
   return rv;
 }
