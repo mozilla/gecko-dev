@@ -32,12 +32,12 @@
         "VARIANT": "userdebug",
         "MOZILLA_OFFICIAL": "1",
         "MOZ_TELEMETRY_REPORTING": "1",
-        "B2G_UPDATE_CHANNEL": "nightly"
+        "B2G_UPDATE_CHANNEL": "nightly-b2g37"
     },
     "b2g_manifest": "nexus-5-l.xml",
     "b2g_manifest_intree": true,
     "additional_source_tarballs": [],
-    "gecko_l10n_root": "https://hg.mozilla.org/l10n-central",
+    "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-aurora",
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
