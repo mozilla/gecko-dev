@@ -94,7 +94,8 @@ public:
   NS_IMETHOD Run() MOZ_OVERRIDE
   {
     MOZ_ASSERT(NS_IsMainThread());
-    DecodePool::Singleton()->NotifyDecodeComplete(mDecoder);
+    mDecoder->Finish();
+    mDecoder->GetImage()->FinalizeDecoder(mDecoder);
     return NS_OK;
   }
 
@@ -345,7 +346,8 @@ DecodePool::NotifyProgress(Decoder* aDecoder)
 {
   MOZ_ASSERT(aDecoder);
 
-  if (!NS_IsMainThread()) {
+  if (!NS_IsMainThread() ||
+      (aDecoder->GetFlags() & imgIContainer::FLAG_ASYNC_NOTIFY)) {
     NotifyProgressWorker::Dispatch(aDecoder->GetImage(),
                                    aDecoder->TakeProgress(),
                                    aDecoder->TakeInvalidRect(),
@@ -363,7 +365,8 @@ DecodePool::NotifyDecodeComplete(Decoder* aDecoder)
 {
   MOZ_ASSERT(aDecoder);
 
-  if (!NS_IsMainThread()) {
+  if (!NS_IsMainThread() ||
+      (aDecoder->GetFlags() & imgIContainer::FLAG_ASYNC_NOTIFY)) {
     NotifyDecodeCompleteWorker::Dispatch(aDecoder);
     return;
   }

@@ -6,21 +6,25 @@
 <body>
 <pre id="test">
 <script type="application/javascript">
-  createHTML({ title: "getUserMedia Basic Audio Test", bug: "781534" });
+  createHTML({
+    title: "navigator.mozGetUserMedia Callback Test",
+    bug: "1119593"
+  });
   /**
-   * Run a test to verify that we can complete a start and stop media playback
-   * cycle for an audio LocalMediaStream on an audio HTMLMediaElement.
+   * Check that the old fashioned callback-based function works.
    */
   runTest(function () {
     var testAudio = createMediaElement('audio', 'testAudio');
     var constraints = {audio: true};
 
-    getUserMedia(constraints).then(aStream => {
+    SimpleTest.waitForExplicitFinish();
+    navigator.mozGetUserMedia(constraints, aStream => {
       checkMediaStreamTracks(constraints, aStream);
 
       var playback = new LocalMediaStreamPlayback(testAudio, aStream);
-      return playback.playMedia(false);
-    }).then(() => SimpleTest.finish(), generateErrorCallback());
+      return playback.playMedia(false)
+        .then(() => SimpleTest.finish(), generateErrorCallback());
+    }, generateErrorCallback());
   });
 
 </script>
