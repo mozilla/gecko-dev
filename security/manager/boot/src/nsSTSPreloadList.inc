@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1434798957250000);
+const PRTime gPreloadListExpirationTime = INT64_C(1435403691427000);
 
 class nsSTSPreload
 {
@@ -78,6 +78,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "atavio.de", true },
   { "auf-feindgebiet.de", true },
   { "azabani.com", true },
+  { "baer.im", true },
   { "balcan-underground.net", true },
   { "baldwinkoo.com", true },
   { "balikonos.cz", true },
@@ -261,7 +262,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "explodie.org", true },
   { "f-droid.org", true },
   { "fabhub.io", true },
-  { "fabianfischer.de", true },
   { "factor.cc", false },
   { "fairbill.com", true },
   { "fakturoid.cz", true },
@@ -314,7 +314,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "googleplex.com", true },
   { "goto.google.com", true },
   { "gplintegratedit.com", true },
-  { "grc.com", false },
+  { "grc.com", true },
   { "greensolid.biz", true },
   { "grepular.com", true },
   { "groups.google.com", true },
@@ -443,6 +443,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "lingolia.com", true },
   { "linode.com", false },
   { "linx.net", true },
+  { "lists.mayfirst.org", false },
   { "ljs.io", true },
   { "lockify.com", true },
   { "lodash.com", true },
@@ -601,7 +602,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "peercraft.com", true },
   { "pentesterlab.com", true },
   { "pestici.de", true },
-  { "petrolplus.ru", true },
   { "phoenixlogan.com", true },
   { "picksin.club", true },
   { "pierre-schmitz.com", true },
@@ -795,7 +795,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "tresorit.com", true },
   { "tribut.de", true },
   { "tunebitfm.de", true },
-  { "twentymilliseconds.com", true },
   { "twitter.com", false },
   { "typingrevolution.com", true },
   { "ub3rk1tten.com", true },
@@ -875,7 +874,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.gamesdepartment.co.uk", false },
   { "www.getcloak.com", false },
   { "www.gov.uk", false },
-  { "www.grc.com", false },
+  { "www.grc.com", true },
   { "www.heliosnet.com", true },
   { "www.honeybadger.io", false },
   { "www.intercom.io", false },
