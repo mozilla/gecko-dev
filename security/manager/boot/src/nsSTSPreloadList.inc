@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1434798530136000);
+const PRTime gPreloadListExpirationTime = INT64_C(1435403365078000);
 
 class nsSTSPreload
 {
@@ -48,6 +48,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "archlinux.de", true },
   { "arivo.com.br", true },
   { "auf-feindgebiet.de", true },
+  { "baer.im", true },
   { "bank.simple.com", false },
   { "baruch.me", true },
   { "bassh.net", true },
@@ -181,7 +182,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "googlemail.com", false },
   { "googleplex.com", true },
   { "goto.google.com", true },
-  { "grc.com", false },
+  { "grc.com", true },
   { "greensolid.biz", true },
   { "grepular.com", true },
   { "groups.google.com", true },
@@ -248,6 +249,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "ledgerscope.net", false },
   { "linode.com", false },
   { "linx.net", true },
+  { "lists.mayfirst.org", false },
   { "lockify.com", true },
   { "loenshotel.de", true },
   { "loftboard.eu", true },
@@ -491,7 +493,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.gmail.com", false },
   { "www.googlemail.com", false },
   { "www.gov.uk", false },
-  { "www.grc.com", false },
+  { "www.grc.com", true },
   { "www.heliosnet.com", true },
   { "www.intercom.io", false },
   { "www.irccloud.com", false },

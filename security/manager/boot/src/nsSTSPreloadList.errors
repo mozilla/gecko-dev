@@ -8,13 +8,10 @@ app.manilla.com: could not connect to host
 appengine.google.com: did not receive HSTS header (error ignored - included regardless)
 appseccalifornia.org: did not receive HSTS header
 azprep.us: could not connect to host
-baer.im: did not receive HSTS header
 barcodeberlin.com: did not receive HSTS header
 bccx.com: could not connect to host
-bedeta.de: could not connect to host
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
-bitfactory.ws: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 blog.lookout.com: did not receive HSTS header
 braintreegateway.com: did not receive HSTS header
 braintreepayments.com: did not receive HSTS header
@@ -32,7 +29,7 @@ codereview.chromium.org: did not receive HSTS header (error ignored - included r
 crate.io: did not receive HSTS header
 crbug.com: did not receive HSTS header
 crowdcurity.com: did not receive HSTS header
-crypto.is: did not receive HSTS header
+crypto.is: max-age too low: 7776000
 csawctf.poly.edu: could not connect to host
 cybershambles.com: could not connect to host
 discovery.lookout.com: did not receive HSTS header
@@ -85,7 +82,6 @@ koop-bremen.de: [Exception... "Component returned failure code: 0x80004005 (NS_E
 liberty.lavabit.com: could not connect to host
 library.linode.com: did not receive HSTS header
 lifeguard.aecom.com: max-age too low: 86400
-lists.mayfirst.org: did not receive HSTS header
 login.corp.google.com: max-age too low: 7776000 (error ignored - included regardless)
 logotype.se: did not receive HSTS header
 lumi.do: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
