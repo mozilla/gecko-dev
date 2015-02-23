@@ -13,6 +13,8 @@
 #include "MediaSourceReader.h"
 #include "MediaSourceResource.h"
 #include "MediaSourceUtils.h"
+#include "SourceBufferDecoder.h"
+#include "VideoUtils.h"
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* GetMediaSourceLog();
@@ -227,7 +229,13 @@ MediaSourceDecoder::SetMediaSourceDuration(double aDuration, MSRangeRemovalActio
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   double oldDuration = mMediaSourceDuration;
   if (aDuration >= 0) {
-    mDecoderStateMachine->SetDuration(aDuration * USECS_PER_S);
+    int64_t checkedDuration;
+    if (NS_FAILED(SecondsToUsecs(aDuration, checkedDuration))) {
+      // INT64_MAX is used as infinity by the state machine.
+      // We want a very bigger number, but not infinity.
+      checkedDuration = INT64_MAX - 1;
+    }
+    mDecoderStateMachine->SetDuration(checkedDuration);
     mMediaSourceDuration = aDuration;
   } else {
     mDecoderStateMachine->SetDuration(INT64_MAX);
@@ -308,5 +316,43 @@ MediaSourceDecoder::IsActiveReader(MediaDecoderReader* aReader)
 {
   return mReader->IsActiveReader(aReader);
 }
+
+double
+MediaSourceDecoder::GetDuration()
+{
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+  return mMediaSourceDuration;
+}
+
+already_AddRefed<SourceBufferDecoder>
+MediaSourceDecoder::SelectDecoder(int64_t aTarget,
+                                  int64_t aTolerance,
+                                  const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders)
+{
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+
+  // Consider decoders in order of newest to oldest, as a newer decoder
+  // providing a given buffered range is expected to replace an older one.
+  for (int32_t i = aTrackDecoders.Length() - 1; i >= 0; --i) {
+    nsRefPtr<SourceBufferDecoder> newDecoder = aTrackDecoders[i];
+
+    nsRefPtr<dom::TimeRanges> ranges = new dom::TimeRanges();
+    newDecoder->GetBuffered(ranges);
+    if (ranges->Find(double(aTarget) / USECS_PER_S,
+                     double(aTolerance) / USECS_PER_S) == dom::TimeRanges::NoIndex) {
+      MSE_DEBUGV("SelectDecoder(%lld fuzz:%lld) newDecoder=%p (%d/%d) target not in ranges=%s",
+                 aTarget, aTolerance, newDecoder.get(), i+1,
+                 aTrackDecoders.Length(), DumpTimeRanges(ranges).get());
+      continue;
+    }
+
+    return newDecoder.forget();
+  }
+
+  return nullptr;
+}
+
+#undef MSE_DEBUG
+#undef MSE_DEBUGV
 
 } // namespace mozilla

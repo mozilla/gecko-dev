@@ -157,14 +157,16 @@ private:
   // Switch the current audio/video source to the source that
   // contains aTarget (or up to aTolerance after target). Both
   // aTarget and aTolerance are in microseconds.
+  // Search can be made using a fuzz factor. Should an approximated value be
+  // found instead, aTarget will be updated to the actual target found.
   enum SwitchSourceResult {
     SOURCE_ERROR = -1,
     SOURCE_EXISTING = 0,
     SOURCE_NEW = 1,
   };
 
-  SwitchSourceResult SwitchAudioSource(int64_t aTarget);
-  SwitchSourceResult SwitchVideoSource(int64_t aTarget);
+  SwitchSourceResult SwitchAudioSource(int64_t* aTarget);
+  SwitchSourceResult SwitchVideoSource(int64_t* aTarget);
 
   void DoAudioRequest();
   void DoVideoRequest();
@@ -204,8 +206,8 @@ private:
 
   // Return a decoder from the set available in aTrackDecoders that has data
   // available in the range requested by aTarget.
-  already_AddRefed<SourceBufferDecoder> SelectDecoder(int64_t aTarget,
-                                                      int64_t aTolerance,
+  already_AddRefed<SourceBufferDecoder> SelectDecoder(int64_t aTarget /* microseconds */,
+                                                      int64_t aTolerance /* microseconds */,
                                                       const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
   bool HaveData(int64_t aTarget, MediaData::Type aType);
 
@@ -254,6 +256,9 @@ private:
   int64_t mTimeThreshold;
   bool mDropAudioBeforeThreshold;
   bool mDropVideoBeforeThreshold;
+
+  bool mAudioDiscontinuity;
+  bool mVideoDiscontinuity;
 
   bool mEnded;
   double mMediaSourceDuration;
