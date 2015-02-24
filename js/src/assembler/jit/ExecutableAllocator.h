@@ -34,6 +34,7 @@
 #include "assembler/wtf/Platform.h"
 #include "jit/arm/Simulator-arm.h"
 #include "jit/mips/Simulator-mips.h"
+#include "js/GCAPI.h"
 #include "js/HashTable.h"
 #include "js/Vector.h"
 
@@ -266,8 +267,11 @@ public:
 
     void releasePoolPages(ExecutablePool *pool) {
         JS_ASSERT(pool->m_allocation.pages);
-        if (destroyCallback)
+        if (destroyCallback) {
+            // Do not allow GC during the page release callback.
+            JS::AutoSuppressGCAnalysis nogc;
             destroyCallback(pool->m_allocation.pages, pool->m_allocation.size);
+        }
         systemRelease(pool->m_allocation);
         JS_ASSERT(m_pools.initialized());
         m_pools.remove(m_pools.lookup(pool));   // this asserts if |pool| is not in m_pools
