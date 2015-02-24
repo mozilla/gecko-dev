@@ -7,7 +7,6 @@
 DIRS += ['interfaces']
 
 EXTRA_COMPONENTS += [
-    'SystemMessageCache.js',
     'SystemMessageInternal.js',
     'SystemMessageManager.js',
     'SystemMessageManager.manifest',

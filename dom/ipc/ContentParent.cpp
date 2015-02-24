@@ -116,7 +116,6 @@
 #include "nsISpellChecker.h"
 #include "nsIStyleSheet.h"
 #include "nsISupportsPrimitives.h"
-#include "nsISystemMessagesInternal.h"
 #include "nsITimer.h"
 #include "nsIURIFixup.h"
 #include "nsIWindowWatcher.h"
@@ -1309,21 +1308,11 @@ ContentParent::ForwardKnownInfo()
 #ifdef MOZ_WIDGET_GONK
     InfallibleTArray<VolumeInfo> volumeInfo;
     nsRefPtr<nsVolumeService> vs = nsVolumeService::GetSingleton();
-    if (vs && !mIsForBrowser) {
+    if (vs) {
         vs->GetVolumesForIPC(&volumeInfo);
         unused << SendVolumes(volumeInfo);
     }
 #endif /* MOZ_WIDGET_GONK */
-
-    nsCOMPtr<nsISystemMessagesInternal> systemMessenger =
-        do_GetService("@mozilla.org/system-message-internal;1");
-    if (systemMessenger && !mIsForBrowser) {
-        nsCOMPtr<nsIURI> manifestURI;
-        nsresult rv = NS_NewURI(getter_AddRefs(manifestURI), mAppManifestURL);
-        if (NS_SUCCEEDED(rv)) {
-            systemMessenger->RefreshCache(mMessageManager, manifestURI);
-        }
-    }
 }
 
 namespace {
