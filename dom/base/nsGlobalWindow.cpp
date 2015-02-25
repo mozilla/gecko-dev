@@ -8968,6 +8968,8 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aUrl, nsIVariant* aArgument,
     return nullptr;
   }
 
+  Telemetry::Accumulate(Telemetry::DOM_WINDOW_SHOWMODALDIALOG_USED, true);
+
   nsRefPtr<DialogValueHolder> argHolder =
     new DialogValueHolder(nsContentUtils::GetSubjectPrincipal(), aArgument);
 
