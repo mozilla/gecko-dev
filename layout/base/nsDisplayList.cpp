@@ -1619,6 +1619,8 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
   if (aBuilder->IsBuildingLayerEventRegions() &&
       nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(presShell)) {
     root->SetEventRegionsOverride(EventRegionsOverride::ForceDispatchToContent);
+  } else {
+    root->SetEventRegionsOverride(EventRegionsOverride::NoOverride);
   }
 
   if (gfxPrefs::LayoutUseContainersForRootFrames()) {
@@ -4076,9 +4078,9 @@ nsDisplaySubDocument::BuildLayer(nsDisplayListBuilder* aBuilder,
   }
 
   nsRefPtr<Layer> layer = nsDisplayOwnLayer::BuildLayer(aBuilder, aManager, params);
-  if (mForceDispatchToContentRegion) {
-    layer->AsContainerLayer()->SetEventRegionsOverride(EventRegionsOverride::ForceDispatchToContent);
-  }
+  layer->AsContainerLayer()->SetEventRegionsOverride(mForceDispatchToContentRegion
+    ? EventRegionsOverride::ForceDispatchToContent
+    : EventRegionsOverride::NoOverride);
   return layer.forget();
 }
 
