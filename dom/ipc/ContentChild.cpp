@@ -89,6 +89,7 @@
 #include "nsAnonymousTemporaryFile.h"
 #include "nsISpellChecker.h"
 #include "nsClipboardProxy.h"
+#include "nsISystemMessageCache.h"
 
 #include "IHistory.h"
 #include "nsNetUtil.h"
@@ -528,6 +529,12 @@ InitOnContentProcessCreated()
     }
     PostForkPreload();
 #endif
+
+    nsCOMPtr<nsISystemMessageCache> smc =
+        do_GetService("@mozilla.org/system-message-cache;1");
+    if (!smc) {
+        NS_WARNING("Failed to initialize system-message-cache service!");
+    }
 
     // This will register cross-process observer.
     mozilla::dom::time::InitializeDateCacheCleaner();
