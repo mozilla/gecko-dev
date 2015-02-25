@@ -13,6 +13,7 @@
 #include "nsColor.h"
 #include "gfxRect.h"
 
+class nsCharClipDisplayItem;
 class nsDisplayItem;
 class nsDisplayListBuilder;
 class nsDisplayBackgroundImage;
@@ -212,6 +213,15 @@ public:
   gfxRect mBBox;
   gfxPoint mUserSpaceOffset;
   nsPoint mFrameOffsetToReferenceFrame;
+};
+
+class nsCharClipGeometry : public nsDisplayItemGenericGeometry
+{
+public:
+  nsCharClipGeometry(nsCharClipDisplayItem* aItem, nsDisplayListBuilder* aBuilder);
+
+  nscoord mLeftEdge;
+  nscoord mRightEdge;
 };
 
 #endif /*NSDISPLAYLISTINVALIDATION_H_*/

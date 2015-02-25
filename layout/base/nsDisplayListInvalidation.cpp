@@ -108,3 +108,9 @@ nsDisplaySVGEffectsGeometry::MoveBy(const nsPoint& aOffset)
   mBounds.MoveBy(aOffset);
   mFrameOffsetToReferenceFrame += aOffset;
 }
+
+nsCharClipGeometry::nsCharClipGeometry(nsCharClipDisplayItem* aItem, nsDisplayListBuilder* aBuilder)
+  : nsDisplayItemGenericGeometry(aItem, aBuilder)
+  , mLeftEdge(aItem->mLeftEdge)
+  , mRightEdge(aItem->mRightEdge)
+{}
