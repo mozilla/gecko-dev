@@ -78,7 +78,8 @@ public:
    * which hold the return values; the values passed in may be null.
    */
   void GetAncestorLayers(LayerMetricsWrapper* aOutScrollAncestor,
-                         LayerMetricsWrapper* aOutDisplayPortAncestor);
+                         LayerMetricsWrapper* aOutDisplayPortAncestor,
+                         bool* aOutHasTransformAnimation);
 
 private:
   ClientLayerManager* ClientManager()
@@ -97,13 +98,7 @@ private:
     * disable progressive draw based on a preference or if the layer
     * is not being scrolled.
     */
-   bool UseProgressiveDraw();
-
-   /**
-   * Determine if we can use a fast path to just do a single high-precision,
-   * non-progressive paint.
-   */
-  bool UseFastPath();
+  bool UseProgressiveDraw();
 
   /**
    * Helper function to do the high-precision paint.

@@ -1410,7 +1410,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   TILING_LOG("TILING %p: Progressive update stale region %s\n", mThebesLayer, Stringify(staleRegion).c_str());
 
   LayerMetricsWrapper scrollAncestor;
-  mThebesLayer->GetAncestorLayers(&scrollAncestor, nullptr);
+  mThebesLayer->GetAncestorLayers(&scrollAncestor, nullptr, nullptr);
 
   // Find out the current view transform to determine which tiles to draw
   // first, and see if we should just abort this paint. Aborting is usually
