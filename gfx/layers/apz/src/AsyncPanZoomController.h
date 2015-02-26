@@ -788,6 +788,10 @@ private:
   // This member must only be accessed on the controller/UI thread.
   int32_t mTouchBlockBalance;
 
+  // Helper to clear mTouchBlockQueue that can be posted to run on the
+  // controller/UI thread.
+  void ClearInputQueue();
+
 
   /* ===================================================================
    * The functions and members in this section are used to manage

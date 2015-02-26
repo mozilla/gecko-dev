@@ -780,7 +780,7 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
         break;
       }
       if (mVideoBuffer->range_length() == 0) {
-        ReleaseVideoBuffer();
+        PostReleaseVideoBuffer(mVideoBuffer, FenceHandle());
         findNextBuffer = true;
         {
           Mutex::Autolock autoLock(mSeekLock);

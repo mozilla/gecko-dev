@@ -777,11 +777,22 @@ AsyncPanZoomController::GetGestureEventListener() const {
 }
 
 void
+AsyncPanZoomController::ClearInputQueue()
+{
+  mTouchBlockQueue.Clear();
+}
+
+void
 AsyncPanZoomController::Destroy()
 {
   CancelAnimation();
 
-  mTouchBlockQueue.Clear();
+  if (NS_IsMainThread()) {
+    ClearInputQueue();
+  } else {
+    NS_DispatchToMainThread(NS_NewRunnableMethod(
+      this, &AsyncPanZoomController::ClearInputQueue));
+  }
 
   { // scope the lock
     MonitorAutoLock lock(mRefPtrMonitor);
