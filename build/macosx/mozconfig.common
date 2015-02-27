@@ -31,3 +31,5 @@ if [ -z "$CXX" ]; then
 fi
 
 ac_add_options --with-ccache
+
+export SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE=/builds/crash-stats-api.token
