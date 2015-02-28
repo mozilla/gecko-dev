@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1435403365078000);
+const PRTime gPreloadListExpirationTime = INT64_C(1436008183554000);
 
 class nsSTSPreload
 {
@@ -213,6 +213,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "irische-segenswuensche.info", true },
   { "isitchristmas.com", true },
   { "it-schwerin.de", true },
+  { "itriskltd.com", true },
   { "jackyyf.com", false },
   { "janoberst.com", true },
   { "janus-engineering.de", true },
@@ -359,6 +360,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "riccy.org", true },
   { "riesenmagnete.de", true },
   { "rippleunion.com", true },
+  { "robteix.com", true },
   { "romab.com", true },
   { "rosenkeller.org", true },
   { "roundcube.mayfirst.org", false },
@@ -377,7 +379,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "securityheaders.com", true },
   { "secuvera.de", true },
   { "seifried.org", true },
-  { "servethecity-karlsruhe.de", true },
+  { "servethecity-karlsruhe.de", false },
   { "sherbers.de", true },
   { "shodan.io", true },
   { "silentcircle.com", false },
@@ -413,7 +415,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "tent.io", true },
   { "texte-zur-taufe.de", true },
   { "thepaymentscompany.com", true },
-  { "therapynotes.com", false },
+  { "therapynotes.com", true },
   { "tinfoilsecurity.com", false },
   { "tinte24.de", true },
   { "tintenfix.net", true },
@@ -512,7 +514,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.schokokeks.org", false },
   { "www.simbolo.co.uk", false },
   { "www.simple.com", false },
-  { "www.therapynotes.com", false },
+  { "www.therapynotes.com", true },
   { "www.tinfoilsecurity.com", false },
   { "www.torproject.org", false },
   { "www.twitter.com", false },
