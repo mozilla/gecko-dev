@@ -502,6 +502,11 @@ TelephonyService.prototype = {
     this.notifyCallStateChanged(aClientId, parentCall);
   },
 
+  /**
+   * Dial number. Perform call setup or SS procedure accordingly.
+   *
+   * @see 3GPP TS 22.030 Figure 3.5.3.2
+   */
   dial: function(aClientId, aNumber, aIsDialEmergency, aCallback) {
     if (DEBUG) debug("Dialing " + (aIsDialEmergency ? "emergency " : "") + aNumber);
 
@@ -519,59 +524,76 @@ TelephonyService.prototype = {
       return;
     }
 
-    if (this._hasCalls(aClientId)) {
-      // 3GPP TS 22.030 6.5.5
-      // Handling of supplementary services within a call.
-
-      let mmiCallback = response => {
-        aCallback.notifyDialMMI(RIL.MMI_KS_SC_CALL);
-        if (!response.success) {
-          aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_ERROR);
-        } else {
-          aCallback.notifyDialMMISuccess(RIL.MMI_SM_KS_CALL_CONTROL);
-        }
-      };
-
-      if (aNumber === "0") {
-        this._sendToRilWorker(aClientId, "hangUpBackground", null, mmiCallback);
-      } else if (aNumber === "1") {
-        this._sendToRilWorker(aClientId, "hangUpForeground", null, mmiCallback);
-      } else if (aNumber[0] === "1" && aNumber.length === 2) {
-        this._sendToRilWorker(aClientId, "hangUpCall",
-                              { callIndex: parseInt(aNumber[1]) }, mmiCallback);
-      } else if (aNumber === "2") {
-        this._sendToRilWorker(aClientId, "switchActiveCall", null, mmiCallback);
-      } else if (aNumber[0] === "2" && aNumber.length === 2) {
-        this._sendToRilWorker(aClientId, "separateCall",
-                              { callIndex: parseInt(aNumber[1]) }, mmiCallback);
-      } else if (aNumber === "3") {
-        this._sendToRilWorker(aClientId, "conferenceCall", null, mmiCallback);
-      } else {
-        // Entering "Directory Number"
-        this._dialCall(aClientId,
-                       { number: aNumber,
-                         isDialEmergency: aIsDialEmergency }, aCallback);
+    let sendMMI = mmi => {
+      // Reject MMI code from dialEmergency api.
+      if (aIsDialEmergency) {
+        aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
+        return;
       }
-    } else {
-      let mmi = this._parseMMI(aNumber);
-      if (!mmi) {
-        this._dialCall(aClientId,
-                       { number: aNumber,
-                         isDialEmergency: aIsDialEmergency }, aCallback);
-      } else if (this._isTemporaryCLIR(mmi)) {
+      this._dialMMI(aClientId, mmi, aCallback);
+    };
+
+    let mmi = this._parseMMI(aNumber);
+    if (mmi) {
+      if (this._isTemporaryCLIR(mmi)) {
         this._dialCall(aClientId,
                        { number: mmi.dialNumber,
                          clirMode: this._getTemporaryCLIRMode(mmi.procedure),
                          isDialEmergency: aIsDialEmergency }, aCallback);
       } else {
-        // Reject MMI code from dialEmergency api.
-        if (aIsDialEmergency) {
-          aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
-          return;
-        }
-
-        this._dialMMI(aClientId, mmi, aCallback);
+        sendMMI(mmi);
       }
+    } else {
+      if (aNumber[aNumber.length - 1] === "#") {  // # string
+        sendMMI({fullMMI: aNumber});
+      } else if (aNumber.length <= 2) {  // short string
+        if (this._hasCalls(aClientId)) {
+          this._dialInCallMMI(aClientId, aNumber, aIsDialEmergency, aCallback);
+        } else if (aNumber.length === 2 && aNumber[0] === "1") {
+          this._dialCall(aClientId,
+                         { number: aNumber,
+                           isDialEmergency: aIsDialEmergency }, aCallback);
+        } else {
+          sendMMI({fullMMI: aNumber});
+        }
+      } else {
+        this._dialCall(aClientId,
+                       { number: aNumber,
+                         isDialEmergency: aIsDialEmergency }, aCallback);
+      }
+    }
+  },
+
+  // Handling of supplementary services within a call as 3GPP TS 22.030 6.5.5
+  _dialInCallMMI: function(aClientId, aNumber, aIsDialEmergency, aCallback) {
+    let mmiCallback = response => {
+      aCallback.notifyDialMMI(RIL.MMI_KS_SC_CALL);
+      if (!response.success) {
+        aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_ERROR);
+      } else {
+        aCallback.notifyDialMMISuccess(RIL.MMI_SM_KS_CALL_CONTROL);
+      }
+    };
+
+    if (aNumber === "0") {
+      this._sendToRilWorker(aClientId, "hangUpBackground", null, mmiCallback);
+    } else if (aNumber === "1") {
+      this._sendToRilWorker(aClientId, "hangUpForeground", null, mmiCallback);
+    } else if (aNumber[0] === "1" && aNumber.length === 2) {
+      this._sendToRilWorker(aClientId, "hangUpCall",
+                            { callIndex: parseInt(aNumber[1]) }, mmiCallback);
+    } else if (aNumber === "2") {
+      this._sendToRilWorker(aClientId, "switchActiveCall", null, mmiCallback);
+    } else if (aNumber[0] === "2" && aNumber.length === 2) {
+      this._sendToRilWorker(aClientId, "separateCall",
+                            { callIndex: parseInt(aNumber[1]) }, mmiCallback);
+    } else if (aNumber === "3") {
+      this._sendToRilWorker(aClientId, "conferenceCall", null, mmiCallback);
+    } else {
+      // Entering "Directory Number"
+      this._dialCall(aClientId,
+                     { number: aNumber,
+                       isDialEmergency: aIsDialEmergency }, aCallback);
     }
   },
 
@@ -824,32 +846,6 @@ TelephonyService.prototype = {
   },
 
   /**
-   * Helper to parse # string. TS.22.030 Figure 3.5.3.2.
-   */
-  _isPoundString: function(aMmiString) {
-    return (aMmiString.charAt(aMmiString.length - 1) === "#");
-  },
-
-  /**
-   * Helper to parse short string. TS.22.030 Figure 3.5.3.2.
-   */
-  _isShortString: function(aMmiString) {
-    if (aMmiString.length > 2) {
-      return false;
-    }
-
-    // Input string is
-    //   - emergency number or
-    //   - 2 digits starting with a "1"
-    if (this._isEmergencyNumber(aMmiString) ||
-        (aMmiString.length == 2) && (aMmiString.charAt(0) === '1')) {
-      return false;
-    }
-
-    return true;
-  },
-
-  /**
    * Helper to parse MMI/USSD string. TS.22.030 Figure 3.5.3.2.
    */
   _parseMMI: function(aMmiString) {
@@ -868,12 +864,6 @@ TelephonyService.prototype = {
         sic: matches[MMI_MATCH_GROUP_SIC],
         pwd: matches[MMI_MATCH_GROUP_PWD_CONFIRM],
         dialNumber: matches[MMI_MATCH_GROUP_DIALING_NUMBER]
-      };
-    }
-
-    if (this._isPoundString(aMmiString) || this._isShortString(aMmiString)) {
-      return {
-        fullMMI: aMmiString
       };
     }
 
