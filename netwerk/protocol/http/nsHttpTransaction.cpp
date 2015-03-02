@@ -123,7 +123,6 @@ nsHttpTransaction::nsHttpTransaction()
     , mPreserveStream(false)
     , mDispatchedAsBlocking(false)
     , mResponseTimeoutEnabled(true)
-    , mDontRouteViaWildCard(false)
     , mForceRestart(false)
     , mReuseOnRestart(false)
     , mReportedStart(false)
@@ -842,6 +841,7 @@ nsHttpTransaction::Close(nsresult reason)
     if (mConnection)
         connReused = mConnection->IsReused();
     mConnected = false;
+    mTunnelProvider = nullptr;
 
     //
     // if the connection was reset or closed before we wrote any part of the
@@ -1117,7 +1117,7 @@ nsHttpTransaction::Restart()
     }
 
     LOG(("restarting transaction @%p\n", this));
-    SetDontRouteViaWildCard(false);
+    mTunnelProvider = nullptr;
 
     // rewind streams in case we already wrote out the request
     nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mRequestStream);
@@ -1756,6 +1756,14 @@ nsHttpTransaction::CancelPipeline(uint32_t reason)
     mClassification = CLASS_SOLO;
 }
 
+
+void
+nsHttpTransaction::SetLoadGroupConnectionInfo(nsILoadGroupConnectionInfo *aLoadGroupCI)
+{
+    LOG(("nsHttpTransaction %p SetLoadGroupConnectionInfo %p\n", this, aLoadGroupCI));
+    mLoadGroupCI = aLoadGroupCI;
+}
+
 // Called when the transaction marked for blocking is associated with a connection
 // (i.e. added to a new h1 conn, an idle http connection, or placed into
 // a http pipeline). It is safe to call this multiple times with it only
@@ -1771,7 +1779,7 @@ nsHttpTransaction::DispatchedAsBlocking()
     if (!mLoadGroupCI)
         return;
 
-    LOG(("nsHttpTransaction adding blocking channel %p from "
+    LOG(("nsHttpTransaction adding blocking transaction %p from "
          "loadgroup %p\n", this, mLoadGroupCI.get()));
 
     mLoadGroupCI->AddBlockingTransaction();
@@ -1787,13 +1795,13 @@ nsHttpTransaction::RemoveDispatchedAsBlocking()
     uint32_t blockers = 0;
     nsresult rv = mLoadGroupCI->RemoveBlockingTransaction(&blockers);
 
-    LOG(("nsHttpTransaction removing blocking channel %p from "
+    LOG(("nsHttpTransaction removing blocking transaction %p from "
          "loadgroup %p. %d blockers remain.\n", this,
          mLoadGroupCI.get(), blockers));
 
     if (NS_SUCCEEDED(rv) && !blockers) {
-        LOG(("nsHttpTransaction %p triggering release of blocked channels.\n",
-             this));
+        LOG(("nsHttpTransaction %p triggering release of blocked channels "
+             " with loadgroupci=%p\n", this, mLoadGroupCI.get()));
         gHttpHandler->ConnMgr()->ProcessPendingQ();
     }
 
@@ -1804,6 +1812,8 @@ void
 nsHttpTransaction::ReleaseBlockingTransaction()
 {
     RemoveDispatchedAsBlocking();
+    LOG(("nsHttpTransaction %p loadgroupci set to null "
+         "in ReleaseBlockingTransaction() - was %p\n", this, mLoadGroupCI.get()));
     mLoadGroupCI = nullptr;
 }
 

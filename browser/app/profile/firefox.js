@@ -1027,6 +1027,8 @@ pref("browser.rights.3.shown", false);
 pref("browser.rights.override", true);
 #endif
 
+pref("browser.selfsupport.url", "http://self-repair.mozilla.org/%LOCALE%/repair");
+
 pref("browser.sessionstore.resume_from_crash", true);
 pref("browser.sessionstore.resume_session_once", false);
 
@@ -1309,7 +1311,7 @@ pref("browser.devedition.theme.showCustomizeButton", false);
 
 // Developer edition promo preferences
 pref("devtools.devedition.promo.shown", false);
-pref("devtools.devedition.promo.url", "https://mozilla.org/firefox/developer");
+pref("devtools.devedition.promo.url", "https://www.mozilla.org/firefox/developer/?utm_source=firefox-dev-tools&utm_medium=firefox-browser&utm_content=betadoorhanger");
 
 // Only potentially show in beta release
 #if MOZ_UPDATE_CHANNEL == beta

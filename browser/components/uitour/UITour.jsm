@@ -345,6 +345,15 @@ this.UITour = {
     let contentDocument = null;
     let browser = aMessage.target;
     let window = browser.ownerDocument.defaultView;
+
+    // Does the window have tabs? We need to make sure since windowless browsers do
+    // not have tabs.
+    if (!window.gBrowser) {
+      // When using windowless browsers we don't have a valid |window|. If that's the case,
+      // use the most recent window as a target for UITour functions (see Bug 1111022).
+      window = Services.wm.getMostRecentWindow("navigator:browser");
+    }
+
     let tab = window.gBrowser.getTabForBrowser(browser);
     let messageManager = browser.messageManager;
 
@@ -680,10 +689,7 @@ this.UITour = {
     }
     this.tourBrowsersByWindow.get(window).add(browser);
 
-    // We don't have a tab if we're in a <browser> without a tab.
-    if (tab) {
-      tab.addEventListener("TabClose", this);
-    }
+    Services.obs.addObserver(this, "message-manager-disconnect", false);
 
     window.addEventListener("SSWindowClosing", this);
 
@@ -696,13 +702,6 @@ this.UITour = {
       case "pagehide": {
         let window = this.getChromeWindow(aEvent.target);
         this.teardownTourForWindow(window);
-        break;
-      }
-
-      case "TabClose": {
-        let tab = aEvent.target;
-        let window = tab.ownerDocument.defaultView;
-        this.teardownTourForBrowser(window, tab.linkedBrowser, true);
         break;
       }
 
@@ -731,6 +730,37 @@ this.UITour = {
         if (aEvent.target.id == "urlbar") {
           let window = aEvent.target.ownerDocument.defaultView;
           this.handleUrlbarInput(window);
+        }
+        break;
+      }
+    }
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    log.debug("observe: aTopic =", aTopic);
+    switch (aTopic) {
+      // The browser message manager is disconnected when the <browser> is
+      // destroyed and we want to teardown at that point.
+      case "message-manager-disconnect": {
+        let winEnum = Services.wm.getEnumerator("navigator:browser");
+        while (winEnum.hasMoreElements()) {
+          let window = winEnum.getNext();
+          if (window.closed)
+            continue;
+
+          let tourBrowsers = this.tourBrowsersByWindow.get(window);
+          if (!tourBrowsers)
+            continue;
+
+          for (let browser of tourBrowsers) {
+            let messageManager = browser.messageManager;
+            if (aSubject != messageManager) {
+              continue;
+            }
+
+            this.teardownTourForBrowser(window, browser, true);
+            return;
+          }
         }
         break;
       }
@@ -770,14 +800,8 @@ this.UITour = {
     }
 
     let openTourBrowsers = this.tourBrowsersByWindow.get(aWindow);
-    if (aTourPageClosing) {
-      let tab = aWindow.gBrowser.getTabForBrowser(aBrowser);
-      if (tab) { // Handle standalone <browser>
-        tab.removeEventListener("TabClose", this);
-        if (openTourBrowsers) {
-          openTourBrowsers.delete(aBrowser);
-        }
-      }
+    if (aTourPageClosing && openTourBrowsers) {
+      openTourBrowsers.delete(aBrowser);
     }
 
     this.hideHighlight(aWindow);
@@ -818,9 +842,6 @@ this.UITour = {
           let pageID = this.pageIDSourceBrowsers.get(browser);
           this.setExpiringTelemetryBucket(pageID, "closed");
         }
-
-        let tab = aWindow.gBrowser.getTabForBrowser(browser);
-        tab.removeEventListener("TabClose", this);
       }
     }
 
