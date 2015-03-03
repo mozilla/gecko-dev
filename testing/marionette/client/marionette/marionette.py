@@ -472,8 +472,7 @@ class Marionette(object):
                  emulator_binary=None, emulator_res=None, connect_to_running_emulator=False,
                  gecko_log=None, homedir=None, baseurl=None, no_window=False, logdir=None,
                  busybox=None, symbols_path=None, timeout=None, socket_timeout=360,
-                 device_serial=None, adb_path=None, process_args=None,
-                 adb_host=None, adb_port=None):
+                 device_serial=None, adb_path=None, process_args=None):
         self.host = host
         self.port = self.local_port = port
         self.bin = bin
@@ -487,10 +486,8 @@ class Marionette(object):
         self.no_window = no_window
         self._test_name = None
         self.timeout = timeout
-        self.socket_timeout = socket_timeout
+        self.socket_timeout=socket_timeout
         self.device_serial = device_serial
-        self.adb_host = adb_host
-        self.adb_port = adb_port
 
         if bin:
             port = int(self.port)

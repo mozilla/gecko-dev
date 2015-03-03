@@ -144,12 +144,8 @@ class HTMLReportingTestRunnerMixin(object):
 
         if self.bin or self.capabilities.get('device') != 'desktop':
             version.update(mozversion.get_version(
-                binary=self.bin,
-                sources=self.sources,
-                dm_type=os.environ.get('DM_TRANS', 'adb'),
-                device_serial=self.device_serial,
-                adb_host=self.marionette.adb_host,
-                adb_port=self.marionette.adb_port))
+                binary=self.bin, sources=self.sources,
+                dm_type=os.environ.get('DM_TRANS', 'adb')))
 
         configuration = {
             'Gecko version': version.get('application_version'),
