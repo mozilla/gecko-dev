@@ -5976,7 +5976,8 @@ js::PrimitiveToObject(JSContext *cx, const Value &v)
     if (v.isBoolean())
         return BooleanObject::create(cx, v.toBoolean());
     JS_ASSERT(v.isSymbol());
-    return SymbolObject::create(cx, v.toSymbol());
+    RootedSymbol symbol(cx, v.toSymbol());
+    return SymbolObject::create(cx, symbol);
 }
 
 /* Callers must handle the already-object case. */
