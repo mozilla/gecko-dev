@@ -76,6 +76,7 @@
 using namespace mozilla;
 using namespace mozilla::layers;
 using namespace mozilla::dom;
+using namespace mozilla::image;
 using namespace mozilla::layout;
 using namespace mozilla::gfx;
 
@@ -1980,20 +1981,6 @@ nsDisplayItem::nsDisplayItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
       aBuilder->GetCurrentFrameOffsetToReferenceFrame();
 }
 
-void
-nsDisplayItem::AddInvalidRegionForSyncDecodeBackgroundImages(
-  nsDisplayListBuilder* aBuilder,
-  const nsDisplayItemGeometry* aGeometry,
-  nsRegion* aInvalidRegion)
-{
-  if (aBuilder->ShouldSyncDecodeImages()) {
-    if (!nsCSSRendering::AreAllBackgroundImagesDecodedForFrame(mFrame)) {
-      bool snap;
-      aInvalidRegion->Or(*aInvalidRegion, GetBounds(aBuilder, &snap));
-    }
-  }
-}
-
 /* static */ bool
 nsDisplayItem::ForceActiveLayers()
 {
@@ -2516,6 +2503,11 @@ nsDisplayBackgroundImage::ConfigureLayer(ImageLayer* aLayer, const nsIntPoint& a
 
   mozilla::gfx::IntSize imageSize = mImageContainer->GetCurrentSize();
   NS_ASSERTION(imageSize.width != 0 && imageSize.height != 0, "Invalid image size!");
+  if (imageSize.width > 0 && imageSize.height > 0) {
+    // We're actually using the ImageContainer. Let our frame know that it
+    // should consider itself to have painted successfully.
+    nsDisplayBackgroundGeometry::UpdateDrawResult(this, DrawResult::SUCCESS);
+  }
 
   gfxPoint p = mDestRect.TopLeft() + aOffset;
   Matrix transform = Matrix::Translation(p.x, p.y);
@@ -2685,11 +2677,13 @@ nsDisplayBackgroundImage::PaintInternal(nsDisplayListBuilder* aBuilder,
   uint32_t flags = aBuilder->GetBackgroundPaintFlags();
   CheckForBorderItem(this, flags);
 
-  nsCSSRendering::PaintBackground(mFrame->PresContext(), *aCtx, mFrame,
-                                  aBounds,
-                                  nsRect(offset, mFrame->GetSize()),
-                                  flags, aClipRect, mLayer);
+  DrawResult result =
+    nsCSSRendering::PaintBackground(mFrame->PresContext(), *aCtx, mFrame,
+                                    aBounds,
+                                    nsRect(offset, mFrame->GetSize()),
+                                    flags, aClipRect, mLayer);
 
+  nsDisplayBackgroundGeometry::UpdateDrawResult(this, result);
 }
 
 void nsDisplayBackgroundImage::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
@@ -2718,8 +2712,9 @@ void nsDisplayBackgroundImage::ComputeInvalidationRegion(nsDisplayListBuilder* a
     return;
   }
   if (aBuilder->ShouldSyncDecodeImages()) {
-    if (mBackgroundStyle &&
-        !nsCSSRendering::IsBackgroundImageDecodedForStyleContextAndLayer(mBackgroundStyle, mLayer)) {
+    const nsStyleImage& image = mBackgroundStyle->mLayers[mLayer].mImage;
+    if (image.GetType() == eStyleImageType_Image &&
+        geometry->ShouldInvalidateToSyncDecodeImages()) {
       aInvalidRegion->Or(*aInvalidRegion, bounds);
 
       NotifyRenderingChanged();
