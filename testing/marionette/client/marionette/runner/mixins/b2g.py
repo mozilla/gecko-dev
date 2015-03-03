@@ -7,19 +7,19 @@ import os
 import re
 
 
-def get_dm(marionette=None,**kwargs):
+def get_dm(marionette=None, **kwargs):
     dm_type = os.environ.get('DM_TRANS', 'adb')
     if marionette and marionette.emulator:
         adb_path = marionette.emulator.b2g.adb_path
         return mozdevice.DeviceManagerADB(adbPath=adb_path,
                                           deviceSerial='emulator-%d' % marionette.emulator.port,
                                           **kwargs)
-    elif marionette and marionette.device_serial and dm_type == 'adb':
-        return mozdevice.DeviceManagerADB(deviceSerial=marionette.device_serial,
-                                          **kwargs)
     else:
         if dm_type == 'adb':
-            return mozdevice.DeviceManagerADB(**kwargs)
+            return mozdevice.DeviceManagerADB(deviceSerial=marionette.device_serial,
+                                              serverHost=marionette.adb_host,
+                                              serverPort=marionette.adb_port,
+                                              **kwargs)
         elif dm_type == 'sut':
             host = os.environ.get('TEST_DEVICE')
             if not host:
