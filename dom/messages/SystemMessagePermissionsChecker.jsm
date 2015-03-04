@@ -123,7 +123,9 @@ this.SystemMessagePermissionsTable = {
   "nfc-powerlevel-change": {
     "settings": ["read", "write"]
   },
-  "wifip2p-pairing-request": { },
+  "wifip2p-pairing-request": {
+    "wifi-manage": []
+  },
   "first-run-with-sim": {
     "settings": ["read", "write"]
   }
