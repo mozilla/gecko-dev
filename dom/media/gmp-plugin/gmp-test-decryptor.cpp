@@ -116,8 +116,8 @@ FakeDecryptor::Message(const std::string& aMessage)
   MOZ_ASSERT(sInstance);
   const static std::string sid("fake-session-id");
   sInstance->mCallback->SessionMessage(sid.c_str(), sid.size(),
-                                       (const uint8_t*)aMessage.c_str(), aMessage.size(),
-                                       nullptr, 0);
+                                       kGMPLicenseRequest,
+                                       (const uint8_t*)aMessage.c_str(), aMessage.size());
 }
 
 std::vector<std::string>
@@ -271,17 +271,20 @@ public:
   explicit OpenedSecondTimeContinuation(GMPRecord* aRecord,
                                         TestManager* aTestManager,
                                         const string& aTestID)
-    : mRecord(aRecord), mTestmanager(aTestManager), mTestID(aTestID) {}
+    : mRecord(aRecord), mTestmanager(aTestManager), mTestID(aTestID) {
+    MOZ_ASSERT(aRecord);
+  }
 
   virtual void OpenComplete(GMPErr aStatus, GMPRecord* aRecord) MOZ_OVERRIDE {
     if (GMP_SUCCEEDED(aStatus)) {
       FakeDecryptor::Message("FAIL OpenSecondTimeContinuation should not be able to re-open record.");
     }
-
+    if (aRecord) {
+      aRecord->Close();
+    }
     // Succeeded, open should have failed.
     mTestmanager->EndTest(mTestID);
     mRecord->Close();
-    delete this;
   }
 
 private:
@@ -301,12 +304,14 @@ public:
     if (GMP_FAILED(aStatus)) {
       FakeDecryptor::Message("FAIL OpenAgainContinuation to open record initially.");
       mTestmanager->EndTest(mTestID);
+      if (aRecord) {
+        aRecord->Close();
+      }
       return;
     }
 
     auto cont = new OpenedSecondTimeContinuation(aRecord, mTestmanager, mTestID);
     GMPOpenRecord(mID, cont);
-    delete this;
   }
 
 private:

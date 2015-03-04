@@ -83,16 +83,15 @@ GMPDecryptorChild::RejectPromise(uint32_t aPromiseId,
 void
 GMPDecryptorChild::SessionMessage(const char* aSessionId,
                                   uint32_t aSessionIdLength,
+                                  GMPSessionMessageType aMessageType,
                                   const uint8_t* aMessage,
-                                  uint32_t aMessageLength,
-                                  const char* aDestinationURL,
-                                  uint32_t aDestinationURLLength)
+                                  uint32_t aMessageLength)
 {
   nsTArray<uint8_t> msg;
   msg.AppendElements(aMessage, aMessageLength);
   CALL_ON_GMP_THREAD(SendSessionMessage,
-                     nsAutoCString(aSessionId, aSessionIdLength), msg,
-                     nsAutoCString(aDestinationURL, aDestinationURLLength));
+                     nsAutoCString(aSessionId, aSessionIdLength),
+                     aMessageType, msg);
 }
 
 void
@@ -127,27 +126,17 @@ GMPDecryptorChild::SessionError(const char* aSessionId,
 }
 
 void
-GMPDecryptorChild::KeyIdUsable(const char* aSessionId,
-                               uint32_t aSessionIdLength,
-                               const uint8_t* aKeyId,
-                               uint32_t aKeyIdLength)
+GMPDecryptorChild::KeyStatusChanged(const char* aSessionId,
+                                    uint32_t aSessionIdLength,
+                                    const uint8_t* aKeyId,
+                                    uint32_t aKeyIdLength,
+                                    GMPMediaKeyStatus aStatus)
 {
   nsAutoTArray<uint8_t, 16> kid;
   kid.AppendElements(aKeyId, aKeyIdLength);
-  CALL_ON_GMP_THREAD(SendKeyIdUsable,
-                     nsAutoCString(aSessionId, aSessionIdLength), kid);
-}
-
-void
-GMPDecryptorChild::KeyIdNotUsable(const char* aSessionId,
-                                  uint32_t aSessionIdLength,
-                                  const uint8_t* aKeyId,
-                                  uint32_t aKeyIdLength)
-{
-  nsAutoTArray<uint8_t, 16> kid;
-  kid.AppendElements(aKeyId, aKeyIdLength);
-  CALL_ON_GMP_THREAD(SendKeyIdNotUsable,
-                     nsAutoCString(aSessionId, aSessionIdLength), kid);
+  CALL_ON_GMP_THREAD(SendKeyStatusChanged,
+                     nsAutoCString(aSessionId, aSessionIdLength), kid,
+                     aStatus);
 }
 
 void

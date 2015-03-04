@@ -68,6 +68,24 @@ enum GMPDOMException {
   kGMPTimeoutError = 23
 };
 
+enum GMPSessionMessageType {
+  kGMPLicenseRequest = 0,
+  kGMPLicenseRenewal = 1,
+  kGMPLicenseRelease = 2,
+  kGMPIndividualizationRequest = 3,
+  kGMPMessageInvalid = 4 // Must always be last.
+};
+
+enum GMPMediaKeyStatus {
+  kGMPUsable = 0,
+  kGMPExpired = 1,
+  kGMPOutputDownscaled = 2,
+  kGMPOutputNotAllowed = 3,
+  kGMPInternalError = 4,
+  kGMPUnknown = 5,
+  kGMPMediaKeyStatusInvalid = 6 // Must always be last.
+};
+
 // Time in milliseconds, as offset from epoch, 1 Jan 1970.
 typedef int64_t GMPTimestamp;
 
@@ -139,10 +157,9 @@ public:
   // aSessionId must be null terminated.
   virtual void SessionMessage(const char* aSessionId,
                               uint32_t aSessionIdLength,
+                              GMPSessionMessageType aMessageType,
                               const uint8_t* aMessage,
-                              uint32_t aMessageLength,
-                              const char* aDestinationURL,
-                              uint32_t aDestinationURLLength) = 0;
+                              uint32_t aMessageLength) = 0;
 
   // aSessionId must be null terminated.
    virtual void ExpirationChange(const char* aSessionId,
@@ -166,20 +183,14 @@ public:
                             const char* aMessage,
                             uint32_t aMessageLength) = 0;
 
-  // Marks a key as usable. Gecko will not call into the CDM to decrypt
+  // Notifies the status of a key. Gecko will not call into the CDM to decrypt
   // or decode content encrypted with a key unless the CDM has marked it
   // usable first. So a CDM *MUST* mark its usable keys as usable!
-  virtual void KeyIdUsable(const char* aSessionId,
-                           uint32_t aSessionIdLength,
-                           const uint8_t* aKeyId,
-                           uint32_t aKeyIdLength) = 0;
-
-  // Marks a key as no longer usable.
-  // Note: Keys are assumed to be not usable when a session is closed or removed.
-  virtual void KeyIdNotUsable(const char* aSessionId,
-                              uint32_t aSessionIdLength,
-                              const uint8_t* aKeyId,
-                              uint32_t aKeyIdLength) = 0;
+  virtual void KeyStatusChanged(const char* aSessionId,
+                                uint32_t aSessionIdLength,
+                                const uint8_t* aKeyId,
+                                uint32_t aKeyIdLength,
+                                GMPMediaKeyStatus aStatus) = 0;
 
   // The CDM must report its capabilites of this CDM. aCaps should be a
   // logical OR of the GMP_EME_CAP_* flags. The CDM *MUST* call this
@@ -213,7 +224,7 @@ enum GMPSessionType {
   kGMPSessionInvalid = 2 // Must always be last.
 };
 
-#define GMP_API_DECRYPTOR "eme-decrypt-v2"
+#define GMP_API_DECRYPTOR "eme-decrypt-v6"
 
 // API exposed by plugin library to manage decryption sessions.
 // When the Host requests this by calling GMPGetAPIFunc().

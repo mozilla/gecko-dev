@@ -45,10 +45,9 @@ public:
 
   virtual void SessionMessage(const char* aSessionId,
                               uint32_t aSessionIdLength,
+                              GMPSessionMessageType aMessageType,
                               const uint8_t* aMessage,
-                              uint32_t aMessageLength,
-                              const char* aDestinationURL,
-                              uint32_t aDestinationURLLength) MOZ_OVERRIDE;
+                              uint32_t aMessageLength) MOZ_OVERRIDE;
 
   virtual void ExpirationChange(const char* aSessionId,
                                  uint32_t aSessionIdLength,
@@ -64,15 +63,11 @@ public:
                             const char* aMessage,
                             uint32_t aMessageLength) MOZ_OVERRIDE;
 
-  virtual void KeyIdUsable(const char* aSessionId,
-                           uint32_t aSessionIdLength,
-                           const uint8_t* aKeyId,
-                           uint32_t aKeyIdLength) MOZ_OVERRIDE;
-
-  virtual void KeyIdNotUsable(const char* aSessionId,
-                              uint32_t aSessionIdLength,
-                              const uint8_t* aKeyId,
-                              uint32_t aKeyIdLength) MOZ_OVERRIDE;
+  virtual void KeyStatusChanged(const char* aSessionId,
+                                uint32_t aSessionIdLength,
+                                const uint8_t* aKeyId,
+                                uint32_t aKeyIdLength,
+                                GMPMediaKeyStatus aStatus) MOZ_OVERRIDE;
 
   virtual void SetCapabilities(uint64_t aCaps) MOZ_OVERRIDE;
 

@@ -120,8 +120,8 @@ public:
 
   // Main thread only.
   void OnSessionMessage(const nsAString& aSessionId,
-                        nsTArray<uint8_t>& aMessage,
-                        const nsAString& aDestinationURL);
+                        GMPSessionMessageType aMessageType,
+                        nsTArray<uint8_t>& aMessage);
 
   // Main thread only.
   void OnExpirationChange(const nsAString& aSessionId,
@@ -164,7 +164,7 @@ public:
   CDMCaps& Capabilites();
 
   // Main thread only.
-  void OnKeysChange(const nsAString& aSessionId);
+  void OnKeyStatusesChange(const nsAString& aSessionId);
 
 #ifdef DEBUG
   bool IsOnGMPThread();

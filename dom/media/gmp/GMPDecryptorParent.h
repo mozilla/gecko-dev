@@ -78,8 +78,8 @@ private:
                                  const nsCString& aMessage) MOZ_OVERRIDE;
 
   virtual bool RecvSessionMessage(const nsCString& aSessionId,
-                                  const nsTArray<uint8_t>& aMessage,
-                                  const nsCString& aDestinationURL) MOZ_OVERRIDE;
+                                  const GMPSessionMessageType& aMessageType,
+                                  const nsTArray<uint8_t>& aMessage) MOZ_OVERRIDE;
 
   virtual bool RecvExpirationChange(const nsCString& aSessionId,
                                     const double& aExpiryTime) MOZ_OVERRIDE;
@@ -91,11 +91,9 @@ private:
                                 const uint32_t& aSystemCode,
                                 const nsCString& aMessage) MOZ_OVERRIDE;
 
-  virtual bool RecvKeyIdUsable(const nsCString& aSessionId,
-                                const nsTArray<uint8_t>& aKeyId) MOZ_OVERRIDE;
-
-  virtual bool RecvKeyIdNotUsable(const nsCString& aSessionId,
-                                  const nsTArray<uint8_t>& aKeyId) MOZ_OVERRIDE;
+  virtual bool RecvKeyStatusChanged(const nsCString& aSessionId,
+                                    const nsTArray<uint8_t>& aKeyId,
+                                    const GMPMediaKeyStatus& aStatus) MOZ_OVERRIDE;
 
   virtual bool RecvDecrypted(const uint32_t& aId,
                              const GMPErr& aErr,

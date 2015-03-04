@@ -65,7 +65,8 @@ public:
   void GetKeySystem(nsString& retval) const;
 
   // JavaScript: MediaKeys.createSession()
-  already_AddRefed<MediaKeySession> CreateSession(SessionType aSessionType,
+  already_AddRefed<MediaKeySession> CreateSession(JSContext* aCx,
+                                                  SessionType aSessionType,
                                                   ErrorResult& aRv);
 
   // JavaScript: MediaKeys.SetServerCertificate()
@@ -116,10 +117,6 @@ public:
 
   // Returns true if this MediaKeys has been bound to a media element.
   bool IsBoundToMediaElement() const;
-
-  // Return NS_OK if the principals are the same as when the MediaKeys
-  // was created, failure otherwise.
-  nsresult CheckPrincipals();
 
 private:
 

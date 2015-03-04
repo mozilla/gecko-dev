@@ -213,14 +213,14 @@ GMPDecryptorParent::RecvRejectPromise(const uint32_t& aPromiseId,
 
 bool
 GMPDecryptorParent::RecvSessionMessage(const nsCString& aSessionId,
-                                       const nsTArray<uint8_t>& aMessage,
-                                       const nsCString& aDestinationURL)
+                                       const GMPSessionMessageType& aMessageType,
+                                       const nsTArray<uint8_t>& aMessage)
 {
   if (!mIsOpen) {
     NS_WARNING("Trying to use a dead GMP decrypter!");
     return false;
   }
-  mCallback->SessionMessage(aSessionId, aMessage, aDestinationURL);
+  mCallback->SessionMessage(aSessionId, aMessageType, aMessage);
   return true;
 }
 
@@ -265,26 +265,13 @@ GMPDecryptorParent::RecvSessionError(const nsCString& aSessionId,
 }
 
 bool
-GMPDecryptorParent::RecvKeyIdUsable(const nsCString& aSessionId,
-                                    const nsTArray<uint8_t>& aKeyId)
+GMPDecryptorParent::RecvKeyStatusChanged(const nsCString& aSessionId,
+                                         const nsTArray<uint8_t>& aKeyId,
+                                         const GMPMediaKeyStatus& aStatus)
 {
-  if (!mIsOpen) {
-    NS_WARNING("Trying to use a dead GMP decrypter!");
-    return false;
+  if (mIsOpen) {
+    mCallback->KeyStatusChanged(aSessionId, aKeyId, aStatus);
   }
-  mCallback->KeyIdUsable(aSessionId, aKeyId);
-  return true;
-}
-
-bool
-GMPDecryptorParent::RecvKeyIdNotUsable(const nsCString& aSessionId,
-                                       const nsTArray<uint8_t>& aKeyId)
-{
-  if (!mIsOpen) {
-    NS_WARNING("Trying to use a dead GMP decrypter!");
-    return false;
-  }
-  mCallback->KeyIdNotUsable(aSessionId, aKeyId);
   return true;
 }
 

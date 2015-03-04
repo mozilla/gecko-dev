@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "ClearKeyDecryptionManager.h"
 #include "ClearKeySessionManager.h"
@@ -11,6 +12,9 @@
 #include "ClearKeyStorage.h"
 #include "ClearKeyPersistence.h"
 #include "gmp-task-utils.h"
+#if defined(ENABLE_WMF)
+#include "WMFUtils.h"
+#endif
 
 #include "mozilla/Assertions.h"
 
@@ -20,7 +24,7 @@ using namespace std;
 ClearKeySessionManager::ClearKeySessionManager()
   : mDecryptionManager(ClearKeyDecryptionManager::Get())
 {
-  CK_LOGD("ClearKeySessionManager ctor");
+  CK_LOGD("ClearKeySessionManager ctor %p", this);
   AddRef();
 
   if (GetPlatform()->createthread(&mThread) != GMPNoErr) {
@@ -31,8 +35,18 @@ ClearKeySessionManager::ClearKeySessionManager()
 
 ClearKeySessionManager::~ClearKeySessionManager()
 {
-  CK_LOGD("ClearKeySessionManager dtor");
+  CK_LOGD("ClearKeySessionManager dtor %p", this);
    MOZ_ASSERT(!mRefCount);
+}
+
+static bool
+CanDecode()
+{
+  return
+#if defined(ENABLE_WMF)
+    wmf::EnsureLibs() ||
+#endif
+    false;
 }
 
 void
@@ -40,8 +54,9 @@ ClearKeySessionManager::Init(GMPDecryptorCallback* aCallback)
 {
   CK_LOGD("ClearKeySessionManager::Init");
   mCallback = aCallback;
-  mCallback->SetCapabilities(GMP_EME_CAP_DECRYPT_AUDIO |
-                             GMP_EME_CAP_DECRYPT_VIDEO);
+  mCallback->SetCapabilities(CanDecode() ?
+                             GMP_EME_CAP_DECRYPT_AND_DECODE_AUDIO | GMP_EME_CAP_DECRYPT_AND_DECODE_VIDEO :
+                             GMP_EME_CAP_DECRYPT_AUDIO | GMP_EME_CAP_DECRYPT_VIDEO);
   ClearKeyPersistence::EnsureInitialized();
 }
 
@@ -99,8 +114,8 @@ ClearKeySessionManager::CreateSession(uint32_t aCreateSessionToken,
   string request;
   ClearKeyUtils::MakeKeyRequest(neededKeys, request, aSessionType);
   mCallback->SessionMessage(&sessionId[0], sessionId.length(),
-                            (uint8_t*)&request[0], request.length(),
-                            "" /* destination url */, 0);
+                            kGMPLicenseRequest,
+                            (uint8_t*)&request[0], request.length());
 }
 
 void
@@ -167,8 +182,9 @@ ClearKeySessionManager::PersistentSessionDataLoaded(GMPErr aStatus,
     mDecryptionManager->ExpectKeyId(keyId);
     mDecryptionManager->InitKey(keyId, key);
     mKeyIds.insert(key);
-    mCallback->KeyIdUsable(&aSessionId[0], aSessionId.size(),
-                           &keyId[0], keyId.size());
+    mCallback->KeyStatusChanged(&aSessionId[0], aSessionId.size(),
+                                &keyId[0], keyId.size(),
+                                kGMPUsable);
   }
 
   mCallback->ResolveLoadSessionPromise(aPromiseId, true);
@@ -203,8 +219,9 @@ ClearKeySessionManager::UpdateSession(uint32_t aPromiseId,
   for (auto it = keyPairs.begin(); it != keyPairs.end(); it++) {
     mDecryptionManager->InitKey(it->mKeyId, it->mKey);
     mKeyIds.insert(it->mKeyId);
-    mCallback->KeyIdUsable(aSessionId, aSessionIdLength,
-                           &it->mKeyId[0], it->mKeyId.size());
+    mCallback->KeyStatusChanged(aSessionId, aSessionIdLength,
+                                &it->mKeyId[0], it->mKeyId.size(),
+                                kGMPUsable);
   }
 
   if (session->Type() != kGMPPersistentSession) {
@@ -271,18 +288,6 @@ ClearKeySessionManager::CloseSession(uint32_t aPromiseId,
 void
 ClearKeySessionManager::ClearInMemorySessionData(ClearKeySession* aSession)
 {
-  MOZ_ASSERT(aSession);
-
-  const vector<KeyId>& keyIds = aSession->GetKeyIds();
-  for (auto it = keyIds.begin(); it != keyIds.end(); it++) {
-    MOZ_ASSERT(mDecryptionManager->HasKeyForKeyId(*it));
-    mDecryptionManager->ReleaseKeyId(*it);
-
-    const string& sessionId = aSession->Id();
-    mCallback->KeyIdNotUsable(&sessionId[0], sessionId.size(),
-                              &(*it)[0], it->size());
-  }
-
   mSessions.erase(aSession->Id());
   delete aSession;
 }
@@ -371,7 +376,7 @@ ClearKeySessionManager::DoDecrypt(GMPBuffer* aBuffer,
 void
 ClearKeySessionManager::Shutdown()
 {
-  CK_LOGD("ClearKeySessionManager::Shutdown");
+  CK_LOGD("ClearKeySessionManager::Shutdown %p", this);
 
   for (auto it = mSessions.begin(); it != mSessions.end(); it++) {
     delete it->second;
@@ -382,7 +387,7 @@ ClearKeySessionManager::Shutdown()
 void
 ClearKeySessionManager::DecryptingComplete()
 {
-  CK_LOGD("ClearKeySessionManager::DecryptingComplete");
+  CK_LOGD("ClearKeySessionManager::DecryptingComplete %p", this);
 
   GMPThread* thread = mThread;
   thread->Join();

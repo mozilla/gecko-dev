@@ -30,8 +30,8 @@ public:
                              const nsCString& aSessionId) MOZ_OVERRIDE;
 
   virtual void SessionMessage(const nsCString& aSessionId,
-                              const nsTArray<uint8_t>& aMessage,
-                              const nsCString& aDestinationURL) MOZ_OVERRIDE;
+                              GMPSessionMessageType aMessageType,
+                              const nsTArray<uint8_t>& aMessage) MOZ_OVERRIDE;
 
   virtual void ExpirationChange(const nsCString& aSessionId,
                                 GMPTimestamp aExpiryTime) MOZ_OVERRIDE;
@@ -43,11 +43,9 @@ public:
                             uint32_t aSystemCode,
                             const nsCString& aMessage) MOZ_OVERRIDE;
 
-  virtual void KeyIdUsable(const nsCString& aSessionId,
-                           const nsTArray<uint8_t>& aKeyId) MOZ_OVERRIDE;
-
-  virtual void KeyIdNotUsable(const nsCString& aSessionId,
-                              const nsTArray<uint8_t>& aKeyId) MOZ_OVERRIDE;
+  virtual void KeyStatusChanged(const nsCString& aSessionId,
+                                const nsTArray<uint8_t>& aKeyId,
+                                GMPMediaKeyStatus aStatus) MOZ_OVERRIDE;
 
   virtual void SetCaps(uint64_t aCaps) MOZ_OVERRIDE;
 

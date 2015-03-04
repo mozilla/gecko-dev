@@ -12,7 +12,7 @@
 #include "nsContentCID.h"
 #include "nsServiceManagerUtils.h"
 #include "MainThreadUtils.h"
-#include "mozilla/EMELog.h"
+#include "mozilla/EMEUtils.h"
 #include "nsIConsoleService.h"
 #include "prenv.h"
 #include "mozilla/PodOperations.h"
@@ -409,10 +409,21 @@ CDMProxy::OnResolveLoadSessionPromise(uint32_t aPromiseId, bool aSuccess)
   mKeys->OnSessionLoaded(aPromiseId, aSuccess);
 }
 
+static dom::MediaKeyMessageType
+ToMediaKeyMessageType(GMPSessionMessageType aMessageType) {
+  switch (aMessageType) {
+    case kGMPLicenseRequest: return dom::MediaKeyMessageType::License_request;
+    case kGMPLicenseRenewal: return dom::MediaKeyMessageType::License_renewal;
+    case kGMPLicenseRelease: return dom::MediaKeyMessageType::License_release;
+    case kGMPIndividualizationRequest: return dom::MediaKeyMessageType::Individualization_request;
+    default: return dom::MediaKeyMessageType::License_request;
+  };
+};
+
 void
 CDMProxy::OnSessionMessage(const nsAString& aSessionId,
-                           nsTArray<uint8_t>& aMessage,
-                           const nsAString& aDestinationURL)
+                           GMPSessionMessageType aMessageType,
+                           nsTArray<uint8_t>& aMessage)
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (mKeys.IsNull()) {
@@ -420,12 +431,12 @@ CDMProxy::OnSessionMessage(const nsAString& aSessionId,
   }
   nsRefPtr<dom::MediaKeySession> session(mKeys->GetSession(aSessionId));
   if (session) {
-    session->DispatchKeyMessage(aMessage, aDestinationURL);
+    session->DispatchKeyMessage(ToMediaKeyMessageType(aMessageType), aMessage);
   }
 }
 
 void
-CDMProxy::OnKeysChange(const nsAString& aSessionId)
+CDMProxy::OnKeyStatusesChange(const nsAString& aSessionId)
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (mKeys.IsNull()) {
@@ -433,7 +444,7 @@ CDMProxy::OnKeysChange(const nsAString& aSessionId)
   }
   nsRefPtr<dom::MediaKeySession> session(mKeys->GetSession(aSessionId));
   if (session) {
-    session->DispatchKeysChange();
+    session->DispatchKeyStatusesChange();
   }
 }
 
