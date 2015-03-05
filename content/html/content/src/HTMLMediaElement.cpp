@@ -675,9 +675,9 @@ void HTMLMediaElement::AbortExistingLoads()
 
   if (mNetworkState != nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
     mNetworkState = nsIDOMHTMLMediaElement::NETWORK_EMPTY;
+    mPaused = true;
     NS_ASSERTION(!mDecoder && !mSrcStream, "How did someone setup a new stream/decoder already?");
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_NOTHING);
-    mPaused = true;
 
     if (fireTimeUpdate) {
       // Since we destroyed the decoder above, the current playback position
@@ -3960,7 +3960,9 @@ void HTMLMediaElement::UpdateAudioChannelPlayingState()
      (!mPaused &&
       (HasAttr(kNameSpaceID_None, nsGkAtoms::loop) ||
        (mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA &&
-        !IsPlaybackEnded()) ||
+        !IsPlaybackEnded() &&
+        !(mSrcStream && !(mSrcStream->GetTrackTypesAvailable() &
+                          DOMMediaStream::HINT_CONTENTS_AUDIO))) ||
        mPlayingThroughTheAudioChannelBeforeSeek));
   if (playingThroughTheAudioChannel != mPlayingThroughTheAudioChannel) {
     mPlayingThroughTheAudioChannel = playingThroughTheAudioChannel;
