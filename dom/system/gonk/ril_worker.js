@@ -7092,7 +7092,12 @@ RilObject.prototype[UNSOLICITED_CDMA_INFO_REC] = function UNSOLICITED_CDMA_INFO_
   this.sendChromeMessage(record);
 };
 RilObject.prototype[UNSOLICITED_OEM_HOOK_RAW] = null;
-RilObject.prototype[UNSOLICITED_RINGBACK_TONE] = null;
+RilObject.prototype[UNSOLICITED_RINGBACK_TONE] = function UNSOLICITED_RINGBACK_TONE(length) {
+  let playRingbackTone = this.context.Buf.readInt32List()[0];
+  let message = {rilMessageType: "ringbackTone"};
+  message.playRingbackTone = playRingbackTone == 1 ? true : false;
+  this.sendChromeMessage(message);
+};
 RilObject.prototype[UNSOLICITED_RESEND_INCALL_MUTE] = null;
 RilObject.prototype[UNSOLICITED_CDMA_SUBSCRIPTION_SOURCE_CHANGED] = null;
 RilObject.prototype[UNSOLICITED_CDMA_PRL_CHANGED] = function UNSOLICITED_CDMA_PRL_CHANGED(length) {

@@ -77,6 +77,9 @@ this.SystemMessagePermissionsTable = {
   "push-register": {
   	"push": []
   },
+  "ringback-tone": {
+    "telephony": []
+  },
   "sms-delivery-success": {
     "sms": []
   },

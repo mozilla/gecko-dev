@@ -2225,6 +2225,10 @@ RadioInterface.prototype = {
         if (DEBUG) this.debug("cdma-info-rec-received: " + JSON.stringify(message));
         gSystemMessenger.broadcastMessage("cdma-info-rec-received", message);
         break;
+      case "ringbackTone":
+        if (DEBUG) this.debug("ringback-tone: " + JSON.stringify(message));
+        gSystemMessenger.broadcastMessage("ringback-tone", message);
+        break;
       default:
         throw new Error("Don't know about this message type: " +
                         message.rilMessageType);
