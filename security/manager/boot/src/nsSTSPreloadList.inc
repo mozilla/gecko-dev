@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1435403644111000);
+const PRTime gPreloadListExpirationTime = INT64_C(1436008748586000);
 
 class nsSTSPreload
 {
@@ -243,7 +243,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "ef.gy", true },
   { "eff.org", true },
   { "electronic-ignition-system.com", true },
-  { "elnutricionista.es", true },
   { "emailprivacytester.com", true },
   { "encircleapp.com", true },
   { "encryptallthethings.net", true },
@@ -378,6 +377,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "ironfistdesign.com", true },
   { "isitchristmas.com", true },
   { "it-schwerin.de", true },
+  { "itriskltd.com", true },
   { "itsamurai.ru", true },
   { "itshost.ru", true },
   { "jackyyf.com", false },
@@ -645,6 +645,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "riesenmagnete.de", true },
   { "rippleunion.com", true },
   { "rlalique.com", true },
+  { "robteix.com", true },
   { "roland.io", true },
   { "romab.com", true },
   { "room-checkin24.de", true },
@@ -679,7 +680,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "secuvera.de", true },
   { "seifried.org", true },
   { "servergno.me", true },
-  { "servethecity-karlsruhe.de", true },
+  { "servethecity-karlsruhe.de", false },
   { "shaaaaaaaaaaaaa.com", true },
   { "shenyuqi.com", true },
   { "sherbers.de", true },
@@ -708,7 +709,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "sour.is", true },
   { "southside-crew.com", true },
   { "souvik.me", true },
-  { "spartantheatre.org", true },
   { "spencerbaer.com", true },
   { "spideroak.com", true },
   { "spreadsheets.google.com", true },
@@ -756,7 +756,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "texte-zur-taufe.de", true },
   { "thecustomizewindows.com", true },
   { "thepaymentscompany.com", true },
-  { "therapynotes.com", false },
+  { "therapynotes.com", true },
   { "theshadestore.com", true },
   { "thorncreek.net", false },
   { "thusoy.com", true },
@@ -898,7 +898,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.schokokeks.org", false },
   { "www.simbolo.co.uk", false },
   { "www.simple.com", false },
-  { "www.therapynotes.com", false },
+  { "www.therapynotes.com", true },
   { "www.tinfoilsecurity.com", false },
   { "www.torproject.org", false },
   { "www.twitter.com", false },
