@@ -577,6 +577,17 @@
 
     <tooltip id="dynamic-shortcut-tooltip"
              onpopupshowing="UpdateDynamicShortcutTooltipText(this);"/>
+
+    <menupopup id="emeNotificationsPopup">
+      <menuitem id="emeNotificationsNotNow"
+                label="Not now"
+                acceskey="N"
+                oncommand="gEMEHandler.onNotNow(this);"/>
+      <menuitem id="emeNotificationsDontAskAgain"
+                label="Don't ask me again"
+                acceskey="D"
+                oncommand="gEMEHandler.onDontAskAgain(this);"/>
+    </menupopup>
   </popupset>
 
 #ifdef CAN_DRAW_IN_TITLEBAR
@@ -797,6 +808,7 @@
                 <image id="servicesInstall-notification-icon" class="notification-anchor-icon" role="button"/>
                 <image id="translate-notification-icon" class="notification-anchor-icon" role="button"/>
                 <image id="translated-notification-icon" class="notification-anchor-icon" role="button"/>
+                <image id="eme-notification-icon" class="notification-anchor-icon" role="button"/>
               </box>
               <!-- Use onclick instead of normal popup= syntax since the popup
                    code fires onmousedown, and hence eats our favicon drag events.
