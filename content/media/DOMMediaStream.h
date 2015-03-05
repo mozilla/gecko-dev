@@ -75,6 +75,10 @@ public:
 
   MediaStream* GetStream() const { return mStream; }
 
+  uint8_t GetTrackTypesAvailable() {
+    return  mTrackTypesAvailable;
+  }
+
   /**
    * Overridden in DOMLocalMediaStreams to allow getUserMedia to pass
    * data directly to RTCPeerConnection without going through graph queuing.
