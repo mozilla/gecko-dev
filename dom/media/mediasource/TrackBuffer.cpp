@@ -836,14 +836,6 @@ TrackBuffer::BreakCycles()
 }
 
 void
-TrackBuffer::ResetDecode()
-{
-  for (uint32_t i = 0; i < mDecoders.Length(); ++i) {
-    mDecoders[i]->GetReader()->ResetDecode();
-  }
-}
-
-void
 TrackBuffer::ResetParserState()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -1007,8 +999,8 @@ TrackBuffer::RangeRemoval(int64_t aStart, int64_t aEnd)
       decoders[i]->GetBuffered(buffered);
       if (int64_t(buffered->GetEndTime() * USECS_PER_S) < aEnd) {
         // Can be fully removed.
-        MSE_DEBUG("remove all bufferedEnd=%f time=%f, size=%lld",
-                  buffered->GetEndTime(), time,
+        MSE_DEBUG("remove all bufferedEnd=%f size=%lld",
+                  buffered->GetEndTime(),
                   decoders[i]->GetResource()->GetSize());
         decoders[i]->GetResource()->EvictAll();
       } else {
