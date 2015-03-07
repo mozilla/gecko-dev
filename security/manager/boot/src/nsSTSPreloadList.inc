@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1436008807372000);
+const PRTime gPreloadListExpirationTime = INT64_C(1436613267302000);
 
 class nsSTSPreload
 {
@@ -238,6 +238,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "ebanking.indovinabank.com.vn", false },
   { "ecdn.cz", true },
   { "ecosystem.atlassian.net", true },
+  { "ed.gs", true },
   { "edit.yahoo.com", false },
   { "edyou.eu", true },
   { "ef.gy", true },
@@ -382,7 +383,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "itshost.ru", true },
   { "jackyyf.com", false },
   { "jakub-boucek.cz", true },
-  { "janoberst.com", true },
   { "janus-engineering.de", true },
   { "jelmer.co.uk", true },
   { "jelmer.uk", true },
@@ -661,7 +661,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "salserocafe.com", true },
   { "samizdat.cz", true },
   { "sandbox.mydigipass.com", false },
-  { "savetheinternet.eu", true },
   { "schachburg.de", true },
   { "schokokeks.org", false },
   { "schreiber-netzwerk.eu", true },
@@ -851,6 +850,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "wf-trial-hrd.appspot.com", true },
   { "whatwg.org", true },
   { "when-release.ru", true },
+  { "whonix.org", true },
   { "wieninternational.at", true },
   { "wiki.python.org", true },
   { "wildbee.org", true },
