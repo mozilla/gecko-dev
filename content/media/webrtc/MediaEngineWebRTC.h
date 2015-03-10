@@ -265,7 +265,7 @@ private:
   // mSources[] is accessed from webrtc threads.
 
   Monitor mMonitor; // Monitor for processing WebRTC frames.
-  nsTArray<SourceMediaStream*> mSources; // When this goes empty, we shut down HW
+  nsTArray<nsRefPtr<SourceMediaStream>> mSources; // When this goes empty, we shut down HW
   int mWidth, mHeight;
   nsRefPtr<layers::Image> mImage;
   nsRefPtr<layers::ImageContainer> mImageContainer;
@@ -372,7 +372,7 @@ private:
   // from kStarted to kStopped (which are combined with EndTrack()).
   // mSources[] is accessed from webrtc threads.
   Monitor mMonitor;
-  nsTArray<SourceMediaStream *> mSources; // When this goes empty, we shut down HW
+  nsTArray<nsRefPtr<SourceMediaStream>> mSources; // When this goes empty, we shut down HW
   nsCOMPtr<nsIThread> mThread;
   int mCapIndex;
   int mChannel;
