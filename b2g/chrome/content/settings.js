@@ -523,6 +523,7 @@ let settingsToObserve = {
   'layers.effect.grayscale': false,
   'layers.effect.contrast': "0.0",
   'privacy.donottrackheader.enabled': false,
+  'ril.debugging.enabled': false,
   'ril.radio.disabled': false,
   'ril.mms.requestReadReport.enabled': {
     prefName: 'dom.mms.requestReadReport',
