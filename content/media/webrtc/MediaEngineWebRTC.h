@@ -250,7 +250,7 @@ private:
   nsRefPtr<layers::ImageContainer> mImageContainer;
   bool mHasDirectListeners;
 
-  nsTArray<SourceMediaStream *> mSources; // When this goes empty, we shut down HW
+  nsTArray<nsRefPtr<SourceMediaStream>> mSources; // When this goes empty, we shut down HW
 
   bool mInitDone;
   bool mInSnapshotMode;
@@ -344,7 +344,7 @@ private:
   // from kStarted to kStopped (which are combined with EndTrack()).
   // mSources[] is accessed from webrtc threads.
   Monitor mMonitor;
-  nsTArray<SourceMediaStream *> mSources; // When this goes empty, we shut down HW
+  nsTArray<nsRefPtr<SourceMediaStream>> mSources; // When this goes empty, we shut down HW
   nsCOMPtr<nsIThread> mThread;
 
   int mCapIndex;
