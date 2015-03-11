@@ -29,37 +29,33 @@ table {
  * SUMMARY INFORMATION
  ******************************/
 
-#configuration td {
+#environment td {
 	padding: 5px;
 	border: 1px solid #E6E6E6;
 }
 
-#configuration tr:nth-child(odd) {
+#environment tr:nth-child(odd) {
 	background-color: #f6f6f6;
 }
 
 /******************************
  * TEST RESULT COLORS
  ******************************/
-span.passed, .passed .col-result {
+span.pass, .pass .col-result {
 	color: green;
 }
-span.expected.failure, .expected.failure .col-result {
+span.expected_fail, .expected_fail .col-result,
+span.expected_skip, .expected_skip .col-result,
+span.skip, .skip .col-result {
 	color: orange;
 }
-span.skipped, .skipped .col-result {
-	color: orange;
-}
-span.unexpected.pass, .unexpected.pass .col-result {
+span.error, .error .col-result,
+span.fail, .fail .col-result,
+span.unexpected_error, .unexpected_error .col-result,
+span.unexpected_fail, .unexpected_fail .col-result,
+span.unexpected_pass, .unexpected_pass .col-result {
 	color: red;
 }
-span.failed, .failure .col-result {
-	color: red;
-}
-span.error,.error .col-result  {
-	color: red;
-}
-
 
 /******************************
  * RESULTS TABLE
