@@ -26,7 +26,7 @@ class PushTest(unittest.TestCase):
                     f.flush()
                     d = mozdevice.DroidSUT("127.0.0.1", port=a.port)
                     d.pushFile(f.name, '/mnt/sdcard/foobar')
-                except mozdevice.DMError:
+                except mozdevice.DMError, e:
                     exceptionThrown = True
                 self.assertEqual(exceptionThrown, response[1])
             a.wait()
@@ -57,7 +57,6 @@ class PushTest(unittest.TestCase):
                                   "BADHASH") ],
                        'expectException': True },
                      { 'cmds': [ ("isdir /mnt/sdcard/baz", "FALSE"),
-                                 ('info os', 'android'),
                                  ("isdir /mnt", "FALSE"),
                                  ("mkdr /mnt",
                                   "##AGENT-WARNING## Could not create the directory /mnt") ],
@@ -73,7 +72,7 @@ class PushTest(unittest.TestCase):
                 d = mozdevice.DroidSUT("127.0.0.1", port=a.port,
                                        logLevel=mozlog.DEBUG)
                 d.pushDir(tempdir, "/mnt/sdcard")
-            except mozdevice.DMError:
+            except mozdevice.DMError, e:
                 exceptionThrown = True
             self.assertEqual(exceptionThrown, subTest['expectException'])
 

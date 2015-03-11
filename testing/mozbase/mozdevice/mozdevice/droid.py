@@ -156,13 +156,7 @@ class DroidADB(DeviceManagerADB, DroidMixin):
 
     def getTopActivity(self):
         package = None
-        data = None
-        try:
-            data = self.shellCheckOutput(["dumpsys", "window", "windows"])
-        except:
-            # dumpsys seems to intermittently fail (seen on 4.3 emulator), producing
-            # no output.
-            return ""
+        data = self.shellCheckOutput(["dumpsys", "window", "windows"])
         # "dumpsys window windows" produces many lines of input. The top/foreground
         # activity is indicated by something like:
         #   mFocusedApp=AppWindowToken{483e6db0 token=HistoryRecord{484dcad8 com.mozilla.SUTAgentAndroid/.SUTAgentAndroid}}
@@ -179,19 +173,8 @@ class DroidADB(DeviceManagerADB, DroidMixin):
             if m:
                 package = m.group(1)
         if not package:
-            # On some Android 4.4 devices, when the home screen is displayed,
-            # dumpsys reports "mFocusedApp=null". Guard against this case and
-            # others where the focused app can not be determined by returning
-            # an empty string -- same as sutagent.
-            package = ""
+            raise DMError("unable to find focused app")
         return package
-
-    def getAppRoot(self, packageName):
-        """
-        Returns the root directory for the specified android application
-        """
-        # relying on convention
-        return '/data/data/%s' % packageName
 
 class DroidSUT(DeviceManagerSUT, DroidMixin):
 
@@ -221,9 +204,6 @@ class DroidSUT(DeviceManagerSUT, DroidMixin):
 
     def getTopActivity(self):
         return self._runCmds([{ 'cmd': "activity" }]).strip()
-
-    def getAppRoot(self, packageName):
-        return self._runCmds([{ 'cmd': 'getapproot %s' % packageName }]).strip()
 
 def DroidConnectByHWID(hwid, timeout=30, **kwargs):
     """Try to connect to the given device by waiting for it to show up using mDNS with the given timeout."""
