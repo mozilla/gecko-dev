@@ -1896,6 +1896,13 @@ RadioInterface.prototype = {
       case "otastatuschange":
         gMobileConnectionService.notifyOtaStatusChanged(this.clientId, message.status);
         break;
+      case "radioNeeded":
+        gMobileConnectionService.getItemByServiceId(this.clientId).setRadioEnabled(true, {
+          notifySuccess: function () {},
+          notifyError: function () {},
+          QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileConnectionCallback])
+        });
+        break;
       case "radiostatechange":
         // gRadioEnabledController should know the radio state for each client,
         // so notify gRadioEnabledController here.

@@ -1642,7 +1642,7 @@ RilObject.prototype = {
           onerror: onerror
         };
 
-        this.setRadioEnabled({enabled: true});
+        this.sendChromeMessage({rilMessageType: "radioNeeded"});
         return;
       }
 
