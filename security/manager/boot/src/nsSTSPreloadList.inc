@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1436613289776000);
+const PRTime gPreloadListExpirationTime = INT64_C(1437214443383000);
 
 class nsSTSPreload
 {
@@ -254,7 +254,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "errors.zenpayroll.com", false },
   { "espra.com", true },
   { "ethack.org", true },
-  { "ethitter.com", true },
   { "eurotramp.com", true },
   { "everhome.de", true },
   { "evstatus.com", true },
@@ -314,7 +313,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "googleplex.com", true },
   { "goto.google.com", true },
   { "gplintegratedit.com", true },
-  { "grc.com", true },
+  { "grc.com", false },
   { "greensolid.biz", true },
   { "grepular.com", true },
   { "groups.google.com", true },
@@ -362,7 +361,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "id.mayfirst.org", false },
   { "ideaweb.de", true },
   { "ihrlotto.de", true },
-  { "ilikerainbows.co.uk", true },
+  { "ilikerainbows.co.uk", false },
   { "imaginary.ca", true },
   { "imouto.my", false },
   { "in.xero.com", false },
@@ -484,7 +483,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mattmccutchen.net", true },
   { "mbp.banking.co.at", false },
   { "md5file.com", true },
-  { "mdfnet.se", true },
+  { "mdfnet.se", false },
   { "meamod.com", true },
   { "mediacru.sh", true },
   { "medium.com", true },
@@ -873,7 +872,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.gamesdepartment.co.uk", false },
   { "www.getcloak.com", false },
   { "www.gov.uk", false },
-  { "www.grc.com", true },
+  { "www.grc.com", false },
   { "www.heliosnet.com", true },
   { "www.honeybadger.io", false },
   { "www.intercom.io", false },
