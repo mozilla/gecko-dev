@@ -53,6 +53,7 @@ static StaticRefPtr<GeckoTouchDispatcher> sTouchDispatcher;
 
 GeckoTouchDispatcher::GeckoTouchDispatcher()
   : mTouchQueueLock("GeckoTouchDispatcher::mTouchQueueLock")
+  , mHavePendingTouchMoves(false)
   , mTouchEventsFiltered(false)
 {
   // Since GeckoTouchDispatcher is initialized when input is initialized
@@ -110,6 +111,7 @@ GeckoTouchDispatcher::NotifyTouch(MultiTouchInput& aTouch, TimeStamp aEventTime)
   if (aTouch.mType == MultiTouchInput::MULTITOUCH_MOVE) {
     MutexAutoLock lock(mTouchQueueLock);
     mTouchMoveEvents.push_back(aTouch);
+    mHavePendingTouchMoves = true;
     if (mResamplingEnabled) {
       return;
     }
@@ -129,9 +131,10 @@ GeckoTouchDispatcher::DispatchTouchMoveEvents(TimeStamp aVsyncTime)
 
   {
     MutexAutoLock lock(mTouchQueueLock);
-    if (mTouchMoveEvents.empty()) {
+    if (!mHavePendingTouchMoves) {
       return;
     }
+    mHavePendingTouchMoves = false;
 
     if (mResamplingEnabled) {
       int touchCount = mTouchMoveEvents.size();
