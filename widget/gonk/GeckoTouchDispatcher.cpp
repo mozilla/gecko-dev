@@ -87,26 +87,16 @@ GeckoTouchDispatcher::SetCompositorVsyncObserver(mozilla::layers::CompositorVsyn
 }
 
 // Timestamp is in nanoseconds
-/* static */ bool
+/* static */ void
 GeckoTouchDispatcher::NotifyVsync(TimeStamp aVsyncTimestamp)
 {
   if ((sTouchDispatcher == nullptr) || !gfxPrefs::TouchResampling()) {
-    return false;
+    return;
   }
 
   MOZ_ASSERT(sTouchDispatcher->mResamplingEnabled);
-  bool haveTouchData = false;
-  {
-    MutexAutoLock lock(sTouchDispatcher->mTouchQueueLock);
-    haveTouchData = !sTouchDispatcher->mTouchMoveEvents.empty();
-  }
-
-  if (haveTouchData) {
-    layers::APZThreadUtils::AssertOnControllerThread();
-    sTouchDispatcher->DispatchTouchMoveEvents(aVsyncTimestamp);
-  }
-
-  return haveTouchData;
+  layers::APZThreadUtils::AssertOnControllerThread();
+  sTouchDispatcher->DispatchTouchMoveEvents(aVsyncTimestamp);
 }
 
 // Touch data timestamps are in milliseconds, aEventTime is in nanoseconds
