@@ -49,6 +49,7 @@ public:
   GeckoTouchDispatcher();
   void NotifyTouch(MultiTouchInput& aTouch, TimeStamp aEventTime);
   void DispatchTouchEvent(MultiTouchInput aMultiTouch);
+  void DispatchTouchNonMoveEvent(MultiTouchInput aInput);
   void DispatchTouchMoveEvents(TimeStamp aVsyncTime);
   static void NotifyVsync(TimeStamp aVsyncTimestamp);
   static void SetCompositorVsyncObserver(layers::CompositorVsyncObserver* aObserver);
@@ -64,6 +65,7 @@ private:
   Mutex mTouchQueueLock;
   std::vector<MultiTouchInput> mTouchMoveEvents;
   bool mHavePendingTouchMoves;
+  int mInflightNonMoveEvents;
   // end stuff protected by mTouchQueueLock
 
   bool mResamplingEnabled;
