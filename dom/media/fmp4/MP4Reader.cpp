@@ -15,8 +15,12 @@
 #include "Layers.h"
 #include "SharedThreadPool.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/dom/TimeRanges.h"
+#include "mp4_demuxer/AnnexB.h"
+#include "mp4_demuxer/H264.h"
 #include "SharedDecoderManager.h"
+#include <algorithm>
 
 #ifdef MOZ_EME
 #include "mozilla/CDMProxy.h"
@@ -63,6 +67,41 @@ TrackTypeToStr(TrackType aTrack)
   }
 }
 #endif
+
+bool
+AccumulateSPSTelemetry(const ByteBuffer* aExtradata)
+{
+  SPSData spsdata;
+  if (H264::DecodeSPSFromExtraData(aExtradata, spsdata)) {
+   uint8_t constraints = (spsdata.constraint_set0_flag ? (1 << 0) : 0) |
+                         (spsdata.constraint_set1_flag ? (1 << 1) : 0) |
+                         (spsdata.constraint_set2_flag ? (1 << 2) : 0) |
+                         (spsdata.constraint_set3_flag ? (1 << 3) : 0) |
+                         (spsdata.constraint_set4_flag ? (1 << 4) : 0) |
+                         (spsdata.constraint_set5_flag ? (1 << 5) : 0);
+    Telemetry::Accumulate(Telemetry::VIDEO_DECODED_H264_SPS_CONSTRAINT_SET_FLAG,
+                          constraints);
+
+    // Collect profile_idc values up to 244, otherwise 0 for unknown.
+    Telemetry::Accumulate(Telemetry::VIDEO_DECODED_H264_SPS_PROFILE,
+                          spsdata.profile_idc <= 244 ? spsdata.profile_idc : 0);
+
+    // Make sure level_idc represents a value between levels 1 and 5.2,
+    // otherwise collect 0 for unknown level.
+    Telemetry::Accumulate(Telemetry::VIDEO_DECODED_H264_SPS_LEVEL,
+                          (spsdata.level_idc >= 10 && spsdata.level_idc <= 52) ?
+                          spsdata.level_idc : 0);
+
+    // max_num_ref_frames should be between 0 and 16, anything larger will
+    // be treated as invalid.
+    Telemetry::Accumulate(Telemetry::VIDEO_H264_SPS_MAX_NUM_REF_FRAMES,
+                          std::min(spsdata.max_num_ref_frames, 17u));
+
+    return true;
+  }
+
+  return false;
+}
 
 // MP4Demuxer wants to do various blocking reads, which cause deadlocks while
 // mDemuxerMonitor is held. This stuff should really be redesigned, but we don't
@@ -114,6 +153,7 @@ MP4Reader::MP4Reader(AbstractMediaDecoder* aDecoder)
   , mLastReportedNumDecodedFrames(0)
   , mLayersBackendType(layers::LayersBackend::LAYERS_NONE)
   , mDemuxerInitialized(false)
+  , mFoundSPSForTelemetry(false)
   , mIsEncrypted(false)
   , mIndexReady(false)
   , mDemuxerMonitor("MP4 Demuxer")
@@ -464,6 +504,11 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
     nsresult rv = mVideo.mDecoder->Init();
     NS_ENSURE_SUCCESS(rv, rv);
     mInfo.mVideo.mIsHardwareAccelerated = mVideo.mDecoder->IsHardwareAccelerated();
+
+    // Collect telemetry from h264 AVCC SPS.
+    if (!mFoundSPSForTelemetry) {
+      mFoundSPSForTelemetry = AccumulateSPSTelemetry(video.extra_data);
+    }
   }
 
   // Get the duration, and report it to the decoder if we have it.
@@ -680,6 +725,13 @@ MP4Reader::Update(TrackType aTrack)
 
   if (needInput) {
     MP4Sample* sample = PopSample(aTrack);
+
+    // Collect telemetry from h264 Annex B SPS.
+    if (!mFoundSPSForTelemetry && sample && AnnexB::HasSPS(sample)) {
+      nsRefPtr<ByteBuffer> extradata = AnnexB::ExtractExtraData(sample);
+      mFoundSPSForTelemetry = AccumulateSPSTelemetry(extradata);
+    }
+
     if (sample) {
       decoder.mDecoder->Input(sample);
       if (aTrack == kVideo) {

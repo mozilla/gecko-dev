@@ -12,6 +12,7 @@
 #include "SharedThreadPool.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Base64.h"
+#include "mozilla/Telemetry.h"
 #include "nsIRandomGenerator.h"
 #include "nsIServiceManager.h"
 #include "MediaTaskQueue.h"
@@ -224,13 +225,31 @@ ExtractH264CodecDetails(const nsAString& aCodec,
     return false;
   }
 
-  // Extract the profile_idc, constrains, and level_idc.
+  // Extract the profile_idc and level_idc.
   nsresult rv = NS_OK;
   aProfile = PromiseFlatString(Substring(aCodec, 5, 2)).ToInteger(&rv, 16);
   NS_ENSURE_SUCCESS(rv, false);
 
   aLevel = PromiseFlatString(Substring(aCodec, 9, 2)).ToInteger(&rv, 16);
   NS_ENSURE_SUCCESS(rv, false);
+
+  // Capture the constraint_set flag value for the purpose of Telemetry.
+  // We don't NS_ENSURE_SUCCESS here because ExtractH264CodecDetails doesn't
+  // care about this, but we make sure constraints is above 4 (constraint_set5_flag)
+  // otherwise collect 0 for unknown.
+  uint8_t constraints = PromiseFlatString(Substring(aCodec, 7, 2)).ToInteger(&rv, 16);
+  Telemetry::Accumulate(Telemetry::VIDEO_CANPLAYTYPE_H264_CONSTRAINT_SET_FLAG,
+                        constraints >= 4 ? constraints : 0);
+
+  // 244 is the highest meaningful profile value (High 4:4:4 Intra Profile)
+  // that can be represented as single hex byte, otherwise collect 0 for unknown.
+  Telemetry::Accumulate(Telemetry::VIDEO_CANPLAYTYPE_H264_PROFILE,
+                        aProfile <= 244 ? aProfile : 0);
+
+  // Make sure aLevel represents a value between levels 1 and 5.2,
+  // otherwise collect 0 for unknown.
+  Telemetry::Accumulate(Telemetry::VIDEO_CANPLAYTYPE_H264_LEVEL,
+                        (aLevel >= 10 && aLevel <= 52) ? aLevel : 0);
 
   return true;
 }
