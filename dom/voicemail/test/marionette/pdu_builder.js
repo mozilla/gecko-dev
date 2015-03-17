@@ -116,7 +116,7 @@ let PDUBuilder = {
       };
     }
 
-    let encodedBodyLength = options.body.length;
+    let encodedBodyLength = (options.body) ? options.body.length : 0;
     let headerOctets = (headerLength ? headerLength + 1 : 0);
 
     let paddingBits;
@@ -141,9 +141,11 @@ let PDUBuilder = {
       }
     }
 
-    this.writeStringAsSeptets(options.body, paddingBits,
-                              RIL.PDU_NL_IDENTIFIER_DEFAULT,
-                              RIL.PDU_NL_IDENTIFIER_DEFAULT);
+    if (encodedBodyLength > 0) {
+      this.writeStringAsSeptets(options.body, paddingBits,
+                                RIL.PDU_NL_IDENTIFIER_DEFAULT,
+                                RIL.PDU_NL_IDENTIFIER_DEFAULT);
+    }
     return this.buf;
   }
 };

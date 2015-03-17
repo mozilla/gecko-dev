@@ -357,6 +357,12 @@ protected:
   StopInternal() = 0;
 
   /**
+   * Enable/disable snoop log
+   */
+  virtual void
+  ConfigHciDumpLog(bool aEnabled) = 0;
+
+  /**
    * Called when XPCOM first creates this service.
    */
   virtual nsresult
