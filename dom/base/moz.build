@@ -180,8 +180,6 @@ EXPORTS.mozilla.dom += [
     'NodeInfoInlines.h',
     'NodeIterator.h',
     'PerformanceEntry.h',
-    'PerformanceMark.h',
-    'PerformanceMeasure.h',
     'PerformanceResourceTiming.h',
     'ResponsiveImageSelector.h',
     'ScreenOrientation.h',
@@ -264,6 +262,7 @@ UNIFIED_SOURCES += [
     'nsFocusManager.cpp',
     'nsFormData.cpp',
     'nsFrameLoader.cpp',
+    'nsFrameMessageManager.cpp',
     'nsGenConImageContent.cpp',
     'nsGenericDOMDataNode.cpp',
     'nsGkAtoms.cpp',
@@ -317,8 +316,6 @@ UNIFIED_SOURCES += [
     'nsXMLHttpRequest.cpp',
     'nsXMLNameSpaceMap.cpp',
     'PerformanceEntry.cpp',
-    'PerformanceMark.cpp',
-    'PerformanceMeasure.cpp',
     'PerformanceResourceTiming.cpp',
     'ResponsiveImageSelector.cpp',
     'ScriptSettings.cpp',
@@ -347,8 +344,6 @@ SOURCES += [
     'nsContentUtils.cpp',
     # this file doesn't like windows.h
     'nsDOMWindowUtils.cpp',
-    # Conflicts with windows.h's definition of SendMessage.
-    'nsFrameMessageManager.cpp',
     # This file has a #error "Never include windows.h in this file!"
     'nsGlobalWindow.cpp',
     # Conflicts with windows.h's definition of LoadImage.
