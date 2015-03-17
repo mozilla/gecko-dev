@@ -548,6 +548,25 @@ InitOnContentProcessCreated()
     mozilla::dom::time::InitializeDateCacheCleaner();
 }
 
+#ifdef MOZ_NUWA_PROCESS
+static void
+ResetTransports(void* aUnused) {
+  ContentChild* child = ContentChild::GetSingleton();
+  mozilla::ipc::Transport* transport = child->GetTransport();
+  int fd = transport->GetFileDescriptor();
+  transport->ResetFileDescriptor(fd);
+
+  IToplevelProtocol* toplevel = child->GetFirstOpenedActors();
+  while (toplevel != nullptr) {
+      transport = toplevel->GetTransport();
+      fd = transport->GetFileDescriptor();
+      transport->ResetFileDescriptor(fd);
+
+      toplevel = toplevel->getNext();
+  }
+}
+#endif
+
 #if defined(MOZ_TASK_TRACER) && defined(MOZ_NUWA_PROCESS)
 static void
 ReinitTaskTracer(void* /*aUnused*/)
@@ -642,6 +661,12 @@ ContentChild::Init(MessageLoop* aIOLoop,
 #if defined(MOZ_TASK_TRACER) && defined (MOZ_NUWA_PROCESS)
     if (IsNuwaProcess()) {
         NuwaAddConstructor(ReinitTaskTracer, nullptr);
+    }
+#endif
+
+#ifdef MOZ_NUWA_PROCESS
+    if (IsNuwaProcess()) {
+      NuwaAddConstructor(ResetTransports, nullptr);
     }
 #endif
 
@@ -2353,18 +2378,6 @@ public:
         // In the new process.
         ContentChild* child = ContentChild::GetSingleton();
         child->SetProcessName(NS_LITERAL_STRING("(Preallocated app)"), false);
-        mozilla::ipc::Transport* transport = child->GetTransport();
-        int fd = transport->GetFileDescriptor();
-        transport->ResetFileDescriptor(fd);
-
-        IToplevelProtocol* toplevel = child->GetFirstOpenedActors();
-        while (toplevel != nullptr) {
-            transport = toplevel->GetTransport();
-            fd = transport->GetFileDescriptor();
-            transport->ResetFileDescriptor(fd);
-
-            toplevel = toplevel->getNext();
-        }
 
         // Perform other after-fork initializations.
         InitOnContentProcessCreated();
