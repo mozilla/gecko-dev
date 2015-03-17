@@ -484,8 +484,6 @@ public:
 
     nsIntPoint GetChromeDisplacement() { return mChromeDisp; };
 
-    bool IPCOpen() { return mIPCOpen; }
-
 protected:
     virtual ~TabChild();
 
@@ -622,7 +620,6 @@ private:
     TabId mUniqueId;
     float mDPI;
     double mDefaultScale;
-    bool mIPCOpen;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);
 };
