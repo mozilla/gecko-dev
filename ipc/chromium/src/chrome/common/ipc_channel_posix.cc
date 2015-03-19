@@ -828,6 +828,8 @@ void Channel::ChannelImpl::OnFileCanReadWithoutBlocking(int fd) {
     if (!ProcessIncomingMessages()) {
       Close();
       listener_->OnChannelError();
+      // The OnChannelError() call may delete this, so we need to exit now.
+      return;
     }
   }
 
