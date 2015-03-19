@@ -15,15 +15,15 @@
   <remote fetch="https://git.mozilla.org/external/apitrace" name="apitrace"/>
   <default remote="caf" revision="refs/tags/android-4.0.4_r2.1" sync-j="4"/>
   <!-- Gonk specific things and forks -->
-  <project name="platform_build" path="build" remote="b2g" revision="df362ace56338da8173d30d3e09e08c42c1accfa">
+  <project name="platform_build" path="build" remote="b2g" revision="05bfa210e684e07b3c884a3e6784100656eeb87f">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
   <project name="fake-dalvik" path="dalvik" remote="b2g" revision="ca1f327d5acc198bb4be62fa51db2c039032c9ce"/>
   <project name="gaia.git" path="gaia" remote="mozillaorg" revision="539844a978acf7a32d4e8be49a2c5503c189fdae"/>
-  <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="8c5468f8e6079249d8065c5c3f05b526e260e0d6"/>
+  <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="6c6daa88dc3fc30df7b70837c536d868ba87673e"/>
   <project name="rilproxy" path="rilproxy" remote="b2g" revision="827214fcf38d6569aeb5c6d6f31cb296d1f09272"/>
-  <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="d5d3f93914558b6f168447b805cd799c8233e300"/>
-  <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="6fa7a4936414ceb4055fd27f7a30e76790f834fb"/>
+  <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="72067ca0cb52bda5426913ad1eb89842929c0296"/>
+  <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="6bfddcebdf18b159340c6d65d00fb767b6b7121f"/>
   <project name="moztt" path="external/moztt" remote="b2g" revision="fe893bb760a3bb64375f62fdf4762a58c59df9ef"/>
   <project name="apitrace" path="external/apitrace" remote="apitrace" revision="34ea6163f9f0e0122fb0bb03607eccdca31ced7a"/>
   <!-- Stock Android things -->
