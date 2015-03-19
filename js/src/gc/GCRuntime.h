@@ -322,6 +322,12 @@ class GCRuntime
     void finishGC(JS::gcreason::Reason reason);
     void gcDebugSlice(SliceBudget &budget);
 
+    void triggerFullGCForAtoms() {
+        MOZ_ASSERT(fullGCForAtomsRequested_);
+        fullGCForAtomsRequested_ = false;
+        triggerGC(JS::gcreason::ALLOC_TRIGGER);
+    }
+
     void runDebugGC();
     inline void poke();
 
@@ -483,6 +489,8 @@ class GCRuntime
     void setGrayBitsInvalid() { grayBitsValid = false; }
 
     bool isGcNeeded() { return minorGCRequested || majorGCRequested; }
+
+    bool fullGCForAtomsRequested() { return fullGCForAtomsRequested_; }
 
     double computeHeapGrowthFactor(size_t lastBytes);
     size_t computeTriggerBytes(double growthFactor, size_t lastBytes);
@@ -701,6 +709,9 @@ class GCRuntime
 
     bool minorGCRequested;
     JS::gcreason::Reason minorGCTriggerReason;
+
+    /* Perform full GC if rt->keepAtoms() becomes false. */
+    bool fullGCForAtomsRequested_;
 
     /* Incremented at the start of every major GC. */
     uint64_t majorGCNumber;
