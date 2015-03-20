@@ -162,14 +162,25 @@ let emulator = (function() {
   }
 
   /**
+   * Convenient helper to compare two call lists. Size should be the same and
+   * order is not important.
+   */
+  function checkCalls(actualCalls, expectedCalls) {
+    if (actualCalls.length == expectedCalls.length) {
+      let expectedSet = new Set(expectedCalls);
+      for (let i = 0; i < actualCalls.length; ++i) {
+        ok(expectedSet.has(actualCalls[i]), "should contain the call");
+      }
+    }
+  }
+
+  /**
    * Convenient helper to check mozTelephony.active and mozTelephony.calls.
    */
   function checkTelephonyActiveAndCalls(active, calls) {
     is(telephony.active, active, "telephony.active");
     is(telephony.calls.length, calls.length, "telephony.calls");
-    for (let i = 0; i < calls.length; ++i) {
-      is(telephony.calls[i], calls[i]);
-    }
+    checkCalls(telephony.calls, calls);
   }
 
   /**
@@ -179,9 +190,7 @@ let emulator = (function() {
   function checkConferenceStateAndCalls(state, calls) {
     is(conference.state, state, "conference.state");
     is(conference.calls.length, calls.length, "conference.calls");
-    for (let i = 0; i < calls.length; i++) {
-      is(conference.calls[i], calls[i]);
-    }
+    checkCalls(conference.calls, calls);
   }
 
   /**
@@ -1012,6 +1021,44 @@ let emulator = (function() {
   }
 
   /**
+   * Hangup conference.
+   *
+   * @return A deferred promise.
+   */
+  function hangUpConference() {
+    log("Hangup conference.");
+
+    let deferred = Promise.defer();
+    let done = function() {
+      deferred.resolve();
+    };
+
+    let pending = ["conference.hangUp", "conference.onstatechange"];
+    let receive = function(name) {
+      receivedPending(name, pending, done);
+    };
+
+    for (let call of conference.calls) {
+      let callName = "Call (" + call.id.number + ')';
+
+      let onstatechange = callName + ".onstatechange";
+      pending.push(onstatechange);
+      check_onstatechange(call, callName, 'disconnected',
+                          receive.bind(null, onstatechange));
+    }
+
+    check_onstatechange(conference, 'conference', '', function() {
+      receive("conference.onstatechange");
+    });
+
+    conference.hangUp().then(() => {
+      receive("conference.hangUp");
+    });
+
+    return deferred.promise;
+  }
+
+  /**
    * Create a conference with an outgoing call and an incoming call.
    *
    * @param outNumber
@@ -1154,6 +1201,7 @@ let emulator = (function() {
   this.gResumeConference = resumeConference;
   this.gRemoveCallInConference = removeCallInConference;
   this.gHangUpCallInConference = hangUpCallInConference;
+  this.gHangUpConference = hangUpConference;
   this.gSetupConference = setupConference;
   this.gReceivedPending = receivedPending;
 }());

@@ -162,7 +162,8 @@ TelephonyIPCService::EnumerateCalls(nsITelephonyListener *aListener)
 
 NS_IMETHODIMP
 TelephonyIPCService::Dial(uint32_t aClientId, const nsAString& aNumber,
-                           bool aIsEmergency, nsITelephonyCallback *aCallback)
+                           bool aIsEmergency,
+                           nsITelephonyDialCallback *aCallback)
 {
   return SendRequest(nullptr, aCallback,
                      DialRequest(aClientId, nsString(aNumber), aIsEmergency));
@@ -250,6 +251,13 @@ TelephonyIPCService::SeparateCall(uint32_t aClientId, uint32_t aCallIndex)
 
   mPTelephonyChild->SendSeparateCall(aClientId, aCallIndex);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+TelephonyIPCService::HangUpConference(uint32_t aClientId,
+                                      nsITelephonyCallback *aCallback)
+{
+  return SendRequest(nullptr, aCallback, HangUpConferenceRequest(aClientId));
 }
 
 NS_IMETHODIMP
