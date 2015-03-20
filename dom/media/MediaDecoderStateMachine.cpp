@@ -399,6 +399,9 @@ void MediaDecoderStateMachine::SendStreamData()
   MOZ_ASSERT(!mAudioSink, "Should've been stopped in CallRunStateMachine()");
 
   DecodedStreamData* stream = mDecoder->GetDecodedStream();
+  if (!stream) {
+    return;
+  }
 
   bool finished =
       (!mInfo.HasAudio() || AudioQueue().IsFinished()) &&
