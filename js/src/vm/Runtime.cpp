@@ -193,6 +193,7 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime, JSUseHelperThreads useHelperThrea
     gcShouldCleanUpEverything(false),
     gcGrayBitsValid(false),
     gcIsNeeded(0),
+    numActiveZoneIters(0),
     gcStats(thisFromCtor()),
     gcNumber(0),
     gcStartNumber(0),

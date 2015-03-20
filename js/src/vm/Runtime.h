@@ -1062,6 +1062,9 @@ struct JSRuntime : public JS::shadow::Runtime,
      */
     volatile uintptr_t  gcIsNeeded;
 
+    mozilla::Atomic<size_t, mozilla::ReleaseAcquire> numActiveZoneIters;
+    friend class js::gc::AutoEnterIteration;
+
     js::gcstats::Statistics gcStats;
 
     /* Incremented on every GC slice. */
