@@ -26,6 +26,7 @@ EXPORTS += [
     'ImageContainer.h',
     'ImageLayers.h',
     'ImageTypes.h',
+    'IMFYCbCrImage.h',
     'ipc/ThreadSafeRefcountingWithMainThreadDestruction.h',
     'Layers.h',
     'LayerScope.h',
@@ -44,6 +45,7 @@ EXPORTS += [
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     UNIFIED_SOURCES += [
         'D3D9SurfaceImage.cpp',
+        'IMFYCbCrImage.cpp',
         'TextureDIB.cpp',
     ]
     EXPORTS.mozilla.layers += [
