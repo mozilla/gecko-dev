@@ -295,10 +295,11 @@ enum ZoneSelector {
 
 class ZonesIter
 {
+    gc::AutoEnterIteration iterMarker;
     JS::Zone** it, **end;
 
   public:
-    ZonesIter(JSRuntime* rt, ZoneSelector selector) {
+    ZonesIter(JSRuntime* rt, ZoneSelector selector) : iterMarker(&rt->gc) {
         it = rt->gc.zones.begin();
         end = rt->gc.zones.end();
 
@@ -369,12 +370,13 @@ struct CompartmentsInZoneIter
 template<class ZonesIterT>
 class CompartmentsIterT
 {
+    gc::AutoEnterIteration iterMarker;
     ZonesIterT zone;
     mozilla::Maybe<CompartmentsInZoneIter> comp;
 
   public:
     explicit CompartmentsIterT(JSRuntime* rt)
-      : zone(rt)
+      : iterMarker(&rt->gc), zone(rt)
     {
         if (zone.done())
             comp.construct();
@@ -383,7 +385,7 @@ class CompartmentsIterT
     }
 
     CompartmentsIterT(JSRuntime* rt, ZoneSelector selector)
-      : zone(rt, selector)
+      : iterMarker(&rt->gc), zone(rt, selector)
     {
         if (zone.done())
             comp.construct();

@@ -335,6 +335,8 @@ class GCRuntime
 
     JSGCMode              mode;
 
+    mozilla::Atomic<size_t, mozilla::ReleaseAcquire> numActiveZoneIters;
+
     size_t                allocationThreshold;
     bool                  highFrequencyGC;
     uint64_t              highFrequencyTimeThreshold;
@@ -574,6 +576,22 @@ class GCRuntime
 
     friend class js::GCHelperState;
     friend class js::gc::MarkingValidator;
+    friend class AutoEnterIteration;
+};
+
+/* Prevent compartments and zones from being collected during iteration. */
+class AutoEnterIteration {
+    GCRuntime *gc;
+
+  public:
+    AutoEnterIteration(GCRuntime *gc_) : gc(gc_) {
+        ++gc->numActiveZoneIters;
+    }
+
+    ~AutoEnterIteration() {
+        MOZ_ASSERT(gc->numActiveZoneIters);
+        --gc->numActiveZoneIters;
+    }
 };
 
 #ifdef JS_GC_ZEAL
