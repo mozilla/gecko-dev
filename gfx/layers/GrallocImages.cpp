@@ -28,7 +28,7 @@ namespace layers {
 uint32_t GrallocImage::sColorIdMap[] = {
     HAL_PIXEL_FORMAT_YCbCr_420_P, OMX_COLOR_FormatYUV420Planar,
     HAL_PIXEL_FORMAT_YCbCr_422_P, OMX_COLOR_FormatYUV422Planar,
-    HAL_PIXEL_FORMAT_YCbCr_420_SP, OMX_COLOR_FormatYUV420SemiPlanar,
+    HAL_PIXEL_FORMAT_YCbCr_420_SP, HAL_PIXEL_FORMAT_YCbCr_420_SP,
     HAL_PIXEL_FORMAT_YCrCb_420_SP, -1,
     HAL_PIXEL_FORMAT_YCrCb_420_SP_ADRENO, -1,
     HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED, HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED,
@@ -236,7 +236,8 @@ ConvertVendorYUVFormatToRGB565(android::sp<GraphicBuffer>& aBuffer,
 
   GraphicBufferAutoUnlock unlock(aBuffer);
 
-  uint32_t width = aSurface->GetSize().width;
+  // To take alignment into account, use stride instead of width. (See also bug#1065492)
+  uint32_t width = aMappedSurface->mStride/gfx::BytesPerPixel(gfx::SurfaceFormat::R5G6B5);
   uint32_t height = aSurface->GetSize().height;
 
   if (ycbcr.chroma_step == 2) {
