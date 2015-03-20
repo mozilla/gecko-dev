@@ -4209,8 +4209,8 @@ nsDocShell::IsPrintingOrPP(bool aDisplayErrorDialog)
 bool
 nsDocShell::IsNavigationAllowed(bool aDisplayPrintErrorDialog)
 {
-  bool isAllowed = !IsPrintingOrPP(aDisplayPrintErrorDialog) && !mFiredUnloadEvent;
-  if (!isAllowed) {
+  bool isAllowed = !IsPrintingOrPP(aDisplayPrintErrorDialog) &&
+                   !mFiredUnloadEvent && !mBlockNavigation;  if (!isAllowed) {
     return false;
   }
   if (!mContentViewer) {
@@ -9321,13 +9321,18 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             GetCurScrollPos(ScrollOrientation_X, &cx);
             GetCurScrollPos(ScrollOrientation_Y, &cy);
 
-            // ScrollToAnchor doesn't necessarily cause us to scroll the window;
-            // the function decides whether a scroll is appropriate based on the
-            // arguments it receives.  But even if we don't end up scrolling,
-            // ScrollToAnchor performs other important tasks, such as informing
-            // the presShell that we have a new hash.  See bug 680257.
-            rv = ScrollToAnchor(curHash, newHash, aLoadType);
-            NS_ENSURE_SUCCESS(rv, rv);
+            {
+                AutoRestore<bool> scrollingToAnchor(mBlockNavigation);
+                mBlockNavigation = true;
+
+                // ScrollToAnchor doesn't necessarily cause us to scroll the window;
+                // the function decides whether a scroll is appropriate based on the
+                // arguments it receives.  But even if we don't end up scrolling,
+                // ScrollToAnchor performs other important tasks, such as informing
+                // the presShell that we have a new hash.  See bug 680257.
+                rv = ScrollToAnchor(curHash, newHash, aLoadType);
+                NS_ENSURE_SUCCESS(rv, rv);
+            }
 
             // Reset mLoadType to its original value once we exit this block,
             // because this short-circuited load might have started after a
