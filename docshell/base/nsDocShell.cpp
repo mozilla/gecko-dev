@@ -1310,7 +1310,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
     
     // Note: we allow loads to get through here even if mFiredUnloadEvent is
     // true; that case will get handled in LoadInternal or LoadHistoryEntry.
-    if (IsPrintingOrPP()) {
+    if (IsPrintingOrPP() || mBlockNavigation) {
       return NS_OK; // JS may not handle returning of an error code
     }
 
