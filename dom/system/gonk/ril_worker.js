@@ -7368,21 +7368,21 @@ GsmPDUHelperObject.prototype = {
   },
 
   /**
-   * Convert a semi-octet (number) to a GSM BCD char, or return empty
-   * string if invalid semiOctet and suppressException is set to true.
+   * Convert a semi-octet (number) to a GSM BCD char, or return empty string
+   * if invalid semiOctet and supressException is set to true.
    *
    * @param semiOctet
    *        Nibble to be converted to.
-   * @param suppressException [optional]
-   *        Suppress exception if invalid semiOctet and suppressException is set
+   * @param [optional] supressException
+   *        Supress exception if invalid semiOctet and supressException is set
    *        to true.
    *
    * @return GSM BCD char, or empty string.
    */
-  bcdChars: "0123456789",
-  semiOctetToBcdChar: function(semiOctet, suppressException) {
-    if (semiOctet >= this.bcdChars.length) {
-      if (suppressException) {
+  bcdChars: "0123456789*#,;",
+  semiOctetToBcdChar: function(semiOctet, supressException) {
+    if (semiOctet >= 14) {
+      if (supressException) {
         return "";
       } else {
         throw new RangeError();
@@ -7390,31 +7390,6 @@ GsmPDUHelperObject.prototype = {
     }
 
     return this.bcdChars.charAt(semiOctet);
-  },
-
-  /**
-   * Convert a semi-octet (number) to a GSM extended BCD char, or return empty
-   * string if invalid semiOctet and suppressException is set to true.
-   *
-   * @param semiOctet
-   *        Nibble to be converted to.
-   * @param suppressException [optional]
-   *        Suppress exception if invalid semiOctet and suppressException is set
-   *        to true.
-   *
-   * @return GSM extended BCD char, or empty string.
-   */
-  extendedBcdChars: "0123456789*#,;",
-  semiOctetToExtendedBcdChar: function(semiOctet, suppressException) {
-    if (semiOctet >= this.extendedBcdChars.length) {
-      if (suppressException) {
-        return "";
-      } else {
-        throw new RangeError();
-      }
-    }
-
-    return this.extendedBcdChars.charAt(semiOctet);
   },
 
   /**
@@ -7447,17 +7422,17 @@ GsmPDUHelperObject.prototype = {
   },
 
   /**
-   * Read a *swapped nibble* binary coded decimal (BCD) string
+   * Read a *swapped nibble* binary coded string (BCD)
    *
    * @param pairs
    *        Number of nibble *pairs* to read.
-   * @param suppressException [optional]
-   *        Suppress exception if invalid semiOctet and suppressException is set
+   * @param [optional] supressException
+   *        Supress exception if invalid semiOctet and supressException is set
    *        to true.
    *
    * @return The BCD string.
    */
-  readSwappedNibbleBcdString: function(pairs, suppressException) {
+  readSwappedNibbleBcdString: function(pairs, supressException) {
     let str = "";
     for (let i = 0; i < pairs; i++) {
       let nibbleH = this.readHexNibble();
@@ -7466,38 +7441,9 @@ GsmPDUHelperObject.prototype = {
         break;
       }
 
-      str += this.semiOctetToBcdChar(nibbleL, suppressException);
+      str += this.semiOctetToBcdChar(nibbleL, supressException);
       if (nibbleH != 0x0F) {
-        str += this.semiOctetToBcdChar(nibbleH, suppressException);
-      }
-    }
-
-    return str;
-  },
-
-  /**
-   * Read a *swapped nibble* extended binary coded decimal (BCD) string
-   *
-   * @param pairs
-   *        Number of nibble *pairs* to read.
-   * @param suppressException [optional]
-   *        Suppress exception if invalid semiOctet and suppressException is set
-   *        to true.
-   *
-   * @return The BCD string.
-   */
-  readSwappedNibbleExtendedBcdString: function(pairs, suppressException) {
-    let str = "";
-    for (let i = 0; i < pairs; i++) {
-      let nibbleH = this.readHexNibble();
-      let nibbleL = this.readHexNibble();
-      if (nibbleL == 0x0F) {
-        break;
-      }
-
-      str += this.semiOctetToExtendedBcdChar(nibbleL, suppressException);
-      if (nibbleH != 0x0F) {
-        str += this.semiOctetToExtendedBcdChar(nibbleH, suppressException);
+        str += this.semiOctetToBcdChar(nibbleH, supressException);
       }
     }
 
@@ -7997,7 +7943,7 @@ GsmPDUHelperObject.prototype = {
           PDU_NL_IDENTIFIER_DEFAULT , PDU_NL_IDENTIFIER_DEFAULT );
       return addr;
     }
-    addr = this.readSwappedNibbleExtendedBcdString(len / 2);
+    addr = this.readSwappedNibbleBcdString(len / 2);
     if (addr.length <= 0) {
       if (DEBUG) this.context.debug("PDU error: no number provided");
       return null;
@@ -8341,7 +8287,7 @@ GsmPDUHelperObject.prototype = {
     if (smscLength > 0) {
       let smscTypeOfAddress = this.readHexOctet();
       // Subtract the type-of-address octet we just read from the length.
-      msg.SMSC = this.readSwappedNibbleExtendedBcdString(smscLength - 1);
+      msg.SMSC = this.readSwappedNibbleBcdString(smscLength - 1);
       if ((smscTypeOfAddress >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
         msg.SMSC = '+' + msg.SMSC;
       }
@@ -10832,7 +10778,7 @@ ICCPDUHelperObject.prototype = {
     // TOA = TON + NPI
     let toa = GsmPDUHelper.readHexOctet();
 
-    let number = GsmPDUHelper.readSwappedNibbleExtendedBcdString(len - 1);
+    let number = GsmPDUHelper.readSwappedNibbleBcdString(len - 1);
     if (number.length <= 0) {
       if (DEBUG) this.context.debug("No number provided");
       return "";
@@ -13122,12 +13068,11 @@ ICCRecordHelperObject.prototype = {
     function callback() {
       let Buf = this.context.Buf;
       let RIL = this.context.RIL;
-      let GsmPDUHelper = this.context.GsmPDUHelper;
 
       let strLen = Buf.readInt32();
       let octetLen = strLen / 2;
       RIL.iccInfo.iccid =
-        GsmPDUHelper.readSwappedNibbleBcdString(octetLen, true);
+        this.context.GsmPDUHelper.readSwappedNibbleBcdString(octetLen, true);
       // Consumes the remaining buffer if any.
       let unReadBuffer = this.context.Buf.getReadAvailable() -
                          this.context.Buf.PDU_HEX_OCTET_SIZE;
@@ -14389,7 +14334,7 @@ SimRecordHelperObject.prototype = {
         let buf = "";
         for (let i = 0; i < reformat.length; i++) {
           if (reformat[i] != 0xF) {
-            buf += GsmPDUHelper.semiOctetToExtendedBcdChar(reformat[i]);
+            buf += GsmPDUHelper.semiOctetToBcdChar(reformat[i]);
           }
           if (i === 2) {
             // 0-2: MCC
@@ -14549,7 +14494,7 @@ SimRecordHelperObject.prototype = {
           let plmnEntry = {};
           for (let i = 0; i < reformat.length; i++) {
             if (reformat[i] != 0xF) {
-              buf += GsmPDUHelper.semiOctetToExtendedBcdChar(reformat[i]);
+              buf += GsmPDUHelper.semiOctetToBcdChar(reformat[i]);
             }
             if (i === 2) {
               // 0-2: MCC
@@ -14931,7 +14876,7 @@ ICCUtilsHelperObject.prototype = {
       }
     } else {
       let GsmPDUHelper = this.context.GsmPDUHelper;
-      let wildChar = GsmPDUHelper.extendedBcdChars.charAt(0x0d);
+      let wildChar = GsmPDUHelper.bcdChars.charAt(0x0d);
       // According to 3GPP TS 31.102 Sec. 4.2.59 and 3GPP TS 51.011 Sec. 10.3.42,
       // the ME shall use this EF_OPL in association with the EF_PNN in place
       // of any network name stored within the ME's internal list and any network
