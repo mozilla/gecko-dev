@@ -3373,6 +3373,7 @@ NS_IMETHODIMP nsPluginHost::Observe(nsISupports *aSubject,
     sInst->Release();
   }
   if (!strcmp(NS_PREFBRANCH_PREFCHANGE_TOPIC_ID, aTopic)) {
+    NS_ConvertUTF16toUTF8 prefName(someData);
     mPluginsDisabled = Preferences::GetBool("plugin.disable", false);
     mPluginsClickToPlay = Preferences::GetBool("plugins.click_to_play", false);
     // Unload or load plugins as needed
@@ -3380,6 +3381,16 @@ NS_IMETHODIMP nsPluginHost::Observe(nsISupports *aSubject,
       UnloadPlugins();
     } else {
       LoadPlugins();
+    }
+    if (prefName.Equals("plugin.disable")) {
+      nsCOMPtr<nsIObserverService> obsService =
+        mozilla::services::GetObserverService();
+      if (obsService) {
+        nsAutoString pluginPolicy;
+        pluginPolicy = mPluginsDisabled ? NS_LITERAL_STRING("disabled")
+                                        : NS_LITERAL_STRING("enabled");
+        obsService->NotifyObservers(nullptr, "plugin-policy-changed", pluginPolicy.get());
+      }
     }
   }
   if (!strcmp("blocklist-updated", aTopic)) {
