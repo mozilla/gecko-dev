@@ -33,12 +33,15 @@ class DeviceManagerADB(DeviceManager):
 
     def __init__(self, host=None, port=5555, retryLimit=5, packageName='fennec',
                  adbPath='adb', deviceSerial=None, deviceRoot=None,
-                 logLevel=mozlog.ERROR, **kwargs):
+                 logLevel=mozlog.ERROR, serverHost=None, serverPort=None, **kwargs):
         DeviceManager.__init__(self, logLevel)
         self.host = host
         self.port = port
         self.retryLimit = retryLimit
         self.deviceRoot = deviceRoot
+
+        self._serverHost = serverHost
+        self._serverPort = serverPort
 
         # the path to adb, or 'adb' to assume that it's on the PATH
         self._adbPath = adbPath
@@ -114,6 +117,10 @@ class DeviceManagerADB(DeviceManager):
 
         # all output should be in stdout
         args=[self._adbPath]
+        if self._serverHost is not None:
+            args.extend(['-H', self._serverHost])
+        if self._serverPort is not None:
+            args.extend(['-P', str(self._serverPort)])
         if self._deviceSerial:
             args.extend(['-s', self._deviceSerial])
         args.extend(["shell", cmdline])
@@ -556,6 +563,10 @@ class DeviceManagerADB(DeviceManager):
         returns: returncode from subprocess.Popen
         """
         finalArgs = [self._adbPath]
+        if self._serverHost is not None:
+            finalArgs.extend(['-H', self._serverHost])
+        if self._serverPort is not None:
+            finalArgs.extend(['-P', str(self._serverPort)])
         if self._deviceSerial:
             finalArgs.extend(['-s', self._deviceSerial])
         finalArgs.extend(args)
@@ -573,6 +584,10 @@ class DeviceManagerADB(DeviceManager):
         """
         retryLimit = retryLimit or self.retryLimit
         finalArgs = [self._adbPath]
+        if self._serverHost is not None:
+            finalArgs.extend(['-H', self._serverHost])
+        if self._serverPort is not None:
+            finalArgs.extend(['-P', str(self._serverPort)])
         if self._deviceSerial:
             finalArgs.extend(['-s', self._deviceSerial])
         finalArgs.extend(args)
@@ -632,7 +647,13 @@ class DeviceManagerADB(DeviceManager):
         # If there is a device serial number, see if adb is connected to it
         if self._deviceSerial:
             deviceStatus = None
-            proc = subprocess.Popen([self._adbPath, "devices"],
+            finalArgs = [self._adbPath]
+            if self._serverHost is not None:
+                finalArgs.extend(['-H', self._serverHost])
+            if self._serverPort is not None:
+                finalArgs.extend(['-P', str(self._serverPort)])
+            finalArgs.append("devices")
+            proc = subprocess.Popen(finalArgs,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
             for line in proc.stdout:

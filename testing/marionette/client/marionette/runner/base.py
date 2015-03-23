@@ -401,6 +401,10 @@ class BaseMarionetteOptions(OptionParser):
                         dest='device_serial',
                         action='store',
                         help='serial ID of a device to use for adb / fastboot')
+        self.add_option('--adb-host',
+                        help='host to use for adb connection')
+        self.add_option('--adb-port',
+                        help='port to use for adb connection')
         self.add_option('--type',
                         dest='type',
                         action='store',
@@ -572,8 +576,7 @@ class BaseMarionetteTestRunner(object):
                  symbols_path=None, timeout=None, es_servers=None, shuffle=False,
                  shuffle_seed=random.randint(0, sys.maxint), sdcard=None,
                  this_chunk=1, total_chunks=1, sources=None, server_root=None,
-                 gecko_log=None,
-                 **kwargs):
+                 gecko_log=None, adb_host=None, adb_port=None, **kwargs):
         self.address = address
         self.emulator = emulator
         self.emulatorBinary = emulatorBinary
@@ -616,6 +619,8 @@ class BaseMarionetteTestRunner(object):
         self.mixin_run_tests = []
         self.manifest_skipped_tests = []
         self.tests = []
+        self._adb_host = adb_host
+        self._adb_port = adb_port
 
         def update(d, u):
             """ Update a dictionary that may contain nested dictionaries. """
@@ -713,6 +718,8 @@ class BaseMarionetteTestRunner(object):
             'device_serial': self.device_serial,
             'symbols_path': self.symbols_path,
             'timeout': self.timeout,
+            'adb_host': self._adb_host,
+            'adb_port': self._adb_port,
         }
         if self.bin:
             kwargs.update({
