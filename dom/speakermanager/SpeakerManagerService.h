@@ -51,7 +51,7 @@ protected:
   // Notify to UA if device speaker status changed
   virtual void Notify();
 
-  void TurnOnSpeaker(bool aEnable);
+  void TuruOnSpeaker(bool aEnable);
 
   nsTArray<nsRefPtr<SpeakerManager> > mRegisteredSpeakerManagers;
   // Set for remember all the child speaker status

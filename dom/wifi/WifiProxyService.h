@@ -38,8 +38,7 @@ private:
   ~WifiProxyService();
 
   nsTArray<EventThreadListEntry> mEventThreadList;
-  nsCOMPtr<nsIThread> mWifiControlThread;
-  nsCOMPtr<nsIThread> mNetUtilControlThread;
+  nsCOMPtr<nsIThread> mControlThread;
   nsCOMPtr<nsIWifiEventListener> mListener;
 };
 

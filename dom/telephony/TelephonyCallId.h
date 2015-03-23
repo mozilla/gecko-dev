@@ -57,12 +57,6 @@ public:
   CallIdPresentation
   NamePresentation() const;
 
-  void
-  UpdateNumber(const nsAString& aNumber)
-  {
-    mNumber = aNumber;
-  }
-
 private:
   ~TelephonyCallId();
 

@@ -200,12 +200,6 @@ IsValidDtmf(const char aChar) {
          (aChar >= 'A' && aChar <= 'D');
 }
 
-static bool
-IsSupportedChld(const int aChld) {
-  // We currently only support CHLD=0~3.
-  return (aChld >= 0 && aChld <= 3);
-}
-
 class BluetoothHfpManager::GetVolumeTask : public nsISettingsServiceCallback
 {
 public:
@@ -624,13 +618,6 @@ BluetoothHfpManager::ProcessDtmfCmd(char aDtmf)
 void
 BluetoothHfpManager::ProcessAtChld(bthf_chld_type_t aChld)
 {
-  if (!IsSupportedChld((int)aChld)) {
-    // We currently don't support Enhanced Call Control.
-    // AT+CHLD=1x and AT+CHLD=2x will be ignored
-    SendResponse(BTHF_AT_RESPONSE_ERROR);
-    return;
-  }
-
   nsAutoCString message("CHLD=");
   message.AppendInt((int)aChld);
   BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::NOTIFY_DIALER,
@@ -659,19 +646,13 @@ void BluetoothHfpManager::ProcessDialCall(char *aNumber)
   } else if (message[0] == '>') {
     mDialingRequestProcessed = false;
     nsAutoCString newMsg("ATD");
-
-    int end = message.FindChar(';');
-    newMsg += StringHead(message, (end < 0) ? message.Length() : end);
-
+    newMsg += StringHead(message, message.Length() - 1);
     BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::NOTIFY_DIALER,
                         NS_ConvertUTF8toUTF16(newMsg));
     BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::POST_TASK_RESPOND_TO_BLDN);
   } else {
     nsAutoCString newMsg("ATD");
-
-    int end = message.FindChar(';');
-    newMsg += StringHead(message, (end < 0) ? message.Length() : end);
-
+    newMsg += StringHead(message, message.Length() - 1);
     BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::NOTIFY_DIALER,
                         NS_ConvertUTF8toUTF16(newMsg));
     SendResponse(BTHF_AT_RESPONSE_OK);

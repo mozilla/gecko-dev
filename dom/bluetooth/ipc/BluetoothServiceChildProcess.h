@@ -207,9 +207,6 @@ private:
   virtual nsresult
   StopInternal() MOZ_OVERRIDE;
 
-  virtual void
-  ConfigHciDumpLog(bool aEnabled) MOZ_OVERRIDE;
-
   bool
   IsSignalRegistered(const nsAString& aNodeName) {
     return !!mBluetoothSignalObserverTable.Get(aNodeName);

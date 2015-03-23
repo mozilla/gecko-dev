@@ -64,7 +64,7 @@ NS_IMPL_ISUPPORTS(SpeakerManagerService, nsIObserver)
 void
 SpeakerManagerService::ForceSpeaker(bool aEnable, uint64_t aChildId)
 {
-  TurnOnSpeaker(aEnable);
+  TuruOnSpeaker(aEnable);
   if (aEnable) {
     mSpeakerStatusSet.Put(aChildId);
   }
@@ -76,14 +76,14 @@ void
 SpeakerManagerService::ForceSpeaker(bool aEnable, bool aVisible)
 {
   // b2g main process without oop
-  TurnOnSpeaker(aEnable && aVisible);
+  TuruOnSpeaker(aEnable && aVisible);
   mVisible = aVisible;
   mOrgSpeakerStatus = aEnable;
   Notify();
 }
 
 void
-SpeakerManagerService::TurnOnSpeaker(bool aOn)
+SpeakerManagerService::TuruOnSpeaker(bool aOn)
 {
   nsCOMPtr<nsIAudioManager> audioManager = do_GetService(NS_AUDIOMANAGER_CONTRACTID);
   NS_ENSURE_TRUE_VOID(audioManager);
@@ -139,9 +139,8 @@ SpeakerManagerService::SetAudioChannelActive(bool aIsActive)
 }
 
 NS_IMETHODIMP
-SpeakerManagerService::Observe(nsISupports* aSubject,
-                               const char* aTopic,
-                               const char16_t* aData)
+SpeakerManagerService::Observe(nsISupports* aSubject, const char* 
+                               aTopic, const char16_t* aData)
 {
   if (!strcmp(aTopic, "ipc:content-shutdown")) {
     nsCOMPtr<nsIPropertyBag2> props = do_QueryInterface(aSubject);
@@ -157,11 +156,11 @@ SpeakerManagerService::Observe(nsISupports* aSubject,
         // If the audio has paused by audiochannel,
         // the enable flag should be false and don't need to handle.
         if (mSpeakerStatusSet.Contains(childID)) {
-          TurnOnSpeaker(false);
+          TuruOnSpeaker(false);
           mSpeakerStatusSet.Remove(childID);
         }
         if (mOrgSpeakerStatus) {
-          TurnOnSpeaker(!mOrgSpeakerStatus);
+          TuruOnSpeaker(!mOrgSpeakerStatus);
           mOrgSpeakerStatus = false;
         }
     } else {

@@ -179,9 +179,6 @@ public:
   virtual nsresult
   SendInputMessage(const nsAString& aDeviceAddresses,
                    const nsAString& aMessage) MOZ_OVERRIDE;
-
-  virtual void ConfigHciDumpLog(bool aEnabled) MOZ_OVERRIDE;
-
 private:
   nsresult SendGetPropertyMessage(const nsAString& aPath,
                                   const char* aInterface,

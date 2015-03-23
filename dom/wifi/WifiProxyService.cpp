@@ -216,16 +216,9 @@ WifiProxyService::Start(nsIWifiEventListener* aListener,
     }
   }
 
-  rv = NS_NewThread(getter_AddRefs(mWifiControlThread));
+  rv = NS_NewThread(getter_AddRefs(mControlThread));
   if (NS_FAILED(rv)) {
     NS_WARNING("Can't create wifi control thread");
-    Shutdown();
-    return NS_ERROR_FAILURE;
-  }
-
-  rv = NS_NewThread(getter_AddRefs(mNetUtilControlThread));
-  if(NS_FAILED(rv)) {
-    NS_WARNING("Can't create netutil control thread");
     Shutdown();
     return NS_ERROR_FAILURE;
   }
@@ -246,14 +239,9 @@ WifiProxyService::Shutdown()
     }
   }
   mEventThreadList.Clear();
-  if (mWifiControlThread) {
-    mWifiControlThread->Shutdown();
-    mWifiControlThread = nullptr;
-  }
-
-  if (mNetUtilControlThread) {
-    mNetUtilControlThread->Shutdown();
-    mNetUtilControlThread = nullptr;
+  if (mControlThread) {
+    mControlThread->Shutdown();
+    mControlThread = nullptr;
   }
   return NS_OK;
 }
@@ -274,17 +262,7 @@ WifiProxyService::SendCommand(JS::Handle<JS::Value> aOptions,
   // Dispatch the command to the control thread.
   CommandOptions commandOptions(options);
   nsCOMPtr<nsIRunnable> runnable = new ControlRunnable(commandOptions, aInterface);
-  if (commandOptions.mCmd.EqualsLiteral("command") ||
-      commandOptions.mCmd.EqualsLiteral("close_supplicant_connection") ||
-      commandOptions.mCmd.EqualsLiteral("load_driver") ||
-      commandOptions.mCmd.EqualsLiteral("unload_driver") ||
-      commandOptions.mCmd.EqualsLiteral("start_supplicant") ||
-      commandOptions.mCmd.EqualsLiteral("stop_supplicant") ||
-      commandOptions.mCmd.EqualsLiteral("connect_to_supplicant")) {
-      mWifiControlThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
-  } else {
-      mNetUtilControlThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
-  }
+  mControlThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
   return NS_OK;
 }
 

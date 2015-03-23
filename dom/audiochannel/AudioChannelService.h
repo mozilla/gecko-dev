@@ -219,11 +219,6 @@ protected:
   // This returns the number of agents from this aWindow.
   uint32_t CountWindow(nsIDOMWindow* aWindow);
 
-  bool
-  PlayingHigherPriorityChannelExists(AudioChannel aChannel,
-                                     bool aElementWasHidden,
-                                     bool aElementHidden);
-
   nsClassHashtable< nsPtrHashKey<AudioChannelAgent>, AudioChannelAgentData > mAgents;
 #ifdef MOZ_WIDGET_GONK
   nsTArray<SpeakerManagerService*>  mSpeakerManager;

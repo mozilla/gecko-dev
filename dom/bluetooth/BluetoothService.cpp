@@ -615,9 +615,6 @@ BluetoothService::HandleSettingsChanged(const nsAString& aData)
 
     SWITCH_BT_DEBUG(value.toBoolean());
 
-    // Enable/disable HCI snoop log
-    sBluetoothService->ConfigHciDumpLog(value.toBoolean());
-
     return NS_OK;
   }
 

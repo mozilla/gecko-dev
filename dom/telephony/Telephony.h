@@ -21,11 +21,6 @@ class nsPIDOMWindow;
 
 namespace mozilla {
 namespace dom {
-namespace telephony {
-
-class TelephonyDialCallback;
-
-} // namespace telephony
 
 class OwningTelephonyCallOrTelephonyCallGroup;
 
@@ -39,10 +34,12 @@ class Telephony MOZ_FINAL : public DOMEventTargetHelper
    * also bug 775997 comment #51.
    */
   class Listener;
-  class EnumerationAck;
 
+  class Callback;
+  friend class Callback;
+
+  class EnumerationAck;
   friend class EnumerationAck;
-  friend class telephony::TelephonyDialCallback;
 
   nsCOMPtr<nsITelephonyService> mService;
   nsRefPtr<Listener> mListener;

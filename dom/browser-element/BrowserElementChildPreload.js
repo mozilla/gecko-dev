@@ -387,10 +387,6 @@ BrowserElementChild.prototype = {
     }
     debug("Nested event loop - finish");
 
-    if (win.modalDepth == 0) {
-      delete this._windowIDDict[outerWindowID];
-    }
-
     // If we exited the loop because the inner window changed, then bail on the
     // modal prompt.
     if (innerWindowID !== this._tryGetInnerWindowID(win)) {
@@ -423,6 +419,7 @@ BrowserElementChild.prototype = {
     }
 
     let win = this._windowIDDict[outerID].get();
+    delete this._windowIDDict[outerID];
 
     if (!win) {
       debug("recvStopWaiting, but window is gone\n");

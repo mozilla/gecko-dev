@@ -81,9 +81,6 @@ public:
   PrepareAdapterInternal();
 
   virtual void
-  ConfigHciDumpLog(bool aEnabled);
-
-  virtual void
   Connect(const nsAString& aDeviceAddress,
           uint32_t aCod,
           uint16_t aServiceUuid,

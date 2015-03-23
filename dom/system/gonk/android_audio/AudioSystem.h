@@ -60,9 +60,6 @@ typedef enum {
     AUDIO_POLICY_FORCE_FOR_MEDIA,
     AUDIO_POLICY_FORCE_FOR_RECORD,
     AUDIO_POLICY_FORCE_FOR_DOCK,
-    AUDIO_POLICY_FORCE_FOR_SYSTEM,
-
-    AUDIO_POLICY_FORCE_FOR_PROPRIETARY,
 
     AUDIO_POLICY_FORCE_USE_CNT,
     AUDIO_POLICY_FORCE_USE_MAX = AUDIO_POLICY_FORCE_USE_CNT - 1,
@@ -398,7 +395,6 @@ enum {
     AUDIO_DEVICE_IN_PROXY                 = AUDIO_DEVICE_BIT_IN | 0x4000,
     AUDIO_DEVICE_IN_FM_RX                 = AUDIO_DEVICE_BIT_IN | 0x8000,
     AUDIO_DEVICE_IN_FM_RX_A2DP            = AUDIO_DEVICE_BIT_IN | 0x10000,
-    AUDIO_DEVICE_IN_FM                    = AUDIO_DEVICE_BIT_IN | 0x1000000,
     AUDIO_DEVICE_IN_DEFAULT               = AUDIO_DEVICE_BIT_IN | AUDIO_DEVICE_BIT_DEFAULT,
 
     AUDIO_DEVICE_IN_ALL     = (AUDIO_DEVICE_IN_COMMUNICATION |
@@ -844,7 +840,6 @@ public:
     static status_t getStreamVolumeIndex(audio_stream_type_t stream, int *index);
 
     static uint32_t getStrategyForStream(stream_type stream);
-    static audio_devices_t getDevicesForStream(audio_stream_type_t stream);
 
     static audio_io_handle_t getOutputForEffect(effect_descriptor_t *desc);
     static status_t registerEffect(effect_descriptor_t *desc,

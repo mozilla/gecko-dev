@@ -342,13 +342,6 @@ AudioChannelService::GetState(AudioChannelAgent* aAgent, bool aElementHidden)
 
   data->mState = GetStateInternal(data->mChannel, CONTENT_PROCESS_ID_MAIN,
                                 aElementHidden, oldElementHidden);
-  #ifdef MOZ_WIDGET_GONK
-    bool active = AnyAudioChannelIsActive();
-    for (uint32_t i = 0; i < mSpeakerManager.Length(); i++) {
-      mSpeakerManager[i]->SetAudioChannelActive(active);
-    }
-  #endif
-
   return data->mState;
 }
 
@@ -377,11 +370,6 @@ AudioChannelService::GetStateInternal(AudioChannel aChannel, uint64_t aChildID,
   if (!aElementHidden) {
     if (CheckVolumeFadedCondition(newType, aElementHidden)) {
       return AUDIO_CHANNEL_STATE_FADED;
-    }
-    if (PlayingHigherPriorityChannelExists(aChannel,
-                                           aElementWasHidden,
-                                           aElementHidden)) {
-      return AUDIO_CHANNEL_STATE_MUTED;
     }
     return CheckTelephonyPolicy(aChannel, aChildID);
   }
@@ -1073,22 +1061,4 @@ AudioChannelService::UnregisterTelephonyChild(uint64_t aChildID)
   }
 
   MOZ_ASSERT(false, "This should not happen.");
-}
-
-bool
-AudioChannelService::PlayingHigherPriorityChannelExists(AudioChannel aChannel,
-                                                        bool aElementWasHidden,
-                                                        bool aElementHidden)
-{
-  // The audio from background to foreground should always be playable.
-  if (aElementWasHidden && !aElementHidden) {
-    return false;
-  }
-  // The notification audio only results in faded, not muted.
-  else if (mCurrentHigherChannel == (int32_t) AudioChannel::Notification ||
-           mCurrentHigherChannel == (int32_t) AudioChannel::Publicnotification) {
-    return false;
-  } else {
-    return mCurrentHigherChannel > (int32_t) aChannel;
-  }
 }

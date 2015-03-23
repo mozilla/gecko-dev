@@ -7,13 +7,7 @@ MARIONETTE_HEAD_JS = "head.js";
 
 function isHomeNetwork(network) {
   is(network.longName, "Android");
-  // Connection info contains empty short name due to CPHS ONSF, otherwise,
-  // Android is expected.
-  if (network.shortName) {
-    is(network.shortName, "Android");
-  } else {
-    is(network.shortName, "");
-  }
+  is(network.shortName, "Android");
   is(network.mcc, "310");
   is(network.mnc, "260");
 }
