@@ -16,7 +16,7 @@
         "{objdir}/dist/b2g-update/*.mar"
     ],
     "zip_files": [
-        ["{workdir}/out/target/product/scx15_sp7715ga/*.img", "out/target/product/scx15_sp7715ga/"],
+        ["{workdir}/out/target/product/scx15_sp7715ea/*.img", "out/target/product/scx15_sp7715ea/"],
         "{workdir}/flash.sh",
         "{workdir}/load-config.sh",
         "{workdir}/.config",
@@ -27,7 +27,7 @@
         "MOZILLA_OFFICIAL": "1",
         "B2G_UPDATE_CHANNEL": "nightly-b2g34s"
     },
-    "b2g_manifest": "dolphin.xml",
+    "b2g_manifest": "dolphin-512.xml",
     "b2g_manifest_intree": true,
     "additional_source_tarballs": [],
     "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-beta",
