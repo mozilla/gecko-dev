@@ -89,6 +89,124 @@ let tests = [
             userClear: true,
             duration: {timeUnit: iccManager.STK_TIME_UNIT_SECOND,
                        timeInterval: 0x0A}}},
+  {command: "D026810301210082028102" +
+            "8D" +
+            "1B" +
+            "00" + // 7BIT
+            "D4F79BBD4ED341D4F29C0E3A4A9F55A8" +
+            "0E8687C158A09B304905",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_12",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x00, 7BIT"}},
+  {command: "D029810301210082028102" +
+            "8D" +
+            "1E" +
+            "04" + // 8BIT
+            "546F6F6C6B697420546573742047524F" +
+            "55503A307830302C2038424954",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_13",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x00, 8BIT"}},
+  {command: "D046810301210082028102" +
+            "8D" +
+            "3B" +
+            "08" + // UCS2
+            "0054006F006F006C006B006900740020" +
+            "0054006500730074002000470052004F" +
+            "00550050003A0030007800300030002C" +
+            "00200055004300530032",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_14",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x00, UCS2"}},
+  {command: "D026810301210082028102" +
+            "8D" +
+            "1B" +
+            "12" + // 7BIT + Class 2
+            "D4F79BBD4ED341D4F29C0E3A4A9F55A8" +
+            "0E868FC158A09B304905",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_15",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x10, 7BIT"}},
+  {command: "D029810301210082028102" +
+            "8D" +
+            "1E" +
+            "16" + // 8BIT + Class 2
+            "546F6F6C6B697420546573742047524F" +
+            "55503A307831302C2038424954",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_16",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x10, 8BIT"}},
+  {command: "D046810301210082028102" +
+            "8D" +
+            "3B" +
+            "1A" + // UCS2 + Class 2
+            "0054006F006F006C006B006900740020" +
+            "0054006500730074002000470052004F" +
+            "00550050003A0030007800310030002C" +
+            "00200055004300530032",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_17",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0x10, UCS2"}},
+  {command: "D026810301210082028102" +
+            "8D" +
+            "1B" +
+            "F2" + // 7BIT + Class 2
+            "D4F79BBD4ED341D4F29C0E3A4A9F55A8" +
+            "0E8637C258A09B304905",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_18",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0xF0, 7BIT"}},
+  {command: "D029810301210082028102" +
+            "8D" +
+            "1E" +
+            "F6" + // 8BIT + Class 2
+            "546F6F6C6B697420546573742047524F" +
+            "55503A307846302C2038424954",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_19",
+            commandQualifier: 0x00,
+            text: "Toolkit Test GROUP:0xF0, 8BIT"}},
+  // Bug 1088573: this test case is to ensure that we provide |length| argument
+  // in |integer| format to GsmPDUHelper.readSeptetsToString().
+  {command: "D0" +
+            "81" + // 2-byte length encoded:
+            "FC" + // 252
+            "810301210082028102" +
+            "8D" +
+            "81" + // 2-byte length encoded:
+            "F0" + // 240
+            "00" + // 7BIT
+            "C332A85D9ECFC3E732685E068DDF6DF8" +
+            "7B5E0691CB20D96D061A87E5E131BD2C" +
+            "2FCF416537A8FD269741E3771B2E2FCF" +
+            "E76517685806B5CBF379F85C0695E774" +
+            "50D86C4E8FD165D0BC2E07C1D9F579BA" +
+            "5C97CF41E5B13CEC9E83CA7490BB0C22" +
+            "BFD374103C3C0795E9F232882E7FBBE3" +
+            "F5B20B24BBCD40E5391DC42E83DCEFB6" +
+            "585E06B5C3F874BBDE0691CBA071581E" +
+            "1ED3CBF2F21C14369BD3637458CC2EBB" +
+            "40C3329D5E0699DFEE313DFD76BBC3EC" +
+            "34BD0C0A83CAF432280C87CBDF757BB9" +
+            "0C8287E5207619346D1E73A0783D0D9A" +
+            "9FCA733A885C96BFEBEC32280C9A6689" +
+            "CE621654768382D529551A64268B2E",
+   func: testDisplayText,
+   expect: {name: "display_text_cmd_20",
+            commandQualifier: 0x00,
+            text: "Ce message se compose de 273 caracteres en mode " +
+                  "compresse. Ce message est affiche sur plusieurs " +
+                  "ecrans et ne doit pas etre tronque. 273 est le " +
+                  "nombre maximum de caracteres affichable. Cette " +
+                  "fonctionnalite a ete approuvee par le SMG9 qui s'est " +
+                  "deroule a SYDNEY en AUSTRALIE."}},
 ];
 
 runNextTest();

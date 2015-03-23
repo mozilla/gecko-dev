@@ -197,7 +197,85 @@ function testLevel3DiscardInactive() {
     isVoicemailStatus(status);
   }
 
-  sendIndicatorPDU(MWI_LEVEL3_DISCARD_INACTIVE_PDU, onLevel3Inactive, cleanUp);
+  sendIndicatorPDU(MWI_LEVEL3_DISCARD_INACTIVE_PDU,
+                   onLevel3Inactive,
+                   testLevel3DiscardActiveWithoutBody);
+}
+
+const MWI_LEVEL3_ACTIVE_NO_TEXT_BODY_UD = PDUBuilder.buildUserData({
+  headers: [{
+    id: RIL.PDU_IEI_SPECIAL_SMS_MESSAGE_INDICATION,
+    length: 2,
+    octets: [
+      RIL.PDU_MWI_STORE_TYPE_DISCARD,
+      MWI_LEVEL3_ACTIVE_UDH_MSG_COUNT
+    ]
+  }],
+  body: null
+});
+
+const MWI_LEVEL3_DISCARD_ACTIVE_NO_TEXT_BODY_PDU =
+  MWI_PDU_UDH_PREFIX +
+  MWI_LEVEL3_PDU_ADDRESS +
+  MWI_PID_DEFAULT +
+  MWI_DCS_DISCARD_ACTIVE +
+  MWI_TIMESTAMP +
+  MWI_LEVEL3_ACTIVE_NO_TEXT_BODY_UD;
+
+function testLevel3DiscardActiveWithoutBody() {
+
+  function onLevel3ActiveWithoutBody(event) {
+    let status = event.status;
+    // TODO: bug 905228 - MozVoicemailStatus is not defined.
+    //ok(status instanceof MozVoicemailStatus);
+    is(status.hasMessages, true);
+    is(status.messageCount, MWI_LEVEL3_ACTIVE_UDH_MSG_COUNT);
+    is(status.returnNumber, MWI_LEVEL3_SENDER);
+    is(status.returnMessage, null);
+    isVoicemailStatus(status);
+  }
+
+  sendIndicatorPDU(MWI_LEVEL3_DISCARD_ACTIVE_NO_TEXT_BODY_PDU,
+                   onLevel3ActiveWithoutBody,
+                   testLevel3DiscardInActiveWithoutBody);
+}
+
+const MWI_LEVEL3_INACTIVE_NO_TEXT_BODY_UD = PDUBuilder.buildUserData({
+  headers: [{
+    id: RIL.PDU_IEI_SPECIAL_SMS_MESSAGE_INDICATION,
+    length: 2,
+    octets: [
+      RIL.PDU_MWI_STORE_TYPE_DISCARD,
+      0 // messageCount
+    ]
+  }],
+  body: null
+});
+
+const MWI_LEVEL3_DISCARD_INACTIVE_NO_TEXT_BODY_PDU =
+  MWI_PDU_UDH_PREFIX +
+  MWI_LEVEL3_PDU_ADDRESS +
+  MWI_PID_DEFAULT +
+  MWI_DCS_DISCARD_ACTIVE +
+  MWI_TIMESTAMP +
+  MWI_LEVEL3_INACTIVE_NO_TEXT_BODY_UD;
+
+function testLevel3DiscardInActiveWithoutBody() {
+
+  function onLevel3InActiveWithoutBody(event) {
+    let status = event.status;
+    // TODO: bug 905228 - MozVoicemailStatus is not defined.
+    //ok(status instanceof MozVoicemailStatus);
+    is(status.hasMessages, false);
+    is(status.messageCount, 0);
+    is(status.returnNumber, MWI_LEVEL3_SENDER);
+    is(status.returnMessage, null);
+    isVoicemailStatus(status);
+  }
+
+  sendIndicatorPDU(MWI_LEVEL3_DISCARD_INACTIVE_NO_TEXT_BODY_PDU,
+                   onLevel3InActiveWithoutBody,
+                   cleanUp);
 }
 
 function cleanUp() {

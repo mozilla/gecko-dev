@@ -752,6 +752,12 @@ BluetoothSocket::ReceiveSocketInfo(nsAutoPtr<UnixSocketRawData>& aMessage)
     // If this is server socket, read header of next message for client fd
     mImpl->mReadMsgForClientFd = mIsServer;
   } else if (mReceivedSocketInfoLength == TOTAL_SOCKET_INFO_LENGTH) {
+    if (aMessage->mSize == TOTAL_SOCKET_INFO_LENGTH) {
+      // Some bluetooth stacks send socket info as a single
+      // 20-byte message so we read from last 16 bytes only.
+      offset = FIRST_SOCKET_INFO_MSG_LENGTH;
+    }
+
     // 2nd message: [size:2][bd address:6][channel:4][connection status:4]
     int16_t size = ReadInt16(aMessage->mData, &offset);
     ReadBdAddress(aMessage->mData, &offset, mDeviceAddress);
