@@ -2335,10 +2335,7 @@ types::UseNewTypeForInitializer(JSScript *script, jsbytecode *pc, JSProtoKey key
         return GenericObject;
     }
 
-    /*
-     * All loops in the script will have a JSTRY_ITER or JSTRY_LOOP try note
-     * indicating their boundary.
-     */
+    // All loops in the script will have a try note indicating their boundary.
 
     if (!script->hasTrynotes())
         return SingletonObject;
@@ -2348,7 +2345,7 @@ types::UseNewTypeForInitializer(JSScript *script, jsbytecode *pc, JSProtoKey key
     JSTryNote *tn = script->trynotes()->vector;
     JSTryNote *tnlimit = tn + script->trynotes()->length;
     for (; tn < tnlimit; tn++) {
-        if (tn->kind != JSTRY_ITER && tn->kind != JSTRY_LOOP)
+        if (tn->kind != JSTRY_FOR_IN && tn->kind != JSTRY_FOR_OF && tn->kind != JSTRY_LOOP)
             continue;
 
         unsigned startOffset = script->mainOffset() + tn->start;
