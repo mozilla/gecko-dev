@@ -231,6 +231,7 @@ const TELEPHONY_REQUESTS = [
   REQUEST_DIAL,
   REQUEST_DIAL_EMERGENCY_CALL,
   REQUEST_HANGUP,
+  REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND,
   REQUEST_HANGUP_WAITING_OR_BACKGROUND,
   REQUEST_SEPARATE_CONNECTION,
   REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE,
@@ -274,11 +275,6 @@ TelephonyRequestQueue.prototype = {
   _startQueue: function(queue) {
     if (queue.length === 0) {
       return;
-    }
-
-    // We only need to keep one entry for queryQueue.
-    if (queue === this.queryQueue) {
-      queue.splice(1, queue.length - 1);
     }
 
     this.currentQueue = queue;
@@ -364,7 +360,7 @@ function RilObject(aContext) {
 
   this.telephonyRequestQueue = new TelephonyRequestQueue(this);
   this.currentCalls = {};
-  this.currentConference = {state: null, participants: {}};
+  this.currentConferenceState = CALL_STATE_UNKNOWN;
   this.currentDataCalls = {};
   this._pendingSentSmsMap = {};
   this.pendingNetworkType = {};
@@ -391,9 +387,9 @@ RilObject.prototype = {
   currentCalls: null,
 
   /**
-   * Existing conference call and its participants.
+   * Call state of current conference group.
    */
-  currentConference: null,
+  currentConferenceState: null,
 
   /**
    * Existing data calls.
@@ -568,6 +564,8 @@ RilObject.prototype = {
      * { options: options of the corresponding dialing request }
      */
     this.pendingMO = null;
+
+    this.phoneState = GECKO_PHONE_STATE_IDLE;
   },
 
   /**
@@ -1137,6 +1135,93 @@ RilObject.prototype = {
   },
 
   /**
+   * PLMN name display priority: EONS > ONS > NITZ (done by rild) > PLMN.
+   *
+   * @return true if PLMN name is overridden, false otherwise.
+   */
+  overrideNetworkName: function() {
+    if (!this.operator) {
+      return false;
+    }
+
+    if (this.overrideEonsNetworkName()) {
+      if (DEBUG) {
+        this.context.debug("Network name is overridden by EONS");
+      }
+      return true;
+    } else if (this.overrideOnsNetworkName()) {
+      if (DEBUG) {
+        this.context.debug("Network name is overridden by ONS");
+      }
+      return true;
+    }
+
+    return false;
+  },
+
+  /**
+   * Check if operator name needs to be overriden by current voiceRegistrationState
+   * , EFOPL and EFPNN. See 3GPP TS 31.102 clause 4.2.58 EFPNN and 4.2.59 EFOPL
+   *  for detail.
+   *
+   * @return true if operator name is overridden, false otherwise.
+   */
+  overrideEonsNetworkName: function() {
+    // We won't get network name using PNN and OPL if voice registration isn't
+    // ready.
+    if (!this.voiceRegistrationState.cell ||
+        this.voiceRegistrationState.cell.gsmLocationAreaCode == -1) {
+      return false;
+    }
+
+    let ICCUtilsHelper = this.context.ICCUtilsHelper;
+    let networkName = ICCUtilsHelper.getNetworkNameFromICC(
+      this.operator.mcc,
+      this.operator.mnc,
+      this.voiceRegistrationState.cell.gsmLocationAreaCode);
+
+    if (!networkName) {
+      return false;
+    }
+
+    if (DEBUG) {
+      this.context.debug("Operator names will be overriden: " +
+                         "longName = " + networkName.fullName + ", " +
+                         "shortName = " + networkName.shortName);
+    }
+
+    this.operator.longName = networkName.fullName;
+    this.operator.shortName = networkName.shortName;
+
+    this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
+    return true;
+  },
+
+  /**
+   * Check if operator name needs to be overriden by current voiceRegistrationState
+   * , CPHS Operator Name String and Operator Name Shortform. See B.4.1.2
+   * Network Operator Namefor detail.
+   *
+   * @return true if operator name is overridden, false otherwise.
+   */
+  overrideOnsNetworkName: function() {
+    if (!this.iccInfo.ons) {
+      return false;
+    }
+
+    // If ONS exists, only replace alpha long/short while under HPLMN.
+    if (!this.voiceRegistrationState.roaming) {
+      this.operator.longName = this.iccInfo.ons;
+      this.operator.shortName = this.iccInfo.ons_short_form || "";
+
+      this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
+      return true;
+    }
+
+    return false;
+  },
+
+  /**
    * Request the phone's radio to be enabled or disabled.
    *
    * @param enabled
@@ -1513,13 +1598,13 @@ RilObject.prototype = {
   /**
    * Get current calls.
    */
-  getCurrentCalls: function() {
+  getCurrentCalls: function(options) {
     this.telephonyRequestQueue.push(REQUEST_GET_CURRENT_CALLS,
-                                    this.sendRilRequestGetCurrentCalls, null);
+                                    this.sendRilRequestGetCurrentCalls, options);
   },
 
-  sendRilRequestGetCurrentCalls: function() {
-    this.context.Buf.simpleRequest(REQUEST_GET_CURRENT_CALLS);
+  sendRilRequestGetCurrentCalls: function(options) {
+    this.context.Buf.simpleRequest(REQUEST_GET_CURRENT_CALLS, options);
   },
 
   /**
@@ -1731,13 +1816,53 @@ RilObject.prototype = {
     Buf.sendParcel();
   },
 
-  sendHangUpBackgroundRequest: function() {
-    this.telephonyRequestQueue.push(REQUEST_HANGUP_WAITING_OR_BACKGROUND,
-                                   this.sendRilRequestHangUpWaiting, null);
+  sendHangUpForegroundRequest: function(options) {
+    for each (let currentCall in this.currentCalls) {
+      if (currentCall.state == CALL_STATE_ACTIVE) {
+        currentCall.hangUpLocal = true;
+      }
+    }
+
+    this.telephonyRequestQueue.push(REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND,
+                                    this.sendRilRequestHangUpForeground,
+                                    options);
   },
 
-  sendRilRequestHangUpWaiting: function() {
-    this.context.Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND);
+  sendRilRequestHangUpForeground: function(options) {
+    this.context.Buf.simpleRequest(REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND,
+                                   options);
+  },
+
+  sendHangUpBackgroundRequest: function(options) {
+    let waitingCalls = [];
+    let heldCalls = [];
+
+    for each (let currentCall in this.currentCalls) {
+      switch (currentCall.state) {
+        case CALL_STATE_WAITING:
+          waitingCalls.push(currentCall);
+          break;
+        case CALL_STATE_HOLDING:
+          heldCalls.push(currentCall);
+          break;
+      }
+    }
+
+    // When both a held and a waiting call exist, the request shall apply to
+    // the waiting call.
+    if (waitingCalls.length) {
+      waitingCalls.forEach(call => call.hangUpLocal = true);
+    } else {
+      heldCalls.forEach(call => call.hangUpLocal = true);
+    }
+
+    this.telephonyRequestQueue.push(REQUEST_HANGUP_WAITING_OR_BACKGROUND,
+                                    this.sendRilRequestHangUpWaiting, options);
+  },
+
+  sendRilRequestHangUpWaiting: function(options) {
+    this.context.Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND,
+                                   options);
   },
 
   /**
@@ -1871,24 +1996,11 @@ RilObject.prototype = {
     }
   },
 
-  // Flag indicating whether user has requested making a conference call.
-  _hasConferenceRequest: false,
-
   conferenceCall: function(options) {
     if (this._isCdma) {
       options.featureStr = "";
       this.sendCdmaFlashCommand(options);
     } else {
-      // Only accept one conference request at a time..
-      if (this._hasConferenceRequest) {
-        options.success = false;
-        options.errorName = "addError";
-        options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-        this.sendChromeMessage(options);
-        return;
-      }
-
-      this._hasConferenceRequest = true;
       this.telephonyRequestQueue.push(REQUEST_CONFERENCE,
                                       this.sendRilRequestConference, options);
     }
@@ -1924,6 +2036,27 @@ RilObject.prototype = {
     Buf.writeInt32(1);
     Buf.writeInt32(options.callIndex);
     Buf.sendParcel();
+  },
+
+  hangUpConference: function(options) {
+    if (this._isCdma) {
+      // In cdma, ril only maintains one call index.
+      let call = this.currentCalls[1];
+      if (!call) {
+        options.success = false;
+        options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+        this.sendChromeMessage(options);
+        return;
+      }
+      call.hangUpLocal = true;
+      this.sendHangUpRequest(1);
+    } else {
+      if (this.currentConferenceState === CALL_STATE_ACTIVE) {
+        this.sendHangUpForegroundRequest(options);
+      } else {
+        this.sendHangUpBackgroundRequest(options);
+      }
+    }
   },
 
   holdConference: function() {
@@ -2104,8 +2237,9 @@ RilObject.prototype = {
     let numConfigs = config ? config.length / 2 : 0;
     Buf.writeInt32(numConfigs);
     for (let i = 0; i < config.length;) {
+      // convert [from, to) to [from, to - 1]
       Buf.writeInt32(config[i++]);
-      Buf.writeInt32(config[i++]);
+      Buf.writeInt32(config[i++] - 1);
       Buf.writeInt32(0x00);
       Buf.writeInt32(0xFF);
       Buf.writeInt32(1);
@@ -2320,7 +2454,7 @@ RilObject.prototype = {
     if (RILQUIRKS_DATA_REGISTRATION_ON_DEMAND) {
       let request = options.attach ? RIL_REQUEST_GPRS_ATTACH :
                                      RIL_REQUEST_GPRS_DETACH;
-      this.context.Buf.simpleRequest(request);
+      this.context.Buf.simpleRequest(request, options);
     } else if (RILQUIRKS_SUBSCRIPTION_CONTROL && options.attach) {
       this.context.Buf.simpleRequest(REQUEST_SET_DATA_SUBSCRIPTION, options);
     }
@@ -2505,6 +2639,33 @@ RilObject.prototype = {
       return true;
     }
 
+    function _isValidChangePasswordRequest(mmiServiceCode) {
+      if (mmi.procedure !== MMI_PROCEDURE_REGISTRATION &&
+          mmi.procedure !== MMI_PROCEDURE_ACTIVATION) {
+        _sendMMIError(MMI_ERROR_KS_INVALID_ACTION, mmiServiceCode);
+        return false;
+      }
+
+      if (mmi.sia !== "" && mmi.sia !== MMI_ZZ_BARRING_SERVICE) {
+        _sendMMIError(MMI_ERROR_KS_NOT_SUPPORTED, mmiServiceCode);
+        return false;
+      }
+
+      let validPassword = si => /^[0-9]{4}$/.test(si);
+      if (!validPassword(mmi.sib) || !validPassword(mmi.sic) ||
+          !validPassword(mmi.pwd)) {
+        _sendMMIError(MMI_ERROR_KS_INVALID_PASSWORD, mmiServiceCode);
+        return false;
+      }
+
+      if (mmi.sic != mmi.pwd) {
+        _sendMMIError(MMI_ERROR_KS_MISMATCH_PASSWORD, mmiServiceCode);
+        return false;
+      }
+
+      return true;
+    }
+
     let _isRadioAvailable = (function(mmiServiceCode) {
       if (this.radioState !== GECKO_RADIOSTATE_READY) {
         _sendMMIError(GECKO_ERROR_RADIO_NOT_AVAILABLE, mmiServiceCode);
@@ -2681,6 +2842,19 @@ RilObject.prototype = {
         }
         options.isSetCLIR = true;
         this.setCLIR(options);
+        return;
+
+      // Change call barring password
+      case MMI_SC_CHANGE_PASSWORD:
+        if (!_isRadioAvailable(MMI_KS_SC_CHANGE_PASSWORD) ||
+            !_isValidChangePasswordRequest(MMI_KS_SC_CHANGE_PASSWORD)) {
+          return;
+        }
+
+        options.mmiServiceCode = MMI_KS_SC_CHANGE_PASSWORD;
+        options.pin = mmi.sib;
+        options.newPin = mmi.sic;
+        this.changeCallBarringPassword(options);
         return;
 
       // Call barring
@@ -2917,6 +3091,7 @@ RilObject.prototype = {
    * @param command
    * @param deviceIdentities
    * @param resultCode
+   * @param [optional] additionalInformation
    * @param [optional] itemIdentifier
    * @param [optional] input
    * @param [optional] isYesNo
@@ -2972,8 +3147,25 @@ RilObject.prototype = {
     // Result
     GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_RESULT |
                                COMPREHENSIONTLV_FLAG_CR);
-    GsmPDUHelper.writeHexOctet(1);
-    GsmPDUHelper.writeHexOctet(response.resultCode);
+    if ("additionalInformation" in response) {
+      // In |12.12 Result| TS 11.14, the length of additional information is
+      // varied and all possible values are addressed in 12.12.1-11 of TS 11.14
+      // and 8.12.1-13 in TS 31.111.
+      // However,
+      // 1. Only SEND SS requires info with more than 1 octet.
+      // 2. In rild design, SEND SS is expected to be handled by modem and
+      //    UNSOLICITED_STK_EVENT_NOTIFY will be sent to application layer to
+      //    indicate appropriate messages to users. TR is not required in this
+      //    case.
+      // Hence, we simplify the structure of |additionalInformation| to a
+      // numeric value instead of a octet array.
+      GsmPDUHelper.writeHexOctet(2);
+      GsmPDUHelper.writeHexOctet(response.resultCode);
+      GsmPDUHelper.writeHexOctet(response.additionalInformation);
+    } else {
+      GsmPDUHelper.writeHexOctet(1);
+      GsmPDUHelper.writeHexOctet(response.resultCode);
+    }
 
     // Item Identifier
     if (response.itemIdentifier != null) {
@@ -2986,51 +3178,28 @@ RilObject.prototype = {
     // No need to process Text data if user requests help information.
     if (response.resultCode != STK_RESULT_HELP_INFO_REQUIRED) {
       let text;
-      if (response.isYesNo !== undefined) {
-        // GET_INKEY
-        // When the ME issues a successful TERMINAL RESPONSE for a GET INKEY
-        // ("Yes/No") command with command qualifier set to "Yes/No", it shall
-        // supply the value '01' when the answer is "positive" and the value
-        // '00' when the answer is "negative" in the Text string data object.
-        text = response.isYesNo ? 0x01 : 0x00;
-      } else {
-        text = response.input;
-      }
-
-      if (text) {
-        GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_TEXT_STRING |
-                                   COMPREHENSIONTLV_FLAG_CR);
-
-        // 2nd mark for text length
-        Buf.startCalOutgoingSize(function(size) {
-          // Text length is in number of hexOctets, which costs 4 uint8 per hexOctet.
-          GsmPDUHelper.writeHexOctet(size / 4);
-        });
-
-        let coding = command.options.isUCS2 ?
+      let coding = command.options.isUCS2 ?
                        STK_TEXT_CODING_UCS2 :
                        (command.options.isPacked ?
                           STK_TEXT_CODING_GSM_7BIT_PACKED :
                           STK_TEXT_CODING_GSM_8BIT);
+      if (response.isYesNo !== undefined) {
+        // Tag: GET_INKEY
+        // When the ME issues a successful TERMINAL RESPONSE for a GET INKEY
+        // ("Yes/No") command with command qualifier set to "Yes/No", it shall
+        // supply the value '01' when the answer is "positive" and the value
+        // '00' when the answer is "negative" in the Text string data object.
+        GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_TEXT_STRING |
+                                   COMPREHENSIONTLV_FLAG_CR);
+        // Length: 2
+        GsmPDUHelper.writeHexOctet(2);
+        // Value: Coding, Yes/No.
         GsmPDUHelper.writeHexOctet(coding);
-
-        // Write Text String.
-        switch (coding) {
-          case STK_TEXT_CODING_UCS2:
-            GsmPDUHelper.writeUCS2String(text);
-            break;
-          case STK_TEXT_CODING_GSM_7BIT_PACKED:
-            GsmPDUHelper.writeStringAsSeptets(text, 0, 0, 0);
-            break;
-          case STK_TEXT_CODING_GSM_8BIT:
-            for (let i = 0; i < text.length; i++) {
-              GsmPDUHelper.writeHexOctet(text.charCodeAt(i));
-            }
-            break;
+        GsmPDUHelper.writeHexOctet(response.isYesNo ? 0x01 : 0x00);
+      } else {
+        if (response.input !== undefined) {
+            ComprehensionTlvHelper.writeTextStringTlv(response.input, coding);
         }
-
-        // Calculate and write text length to 2nd mark
-        Buf.stopCalOutgoingSize();
       }
     }
 
@@ -3925,203 +4094,216 @@ RilObject.prototype = {
         }
       }
 
+      this.operator.longName = longName;
+      this.operator.shortName = shortName;
+
       let ICCUtilsHelper = this.context.ICCUtilsHelper;
-      let networkName;
-      // We won't get network name using PNN and OPL if voice registration isn't ready
-      if (this.voiceRegistrationState.cell &&
-          this.voiceRegistrationState.cell.gsmLocationAreaCode != -1) {
-        networkName = ICCUtilsHelper.getNetworkNameFromICC(
-          this.operator.mcc,
-          this.operator.mnc,
-          this.voiceRegistrationState.cell.gsmLocationAreaCode);
-      }
-
-      if (networkName) {
-        if (DEBUG) {
-          this.context.debug("Operator names will be overriden: " +
-                             "longName = " + networkName.fullName + ", " +
-                             "shortName = " + networkName.shortName);
-        }
-
-        this.operator.longName = networkName.fullName;
-        this.operator.shortName = networkName.shortName;
-      } else {
-        this.operator.longName = longName;
-        this.operator.shortName = shortName;
-      }
-
       if (ICCUtilsHelper.updateDisplayCondition()) {
         ICCUtilsHelper.handleICCInfoChange();
       }
-      this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
+
+      // NETWORK_INFO_OPERATOR message will be sent out by overrideNetworkName
+      // itself if operator name is overridden after checking, or we have to
+      // do it by ourself.
+      if (!this.overrideNetworkName()) {
+        this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
+      }
     }
   },
 
   /**
-   * Helpers for processing call state and handle the active call.
+   * Classify new calls into three groups: (removed, remained, added).
    */
-  _processCalls: function(newCalls) {
-    let conferenceChanged = false;
-    let clearConferenceRequest = false;
+  _classifyCalls: function(newCalls) {
+    newCalls = newCalls || {};
 
-    // Go through the calls we currently have on file and see if any of them
-    // changed state. Remove them from the newCalls map as we deal with them
-    // so that only new calls remain in the map after we're done.
+    let removedCalls = [];
+    let remainedCalls = [];
+    let addedCalls = [];
+
     for each (let currentCall in this.currentCalls) {
-      let newCall;
-      if (newCalls) {
-        newCall = newCalls[currentCall.callIndex];
-        delete newCalls[currentCall.callIndex];
-      }
-
-      // Call is no longer reported by the radio. Remove from our map and send
-      // disconnected state change.
+      let newCall = newCalls[currentCall.callIndex];
       if (!newCall) {
-        if (this.currentConference.participants[currentCall.callIndex]) {
-          conferenceChanged = true;
-        }
-        this._removeVoiceCall(currentCall,
-                              currentCall.hangUpLocal ?
-                                GECKO_CALL_ERROR_NORMAL_CALL_CLEARING : null);
-        continue;
-      }
-
-      // Call is still valid.
-      if (newCall.state == currentCall.state &&
-          newCall.isMpty == currentCall.isMpty) {
-        continue;
-      }
-
-      // State has changed.
-      if (newCall.state == CALL_STATE_INCOMING &&
-          currentCall.state == CALL_STATE_WAITING) {
-        // Update the call internally but we don't notify chrome since these two
-        // states are viewed as the same one there.
-        currentCall.state = newCall.state;
-        continue;
-      }
-
-      if (!currentCall.started && newCall.state == CALL_STATE_ACTIVE) {
-        currentCall.started = new Date().getTime();
-      }
-
-      if (currentCall.isMpty == newCall.isMpty &&
-          newCall.state != currentCall.state) {
-        currentCall.state = newCall.state;
-        if (currentCall.isConference) {
-          conferenceChanged = true;
-        }
-        this._handleChangedCallState(currentCall);
-        continue;
-      }
-
-      // '.isMpty' becomes false when the conference call is put on hold.
-      // We need to introduce additional 'isConference' to correctly record the
-      // real conference status
-
-      // Update a possible conference participant when .isMpty changes.
-      if (!currentCall.isMpty && newCall.isMpty) {
-        if (this._hasConferenceRequest) {
-          conferenceChanged = true;
-          clearConferenceRequest = true;
-          currentCall.state = newCall.state;
-          currentCall.isMpty = newCall.isMpty;
-          currentCall.isConference = true;
-          this.currentConference.participants[currentCall.callIndex] = currentCall;
-          this._handleChangedCallState(currentCall);
-        } else if (currentCall.isConference) {
-          // The case happens when resuming a held conference call.
-          conferenceChanged = true;
-          currentCall.state = newCall.state;
-          currentCall.isMpty = newCall.isMpty;
-          this.currentConference.participants[currentCall.callIndex] = currentCall;
-          this._handleChangedCallState(currentCall);
-        } else {
-          // Weird. This sometimes happens when we switch two calls, but it is
-          // not a conference call.
-          currentCall.state = newCall.state;
-          this._handleChangedCallState(currentCall);
-        }
-      } else if (currentCall.isMpty && !newCall.isMpty) {
-        if (!this.currentConference.participants[newCall.callIndex]) {
-          continue;
-        }
-
-        // '.isMpty' of a conference participant is set to false by rild when
-        // the conference call is put on hold. We don't actually know if the call
-        // still attends the conference until updating all calls finishes. We
-        // cache it for further determination.
-        if (newCall.state != CALL_STATE_HOLDING) {
-          delete this.currentConference.participants[newCall.callIndex];
-          currentCall.state = newCall.state;
-          currentCall.isMpty = newCall.isMpty;
-          currentCall.isConference = false;
-          conferenceChanged = true;
-          this._handleChangedCallState(currentCall);
-          continue;
-        }
-
-        if (!this.currentConference.cache) {
-          this.currentConference.cache = {};
-        }
-        this.currentConference.cache[currentCall.callIndex] = newCall;
-        currentCall.state = newCall.state;
-        currentCall.isMpty = newCall.isMpty;
-        conferenceChanged = true;
-      }
-    }
-
-    // We have a successful dialing request. Check whether we could find a new
-    // call for it.
-    if (this.pendingMO) {
-      let options = this.pendingMO.options;
-      this.pendingMO = null;
-
-      // Find the callIndex of the new outgoing call.
-      let callIndex = -1;
-      for (let i in newCalls) {
-        if (newCalls[i].state !== CALL_STATE_INCOMING) {
-          callIndex = newCalls[i].callIndex;
-          break;
-        }
-      }
-
-      if (callIndex === -1) {
-        // The call doesn't exist.
-        options.success = false;
-        options.errorMsg = GECKO_CALL_ERROR_UNSPECIFIED;
-        this.sendChromeMessage(options);
+        removedCalls.push(currentCall);
       } else {
-        options.success = true;
-        options.callIndex = callIndex;
-        this.sendChromeMessage(options);
+        remainedCalls.push(newCall);
+        delete newCalls[currentCall.callIndex];
       }
     }
 
     // Go through any remaining calls that are new to us.
     for each (let newCall in newCalls) {
-      if (!newCall.isVoice) {
+      if (newCall.isVoice) {
+        addedCalls.push(newCall);
+      }
+    }
+
+    return [removedCalls, remainedCalls, addedCalls];
+  },
+
+  /**
+   * Check the calls in addedCalls and assign an appropriate one to pendingMO.
+   * Also update the |isEmergency| on that call.
+   */
+  _assignPendingMO: function(addedCalls) {
+    let options = this.pendingMO.options;
+    this.pendingMO = null;
+
+    for (let call of addedCalls) {
+      if (call.state !== CALL_STATE_INCOMING) {
+        call.isEmergency = this._isEmergencyNumber(options.number);
+        options.success = true;
+        options.callIndex = call.callIndex;
+        this.sendChromeMessage(options);
+        return;
+      }
+    }
+
+    // The call doesn't exist.
+    options.success = false;
+    options.errorMsg = GECKO_CALL_ERROR_UNSPECIFIED;
+    this.sendChromeMessage(options);
+  },
+
+  /**
+   * Check the currentCalls and identify the conference group.
+   * Return the conference state and the group as a set.
+   */
+  _detectConference: function() {
+    // There are some difficuties to identify the conference by |.isMpty| so we
+    // don't rely on this flag.
+    //  - |.isMpty| becomes false when the conference call is put on hold.
+    //  - |.isMpty| may remain true when other participants left the conference.
+
+    // All the calls in the conference should have the same state and it is
+    // either ACTIVE or HOLDING. That means, if we find a group of call with
+    // the same state and its size is larger than 2, it must be a conference.
+    let activeCalls = new Set();
+    let holdingCalls = new Set();
+
+    for each (let call in this.currentCalls) {
+      if (call.state === CALL_STATE_ACTIVE) {
+        activeCalls.add(call);
+      } else if (call.state === CALL_STATE_HOLDING) {
+        holdingCalls.add(call);
+      }
+    }
+
+    if (activeCalls.size >= 2) {
+      return [CALL_STATE_ACTIVE, activeCalls];
+    } else if (holdingCalls.size >= 2) {
+      return [CALL_STATE_HOLDING, holdingCalls];
+    }
+
+    return [CALL_STATE_UNKNOWN, new Set()];
+  },
+
+  /**
+   * Helpers for processing call state changes.
+   */
+  _processCalls: function(newCalls, forceUpdate, failCause) {
+    // Let's get the failCause first if there are removed calls. Otherwise, we
+    // need to trigger another async request when removing call and it cause
+    // the order of callDisconnected and conferenceCallStateChanged
+    // unpredictable.
+    if (failCause === undefined) {
+      for each (let currentCall in this.currentCalls) {
+        if (!newCalls[currentCall.callIndex] && !currentCall.hangUpLocal) {
+          this.getFailCauseCode((function(newCalls, forceUpdate, failCause) {
+            this._processCalls(newCalls, forceUpdate, failCause);
+          }).bind(this, newCalls, forceUpdate));
+          return;
+        }
+      }
+    }
+
+    let [removedCalls, remainedCalls, addedCalls] =
+      this._classifyCalls(newCalls);
+
+    // Handle removed calls.
+    // Only remove it from the map here. Notify callDisconnected later.
+    for (let call of removedCalls) {
+      delete this.currentCalls[call.callIndex];
+      call.failCause = call.hangUpLocal ? GECKO_CALL_ERROR_NORMAL_CALL_CLEARING
+                                        : failCause;
+    }
+
+    let changedCalls = new Set();
+
+    // Handle remained calls.
+    for (let newCall of remainedCalls) {
+      let oldCall = this.currentCalls[newCall.callIndex];
+      if (oldCall.state == newCall.state && !forceUpdate) {
         continue;
       }
 
-      if (newCall.isMpty) {
-        conferenceChanged = true;
+      if (oldCall.state == CALL_STATE_WAITING &&
+          newCall.state == CALL_STATE_INCOMING && !forceUpdate) {
+        // Update the call internally but we don't notify chrome since these two
+        // states are viewed as the same one there.
+        oldCall.state = newCall.state;
+        continue;
       }
 
-      this._addNewVoiceCall(newCall);
+      if (!oldCall.started && newCall.state == CALL_STATE_ACTIVE) {
+        oldCall.started = new Date().getTime();
+      }
+
+      oldCall.state = newCall.state;
+      oldCall.number =
+        this._formatInternationalNumber(newCall.number, newCall.toa);
+      oldCall.isEmergency = this._isEmergencyNumber(oldCall.number);
+      changedCalls.add(oldCall);
     }
 
-    if (clearConferenceRequest) {
-      this._hasConferenceRequest = false;
-    }
-    if (conferenceChanged) {
-      this._ensureConference();
+    // Handle pendingMO.
+    if (this.pendingMO) {
+      this._assignPendingMO(addedCalls);
     }
 
-    // Update audio state.
-    let message = {rilMessageType: "audioStateChanged",
-                   state: this._detectAudioState()};
-    this.sendChromeMessage(message);
+    // Handle added calls.
+    for (let call of addedCalls) {
+      this._addVoiceCall(call);
+      changedCalls.add(call);
+    }
+
+    // Detect conference and update isConference flag.
+    let [newConferenceState, conference] = this._detectConference();
+    for each (let call in this.currentCalls) {
+      let isConference = conference.has(call);
+      if (call.isConference != isConference) {
+        call.isConference = isConference;
+        changedCalls.add(call);
+      }
+    }
+
+    // Update audio state. We have to send this message before callStateChange
+    // and callDisconnected to make sure that the audio state is ready first.
+    this.sendChromeMessage({
+      rilMessageType: "audioStateChanged",
+      state: this._detectAudioState()
+    });
+
+    // Notify call disconnected.
+    for (let call of removedCalls) {
+      this._handleDisconnectedCall(call);
+    }
+
+    // Notify call state change.
+    for (let call of changedCalls) {
+      this._handleChangedCallState(call);
+    }
+
+    // Notify conference state change.
+    if (this.currentConferenceState != newConferenceState || forceUpdate) {
+      this.currentConferenceState = newConferenceState;
+      let message = {rilMessageType: "conferenceCallStateChanged",
+                     state: newConferenceState};
+      this.sendChromeMessage(message);
+    }
+
+    // Update phone state according to calls.
+    this._updatePhoneState();
   },
 
   _detectAudioState: function() {
@@ -4139,94 +4321,22 @@ RilObject.prototype = {
     return AUDIO_STATE_IN_CALL;
   },
 
-  _addNewVoiceCall: function(newCall) {
-    // Format international numbers appropriately.
-    if (newCall.number && newCall.toa == TOA_INTERNATIONAL &&
-        newCall.number[0] != "+") {
-      newCall.number = "+" + newCall.number;
+  // Format international numbers appropriately.
+  _formatInternationalNumber: function(number, toa) {
+    if (number && toa == TOA_INTERNATIONAL && number[0] != "+") {
+      number = "+" + number;
     }
 
-    if (newCall.state == CALL_STATE_INCOMING) {
-      newCall.isOutgoing = false;
-    } else if (newCall.state == CALL_STATE_DIALING) {
-      newCall.isOutgoing = true;
-    }
+    return number;
+  },
 
-    // Set flag for outgoing emergency call.
-    newCall.isEmergency = newCall.isOutgoing &&
-      this._isEmergencyNumber(newCall.number);
+  _addVoiceCall: function(newCall) {
+    newCall.number = this._formatInternationalNumber(newCall.number, newCall.toa);
+    newCall.isEmergency = this._isEmergencyNumber(newCall.number);
+    newCall.isOutgoing = !newCall.isMT;
+    newCall.isConference = false;
 
-    // Set flag for conference.
-    newCall.isConference = newCall.isMpty ? true : false;
-
-    // Add to our map.
-    if (newCall.isMpty) {
-      this.currentConference.participants[newCall.callIndex] = newCall;
-    }
-    this._handleChangedCallState(newCall);
     this.currentCalls[newCall.callIndex] = newCall;
-  },
-
-  _removeVoiceCall: function(removedCall, failCause) {
-    if (this.currentConference.participants[removedCall.callIndex]) {
-      removedCall.isConference = false;
-      delete this.currentConference.participants[removedCall.callIndex];
-      delete this.currentCalls[removedCall.callIndex];
-      // We don't query the fail cause here as it triggers another asynchrouns
-      // request that leads to a problem of updating all conferece participants
-      // in one task.
-      this._handleDisconnectedCall(removedCall);
-    } else {
-      delete this.currentCalls[removedCall.callIndex];
-      if (failCause) {
-        removedCall.failCause = failCause;
-        this._handleDisconnectedCall(removedCall);
-      } else {
-        this.getFailCauseCode((function(call, failCause) {
-          call.failCause = failCause;
-          this._handleDisconnectedCall(call);
-        }).bind(this, removedCall));
-      }
-    }
-  },
-
-  _ensureConference: function() {
-    let oldState = this.currentConference.state;
-    let remaining = Object.keys(this.currentConference.participants);
-
-    if (remaining.length == 1) {
-      // Remove that if only does one remain in a conference call.
-      let call = this.currentCalls[remaining[0]];
-      call.isConference = false;
-      this._handleChangedCallState(call);
-      delete this.currentConference.participants[call.callIndex];
-    } else if (remaining.length > 1) {
-      for each (let call in this.currentConference.cache) {
-        call.isConference = true;
-        this.currentConference.participants[call.callIndex] = call;
-        this.currentCalls[call.callIndex] = call;
-        this._handleChangedCallState(call);
-      }
-    }
-    delete this.currentConference.cache;
-
-    // Update the conference call's state.
-    let state = CALL_STATE_UNKNOWN;
-    for each (let call in this.currentConference.participants) {
-      if (state != CALL_STATE_UNKNOWN && state != call.state) {
-        // Each participant should have the same state, otherwise something
-        // wrong happens.
-        state = CALL_STATE_UNKNOWN;
-        break;
-      }
-      state = call.state;
-    }
-    if (oldState != state) {
-      this.currentConference.state = state;
-      let message = {rilMessageType: "conferenceCallStateChanged",
-                     state: state};
-      this.sendChromeMessage(message);
-    }
   },
 
   _handleChangedCallState: function(changedCall) {
@@ -4251,6 +4361,27 @@ RilObject.prototype = {
       message.errorMsg = RIL_DATACALL_FAILCAUSE_TO_GECKO_DATACALL_ERROR[errorCode];
     }
     this.sendChromeMessage(message);
+  },
+
+  _updatePhoneState: function() {
+    let phoneState = this.phoneState;
+    let callIndexes = Object.keys(this.currentCalls);
+
+    if (callIndexes.length === 0) {
+      this.phoneState = GECKO_PHONE_STATE_IDLE;
+    } else if (callIndexes.length === 1 &&
+               this.currentCalls[callIndexes[0]].state === CALL_STATE_INCOMING) {
+      this.phoneState = GECKO_PHONE_STATE_RINGING;
+    } else {
+      this.phoneState = GECKO_PHONE_STATE_INCALL;
+    }
+
+    if (this.phoneState !== phoneState) {
+      this.sendChromeMessage({
+        rilMessageType: "phoneStateChanged",
+        state: this.phoneState
+      });
+    }
   },
 
   /**
@@ -4302,10 +4433,8 @@ RilObject.prototype = {
     // can be removed if is the same as the current one.
     for each (let newDataCall in datacalls) {
       if (newDataCall.status != DATACALL_FAIL_NONE) {
-        if (newDataCallOptions) {
-          newDataCall.apn = newDataCallOptions.apn;
-        }
-        this._sendDataCallError(newDataCall, newDataCall.status);
+        this._sendDataCallError(newDataCallOptions || newDataCall,
+                                newDataCall.status);
       }
     }
 
@@ -5421,6 +5550,14 @@ RilObject.prototype = {
       return;
     }
 
+    // See 3GPP TS 11.14, 6.4.22 SET UP IDLE MODE TEXT
+    // Also see Bug 1106449 for short term work around.
+    if (cmdDetails.typeOfCommand === STK_CMD_REFRESH &&
+        cmdDetails.commandQualifier === STK_REFRESH_FILE_CHANGE ) {
+      this.context.StkCommandParamsFactory.createParam(cmdDetails, ctlvs);
+      return;
+    }
+
     cmdDetails.rilMessageType = "stkcommand";
     cmdDetails.options =
       this.context.StkCommandParamsFactory.createParam(cmdDetails, ctlvs);
@@ -5531,10 +5668,6 @@ RilObject.prototype[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CA
   if (length) {
     calls_length = Buf.readInt32();
   }
-  if (!calls_length) {
-    this._processCalls(null);
-    return;
-  }
 
   let calls = {};
   for (let i = 0; i < calls_length; i++) {
@@ -5574,7 +5707,8 @@ RilObject.prototype[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CA
 
     calls[call.callIndex] = call;
   }
-  this._processCalls(calls);
+
+  this._processCalls(calls, options.forceUpdate);
 };
 RilObject.prototype[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
   if (options.rilRequestError === 0) {
@@ -5605,38 +5739,25 @@ RilObject.prototype[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length, option
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_HANGUP] = function REQUEST_HANGUP(length, options) {
-  if (options.rilRequestError) {
-    return;
-  }
-
-  this.getCurrentCalls();
+  options.success = options.rilRequestError === 0;
+  options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_HANGUP_WAITING_OR_BACKGROUND] = function REQUEST_HANGUP_WAITING_OR_BACKGROUND(length, options) {
-  if (options.rilRequestError) {
-    return;
-  }
-
-  this.getCurrentCalls();
+  RilObject.prototype[REQUEST_HANGUP].call(this, length, options);
 };
-// TODO Bug 1012599: This one is not used.
 RilObject.prototype[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND(length, options) {
-  if (options.rilRequestError) {
-    return;
-  }
-
-  this.getCurrentCalls();
+  RilObject.prototype[REQUEST_HANGUP].call(this, length, options);
 };
 RilObject.prototype[REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE(length, options) {
-  if (options.rilRequestError) {
-    return;
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    this.getCurrentCalls({ forceUpdate: true });
   }
-
-  this.getCurrentCalls();
 };
 RilObject.prototype[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
-    this._hasConferenceRequest = false;
     options.errorName = "addError";
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     this.sendChromeMessage(options);
@@ -5650,7 +5771,16 @@ RilObject.prototype[REQUEST_UDUB] = function REQUEST_UDUB(length, options) {
 RilObject.prototype[REQUEST_LAST_CALL_FAIL_CAUSE] = function REQUEST_LAST_CALL_FAIL_CAUSE(length, options) {
   let Buf = this.context.Buf;
   let num = length ? Buf.readInt32() : 0;
-  let failCause = num ? RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[Buf.readInt32()] : null;
+  let failCause = null;
+
+  if (num) {
+    let causeNum = Buf.readInt32();
+    // To make _processCalls work as design, failCause couldn't be "undefined."
+    // See Bug 1112550 for details.
+    failCause = RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[causeNum] || null;
+  }
+  if (DEBUG) this.context.debug("Last call fail cause: " + failCause);
+
   if (options.callback) {
     options.callback(failCause);
   }
@@ -5788,22 +5918,38 @@ RilObject.prototype[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(
   this[REQUEST_DATA_CALL_LIST](length, options);
 };
 RilObject.prototype[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
-  let ICCIOHelper = this.context.ICCIOHelper;
-  if (!length) {
-    ICCIOHelper.processICCIOError(options);
+  if (options.rilRequestError) {
+    if (options.onerror) {
+      options.onerror(RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError] ||
+                      GECKO_ERROR_GENERIC_FAILURE);
+    }
     return;
   }
 
-  // Don't need to read rilRequestError since we can know error status from
-  // sw1 and sw2.
   let Buf = this.context.Buf;
   options.sw1 = Buf.readInt32();
   options.sw2 = Buf.readInt32();
-  if (options.sw1 != ICC_STATUS_NORMAL_ENDING) {
-    ICCIOHelper.processICCIOError(options);
+
+  // See 3GPP TS 11.11, clause 9.4.1 for operation success results.
+  if (options.sw1 !== ICC_STATUS_NORMAL_ENDING &&
+      options.sw1 !== ICC_STATUS_NORMAL_ENDING_WITH_EXTRA &&
+      options.sw1 !== ICC_STATUS_WITH_SIM_DATA &&
+      options.sw1 !== ICC_STATUS_WITH_RESPONSE_DATA) {
+    if (DEBUG) {
+      this.context.debug("ICC I/O Error EF id = 0x" + options.fileId.toString(16) +
+                         ", command = 0x" + options.command.toString(16) +
+                         ", sw1 = 0x" + options.sw1.toString(16) +
+                         ", sw2 = 0x" + options.sw2.toString(16));
+    }
+    if (options.onerror) {
+      // We can get fail cause from sw1/sw2 (See TS 11.11 clause 9.4.1 and
+      // ISO 7816-4 clause 6). But currently no one needs this information,
+      // so simply reports "GenericFailure" for now.
+      options.onerror(GECKO_ERROR_GENERIC_FAILURE);
+    }
     return;
   }
-  ICCIOHelper.processICCIO(options);
+  this.context.ICCIOHelper.processICCIO(options);
 };
 RilObject.prototype[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, options) {
   if (DEBUG) {
@@ -5997,6 +6143,12 @@ RilObject.prototype[REQUEST_QUERY_CALL_WAITING] =
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+
+    if (options.callback) {
+      // Prevent DataCloneError when sending chrome messages.
+      delete options.callback;
+    }
+
     this.sendChromeMessage(options);
     return;
   }
@@ -6017,6 +6169,12 @@ RilObject.prototype[REQUEST_SET_CALL_WAITING] = function REQUEST_SET_CALL_WAITIN
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+
+    if (options.callback) {
+      // Prevent DataCloneError when sending chrome messages.
+      delete options.callback;
+    }
+
     this.sendChromeMessage(options);
     return;
   }
@@ -6130,6 +6288,13 @@ RilObject.prototype[REQUEST_CHANGE_BARRING_PASSWORD] =
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
+
+  if (options.rilMessageType != "sendMMI") {
+    this.sendChromeMessage(options);
+    return;
+  }
+
+  options.statusMessage = MMI_SM_KS_PASSWORD_CHANGED;
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNEL(length, options) {
@@ -6582,7 +6747,17 @@ RilObject.prototype[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TEC
   this._processRadioTech(radioTech[0]);
 };
 RilObject.prototype[REQUEST_SET_UICC_SUBSCRIPTION] = null;
-RilObject.prototype[REQUEST_SET_DATA_SUBSCRIPTION] = null;
+RilObject.prototype[REQUEST_SET_DATA_SUBSCRIPTION] = function REQUEST_SET_DATA_SUBSCRIPTION(length, options) {
+  if (!options.rilMessageType) {
+    // The request was made by ril_worker itself. Don't report.
+    return;
+  }
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  this.sendChromeMessage(options);
+};
 RilObject.prototype[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOCK_RETRY_COUNT(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
@@ -6591,8 +6766,24 @@ RilObject.prototype[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOC
   options.retryCount = length ? this.context.Buf.readInt32List()[0] : -1;
   this.sendChromeMessage(options);
 };
-RilObject.prototype[RIL_REQUEST_GPRS_ATTACH] = null;
-RilObject.prototype[RIL_REQUEST_GPRS_DETACH] = null;
+RilObject.prototype[RIL_REQUEST_GPRS_ATTACH] = function RIL_REQUEST_GPRS_ATTACH(length, options) {
+  if (!options.rilMessageType) {
+    // The request was made by ril_worker itself. Don't report.
+    return;
+  }
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  this.sendChromeMessage(options);
+};
+RilObject.prototype[RIL_REQUEST_GPRS_DETACH] = function RIL_REQUEST_GPRS_DETACH(length, options) {
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  this.sendChromeMessage(options);
+};
 RilObject.prototype[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED() {
   let radioState = this.context.Buf.readInt32();
   let newState;
@@ -6725,7 +6916,14 @@ RilObject.prototype[UNSOLICITED_ON_USSD] = function UNSOLICITED_ON_USSD() {
     this.context.debug("On USSD. Type Code: " + typeCode + " Message: " + message);
   }
 
-  this._ussdSession = (typeCode != "0" && typeCode != "2");
+  let oldSession = this._ussdSession;
+
+  // Per ril.h the USSD session is assumed to persist if the type code is "1".
+  this._ussdSession = typeCode == "1";
+
+  if (!oldSession && !this._ussdSession && !message) {
+    return;
+  }
 
   this.sendChromeMessage({rilMessageType: "ussdreceived",
                           message: message,
@@ -7011,6 +7209,36 @@ GsmPDUHelperObject.prototype = {
   },
 
   /**
+   * Helper to write data into a temporary buffer for easier length encoding when
+   * the number of octets for the length encoding is varied.
+   *
+   * @param writeFunction
+   *        Function of how the data to be written into temporary buffer.
+   *
+   * @return array of written octets.
+   **/
+  writeWithBuffer: function(writeFunction) {
+    let buf = [];
+    let writeHexOctet = this.writeHexOctet;
+    this.writeHexOctet = function(octet) {
+      buf.push(octet);
+    }
+
+    try {
+      writeFunction();
+    } catch (e) {
+      if (DEBUG) {
+        debug("Error when writeWithBuffer: " + e);
+      }
+      buf = [];
+    } finally {
+      this.writeHexOctet = writeHexOctet;
+    }
+
+    return buf;
+  },
+
+  /**
    * Convert an octet (number) to a BCD number.
    *
    * Any nibbles that are not in the BCD range count as 0.
@@ -7040,21 +7268,21 @@ GsmPDUHelperObject.prototype = {
   },
 
   /**
-   * Convert a semi-octet (number) to a GSM BCD char, or return empty string
-   * if invalid semiOctet and supressException is set to true.
+   * Convert a semi-octet (number) to a GSM BCD char, or return empty
+   * string if invalid semiOctet and suppressException is set to true.
    *
    * @param semiOctet
    *        Nibble to be converted to.
-   * @param [optional] supressException
-   *        Supress exception if invalid semiOctet and supressException is set
+   * @param suppressException [optional]
+   *        Suppress exception if invalid semiOctet and suppressException is set
    *        to true.
    *
    * @return GSM BCD char, or empty string.
    */
-  bcdChars: "0123456789*#,;",
-  semiOctetToBcdChar: function(semiOctet, supressException) {
-    if (semiOctet >= 14) {
-      if (supressException) {
+  bcdChars: "0123456789",
+  semiOctetToBcdChar: function(semiOctet, suppressException) {
+    if (semiOctet >= this.bcdChars.length) {
+      if (suppressException) {
         return "";
       } else {
         throw new RangeError();
@@ -7062,6 +7290,31 @@ GsmPDUHelperObject.prototype = {
     }
 
     return this.bcdChars.charAt(semiOctet);
+  },
+
+  /**
+   * Convert a semi-octet (number) to a GSM extended BCD char, or return empty
+   * string if invalid semiOctet and suppressException is set to true.
+   *
+   * @param semiOctet
+   *        Nibble to be converted to.
+   * @param suppressException [optional]
+   *        Suppress exception if invalid semiOctet and suppressException is set
+   *        to true.
+   *
+   * @return GSM extended BCD char, or empty string.
+   */
+  extendedBcdChars: "0123456789*#,;",
+  semiOctetToExtendedBcdChar: function(semiOctet, suppressException) {
+    if (semiOctet >= this.extendedBcdChars.length) {
+      if (suppressException) {
+        return "";
+      } else {
+        throw new RangeError();
+      }
+    }
+
+    return this.extendedBcdChars.charAt(semiOctet);
   },
 
   /**
@@ -7094,17 +7347,17 @@ GsmPDUHelperObject.prototype = {
   },
 
   /**
-   * Read a *swapped nibble* binary coded string (BCD)
+   * Read a *swapped nibble* binary coded decimal (BCD) string
    *
    * @param pairs
    *        Number of nibble *pairs* to read.
-   * @param [optional] supressException
-   *        Supress exception if invalid semiOctet and supressException is set
+   * @param suppressException [optional]
+   *        Suppress exception if invalid semiOctet and suppressException is set
    *        to true.
    *
    * @return The BCD string.
    */
-  readSwappedNibbleBcdString: function(pairs, supressException) {
+  readSwappedNibbleBcdString: function(pairs, suppressException) {
     let str = "";
     for (let i = 0; i < pairs; i++) {
       let nibbleH = this.readHexNibble();
@@ -7113,9 +7366,38 @@ GsmPDUHelperObject.prototype = {
         break;
       }
 
-      str += this.semiOctetToBcdChar(nibbleL, supressException);
+      str += this.semiOctetToBcdChar(nibbleL, suppressException);
       if (nibbleH != 0x0F) {
-        str += this.semiOctetToBcdChar(nibbleH, supressException);
+        str += this.semiOctetToBcdChar(nibbleH, suppressException);
+      }
+    }
+
+    return str;
+  },
+
+  /**
+   * Read a *swapped nibble* extended binary coded decimal (BCD) string
+   *
+   * @param pairs
+   *        Number of nibble *pairs* to read.
+   * @param suppressException [optional]
+   *        Suppress exception if invalid semiOctet and suppressException is set
+   *        to true.
+   *
+   * @return The BCD string.
+   */
+  readSwappedNibbleExtendedBcdString: function(pairs, suppressException) {
+    let str = "";
+    for (let i = 0; i < pairs; i++) {
+      let nibbleH = this.readHexNibble();
+      let nibbleL = this.readHexNibble();
+      if (nibbleL == 0x0F) {
+        break;
+      }
+
+      str += this.semiOctetToExtendedBcdChar(nibbleL, suppressException);
+      if (nibbleH != 0x0F) {
+        str += this.semiOctetToExtendedBcdChar(nibbleH, suppressException);
       }
     }
 
@@ -7305,6 +7587,28 @@ GsmPDUHelperObject.prototype = {
 
     if (dataBits !== 0) {
       this.writeHexOctet(data & 0xFF);
+    }
+  },
+
+  writeStringAs8BitUnpacked: function(text) {
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+    let len = text ? text.length : 0;
+    for (let i = 0; i < len; i++) {
+      let c = text.charAt(i);
+      let octet = langTable.indexOf(c);
+
+      if (octet == -1) {
+        octet = langShiftTable.indexOf(c);
+        if (octet == -1) {
+          // Fallback to ASCII space.
+          octet = langTable.indexOf(' ');
+        } else {
+          this.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
+        }
+      }
+      this.writeHexOctet(octet);
     }
   },
 
@@ -7587,7 +7891,7 @@ GsmPDUHelperObject.prototype = {
           PDU_NL_IDENTIFIER_DEFAULT , PDU_NL_IDENTIFIER_DEFAULT );
       return addr;
     }
-    addr = this.readSwappedNibbleBcdString(len / 2);
+    addr = this.readSwappedNibbleExtendedBcdString(len / 2);
     if (addr.length <= 0) {
       if (DEBUG) this.context.debug("PDU error: no number provided");
       return null;
@@ -7824,6 +8128,12 @@ GsmPDUHelperObject.prototype = {
 
     msg.body = null;
     msg.data = null;
+
+    if (length <= 0) {
+      // No data to read.
+      return;
+    }
+
     switch (msg.encoding) {
       case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
         // 7 bit encoding allows 140 octets, which means 160 characters
@@ -7931,7 +8241,7 @@ GsmPDUHelperObject.prototype = {
     if (smscLength > 0) {
       let smscTypeOfAddress = this.readHexOctet();
       // Subtract the type-of-address octet we just read from the length.
-      msg.SMSC = this.readSwappedNibbleBcdString(smscLength - 1);
+      msg.SMSC = this.readSwappedNibbleExtendedBcdString(smscLength - 1);
       if ((smscTypeOfAddress >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
         msg.SMSC = '+' + msg.SMSC;
       }
@@ -8459,7 +8769,7 @@ GsmPDUHelperObject.prototype = {
     switch (msg.encoding) {
       case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
         msg.body = this.readSeptetsToString.call(bufAdapter,
-                                                 (length * 8 / 7), 0,
+                                                 Math.floor(length * 8 / 7), 0,
                                                  PDU_NL_IDENTIFIER_DEFAULT,
                                                  PDU_NL_IDENTIFIER_DEFAULT);
         if (msg.hasLanguageIndicator) {
@@ -8612,13 +8922,13 @@ GsmPDUHelperObject.prototype = {
     case 0:
       // GSM Default alphabet.
       resultString = this.readSeptetsToString(
-        ((len - 1) * 8 - spareBits) / 7, 0,
+        Math.floor(((len - 1) * 8 - spareBits) / 7), 0,
         PDU_NL_IDENTIFIER_DEFAULT,
         PDU_NL_IDENTIFIER_DEFAULT);
       break;
     case 1:
       // UCS2 encoded.
-      resultString = this.readUCS2String(len - 1);
+      resultString = this.context.ICCPDUHelper.readAlphaIdentifier(len - 1);
       break;
     default:
       // Not an available text coding.
@@ -9974,9 +10284,10 @@ ICCPDUHelperObject.prototype = {
         if (octet == -1) {
           // Fallback to ASCII space.
           octet = langTable.indexOf(' ');
+        } else {
+          GsmPDUHelper.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
+          j++;
         }
-        GsmPDUHelper.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
-        j++;
       }
       GsmPDUHelper.writeHexOctet(octet);
       j++;
@@ -10240,7 +10551,7 @@ ICCPDUHelperObject.prototype = {
     // TOA = TON + NPI
     let toa = GsmPDUHelper.readHexOctet();
 
-    let number = GsmPDUHelper.readSwappedNibbleBcdString(len - 1);
+    let number = GsmPDUHelper.readSwappedNibbleExtendedBcdString(len - 1);
     if (number.length <= 0) {
       if (DEBUG) this.context.debug("No number provided");
       return "";
@@ -10629,13 +10940,9 @@ StkCommandParamsFactoryObject.prototype = {
 
     let ctlv = this.context.StkProactiveCmdHelper.searchForTag(
         COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs);
-    if (!ctlv) {
-      this.context.RIL.sendStkTerminalResponse({
-        command: cmdDetails,
-        resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
-      throw new Error("Stk Event Notfiy: Required value missing : Alpha ID");
+    if (ctlv) {
+      textMsg.text = ctlv.value.identifier;
     }
-    textMsg.text = ctlv.value.identifier;
 
     return textMsg;
   },
@@ -10979,9 +11286,10 @@ StkProactiveCmdHelperObject.prototype = {
     };
 
     length--; // -1 for the codingScheme.
-    switch (text.codingScheme & 0x0f) {
+    switch (text.codingScheme & 0x0c) {
       case STK_TEXT_CODING_GSM_7BIT_PACKED:
-        text.textString = GsmPDUHelper.readSeptetsToString(length * 8 / 7, 0, 0, 0);
+        text.textString =
+          GsmPDUHelper.readSeptetsToString(Math.floor(length * 8 / 7), 0, 0, 0);
         break;
       case STK_TEXT_CODING_GSM_8BIT:
         text.textString =
@@ -11511,6 +11819,40 @@ ComprehensionTlvHelperObject.prototype = {
     GsmPDUHelper.writeSwappedNibbleBCDNum(seconds % 60);
   },
 
+  writeTextStringTlv: function(text, coding) {
+    let GsmPDUHelper = this.context.GsmPDUHelper;
+    let buf = GsmPDUHelper.writeWithBuffer(() => {
+      // Write Coding.
+      GsmPDUHelper.writeHexOctet(coding);
+
+      // Write Text String.
+      switch (coding) {
+        case STK_TEXT_CODING_UCS2:
+          GsmPDUHelper.writeUCS2String(text);
+          break;
+        case STK_TEXT_CODING_GSM_7BIT_PACKED:
+          GsmPDUHelper.writeStringAsSeptets(text, 0, 0, 0);
+          break;
+        case STK_TEXT_CODING_GSM_8BIT:
+          GsmPDUHelper.writeStringAs8BitUnpacked(text);
+          break;
+      }
+    });
+
+    let length = buf.length;
+    if (length) {
+      // Write Tag.
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_TEXT_STRING |
+                                 COMPREHENSIONTLV_FLAG_CR);
+      // Write Length.
+      this.writeLength(length);
+      // Write Value.
+      for (let i = 0; i < length; i++) {
+        GsmPDUHelper.writeHexOctet(buf[i]);
+      }
+    }
+  },
+
   getSizeOfLengthOctets: function(length) {
     if (length >= 0x10000) {
       return 4; // 0x83, len_1, len_2, len_3
@@ -11802,6 +12144,8 @@ ICCFileHelperObject.prototype = {
       case ICC_EF_MSISDN:
       case ICC_EF_SMS:
         return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM;
+      case ICC_EF_ONS:
+      case ICC_EF_ONSF:
       case ICC_EF_AD:
       case ICC_EF_MBDN:
       case ICC_EF_MWIS:
@@ -11826,6 +12170,8 @@ ICCFileHelperObject.prototype = {
    */
   getUSimEFPath: function(fileId) {
     switch (fileId) {
+      case ICC_EF_ONS:
+      case ICC_EF_ONSF:
       case ICC_EF_AD:
       case ICC_EF_FDN:
       case ICC_EF_MBDN:
@@ -12173,28 +12519,6 @@ ICCIOHelperObject.prototype = {
       options.callback(options);
     }
   },
-
-  /**
-   * Process ICC IO error.
-   */
-  processICCIOError: function(options) {
-    let requestError = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-    if (DEBUG) {
-      // See GSM11.11, TS 51.011 clause 9.4, and ISO 7816-4 for the error
-      // description.
-      let errorMsg = "ICC I/O Error code " + requestError +
-                     " EF id = " + options.fileId.toString(16) +
-                     " command = " + options.command.toString(16);
-      if (options.sw1 && options.sw2) {
-        errorMsg += "(" + options.sw1.toString(16) +
-                    "/" + options.sw2.toString(16) + ")";
-      }
-      this.context.debug(errorMsg);
-    }
-    if (options.onerror) {
-      options.onerror(requestError);
-    }
-  },
 };
 ICCIOHelperObject.prototype[ICC_COMMAND_SEEK] = null;
 ICCIOHelperObject.prototype[ICC_COMMAND_READ_BINARY] = function ICC_COMMAND_READ_BINARY(options) {
@@ -12242,11 +12566,12 @@ ICCRecordHelperObject.prototype = {
     function callback() {
       let Buf = this.context.Buf;
       let RIL = this.context.RIL;
+      let GsmPDUHelper = this.context.GsmPDUHelper;
 
       let strLen = Buf.readInt32();
       let octetLen = strLen / 2;
       RIL.iccInfo.iccid =
-        this.context.GsmPDUHelper.readSwappedNibbleBcdString(octetLen, true);
+        GsmPDUHelper.readSwappedNibbleBcdString(octetLen, true);
       // Consumes the remaining buffer if any.
       let unReadBuffer = this.context.Buf.getReadAvailable() -
                          this.context.Buf.PDU_HEX_OCTET_SIZE;
@@ -12763,6 +13088,10 @@ SimRecordHelperObject.prototype = {
     this.context.RIL.getIMSI();
     this.readAD();
     this.readSST();
+
+    // CPHS ONS related EFs reading.
+    this.readOperatorNameString();
+    this.readOperatorNameShortForm();
   },
 
   /**
@@ -12859,6 +13188,61 @@ SimRecordHelperObject.prototype = {
 
     this.context.ICCIOHelper.loadTransparentEF({
       fileId: ICC_EF_AD,
+      callback: callback.bind(this)
+    });
+  },
+
+  /**
+   * Process CHPS Operator Name String/Operator Name Short Form.
+   *
+   * @return A string corresponding to the CPHS ONS.
+   */
+  _processCphsOnsResponse: function() {
+      let Buf = this.context.Buf;
+      let strLen = Buf.readInt32();
+      // Each octet is encoded into two chars.
+      let octetLen = strLen / 2;
+      let ons = this.context.ICCPDUHelper.readAlphaIdentifier(octetLen);
+      Buf.readStringDelimiter(strLen);
+
+      return ons;
+  },
+
+  /**
+   * Read CPHS Operator Name String from the SIM.
+   */
+  readOperatorNameString: function() {
+    function callback() {
+      let RIL = this.context.RIL;
+      RIL.iccInfo.ons = this._processCphsOnsResponse();
+      if (DEBUG) {
+        this.context.debug("CPHS Operator Name String = " + RIL.iccInfo.ons);
+      }
+      RIL.overrideNetworkName();
+    }
+
+    this.context.ICCIOHelper.loadTransparentEF({
+      fileId: ICC_EF_ONS,
+      callback: callback.bind(this)
+    });
+  },
+
+  /**
+   * Read CPHS Operator Name Shortform from the SIM.
+   */
+  readOperatorNameShortForm: function() {
+    function callback() {
+      let RIL = this.context.RIL;
+      RIL.iccInfo.ons_short_form = this._processCphsOnsResponse();
+      if (DEBUG) {
+        this.context.debug("CPHS Operator Name Shortform = " +
+                           RIL.iccInfo.ons_short_form);
+      }
+      RIL.overrideNetworkName();
+    }
+
+    this.context.ICCIOHelper.loadTransparentEF({
+      fileId: ICC_EF_ONSF,
       callback: callback.bind(this)
     });
   },
@@ -13334,7 +13718,7 @@ SimRecordHelperObject.prototype = {
         let buf = "";
         for (let i = 0; i < reformat.length; i++) {
           if (reformat[i] != 0xF) {
-            buf += GsmPDUHelper.semiOctetToBcdChar(reformat[i]);
+            buf += GsmPDUHelper.semiOctetToExtendedBcdChar(reformat[i]);
           }
           if (i === 2) {
             // 0-2: MCC
@@ -13362,10 +13746,12 @@ SimRecordHelperObject.prototype = {
       }
       Buf.readStringDelimiter(strLen);
 
+      let RIL = this.context.RIL;
       if (options.p1 < options.totalRecords) {
         ICCIOHelper.loadNextRecord(options);
       } else {
-        this.context.RIL.iccInfoPrivate.OPL = opl;
+        RIL.iccInfoPrivate.OPL = opl;
+        RIL.overrideNetworkName();
       }
     }
 
@@ -13420,12 +13806,10 @@ SimRecordHelperObject.prototype = {
       }
       Buf.readStringDelimiter(strLen);
 
-      if (pnnElement) {
-        pnn.push(pnnElement);
-      }
+      pnn.push(pnnElement);
 
-      // Will ignore remaining records when got the contents of a record are all 0xff.
-      if (pnnElement && options.p1 < options.totalRecords) {
+      let RIL = this.context.RIL;
+      if (options.p1 < options.totalRecords) {
         ICCIOHelper.loadNextRecord(options);
       } else {
         if (DEBUG) {
@@ -13433,7 +13817,8 @@ SimRecordHelperObject.prototype = {
             this.context.debug("PNN: [" + i + "]: " + JSON.stringify(pnn[i]));
           }
         }
-        this.context.RIL.iccInfoPrivate.PNN = pnn;
+        RIL.iccInfoPrivate.PNN = pnn;
+        RIL.overrideNetworkName();
       }
     }
 
@@ -13490,7 +13875,7 @@ SimRecordHelperObject.prototype = {
           let plmnEntry = {};
           for (let i = 0; i < reformat.length; i++) {
             if (reformat[i] != 0xF) {
-              buf += GsmPDUHelper.semiOctetToBcdChar(reformat[i]);
+              buf += GsmPDUHelper.semiOctetToExtendedBcdChar(reformat[i]);
             }
             if (i === 2) {
               // 0-2: MCC
@@ -13854,17 +14239,55 @@ ICCUtilsHelperObject.prototype = {
         pnnEntry = iccInfoPriv.PNN[0];
       }
     } else {
+      let GsmPDUHelper = this.context.GsmPDUHelper;
+      let wildChar = GsmPDUHelper.extendedBcdChars.charAt(0x0d);
       // According to 3GPP TS 31.102 Sec. 4.2.59 and 3GPP TS 51.011 Sec. 10.3.42,
       // the ME shall use this EF_OPL in association with the EF_PNN in place
       // of any network name stored within the ME's internal list and any network
       // name received when registered to the PLMN.
       let length = iccInfoPriv.OPL ? iccInfoPriv.OPL.length : 0;
       for (let i = 0; i < length; i++) {
+        let unmatch = false;
         let opl = iccInfoPriv.OPL[i];
-        // Try to match the MCC/MNC.
-        if (mcc != opl.mcc || mnc != opl.mnc) {
+        // Try to match the MCC/MNC. Besides, A BCD value of 'D' in any of the
+        // MCC and/or MNC digits shall be used to indicate a "wild" value for
+        // that corresponding MCC/MNC digit.
+        if (opl.mcc.indexOf(wildChar) !== -1) {
+          for (let j = 0; j < opl.mcc.length; j++) {
+            if (opl.mcc[j] !== wildChar && opl.mcc[j] !== mcc[j]) {
+              unmatch = true;
+              break;
+            }
+          }
+          if (unmatch) {
+            continue;
+          }
+        } else {
+          if (mcc !== opl.mcc) {
+            continue;
+          }
+        }
+
+        if (mnc.length !== opl.mnc.length) {
           continue;
         }
+
+        if (opl.mnc.indexOf(wildChar) !== -1) {
+          for (let j = 0; j < opl.mnc.length; j++) {
+            if (opl.mnc[j] !== wildChar && opl.mnc[j] !== mnc[j]) {
+              unmatch = true;
+              break;
+            }
+          }
+          if (unmatch) {
+            continue;
+          }
+        } else {
+          if (mnc !== opl.mnc) {
+            continue;
+          }
+        }
+
         // Try to match the location area code. If current local area code is
         // covered by lac range that specified in the OPL entry, use the PNN
         // that specified in the OPL entry.
@@ -13986,6 +14409,8 @@ ICCUtilsHelperObject.prototype = {
         }
       }
 
+      // See 3GPP TS 22.101 A.4 Service Provider Name indication, and TS 31.102
+      // clause 4.2.12 EF_SPN for detail.
       if (isOnMatchingPlmn) {
         // The first bit of display condition tells us if we should display
         // registered PLMN.
@@ -14005,10 +14430,7 @@ ICCUtilsHelperObject.prototype = {
           this.context.debug("PLMN isn't HPLMN and PLMN isn't in PLMN list");
         }
 
-        // We didn't found the requirement of displaying network name if
-        // current PLMN isn't HPLMN nor one of PLMN in SPDI. So we keep
-        // isDisplayNetworkNameRequired false.
-        iccInfo.isDisplayNetworkNameRequired = false;
+        iccInfo.isDisplayNetworkNameRequired = true;
         iccInfo.isDisplaySpnRequired = (displayCondition & 0x02) === 0;
       }
     }
@@ -14268,6 +14690,12 @@ ICCContactHelperObject.prototype = {
         ICCRecordHelper.readADNLike(ICC_EF_FDN, onsuccess, onerror);
         break;
       case "sdn":
+        let ICCUtilsHelper = this.context.ICCUtilsHelper;
+        if (!ICCUtilsHelper.isICCServiceAvailable("SDN")) {
+          onerror(CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
+          break;
+        }
+
         ICCRecordHelper.readADNLike(ICC_EF_SDN, onsuccess, onerror);
         break;
       default:

@@ -12,10 +12,10 @@ function testRefresh(command, expect) {
 }
 
 let tests = [
-  {command: "d0108103010101820281829205013f002fe2",
+  {command: "d0108103010102820281829205013f002fe2",
    func: testRefresh,
    expect: {name: "refresh_cmd_1",
-            commandQualifier: 0x01}},
+            commandQualifier: 0x02}},
   {command: "d009810301010482028182",
    func: testRefresh,
    expect: {name: "refresh_cmd_2",

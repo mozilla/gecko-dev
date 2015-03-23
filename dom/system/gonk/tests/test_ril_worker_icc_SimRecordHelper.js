@@ -182,6 +182,14 @@ add_test(function test_fetch_sim_recodes() {
       ifCalled.push("readSST");
     };
 
+    simRecord.readOperatorNameString = function() {
+      ifCalled.push("readOperatorNameString");
+    };
+
+    simRecord.readOperatorNameShortForm = function() {
+      ifCalled.push("readOperatorNameShortForm");
+    };
+
     simRecord.fetchSimRecords();
 
     for (let i = 0; i < expectCalled.length; i++ ) {
@@ -192,7 +200,8 @@ add_test(function test_fetch_sim_recodes() {
     }
   }
 
-  let expectCalled = ["getIMSI", "readAD", "readSST"];
+  let expectCalled = ["getIMSI", "readAD", "readSST", "readOperatorNameString",
+                      "readOperatorNameShortForm"];
   testFetchSimRecordes(expectCalled);
 
   run_next_test();
@@ -486,4 +495,327 @@ add_test(function test_read_new_sms_on_sim() {
   run_next_test();
 });
 
+/**
+ * Verify the result of updateDisplayCondition after reading EF_SPDI | EF_SPN.
+ */
+add_test(function test_update_display_condition() {
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let record = context.SimRecordHelper;
+  let helper = context.GsmPDUHelper;
+  let ril    = context.RIL;
+  let buf    = context.Buf;
+  let io     = context.ICCIOHelper;
 
+  function do_test_spdi() {
+    // No EF_SPN, but having EF_SPDI.
+    // It implies "ril.iccInfoPrivate.spnDisplayCondition = undefined;".
+    io.loadTransparentEF = function fakeLoadTransparentEF(options) {
+      // PLMN lists are : 234-136 and 466-92.
+      let spdi = [0xA3, 0x0B, 0x80, 0x09, 0x32, 0x64, 0x31, 0x64, 0x26, 0x9F,
+                  0xFF, 0xFF, 0xFF];
+
+      // Write data size.
+      buf.writeInt32(spdi.length * 2);
+
+      // Write data.
+      for (let i = 0; i < spdi.length; i++) {
+        helper.writeHexOctet(spdi[i]);
+      }
+
+      // Write string delimiter.
+      buf.writeStringDelimiter(spdi.length * 2);
+
+      if (options.callback) {
+        options.callback(options);
+      }
+    };
+
+    record.readSPDI();
+
+    do_check_eq(ril.iccInfo.isDisplayNetworkNameRequired, true);
+    do_check_eq(ril.iccInfo.isDisplaySpnRequired, false);
+  }
+
+  function do_test_spn(displayCondition,
+                       expectedPlmnNameDisplay,
+                       expectedSpnDisplay) {
+    io.loadTransparentEF = function fakeLoadTransparentEF(options) {
+      // "Android" as Service Provider Name.
+      let spn = [0x41, 0x6E, 0x64, 0x72, 0x6F, 0x69, 0x64];
+      if (typeof displayCondition === 'number') {
+        spn.unshift(displayCondition);
+      }
+
+      // Write data size.
+      buf.writeInt32(spn.length * 2);
+
+      // Write data.
+      for (let i = 0; i < spn.length; i++) {
+        helper.writeHexOctet(spn[i]);
+      }
+
+      // Write string delimiter.
+      buf.writeStringDelimiter(spn.length * 2);
+
+      if (options.callback) {
+        options.callback(options);
+      }
+    };
+
+    record.readSPN();
+
+    do_check_eq(ril.iccInfo.isDisplayNetworkNameRequired, expectedPlmnNameDisplay);
+    do_check_eq(ril.iccInfo.isDisplaySpnRequired, expectedSpnDisplay);
+  }
+
+  // Create empty operator object.
+  ril.operator = {};
+  // Setup SIM MCC-MNC to 310-260 as home network.
+  ril.iccInfo.mcc = 310;
+  ril.iccInfo.mnc = 260;
+
+  do_test_spdi();
+
+  // No network.
+  do_test_spn(0x00, true, true);
+  do_test_spn(0x01, true, true);
+  do_test_spn(0x02, true, false);
+  do_test_spn(0x03, true, false);
+
+  // Home network.
+  ril.operator.mcc = 310;
+  ril.operator.mnc = 260;
+  do_test_spn(0x00, false, true);
+  do_test_spn(0x01, true, true);
+  do_test_spn(0x02, false, true);
+  do_test_spn(0x03, true, true);
+
+  // Not HPLMN but in PLMN list.
+  ril.iccInfoPrivate.SPDI = [{"mcc":"234","mnc":"136"},{"mcc":"466","mnc":"92"}];
+  ril.operator.mcc = 466;
+  ril.operator.mnc = 92;
+  do_test_spn(0x00, false, true);
+  do_test_spn(0x01, true, true);
+  do_test_spn(0x02, false, true);
+  do_test_spn(0x03, true, true);
+  ril.iccInfoPrivate.SPDI = null; // reset SPDI to null;
+
+  // Non-Home network.
+  ril.operator.mcc = 466;
+  ril.operator.mnc = 01;
+  do_test_spn(0x00, true, true);
+  do_test_spn(0x01, true, true);
+  do_test_spn(0x02, true, false);
+  do_test_spn(0x03, true, false);
+
+  run_next_test();
+});
+
+/**
+ * Verify reading EF_PNN with different coding scheme.
+ */
+add_test(function test_pnn_with_different_coding_scheme() {
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let record = context.SimRecordHelper;
+  let pduHelper = context.GsmPDUHelper;
+  let ril = context.RIL;
+  let buf = context.Buf;
+  let io = context.ICCIOHelper;
+
+  let test_data = [{
+    // Cell Broadcast data coding scheme - "Test1"
+    pnn: [0x43, 0x06, 0x85, 0xD4, 0xF2, 0x9C, 0x1E, 0x03],
+    expectedResult: "Test1"
+  },{
+    // UCS2 with 0x80 - "Test1"
+    pnn: [0x43, 0x0C, 0x90, 0x80, 0x00, 0x54, 0x00, 0x65, 0x00, 0x73, 0x00, 0x74, 0x00, 0x31],
+    expectedResult: "Test1"
+  },{
+    // UCS2 with 0x81 - "Test1"
+    pnn: [0x43, 0x0E, 0x90, 0x81, 0x08, 0xd2, 0x4d, 0x6f, 0x7a, 0x69, 0x6c, 0x6c, 0x61, 0xca, 0xff, 0xff],
+    expectedResult: "Mozilla\u694a"
+  },{
+    // UCS2 with 0x82 - "Mozilla\u694a"
+    pnn: [0x43, 0x0F, 0x90, 0x82, 0x08, 0x69, 0x00, 0x4d, 0x6f, 0x7a, 0x69, 0x6c, 0x6c, 0x61, 0xca, 0xff, 0xff],
+    expectedResult: "Mozilla\u694a"
+  }];
+
+  function do_test_pnn(pnn, expectedResult) {
+    io.loadLinearFixedEF = function fakeLoadLinearFixedEF(options) {
+      // Write data size.
+      buf.writeInt32(pnn.length * 2);
+
+      // Write data.
+      for (let i = 0; i < pnn.length; i++) {
+        pduHelper.writeHexOctet(pnn[i]);
+      }
+
+      // Write string delimiter.
+      buf.writeStringDelimiter(pnn.length * 2);
+
+      if (options.callback) {
+        options.callback(options);
+      }
+    };
+
+    record.readPNN();
+
+    do_check_eq(ril.iccInfoPrivate.PNN[0].fullName, expectedResult);
+    // Reset PNN info for next test
+    ril.iccInfoPrivate.PNN = null;
+  }
+
+  ril.appType = CARD_APPTYPE_SIM;
+  for (let i = 0; i < test_data.length; i++) {
+    do_test_pnn(test_data[i].pnn, test_data[i].expectedResult);
+  }
+
+  run_next_test();
+});
+
+/**
+ * Verify reading EF_PNN with different content.
+ */
+add_test(function test_pnn_with_different_content() {
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let record = context.SimRecordHelper;
+  let pduHelper = context.GsmPDUHelper;
+  let ril = context.RIL;
+  let buf = context.Buf;
+  let io = context.ICCIOHelper;
+
+  let test_data = [{
+    // [0]: {"fullName":"Test1","shortName":"Test1"}
+    pnn: [0x43, 0x06, 0x85, 0xD4, 0xF2, 0x9C, 0x1E, 0x03,
+          0x45, 0x06, 0x85, 0xD4, 0xF2, 0x9C, 0x1E, 0x03],
+    expectedResult: {"fullName": "Test1","shortName": "Test1"}
+  },{
+    // [1]: {"fullName":"Test2"}
+    pnn: [0x43, 0x06, 0x85, 0xD4, 0xF2, 0x9C, 0x2E, 0x03],
+    expectedResult: {"fullName": "Test2"}
+  },{
+    // [2]: undefined
+    pnn: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
+  },{
+    // [3]: {"fullName": "Test4"}
+    pnn: [0x43, 0x06, 0x85, 0xD4, 0xF2, 0x9C, 0x4E, 0x03],
+    expectedResult: {"fullName": "Test4"}
+  },{
+    // [4]: undefined
+    pnn: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
+  }];
+
+  function do_test_pnn() {
+    ril.iccIO = function fakeIccIO(options) {
+      let index = options.p1 - 1;
+      let pnn = test_data[index].pnn;
+
+      // Write data size.
+      buf.writeInt32(pnn.length * 2);
+
+      // Write data.
+      for (let i = 0; i < pnn.length; i++) {
+        pduHelper.writeHexOctet(pnn[i]);
+      }
+
+      // Write string delimiter.
+      buf.writeStringDelimiter(pnn.length * 2);
+
+      if (options.callback) {
+        options.callback(options);
+      }
+    };
+
+    io.loadLinearFixedEF = function fakeLoadLinearFixedEF(options) {
+      options.p1 = 1;
+      options.totalRecords = test_data.length;
+
+      ril.iccIO(options);
+    };
+
+    record.readPNN();
+
+    do_check_eq(test_data.length, ril.iccInfoPrivate.PNN.length);
+    for (let i = 0; i < test_data.length; i++) {
+      if (test_data[i].expectedResult) {
+        do_check_eq(test_data[i].expectedResult.fullName,
+                    ril.iccInfoPrivate.PNN[i].fullName);
+        do_check_eq(test_data[i].expectedResult.shortName,
+                    ril.iccInfoPrivate.PNN[i].shortName);
+      } else {
+        do_check_eq(test_data[i].expectedResult, ril.iccInfoPrivate.PNN[i]);
+      }
+    }
+  }
+
+  ril.appType = CARD_APPTYPE_SIM;
+  do_test_pnn();
+
+  run_next_test();
+});
+
+/**
+ * Verify the result of CPHS ONS overriding.
+ */
+add_test(function test_cphs_ons() {
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let record = context.SimRecordHelper;
+  let helper = context.GsmPDUHelper;
+  let ril    = context.RIL;
+  let buf    = context.Buf;
+  let io     = context.ICCIOHelper;
+
+  // Create empty operator object.
+  ril.operator = {};
+  ril.operator.longName = "PLMN Long Name";
+  ril.operator.shortName = "PLMN Short Name";
+
+  function do_test_ons(roaming) {
+    // ONS
+    let ons = [0x4F, 0x4E, 0x53];
+    // ONS Short
+    let ons_short = [0x4F, 0x4E, 0x53, 0x20, 0x53, 0x68, 0x6F, 0x72, 0x74];
+
+    ril.voiceRegistrationState.roaming = roaming;
+
+    io.loadTransparentEF = function fakeLoadTransparentEF(options) {
+      let ons_hex_data = (options.fileId == ICC_EF_ONS) ? ons :
+        ons_short;
+
+      // Write data size
+      buf.writeInt32(ons_hex_data.length * 2);
+
+      // Write data
+      for (let i = 0; i < ons_hex_data.length; i++) {
+        helper.writeHexOctet(ons_hex_data[i]);
+      }
+
+      // Write string delimiter.
+      buf.writeStringDelimiter(ons_hex_data.length * 2);
+
+      if (options.callback) {
+        options.callback(options);
+      }
+    };
+
+    record.readOperatorNameString();
+    record.readOperatorNameShortForm();
+  }
+
+  // Roaming case
+  do_test_ons(true);
+
+  do_check_eq(ril.operator.longName, "PLMN Long Name");
+  do_check_eq(ril.operator.shortName, "PLMN Short Name");
+
+  // Home case
+  do_test_ons(false);
+  do_check_eq(ril.operator.longName, "ONS");
+  do_check_eq(ril.operator.shortName, "ONS Short");
+
+  run_next_test();
+});
