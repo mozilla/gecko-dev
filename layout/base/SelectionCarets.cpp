@@ -461,6 +461,8 @@ SelectionCarets::UpdateSelectionCarets()
   nsRefPtr<nsRange> firstRange = selection->GetRangeAt(0);
   nsRefPtr<nsRange> lastRange = selection->GetRangeAt(rangeCount - 1);
 
+  mPresShell->FlushPendingNotifications(Flush_Layout);
+
   nsIFrame* rootFrame = mPresShell->GetRootFrame();
 
   if (!rootFrame) {
@@ -493,8 +495,6 @@ SelectionCarets::UpdateSelectionCarets()
     SetVisibility(false);
     return;
   }
-
-  mPresShell->FlushPendingNotifications(Flush_Layout);
 
   // If the selection is not visible, we should dispatch a event.
   nsIFrame* commonAncestorFrame =
