@@ -110,6 +110,10 @@ bool
 ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
                                             void** aIter, paramType* aResult)
 {
+  MOZ_ASSERT(!aResult->mGraphicBuffer.get());
+  MOZ_ASSERT(aResult->mRef.mOwner == 0);
+  MOZ_ASSERT(aResult->mRef.mKey == -1);
+
   size_t nbytes;
   const char* data;
   int owner;
@@ -125,7 +129,7 @@ ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
 
   size_t nfds = aMsg->num_fds();
   int fds[nfds];
-  bool sameProcess = (XRE_GetProcessType() == GeckoProcessType_Default);
+
   for (size_t n = 0; n < nfds; ++n) {
     FileDescriptor fd;
     if (!aMsg->ReadFileDescriptor(aIter, &fd)) {
@@ -143,7 +147,9 @@ ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
 
   aResult->mRef.mOwner = owner;
   aResult->mRef.mKey = index;
-  if (sameProcess) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    // If we are in chrome process, we can just get GraphicBuffer directly from
+    // SharedBufferManagerParent.
     aResult->mGraphicBuffer = SharedBufferManagerParent::GetGraphicBuffer(aResult->mRef);
   } else {
     // Deserialize GraphicBuffer
@@ -161,7 +167,7 @@ ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
       buffer = nullptr;
     }
 #endif
-    if(buffer.get() && !aResult->mGraphicBuffer.get()) {
+    if (buffer.get()) {
       aResult->mGraphicBuffer = buffer;
     }
   }
