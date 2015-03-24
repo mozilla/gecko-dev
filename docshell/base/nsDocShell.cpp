@@ -1310,7 +1310,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
     
     // Note: we allow loads to get through here even if mFiredUnloadEvent is
     // true; that case will get handled in LoadInternal or LoadHistoryEntry.
-    if (IsPrintingOrPP() || mBlockNavigation) {
+    if (IsPrintingOrPP()) {
       return NS_OK; // JS may not handle returning of an error code
     }
 
@@ -4210,7 +4210,8 @@ bool
 nsDocShell::IsNavigationAllowed(bool aDisplayPrintErrorDialog)
 {
   bool isAllowed = !IsPrintingOrPP(aDisplayPrintErrorDialog) &&
-                   !mFiredUnloadEvent && !mBlockNavigation;  if (!isAllowed) {
+                   !mFiredUnloadEvent;
+  if (!isAllowed) {
     return false;
   }
   if (!mContentViewer) {
@@ -8908,8 +8909,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
     NS_ENSURE_TRUE(!mIsBeingDestroyed, NS_ERROR_NOT_AVAILABLE);
 
-    NS_ENSURE_TRUE(!mBlockNavigation, NS_ERROR_UNEXPECTED);
-
     // wyciwyg urls can only be loaded through history. Any normal load of
     // wyciwyg through docshell is  illegal. Disallow such loads.
     if (aLoadType & LOAD_CMD_NORMAL) {
@@ -9323,19 +9322,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             GetCurScrollPos(ScrollOrientation_X, &cx);
             GetCurScrollPos(ScrollOrientation_Y, &cy);
 
-            {
-                AutoRestore<bool> scrollingToAnchor(mBlockNavigation);
-                mBlockNavigation = true;
-
-                // ScrollToAnchor doesn't necessarily cause us to scroll the window;
-                // the function decides whether a scroll is appropriate based on the
-                // arguments it receives.  But even if we don't end up scrolling,
-                // ScrollToAnchor performs other important tasks, such as informing
-                // the presShell that we have a new hash.  See bug 680257.
-                rv = ScrollToAnchor(curHash, newHash, aLoadType);
-                NS_ENSURE_SUCCESS(rv, rv);
-            }
-
             // Reset mLoadType to its original value once we exit this block,
             // because this short-circuited load might have started after a
             // normal, network load, and we don't want to clobber its load type.
@@ -9423,16 +9409,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                     mOSHE->SetCacheKey(cacheKey);
             }
 
-            /* restore previous position of scroller(s), if we're moving
-             * back in history (bug 59774)
-             */
-            if (mOSHE && (aLoadType == LOAD_HISTORY || aLoadType == LOAD_RELOAD_NORMAL))
-            {
-                nscoord bx, by;
-                mOSHE->GetScrollPosition(&bx, &by);
-                SetCurScrollPosEx(bx, by);
-            }
-
             /* Restore the original LSHE if we were loading something
              * while short-circuited load was initiated.
              */
@@ -9469,12 +9445,36 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
             SetDocCurrentStateObj(mOSHE);
 
+            // Inform the favicon service that the favicon for oldURI also
+            // applies to aURI.
+            CopyFavicon(currentURI, aURI, mInPrivateBrowsing);
+
+            nsRefPtr<nsGlobalWindow> win = mScriptGlobal ?
+              mScriptGlobal->GetCurrentInnerWindowInternal() : nullptr;
+
+            // ScrollToAnchor doesn't necessarily cause us to scroll the window;
+            // the function decides whether a scroll is appropriate based on the
+            // arguments it receives.  But even if we don't end up scrolling,
+            // ScrollToAnchor performs other important tasks, such as informing
+            // the presShell that we have a new hash.  See bug 680257.
+            rv = ScrollToAnchor(curHash, newHash, aLoadType);
+            NS_ENSURE_SUCCESS(rv, rv);
+
+            /* restore previous position of scroller(s), if we're moving
+             * back in history (bug 59774)
+             */
+            if (mOSHE && (aLoadType == LOAD_HISTORY ||
+                          aLoadType == LOAD_RELOAD_NORMAL)) {
+              nscoord bx, by;
+              mOSHE->GetScrollPosition(&bx, &by);
+              SetCurScrollPosEx(bx, by);
+            }
+
             // Dispatch the popstate and hashchange events, as appropriate.
             //
             // The event dispatch below can cause us to re-enter script and
             // destroy the docshell, nulling out mScriptGlobal. Hold a stack
             // reference to avoid null derefs. See bug 914521.
-            nsRefPtr<nsGlobalWindow> win = mScriptGlobal;
             if (win) {
                 // Fire a hashchange event URIs differ, and only in their hashes.
                 bool doHashchange = sameExceptHashes && !curHash.Equals(newHash);
@@ -9489,10 +9489,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                     win->DispatchAsyncHashchange(currentURI, aURI);
                 }
             }
-
-            // Inform the favicon service that the favicon for oldURI also
-            // applies to aURI.
-            CopyFavicon(currentURI, aURI, mInPrivateBrowsing);
 
             return NS_OK;
         }
@@ -12576,7 +12572,7 @@ nsDocShell::OnLinkClick(nsIContent* aContent,
 {
   NS_ASSERTION(NS_IsMainThread(), "wrong thread");
 
-  if (!IsOKToLoadURI(aURI) || mBlockNavigation) {
+  if (!IsOKToLoadURI(aURI)) {
     return NS_OK;
   }
 
@@ -12632,7 +12628,7 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
     *aRequest = nullptr;
   }
 
-  if (!IsOKToLoadURI(aURI) || mBlockNavigation) {
+  if (!IsOKToLoadURI(aURI)) {
     return NS_OK;
   }
 
