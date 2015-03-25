@@ -2485,7 +2485,9 @@ void MediaDecoderStateMachine::DecodeSeek()
 
   mDecodeToSeekTarget = false;
 
-  if (!currentTimeChanged) {
+  if (!currentTimeChanged &&
+      (!HasVideo() || !(VideoQueue().GetSize() == 0 && !VideoQueue().IsFinished()))) {
+
     DECODER_LOG("Seek !currentTimeChanged...");
     mDropAudioUntilNextDiscontinuity = false;
     mDropVideoUntilNextDiscontinuity = false;
