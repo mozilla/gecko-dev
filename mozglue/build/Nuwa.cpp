@@ -793,9 +793,6 @@ __wrap_pthread_key_create(pthread_key_t *key, void (*destructor)(void*)) {
 
 extern "C" MFBT_API int
 __wrap_pthread_key_delete(pthread_key_t key) {
-  if (!sIsNuwaProcess) {
-    return REAL(pthread_key_delete)(key);
-  }
   // Don't call pthread_key_delete() for Nuwa-forked processes because bionic's
   // pthread_key_delete() implementation can touch the thread stack that was
   // freed in thread_info_cleanup().
