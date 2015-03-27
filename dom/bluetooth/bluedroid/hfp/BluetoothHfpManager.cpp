@@ -224,6 +224,7 @@ BluetoothHfpManager::Cleanup()
 void
 BluetoothHfpManager::Reset()
 {
+  mFirstCKPD = false;
   // Phone & Device CIND
   ResetCallArray();
   // Clear Sco state
@@ -1282,6 +1283,8 @@ BluetoothHfpManager::OnConnect(const nsAString& aErrorStr)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  mFirstCKPD = true;
+
   /**
    * On the one hand, notify the controller that we've done for outbound
    * connections. On the other hand, we do nothing for inbound connections.
@@ -1609,7 +1612,7 @@ BluetoothHfpManager::KeyPressedNotification(const nsAString& aBdAddress)
   // Refer to AOSP HeadsetStateMachine.processKeyPressed
   if (FindFirstCall(nsITelephonyService::CALL_STATE_INCOMING)
       && !hasActiveCall) {
-    /**
+    /*
      * Bluetooth HSP spec 4.2.2
      * There is an incoming call, notify Dialer to pick up the phone call
      * and SCO will be established after we get the CallStateChanged event
@@ -1618,13 +1621,22 @@ BluetoothHfpManager::KeyPressedNotification(const nsAString& aBdAddress)
     NotifyDialer(NS_LITERAL_STRING("ATA"));
   } else if (hasActiveCall) {
     if (!IsScoConnected()) {
-      /**
+      /*
        * Bluetooth HSP spec 4.3
        * If there's no SCO, set up a SCO link.
        */
       ConnectSco();
-    } else {
-      /**
+    } else if (mFirstCKPD) {
+      /*
+       * Bluetooth HSP spec 4.2 & 4.3
+       * The SCO link connection may be set up prior to receiving the AT+CKPD=200
+       * command from the HS.
+       *
+       * Once FxOS initiates a SCO connection before receiving the
+       * AT+CKPD=200, we should ignore this key press.
+       */
+     } else {
+      /*
        * Bluetooth HSP spec 4.5
        * There are two ways to release SCO: sending CHUP to dialer or closing
        * SCO socket directly. We notify dialer only if there is at least one
@@ -1632,6 +1644,7 @@ BluetoothHfpManager::KeyPressedNotification(const nsAString& aBdAddress)
        */
       NotifyDialer(NS_LITERAL_STRING("CHUP"));
     }
+    mFirstCKPD = false;
   } else {
     // BLDN
     mDialingRequestProcessed = false;
