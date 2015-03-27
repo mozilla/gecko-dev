@@ -295,6 +295,13 @@ GrallocBufferActor::Create(const gfx::IntSize& aSize,
     return actor;
   }
 
+  if (aSize.width <= 0 || aSize.height <= 0) {
+    printf_stderr("SharedBufferManagerParent::RecvAllocateGrallocBuffer -- requested gralloc buffer size is invalid");
+    // return an empty actor and and a null_t handle.
+    // Returning a null actor instead would kill the child process and we don't want that.
+    return actor;
+  }
+
   sp<GraphicBuffer> buffer(new GraphicBuffer(aSize.width, aSize.height, format, usage));
   if (buffer->initCheck() != OK) {
     // return an empty actor and and a null_t handle.
