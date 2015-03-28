@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1437819250919000);
+const PRTime gPreloadListExpirationTime = INT64_C(1438424465147000);
 
 class nsSTSPreload
 {
@@ -35,7 +35,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "ahoyconference.com", true },
   { "aie.de", true },
   { "aiticon.com", true },
-  { "aladdinschools.appspot.com", false },
+  { "aladdinschools.appspot.com", true },
   { "alainwolf.net", true },
   { "alecvannoten.be", true },
   { "alexsexton.com", true },
@@ -143,7 +143,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "cartouche24.eu", true },
   { "cartucce24.it", true },
   { "cdnb.co", true },
-  { "celltek-server.de", false },
   { "certible.com", true },
   { "certly.io", true },
   { "chahub.com", true },
@@ -232,7 +231,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "dropbox.com", true },
   { "dzlibs.io", true },
   { "easysimplecrm.com", false },
-  { "ebanking.indovinabank.com.vn", false },
+  { "ebanking.indovinabank.com.vn", true },
   { "ecdn.cz", true },
   { "ecosystem.atlassian.net", true },
   { "ed.gs", true },
@@ -254,7 +253,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "eurotramp.com", true },
   { "everhome.de", true },
   { "evstatus.com", true },
-  { "exiahost.com", true },
+  { "exiahost.com", false },
   { "explodie.org", true },
   { "f-droid.org", true },
   { "fabhub.io", true },
@@ -629,11 +628,9 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "rad-route.de", true },
   { "raiseyourflag.com", true },
   { "ravchat.com", true },
-  { "redports.org", true },
   { "redteam-pentesting.de", true },
   { "reedloden.com", true },
   { "reishunger.de", true },
-  { "reserve-online.net", true },
   { "residentsinsurance.co.uk", true },
   { "reviews.anime.my", true },
   { "riccy.org", true },
@@ -752,7 +749,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "thepaymentscompany.com", true },
   { "therapynotes.com", true },
   { "theshadestore.com", true },
-  { "thorncreek.net", false },
   { "thusoy.com", true },
   { "tickopa.co.uk", true },
   { "timtaubert.de", true },
@@ -915,4 +911,5 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "zeropush.com", true },
   { "zixiao.wang", true },
   { "zlavomat.sk", true },
+  { "zotero.org", true },
 };
