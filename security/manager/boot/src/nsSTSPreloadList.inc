@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1437214217313000);
+const PRTime gPreloadListExpirationTime = INT64_C(1438423863556000);
 
 class nsSTSPreload
 {
@@ -27,7 +27,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "admin.google.com", true },
   { "adsfund.org", true },
   { "aie.de", true },
-  { "aladdinschools.appspot.com", false },
+  { "aladdinschools.appspot.com", true },
   { "alexsexton.com", true },
   { "alpha.irccloud.com", false },
   { "ansdell.net", true },
@@ -76,6 +76,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "blog.torproject.org", false },
   { "bohramt.de", true },
   { "boxcryptor.com", true },
+  { "braintreegateway.com", true },
   { "brunosouza.org", true },
   { "buddhistische-weisheiten.org", true },
   { "bugzil.la", true },
@@ -86,7 +87,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "carezone.com", false },
   { "cartouche24.eu", true },
   { "cartucce24.it", true },
-  { "celltek-server.de", false },
   { "certible.com", true },
   { "check.torproject.org", false },
   { "checkout.google.com", true },
@@ -137,7 +137,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "donmez.ws", false },
   { "drive.google.com", true },
   { "dropbox.com", true },
-  { "ebanking.indovinabank.com.vn", false },
+  { "ebanking.indovinabank.com.vn", true },
   { "ecosystem.atlassian.net", true },
   { "ed.gs", true },
   { "edyou.eu", true },
@@ -352,9 +352,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "qetesh.de", true },
   { "rad-route.de", true },
   { "raiseyourflag.com", true },
-  { "redports.org", true },
   { "reedloden.com", true },
-  { "reserve-online.net", true },
   { "reviews.anime.my", true },
   { "riccy.org", true },
   { "riesenmagnete.de", true },
@@ -527,4 +525,5 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "z.ai", true },
   { "zenpayroll.com", false },
   { "zeropush.com", true },
+  { "zotero.org", true },
 };
