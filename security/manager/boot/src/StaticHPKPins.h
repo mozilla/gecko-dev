@@ -203,13 +203,13 @@ static const char kGoogleG2Fingerprint[] =
 static const char kNetwork_Solutions_Certificate_AuthorityFingerprint[] =
   "MtGA7THJNVieydu7ciEjuIO1/C3BD5/KOpXXfhv8tTQ=";
 
-/* SpiderOak1 */
-static const char kSpiderOak1Fingerprint[] =
-  "UPrvFUSrp9aal5v6Rn0Jv3YJ/wU=";
-
 /* SpiderOak2 */
 static const char kSpiderOak2Fingerprint[] =
   "D0fS/hquA6QprluciyO1hlFUAxg=";
+
+/* SpiderOak3 */
+static const char kSpiderOak3Fingerprint[] =
+  "l5JoIXv4lztZ+C6TJWgxZCHQzS4=";
 
 /* Starfield Class 2 CA */
 static const char kStarfield_Class_2_CAFingerprint[] =
@@ -696,7 +696,7 @@ static const StaticPinset kPinset_facebook = {
 
 static const char* kPinset_spideroak_sha1_Data[] = {
   kSpiderOak2Fingerprint,
-  kSpiderOak1Fingerprint,
+  kSpiderOak3Fingerprint,
 };
 static const StaticFingerprints kPinset_spideroak_sha1 = {
   sizeof(kPinset_spideroak_sha1_Data) / sizeof(const char*),
@@ -704,7 +704,8 @@ static const StaticFingerprints kPinset_spideroak_sha1 = {
 };
 
 static const char* kPinset_spideroak_sha256_Data[] = {
-  kGOOGLE_PIN_RapidSSLFingerprint,
+  kDigiCert_High_Assurance_EV_Root_CAFingerprint,
+  kGeoTrust_Global_CAFingerprint,
 };
 static const StaticFingerprints kPinset_spideroak_sha256 = {
   sizeof(kPinset_spideroak_sha256_Data) / sizeof(const char*),
@@ -1081,4 +1082,4 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1435400258825000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1436005376695000);
