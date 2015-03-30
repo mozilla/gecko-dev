@@ -2262,7 +2262,7 @@ TabParent::RecvBrowserFrameOpenWindow(PBrowserParent* aOpener,
   BrowserElementParent::OpenWindowResult opened =
     BrowserElementParent::OpenWindowOOP(static_cast<TabParent*>(aOpener),
                                         this, aURL, aName, aFeatures);
-  *aOutWindowOpened = (opened != BrowserElementParent::OPEN_WINDOW_CANCELLED);
+  *aOutWindowOpened = (opened == BrowserElementParent::OPEN_WINDOW_ADDED);
   return true;
 }
 
