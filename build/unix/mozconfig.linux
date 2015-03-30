@@ -26,3 +26,5 @@ ac_add_options --enable-elf-hack
 
 # Avoid dependency on libstdc++ 4.7
 ac_add_options --enable-stdcxx-compat
+
+export SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE=/builds/crash-stats-api.token
