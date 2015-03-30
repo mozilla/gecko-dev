@@ -1,4 +1,3 @@
-0x0a.net: could not connect to host
 admin.google.com: did not receive HSTS header (error ignored - included regardless)
 adsfund.org: could not connect to host
 airbnb.com: did not receive HSTS header
@@ -10,10 +9,7 @@ appengine.google.com: did not receive HSTS header (error ignored - included rega
 appseccalifornia.org: did not receive HSTS header
 atavio.at: could not connect to host
 atavio.ch: could not connect to host
-atavio.de: did not receive HSTS header
 azprep.us: could not connect to host
-balcan-underground.net: did not receive HSTS header
-baldwinkoo.com: did not receive HSTS header
 barcodeberlin.com: did not receive HSTS header
 bccx.com: could not connect to host
 betnet.fr: could not connect to host
@@ -25,6 +21,7 @@ browserid.org: did not receive HSTS header
 business.medbank.com.mt: did not receive HSTS header
 calyxinstitute.org: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b32_20-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 carlolly.co.uk: could not connect to host
+celltek-server.de: did not receive HSTS header
 cert.se: max-age too low: 2628001
 chainmonitor.com: could not connect to host
 chatbot.me: could not connect to host
@@ -48,6 +45,7 @@ download.jitsi.org: did not receive HSTS header
 drive.google.com: did not receive HSTS header (error ignored - included regardless)
 dropcam.com: did not receive HSTS header
 dzlibs.io: could not connect to host
+ecdn.cz: could not connect to host
 edmodo.com: did not receive HSTS header
 email.lookout.com: could not connect to host
 encrypted.google.com: did not receive HSTS header (error ignored - included regardless)
@@ -105,6 +103,7 @@ matatall.com: could not connect to host
 matteomarescotti.name: could not connect to host
 mediacru.sh: could not connect to host
 meinebo.it: could not connect to host
+mnsure.org: could not connect to host
 mobilethreat.net: could not connect to host
 mobilethreatnetwork.net: could not connect to host
 mqas.net: could not connect to host
@@ -120,10 +119,8 @@ nexth.us: could not connect to host
 ng-security.com: could not connect to host
 noexpect.org: could not connect to host
 npw.net: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b32_20-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
-opendesk.cc: did not receive HSTS header
 openshift.redhat.com: did not receive HSTS header
 ottospora.nl: could not connect to host
-passwd.io: could not connect to host
 passwordbox.com: did not receive HSTS header
 piratenlogin.de: could not connect to host
 platform.lookout.com: could not connect to host
@@ -133,7 +130,8 @@ prodpad.com: did not receive HSTS header
 promecon-gmbh.de: did not receive HSTS header
 proximato.com: could not connect to host
 rapidresearch.me: could not connect to host
-redports.org: could not connect to host
+redports.org: did not receive HSTS header
+reserve-online.net: did not receive HSTS header
 riseup.net: did not receive HSTS header
 rme.li: did not receive HSTS header
 roddis.net: did not receive HSTS header
@@ -166,6 +164,7 @@ talk.google.com: could not connect to host
 talk.google.com: could not connect to host (error ignored - included regardless)
 talkgadget.google.com: did not receive HSTS header (error ignored - included regardless)
 tektoria.de: did not receive HSTS header
+thorncreek.net: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header (error ignored - included regardless)
 uprotect.it: could not connect to host
 vhost.co.id: could not connect to host
@@ -190,4 +189,3 @@ www.rme.li: did not receive HSTS header
 www.sandbox.mydigipass.com: could not connect to host
 www.surfeasy.com: did not receive HSTS header
 zoo24.de: could not connect to host
-zotero.org: did not receive HSTS header
