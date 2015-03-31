@@ -223,21 +223,29 @@ DOMMediaStream::IsFinished()
 }
 
 void
-DOMMediaStream::InitSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents)
+DOMMediaStream::InitSourceStream(nsIDOMWindow* aWindow,
+                                 TrackTypeHints aHintContents,
+                                 MediaStreamGraph* aGraph)
 {
   mWindow = aWindow;
   SetHintContents(aHintContents);
-  MediaStreamGraph* gm = MediaStreamGraph::GetInstance(aHintContents);
-  InitStreamCommon(gm->CreateSourceStream(this));
+  if (!aGraph) {
+    aGraph = MediaStreamGraph::GetInstance();
+  }
+  InitStreamCommon(aGraph->CreateSourceStream(this));
 }
 
 void
-DOMMediaStream::InitTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents)
+DOMMediaStream::InitTrackUnionStream(nsIDOMWindow* aWindow,
+                                     TrackTypeHints aHintContents,
+                                     MediaStreamGraph* aGraph)
 {
   mWindow = aWindow;
   SetHintContents(aHintContents);
-  MediaStreamGraph* gm = MediaStreamGraph::GetInstance(aHintContents);
-  InitStreamCommon(gm->CreateTrackUnionStream(this));
+  if (!aGraph) {
+    aGraph = MediaStreamGraph::GetInstance();
+  }
+  InitStreamCommon(aGraph->CreateTrackUnionStream(this));
 }
 
 void
@@ -251,18 +259,22 @@ DOMMediaStream::InitStreamCommon(MediaStream* aStream)
 }
 
 already_AddRefed<DOMMediaStream>
-DOMMediaStream::CreateSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents)
+DOMMediaStream::CreateSourceStream(nsIDOMWindow* aWindow,
+                                   TrackTypeHints aHintContents,
+                                   MediaStreamGraph* aGraph)
 {
   nsRefPtr<DOMMediaStream> stream = new DOMMediaStream();
-  stream->InitSourceStream(aWindow, aHintContents);
+  stream->InitSourceStream(aWindow, aHintContents, aGraph);
   return stream.forget();
 }
 
 already_AddRefed<DOMMediaStream>
-DOMMediaStream::CreateTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents)
+DOMMediaStream::CreateTrackUnionStream(nsIDOMWindow* aWindow,
+                                       TrackTypeHints aHintContents,
+                                       MediaStreamGraph* aGraph)
 {
   nsRefPtr<DOMMediaStream> stream = new DOMMediaStream();
-  stream->InitTrackUnionStream(aWindow, aHintContents);
+  stream->InitTrackUnionStream(aWindow, aHintContents, aGraph);
   return stream.forget();
 }
 
@@ -599,19 +611,21 @@ DOMLocalMediaStream::Stop()
 
 already_AddRefed<DOMLocalMediaStream>
 DOMLocalMediaStream::CreateSourceStream(nsIDOMWindow* aWindow,
-                                        TrackTypeHints aHintContents)
+                                        TrackTypeHints aHintContents,
+                                        MediaStreamGraph* aGraph)
 {
   nsRefPtr<DOMLocalMediaStream> stream = new DOMLocalMediaStream();
-  stream->InitSourceStream(aWindow, aHintContents);
+  stream->InitSourceStream(aWindow, aHintContents, aGraph);
   return stream.forget();
 }
 
 already_AddRefed<DOMLocalMediaStream>
 DOMLocalMediaStream::CreateTrackUnionStream(nsIDOMWindow* aWindow,
-                                            TrackTypeHints aHintContents)
+                                            TrackTypeHints aHintContents,
+                                            MediaStreamGraph* aGraph)
 {
   nsRefPtr<DOMLocalMediaStream> stream = new DOMLocalMediaStream();
-  stream->InitTrackUnionStream(aWindow, aHintContents);
+  stream->InitTrackUnionStream(aWindow, aHintContents, aGraph);
   return stream.forget();
 }
 
@@ -627,9 +641,10 @@ DOMAudioNodeMediaStream::~DOMAudioNodeMediaStream()
 already_AddRefed<DOMAudioNodeMediaStream>
 DOMAudioNodeMediaStream::CreateTrackUnionStream(nsIDOMWindow* aWindow,
                                                 AudioNode* aNode,
-                                                TrackTypeHints aHintContents)
+                                                TrackTypeHints aHintContents,
+                                                MediaStreamGraph* aGraph)
 {
   nsRefPtr<DOMAudioNodeMediaStream> stream = new DOMAudioNodeMediaStream(aNode);
-  stream->InitTrackUnionStream(aWindow, aHintContents);
+  stream->InitTrackUnionStream(aWindow, aHintContents, aGraph);
   return stream.forget();
 }

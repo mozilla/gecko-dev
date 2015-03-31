@@ -1755,7 +1755,7 @@ MediaDecoderStateMachine::StartSeek(const SeekTarget& aTarget)
   DECODER_LOG("Changed state to SEEKING (to %lld)", mSeekTarget.mTime);
   SetState(DECODER_STATE_SEEKING);
   if (mAudioCaptured) {
-    mDecoder->RecreateDecodedStream(seekTime - mStartTime);
+    mDecoder->RecreateDecodedStream(seekTime - mStartTime, nullptr);
   }
   ScheduleStateMachine();
 }
