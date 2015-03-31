@@ -832,7 +832,14 @@ BondStateChangedCallback(bt_status_t aStatus, bt_bdaddr_t* aRemoteBdAddress,
     case BT_STATUS_BUSY:
     case BT_STATUS_AUTH_FAILURE:
     case BT_STATUS_RMT_DEV_DOWN:
+    case BT_STATUS_FAIL:
     {
+      if (BT_STATUS_AUTH_FAILURE == aStatus) {
+        if (sAdapterBondedAddressArray.Contains(remoteBdAddress)) {
+          sAdapterBondedAddressArray.RemoveElement(remoteBdAddress);
+        }
+      }
+
       InfallibleTArray<BluetoothNamedValue> propertiesArray;
       BluetoothSignal signal(NS_LITERAL_STRING("Cancel"),
                              NS_LITERAL_STRING(KEY_LOCAL_AGENT),
