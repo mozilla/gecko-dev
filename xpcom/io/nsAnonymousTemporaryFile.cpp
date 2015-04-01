@@ -6,6 +6,7 @@
 
 
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/SyncRunnable.h"
 #include "nsAnonymousTemporaryFile.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsDirectoryServiceDefs.h"
@@ -82,6 +83,27 @@ GetTempDir(nsIFile** aTempDir)
   return NS_OK;
 }
 
+namespace {
+
+class nsRemoteAnonymousTemporaryFileRunnable : public nsRunnable
+{
+public:
+  ipc::FileDescriptor* mResultPtr;
+  explicit nsRemoteAnonymousTemporaryFileRunnable(ipc::FileDescriptor* aResultPtr)
+  : mResultPtr(aResultPtr)
+  { }
+
+protected:
+  NS_IMETHODIMP Run() {
+    dom::ContentChild* child = dom::ContentChild::GetSingleton();
+    MOZ_ASSERT(child);
+    child->SendOpenAnonymousTemporaryFile(mResultPtr);
+    return NS_OK;
+  }
+};
+
+} // namespace
+
 nsresult
 NS_OpenAnonymousTemporaryFile(PRFileDesc** aOutFileDesc)
 {
@@ -91,10 +113,14 @@ NS_OpenAnonymousTemporaryFile(PRFileDesc** aOutFileDesc)
 
   if (dom::ContentChild* child = dom::ContentChild::GetSingleton()) {
     ipc::FileDescriptor fd;
-    DebugOnly<bool> succeeded = child->SendOpenAnonymousTemporaryFile(&fd);
-    // The child process should already have been terminated if the
-    // IPC had failed.
-    MOZ_ASSERT(succeeded);
+    if (NS_IsMainThread()) {
+      child->SendOpenAnonymousTemporaryFile(&fd);
+    } else {
+      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+      MOZ_ASSERT(mainThread);
+      SyncRunnable::DispatchToThread(mainThread,
+        new nsRemoteAnonymousTemporaryFileRunnable(&fd));
+    }
     *aOutFileDesc = PR_ImportFile(PROsfd(fd.PlatformHandle()));
     return NS_OK;
   }
