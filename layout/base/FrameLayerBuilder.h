@@ -317,7 +317,6 @@ public:
   void AddPaintedDisplayItem(PaintedLayerData* aLayer,
                             nsDisplayItem* aItem,
                             const DisplayItemClip& aClip,
-                            const nsIntRect& aItemVisibleRect,
                             ContainerState& aContainerState,
                             LayerState aLayerState,
                             const nsPoint& aTopLeft);
