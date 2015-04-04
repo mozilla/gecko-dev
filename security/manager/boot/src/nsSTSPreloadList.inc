@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1438424465147000);
+const PRTime gPreloadListExpirationTime = INT64_C(1439028847085000);
 
 class nsSTSPreload
 {
@@ -73,8 +73,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "arguggi.co.uk", true },
   { "arivo.com.br", true },
   { "arlen.io", true },
-  { "atavio.at", true },
-  { "atavio.ch", true },
   { "auf-feindgebiet.de", true },
   { "azabani.com", true },
   { "baer.im", true },
@@ -125,6 +123,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "bookingapp.nl", true },
   { "boxcryptor.com", true },
   { "brage.info", true },
+  { "braintreegateway.com", true },
   { "brunosouza.org", true },
   { "buddhistische-weisheiten.org", true },
   { "bugzil.la", true },
@@ -150,7 +149,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "chatbot.me", true },
   { "check.torproject.org", false },
   { "checkout.google.com", true },
-  { "chontalpa.pw", true },
   { "chrisjean.com", true },
   { "chrome-devtools-frontend.appspot.com", true },
   { "chrome.google.com", true },
@@ -226,7 +224,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "docs.google.com", true },
   { "docs.python.org", true },
   { "domains.google.com", true },
-  { "donmez.ws", false },
+  { "donmez.ws", true },
   { "drive.google.com", true },
   { "dropbox.com", true },
   { "dzlibs.io", true },
@@ -394,7 +392,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "kaheim.de", true },
   { "kardize24.pl", true },
   { "kartonmodellbau.org", true },
-  { "kdex.de", true },
   { "keepclean.me", true },
   { "keeperapp.com", true },
   { "keepersecurity.com", true },
