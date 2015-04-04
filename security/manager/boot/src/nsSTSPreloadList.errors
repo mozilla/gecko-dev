@@ -8,10 +8,11 @@ apis.google.com: did not receive HSTS header (error ignored - included regardles
 app.manilla.com: could not connect to host
 appengine.google.com: did not receive HSTS header (error ignored - included regardless)
 appseccalifornia.org: did not receive HSTS header
-atavio.at: could not connect to host
-atavio.ch: could not connect to host
+atavio.at: did not receive HSTS header
+atavio.ch: did not receive HSTS header
 azprep.us: could not connect to host
 barcodeberlin.com: did not receive HSTS header
+bassh.net: could not connect to host
 bccx.com: could not connect to host
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
@@ -27,6 +28,7 @@ cert.se: max-age too low: 2628001
 chainmonitor.com: could not connect to host
 chatbot.me: could not connect to host
 checkout.google.com: did not receive HSTS header (error ignored - included regardless)
+chontalpa.pw: did not receive HSTS header
 chrome-devtools-frontend.appspot.com: did not receive HSTS header (error ignored - included regardless)
 chrome.google.com: did not receive HSTS header (error ignored - included regardless)
 code.google.com: did not receive HSTS header (error ignored - included regardless)
@@ -72,6 +74,7 @@ haste.ch: could not connect to host
 history.google.com: did not receive HSTS header (error ignored - included regardless)
 hoerbuecher-und-hoerspiele.de: did not receive HSTS header
 honeytracks.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b30_14-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
+horseboners.xxx: could not connect to host
 hostedtalkgadget.google.com: did not receive HSTS header (error ignored - included regardless)
 howrandom.org: could not connect to host
 iban.is: could not connect to host
@@ -79,10 +82,12 @@ inertianetworks.com: did not receive HSTS header
 intercom.io: did not receive HSTS header
 iop.intuit.com: max-age too low: 86400
 irccloud.com: did not receive HSTS header
+itshost.ru: could not connect to host
 janoberst.com: did not receive HSTS header
 jelmer.co.uk: could not connect to host
 jottit.com: could not connect to host
 k-dev.de: could not connect to host
+kdex.de: did not receive HSTS header
 keepclean.me: could not connect to host
 keymaster.lookout.com: did not receive HSTS header
 kitsta.com: could not connect to host
@@ -122,12 +127,14 @@ openshift.redhat.com: did not receive HSTS header
 ottospora.nl: could not connect to host
 passwordbox.com: did not receive HSTS header
 piratenlogin.de: could not connect to host
+pixi.me: could not connect to host
 platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header (error ignored - included regardless)
 pressfreedomfoundation.org: did not receive HSTS header
 prodpad.com: did not receive HSTS header
 promecon-gmbh.de: did not receive HSTS header
 proximato.com: could not connect to host
+pult.co: could not connect to host
 rapidresearch.me: could not connect to host
 redports.org: did not receive HSTS header
 reserve-online.net: did not receive HSTS header
@@ -163,11 +170,10 @@ talk.google.com: could not connect to host
 talk.google.com: could not connect to host (error ignored - included regardless)
 talkgadget.google.com: did not receive HSTS header (error ignored - included regardless)
 tektoria.de: did not receive HSTS header
-thorncreek.net: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header (error ignored - included regardless)
 uprotect.it: could not connect to host
 vhost.co.id: could not connect to host
-viennan.net: did not receive HSTS header
+viennan.net: could not connect to host
 wallet.google.com: did not receive HSTS header (error ignored - included regardless)
 webmail.mayfirst.org: did not receive HSTS header
 wiz.biz: could not connect to host
