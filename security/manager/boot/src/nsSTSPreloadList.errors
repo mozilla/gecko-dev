@@ -9,10 +9,12 @@ appengine.google.com: did not receive HSTS header (error ignored - included rega
 appseccalifornia.org: did not receive HSTS header
 azprep.us: could not connect to host
 barcodeberlin.com: did not receive HSTS header
+bassh.net: could not connect to host
 bccx.com: could not connect to host
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
 blog.lookout.com: did not receive HSTS header
+braintreegateway.com: did not receive HSTS header
 braintreepayments.com: did not receive HSTS header
 browserid.org: did not receive HSTS header
 business.medbank.com.mt: did not receive HSTS header
@@ -90,7 +92,6 @@ manage.zenpayroll.com: [Exception... "Component returned failure code: 0x8000400
 market.android.com: did not receive HSTS header (error ignored - included regardless)
 matteomarescotti.name: could not connect to host
 mediacru.sh: could not connect to host
-mnsure.org: could not connect to host
 mobilethreat.net: could not connect to host
 mobilethreatnetwork.net: could not connect to host
 my.alfresco.com: did not receive HSTS header
@@ -108,11 +109,13 @@ openshift.redhat.com: did not receive HSTS header
 ottospora.nl: could not connect to host
 passwordbox.com: did not receive HSTS header
 piratenlogin.de: could not connect to host
+pixi.me: could not connect to host
 platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header (error ignored - included regardless)
 pressfreedomfoundation.org: did not receive HSTS header
 prodpad.com: did not receive HSTS header
 promecon-gmbh.de: did not receive HSTS header
+pult.co: could not connect to host
 rapidresearch.me: could not connect to host
 redports.org: did not receive HSTS header
 reserve-online.net: did not receive HSTS header
@@ -147,7 +150,7 @@ talkgadget.google.com: did not receive HSTS header (error ignored - included reg
 tektoria.de: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header (error ignored - included regardless)
 uprotect.it: could not connect to host
-viennan.net: did not receive HSTS header
+viennan.net: could not connect to host
 wallet.google.com: did not receive HSTS header (error ignored - included regardless)
 webmail.mayfirst.org: did not receive HSTS header
 wiz.biz: could not connect to host
