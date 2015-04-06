@@ -18,6 +18,8 @@
 
   runNetworkTest(function() {
     var test = new PeerConnectionTest();
+    test.chain.remove('PC_LOCAL_CHECK_STATS');
+    test.chain.remove('PC_REMOTE_CHECK_STATS');
     test.setOfferOptions({
       offerToReceiveVideo: true,
       offerToReceiveAudio: true
