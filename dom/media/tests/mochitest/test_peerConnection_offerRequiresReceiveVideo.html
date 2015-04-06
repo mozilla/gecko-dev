@@ -17,6 +17,8 @@
 
   runTest(function() {
     var test = new PeerConnectionTest();
+    test.chain.remove('PC_LOCAL_CHECK_STATS');
+    test.chain.remove('PC_REMOTE_CHECK_STATS');
     test.setOfferConstraints({ mandatory: { OfferToReceiveVideo: true } });
     test.run();
   });
