@@ -188,6 +188,8 @@ public:
   NS_IMETHOD GetLastModifiedTime(PRTime* lastModifiedTime) MOZ_OVERRIDE;
   NS_IMETHOD ForceNoIntercept() MOZ_OVERRIDE;
   NS_IMETHOD GetTopWindowURI(nsIURI **aTopWindowURI) MOZ_OVERRIDE;
+  NS_IMETHOD GetNetworkInterfaceId(nsACString& aNetworkInterfaceId) MOZ_OVERRIDE;
+  NS_IMETHOD SetNetworkInterfaceId(const nsACString& aNetworkInterfaceId) MOZ_OVERRIDE;
 
   inline void CleanRedirectCacheChainIfNecessary()
   {
@@ -413,6 +415,9 @@ protected:
 
   bool                              mForcePending;
   nsCOMPtr<nsIURI>                  mTopWindowURI;
+
+  // The network interface id that's associated with this channel.
+  nsCString mNetworkInterfaceId;
 };
 
 // Share some code while working around C++'s absurd inability to handle casting
