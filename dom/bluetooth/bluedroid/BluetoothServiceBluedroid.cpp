@@ -1186,7 +1186,7 @@ BluetoothServiceBluedroid::StopDiscoveryInternal(
   int ret = sBtInterface->cancel_discovery();
   if (ret != BT_STATUS_SUCCESS) {
     ReplyStatusError(aRunnable, ret, NS_LITERAL_STRING("StopDiscovery"));
-    return NS_ERROR_FAILURE;
+    return NS_OK;
   }
 
   DispatchBluetoothReply(aRunnable, true, EmptyString());
