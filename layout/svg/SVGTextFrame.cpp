@@ -4332,8 +4332,8 @@ SVGTextFrame::ResolvePositionsForNode(nsIContent* aContent,
     if (length) {
       uint32_t end = aIndex + length;
       if (MOZ_UNLIKELY(end > mPositions.Length())) {
-        MOZ_ASSERT_UNREACHABLE("length of mPositions does not match characters "
-                               "found by iterating content");
+        MOZ_ASSERT(false, "length of mPositions does not match characters "
+                          "found by iterating content");
         return false;
       }
       if (aForceStartOfChunk) {
@@ -4366,8 +4366,8 @@ SVGTextFrame::ResolvePositionsForNode(nsIContent* aContent,
     // only if they actually have some text content.
     if (HasTextContent(aContent)) {
       if (MOZ_UNLIKELY(aIndex >= mPositions.Length())) {
-        MOZ_ASSERT_UNREACHABLE("length of mPositions does not match characters "
-                               "found by iterating content");
+        MOZ_ASSERT(false, "length of mPositions does not match characters "
+                          "found by iterating content");
         return false;
       }
       mPositions[aIndex].mPosition = gfxPoint();
@@ -4393,8 +4393,8 @@ SVGTextFrame::ResolvePositionsForNode(nsIContent* aContent,
     uint32_t count = GetTextContentLength(aContent);
 
     if (MOZ_UNLIKELY(aIndex + count > mPositions.Length())) {
-      MOZ_ASSERT_UNREACHABLE("length of mPositions does not match characters "
-                             "found by iterating content");
+      MOZ_ASSERT(false, "length of mPositions does not match characters "
+                        "found by iterating content");
       return false;
     }
 
