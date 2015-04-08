@@ -42,12 +42,12 @@ class Operand
       : kind_(FPREG),
         base_(reg.code())
     { }
-    explicit Operand(const Address &address)
+    explicit Operand(const Address& address)
       : kind_(MEM_REG_DISP),
         base_(address.base.code()),
         disp_(address.offset)
     { }
-    explicit Operand(const BaseIndex &address)
+    explicit Operand(const BaseIndex& address)
       : kind_(MEM_SCALE),
         base_(address.base.code()),
         scale_(address.scale),
@@ -108,9 +108,9 @@ class Operand
         MOZ_ASSERT(kind() == MEM_REG_DISP || kind() == MEM_SCALE);
         return disp_;
     }
-    void *address() const {
+    void* address() const {
         MOZ_ASSERT(kind() == MEM_ADDRESS32);
-        return reinterpret_cast<void *>(disp_);
+        return reinterpret_cast<void*>(disp_);
     }
 
     bool containsReg(Register r) const {
@@ -191,10 +191,10 @@ class AssemblerX86Shared : public AssemblerShared
   protected:
     struct RelativePatch {
         int32_t offset;
-        void *target;
+        void* target;
         Relocation::Kind kind;
 
-        RelativePatch(int32_t offset, void *target, Relocation::Kind kind)
+        RelativePatch(int32_t offset, void* target, Relocation::Kind kind)
           : offset(offset),
             target(target),
             kind(kind)
@@ -325,10 +325,10 @@ class AssemblerX86Shared : public AssemblerShared
         return static_cast<Condition>(cond & ~DoubleConditionBits);
     }
 
-    static void TraceDataRelocations(JSTracer *trc, JitCode *code, CompactBufferReader &reader);
+    static void TraceDataRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader);
 
     // MacroAssemblers hold onto gcthings, so they are traced by the GC.
-    void trace(JSTracer *trc);
+    void trace(JSTracer* trc);
 
     bool oom() const {
         return AssemblerShared::oom() ||
@@ -338,18 +338,18 @@ class AssemblerX86Shared : public AssemblerShared
                preBarriers_.oom();
     }
 
-    void setPrinter(Sprinter *sp) {
+    void setPrinter(Sprinter* sp) {
         masm.setPrinter(sp);
     }
 
-    void executableCopy(void *buffer);
-    void processCodeLabels(uint8_t *rawCode);
-    static int32_t ExtractCodeLabelOffset(uint8_t *code) {
-        return *(uintptr_t *)code;
+    void executableCopy(void* buffer);
+    void processCodeLabels(uint8_t* rawCode);
+    static int32_t ExtractCodeLabelOffset(uint8_t* code) {
+        return *(uintptr_t*)code;
     }
-    void copyJumpRelocationTable(uint8_t *dest);
-    void copyDataRelocationTable(uint8_t *dest);
-    void copyPreBarrierTable(uint8_t *dest);
+    void copyJumpRelocationTable(uint8_t* dest);
+    void copyDataRelocationTable(uint8_t* dest);
+    void copyPreBarrierTable(uint8_t* dest);
 
     void addCodeLabel(CodeLabel label) {
         propagateOOM(codeLabels_.append(label));
@@ -387,26 +387,26 @@ class AssemblerX86Shared : public AssemblerShared
     void align(int alignment) {
         masm.align(alignment);
     }
-    void writeCodePointer(AbsoluteLabel *label) {
+    void writeCodePointer(AbsoluteLabel* label) {
         MOZ_ASSERT(!label->bound());
         // Thread the patch list through the unpatched address word in the
         // instruction stream.
         masm.jumpTablePointer(label->prev());
         label->setPrev(masm.size());
     }
-    void writeDoubleConstant(double d, Label *label) {
+    void writeDoubleConstant(double d, Label* label) {
         label->bind(masm.size());
         masm.doubleConstant(d);
     }
-    void writeFloatConstant(float f, Label *label) {
+    void writeFloatConstant(float f, Label* label) {
         label->bind(masm.size());
         masm.floatConstant(f);
     }
-    void writeInt32x4Constant(const SimdConstant &v, Label *label) {
+    void writeInt32x4Constant(const SimdConstant& v, Label* label) {
         label->bind(masm.size());
         masm.int32x4Constant(v.asInt32x4());
     }
-    void writeFloat32x4Constant(const SimdConstant &v, Label *label) {
+    void writeFloat32x4Constant(const SimdConstant& v, Label* label) {
         label->bind(masm.size());
         masm.float32x4Constant(v.asFloat32x4());
     }
@@ -416,7 +416,7 @@ class AssemblerX86Shared : public AssemblerShared
     void movl(Register src, Register dest) {
         masm.movl_rr(src.code(), dest.code());
     }
-    void movl(const Operand &src, Register dest) {
+    void movl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.movl_rr(src.reg(), dest.code());
@@ -434,7 +434,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void movl(Register src, const Operand &dest) {
+    void movl(Register src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::REG:
             masm.movl_rr(src.code(), dest.reg());
@@ -452,7 +452,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void movl(Imm32 imm32, const Operand &dest) {
+    void movl(Imm32 imm32, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::REG:
             masm.movl_i32r(imm32.value, dest.reg());
@@ -483,7 +483,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vmovaps_rr(src.code(), dest.code());
     }
-    void vmovaps(const Operand &src, FloatRegister dest) {
+    void vmovaps(const Operand& src, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
@@ -499,7 +499,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vmovaps(FloatRegister src, const Operand &dest) {
+    void vmovaps(FloatRegister src, const Operand& dest) {
         MOZ_ASSERT(HasSSE2());
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
@@ -512,7 +512,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vmovups(const Operand &src, FloatRegister dest) {
+    void vmovups(const Operand& src, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
@@ -525,7 +525,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vmovups(FloatRegister src, const Operand &dest) {
+    void vmovups(FloatRegister src, const Operand& dest) {
         MOZ_ASSERT(HasSSE2());
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
@@ -542,38 +542,38 @@ class AssemblerX86Shared : public AssemblerShared
     // vmovsd is only provided in load/store form since the
     // register-to-register form has different semantics (it doesn't clobber
     // the whole output register) and isn't needed currently.
-    void vmovsd(const Address &src, FloatRegister dest) {
+    void vmovsd(const Address& src, FloatRegister dest) {
         masm.vmovsd_mr(src.offset, src.base.code(), dest.code());
     }
-    void vmovsd(const BaseIndex &src, FloatRegister dest) {
+    void vmovsd(const BaseIndex& src, FloatRegister dest) {
         masm.vmovsd_mr(src.offset, src.base.code(), src.index.code(), src.scale, dest.code());
     }
-    void vmovsd(FloatRegister src, const Address &dest) {
+    void vmovsd(FloatRegister src, const Address& dest) {
         masm.vmovsd_rm(src.code(), dest.offset, dest.base.code());
     }
-    void vmovsd(FloatRegister src, const BaseIndex &dest) {
+    void vmovsd(FloatRegister src, const BaseIndex& dest) {
         masm.vmovsd_rm(src.code(), dest.offset, dest.base.code(), dest.index.code(), dest.scale);
     }
     // Although vmovss is not only provided in load/store form (for the same
     // reasons as vmovsd above), the register to register form should be only
     // used in contexts where we care about not clearing the higher lanes of
     // the FloatRegister.
-    void vmovss(const Address &src, FloatRegister dest) {
+    void vmovss(const Address& src, FloatRegister dest) {
         masm.vmovss_mr(src.offset, src.base.code(), dest.code());
     }
-    void vmovss(const BaseIndex &src, FloatRegister dest) {
+    void vmovss(const BaseIndex& src, FloatRegister dest) {
         masm.vmovss_mr(src.offset, src.base.code(), src.index.code(), src.scale, dest.code());
     }
-    void vmovss(FloatRegister src, const Address &dest) {
+    void vmovss(FloatRegister src, const Address& dest) {
         masm.vmovss_rm(src.code(), dest.offset, dest.base.code());
     }
-    void vmovss(FloatRegister src, const BaseIndex &dest) {
+    void vmovss(FloatRegister src, const BaseIndex& dest) {
         masm.vmovss_rm(src.code(), dest.offset, dest.base.code(), dest.index.code(), dest.scale);
     }
     void vmovss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
         masm.vmovss_rr(src1.code(), src0.code(), dest.code());
     }
-    void vmovdqu(const Operand &src, FloatRegister dest) {
+    void vmovdqu(const Operand& src, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
@@ -586,7 +586,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vmovdqu(FloatRegister src, const Operand &dest) {
+    void vmovdqu(FloatRegister src, const Operand& dest) {
         MOZ_ASSERT(HasSSE2());
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
@@ -599,7 +599,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vmovdqa(const Operand &src, FloatRegister dest) {
+    void vmovdqa(const Operand& src, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src.kind()) {
           case Operand::FPREG:
@@ -615,7 +615,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vmovdqa(FloatRegister src, const Operand &dest) {
+    void vmovdqa(FloatRegister src, const Operand& dest) {
         MOZ_ASSERT(HasSSE2());
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
@@ -640,7 +640,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vcvtsd2ss_rr(src1.code(), src0.code(), dest.code());
     }
-    void movzbl(const Operand &src, Register dest) {
+    void movzbl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             masm.movzbl_mr(src.disp(), src.base(), dest.code());
@@ -655,7 +655,7 @@ class AssemblerX86Shared : public AssemblerShared
     void movsbl(Register src, Register dest) {
         masm.movsbl_rr(src.code(), dest.code());
     }
-    void movsbl(const Operand &src, Register dest) {
+    void movsbl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             masm.movsbl_mr(src.disp(), src.base(), dest.code());
@@ -667,7 +667,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void movb(const Operand &src, Register dest) {
+    void movb(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             masm.movb_mr(src.disp(), src.base(), dest.code());
@@ -682,7 +682,7 @@ class AssemblerX86Shared : public AssemblerShared
     void movb(Imm32 src, Register dest) {
         masm.movb_ir(src.value & 255, dest.code());
     }
-    void movb(Register src, const Operand &dest) {
+    void movb(Register src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
             masm.movb_rm(src.code(), dest.disp(), dest.base());
@@ -694,7 +694,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void movb(Imm32 src, const Operand &dest) {
+    void movb(Imm32 src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
             masm.movb_im(src.value, dest.disp(), dest.base());
@@ -706,7 +706,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void movzwl(const Operand &src, Register dest) {
+    void movzwl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.movzwl_rr(src.reg(), dest.code());
@@ -724,7 +724,7 @@ class AssemblerX86Shared : public AssemblerShared
     void movzwl(Register src, Register dest) {
         masm.movzwl_rr(src.code(), dest.code());
     }
-    void movw(const Operand &src, Register dest) {
+    void movw(const Operand& src, Register dest) {
         masm.prefix_16_for_32();
         movl(src, dest);
     }
@@ -732,7 +732,7 @@ class AssemblerX86Shared : public AssemblerShared
         masm.prefix_16_for_32();
         movl(src, dest);
     }
-    void movw(Register src, const Operand &dest) {
+    void movw(Register src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
             masm.movw_rm(src.code(), dest.disp(), dest.base());
@@ -744,7 +744,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void movw(Imm32 src, const Operand &dest) {
+    void movw(Imm32 src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
             masm.movw_im(src.value, dest.disp(), dest.base());
@@ -759,7 +759,7 @@ class AssemblerX86Shared : public AssemblerShared
     void movswl(Register src, Register dest) {
         masm.movswl_rr(src.code(), dest.code());
     }
-    void movswl(const Operand &src, Register dest) {
+    void movswl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             masm.movswl_mr(src.disp(), src.base(), dest.code());
@@ -771,7 +771,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void leal(const Operand &src, Register dest) {
+    void leal(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             masm.leal_mr(src.disp(), src.base(), dest.code());
@@ -785,7 +785,7 @@ class AssemblerX86Shared : public AssemblerShared
     }
 
   protected:
-    void jSrc(Condition cond, Label *label) {
+    void jSrc(Condition cond, Label* label) {
         if (label->bound()) {
             // The jump can be immediately encoded to the correct destination.
             masm.jCC_i(static_cast<X86Assembler::Condition>(cond), JmpDst(label->offset()));
@@ -796,7 +796,7 @@ class AssemblerX86Shared : public AssemblerShared
             masm.setNextJump(j, prev);
         }
     }
-    void jmpSrc(Label *label) {
+    void jmpSrc(Label* label) {
         if (label->bound()) {
             // The jump can be immediately encoded to the correct destination.
             masm.jmp_i(JmpDst(label->offset()));
@@ -809,7 +809,7 @@ class AssemblerX86Shared : public AssemblerShared
     }
 
     // Comparison of EAX against the address given by a Label.
-    JmpSrc cmpSrc(Label *label) {
+    JmpSrc cmpSrc(Label* label) {
         JmpSrc j = masm.cmp_eax();
         if (label->bound()) {
             // The jump can be immediately patched to the correct destination.
@@ -822,7 +822,7 @@ class AssemblerX86Shared : public AssemblerShared
         return j;
     }
 
-    JmpSrc jSrc(Condition cond, RepatchLabel *label) {
+    JmpSrc jSrc(Condition cond, RepatchLabel* label) {
         JmpSrc j = masm.jCC(static_cast<X86Assembler::Condition>(cond));
         if (label->bound()) {
             // The jump can be immediately patched to the correct destination.
@@ -832,7 +832,7 @@ class AssemblerX86Shared : public AssemblerShared
         }
         return j;
     }
-    JmpSrc jmpSrc(RepatchLabel *label) {
+    JmpSrc jmpSrc(RepatchLabel* label) {
         JmpSrc j = masm.jmp();
         if (label->bound()) {
             // The jump can be immediately patched to the correct destination.
@@ -847,12 +847,12 @@ class AssemblerX86Shared : public AssemblerShared
   public:
     void nop() { masm.nop(); }
     void twoByteNop() { masm.twoByteNop(); }
-    void j(Condition cond, Label *label) { jSrc(cond, label); }
-    void jmp(Label *label) { jmpSrc(label); }
-    void j(Condition cond, RepatchLabel *label) { jSrc(cond, label); }
-    void jmp(RepatchLabel *label) { jmpSrc(label); }
+    void j(Condition cond, Label* label) { jSrc(cond, label); }
+    void jmp(Label* label) { jmpSrc(label); }
+    void j(Condition cond, RepatchLabel* label) { jSrc(cond, label); }
+    void jmp(RepatchLabel* label) { jmpSrc(label); }
 
-    void jmp(const Operand &op) {
+    void jmp(const Operand& op) {
         switch (op.kind()) {
           case Operand::MEM_REG_DISP:
             masm.jmp_m(op.disp(), op.base());
@@ -867,8 +867,8 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void cmpEAX(Label *label) { cmpSrc(label); }
-    void bind(Label *label) {
+    void cmpEAX(Label* label) { cmpSrc(label); }
+    void bind(Label* label) {
         X86Assembler::JmpDst dst(masm.label());
         if (label->used()) {
             bool more;
@@ -882,7 +882,7 @@ class AssemblerX86Shared : public AssemblerShared
         }
         label->bind(dst.offset());
     }
-    void bind(RepatchLabel *label) {
+    void bind(RepatchLabel* label) {
         X86Assembler::JmpDst dst(masm.label());
         if (label->used()) {
             X86Assembler::JmpSrc jmp(label->offset());
@@ -895,7 +895,7 @@ class AssemblerX86Shared : public AssemblerShared
     }
 
     // Re-routes pending jumps to a new label.
-    void retarget(Label *label, Label *target) {
+    void retarget(Label* label, Label* target) {
         if (label->used()) {
             bool more;
             X86Assembler::JmpSrc jmp(label->offset());
@@ -918,7 +918,7 @@ class AssemblerX86Shared : public AssemblerShared
         label->reset();
     }
 
-    static void Bind(uint8_t *raw, AbsoluteLabel *label, const void *address) {
+    static void Bind(uint8_t* raw, AbsoluteLabel* label, const void* address) {
         if (label->used()) {
             intptr_t src = label->offset();
             do {
@@ -940,9 +940,9 @@ class AssemblerX86Shared : public AssemblerShared
     }
     void retn(Imm32 n) {
         // Remove the size of the return address which is included in the frame.
-        masm.ret_i(n.value - sizeof(void *));
+        masm.ret_i(n.value - sizeof(void*));
     }
-    void call(Label *label) {
+    void call(Label* label) {
         if (label->bound()) {
             masm.linkJump(masm.call(), JmpDst(label->offset()));
         } else {
@@ -954,7 +954,7 @@ class AssemblerX86Shared : public AssemblerShared
     void call(Register reg) {
         masm.call(reg.code());
     }
-    void call(const Operand &op) {
+    void call(const Operand& op) {
         switch (op.kind()) {
           case Operand::REG:
             masm.call(op.reg());
@@ -981,7 +981,7 @@ class AssemblerX86Shared : public AssemblerShared
     void cmpl(Register rhs, Register lhs) {
         masm.cmpl_rr(rhs.code(), lhs.code());
     }
-    void cmpl(const Operand &rhs, Register lhs) {
+    void cmpl(const Operand& rhs, Register lhs) {
         switch (rhs.kind()) {
           case Operand::REG:
             masm.cmpl_rr(rhs.reg(), lhs.code());
@@ -996,7 +996,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void cmpl(Register rhs, const Operand &lhs) {
+    void cmpl(Register rhs, const Operand& lhs) {
         switch (lhs.kind()) {
           case Operand::REG:
             masm.cmpl_rr(rhs.code(), lhs.reg());
@@ -1014,7 +1014,7 @@ class AssemblerX86Shared : public AssemblerShared
     void cmpl(Imm32 rhs, Register lhs) {
         masm.cmpl_ir(rhs.value, lhs.code());
     }
-    void cmpl(Imm32 rhs, const Operand &lhs) {
+    void cmpl(Imm32 rhs, const Operand& lhs) {
         switch (lhs.kind()) {
           case Operand::REG:
             masm.cmpl_ir(rhs.value, lhs.reg());
@@ -1056,7 +1056,7 @@ class AssemblerX86Shared : public AssemblerShared
     void testl(Imm32 rhs, Register lhs) {
         masm.testl_ir(rhs.value, lhs.code());
     }
-    void testl(Imm32 rhs, const Operand &lhs) {
+    void testl(Imm32 rhs, const Operand& lhs) {
         switch (lhs.kind()) {
           case Operand::REG:
             masm.testl_ir(rhs.value, lhs.reg());
@@ -1080,7 +1080,7 @@ class AssemblerX86Shared : public AssemblerShared
         masm.addl_i32r(imm.value, dest.code());
         return CodeOffsetLabel(masm.currentOffset());
     }
-    void addl(Imm32 imm, const Operand &op) {
+    void addl(Imm32 imm, const Operand& op) {
         switch (op.kind()) {
           case Operand::REG:
             masm.addl_ir(imm.value, op.reg());
@@ -1097,14 +1097,14 @@ class AssemblerX86Shared : public AssemblerShared
     }
     // Note, lock_addl() is used for a memory barrier on non-SSE2 systems.
     // Do not optimize, replace by XADDL, or similar.
-    void lock_addl(Imm32 imm, const Operand &op) {
+    void lock_addl(Imm32 imm, const Operand& op) {
         masm.prefix_lock();
         addl(imm, op);
     }
     void subl(Imm32 imm, Register dest) {
         masm.subl_ir(imm.value, dest.code());
     }
-    void subl(Imm32 imm, const Operand &op) {
+    void subl(Imm32 imm, const Operand& op) {
         switch (op.kind()) {
           case Operand::REG:
             masm.subl_ir(imm.value, op.reg());
@@ -1122,7 +1122,7 @@ class AssemblerX86Shared : public AssemblerShared
     void subl(Register src, Register dest) {
         masm.subl_rr(src.code(), dest.code());
     }
-    void subl(const Operand &src, Register dest) {
+    void subl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.subl_rr(src.reg(), dest.code());
@@ -1134,7 +1134,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void subl(Register src, const Operand &dest) {
+    void subl(Register src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::REG:
             masm.subl_rr(src.code(), dest.reg());
@@ -1152,7 +1152,7 @@ class AssemblerX86Shared : public AssemblerShared
     void orl(Imm32 imm, Register reg) {
         masm.orl_ir(imm.value, reg.code());
     }
-    void orl(Imm32 imm, const Operand &op) {
+    void orl(Imm32 imm, const Operand& op) {
         switch (op.kind()) {
           case Operand::REG:
             masm.orl_ir(imm.value, op.reg());
@@ -1170,7 +1170,7 @@ class AssemblerX86Shared : public AssemblerShared
     void xorl(Imm32 imm, Register reg) {
         masm.xorl_ir(imm.value, reg.code());
     }
-    void xorl(Imm32 imm, const Operand &op) {
+    void xorl(Imm32 imm, const Operand& op) {
         switch (op.kind()) {
           case Operand::REG:
             masm.xorl_ir(imm.value, op.reg());
@@ -1188,7 +1188,7 @@ class AssemblerX86Shared : public AssemblerShared
     void andl(Imm32 imm, Register dest) {
         masm.andl_ir(imm.value, dest.code());
     }
-    void andl(Imm32 imm, const Operand &op) {
+    void andl(Imm32 imm, const Operand& op) {
         switch (op.kind()) {
           case Operand::REG:
             masm.andl_ir(imm.value, op.reg());
@@ -1200,7 +1200,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void addl(const Operand &src, Register dest) {
+    void addl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.addl_rr(src.reg(), dest.code());
@@ -1212,7 +1212,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void orl(const Operand &src, Register dest) {
+    void orl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.orl_rr(src.reg(), dest.code());
@@ -1224,7 +1224,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void xorl(const Operand &src, Register dest) {
+    void xorl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.xorl_rr(src.reg(), dest.code());
@@ -1236,7 +1236,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void andl(const Operand &src, Register dest) {
+    void andl(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.andl_rr(src.reg(), dest.code());
@@ -1248,7 +1248,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void bsr(const Register &src, const Register &dest) {
+    void bsr(const Register& src, const Register& dest) {
         masm.bsr_rr(src.code(), dest.code());
     }
     void imull(Register multiplier) {
@@ -1263,7 +1263,7 @@ class AssemblerX86Shared : public AssemblerShared
     void imull(Imm32 imm, Register src, Register dest) {
         masm.imull_ir(imm.value, src.code(), dest.code());
     }
-    void imull(const Operand &src, Register dest) {
+    void imull(const Operand& src, Register dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.imull_rr(src.reg(), dest.code());
@@ -1275,7 +1275,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void negl(const Operand &src) {
+    void negl(const Operand& src) {
         switch (src.kind()) {
           case Operand::REG:
             masm.negl_r(src.reg());
@@ -1290,7 +1290,7 @@ class AssemblerX86Shared : public AssemblerShared
     void negl(Register reg) {
         masm.negl_r(reg.code());
     }
-    void notl(const Operand &src) {
+    void notl(const Operand& src) {
         switch (src.kind()) {
           case Operand::REG:
             masm.notl_r(src.reg());
@@ -1324,7 +1324,7 @@ class AssemblerX86Shared : public AssemblerShared
         masm.sarl_CLr(dest.code());
     }
 
-    void incl(const Operand &op) {
+    void incl(const Operand& op) {
         switch (op.kind()) {
           case Operand::MEM_REG_DISP:
             masm.incl_m32(op.disp(), op.base());
@@ -1333,12 +1333,12 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void lock_incl(const Operand &op) {
+    void lock_incl(const Operand& op) {
         masm.prefix_lock();
         incl(op);
     }
 
-    void decl(const Operand &op) {
+    void decl(const Operand& op) {
         switch (op.kind()) {
           case Operand::MEM_REG_DISP:
             masm.decl_m32(op.disp(), op.base());
@@ -1347,12 +1347,12 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void lock_decl(const Operand &op) {
+    void lock_decl(const Operand& op) {
         masm.prefix_lock();
         decl(op);
     }
 
-    void lock_cmpxchg8(Register src, const Operand &mem) {
+    void lock_cmpxchg8(Register src, const Operand& mem) {
         masm.prefix_lock();
         switch (mem.kind()) {
           case Operand::MEM_REG_DISP:
@@ -1365,7 +1365,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void lock_cmpxchg16(Register src, const Operand &mem) {
+    void lock_cmpxchg16(Register src, const Operand& mem) {
         masm.prefix_lock();
         switch (mem.kind()) {
           case Operand::MEM_REG_DISP:
@@ -1378,7 +1378,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void lock_cmpxchg32(Register src, const Operand &mem) {
+    void lock_cmpxchg32(Register src, const Operand& mem) {
         masm.prefix_lock();
         switch (mem.kind()) {
           case Operand::MEM_REG_DISP:
@@ -1392,7 +1392,7 @@ class AssemblerX86Shared : public AssemblerShared
         }
     }
 
-    void lock_xaddb(Register srcdest, const Operand &mem) {
+    void lock_xaddb(Register srcdest, const Operand& mem) {
         switch (mem.kind()) {
           case Operand::MEM_REG_DISP:
             masm.lock_xaddb_rm(srcdest.code(), mem.disp(), mem.base());
@@ -1404,11 +1404,11 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void lock_xaddw(Register srcdest, const Operand &mem) {
+    void lock_xaddw(Register srcdest, const Operand& mem) {
         masm.prefix_16_for_32();
         lock_xaddl(srcdest, mem);
     }
-    void lock_xaddl(Register srcdest, const Operand &mem) {
+    void lock_xaddl(Register srcdest, const Operand& mem) {
         switch (mem.kind()) {
           case Operand::MEM_REG_DISP:
             masm.lock_xaddl_rm(srcdest.code(), mem.disp(), mem.base());
@@ -1425,7 +1425,7 @@ class AssemblerX86Shared : public AssemblerShared
         masm.push_i(imm.value);
     }
 
-    void push(const Operand &src) {
+    void push(const Operand& src) {
         switch (src.kind()) {
           case Operand::REG:
             masm.push_r(src.reg());
@@ -1440,11 +1440,11 @@ class AssemblerX86Shared : public AssemblerShared
     void push(Register src) {
         masm.push_r(src.code());
     }
-    void push(const Address &src) {
+    void push(const Address& src) {
         masm.push_m(src.offset, src.base.code());
     }
 
-    void pop(const Operand &src) {
+    void pop(const Operand& src) {
         switch (src.kind()) {
           case Operand::REG:
             masm.pop_r(src.reg());
@@ -1459,7 +1459,7 @@ class AssemblerX86Shared : public AssemblerShared
     void pop(Register src) {
         masm.pop_r(src.code());
     }
-    void pop(const Address &src) {
+    void pop(const Address& src) {
         masm.pop_m(src.offset, src.base.code());
     }
 
@@ -1498,7 +1498,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE41());
         masm.vpinsrd_irr(lane, src1.code(), src0.code(), dest.code());
     }
-    void vpinsrd(unsigned lane, const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vpinsrd(unsigned lane, const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE41());
         switch (src1.kind()) {
           case Operand::REG:
@@ -1515,7 +1515,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE41());
         masm.vpextrd_irr(lane, src.code(), dest.code());
     }
-    void vpextrd(unsigned lane, FloatRegister src, const Operand &dest) {
+    void vpextrd(unsigned lane, FloatRegister src, const Operand& dest) {
         MOZ_ASSERT(HasSSE41());
         switch (dest.kind()) {
           case Operand::REG:
@@ -1565,7 +1565,7 @@ class AssemblerX86Shared : public AssemblerShared
         masm.vpsrld_ir(count.value, src0.code(), dest.code());
     }
 
-    void vcvtsi2sd(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vcvtsi2sd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::REG:
@@ -1589,7 +1589,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vcvttss2si_rr(src.code(), dest.code());
     }
-    void vcvtsi2ss(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vcvtsi2ss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::REG:
@@ -1645,7 +1645,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vpcmpeqw_rr(rhs.code(), lhs.code(), dst.code());
     }
-    void vpcmpeqd(const Operand &rhs, FloatRegister lhs, FloatRegister dest) {
+    void vpcmpeqd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (rhs.kind()) {
           case Operand::FPREG:
@@ -1661,7 +1661,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vpcmpgtd(const Operand &rhs, FloatRegister lhs, FloatRegister dest) {
+    void vpcmpgtd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (rhs.kind()) {
           case Operand::FPREG:
@@ -1677,7 +1677,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vcmpps(uint8_t order, const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vcmpps(uint8_t order, const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1693,22 +1693,22 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vcmpeqps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vcmpeqps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         vcmpps(X86Assembler::ConditionCmp_EQ, src1, src0, dest);
     }
-    void vcmpltps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vcmpltps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         vcmpps(X86Assembler::ConditionCmp_LT, src1, src0, dest);
     }
-    void vcmpleps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vcmpleps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         vcmpps(X86Assembler::ConditionCmp_LE, src1, src0, dest);
     }
-    void vcmpunordps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vcmpunordps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         vcmpps(X86Assembler::ConditionCmp_UNORD, src1, src0, dest);
     }
-    void vcmpneqps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vcmpneqps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         vcmpps(X86Assembler::ConditionCmp_NEQ, src1, src0, dest);
     }
-    void vrcpps(const Operand &src, FloatRegister dest) {
+    void vrcpps(const Operand& src, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src.kind()) {
           case Operand::FPREG:
@@ -1724,7 +1724,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vsqrtps(const Operand &src, FloatRegister dest) {
+    void vsqrtps(const Operand& src, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src.kind()) {
           case Operand::FPREG:
@@ -1740,7 +1740,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vrsqrtps(const Operand &src, FloatRegister dest) {
+    void vrsqrtps(const Operand& src, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src.kind()) {
           case Operand::FPREG:
@@ -1764,7 +1764,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vmovd_rr(src.code(), dest.code());
     }
-    void vpaddd(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vpaddd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1780,7 +1780,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vpsubd(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vpsubd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1800,7 +1800,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vpmuludq_rr(src1.code(), src0.code(), dest.code());
     }
-    void vpmuludq(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vpmuludq(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1813,7 +1813,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vpmulld(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vpmulld(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE41());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1829,7 +1829,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vaddps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vaddps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1845,7 +1845,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vsubps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vsubps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1861,7 +1861,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vmulps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vmulps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1877,7 +1877,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vdivps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vdivps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1893,7 +1893,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vmaxps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vmaxps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1909,7 +1909,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vminps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vminps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1925,7 +1925,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vandps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vandps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1941,7 +1941,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vandnps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vandnps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         // Negates bits of dest and then applies AND
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
@@ -1958,7 +1958,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vorps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vorps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1974,7 +1974,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vxorps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vxorps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -1994,7 +1994,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vpand_rr(src1.code(), src0.code(), dest.code());
     }
-    void vpand(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vpand(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2014,7 +2014,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vpor_rr(src1.code(), src0.code(), dest.code());
     }
-    void vpor(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vpor(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2034,7 +2034,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vpxor_rr(src1.code(), src0.code(), dest.code());
     }
-    void vpxor(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vpxor(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2054,7 +2054,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vpandn_rr(src1.code(), src0.code(), dest.code());
     }
-    void vpandn(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vpandn(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2075,7 +2075,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vpshufd_irr(mask, src.code(), dest.code());
     }
-    void vpshufd(uint32_t mask, const Operand &src1, FloatRegister dest) {
+    void vpshufd(uint32_t mask, const Operand& src1, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2103,7 +2103,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vunpcklps_rr(src1.code(), src0.code(), dest.code());
     }
-    void vunpcklps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vunpcklps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2123,7 +2123,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vunpckhps_rr(src1.code(), src0.code(), dest.code());
     }
-    void vunpckhps(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vunpckhps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2143,7 +2143,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vshufps_irr(mask, src1.code(), src0.code(), dest.code());
     }
-    void vshufps(uint32_t mask, const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vshufps(uint32_t mask, const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2167,7 +2167,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vaddss_rr(src1.code(), src0.code(), dest.code());
     }
-    void vaddsd(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vaddsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2183,7 +2183,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vaddss(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vaddss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2207,7 +2207,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vsubss_rr(src1.code(), src0.code(), dest.code());
     }
-    void vsubsd(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vsubsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2220,7 +2220,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vsubss(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vsubss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2237,7 +2237,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vmulsd_rr(src1.code(), src0.code(), dest.code());
     }
-    void vmulsd(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vmulsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2250,7 +2250,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vmulss(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vmulss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2275,7 +2275,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vdivss_rr(src1.code(), src0.code(), dest.code());
     }
-    void vdivsd(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vdivsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2288,7 +2288,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void vdivss(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vdivss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2356,7 +2356,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE41());
         masm.vinsertps_irr(mask, src1.code(), src0.code(), dest.code());
     }
-    void vinsertps(uint32_t mask, const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vinsertps(uint32_t mask, const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE41());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2376,7 +2376,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE41());
         masm.vblendps_irr(mask, src1.code(), src0.code(), dest.code());
     }
-    void vblendps(unsigned mask, const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vblendps(unsigned mask, const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE41());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2393,7 +2393,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE41());
         masm.vblendvps_rr(mask.code(), src1.code(), src0.code(), dest.code());
     }
-    void vblendvps(FloatRegister mask, const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vblendvps(FloatRegister mask, const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE41());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2410,7 +2410,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE3());
         masm.vmovsldup_rr(src.code(), dest.code());
     }
-    void vmovsldup(const Operand &src, FloatRegister dest) {
+    void vmovsldup(const Operand& src, FloatRegister dest) {
         MOZ_ASSERT(HasSSE3());
         switch (src.kind()) {
           case Operand::FPREG:
@@ -2427,7 +2427,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE3());
         masm.vmovshdup_rr(src.code(), dest.code());
     }
-    void vmovshdup(const Operand &src, FloatRegister dest) {
+    void vmovshdup(const Operand& src, FloatRegister dest) {
         MOZ_ASSERT(HasSSE3());
         switch (src.kind()) {
           case Operand::FPREG:
@@ -2444,7 +2444,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vminsd_rr(src1.code(), src0.code(), dest.code());
     }
-    void vminsd(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vminsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2465,7 +2465,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vmaxsd_rr(src1.code(), src0.code(), dest.code());
     }
-    void vmaxsd(const Operand &src1, FloatRegister src0, FloatRegister dest) {
+    void vmaxsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE2());
         switch (src1.kind()) {
           case Operand::FPREG:
@@ -2482,7 +2482,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vmaxss_rr(src1.code(), src0.code(), dest.code());
     }
-    void fisttp(const Operand &dest) {
+    void fisttp(const Operand& dest) {
         MOZ_ASSERT(HasSSE3());
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
@@ -2492,7 +2492,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void fld(const Operand &dest) {
+    void fld(const Operand& dest) {
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
             masm.fld_m(dest.disp(), dest.base());
@@ -2501,7 +2501,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void fstp(const Operand &src) {
+    void fstp(const Operand& src) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             masm.fstp_m(src.disp(), src.base());
@@ -2510,7 +2510,7 @@ class AssemblerX86Shared : public AssemblerShared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void fstp32(const Operand &src) {
+    void fstp32(const Operand& src) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             masm.fstp32_m(src.disp(), src.base());
@@ -2537,28 +2537,28 @@ class AssemblerX86Shared : public AssemblerShared
     static size_t PatchWrite_NearCallSize() {
         return 5;
     }
-    static uintptr_t GetPointer(uint8_t *instPtr) {
-        uintptr_t *ptr = ((uintptr_t *) instPtr) - 1;
+    static uintptr_t GetPointer(uint8_t* instPtr) {
+        uintptr_t* ptr = ((uintptr_t*) instPtr) - 1;
         return *ptr;
     }
     // Write a relative call at the start location |dataLabel|.
     // Note that this DOES NOT patch data that comes before |label|.
     static void PatchWrite_NearCall(CodeLocationLabel startLabel, CodeLocationLabel target) {
-        uint8_t *start = startLabel.raw();
+        uint8_t* start = startLabel.raw();
         *start = 0xE8;
         ptrdiff_t offset = target - startLabel - PatchWrite_NearCallSize();
         MOZ_ASSERT(int32_t(offset) == offset);
-        *((int32_t *) (start + 1)) = offset;
+        *((int32_t*) (start + 1)) = offset;
     }
 
     static void PatchWrite_Imm32(CodeLocationLabel dataLabel, Imm32 toWrite) {
-        *((int32_t *) dataLabel.raw() - 1) = toWrite.value;
+        *((int32_t*) dataLabel.raw() - 1) = toWrite.value;
     }
 
     static void PatchDataWithValueCheck(CodeLocationLabel data, PatchedImmPtr newData,
                                         PatchedImmPtr expectedData) {
         // The pointer given is a pointer to *after* the data.
-        uintptr_t *ptr = ((uintptr_t *) data.raw()) - 1;
+        uintptr_t* ptr = ((uintptr_t*) data.raw()) - 1;
         MOZ_ASSERT(*ptr == (uintptr_t)expectedData.value);
         *ptr = (uintptr_t)newData.value;
     }
@@ -2566,30 +2566,30 @@ class AssemblerX86Shared : public AssemblerShared
         PatchDataWithValueCheck(data, PatchedImmPtr(newData.value), PatchedImmPtr(expectedData.value));
     }
 
-    static void PatchInstructionImmediate(uint8_t *code, PatchedImmPtr imm) {
+    static void PatchInstructionImmediate(uint8_t* code, PatchedImmPtr imm) {
         MOZ_CRASH("Unused.");
     }
 
     static uint32_t NopSize() {
         return 1;
     }
-    static uint8_t *NextInstruction(uint8_t *cur, uint32_t *count) {
+    static uint8_t* NextInstruction(uint8_t* cur, uint32_t* count) {
         MOZ_CRASH("nextInstruction NYI on x86");
     }
 
     // Toggle a jmp or cmp emitted by toggledJump().
     static void ToggleToJmp(CodeLocationLabel inst) {
-        uint8_t *ptr = (uint8_t *)inst.raw();
+        uint8_t* ptr = (uint8_t*)inst.raw();
         MOZ_ASSERT(*ptr == 0x3D);
         *ptr = 0xE9;
     }
     static void ToggleToCmp(CodeLocationLabel inst) {
-        uint8_t *ptr = (uint8_t *)inst.raw();
+        uint8_t* ptr = (uint8_t*)inst.raw();
         MOZ_ASSERT(*ptr == 0xE9);
         *ptr = 0x3D;
     }
     static void ToggleCall(CodeLocationLabel inst, bool enabled) {
-        uint8_t *ptr = (uint8_t *)inst.raw();
+        uint8_t* ptr = (uint8_t*)inst.raw();
         MOZ_ASSERT(*ptr == 0x3D || // CMP
                    *ptr == 0xE8);  // CALL
         *ptr = enabled ? 0xE8 : 0x3D;

@@ -30,8 +30,8 @@ using mozilla::PodCopy;
 /*****************************************************************************/
 
 void
-InterpreterFrame::initExecuteFrame(JSContext *cx, HandleScript script, AbstractFramePtr evalInFramePrev,
-                                   const Value &thisv, HandleObject scopeChain, ExecuteType type)
+InterpreterFrame::initExecuteFrame(JSContext* cx, HandleScript script, AbstractFramePtr evalInFramePrev,
+                                   const Value& thisv, HandleObject scopeChain, ExecuteType type)
 {
     /*
      * See encoding of ExecuteType. When GLOBAL isn't set, we are executing a
@@ -40,7 +40,7 @@ InterpreterFrame::initExecuteFrame(JSContext *cx, HandleScript script, AbstractF
      */
     flags_ = type | HAS_SCOPECHAIN;
 
-    JSObject *callee = nullptr;
+    JSObject* callee = nullptr;
     if (!(flags_ & (GLOBAL))) {
         if (evalInFramePrev) {
             MOZ_ASSERT(evalInFramePrev.isFunctionFrame() || evalInFramePrev.isGlobalFrame());
@@ -63,7 +63,7 @@ InterpreterFrame::initExecuteFrame(JSContext *cx, HandleScript script, AbstractF
         }
     }
 
-    Value *dstvp = (Value *)this - 2;
+    Value* dstvp = (Value*)this - 2;
     dstvp[1] = thisv;
 
     if (isFunctionFrame()) {
@@ -75,7 +75,7 @@ InterpreterFrame::initExecuteFrame(JSContext *cx, HandleScript script, AbstractF
         dstvp[0] = NullValue();
         exec.script = script;
 #ifdef DEBUG
-        u.evalScript = (JSScript *)0xbad;
+        u.evalScript = (JSScript*)0xbad;
 #endif
     }
 
@@ -115,7 +115,7 @@ InterpreterFrame::writeBarrierPost()
 }
 
 bool
-InterpreterFrame::copyRawFrameSlots(AutoValueVector *vec)
+InterpreterFrame::copyRawFrameSlots(AutoValueVector* vec)
 {
     if (!vec->resize(numFormalArgs() + script()->nfixed()))
         return false;
@@ -124,14 +124,14 @@ InterpreterFrame::copyRawFrameSlots(AutoValueVector *vec)
     return true;
 }
 
-JSObject *
-InterpreterFrame::createRestParameter(JSContext *cx)
+JSObject*
+InterpreterFrame::createRestParameter(JSContext* cx)
 {
     MOZ_ASSERT(fun()->hasRest());
     unsigned nformal = fun()->nargs() - 1, nactual = numActualArgs();
     unsigned nrest = (nactual > nformal) ? nactual - nformal : 0;
-    Value *restvp = argv() + nformal;
-    ArrayObject *obj = NewDenseCopiedArray(cx, nrest, restvp, nullptr);
+    Value* restvp = argv() + nformal;
+    ArrayObject* obj = NewDenseCopiedArray(cx, nrest, restvp, nullptr);
     if (!obj)
         return nullptr;
     types::FixRestArgumentsType(cx, obj);
@@ -139,7 +139,7 @@ InterpreterFrame::createRestParameter(JSContext *cx)
 }
 
 static inline void
-AssertDynamicScopeMatchesStaticScope(JSContext *cx, JSScript *script, JSObject *scope)
+AssertDynamicScopeMatchesStaticScope(JSContext* cx, JSScript* script, JSObject* scope)
 {
 #ifdef DEBUG
     RootedObject enclosingScope(cx, script->enclosingStaticScope());
@@ -174,9 +174,9 @@ AssertDynamicScopeMatchesStaticScope(JSContext *cx, JSScript *script, JSObject *
 }
 
 bool
-InterpreterFrame::initFunctionScopeObjects(JSContext *cx)
+InterpreterFrame::initFunctionScopeObjects(JSContext* cx)
 {
-    CallObject *callobj = CallObject::createForFunction(cx, this);
+    CallObject* callobj = CallObject::createForFunction(cx, this);
     if (!callobj)
         return false;
     pushOnScopeChain(*callobj);
@@ -185,7 +185,7 @@ InterpreterFrame::initFunctionScopeObjects(JSContext *cx)
 }
 
 bool
-InterpreterFrame::prologue(JSContext *cx)
+InterpreterFrame::prologue(JSContext* cx)
 {
     RootedScript script(cx, this->script());
 
@@ -193,7 +193,7 @@ InterpreterFrame::prologue(JSContext *cx)
 
     if (isEvalFrame()) {
         if (script->strict()) {
-            CallObject *callobj = CallObject::createForStrictEval(cx, this);
+            CallObject* callobj = CallObject::createForStrictEval(cx, this);
             if (!callobj)
                 return false;
             pushOnScopeChain(*callobj);
@@ -213,7 +213,7 @@ InterpreterFrame::prologue(JSContext *cx)
 
     if (isConstructing() && functionThis().isPrimitive()) {
         RootedObject callee(cx, &this->callee());
-        JSObject *obj = CreateThisForFunction(cx, callee,
+        JSObject* obj = CreateThisForFunction(cx, callee,
                                               useNewType() ? SingletonObject : GenericObject);
         if (!obj)
             return false;
@@ -224,7 +224,7 @@ InterpreterFrame::prologue(JSContext *cx)
 }
 
 void
-InterpreterFrame::epilogue(JSContext *cx)
+InterpreterFrame::epilogue(JSContext* cx)
 {
     RootedScript script(cx, this->script());
     probes::ExitScript(cx, script, script->functionNonDelazifying(), hasPushedSPSFrame());
@@ -279,12 +279,12 @@ InterpreterFrame::epilogue(JSContext *cx)
 }
 
 bool
-InterpreterFrame::pushBlock(JSContext *cx, StaticBlockObject &block)
+InterpreterFrame::pushBlock(JSContext* cx, StaticBlockObject& block)
 {
     MOZ_ASSERT(block.needsClone());
 
-    Rooted<StaticBlockObject *> blockHandle(cx, &block);
-    ClonedBlockObject *clone = ClonedBlockObject::create(cx, blockHandle, this);
+    Rooted<StaticBlockObject*> blockHandle(cx, &block);
+    ClonedBlockObject* clone = ClonedBlockObject::create(cx, blockHandle, this);
     if (!clone)
         return false;
 
@@ -294,14 +294,14 @@ InterpreterFrame::pushBlock(JSContext *cx, StaticBlockObject &block)
 }
 
 void
-InterpreterFrame::popBlock(JSContext *cx)
+InterpreterFrame::popBlock(JSContext* cx)
 {
     MOZ_ASSERT(scopeChain_->is<ClonedBlockObject>());
     popOffScopeChain();
 }
 
 void
-InterpreterFrame::popWith(JSContext *cx)
+InterpreterFrame::popWith(JSContext* cx)
 {
     if (MOZ_UNLIKELY(cx->compartment()->isDebuggee()))
         DebugScopes::onPopWith(this);
@@ -311,7 +311,7 @@ InterpreterFrame::popWith(JSContext *cx)
 }
 
 void
-InterpreterFrame::mark(JSTracer *trc)
+InterpreterFrame::mark(JSTracer* trc)
 {
     /*
      * Normally we would use MarkRoot here, except that generators also take
@@ -336,28 +336,28 @@ InterpreterFrame::mark(JSTracer *trc)
 }
 
 void
-InterpreterFrame::markValues(JSTracer *trc, unsigned start, unsigned end)
+InterpreterFrame::markValues(JSTracer* trc, unsigned start, unsigned end)
 {
     if (start < end)
         gc::MarkValueRootRange(trc, end - start, slots() + start, "vm_stack");
 }
 
 void
-InterpreterFrame::markValues(JSTracer *trc, Value *sp, jsbytecode *pc)
+InterpreterFrame::markValues(JSTracer* trc, Value* sp, jsbytecode* pc)
 {
     MOZ_ASSERT(sp >= slots());
 
-    JSScript *script = this->script();
+    JSScript* script = this->script();
     size_t nfixed = script->nfixed();
     size_t nlivefixed = script->nbodyfixed();
 
     if (nfixed != nlivefixed) {
-        NestedScopeObject *staticScope = script->getStaticScope(pc);
+        NestedScopeObject* staticScope = script->getStaticScope(pc);
         while (staticScope && !staticScope->is<StaticBlockObject>())
             staticScope = staticScope->enclosingNestedScope();
 
         if (staticScope) {
-            StaticBlockObject &blockObj = staticScope->as<StaticBlockObject>();
+            StaticBlockObject& blockObj = staticScope->as<StaticBlockObject>();
             nlivefixed = blockObj.localOffset() + blockObj.numVariables();
         }
     }
@@ -386,25 +386,25 @@ InterpreterFrame::markValues(JSTracer *trc, Value *sp, jsbytecode *pc)
         gc::MarkValueRootRange(trc, argc + 2, argv_ - 2, "fp argv");
     } else {
         // Mark callee and |this|
-        gc::MarkValueRootRange(trc, 2, ((Value *)this) - 2, "stack callee and this");
+        gc::MarkValueRootRange(trc, 2, ((Value*)this) - 2, "stack callee and this");
     }
 }
 
 static void
-MarkInterpreterActivation(JSTracer *trc, InterpreterActivation *act)
+MarkInterpreterActivation(JSTracer* trc, InterpreterActivation* act)
 {
     for (InterpreterFrameIterator frames(act); !frames.done(); ++frames) {
-        InterpreterFrame *fp = frames.frame();
+        InterpreterFrame* fp = frames.frame();
         fp->markValues(trc, frames.sp(), frames.pc());
         fp->mark(trc);
     }
 }
 
 void
-js::MarkInterpreterActivations(PerThreadData *ptd, JSTracer *trc)
+js::MarkInterpreterActivations(PerThreadData* ptd, JSTracer* trc)
 {
     for (ActivationIterator iter(ptd); !iter.done(); ++iter) {
-        Activation *act = iter.activation();
+        Activation* act = iter.activation();
         if (act->isInterpreter())
             MarkInterpreterActivation(trc, act->asInterpreter());
     }
@@ -417,7 +417,7 @@ js::MarkInterpreterActivations(PerThreadData *ptd, JSTracer *trc)
 void
 InterpreterRegs::setToEndOfScript()
 {
-    JSScript *script = fp()->script();
+    JSScript* script = fp()->script();
     sp = fp()->base();
     pc = script->codeEnd() - JSOP_RETRVAL_LENGTH;
     MOZ_ASSERT(*pc == JSOP_RETRVAL);
@@ -425,8 +425,8 @@ InterpreterRegs::setToEndOfScript()
 
 /*****************************************************************************/
 
-InterpreterFrame *
-InterpreterStack::pushInvokeFrame(JSContext *cx, const CallArgs &args, InitialFrameFlags initial)
+InterpreterFrame*
+InterpreterStack::pushInvokeFrame(JSContext* cx, const CallArgs& args, InitialFrameFlags initial)
 {
     LifoAlloc::Mark mark = allocator_.mark();
 
@@ -434,8 +434,8 @@ InterpreterStack::pushInvokeFrame(JSContext *cx, const CallArgs &args, InitialFr
     RootedScript script(cx, fun->nonLazyScript());
 
     InterpreterFrame::Flags flags = ToFrameFlags(initial);
-    Value *argv;
-    InterpreterFrame *fp = getCallFrame(cx, args, script, &flags, &argv);
+    Value* argv;
+    InterpreterFrame* fp = getCallFrame(cx, args, script, &flags, &argv);
     if (!fp)
         return nullptr;
 
@@ -444,19 +444,19 @@ InterpreterStack::pushInvokeFrame(JSContext *cx, const CallArgs &args, InitialFr
     return fp;
 }
 
-InterpreterFrame *
-InterpreterStack::pushExecuteFrame(JSContext *cx, HandleScript script, const Value &thisv,
+InterpreterFrame*
+InterpreterStack::pushExecuteFrame(JSContext* cx, HandleScript script, const Value& thisv,
                                    HandleObject scopeChain, ExecuteType type,
                                    AbstractFramePtr evalInFrame)
 {
     LifoAlloc::Mark mark = allocator_.mark();
 
     unsigned nvars = 2 /* callee, this */ + script->nslots();
-    uint8_t *buffer = allocateFrame(cx, sizeof(InterpreterFrame) + nvars * sizeof(Value));
+    uint8_t* buffer = allocateFrame(cx, sizeof(InterpreterFrame) + nvars * sizeof(Value));
     if (!buffer)
         return nullptr;
 
-    InterpreterFrame *fp = reinterpret_cast<InterpreterFrame *>(buffer + 2 * sizeof(Value));
+    InterpreterFrame* fp = reinterpret_cast<InterpreterFrame*>(buffer + 2 * sizeof(Value));
     fp->mark_ = mark;
     fp->initExecuteFrame(cx, script, evalInFrame, thisv, scopeChain, type);
     fp->initLocals();
@@ -495,7 +495,7 @@ FrameIter::settleOnActivation()
             return;
         }
 
-        Activation *activation = data_.activations_.activation();
+        Activation* activation = data_.activations_.activation();
 
         // If JS_SaveFrameChain was called, stop iterating here (unless
         // GO_THROUGH_SAVED is set).
@@ -515,7 +515,7 @@ FrameIter::settleOnActivation()
         // If the caller supplied principals, only show activations which are subsumed (of the same
         // origin or of an origin accessible) by these principals.
         if (data_.principals_) {
-            JSContext *cx = data_.cx_->asJSContext();
+            JSContext* cx = data_.cx_->asJSContext();
             if (JSSubsumesOp subsumes = cx->runtime()->securityCallbacks->subsumes) {
                 if (!subsumes(data_.principals_, activation->compartment()->principals)) {
                     ++data_.activations_;
@@ -563,7 +563,7 @@ FrameIter::settleOnActivation()
 
         MOZ_ASSERT(activation->isInterpreter());
 
-        InterpreterActivation *interpAct = activation->asInterpreter();
+        InterpreterActivation* interpAct = activation->asInterpreter();
         data_.interpFrames_ = InterpreterFrameIterator(interpAct);
 
         // If we OSR'ed into JIT code, skip the interpreter frame so that
@@ -583,8 +583,8 @@ FrameIter::settleOnActivation()
     }
 }
 
-FrameIter::Data::Data(JSContext *cx, SavedOption savedOption,
-                      ContextOption contextOption, JSPrincipals *principals)
+FrameIter::Data::Data(JSContext* cx, SavedOption savedOption,
+                      ContextOption contextOption, JSPrincipals* principals)
   : cx_(cx),
     savedOption_(savedOption),
     contextOption_(contextOption),
@@ -598,7 +598,7 @@ FrameIter::Data::Data(JSContext *cx, SavedOption savedOption,
 {
 }
 
-FrameIter::Data::Data(const FrameIter::Data &other)
+FrameIter::Data::Data(const FrameIter::Data& other)
   : cx_(other.cx_),
     savedOption_(other.savedOption_),
     contextOption_(other.contextOption_),
@@ -613,7 +613,7 @@ FrameIter::Data::Data(const FrameIter::Data &other)
 {
 }
 
-FrameIter::FrameIter(JSContext *cx, SavedOption savedOption)
+FrameIter::FrameIter(JSContext* cx, SavedOption savedOption)
   : data_(cx, savedOption, CURRENT_CONTEXT, nullptr),
     ionInlineFrames_(cx, (js::jit::JitFrameIterator*) nullptr)
 {
@@ -622,7 +622,7 @@ FrameIter::FrameIter(JSContext *cx, SavedOption savedOption)
     settleOnActivation();
 }
 
-FrameIter::FrameIter(JSContext *cx, ContextOption contextOption,
+FrameIter::FrameIter(JSContext* cx, ContextOption contextOption,
                      SavedOption savedOption)
   : data_(cx, savedOption, contextOption, nullptr),
     ionInlineFrames_(cx, (js::jit::JitFrameIterator*) nullptr)
@@ -632,22 +632,22 @@ FrameIter::FrameIter(JSContext *cx, ContextOption contextOption,
     settleOnActivation();
 }
 
-FrameIter::FrameIter(JSContext *cx, ContextOption contextOption,
-                     SavedOption savedOption, JSPrincipals *principals)
+FrameIter::FrameIter(JSContext* cx, ContextOption contextOption,
+                     SavedOption savedOption, JSPrincipals* principals)
   : data_(cx, savedOption, contextOption, principals),
     ionInlineFrames_(cx, (js::jit::JitFrameIterator*) nullptr)
 {
     settleOnActivation();
 }
 
-FrameIter::FrameIter(const FrameIter &other)
+FrameIter::FrameIter(const FrameIter& other)
   : data_(other.data_),
     ionInlineFrames_(other.data_.cx_,
                      data_.jitFrames_.isIonScripted() ? &other.ionInlineFrames_ : nullptr)
 {
 }
 
-FrameIter::FrameIter(const Data &data)
+FrameIter::FrameIter(const Data& data)
   : data_(data),
     ionInlineFrames_(data.cx_, data_.jitFrames_.isIonScripted() ? &data_.jitFrames_ : nullptr)
 {
@@ -704,7 +704,7 @@ FrameIter::popAsmJSFrame()
         popActivation();
 }
 
-FrameIter &
+FrameIter&
 FrameIter::operator++()
 {
     switch (data_.state_) {
@@ -747,10 +747,10 @@ FrameIter::operator++()
     return *this;
 }
 
-FrameIter::Data *
+FrameIter::Data*
 FrameIter::copyData() const
 {
-    Data *data = data_.cx_->new_<Data>(data_);
+    Data* data = data_.cx_->new_<Data>(data_);
     MOZ_ASSERT(data_.state_ != ASMJS);
     if (data && data_.jitFrames_.isIonScripted())
         data->ionInlineFrameNo_ = ionInlineFrames_.frameNo();
@@ -761,12 +761,12 @@ AbstractFramePtr
 FrameIter::copyDataAsAbstractFramePtr() const
 {
     AbstractFramePtr frame;
-    if (Data *data = copyData())
+    if (Data* data = copyData())
         frame.ptr_ = uintptr_t(data);
     return frame;
 }
 
-JSCompartment *
+JSCompartment*
 FrameIter::compartment() const
 {
     switch (data_.state_) {
@@ -854,7 +854,7 @@ FrameIter::isNonEvalFunctionFrame() const
     MOZ_CRASH("Unexpected state");
 }
 
-JSAtom *
+JSAtom*
 FrameIter::functionDisplayAtom() const
 {
     MOZ_ASSERT(isNonEvalFunctionFrame());
@@ -872,7 +872,7 @@ FrameIter::functionDisplayAtom() const
     MOZ_CRASH("Unexpected state");
 }
 
-ScriptSource *
+ScriptSource*
 FrameIter::scriptSource() const
 {
     switch (data_.state_) {
@@ -888,7 +888,7 @@ FrameIter::scriptSource() const
     MOZ_CRASH("Unexpected state");
 }
 
-const char *
+const char*
 FrameIter::scriptFilename() const
 {
     switch (data_.state_) {
@@ -904,15 +904,15 @@ FrameIter::scriptFilename() const
     MOZ_CRASH("Unexpected state");
 }
 
-const char16_t *
+const char16_t*
 FrameIter::scriptDisplayURL() const
 {
-    ScriptSource *ss = scriptSource();
+    ScriptSource* ss = scriptSource();
     return ss->hasDisplayURL() ? ss->displayURL() : nullptr;
 }
 
 unsigned
-FrameIter::computeLine(uint32_t *column) const
+FrameIter::computeLine(uint32_t* column) const
 {
     switch (data_.state_) {
       case DONE:
@@ -963,7 +963,7 @@ FrameIter::isConstructing() const
 }
 
 bool
-FrameIter::ensureHasRematerializedFrame(JSContext *cx)
+FrameIter::ensureHasRematerializedFrame(JSContext* cx)
 {
     MOZ_ASSERT(isIon());
     return !!activation()->asJit()->getRematerializedFrame(cx, data_.jitFrames_);
@@ -1022,8 +1022,8 @@ FrameIter::updatePcQuadratic()
       case ASMJS:
         break;
       case INTERP: {
-        InterpreterFrame *frame = interpFrame();
-        InterpreterActivation *activation = data_.activations_->asInterpreter();
+        InterpreterFrame* frame = interpFrame();
+        InterpreterActivation* activation = data_.activations_->asInterpreter();
 
         // Look for the current frame.
         data_.interpFrames_ = InterpreterFrameIterator(activation);
@@ -1037,8 +1037,8 @@ FrameIter::updatePcQuadratic()
       }
       case JIT:
         if (data_.jitFrames_.isBaselineJS()) {
-            jit::BaselineFrame *frame = data_.jitFrames_.baselineFrame();
-            jit::JitActivation *activation = data_.activations_->asJit();
+            jit::BaselineFrame* frame = data_.jitFrames_.baselineFrame();
+            jit::JitActivation* activation = data_.activations_->asJit();
 
             // ActivationIterator::jitTop_ may be invalid, so create a new
             // activation iterator.
@@ -1061,7 +1061,7 @@ FrameIter::updatePcQuadratic()
     MOZ_CRASH("Unexpected state");
 }
 
-JSFunction *
+JSFunction*
 FrameIter::calleeTemplate() const
 {
     switch (data_.state_) {
@@ -1080,8 +1080,8 @@ FrameIter::calleeTemplate() const
     MOZ_CRASH("Unexpected state");
 }
 
-JSFunction *
-FrameIter::callee(JSContext *cx) const
+JSFunction*
+FrameIter::callee(JSContext* cx) const
 {
     switch (data_.state_) {
       case DONE:
@@ -1101,7 +1101,7 @@ FrameIter::callee(JSContext *cx) const
 }
 
 bool
-FrameIter::matchCallee(JSContext *cx, HandleFunction fun) const
+FrameIter::matchCallee(JSContext* cx, HandleFunction fun) const
 {
     RootedFunction currentCallee(cx, calleeTemplate());
 
@@ -1162,8 +1162,8 @@ FrameIter::unaliasedActual(unsigned i, MaybeCheckAliasing checkAliasing) const
     return abstractFramePtr().unaliasedActual(i, checkAliasing);
 }
 
-JSObject *
-FrameIter::scopeChain(JSContext *cx) const
+JSObject*
+FrameIter::scopeChain(JSContext* cx) const
 {
     switch (data_.state_) {
       case DONE:
@@ -1181,12 +1181,12 @@ FrameIter::scopeChain(JSContext *cx) const
     MOZ_CRASH("Unexpected state");
 }
 
-CallObject &
-FrameIter::callObj(JSContext *cx) const
+CallObject&
+FrameIter::callObj(JSContext* cx) const
 {
     MOZ_ASSERT(calleeTemplate()->isHeavyweight());
 
-    JSObject *pobj = scopeChain(cx);
+    JSObject* pobj = scopeChain(cx);
     while (!pobj->is<CallObject>())
         pobj = pobj->enclosingScope();
     return pobj->as<CallObject>();
@@ -1198,7 +1198,7 @@ FrameIter::hasArgsObj() const
     return abstractFramePtr().hasArgsObj();
 }
 
-ArgumentsObject &
+ArgumentsObject&
 FrameIter::argsObj() const
 {
     MOZ_ASSERT(hasArgsObj());
@@ -1206,7 +1206,7 @@ FrameIter::argsObj() const
 }
 
 bool
-FrameIter::computeThis(JSContext *cx) const
+FrameIter::computeThis(JSContext* cx) const
 {
     MOZ_ASSERT(!done() && !isAsmJS());
     assertSameCompartment(cx, scopeChain(cx));
@@ -1220,7 +1220,7 @@ FrameIter::computedThisValue() const
 }
 
 Value
-FrameIter::thisv(JSContext *cx) const
+FrameIter::thisv(JSContext* cx) const
 {
     switch (data_.state_) {
       case DONE:
@@ -1256,7 +1256,7 @@ FrameIter::returnValue() const
 }
 
 void
-FrameIter::setReturnValue(const Value &v)
+FrameIter::setReturnValue(const Value& v)
 {
     switch (data_.state_) {
       case DONE:
@@ -1287,7 +1287,7 @@ FrameIter::numFrameSlots() const
             return ionInlineFrames_.snapshotIterator().numAllocations() -
                 ionInlineFrames_.script()->nfixed();
         }
-        jit::BaselineFrame *frame = data_.jitFrames_.baselineFrame();
+        jit::BaselineFrame* frame = data_.jitFrames_.baselineFrame();
         return frame->numValueSlots() - data_.jitFrames_.script()->nfixed();
       }
       case INTERP:
@@ -1327,7 +1327,7 @@ js::SelfHostedFramesVisible()
     static bool visible = false;
     if (!checked) {
         checked = true;
-        char *env = getenv("MOZ_SHOW_ALL_JS_FRAMES");
+        char* env = getenv("MOZ_SHOW_ALL_JS_FRAMES");
         visible = !!env;
     }
     return visible;
@@ -1354,8 +1354,8 @@ NonBuiltinScriptFrameIter::settle()
 
 /*****************************************************************************/
 
-JSObject *
-AbstractFramePtr::evalPrevScopeChain(JSContext *cx) const
+JSObject*
+AbstractFramePtr::evalPrevScopeChain(JSContext* cx) const
 {
     // Eval frames are not compiled by Ion, though their caller might be.
     AllFramesIter iter(cx);
@@ -1373,7 +1373,7 @@ AbstractFramePtr::hasPushedSPSFrame() const
     return asBaselineFrame()->hasPushedSPSFrame();
 }
 
-jit::JitActivation::JitActivation(JSContext *cx, bool active)
+jit::JitActivation::JitActivation(JSContext* cx, bool active)
   : Activation(cx, Jit),
     active_(active),
     rematerializedFrames_(nullptr),
@@ -1409,7 +1409,7 @@ jit::JitActivation::~JitActivation()
 }
 
 void
-jit::JitActivation::setBailoutData(jit::BailoutFrameInfo *bailoutData)
+jit::JitActivation::setBailoutData(jit::BailoutFrameInfo* bailoutData)
 {
     MOZ_ASSERT(!bailoutData_);
     bailoutData_ = bailoutData;
@@ -1426,7 +1426,7 @@ jit::JitActivation::cleanBailoutData()
 // changes to the logic here need to be reflected in GenerateFFIIonExit() in the enable
 // and disable activation instruction sequences.
 void
-jit::JitActivation::setActive(JSContext *cx, bool active)
+jit::JitActivation::setActive(JSContext* cx, bool active)
 {
     // Only allowed to deactivate/activate if activation is top.
     // (Not tested and will probably fail in other situations.)
@@ -1445,7 +1445,7 @@ jit::JitActivation::setActive(JSContext *cx, bool active)
 }
 
 void
-jit::JitActivation::removeRematerializedFrame(uint8_t *top)
+jit::JitActivation::removeRematerializedFrame(uint8_t* top)
 {
     if (!rematerializedFrames_)
         return;
@@ -1468,8 +1468,8 @@ jit::JitActivation::clearRematerializedFrames()
     }
 }
 
-jit::RematerializedFrame *
-jit::JitActivation::getRematerializedFrame(JSContext *cx, const JitFrameIterator &iter, size_t inlineDepth)
+jit::RematerializedFrame*
+jit::JitActivation::getRematerializedFrame(JSContext* cx, const JitFrameIterator& iter, size_t inlineDepth)
 {
     // Only allow rematerializing from the same thread.
     MOZ_ASSERT(cx->perThreadData == cx_->perThreadData);
@@ -1484,7 +1484,7 @@ jit::JitActivation::getRematerializedFrame(JSContext *cx, const JitFrameIterator
         }
     }
 
-    uint8_t *top = iter.fp();
+    uint8_t* top = iter.fp();
     RematerializedFrameTable::AddPtr p = rematerializedFrames_->lookupForAdd(top);
     if (!p) {
         RematerializedFrameVector empty(cx);
@@ -1514,8 +1514,8 @@ jit::JitActivation::getRematerializedFrame(JSContext *cx, const JitFrameIterator
     return p->value()[inlineDepth];
 }
 
-jit::RematerializedFrame *
-jit::JitActivation::lookupRematerializedFrame(uint8_t *top, size_t inlineDepth)
+jit::RematerializedFrame*
+jit::JitActivation::lookupRematerializedFrame(uint8_t* top, size_t inlineDepth)
 {
     if (!rematerializedFrames_)
         return nullptr;
@@ -1525,7 +1525,7 @@ jit::JitActivation::lookupRematerializedFrame(uint8_t *top, size_t inlineDepth)
 }
 
 void
-jit::JitActivation::markRematerializedFrames(JSTracer *trc)
+jit::JitActivation::markRematerializedFrames(JSTracer* trc)
 {
     if (!rematerializedFrames_)
         return;
@@ -1544,10 +1544,10 @@ jit::JitActivation::registerIonFrameRecovery(RInstructionResults&& results)
     return true;
 }
 
-jit::RInstructionResults *
-jit::JitActivation::maybeIonFrameRecovery(JitFrameLayout *fp)
+jit::RInstructionResults*
+jit::JitActivation::maybeIonFrameRecovery(JitFrameLayout* fp)
 {
-    for (RInstructionResults *it = ionRecovery_.begin(); it != ionRecovery_.end(); ) {
+    for (RInstructionResults* it = ionRecovery_.begin(); it != ionRecovery_.end(); ) {
         if (it->frame() == fp)
             return it;
     }
@@ -1556,9 +1556,9 @@ jit::JitActivation::maybeIonFrameRecovery(JitFrameLayout *fp)
 }
 
 void
-jit::JitActivation::removeIonFrameRecovery(JitFrameLayout *fp)
+jit::JitActivation::removeIonFrameRecovery(JitFrameLayout* fp)
 {
-    RInstructionResults *elem = maybeIonFrameRecovery(fp);
+    RInstructionResults* elem = maybeIonFrameRecovery(fp);
     if (!elem)
         return;
 
@@ -1566,13 +1566,13 @@ jit::JitActivation::removeIonFrameRecovery(JitFrameLayout *fp)
 }
 
 void
-jit::JitActivation::markIonRecovery(JSTracer *trc)
+jit::JitActivation::markIonRecovery(JSTracer* trc)
 {
-    for (RInstructionResults *it = ionRecovery_.begin(); it != ionRecovery_.end(); it++)
+    for (RInstructionResults* it = ionRecovery_.begin(); it != ionRecovery_.end(); it++)
         it->trace(trc);
 }
 
-AsmJSActivation::AsmJSActivation(JSContext *cx, AsmJSModule &module)
+AsmJSActivation::AsmJSActivation(JSContext* cx, AsmJSModule& module)
   : Activation(cx, AsmJS),
     module_(module),
     entrySP_(nullptr),
@@ -1614,13 +1614,13 @@ AsmJSActivation::~AsmJSActivation()
     MOZ_ASSERT(module_.activation() == this);
     module_.activation() = prevAsmJSForModule_;
 
-    JSContext *cx = cx_->asJSContext();
+    JSContext* cx = cx_->asJSContext();
     MOZ_ASSERT(cx->mainThread().asmJSActivationStack_ == this);
 
     cx->mainThread().asmJSActivationStack_ = prevAsmJS_;
 }
 
-InterpreterFrameIterator &
+InterpreterFrameIterator&
 InterpreterFrameIterator::operator++()
 {
     MOZ_ASSERT(!done());
@@ -1651,21 +1651,21 @@ Activation::unregisterProfiling()
     cx_->perThreadData->profilingActivation_ = prevProfiling_;
 }
 
-ActivationIterator::ActivationIterator(JSRuntime *rt)
+ActivationIterator::ActivationIterator(JSRuntime* rt)
   : jitTop_(rt->mainThread.jitTop),
     activation_(rt->mainThread.activation_)
 {
     settle();
 }
 
-ActivationIterator::ActivationIterator(PerThreadData *perThreadData)
+ActivationIterator::ActivationIterator(PerThreadData* perThreadData)
   : jitTop_(perThreadData->jitTop),
     activation_(perThreadData->activation_)
 {
     settle();
 }
 
-ActivationIterator &
+ActivationIterator&
 ActivationIterator::operator++()
 {
     MOZ_ASSERT(activation_);
@@ -1685,7 +1685,7 @@ ActivationIterator::settle()
         activation_ = activation_->prev();
 }
 
-JS::ProfilingFrameIterator::ProfilingFrameIterator(JSRuntime *rt, const RegisterState &state)
+JS::ProfilingFrameIterator::ProfilingFrameIterator(JSRuntime* rt, const RegisterState& state)
   : activation_(rt->mainThread.profilingActivation())
 {
     if (!activation_)
@@ -1730,7 +1730,7 @@ JS::ProfilingFrameIterator::settle()
 }
 
 void
-JS::ProfilingFrameIterator::iteratorConstruct(const RegisterState &state)
+JS::ProfilingFrameIterator::iteratorConstruct(const RegisterState& state)
 {
     MOZ_ASSERT(!done());
 
@@ -1765,7 +1765,7 @@ JS::ProfilingFrameIterator::iteratorDone()
     return asmJSIter().done();
 }
 
-void *
+void*
 JS::ProfilingFrameIterator::stackAddress() const
 {
     MOZ_ASSERT(!done());
@@ -1774,7 +1774,7 @@ JS::ProfilingFrameIterator::stackAddress() const
     return asmJSIter().stackAddress();
 }
 
-const char *
+const char*
 JS::ProfilingFrameIterator::label() const
 {
     MOZ_ASSERT(!done());

@@ -16,7 +16,7 @@
 namespace js {
 
 inline void
-ArrayObject::setLength(ExclusiveContext *cx, uint32_t length)
+ArrayObject::setLength(ExclusiveContext* cx, uint32_t length)
 {
     MOZ_ASSERT(lengthIsWritable());
 
@@ -28,8 +28,8 @@ ArrayObject::setLength(ExclusiveContext *cx, uint32_t length)
     getElementsHeader()->length = length;
 }
 
-/* static */ inline ArrayObject *
-ArrayObject::createArrayInternal(ExclusiveContext *cx, gc::AllocKind kind, gc::InitialHeap heap,
+/* static */ inline ArrayObject*
+ArrayObject::createArrayInternal(ExclusiveContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
                                  HandleShape shape, HandleTypeObject type)
 {
     // Create a new array and initialize everything except for its elements.
@@ -43,18 +43,18 @@ ArrayObject::createArrayInternal(ExclusiveContext *cx, gc::AllocKind kind, gc::I
     MOZ_ASSERT(shape->numFixedSlots() == 0);
 
     size_t nDynamicSlots = dynamicSlotsCount(0, shape->slotSpan(), type->clasp());
-    JSObject *obj = NewGCObject<CanGC>(cx, kind, nDynamicSlots, heap, type->clasp());
+    JSObject* obj = NewGCObject<CanGC>(cx, kind, nDynamicSlots, heap, type->clasp());
     if (!obj)
         return nullptr;
 
-    static_cast<ArrayObject *>(obj)->shape_.init(shape);
-    static_cast<ArrayObject *>(obj)->type_.init(type);
+    static_cast<ArrayObject*>(obj)->shape_.init(shape);
+    static_cast<ArrayObject*>(obj)->type_.init(type);
 
     return &obj->as<ArrayObject>();
 }
 
-/* static */ inline ArrayObject *
-ArrayObject::finishCreateArray(ArrayObject *obj, HandleShape shape)
+/* static */ inline ArrayObject*
+ArrayObject::finishCreateArray(ArrayObject* obj, HandleShape shape)
 {
     size_t span = shape->slotSpan();
     if (span)
@@ -65,12 +65,12 @@ ArrayObject::finishCreateArray(ArrayObject *obj, HandleShape shape)
     return obj;
 }
 
-/* static */ inline ArrayObject *
-ArrayObject::createArray(ExclusiveContext *cx, gc::AllocKind kind, gc::InitialHeap heap,
+/* static */ inline ArrayObject*
+ArrayObject::createArray(ExclusiveContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
                          HandleShape shape, HandleTypeObject type,
                          uint32_t length)
 {
-    ArrayObject *obj = createArrayInternal(cx, kind, heap, shape, type);
+    ArrayObject* obj = createArrayInternal(cx, kind, heap, shape, type);
     if (!obj)
         return nullptr;
 
@@ -82,17 +82,17 @@ ArrayObject::createArray(ExclusiveContext *cx, gc::AllocKind kind, gc::InitialHe
     return finishCreateArray(obj, shape);
 }
 
-/* static */ inline ArrayObject *
-ArrayObject::createArray(ExclusiveContext *cx, gc::InitialHeap heap,
+/* static */ inline ArrayObject*
+ArrayObject::createArray(ExclusiveContext* cx, gc::InitialHeap heap,
                          HandleShape shape, HandleTypeObject type,
-                         HeapSlot *elements)
+                         HeapSlot* elements)
 {
     // Use the smallest allocation kind for the array, as it can't have any
     // fixed slots (see the assert in createArrayInternal) and will not be using
     // its fixed elements.
     gc::AllocKind kind = gc::FINALIZE_OBJECT0_BACKGROUND;
 
-    ArrayObject *obj = createArrayInternal(cx, kind, heap, shape, type);
+    ArrayObject* obj = createArrayInternal(cx, kind, heap, shape, type);
     if (!obj)
         return nullptr;
 
@@ -101,8 +101,8 @@ ArrayObject::createArray(ExclusiveContext *cx, gc::InitialHeap heap,
     return finishCreateArray(obj, shape);
 }
 
-/* static */ inline ArrayObject *
-ArrayObject::createCopyOnWriteArray(ExclusiveContext *cx, gc::InitialHeap heap,
+/* static */ inline ArrayObject*
+ArrayObject::createCopyOnWriteArray(ExclusiveContext* cx, gc::InitialHeap heap,
                                     HandleShape shape,
                                     HandleArrayObject sharedElementsOwner)
 {
@@ -115,7 +115,7 @@ ArrayObject::createCopyOnWriteArray(ExclusiveContext *cx, gc::InitialHeap heap,
     gc::AllocKind kind = gc::FINALIZE_OBJECT0_BACKGROUND;
 
     RootedTypeObject type(cx, sharedElementsOwner->type());
-    ArrayObject *obj = createArrayInternal(cx, kind, heap, shape, type);
+    ArrayObject* obj = createArrayInternal(cx, kind, heap, shape, type);
     if (!obj)
         return nullptr;
 

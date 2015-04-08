@@ -21,8 +21,8 @@ template<typename T> struct IsBool : mozilla::FalseType {};
 template<> struct IsBool<bool> : mozilla::TrueType {};
 
 template<typename T>
-T overrideDefault(const char *param, T dflt) {
-    char *str = getenv(param);
+T overrideDefault(const char* param, T dflt) {
+    char* str = getenv(param);
     if (!str)
         return dflt;
     if (IsBool<T>::value) {
@@ -36,7 +36,7 @@ T overrideDefault(const char *param, T dflt) {
         }
         fprintf(stderr, "Warning: I didn't understand %s=\"%s\"", param, str);
     } else {
-        char *endp;
+        char* endp;
         int retval = strtol(str, &endp, 0);
         if (*endp == '\0')
             return retval;
@@ -141,7 +141,7 @@ JitOptions::JitOptions()
 }
 
 bool
-JitOptions::isSmallFunction(JSScript *script) const
+JitOptions::isSmallFunction(JSScript* script) const
 {
     return script->length() <= smallFunctionMaxBytecodeLength_;
 }

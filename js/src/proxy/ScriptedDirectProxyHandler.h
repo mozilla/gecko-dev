@@ -19,39 +19,39 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
     { }
 
     /* Standard internal methods. */
-    virtual bool getOwnPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
+    virtual bool getOwnPropertyDescriptor(JSContext* cx, HandleObject proxy, HandleId id,
                                           MutableHandle<JSPropertyDescriptor> desc) const MOZ_OVERRIDE;
-    virtual bool defineProperty(JSContext *cx, HandleObject proxy, HandleId id,
+    virtual bool defineProperty(JSContext* cx, HandleObject proxy, HandleId id,
                                 MutableHandle<JSPropertyDescriptor> desc) const MOZ_OVERRIDE;
-    virtual bool ownPropertyKeys(JSContext *cx, HandleObject proxy,
-                                 AutoIdVector &props) const MOZ_OVERRIDE;
-    virtual bool delete_(JSContext *cx, HandleObject proxy, HandleId id, bool *bp) const MOZ_OVERRIDE;
-    virtual bool enumerate(JSContext *cx, HandleObject proxy, MutableHandleObject objp) const MOZ_OVERRIDE;
+    virtual bool ownPropertyKeys(JSContext* cx, HandleObject proxy,
+                                 AutoIdVector& props) const MOZ_OVERRIDE;
+    virtual bool delete_(JSContext* cx, HandleObject proxy, HandleId id, bool* bp) const MOZ_OVERRIDE;
+    virtual bool enumerate(JSContext* cx, HandleObject proxy, MutableHandleObject objp) const MOZ_OVERRIDE;
 
     /* These two are standard internal methods but aren't implemented to spec yet. */
-    virtual bool getPrototypeOf(JSContext *cx, HandleObject proxy,
+    virtual bool getPrototypeOf(JSContext* cx, HandleObject proxy,
                                 MutableHandleObject protop) const MOZ_OVERRIDE;
-    virtual bool setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto,
-                                bool *bp) const MOZ_OVERRIDE;
+    virtual bool setPrototypeOf(JSContext* cx, HandleObject proxy, HandleObject proto,
+                                bool* bp) const MOZ_OVERRIDE;
     /* Non-standard, but needed to handle revoked proxies. */
-    virtual bool setImmutablePrototype(JSContext *cx, HandleObject proxy,
-                                       bool *succeeded) const MOZ_OVERRIDE;
+    virtual bool setImmutablePrototype(JSContext* cx, HandleObject proxy,
+                                       bool* succeeded) const MOZ_OVERRIDE;
 
-    virtual bool preventExtensions(JSContext *cx, HandleObject proxy, bool *succeeded) const MOZ_OVERRIDE;
-    virtual bool isExtensible(JSContext *cx, HandleObject proxy, bool *extensible) const MOZ_OVERRIDE;
+    virtual bool preventExtensions(JSContext* cx, HandleObject proxy, bool* succeeded) const MOZ_OVERRIDE;
+    virtual bool isExtensible(JSContext* cx, HandleObject proxy, bool* extensible) const MOZ_OVERRIDE;
 
-    virtual bool has(JSContext *cx, HandleObject proxy, HandleId id, bool *bp) const MOZ_OVERRIDE;
-    virtual bool get(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id,
+    virtual bool has(JSContext* cx, HandleObject proxy, HandleId id, bool* bp) const MOZ_OVERRIDE;
+    virtual bool get(JSContext* cx, HandleObject proxy, HandleObject receiver, HandleId id,
                      MutableHandleValue vp) const MOZ_OVERRIDE;
-    virtual bool set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id,
+    virtual bool set(JSContext* cx, HandleObject proxy, HandleObject receiver, HandleId id,
                      bool strict, MutableHandleValue vp) const MOZ_OVERRIDE;
-    virtual bool call(JSContext *cx, HandleObject proxy, const CallArgs &args) const MOZ_OVERRIDE;
-    virtual bool construct(JSContext *cx, HandleObject proxy, const CallArgs &args) const MOZ_OVERRIDE;
+    virtual bool call(JSContext* cx, HandleObject proxy, const CallArgs& args) const MOZ_OVERRIDE;
+    virtual bool construct(JSContext* cx, HandleObject proxy, const CallArgs& args) const MOZ_OVERRIDE;
 
     /* SpiderMonkey extensions. */
-    virtual bool getPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
+    virtual bool getPropertyDescriptor(JSContext* cx, HandleObject proxy, HandleId id,
                                        MutableHandle<JSPropertyDescriptor> desc) const MOZ_OVERRIDE;
-    virtual bool hasOwn(JSContext *cx, HandleObject proxy, HandleId id, bool *bp) const MOZ_OVERRIDE {
+    virtual bool hasOwn(JSContext* cx, HandleObject proxy, HandleId id, bool* bp) const MOZ_OVERRIDE {
         return BaseProxyHandler::hasOwn(cx, proxy, id, bp);
     }
 
@@ -59,23 +59,23 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
     // Kick getOwnEnumerablePropertyKeys out to ownPropertyKeys and then
     // filter. [[GetOwnProperty]] could potentially change the enumerability of
     // the target's properties.
-    virtual bool getOwnEnumerablePropertyKeys(JSContext *cx, HandleObject proxy,
-                                              AutoIdVector &props) const MOZ_OVERRIDE {
+    virtual bool getOwnEnumerablePropertyKeys(JSContext* cx, HandleObject proxy,
+                                              AutoIdVector& props) const MOZ_OVERRIDE {
         return BaseProxyHandler::getOwnEnumerablePropertyKeys(cx, proxy, props);
     }
 
     // A scripted proxy should not be treated as generic in most contexts.
-    virtual bool nativeCall(JSContext *cx, IsAcceptableThis test, NativeImpl impl,
+    virtual bool nativeCall(JSContext* cx, IsAcceptableThis test, NativeImpl impl,
                             CallArgs args) const MOZ_OVERRIDE;
     virtual bool objectClassIs(HandleObject obj, ESClassValue classValue,
-                               JSContext *cx) const MOZ_OVERRIDE;
-    virtual bool regexp_toShared(JSContext *cx, HandleObject proxy,
-                                 RegExpGuard *g) const MOZ_OVERRIDE;
-    virtual bool boxedValue_unbox(JSContext *cx, HandleObject proxy,
+                               JSContext* cx) const MOZ_OVERRIDE;
+    virtual bool regexp_toShared(JSContext* cx, HandleObject proxy,
+                                 RegExpGuard* g) const MOZ_OVERRIDE;
+    virtual bool boxedValue_unbox(JSContext* cx, HandleObject proxy,
                                   MutableHandleValue vp) const MOZ_OVERRIDE;
 
-    virtual bool isCallable(JSObject *obj) const MOZ_OVERRIDE;
-    virtual bool isConstructor(JSObject *obj) const MOZ_OVERRIDE;
+    virtual bool isCallable(JSObject* obj) const MOZ_OVERRIDE;
+    virtual bool isConstructor(JSObject* obj) const MOZ_OVERRIDE;
 
     virtual bool isScripted() const MOZ_OVERRIDE { return true; }
 
@@ -95,10 +95,10 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
 };
 
 bool
-proxy(JSContext *cx, unsigned argc, jsval *vp);
+proxy(JSContext* cx, unsigned argc, jsval* vp);
 
 bool
-proxy_revocable(JSContext *cx, unsigned argc, jsval *vp);
+proxy_revocable(JSContext* cx, unsigned argc, jsval* vp);
 
 } /* namespace js */
 

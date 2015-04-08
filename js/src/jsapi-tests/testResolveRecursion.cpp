@@ -58,14 +58,14 @@ BEGIN_TEST(testResolveRecursion)
     return true;
 }
 
-JS::Heap<JSObject *> obj1;
-JS::Heap<JSObject *> obj2;
+JS::Heap<JSObject*> obj1;
+JS::Heap<JSObject*> obj2;
 int resolveEntryCount;
 int resolveExitCount;
 
 struct AutoIncrCounters {
 
-    explicit AutoIncrCounters(cls_testResolveRecursion *t) : t(t) {
+    explicit AutoIncrCounters(cls_testResolveRecursion* t) : t(t) {
         t->resolveEntryCount++;
     }
 
@@ -73,11 +73,11 @@ struct AutoIncrCounters {
         t->resolveExitCount++;
     }
 
-    cls_testResolveRecursion *t;
+    cls_testResolveRecursion* t;
 };
 
 bool
-doResolve(JS::HandleObject obj, JS::HandleId id, bool *resolvedp)
+doResolve(JS::HandleObject obj, JS::HandleId id, bool* resolvedp)
 {
     CHECK_EQUAL(resolveExitCount, 0);
     AutoIncrCounters incr(this);
@@ -85,7 +85,7 @@ doResolve(JS::HandleObject obj, JS::HandleId id, bool *resolvedp)
 
     CHECK(JSID_IS_STRING(id));
 
-    JSFlatString *str = JS_FlattenString(cx, JSID_TO_STRING(id));
+    JSFlatString* str = JS_FlattenString(cx, JSID_TO_STRING(id));
     CHECK(str);
     JS::RootedValue v(cx);
     if (JS_FlatStringEqualsAscii(str, "x")) {
@@ -135,9 +135,9 @@ doResolve(JS::HandleObject obj, JS::HandleId id, bool *resolvedp)
 }
 
 static bool
-my_resolve(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool *resolvedp)
+my_resolve(JSContext* cx, JS::HandleObject obj, JS::HandleId id, bool* resolvedp)
 {
-    return static_cast<cls_testResolveRecursion *>(JS_GetPrivate(obj))->
+    return static_cast<cls_testResolveRecursion*>(JS_GetPrivate(obj))->
            doResolve(obj, id, resolvedp);
 }
 

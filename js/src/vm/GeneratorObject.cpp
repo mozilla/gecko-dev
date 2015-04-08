@@ -15,8 +15,8 @@
 using namespace js;
 using namespace js::types;
 
-JSObject *
-GeneratorObject::create(JSContext *cx, AbstractFramePtr frame)
+JSObject*
+GeneratorObject::create(JSContext* cx, AbstractFramePtr frame)
 {
     MOZ_ASSERT(frame.script()->isGenerator());
     MOZ_ASSERT(frame.script()->nfixed() == 0);
@@ -30,7 +30,7 @@ GeneratorObject::create(JSContext *cx, AbstractFramePtr frame)
         // the prototype for the instance.  Bug 906600.
         if (!JSObject::getProperty(cx, fun, fun, cx->names().prototype, &pval))
             return nullptr;
-        JSObject *proto = pval.isObject() ? &pval.toObject() : nullptr;
+        JSObject* proto = pval.isObject() ? &pval.toObject() : nullptr;
         if (!proto) {
             proto = GlobalObject::getOrCreateStarGeneratorObjectPrototype(cx, global);
             if (!proto)
@@ -39,7 +39,7 @@ GeneratorObject::create(JSContext *cx, AbstractFramePtr frame)
         obj = NewNativeObjectWithGivenProto(cx, &StarGeneratorObject::class_, proto, global);
     } else {
         MOZ_ASSERT(frame.script()->isLegacyGenerator());
-        JSObject *proto = GlobalObject::getOrCreateLegacyGeneratorObjectPrototype(cx, global);
+        JSObject* proto = GlobalObject::getOrCreateLegacyGeneratorObjectPrototype(cx, global);
         if (!proto)
             return nullptr;
         obj = NewNativeObjectWithGivenProto(cx, &LegacyGeneratorObject::class_, proto, global);
@@ -47,7 +47,7 @@ GeneratorObject::create(JSContext *cx, AbstractFramePtr frame)
     if (!obj)
         return nullptr;
 
-    GeneratorObject *genObj = &obj->as<GeneratorObject>();
+    GeneratorObject* genObj = &obj->as<GeneratorObject>();
     genObj->setCallee(*frame.callee());
     genObj->setThisValue(frame.thisValue());
     genObj->setScopeChain(*frame.scopeChain());
@@ -59,8 +59,8 @@ GeneratorObject::create(JSContext *cx, AbstractFramePtr frame)
 }
 
 bool
-GeneratorObject::suspend(JSContext *cx, HandleObject obj, AbstractFramePtr frame, jsbytecode *pc,
-                         Value *vp, unsigned nvalues)
+GeneratorObject::suspend(JSContext* cx, HandleObject obj, AbstractFramePtr frame, jsbytecode* pc,
+                         Value* vp, unsigned nvalues)
 {
     MOZ_ASSERT(*pc == JSOP_INITIALYIELD || *pc == JSOP_YIELD);
 
@@ -79,7 +79,7 @@ GeneratorObject::suspend(JSContext *cx, HandleObject obj, AbstractFramePtr frame
     genObj->setScopeChain(*frame.scopeChain());
 
     if (nvalues) {
-        ArrayObject *stack = NewDenseCopiedArray(cx, nvalues, vp);
+        ArrayObject* stack = NewDenseCopiedArray(cx, nvalues, vp);
         if (!stack)
             return false;
         genObj->setExpressionStack(*stack);
@@ -89,7 +89,7 @@ GeneratorObject::suspend(JSContext *cx, HandleObject obj, AbstractFramePtr frame
 }
 
 bool
-GeneratorObject::finalSuspend(JSContext *cx, HandleObject obj)
+GeneratorObject::finalSuspend(JSContext* cx, HandleObject obj)
 {
     Rooted<GeneratorObject*> genObj(cx, &obj->as<GeneratorObject>());
     MOZ_ASSERT(genObj->isRunning() || genObj->isClosing());
@@ -105,7 +105,7 @@ GeneratorObject::finalSuspend(JSContext *cx, HandleObject obj)
 }
 
 bool
-js::GeneratorThrowOrClose(JSContext *cx, Handle<GeneratorObject*> genObj, HandleValue arg,
+js::GeneratorThrowOrClose(JSContext* cx, Handle<GeneratorObject*> genObj, HandleValue arg,
                           uint32_t resumeKind)
 {
     if (resumeKind == GeneratorObject::THROW) {
@@ -121,7 +121,7 @@ js::GeneratorThrowOrClose(JSContext *cx, Handle<GeneratorObject*> genObj, Handle
 }
 
 bool
-GeneratorObject::resume(JSContext *cx, InterpreterActivation &activation,
+GeneratorObject::resume(JSContext* cx, InterpreterActivation& activation,
                         HandleObject obj, HandleValue arg, GeneratorObject::ResumeKind resumeKind)
 {
     Rooted<GeneratorObject*> genObj(cx, &obj->as<GeneratorObject>());
@@ -145,7 +145,7 @@ GeneratorObject::resume(JSContext *cx, InterpreterActivation &activation,
         genObj->clearExpressionStack();
     }
 
-    JSScript *script = callee->nonLazyScript();
+    JSScript* script = callee->nonLazyScript();
     uint32_t offset = script->yieldOffsets()[genObj->yieldIndex()];
     activation.regs().pc = script->offsetToPC(offset);
 
@@ -171,7 +171,7 @@ GeneratorObject::resume(JSContext *cx, InterpreterActivation &activation,
 }
 
 bool
-LegacyGeneratorObject::close(JSContext *cx, HandleObject obj)
+LegacyGeneratorObject::close(JSContext* cx, HandleObject obj)
 {
      Rooted<LegacyGeneratorObject*> genObj(cx, &obj->as<LegacyGeneratorObject>());
 
@@ -232,25 +232,25 @@ static const JSFunctionSpec legacy_generator_methods[] = {
 #undef JSPROP_ROPERM
 
 static JSObject*
-NewSingletonObjectWithObjectPrototype(JSContext *cx, Handle<GlobalObject *> global)
+NewSingletonObjectWithObjectPrototype(JSContext* cx, Handle<GlobalObject*> global)
 {
-    JSObject *proto = global->getOrCreateObjectPrototype(cx);
+    JSObject* proto = global->getOrCreateObjectPrototype(cx);
     if (!proto)
         return nullptr;
     return NewObjectWithGivenProto<PlainObject>(cx, proto, global, SingletonObject);
 }
 
 static JSObject*
-NewSingletonObjectWithFunctionPrototype(JSContext *cx, Handle<GlobalObject *> global)
+NewSingletonObjectWithFunctionPrototype(JSContext* cx, Handle<GlobalObject*> global)
 {
-    JSObject *proto = global->getOrCreateFunctionPrototype(cx);
+    JSObject* proto = global->getOrCreateFunctionPrototype(cx);
     if (!proto)
         return nullptr;
     return NewObjectWithGivenProto<PlainObject>(cx, proto, global, SingletonObject);
 }
 
 /* static */ bool
-GlobalObject::initGeneratorClasses(JSContext *cx, Handle<GlobalObject *> global)
+GlobalObject::initGeneratorClasses(JSContext* cx, Handle<GlobalObject*> global)
 {
     if (global->getSlot(LEGACY_GENERATOR_OBJECT_PROTO).isUndefined()) {
         RootedObject proto(cx, NewSingletonObjectWithObjectPrototype(cx, global));

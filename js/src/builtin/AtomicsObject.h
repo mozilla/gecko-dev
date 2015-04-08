@@ -15,8 +15,8 @@ class AtomicsObject : public JSObject
 {
   public:
     static const Class class_;
-    static JSObject* initClass(JSContext *cx, Handle<GlobalObject *> global);
-    static bool toString(JSContext *cx, unsigned int argc, jsval *vp);
+    static JSObject* initClass(JSContext* cx, Handle<GlobalObject*> global);
+    static bool toString(JSContext* cx, unsigned int argc, jsval* vp);
 
     static const int FutexOK = 0;
 
@@ -31,22 +31,22 @@ class AtomicsObject : public JSObject
 
 void atomics_fullMemoryBarrier();
 
-bool atomics_compareExchange(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_load(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_store(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_fence(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_add(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_sub(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_and(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_or(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_xor(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_futexWait(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_futexWake(JSContext *cx, unsigned argc, Value *vp);
-bool atomics_futexWakeOrRequeue(JSContext *cx, unsigned argc, Value *vp);
+bool atomics_compareExchange(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_load(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_store(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_fence(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_add(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_sub(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_and(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_or(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_xor(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_futexWait(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_futexWake(JSContext* cx, unsigned argc, Value* vp);
+bool atomics_futexWakeOrRequeue(JSContext* cx, unsigned argc, Value* vp);
 
 }  /* namespace js */
 
-JSObject *
-js_InitAtomicsClass(JSContext *cx, js::HandleObject obj);
+JSObject*
+js_InitAtomicsClass(JSContext* cx, js::HandleObject obj);
 
 #endif /* builtin_AtomicsObject_h */

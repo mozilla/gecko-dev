@@ -595,7 +595,7 @@ public:
 
     size_t size() const { return m_formatter.size(); }
     size_t allocSize() const { return m_formatter.allocSize(); }
-    unsigned char *buffer() const { return m_formatter.buffer(); }
+    unsigned char* buffer() const { return m_formatter.buffer(); }
     bool oom() const { return m_formatter.oom(); }
 
     void nop()
@@ -1027,7 +1027,7 @@ public:
         m_formatter.oneByteOp64(OP_AND_GvEv, offset, base, index, scale, dst);
     }
 
-    void andq_mr(const void *addr, RegisterID dst)
+    void andq_mr(const void* addr, RegisterID dst)
     {
         spew("andq       %p, %s", addr, nameIReg(8,dst));
         m_formatter.oneByteOp64(OP_AND_GvEv, addr, dst);
@@ -1609,7 +1609,7 @@ public:
         m_formatter.oneByteOp(OP_CMP_GvEv, offset, base, lhs);
     }
 
-    void cmpl_mr(const void *address, RegisterID lhs)
+    void cmpl_mr(const void* address, RegisterID lhs)
     {
         spew("cmpl       %p, %s", address, nameIReg(4, lhs));
         m_formatter.oneByteOp(OP_CMP_GvEv, address, lhs);
@@ -1701,7 +1701,7 @@ public:
     }
 
     MOZ_WARN_UNUSED_RESULT JmpSrc
-    cmpl_im_disp32(int rhs, const void *addr)
+    cmpl_im_disp32(int rhs, const void* addr)
     {
         spew("cmpl       $0x%x, %p", rhs, addr);
         JmpSrc r;
@@ -1724,7 +1724,7 @@ public:
         m_formatter.immediate32(rhs);
     }
 
-    void cmpl_i32m(int rhs, const void *addr)
+    void cmpl_i32m(int rhs, const void* addr)
     {
         spew("cmpl       $0x%04x, %p", rhs, addr);
         m_formatter.oneByteOp(OP_GROUP1_EvIz, addr, GROUP1_OP_CMP);
@@ -1903,7 +1903,7 @@ public:
         m_formatter.immediate32(rhs);
     }
 
-    void testl_i32m(int rhs, const void *addr)
+    void testl_i32m(int rhs, const void* addr)
     {
         spew("testl      $0x%x, %p", rhs, addr);
         m_formatter.oneByteOp(OP_GROUP3_EvIz, addr, GROUP3_OP_TEST);
@@ -2943,7 +2943,7 @@ public:
     {
         twoByteOpSimd("vunpcklps", VEX_PS, OP2_UNPCKLPS_VsdWsd, offset, base, src0, dst);
     }
-    void vunpcklps_mr(const void *addr, XMMRegisterID src0, XMMRegisterID dst)
+    void vunpcklps_mr(const void* addr, XMMRegisterID src0, XMMRegisterID dst)
     {
         twoByteOpSimd("vunpcklps", VEX_PS, OP2_UNPCKLPS_VsdWsd, addr, src0, dst);
     }
@@ -2956,7 +2956,7 @@ public:
     {
         twoByteOpSimd("vunpckhps", VEX_PS, OP2_UNPCKHPS_VsdWsd, offset, base, src0, dst);
     }
-    void vunpckhps_mr(const void *addr, XMMRegisterID src0, XMMRegisterID dst)
+    void vunpckhps_mr(const void* addr, XMMRegisterID src0, XMMRegisterID dst)
     {
         twoByteOpSimd("vunpckhps", VEX_PS, OP2_UNPCKHPS_VsdWsd, addr, src0, dst);
     }
@@ -2969,7 +2969,7 @@ public:
     {
         twoByteOpSimd("vpand", VEX_PD, OP2_PANDDQ_VdqWdq, offset, base, src0, dst);
     }
-    void vpand_mr(const void *address, XMMRegisterID src0, XMMRegisterID dst)
+    void vpand_mr(const void* address, XMMRegisterID src0, XMMRegisterID dst)
     {
         twoByteOpSimd("vpand", VEX_PD, OP2_PANDDQ_VdqWdq, address, src0, dst);
     }
@@ -2981,7 +2981,7 @@ public:
     {
         twoByteOpSimd("vpor", VEX_PD, OP2_PORDQ_VdqWdq, offset, base, src0, dst);
     }
-    void vpor_mr(const void *address, XMMRegisterID src0, XMMRegisterID dst)
+    void vpor_mr(const void* address, XMMRegisterID src0, XMMRegisterID dst)
     {
         twoByteOpSimd("vpor", VEX_PD, OP2_PORDQ_VdqWdq, address, src0, dst);
     }
@@ -2993,7 +2993,7 @@ public:
     {
         twoByteOpSimd("vpxor", VEX_PD, OP2_PXORDQ_VdqWdq, offset, base, src0, dst);
     }
-    void vpxor_mr(const void *address, XMMRegisterID src0, XMMRegisterID dst)
+    void vpxor_mr(const void* address, XMMRegisterID src0, XMMRegisterID dst)
     {
         twoByteOpSimd("vpxor", VEX_PD, OP2_PXORDQ_VdqWdq, address, src0, dst);
     }
@@ -3005,7 +3005,7 @@ public:
     {
         twoByteOpSimd("vpandn", VEX_PD, OP2_PANDNDQ_VdqWdq, offset, base, src0, dst);
     }
-    void vpandn_mr(const void *address, XMMRegisterID src0, XMMRegisterID dst)
+    void vpandn_mr(const void* address, XMMRegisterID src0, XMMRegisterID dst)
     {
         twoByteOpSimd("vpandn", VEX_PD, OP2_PANDNDQ_VdqWdq, address, src0, dst);
     }
@@ -3863,7 +3863,7 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_BLENDPS, imm
         *next = JmpSrc(offset);
         return true;
     }
-    void setNextJump(const JmpSrc& from, const JmpSrc &to)
+    void setNextJump(const JmpSrc& from, const JmpSrc& to)
     {
         // Sanity check - if the assembler has OOM'd, it will start overwriting
         // its internal buffer and thus our links could be garbage.
@@ -4002,7 +4002,7 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_BLENDPS, imm
     }
 
     void* executableAllocAndCopy(js::jit::ExecutableAllocator* allocator,
-                                 js::jit::ExecutablePool **poolp, js::jit::CodeKind kind)
+                                 js::jit::ExecutablePool** poolp, js::jit::CodeKind kind)
     {
         return m_formatter.executableAllocAndCopy(allocator, poolp, kind);
     }
@@ -4024,20 +4024,20 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_BLENDPS, imm
         setInt32(from, offset);
     }
 
-    static void *getRel32Target(void* where)
+    static void* getRel32Target(void* where)
     {
         int32_t rel = getInt32(where);
-        return (char *)where + rel;
+        return (char*)where + rel;
     }
 
-    static void *getPointer(void* where)
+    static void* getPointer(void* where)
     {
-        return reinterpret_cast<void **>(where)[-1];
+        return reinterpret_cast<void**>(where)[-1];
     }
 
-    static void **getPointerRef(void* where)
+    static void** getPointerRef(void* where)
     {
-        return &reinterpret_cast<void **>(where)[-1];
+        return &reinterpret_cast<void**>(where)[-1];
     }
 
     static void setPointer(void* where, const void* value)
@@ -4049,7 +4049,7 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_BLENDPS, imm
     // Test whether the given address will fit in an address immediate field.
     // This is always true on x86, but on x64 it's only true for addreses which
     // fit in the 32-bit immediate field.
-    static bool isAddressImmediate(const void *address) {
+    static bool isAddressImmediate(const void* address) {
         intptr_t value = reinterpret_cast<intptr_t>(address);
         int32_t immediate = static_cast<int32_t>(value);
         return value == immediate;
@@ -4058,7 +4058,7 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_BLENDPS, imm
     // Convert the given address to a 32-bit immediate field value. This is a
     // no-op on x86, but on x64 it asserts that the address is actually a valid
     // address immediate.
-    static int32_t addressImmediate(const void *address) {
+    static int32_t addressImmediate(const void* address) {
 #ifdef JS_CODEGEN_X64
         // x64's 64-bit addresses don't all fit in the 32-bit immediate.
         MOZ_ASSERT(isAddressImmediate(address));
@@ -4114,14 +4114,14 @@ private:
         return !useVEX_;
     }
 
-    const char *legacySSEOpName(const char *name)
+    const char* legacySSEOpName(const char* name)
     {
         MOZ_ASSERT(name[0] == 'v');
         return name + 1;
     }
 
  #ifdef JS_CODEGEN_X64
-    JmpSrc twoByteRipOpSimd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    JmpSrc twoByteRipOpSimd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                             int ripOffset, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
@@ -4149,7 +4149,7 @@ private:
     }
 #endif
 
-    void twoByteOpSimd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpSimd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                        XMMRegisterID rm, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
@@ -4173,7 +4173,7 @@ private:
         m_formatter.twoByteOpVex(ty, opcode, (RegisterID)rm, src0, dst);
     }
 
-    void twoByteOpImmSimd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpImmSimd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                           uint32_t imm, XMMRegisterID rm, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
@@ -4192,7 +4192,7 @@ private:
         m_formatter.immediate8u(imm);
     }
 
-    void twoByteOpSimd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpSimd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                        int32_t offset, RegisterID base, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
@@ -4220,7 +4220,7 @@ private:
         m_formatter.twoByteOpVex(ty, opcode, offset, base, src0, dst);
     }
 
-    void twoByteOpSimd_disp32(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpSimd_disp32(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                               int32_t offset, RegisterID base, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
@@ -4245,7 +4245,7 @@ private:
         m_formatter.twoByteOpVex_disp32(ty, opcode, offset, base, src0, dst);
     }
 
-    void twoByteOpImmSimd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpImmSimd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                           uint32_t imm, int32_t offset, RegisterID base, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
@@ -4263,7 +4263,7 @@ private:
         m_formatter.immediate8u(imm);
     }
 
-    void twoByteOpSimd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpSimd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                        int32_t offset, RegisterID base, RegisterID index, int scale,
                        XMMRegisterID src0, XMMRegisterID dst)
     {
@@ -4295,7 +4295,7 @@ private:
         m_formatter.twoByteOpVex(ty, opcode, offset, base, index, scale, src0, dst);
     }
 
-    void twoByteOpSimd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpSimd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                        const void* address, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
@@ -4319,8 +4319,8 @@ private:
         m_formatter.twoByteOpVex(ty, opcode, address, src0, dst);
     }
 
-    void twoByteOpImmSimd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
-                          uint32_t imm, const void *address, XMMRegisterID src0, XMMRegisterID dst)
+    void twoByteOpImmSimd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
+                          uint32_t imm, const void* address, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
             spew("%-11s$0x%x, %p, %s", legacySSEOpName(name), imm, address, nameFPReg(dst));
@@ -4335,7 +4335,7 @@ private:
         m_formatter.immediate8u(imm);
     }
 
-    void twoByteOpInt32Simd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpInt32Simd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                             RegisterID rm, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
@@ -4360,7 +4360,7 @@ private:
     }
 
 #ifdef JS_CODEGEN_X64
-    void twoByteOpInt64Simd(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpInt64Simd(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                             RegisterID rm, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
@@ -4385,7 +4385,7 @@ private:
     }
 #endif
 
-    void twoByteOpSimdInt32(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpSimdInt32(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                             XMMRegisterID rm, RegisterID dst)
     {
         if (useLegacySSEEncodingForOtherOutput()) {
@@ -4409,7 +4409,7 @@ private:
         m_formatter.twoByteOpVex(ty, opcode, (RegisterID)rm, X86Registers::invalid_xmm, dst);
     }
 
-    void twoByteOpImmSimdInt32(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpImmSimdInt32(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                                uint32_t imm, XMMRegisterID rm, RegisterID dst)
     {
         if (useLegacySSEEncodingForOtherOutput()) {
@@ -4426,7 +4426,7 @@ private:
     }
 
 #ifdef JS_CODEGEN_X64
-    void twoByteOpSimdInt64(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpSimdInt64(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                             XMMRegisterID rm, RegisterID dst)
     {
         if (useLegacySSEEncodingForOtherOutput()) {
@@ -4451,7 +4451,7 @@ private:
     }
 #endif
 
-    void twoByteOpSimdFlags(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpSimdFlags(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                             XMMRegisterID rm, XMMRegisterID reg)
     {
         if (useLegacySSEEncodingForOtherOutput()) {
@@ -4465,7 +4465,7 @@ private:
         m_formatter.twoByteOpVex(ty, opcode, (RegisterID)rm, X86Registers::invalid_xmm, (XMMRegisterID)reg);
     }
 
-    void twoByteOpSimdFlags(const char *name, VexOperandType ty, TwoByteOpcodeID opcode,
+    void twoByteOpSimdFlags(const char* name, VexOperandType ty, TwoByteOpcodeID opcode,
                             int32_t offset, RegisterID base, XMMRegisterID reg)
     {
         if (useLegacySSEEncodingForOtherOutput()) {
@@ -4481,7 +4481,7 @@ private:
         m_formatter.twoByteOpVex(ty, opcode, offset, base, X86Registers::invalid_xmm, (XMMRegisterID)reg);
     }
 
-    void threeByteOpSimd(const char *name, VexOperandType ty, ThreeByteOpcodeID opcode,
+    void threeByteOpSimd(const char* name, VexOperandType ty, ThreeByteOpcodeID opcode,
                          ThreeByteEscape escape,
                          XMMRegisterID rm, XMMRegisterID src0, XMMRegisterID dst)
     {
@@ -4496,7 +4496,7 @@ private:
         m_formatter.threeByteOpVex(ty, opcode, escape, (RegisterID)rm, src0, dst);
     }
 
-    void threeByteOpImmSimd(const char *name, VexOperandType ty, ThreeByteOpcodeID opcode,
+    void threeByteOpImmSimd(const char* name, VexOperandType ty, ThreeByteOpcodeID opcode,
                             ThreeByteEscape escape,
                             uint32_t imm, XMMRegisterID rm, XMMRegisterID src0, XMMRegisterID dst)
     {
@@ -4513,7 +4513,7 @@ private:
         m_formatter.immediate8u(imm);
     }
 
-    void threeByteOpSimd(const char *name, VexOperandType ty, ThreeByteOpcodeID opcode,
+    void threeByteOpSimd(const char* name, VexOperandType ty, ThreeByteOpcodeID opcode,
                          ThreeByteEscape escape,
                          int32_t offset, RegisterID base, XMMRegisterID src0, XMMRegisterID dst)
     {
@@ -4530,7 +4530,7 @@ private:
         m_formatter.threeByteOpVex(ty, opcode, escape, offset, base, src0, dst);
     }
 
-    void threeByteOpImmSimd(const char *name, VexOperandType ty, ThreeByteOpcodeID opcode,
+    void threeByteOpImmSimd(const char* name, VexOperandType ty, ThreeByteOpcodeID opcode,
                             ThreeByteEscape escape,
                             uint32_t imm, int32_t offset, RegisterID base, XMMRegisterID src0, XMMRegisterID dst)
     {
@@ -4549,9 +4549,9 @@ private:
         m_formatter.immediate8u(imm);
     }
 
-    void threeByteOpSimd(const char *name, VexOperandType ty, ThreeByteOpcodeID opcode,
+    void threeByteOpSimd(const char* name, VexOperandType ty, ThreeByteOpcodeID opcode,
                          ThreeByteEscape escape,
-                         const void *address, XMMRegisterID src0, XMMRegisterID dst)
+                         const void* address, XMMRegisterID src0, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src0, dst)) {
             spew("%-11s%p, %s", legacySSEOpName(name), address, nameFPReg(dst));
@@ -4564,7 +4564,7 @@ private:
         m_formatter.threeByteOpVex(ty, opcode, escape, address, src0, dst);
     }
 
-    void threeByteOpImmInt32Simd(const char *name, VexOperandType ty, ThreeByteOpcodeID opcode,
+    void threeByteOpImmInt32Simd(const char* name, VexOperandType ty, ThreeByteOpcodeID opcode,
                                  ThreeByteEscape escape, uint32_t imm,
                                  RegisterID src1, XMMRegisterID src0, XMMRegisterID dst)
     {
@@ -4581,7 +4581,7 @@ private:
         m_formatter.immediate8u(imm);
     }
 
-    void threeByteOpImmInt32Simd(const char *name, VexOperandType ty, ThreeByteOpcodeID opcode,
+    void threeByteOpImmInt32Simd(const char* name, VexOperandType ty, ThreeByteOpcodeID opcode,
                                  ThreeByteEscape escape, uint32_t imm,
                                  int32_t offset, RegisterID base, XMMRegisterID src0, XMMRegisterID dst)
     {
@@ -4598,7 +4598,7 @@ private:
         m_formatter.immediate8u(imm);
     }
 
-    void threeByteOpImmSimdInt32(const char *name, VexOperandType ty, ThreeByteOpcodeID opcode,
+    void threeByteOpImmSimdInt32(const char* name, VexOperandType ty, ThreeByteOpcodeID opcode,
                                  ThreeByteEscape escape, uint32_t imm,
                                  XMMRegisterID src, RegisterID dst)
     {
@@ -4618,7 +4618,7 @@ private:
         m_formatter.immediate8u(imm);
     }
 
-    void threeByteOpImmSimdInt32(const char *name, VexOperandType ty, ThreeByteOpcodeID opcode,
+    void threeByteOpImmSimdInt32(const char* name, VexOperandType ty, ThreeByteOpcodeID opcode,
                                  ThreeByteEscape escape, uint32_t imm,
                                  int32_t offset, RegisterID base, RegisterID dst)
     {
@@ -4671,7 +4671,7 @@ private:
                                  mask, offset, base, src0, dst);
     }
 
-    void shiftOpImmSimd(const char *name, TwoByteOpcodeID opcode, ShiftID shiftKind,
+    void shiftOpImmSimd(const char* name, TwoByteOpcodeID opcode, ShiftID shiftKind,
                         uint32_t imm, XMMRegisterID src, XMMRegisterID dst)
     {
         if (useLegacySSEEncoding(src, dst)) {
@@ -5003,7 +5003,7 @@ private:
         }
 
         void threeByteOpVex(VexOperandType ty, ThreeByteOpcodeID opcode, ThreeByteEscape escape,
-                            const void *address, XMMRegisterID src0, int reg)
+                            const void* address, XMMRegisterID src0, int reg)
         {
             int r = (reg >> 3), x = 0, b = 0;
             int m = 0, w = 0, v = src0, l = 0;
@@ -5370,7 +5370,7 @@ private:
 
         size_t size() const { return m_buffer.size(); }
         size_t allocSize() const { return m_buffer.allocSize(); }
-        unsigned char *buffer() const { return m_buffer.buffer(); }
+        unsigned char* buffer() const { return m_buffer.buffer(); }
         bool oom() const { return m_buffer.oom(); }
         bool isAligned(int alignment) const { return m_buffer.isAligned(alignment); }
         void* data() const { return m_buffer.data(); }

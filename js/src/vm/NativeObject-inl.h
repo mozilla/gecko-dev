@@ -20,23 +20,23 @@
 
 namespace js {
 
-inline uint8_t *
+inline uint8_t*
 NativeObject::fixedData(size_t nslots) const
 {
     MOZ_ASSERT(ClassCanHaveFixedData(getClass()));
     MOZ_ASSERT(nslots == numFixedSlots() + (hasPrivate() ? 1 : 0));
-    return reinterpret_cast<uint8_t *>(&fixedSlots()[nslots]);
+    return reinterpret_cast<uint8_t*>(&fixedSlots()[nslots]);
 }
 
 /* static */ inline bool
-NativeObject::changePropertyAttributes(JSContext *cx, HandleNativeObject obj,
+NativeObject::changePropertyAttributes(JSContext* cx, HandleNativeObject obj,
                                        HandleShape shape, unsigned attrs)
 {
     return !!changeProperty(cx, obj, shape, attrs, 0, shape->getter(), shape->setter());
 }
 
 inline void
-NativeObject::removeLastProperty(ExclusiveContext *cx)
+NativeObject::removeLastProperty(ExclusiveContext* cx)
 {
     MOZ_ASSERT(canRemoveLastProperty());
     RootedNativeObject self(cx, this);
@@ -55,7 +55,7 @@ NativeObject::canRemoveLastProperty()
      * converted to dictionary mode instead. See BaseShape comment in jsscope.h
      */
     MOZ_ASSERT(!inDictionaryMode());
-    Shape *previous = lastProperty()->previous().get();
+    Shape* previous = lastProperty()->previous().get();
     return previous->getObjectParent() == lastProperty()->getObjectParent()
         && previous->getObjectMetadata() == lastProperty()->getObjectMetadata()
         && previous->getObjectFlags() == lastProperty()->getObjectFlags();
@@ -76,8 +76,8 @@ NativeObject::clearShouldConvertDoubleElements()
 }
 
 inline void
-NativeObject::setDenseElementWithType(ExclusiveContext *cx, uint32_t index,
-                                      const Value &val)
+NativeObject::setDenseElementWithType(ExclusiveContext* cx, uint32_t index,
+                                      const Value& val)
 {
     // Avoid a slow AddTypePropertyId call if the type is the same as the type
     // of the previous element.
@@ -88,8 +88,8 @@ NativeObject::setDenseElementWithType(ExclusiveContext *cx, uint32_t index,
 }
 
 inline void
-NativeObject::initDenseElementWithType(ExclusiveContext *cx, uint32_t index,
-                                       const Value &val)
+NativeObject::initDenseElementWithType(ExclusiveContext* cx, uint32_t index,
+                                       const Value& val)
 {
     MOZ_ASSERT(!shouldConvertDoubleElements());
     types::AddTypePropertyId(cx, this, JSID_VOID, val);
@@ -97,14 +97,14 @@ NativeObject::initDenseElementWithType(ExclusiveContext *cx, uint32_t index,
 }
 
 inline void
-NativeObject::setDenseElementHole(ExclusiveContext *cx, uint32_t index)
+NativeObject::setDenseElementHole(ExclusiveContext* cx, uint32_t index)
 {
     types::MarkTypeObjectFlags(cx, this, types::OBJECT_FLAG_NON_PACKED);
     setDenseElement(index, MagicValue(JS_ELEMENTS_HOLE));
 }
 
 /* static */ inline void
-NativeObject::removeDenseElementForSparseIndex(ExclusiveContext *cx,
+NativeObject::removeDenseElementForSparseIndex(ExclusiveContext* cx,
                                                HandleNativeObject obj, uint32_t index)
 {
     types::MarkTypeObjectFlags(cx, obj,
@@ -121,14 +121,14 @@ NativeObject::writeToIndexWouldMarkNotPacked(uint32_t index)
 }
 
 inline void
-NativeObject::markDenseElementsNotPacked(ExclusiveContext *cx)
+NativeObject::markDenseElementsNotPacked(ExclusiveContext* cx)
 {
     MOZ_ASSERT(isNative());
     MarkTypeObjectFlags(cx, this, types::OBJECT_FLAG_NON_PACKED);
 }
 
 inline void
-NativeObject::ensureDenseInitializedLengthNoPackedCheck(ExclusiveContext *cx, uint32_t index,
+NativeObject::ensureDenseInitializedLengthNoPackedCheck(ExclusiveContext* cx, uint32_t index,
                                                         uint32_t extra)
 {
     MOZ_ASSERT(cx->isThreadLocal(this));
@@ -140,11 +140,11 @@ NativeObject::ensureDenseInitializedLengthNoPackedCheck(ExclusiveContext *cx, ui
      * for a write.
      */
     MOZ_ASSERT(index + extra <= getDenseCapacity());
-    uint32_t &initlen = getElementsHeader()->initializedLength;
+    uint32_t& initlen = getElementsHeader()->initializedLength;
 
     if (initlen < index + extra) {
         size_t offset = initlen;
-        for (HeapSlot *sp = elements_ + initlen;
+        for (HeapSlot* sp = elements_ + initlen;
              sp != elements_ + (index + extra);
              sp++, offset++)
         {
@@ -155,7 +155,7 @@ NativeObject::ensureDenseInitializedLengthNoPackedCheck(ExclusiveContext *cx, ui
 }
 
 inline void
-NativeObject::ensureDenseInitializedLength(ExclusiveContext *cx, uint32_t index, uint32_t extra)
+NativeObject::ensureDenseInitializedLength(ExclusiveContext* cx, uint32_t index, uint32_t extra)
 {
     if (writeToIndexWouldMarkNotPacked(index))
         markDenseElementsNotPacked(cx);
@@ -163,7 +163,7 @@ NativeObject::ensureDenseInitializedLength(ExclusiveContext *cx, uint32_t index,
 }
 
 NativeObject::EnsureDenseResult
-NativeObject::extendDenseElements(ExclusiveContext *cx,
+NativeObject::extendDenseElements(ExclusiveContext* cx,
                                   uint32_t requiredCapacity, uint32_t extra)
 {
     MOZ_ASSERT(cx->isThreadLocal(this));
@@ -203,7 +203,7 @@ NativeObject::extendDenseElements(ExclusiveContext *cx,
 }
 
 inline NativeObject::EnsureDenseResult
-NativeObject::ensureDenseElements(ExclusiveContext *cx, uint32_t index, uint32_t extra)
+NativeObject::ensureDenseElements(ExclusiveContext* cx, uint32_t index, uint32_t extra)
 {
     MOZ_ASSERT(isNative());
 
@@ -258,7 +258,7 @@ NativeObject::getDenseOrTypedArrayElement(uint32_t idx)
 }
 
 inline void
-NativeObject::initDenseElementsUnbarriered(uint32_t dstStart, const Value *src, uint32_t count) {
+NativeObject::initDenseElementsUnbarriered(uint32_t dstStart, const Value* src, uint32_t count) {
     /*
      * For use by parallel threads, which since they cannot see nursery
      * things do not require a barrier.
@@ -274,29 +274,29 @@ NativeObject::initDenseElementsUnbarriered(uint32_t dstStart, const Value *src, 
     for (uint32_t index = 0; index < count; ++index) {
         const Value& value = src[index];
         if (value.isMarkable())
-            MOZ_ASSERT(!gc::IsInsideGGCNursery(static_cast<gc::Cell *>(value.toGCThing())));
+            MOZ_ASSERT(!gc::IsInsideGGCNursery(static_cast<gc::Cell*>(value.toGCThing())));
     }
 #endif
     memcpy(&elements_[dstStart], src, count * sizeof(HeapSlot));
 }
 
-/* static */ inline NativeObject *
-NativeObject::copy(ExclusiveContext *cx, gc::AllocKind kind, gc::InitialHeap heap,
+/* static */ inline NativeObject*
+NativeObject::copy(ExclusiveContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
                    HandleNativeObject templateObject)
 {
     RootedShape shape(cx, templateObject->lastProperty());
     RootedTypeObject type(cx, templateObject->type());
     MOZ_ASSERT(!templateObject->denseElementsAreCopyOnWrite());
 
-    JSObject *baseObj = create(cx, kind, heap, shape, type);
+    JSObject* baseObj = create(cx, kind, heap, shape, type);
     if (!baseObj)
         return nullptr;
-    NativeObject *obj = &baseObj->as<NativeObject>();
+    NativeObject* obj = &baseObj->as<NativeObject>();
 
     size_t span = shape->slotSpan();
     if (span) {
         uint32_t numFixed = templateObject->numFixedSlots();
-        const Value *fixed = &templateObject->getSlot(0);
+        const Value* fixed = &templateObject->getSlot(0);
         // Only copy elements which are registered in the shape, even if the
         // number of fixed slots is larger.
         if (span < numFixed)
@@ -305,7 +305,7 @@ NativeObject::copy(ExclusiveContext *cx, gc::AllocKind kind, gc::InitialHeap hea
 
         if (numFixed < span) {
             uint32_t numSlots = span - numFixed;
-            const Value *slots = &templateObject->getSlot(numFixed);
+            const Value* slots = &templateObject->getSlot(numFixed);
             obj->copySlotRange(numFixed, slots, numSlots);
         }
     }
@@ -314,7 +314,7 @@ NativeObject::copy(ExclusiveContext *cx, gc::AllocKind kind, gc::InitialHeap hea
 }
 
 inline bool
-NativeObject::setSlotIfHasType(Shape *shape, const Value &value, bool overwriting)
+NativeObject::setSlotIfHasType(Shape* shape, const Value& value, bool overwriting)
 {
     if (!types::HasTypePropertyId(this, shape->propid(), value))
         return false;
@@ -327,8 +327,8 @@ NativeObject::setSlotIfHasType(Shape *shape, const Value &value, bool overwritin
 }
 
 inline void
-NativeObject::setSlotWithType(ExclusiveContext *cx, Shape *shape,
-                              const Value &value, bool overwriting)
+NativeObject::setSlotWithType(ExclusiveContext* cx, Shape* shape,
+                              const Value& value, bool overwriting)
 {
     setSlot(shape->slot(), value);
 
@@ -339,8 +339,8 @@ NativeObject::setSlotWithType(ExclusiveContext *cx, Shape *shape,
 }
 
 /* Make an object with pregenerated shape from a NEWOBJECT bytecode. */
-static inline PlainObject *
-CopyInitializerObject(JSContext *cx, HandlePlainObject baseobj, NewObjectKind newKind = GenericObject)
+static inline PlainObject*
+CopyInitializerObject(JSContext* cx, HandlePlainObject baseobj, NewObjectKind newKind = GenericObject)
 {
     MOZ_ASSERT(!baseobj->inDictionaryMode());
 
@@ -361,39 +361,39 @@ CopyInitializerObject(JSContext *cx, HandlePlainObject baseobj, NewObjectKind ne
     return obj;
 }
 
-inline NativeObject *
-NewNativeObjectWithGivenProto(ExclusiveContext *cx, const js::Class *clasp,
-                              TaggedProto proto, JSObject *parent,
+inline NativeObject*
+NewNativeObjectWithGivenProto(ExclusiveContext* cx, const js::Class* clasp,
+                              TaggedProto proto, JSObject* parent,
                               gc::AllocKind allocKind, NewObjectKind newKind)
 {
     return MaybeNativeObject(NewObjectWithGivenProto(cx, clasp, proto, parent, allocKind, newKind));
 }
 
-inline NativeObject *
-NewNativeObjectWithGivenProto(ExclusiveContext *cx, const js::Class *clasp,
-                              TaggedProto proto, JSObject *parent,
+inline NativeObject*
+NewNativeObjectWithGivenProto(ExclusiveContext* cx, const js::Class* clasp,
+                              TaggedProto proto, JSObject* parent,
                               NewObjectKind newKind = GenericObject)
 {
     return MaybeNativeObject(NewObjectWithGivenProto(cx, clasp, proto, parent, newKind));
 }
 
-inline NativeObject *
-NewNativeObjectWithGivenProto(ExclusiveContext *cx, const js::Class *clasp,
-                              JSObject *proto, JSObject *parent,
+inline NativeObject*
+NewNativeObjectWithGivenProto(ExclusiveContext* cx, const js::Class* clasp,
+                              JSObject* proto, JSObject* parent,
                               NewObjectKind newKind = GenericObject)
 {
     return MaybeNativeObject(NewObjectWithGivenProto(cx, clasp, proto, parent, newKind));
 }
 
-inline NativeObject *
-NewNativeObjectWithClassProto(ExclusiveContext *cx, const js::Class *clasp, JSObject *proto, JSObject *parent,
+inline NativeObject*
+NewNativeObjectWithClassProto(ExclusiveContext* cx, const js::Class* clasp, JSObject* proto, JSObject* parent,
                               gc::AllocKind allocKind, NewObjectKind newKind = GenericObject)
 {
     return MaybeNativeObject(NewObjectWithClassProto(cx, clasp, proto, parent, allocKind, newKind));
 }
 
-inline NativeObject *
-NewNativeObjectWithClassProto(ExclusiveContext *cx, const js::Class *clasp, JSObject *proto, JSObject *parent,
+inline NativeObject*
+NewNativeObjectWithClassProto(ExclusiveContext* cx, const js::Class* clasp, JSObject* proto, JSObject* parent,
                               NewObjectKind newKind = GenericObject)
 {
     return MaybeNativeObject(NewObjectWithClassProto(cx, clasp, proto, parent, newKind));
@@ -420,8 +420,8 @@ NewNativeObjectWithClassProto(ExclusiveContext *cx, const js::Class *clasp, JSOb
  *     *recursedp = false and return true.
  */
 static MOZ_ALWAYS_INLINE bool
-CallResolveOp(JSContext *cx, HandleNativeObject obj, HandleId id, MutableHandleObject objp,
-              MutableHandleShape propp, bool *recursedp)
+CallResolveOp(JSContext* cx, HandleNativeObject obj, HandleId id, MutableHandleObject objp,
+              MutableHandleShape propp, bool* recursedp)
 {
     /*
      * Avoid recursion on (obj, id) already being resolved on cx.
@@ -453,7 +453,7 @@ CallResolveOp(JSContext *cx, HandleNativeObject obj, HandleId id, MutableHandleO
         return true;
     }
 
-    if (Shape *shape = obj->lookup(cx, id))
+    if (Shape* shape = obj->lookup(cx, id))
         propp.set(shape);
     else
         objp.set(nullptr);
@@ -463,12 +463,12 @@ CallResolveOp(JSContext *cx, HandleNativeObject obj, HandleId id, MutableHandleO
 
 template <AllowGC allowGC>
 static MOZ_ALWAYS_INLINE bool
-LookupOwnPropertyInline(ExclusiveContext *cx,
+LookupOwnPropertyInline(ExclusiveContext* cx,
                         typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
                         typename MaybeRooted<jsid, allowGC>::HandleType id,
                         typename MaybeRooted<JSObject*, allowGC>::MutableHandleType objp,
                         typename MaybeRooted<Shape*, allowGC>::MutableHandleType propp,
-                        bool *donep)
+                        bool* donep)
 {
     // Check for a native dense element.
     if (JSID_IS_INT(id) && obj->containsDenseElement(JSID_TO_INT(id))) {
@@ -497,7 +497,7 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
     }
 
     // Check for a native property.
-    if (Shape *shape = obj->lookup(cx, id)) {
+    if (Shape* shape = obj->lookup(cx, id)) {
         objp.set(obj);
         propp.set(shape);
         *donep = true;
@@ -548,7 +548,7 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
  * hooks.
  */
 static inline void
-NativeLookupOwnPropertyNoResolve(ExclusiveContext *cx, HandleNativeObject obj, HandleId id,
+NativeLookupOwnPropertyNoResolve(ExclusiveContext* cx, HandleNativeObject obj, HandleId id,
                                  MutableHandleShape result)
 {
     // Check for a native dense element.
@@ -575,7 +575,7 @@ NativeLookupOwnPropertyNoResolve(ExclusiveContext *cx, HandleNativeObject obj, H
 
 template <AllowGC allowGC>
 static MOZ_ALWAYS_INLINE bool
-LookupPropertyInline(ExclusiveContext *cx,
+LookupPropertyInline(ExclusiveContext* cx,
                      typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
                      typename MaybeRooted<jsid, allowGC>::HandleType id,
                      typename MaybeRooted<JSObject*, allowGC>::MutableHandleType objp,
@@ -619,8 +619,8 @@ LookupPropertyInline(ExclusiveContext *cx,
 }
 
 inline bool
-DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj,
-                     PropertyName *name, HandleValue value,
+DefineNativeProperty(ExclusiveContext* cx, HandleNativeObject obj,
+                     PropertyName* name, HandleValue value,
                      PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
 {
     MOZ_ASSERT(getter != JS_PropertyStub);
@@ -631,7 +631,7 @@ DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj,
 }
 
 inline bool
-WarnIfNotConstructing(JSContext *cx, const CallArgs &args, const char *builtinName)
+WarnIfNotConstructing(JSContext* cx, const CallArgs& args, const char* builtinName)
 {
     if (args.isConstructing())
         return true;

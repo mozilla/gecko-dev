@@ -16,25 +16,25 @@
 using namespace js;
 using namespace js::jit;
 
-CodeGeneratorX64::CodeGeneratorX64(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
+CodeGeneratorX64::CodeGeneratorX64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm)
   : CodeGeneratorX86Shared(gen, graph, masm)
 {
 }
 
 ValueOperand
-CodeGeneratorX64::ToValue(LInstruction *ins, size_t pos)
+CodeGeneratorX64::ToValue(LInstruction* ins, size_t pos)
 {
     return ValueOperand(ToRegister(ins->getOperand(pos)));
 }
 
 ValueOperand
-CodeGeneratorX64::ToOutValue(LInstruction *ins)
+CodeGeneratorX64::ToOutValue(LInstruction* ins)
 {
     return ValueOperand(ToRegister(ins->getDef(0)));
 }
 
 ValueOperand
-CodeGeneratorX64::ToTempValue(LInstruction *ins, size_t pos)
+CodeGeneratorX64::ToTempValue(LInstruction* ins, size_t pos)
 {
     return ValueOperand(ToRegister(ins->getTemp(pos)));
 }
@@ -58,17 +58,17 @@ FrameSizeClass::frameSize() const
 }
 
 void
-CodeGeneratorX64::visitValue(LValue *value)
+CodeGeneratorX64::visitValue(LValue* value)
 {
-    LDefinition *reg = value->getDef(0);
+    LDefinition* reg = value->getDef(0);
     masm.moveValue(value->value(), ToRegister(reg));
 }
 
 void
-CodeGeneratorX64::visitBox(LBox *box)
+CodeGeneratorX64::visitBox(LBox* box)
 {
-    const LAllocation *in = box->getOperand(0);
-    const LDefinition *result = box->getDef(0);
+    const LAllocation* in = box->getOperand(0);
+    const LDefinition* result = box->getDef(0);
 
     if (IsFloatingPointType(box->type())) {
         FloatRegister reg = ToFloatRegister(in);
@@ -83,9 +83,9 @@ CodeGeneratorX64::visitBox(LBox *box)
 }
 
 void
-CodeGeneratorX64::visitUnbox(LUnbox *unbox)
+CodeGeneratorX64::visitUnbox(LUnbox* unbox)
 {
-    MUnbox *mir = unbox->mir();
+    MUnbox* mir = unbox->mir();
 
     if (mir->fallible()) {
         const ValueOperand value = ToValue(unbox, LUnbox::Input);
@@ -136,12 +136,12 @@ CodeGeneratorX64::visitUnbox(LUnbox *unbox)
 }
 
 void
-CodeGeneratorX64::visitCompareB(LCompareB *lir)
+CodeGeneratorX64::visitCompareB(LCompareB* lir)
 {
-    MCompare *mir = lir->mir();
+    MCompare* mir = lir->mir();
 
     const ValueOperand lhs = ToValue(lir, LCompareB::Lhs);
-    const LAllocation *rhs = lir->rhs();
+    const LAllocation* rhs = lir->rhs();
     const Register output = ToRegister(lir->output());
 
     MOZ_ASSERT(mir->jsop() == JSOP_STRICTEQ || mir->jsop() == JSOP_STRICTNE);
@@ -158,12 +158,12 @@ CodeGeneratorX64::visitCompareB(LCompareB *lir)
 }
 
 void
-CodeGeneratorX64::visitCompareBAndBranch(LCompareBAndBranch *lir)
+CodeGeneratorX64::visitCompareBAndBranch(LCompareBAndBranch* lir)
 {
-    MCompare *mir = lir->cmpMir();
+    MCompare* mir = lir->cmpMir();
 
     const ValueOperand lhs = ToValue(lir, LCompareBAndBranch::Lhs);
-    const LAllocation *rhs = lir->rhs();
+    const LAllocation* rhs = lir->rhs();
 
     MOZ_ASSERT(mir->jsop() == JSOP_STRICTEQ || mir->jsop() == JSOP_STRICTNE);
 
@@ -179,9 +179,9 @@ CodeGeneratorX64::visitCompareBAndBranch(LCompareBAndBranch *lir)
 }
 
 void
-CodeGeneratorX64::visitCompareV(LCompareV *lir)
+CodeGeneratorX64::visitCompareV(LCompareV* lir)
 {
-    MCompare *mir = lir->mir();
+    MCompare* mir = lir->mir();
     const ValueOperand lhs = ToValue(lir, LCompareV::LhsInput);
     const ValueOperand rhs = ToValue(lir, LCompareV::RhsInput);
     const Register output = ToRegister(lir->output());
@@ -193,9 +193,9 @@ CodeGeneratorX64::visitCompareV(LCompareV *lir)
 }
 
 void
-CodeGeneratorX64::visitCompareVAndBranch(LCompareVAndBranch *lir)
+CodeGeneratorX64::visitCompareVAndBranch(LCompareVAndBranch* lir)
 {
-    MCompare *mir = lir->cmpMir();
+    MCompare* mir = lir->cmpMir();
 
     const ValueOperand lhs = ToValue(lir, LCompareVAndBranch::LhsInput);
     const ValueOperand rhs = ToValue(lir, LCompareVAndBranch::RhsInput);
@@ -208,31 +208,31 @@ CodeGeneratorX64::visitCompareVAndBranch(LCompareVAndBranch *lir)
 }
 
 void
-CodeGeneratorX64::visitAsmJSUInt32ToDouble(LAsmJSUInt32ToDouble *lir)
+CodeGeneratorX64::visitAsmJSUInt32ToDouble(LAsmJSUInt32ToDouble* lir)
 {
     masm.convertUInt32ToDouble(ToRegister(lir->input()), ToFloatRegister(lir->output()));
 }
 
 void
-CodeGeneratorX64::visitAsmJSUInt32ToFloat32(LAsmJSUInt32ToFloat32 *lir)
+CodeGeneratorX64::visitAsmJSUInt32ToFloat32(LAsmJSUInt32ToFloat32* lir)
 {
     masm.convertUInt32ToFloat32(ToRegister(lir->input()), ToFloatRegister(lir->output()));
 }
 
 void
-CodeGeneratorX64::visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic *ins)
+CodeGeneratorX64::visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic* ins)
 {
     MOZ_CRASH("NYI");
 }
 
 void
-CodeGeneratorX64::visitStoreTypedArrayElementStatic(LStoreTypedArrayElementStatic *ins)
+CodeGeneratorX64::visitStoreTypedArrayElementStatic(LStoreTypedArrayElementStatic* ins)
 {
     MOZ_CRASH("NYI");
 }
 
 void
-CodeGeneratorX64::visitAsmJSCall(LAsmJSCall *ins)
+CodeGeneratorX64::visitAsmJSCall(LAsmJSCall* ins)
 {
     emitAsmJSCall(ins);
 
@@ -255,12 +255,12 @@ CodeGeneratorX64::memoryBarrier(MemoryBarrierBits barrier)
 }
 
 void
-CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
+CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins)
 {
-    MAsmJSLoadHeap *mir = ins->mir();
+    MAsmJSLoadHeap* mir = ins->mir();
     Scalar::Type vt = mir->viewType();
-    const LAllocation *ptr = ins->ptr();
-    const LDefinition *out = ins->output();
+    const LAllocation* ptr = ins->ptr();
+    const LDefinition* out = ins->output();
     Operand srcAddr(HeapReg);
 
     if (ptr->isConstant()) {
@@ -272,7 +272,7 @@ CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
     }
 
     memoryBarrier(ins->mir()->barrierBefore());
-    OutOfLineLoadTypedArrayOutOfBounds *ool = nullptr;
+    OutOfLineLoadTypedArrayOutOfBounds* ool = nullptr;
     uint32_t maybeCmpOffset = AsmJSHeapAccess::NoLengthCheck;
     if (mir->needsBoundsCheck()) {
         ool = new(alloc()) OutOfLineLoadTypedArrayOutOfBounds(ToAnyRegister(out), vt);
@@ -307,11 +307,11 @@ CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
 }
 
 void
-CodeGeneratorX64::visitAsmJSStoreHeap(LAsmJSStoreHeap *ins)
+CodeGeneratorX64::visitAsmJSStoreHeap(LAsmJSStoreHeap* ins)
 {
-    MAsmJSStoreHeap *mir = ins->mir();
+    MAsmJSStoreHeap* mir = ins->mir();
     Scalar::Type vt = mir->viewType();
-    const LAllocation *ptr = ins->ptr();
+    const LAllocation* ptr = ins->ptr();
     Operand dstAddr(HeapReg);
 
     if (ptr->isConstant()) {
@@ -373,11 +373,11 @@ CodeGeneratorX64::visitAsmJSStoreHeap(LAsmJSStoreHeap *ins)
 }
 
 void
-CodeGeneratorX64::visitAsmJSCompareExchangeHeap(LAsmJSCompareExchangeHeap *ins)
+CodeGeneratorX64::visitAsmJSCompareExchangeHeap(LAsmJSCompareExchangeHeap* ins)
 {
-    MAsmJSCompareExchangeHeap *mir = ins->mir();
+    MAsmJSCompareExchangeHeap* mir = ins->mir();
     Scalar::Type vt = mir->viewType();
-    const LAllocation *ptr = ins->ptr();
+    const LAllocation* ptr = ins->ptr();
 
     MOZ_ASSERT(ptr->isRegister());
     BaseIndex srcAddr(HeapReg, ToRegister(ptr), TimesOne);
@@ -410,11 +410,11 @@ CodeGeneratorX64::visitAsmJSCompareExchangeHeap(LAsmJSCompareExchangeHeap *ins)
 }
 
 void
-CodeGeneratorX64::visitAsmJSAtomicBinopHeap(LAsmJSAtomicBinopHeap *ins)
+CodeGeneratorX64::visitAsmJSAtomicBinopHeap(LAsmJSAtomicBinopHeap* ins)
 {
-    MAsmJSAtomicBinopHeap *mir = ins->mir();
+    MAsmJSAtomicBinopHeap* mir = ins->mir();
     Scalar::Type vt = mir->viewType();
-    const LAllocation *ptr = ins->ptr();
+    const LAllocation* ptr = ins->ptr();
     Register temp = ins->temp()->isBogusTemp() ? InvalidReg : ToRegister(ins->temp());
     const LAllocation* value = ins->value();
     AtomicOp op = mir->operation();
@@ -456,9 +456,9 @@ CodeGeneratorX64::visitAsmJSAtomicBinopHeap(LAsmJSAtomicBinopHeap *ins)
 }
 
 void
-CodeGeneratorX64::visitAsmJSLoadGlobalVar(LAsmJSLoadGlobalVar *ins)
+CodeGeneratorX64::visitAsmJSLoadGlobalVar(LAsmJSLoadGlobalVar* ins)
 {
-    MAsmJSLoadGlobalVar *mir = ins->mir();
+    MAsmJSLoadGlobalVar* mir = ins->mir();
 
     MIRType type = mir->type();
     MOZ_ASSERT(IsNumberType(type) || IsSimdType(type));
@@ -490,9 +490,9 @@ CodeGeneratorX64::visitAsmJSLoadGlobalVar(LAsmJSLoadGlobalVar *ins)
 }
 
 void
-CodeGeneratorX64::visitAsmJSStoreGlobalVar(LAsmJSStoreGlobalVar *ins)
+CodeGeneratorX64::visitAsmJSStoreGlobalVar(LAsmJSStoreGlobalVar* ins)
 {
-    MAsmJSStoreGlobalVar *mir = ins->mir();
+    MAsmJSStoreGlobalVar* mir = ins->mir();
 
     MIRType type = mir->value()->type();
     MOZ_ASSERT(IsNumberType(type) || IsSimdType(type));
@@ -524,9 +524,9 @@ CodeGeneratorX64::visitAsmJSStoreGlobalVar(LAsmJSStoreGlobalVar *ins)
 }
 
 void
-CodeGeneratorX64::visitAsmJSLoadFuncPtr(LAsmJSLoadFuncPtr *ins)
+CodeGeneratorX64::visitAsmJSLoadFuncPtr(LAsmJSLoadFuncPtr* ins)
 {
-    MAsmJSLoadFuncPtr *mir = ins->mir();
+    MAsmJSLoadFuncPtr* mir = ins->mir();
 
     Register index = ToRegister(ins->index());
     Register tmp = ToRegister(ins->temp());
@@ -538,23 +538,23 @@ CodeGeneratorX64::visitAsmJSLoadFuncPtr(LAsmJSLoadFuncPtr *ins)
 }
 
 void
-CodeGeneratorX64::visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc *ins)
+CodeGeneratorX64::visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc* ins)
 {
-    MAsmJSLoadFFIFunc *mir = ins->mir();
+    MAsmJSLoadFFIFunc* mir = ins->mir();
 
     CodeOffsetLabel label = masm.loadRipRelativeInt64(ToRegister(ins->output()));
     masm.append(AsmJSGlobalAccess(label, mir->globalDataOffset()));
 }
 
 void
-DispatchIonCache::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
+DispatchIonCache::initializeAddCacheState(LInstruction* ins, AddCacheState* addState)
 {
     // Can always use the scratch register on x64.
     addState->dispatchScratch = ScratchReg;
 }
 
 void
-CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32 *ins)
+CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     Register output = ToRegister(ins->output());
@@ -566,7 +566,7 @@ CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32 *ins)
 }
 
 void
-CodeGeneratorX64::visitTruncateFToInt32(LTruncateFToInt32 *ins)
+CodeGeneratorX64::visitTruncateFToInt32(LTruncateFToInt32* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     Register output = ToRegister(ins->output());

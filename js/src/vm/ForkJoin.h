@@ -238,7 +238,7 @@ namespace js {
 
 class ForkJoinActivation : public Activation
 {
-    uint8_t *prevJitTop_;
+    uint8_t* prevJitTop_;
 
     // We ensure that incremental GC be finished before we enter into a fork
     // join section, but the runtime/zone might still be marked as needing
@@ -247,7 +247,7 @@ class ForkJoinActivation : public Activation
     gc::AutoStopVerifyingBarriers av_;
 
   public:
-    explicit ForkJoinActivation(JSContext *cx);
+    explicit ForkJoinActivation(JSContext* cx);
     ~ForkJoinActivation();
 
     bool isProfiling() const {
@@ -257,7 +257,7 @@ class ForkJoinActivation : public Activation
 
 class ForkJoinContext;
 
-bool ForkJoin(JSContext *cx, CallArgs &args);
+bool ForkJoin(JSContext* cx, CallArgs& args);
 
 ///////////////////////////////////////////////////////////////////////////
 // Bailout tracking
@@ -316,7 +316,7 @@ struct ParallelBailoutRecord
 {
     // Captured Ion frames at the point of bailout. Stored younger-to-older,
     // i.e., the 0th frame is the youngest frame.
-    Vector<jit::RematerializedFrame *> *frames_;
+    Vector<jit::RematerializedFrame*>* frames_;
 
     // The reason for unsuccessful parallel execution.
     ParallelBailoutCause cause;
@@ -333,10 +333,10 @@ struct ParallelBailoutRecord
 
     ~ParallelBailoutRecord();
 
-    bool init(JSContext *cx);
+    bool init(JSContext* cx);
     void reset();
 
-    Vector<jit::RematerializedFrame *> &frames() { MOZ_ASSERT(frames_); return *frames_; }
+    Vector<jit::RematerializedFrame*>& frames() { MOZ_ASSERT(frames_); return *frames_; }
     bool hasFrames() const { return frames_ && !frames_->empty(); }
     bool bailedOut() const { return cause != ParallelBailoutNone; }
 
@@ -360,7 +360,7 @@ class ForkJoinContext : public ThreadSafeContext
 {
   public:
     // Bailout record used to record the reason this thread stopped executing
-    ParallelBailoutRecord *const bailoutRecord;
+    ParallelBailoutRecord* const bailoutRecord;
 
 #ifdef FORKJOIN_SPEW
     // The maximum worker id.
@@ -381,12 +381,12 @@ class ForkJoinContext : public ThreadSafeContext
     // execution and then get accessed by later parallel sections. Thus we
     // must be careful and ensure that the write is going through a handle
     // into the correct *region* of the buffer.
-    uint8_t *targetRegionStart;
-    uint8_t *targetRegionEnd;
+    uint8_t* targetRegionStart;
+    uint8_t* targetRegionEnd;
 
-    ForkJoinContext(PerThreadData *perThreadData, ThreadPoolWorker *worker,
-                    Allocator *allocator, ForkJoinShared *shared,
-                    ParallelBailoutRecord *bailoutRecord);
+    ForkJoinContext(PerThreadData* perThreadData, ThreadPoolWorker* worker,
+                    Allocator* allocator, ForkJoinShared* shared,
+                    ParallelBailoutRecord* bailoutRecord);
 
     bool initialize();
 
@@ -395,7 +395,7 @@ class ForkJoinContext : public ThreadSafeContext
     uint32_t workerId() const { return worker_->id(); }
 
     // Get a slice of work for the worker associated with the context.
-    bool getSlice(uint16_t *sliceId) { return worker_->getSlice(this, sliceId); }
+    bool getSlice(uint16_t* sliceId) { return worker_->getSlice(this, sliceId); }
 
     // True if this is the main thread, false if it is one of the parallel workers.
     bool isMainThread() const;
@@ -409,7 +409,7 @@ class ForkJoinContext : public ThreadSafeContext
     // full set of arenas is not available until the end of the
     // parallel section.
     void requestGC(JS::gcreason::Reason reason);
-    void requestZoneGC(JS::Zone *zone, JS::gcreason::Reason reason);
+    void requestZoneGC(JS::Zone* zone, JS::gcreason::Reason reason);
 
     // Set the fatal flag for the next abort. Used to distinguish retry or
     // fatal aborts from VM functions.
@@ -439,15 +439,15 @@ class ForkJoinContext : public ThreadSafeContext
     bool check();
 
     // Be wary, the runtime is shared between all threads!
-    JSRuntime *runtime();
+    JSRuntime* runtime();
 
     // Acquire and release the JSContext from the runtime.
-    JSContext *acquireJSContext();
+    JSContext* acquireJSContext();
     void releaseJSContext();
     bool hasAcquiredJSContext() const;
 
     // Check the current state of parallel execution.
-    static inline ForkJoinContext *current();
+    static inline ForkJoinContext* current();
 
     // Initializes the thread-local state.
     static bool initializeTls();
@@ -463,9 +463,9 @@ class ForkJoinContext : public ThreadSafeContext
     // Initialized by initialize()
     static mozilla::ThreadLocal<ForkJoinContext*> tlsForkJoinContext;
 
-    ForkJoinShared *const shared_;
+    ForkJoinShared* const shared_;
 
-    ThreadPoolWorker *worker_;
+    ThreadPoolWorker* worker_;
 
     bool acquiredJSContext_;
 
@@ -485,11 +485,11 @@ class ForkJoinContext : public ThreadSafeContext
 // hold the lock to write).
 class LockedJSContext
 {
-    ForkJoinContext *cx_;
-    JSContext *jscx_;
+    ForkJoinContext* cx_;
+    JSContext* jscx_;
 
   public:
-    explicit LockedJSContext(ForkJoinContext *cx)
+    explicit LockedJSContext(ForkJoinContext* cx)
       : cx_(cx),
         jscx_(cx->acquireJSContext())
     { }
@@ -498,18 +498,18 @@ class LockedJSContext
         cx_->releaseJSContext();
     }
 
-    operator JSContext *() { return jscx_; }
-    JSContext *operator->() { return jscx_; }
+    operator JSContext*() { return jscx_; }
+    JSContext* operator->() { return jscx_; }
 };
 
 bool InExclusiveParallelSection();
 
-bool ParallelTestsShouldPass(JSContext *cx);
+bool ParallelTestsShouldPass(JSContext* cx);
 
-bool intrinsic_SetForkJoinTargetRegion(JSContext *cx, unsigned argc, Value *vp);
+bool intrinsic_SetForkJoinTargetRegion(JSContext* cx, unsigned argc, Value* vp);
 extern const JSJitInfo intrinsic_SetForkJoinTargetRegionInfo;
 
-bool intrinsic_ClearThreadLocalArenas(JSContext *cx, unsigned argc, Value *vp);
+bool intrinsic_ClearThreadLocalArenas(JSContext* cx, unsigned argc, Value* vp);
 extern const JSJitInfo intrinsic_ClearThreadLocalArenasInfo;
 
 ///////////////////////////////////////////////////////////////////////////
@@ -546,35 +546,35 @@ enum SpewChannel {
 #ifdef FORKJOIN_SPEW
 
 bool SpewEnabled(SpewChannel channel);
-void Spew(SpewChannel channel, const char *fmt, ...);
-void SpewVA(SpewChannel channel, const char *fmt, va_list args);
-void SpewBeginOp(JSContext *cx, const char *name);
-void SpewBailout(uint32_t count, HandleScript script, jsbytecode *pc,
+void Spew(SpewChannel channel, const char* fmt, ...);
+void SpewVA(SpewChannel channel, const char* fmt, va_list args);
+void SpewBeginOp(JSContext* cx, const char* name);
+void SpewBailout(uint32_t count, HandleScript script, jsbytecode* pc,
                  ParallelBailoutCause cause);
 ExecutionStatus SpewEndOp(ExecutionStatus status);
 void SpewBeginCompile(HandleScript script);
 jit::MethodStatus SpewEndCompile(jit::MethodStatus status);
-void SpewMIR(jit::MDefinition *mir, const char *fmt, ...);
+void SpewMIR(jit::MDefinition* mir, const char* fmt, ...);
 
 #else
 
 static inline bool SpewEnabled(SpewChannel channel) { return false; }
-static inline void Spew(SpewChannel channel, const char *fmt, ...) { }
-static inline void SpewVA(SpewChannel channel, const char *fmt, va_list args) { }
-static inline void SpewBeginOp(JSContext *cx, const char *name) { }
+static inline void Spew(SpewChannel channel, const char* fmt, ...) { }
+static inline void SpewVA(SpewChannel channel, const char* fmt, va_list args) { }
+static inline void SpewBeginOp(JSContext* cx, const char* name) { }
 static inline void SpewBailout(uint32_t count, HandleScript script,
-                               jsbytecode *pc, ParallelBailoutCause cause) {}
+                               jsbytecode* pc, ParallelBailoutCause cause) {}
 static inline ExecutionStatus SpewEndOp(ExecutionStatus status) { return status; }
 static inline void SpewBeginCompile(HandleScript script) { }
 static inline jit::MethodStatus SpewEndCompile(jit::MethodStatus status) { return status; }
-static inline void SpewMIR(jit::MDefinition *mir, const char *fmt, ...) { }
+static inline void SpewMIR(jit::MDefinition* mir, const char* fmt, ...) { }
 
 #endif // FORKJOIN_SPEW
 
 } // namespace parallel
 } // namespace js
 
-/* static */ inline js::ForkJoinContext *
+/* static */ inline js::ForkJoinContext*
 js::ForkJoinContext::current()
 {
     return tlsForkJoinContext.get();

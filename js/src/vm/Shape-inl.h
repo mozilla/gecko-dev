@@ -24,8 +24,8 @@
 namespace js {
 
 inline
-StackBaseShape::StackBaseShape(ExclusiveContext *cx, const Class *clasp,
-                               JSObject *parent, JSObject *metadata, uint32_t objectFlags)
+StackBaseShape::StackBaseShape(ExclusiveContext* cx, const Class* clasp,
+                               JSObject* parent, JSObject* metadata, uint32_t objectFlags)
   : flags(objectFlags),
     clasp(clasp),
     parent(parent),
@@ -34,7 +34,7 @@ StackBaseShape::StackBaseShape(ExclusiveContext *cx, const Class *clasp,
 {}
 
 inline bool
-Shape::get(JSContext* cx, HandleObject receiver, JSObject* obj, JSObject *pobj,
+Shape::get(JSContext* cx, HandleObject receiver, JSObject* obj, JSObject* pobj,
            MutableHandleValue vp)
 {
     MOZ_ASSERT(!hasDefaultGetter());
@@ -48,10 +48,10 @@ Shape::get(JSContext* cx, HandleObject receiver, JSObject* obj, JSObject *pobj,
     return CallJSPropertyOp(cx, getterOp(), receiver, id, vp);
 }
 
-inline Shape *
-Shape::search(ExclusiveContext *cx, jsid id)
+inline Shape*
+Shape::search(ExclusiveContext* cx, jsid id)
 {
-    ShapeTable::Entry *_;
+    ShapeTable::Entry* _;
     return search(cx, this, id, &_);
 }
 
@@ -86,8 +86,8 @@ Shape::set(JSContext* cx, HandleObject obj, HandleObject receiver, bool strict,
     return CallJSPropertyOpSetter(cx, setterOp(), obj, id, strict, vp);
 }
 
-/* static */ inline Shape *
-Shape::search(ExclusiveContext *cx, Shape *start, jsid id, ShapeTable::Entry **pentry, bool adding)
+/* static */ inline Shape*
+Shape::search(ExclusiveContext* cx, Shape* start, jsid id, ShapeTable::Entry** pentry, bool adding)
 {
     if (start->inDictionary()) {
         *pentry = &start->table().search(id, adding);
@@ -97,14 +97,14 @@ Shape::search(ExclusiveContext *cx, Shape *start, jsid id, ShapeTable::Entry **p
     *pentry = nullptr;
 
     if (start->hasTable()) {
-        ShapeTable::Entry &entry = start->table().search(id, adding);
+        ShapeTable::Entry& entry = start->table().search(id, adding);
         return entry.shape();
     }
 
     if (start->numLinearSearches() == LINEAR_SEARCHES_MAX) {
         if (start->isBigEnoughForAShapeTable()) {
             if (Shape::hashify(cx, start)) {
-                ShapeTable::Entry &entry = start->table().search(id, adding);
+                ShapeTable::Entry& entry = start->table().search(id, adding);
                 return entry.shape();
             } else {
                 cx->recoverFromOutOfMemory();
@@ -119,7 +119,7 @@ Shape::search(ExclusiveContext *cx, Shape *start, jsid id, ShapeTable::Entry **p
         start->incrementNumLinearSearches();
     }
 
-    for (Shape *shape = start; shape; shape = shape->parent) {
+    for (Shape* shape = start; shape; shape = shape->parent) {
         if (shape->propidRef() == id)
             return shape;
     }
@@ -127,11 +127,11 @@ Shape::search(ExclusiveContext *cx, Shape *start, jsid id, ShapeTable::Entry **p
     return nullptr;
 }
 
-inline Shape *
-Shape::new_(ExclusiveContext *cx, StackShape &unrootedOther, uint32_t nfixed)
+inline Shape*
+Shape::new_(ExclusiveContext* cx, StackShape& unrootedOther, uint32_t nfixed)
 {
     RootedGeneric<StackShape*> other(cx, &unrootedOther);
-    Shape *shape = other->isAccessorShape() ? NewGCAccessorShape(cx) : NewGCShape(cx);
+    Shape* shape = other->isAccessorShape() ? NewGCAccessorShape(cx) : NewGCShape(cx);
     if (!shape) {
         js_ReportOutOfMemory(cx);
         return nullptr;
@@ -147,7 +147,7 @@ Shape::new_(ExclusiveContext *cx, StackShape &unrootedOther, uint32_t nfixed)
 
 template<class ObjectSubclass>
 /* static */ inline bool
-EmptyShape::ensureInitialCustomShape(ExclusiveContext *cx, Handle<ObjectSubclass*> obj)
+EmptyShape::ensureInitialCustomShape(ExclusiveContext* cx, Handle<ObjectSubclass*> obj)
 {
     static_assert(mozilla::IsBaseOf<JSObject, ObjectSubclass>::value,
                   "ObjectSubclass must be a subclass of JSObject");
@@ -179,8 +179,8 @@ EmptyShape::ensureInitialCustomShape(ExclusiveContext *cx, Handle<ObjectSubclass
 }
 
 inline
-AutoRooterGetterSetter::Inner::Inner(ExclusiveContext *cx, uint8_t attrs,
-                                     PropertyOp *pgetter_, StrictPropertyOp *psetter_)
+AutoRooterGetterSetter::Inner::Inner(ExclusiveContext* cx, uint8_t attrs,
+                                     PropertyOp* pgetter_, StrictPropertyOp* psetter_)
   : CustomAutoRooter(cx), attrs(attrs),
     pgetter(pgetter_), psetter(psetter_)
 {
@@ -189,8 +189,8 @@ AutoRooterGetterSetter::Inner::Inner(ExclusiveContext *cx, uint8_t attrs,
 }
 
 inline
-AutoRooterGetterSetter::AutoRooterGetterSetter(ExclusiveContext *cx, uint8_t attrs,
-                                               PropertyOp *pgetter, StrictPropertyOp *psetter
+AutoRooterGetterSetter::AutoRooterGetterSetter(ExclusiveContext* cx, uint8_t attrs,
+                                               PropertyOp* pgetter, StrictPropertyOp* psetter
                                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
 {
     if (attrs & (JSPROP_GETTER | JSPROP_SETTER))
@@ -199,19 +199,19 @@ AutoRooterGetterSetter::AutoRooterGetterSetter(ExclusiveContext *cx, uint8_t att
 }
 
 inline
-AutoRooterGetterSetter::AutoRooterGetterSetter(ExclusiveContext *cx, uint8_t attrs,
-                                               JSNative *pgetter, JSNative *psetter
+AutoRooterGetterSetter::AutoRooterGetterSetter(ExclusiveContext* cx, uint8_t attrs,
+                                               JSNative* pgetter, JSNative* psetter
                                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
 {
     if (attrs & (JSPROP_GETTER | JSPROP_SETTER)) {
-        inner.emplace(cx, attrs, reinterpret_cast<PropertyOp *>(pgetter),
-                      reinterpret_cast<StrictPropertyOp *>(psetter));
+        inner.emplace(cx, attrs, reinterpret_cast<PropertyOp*>(pgetter),
+                      reinterpret_cast<StrictPropertyOp*>(psetter));
     }
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 }
 
 static inline uint8_t
-GetShapeAttributes(JSObject *obj, Shape *shape)
+GetShapeAttributes(JSObject* obj, Shape* shape)
 {
     MOZ_ASSERT(obj->isNative());
 
