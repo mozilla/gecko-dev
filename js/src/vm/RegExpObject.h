@@ -112,7 +112,7 @@ class RegExpShared
     typedef frontend::TokenStream TokenStream;
 
     /* Source to the RegExp, for lazy compilation. */
-    HeapPtrAtom        source;
+    RelocatablePtrAtom source;
 
     RegExpFlag         flags;
     size_t             parenCount;
