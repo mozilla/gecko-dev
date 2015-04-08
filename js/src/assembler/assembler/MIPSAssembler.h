@@ -157,7 +157,7 @@ public:
     typedef MIPSRegisters::RegisterID RegisterID;
     typedef MIPSRegisters::FPRegisterID FPRegisterID;
     typedef SegmentedVector<int, 64> Jumps;
-    unsigned char *buffer() const { return m_buffer.buffer(); }
+    unsigned char* buffer() const { return m_buffer.buffer(); }
     bool oom() const { return m_buffer.oom(); }
 
     // MIPS instruction opcode field position
@@ -780,7 +780,7 @@ public:
 
     void* executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool** poolp, CodeKind kind)
     {
-        void *result = m_buffer.executableAllocAndCopy(allocator, poolp, kind);
+        void* result = m_buffer.executableAllocAndCopy(allocator, poolp, kind);
         if (!result)
           return 0;
 

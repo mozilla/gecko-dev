@@ -19,12 +19,12 @@ namespace js {
 // Returns whether signal handlers for asm.js and for JitRuntime access
 // violations have been installed.
 bool
-EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt);
+EnsureAsmJSSignalHandlersInstalled(JSRuntime* rt);
 
 // Force any currently-executing asm.js code to call
 // js::HandleExecutionInterrupt.
 extern void
-RequestInterruptForAsmJSCode(JSRuntime *rt);
+RequestInterruptForAsmJSCode(JSRuntime* rt);
 
 // On OSX we are forced to use the lower-level Mach exception mechanism instead
 // of Unix signals. Mach exceptions are not handled on the victim's stack but
@@ -36,7 +36,7 @@ RequestInterruptForAsmJSCode(JSRuntime *rt);
 class AsmJSMachExceptionHandler
 {
     bool installed_;
-    PRThread *thread_;
+    PRThread* thread_;
     mach_port_t port_;
 
     void uninstall();
@@ -46,7 +46,7 @@ class AsmJSMachExceptionHandler
     ~AsmJSMachExceptionHandler() { uninstall(); }
     mach_port_t port() const { return port_; }
     bool installed() const { return installed_; }
-    bool install(JSRuntime *rt);
+    bool install(JSRuntime* rt);
 };
 #endif
 

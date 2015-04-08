@@ -24,99 +24,99 @@ class JitRuntime;
 
 class CompileRuntime
 {
-    JSRuntime *runtime();
+    JSRuntime* runtime();
 
   public:
-    static CompileRuntime *get(JSRuntime *rt);
+    static CompileRuntime* get(JSRuntime* rt);
 
     bool onMainThread();
 
-    js::PerThreadData *mainThread();
+    js::PerThreadData* mainThread();
 
     // &mainThread.ionTop
-    const void *addressOfIonTop();
+    const void* addressOfIonTop();
 
     // rt->mainThread.jitStackLimit;
-    const void *addressOfJitStackLimit();
+    const void* addressOfJitStackLimit();
 
     // &mainThread.ionJSContext
-    const void *addressOfJSContext();
+    const void* addressOfJSContext();
 
     // &mainThread.activation_
-    const void *addressOfActivation();
+    const void* addressOfActivation();
 
     // &GetIonContext()->runtime->nativeIterCache.last
-    const void *addressOfLastCachedNativeIterator();
+    const void* addressOfLastCachedNativeIterator();
 
 #ifdef JS_GC_ZEAL
-    const void *addressOfGCZeal();
+    const void* addressOfGCZeal();
 #endif
 
-    const void *addressOfInterrupt();
+    const void* addressOfInterrupt();
 
 #ifdef JS_THREADSAFE
-    const void *addressOfInterruptPar();
+    const void* addressOfInterruptPar();
 #endif
 
-    const void *addressOfThreadPool();
+    const void* addressOfThreadPool();
 
-    const JitRuntime *jitRuntime();
+    const JitRuntime* jitRuntime();
 
     // Compilation does not occur off thread when the SPS profiler is enabled.
-    SPSProfiler &spsProfiler();
+    SPSProfiler& spsProfiler();
 
     bool signalHandlersInstalled();
     bool jitSupportsFloatingPoint();
     bool hadOutOfMemory();
 
-    const JSAtomState &names();
-    const StaticStrings &staticStrings();
-    const Value &NaNValue();
-    const Value &positiveInfinityValue();
+    const JSAtomState& names();
+    const StaticStrings& staticStrings();
+    const Value& NaNValue();
+    const Value& positiveInfinityValue();
 
 #ifdef DEBUG
-    bool isInsideNursery(gc::Cell *cell);
+    bool isInsideNursery(gc::Cell* cell);
 #endif
 
     // DOM callbacks must be threadsafe (and will hopefully be removed soon).
-    const DOMCallbacks *DOMcallbacks();
+    const DOMCallbacks* DOMcallbacks();
 
-    const MathCache *maybeGetMathCache();
+    const MathCache* maybeGetMathCache();
 
 #ifdef JSGC_GENERATIONAL
-    const Nursery &gcNursery();
+    const Nursery& gcNursery();
 #endif
 };
 
 class CompileZone
 {
-    Zone *zone();
+    Zone* zone();
 
   public:
-    static CompileZone *get(Zone *zone);
+    static CompileZone* get(Zone* zone);
 
-    const void *addressOfNeedsBarrier();
+    const void* addressOfNeedsBarrier();
 
     // allocator.arenas.getFreeList(allocKind)
-    const void *addressOfFreeListFirst(gc::AllocKind allocKind);
-    const void *addressOfFreeListLast(gc::AllocKind allocKind);
+    const void* addressOfFreeListFirst(gc::AllocKind allocKind);
+    const void* addressOfFreeListLast(gc::AllocKind allocKind);
 };
 
 class CompileCompartment
 {
-    JSCompartment *compartment();
+    JSCompartment* compartment();
 
   public:
-    static CompileCompartment *get(JSCompartment *comp);
+    static CompileCompartment* get(JSCompartment* comp);
 
-    CompileZone *zone();
-    CompileRuntime *runtime();
+    CompileZone* zone();
+    CompileRuntime* runtime();
 
-    const void *addressOfEnumerators();
+    const void* addressOfEnumerators();
 
-    const CallsiteCloneTable &callsiteClones();
+    const CallsiteCloneTable& callsiteClones();
 
-    const JitCompartment *jitCompartment();
+    const JitCompartment* jitCompartment();
 
     bool hasObjectMetadataCallback();
 
@@ -128,7 +128,7 @@ class JitCompileOptions
 {
   public:
     JitCompileOptions();
-    JitCompileOptions(JSContext *cx);
+    JitCompileOptions(JSContext* cx);
 
     bool cloneSingletons() const {
         return cloneSingletons_;

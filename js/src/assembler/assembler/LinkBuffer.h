@@ -187,8 +187,8 @@ protected:
         return m_code;
     }
 
-    void *executableAllocAndCopy(MacroAssembler &masm, ExecutableAllocator *allocator,
-                                 ExecutablePool **poolp)
+    void* executableAllocAndCopy(MacroAssembler& masm, ExecutableAllocator* allocator,
+                                 ExecutablePool** poolp)
     {
         return masm.m_assembler.executableAllocAndCopy(allocator, poolp, m_codeKind);
     }

@@ -342,7 +342,7 @@ public:
 struct BytecodePattern {
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    BytecodePattern(PassOwnPtr<ByteDisjunction> body, Vector<ByteDisjunction*> &allParenthesesInfo, YarrPattern& pattern, BumpPointerAllocator* allocator)
+    BytecodePattern(PassOwnPtr<ByteDisjunction> body, Vector<ByteDisjunction*>& allParenthesesInfo, YarrPattern& pattern, BumpPointerAllocator* allocator)
         : m_body(body)
         , m_ignoreCase(pattern.m_ignoreCase)
         , m_multiline(pattern.m_multiline)
@@ -386,9 +386,9 @@ private:
 };
 
 JS_EXPORT_PRIVATE PassOwnPtr<BytecodePattern> byteCompile(YarrPattern&, BumpPointerAllocator*);
-JS_EXPORT_PRIVATE unsigned interpret(JSContext *cx, BytecodePattern*, const String& input, unsigned start, unsigned* output);
-unsigned interpret(JSContext *cx, BytecodePattern*, const LChar* input, unsigned length, unsigned start, unsigned* output);
-unsigned interpret(JSContext *cx, BytecodePattern*, const UChar* input, unsigned length, unsigned start, unsigned* output);
+JS_EXPORT_PRIVATE unsigned interpret(JSContext* cx, BytecodePattern*, const String& input, unsigned start, unsigned* output);
+unsigned interpret(JSContext* cx, BytecodePattern*, const LChar* input, unsigned length, unsigned start, unsigned* output);
+unsigned interpret(JSContext* cx, BytecodePattern*, const UChar* input, unsigned length, unsigned start, unsigned* output);
 
 } } // namespace JSC::Yarr
 

@@ -19,7 +19,7 @@ class WeakMapObject : public JSObject
   public:
     static const Class class_;
 
-    ObjectValueMap *getMap() { return static_cast<ObjectValueMap*>(getPrivate()); }
+    ObjectValueMap* getMap() { return static_cast<ObjectValueMap*>(getPrivate()); }
 };
 
 } // namespace js

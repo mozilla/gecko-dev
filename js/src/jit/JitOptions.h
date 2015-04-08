@@ -72,7 +72,7 @@ struct JitOptions
     bool profileInlineFrames;
 
     JitOptions();
-    bool isSmallFunction(JSScript *script) const;
+    bool isSmallFunction(JSScript* script) const;
     void setEagerCompilation();
     void setUsesBeforeCompile(uint32_t useCount);
     void resetUsesBeforeCompile();

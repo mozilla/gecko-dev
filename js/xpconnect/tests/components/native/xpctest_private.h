@@ -45,7 +45,7 @@ class xpcTestObjectReadWrite MOZ_FINAL : public nsIXPCTestObjectReadWrite {
      int32_t longProperty;
      float floatProperty;
      char charProperty;
-     char *stringProperty;
+     char* stringProperty;
      PRTime timeProperty;
 };
 

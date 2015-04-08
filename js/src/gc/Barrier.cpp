@@ -16,7 +16,7 @@ namespace js {
 #ifdef DEBUG
 
 bool
-HeapValue::preconditionForSet(Zone *zone)
+HeapValue::preconditionForSet(Zone* zone)
 {
     if (!value.isMarkable())
         return true;
@@ -26,39 +26,39 @@ HeapValue::preconditionForSet(Zone *zone)
 }
 
 bool
-HeapSlot::preconditionForSet(JSObject *owner, Kind kind, uint32_t slot)
+HeapSlot::preconditionForSet(JSObject* owner, Kind kind, uint32_t slot)
 {
     return kind == Slot
          ? &owner->getSlotRef(slot) == this
-         : &owner->getDenseElement(slot) == (const Value *)this;
+         : &owner->getDenseElement(slot) == (const Value*)this;
 }
 
 bool
-HeapSlot::preconditionForSet(Zone *zone, JSObject *owner, Kind kind, uint32_t slot)
+HeapSlot::preconditionForSet(Zone* zone, JSObject* owner, Kind kind, uint32_t slot)
 {
     bool ok = kind == Slot
             ? &owner->getSlotRef(slot) == this
-            : &owner->getDenseElement(slot) == (const Value *)this;
+            : &owner->getDenseElement(slot) == (const Value*)this;
     return ok && owner->zone() == zone;
 }
 
 void
-HeapSlot::preconditionForWriteBarrierPost(JSObject *obj, Kind kind, uint32_t slot, Value target)
+HeapSlot::preconditionForWriteBarrierPost(JSObject* obj, Kind kind, uint32_t slot, Value target)
 {
     JS_ASSERT_IF(kind == Slot, obj->getSlotAddressUnchecked(slot)->get() == target);
     JS_ASSERT_IF(kind == Element,
-                 static_cast<HeapSlot *>(obj->getDenseElements() + slot)->get() == target);
+                 static_cast<HeapSlot*>(obj->getDenseElements() + slot)->get() == target);
 }
 
 bool
-RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone *shadowZone)
+RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone* shadowZone)
 {
     return shadowZone->runtimeFromMainThread()->isHeapMajorCollecting();
 }
 #endif // DEBUG
 
 bool
-StringIsPermanentAtom(JSString *str)
+StringIsPermanentAtom(JSString* str)
 {
     return str->isPermanentAtom();
 }

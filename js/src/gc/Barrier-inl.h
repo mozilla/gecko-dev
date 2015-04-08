@@ -11,7 +11,7 @@
 
 namespace js {
 
-inline const Value &
+inline const Value&
 ReadBarrieredValue::get() const
 {
     if (value.isObject())
@@ -25,12 +25,12 @@ ReadBarrieredValue::get() const
 }
 
 inline
-ReadBarrieredValue::operator const Value &() const
+ReadBarrieredValue::operator const Value&() const
 {
     return get();
 }
 
-inline JSObject &
+inline JSObject&
 ReadBarrieredValue::toObject() const
 {
     return get().toObject();

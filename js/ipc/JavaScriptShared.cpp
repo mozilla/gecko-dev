@@ -27,16 +27,16 @@ ObjectStore::init()
 }
 
 void
-ObjectStore::trace(JSTracer *trc)
+ObjectStore::trace(JSTracer* trc)
 {
     for (ObjectTable::Range r(table_.all()); !r.empty(); r.popFront()) {
-        DebugOnly<JSObject *> prior = r.front().value().get();
+        DebugOnly<JSObject*> prior = r.front().value().get();
         JS_CallHeapObjectTracer(trc, &r.front().value(), "ipc-object");
         MOZ_ASSERT(r.front().value() == prior);
     }
 }
 
-JSObject *
+JSObject*
 ObjectStore::find(ObjectId id)
 {
     ObjectTable::Ptr p = table_.lookup(id);
@@ -46,7 +46,7 @@ ObjectStore::find(ObjectId id)
 }
 
 bool
-ObjectStore::add(ObjectId id, JSObject *obj)
+ObjectStore::add(ObjectId id, JSObject* obj)
 {
     return table_.put(id, obj);
 }
@@ -79,17 +79,17 @@ ObjectIdCache::init()
 }
 
 void
-ObjectIdCache::trace(JSTracer *trc)
+ObjectIdCache::trace(JSTracer* trc)
 {
     for (ObjectIdTable::Range r(table_->all()); !r.empty(); r.popFront()) {
-        JSObject *obj = r.front().key();
+        JSObject* obj = r.front().key();
         JS_CallObjectTracer(trc, &obj, "ipc-id");
         MOZ_ASSERT(obj == r.front().key());
     }
 }
 
 ObjectId
-ObjectIdCache::find(JSObject *obj)
+ObjectIdCache::find(JSObject* obj)
 {
     ObjectIdTable::Ptr p = table_->lookup(obj);
     if (!p)
@@ -98,7 +98,7 @@ ObjectIdCache::find(JSObject *obj)
 }
 
 bool
-ObjectIdCache::add(JSContext *cx, JSObject *obj, ObjectId id)
+ObjectIdCache::add(JSContext* cx, JSObject* obj, ObjectId id)
 {
     if (!table_->put(obj, id))
         return false;
@@ -111,15 +111,15 @@ ObjectIdCache::add(JSContext *cx, JSObject *obj, ObjectId id)
  * been moved.
  */
 /* static */ void
-ObjectIdCache::keyMarkCallback(JSTracer *trc, JSObject *key, void *data) {
+ObjectIdCache::keyMarkCallback(JSTracer* trc, JSObject* key, void* data) {
     ObjectIdTable* table = static_cast<ObjectIdTable*>(data);
-    JSObject *prior = key;
+    JSObject* prior = key;
     JS_CallObjectTracer(trc, &key, "ObjectIdCache::table_ key");
     table->rekeyIfMoved(prior, key);
 }
 
 void
-ObjectIdCache::remove(JSObject *obj)
+ObjectIdCache::remove(JSObject* obj)
 {
     table_->remove(obj);
 }
@@ -133,7 +133,7 @@ JavaScriptShared::init()
 }
 
 bool
-JavaScriptShared::convertIdToGeckoString(JSContext *cx, JS::HandleId id, nsString *to)
+JavaScriptShared::convertIdToGeckoString(JSContext* cx, JS::HandleId id, nsString* to)
 {
     RootedValue idval(cx);
     if (!JS_IdToValue(cx, id, &idval))
@@ -143,7 +143,7 @@ JavaScriptShared::convertIdToGeckoString(JSContext *cx, JS::HandleId id, nsStrin
     if (!str)
         return false;
 
-    const jschar *chars = JS_GetStringCharsZ(cx, str);
+    const jschar* chars = JS_GetStringCharsZ(cx, str);
     if (!chars)
         return false;
 
@@ -152,7 +152,7 @@ JavaScriptShared::convertIdToGeckoString(JSContext *cx, JS::HandleId id, nsStrin
 }
 
 bool
-JavaScriptShared::convertGeckoStringToId(JSContext *cx, const nsString &from, JS::MutableHandleId to)
+JavaScriptShared::convertGeckoStringToId(JSContext* cx, const nsString& from, JS::MutableHandleId to)
 {
     RootedString str(cx, JS_NewUCStringCopyN(cx, from.BeginReading(), from.Length()));
     if (!str)
@@ -162,7 +162,7 @@ JavaScriptShared::convertGeckoStringToId(JSContext *cx, const nsString &from, JS
 }
 
 bool
-JavaScriptShared::toVariant(JSContext *cx, JS::HandleValue from, JSVariant *to)
+JavaScriptShared::toVariant(JSContext* cx, JS::HandleValue from, JSVariant* to)
 {
     switch (JS_TypeOfValue(cx, from)) {
       case JSTYPE_VOID:
@@ -187,7 +187,7 @@ JavaScriptShared::toVariant(JSContext *cx, JS::HandleValue from, JSVariant *to)
 
         if (xpc_JSObjectIsID(cx, obj)) {
             JSIID iid;
-            const nsID *id = xpc_JSObjectToID(cx, obj);
+            const nsID* id = xpc_JSObjectToID(cx, obj);
             ConvertID(*id, &iid);
             *to = iid;
             return true;
@@ -227,7 +227,7 @@ JavaScriptShared::toVariant(JSContext *cx, JS::HandleValue from, JSVariant *to)
 }
 
 bool
-JavaScriptShared::toValue(JSContext *cx, const JSVariant &from, MutableHandleValue to)
+JavaScriptShared::toValue(JSContext* cx, const JSVariant& from, MutableHandleValue to)
 {
     switch (from.type()) {
         case JSVariant::Tvoid_t:
@@ -238,7 +238,7 @@ JavaScriptShared::toValue(JSContext *cx, const JSVariant &from, MutableHandleVal
         {
           ObjectId id = from.get_uint64_t();
           if (id) {
-              JSObject *obj = unwrap(cx, id);
+              JSObject* obj = unwrap(cx, id);
               if (!obj)
                   return false;
               to.set(ObjectValue(*obj));
@@ -258,8 +258,8 @@ JavaScriptShared::toValue(JSContext *cx, const JSVariant &from, MutableHandleVal
 
         case JSVariant::TnsString:
         {
-          const nsString &old = from.get_nsString();
-          JSString *str = JS_NewUCStringCopyN(cx, old.BeginReading(), old.Length());
+          const nsString& old = from.get_nsString();
+          JSString* str = JS_NewUCStringCopyN(cx, old.BeginReading(), old.Length());
           if (!str)
               return false;
           to.set(StringValue(str));
@@ -269,12 +269,12 @@ JavaScriptShared::toValue(JSContext *cx, const JSVariant &from, MutableHandleVal
         case JSVariant::TJSIID:
         {
           nsID iid;
-          const JSIID &id = from.get_JSIID();
+          const JSIID& id = from.get_JSIID();
           ConvertID(id, &iid);
 
-          JSCompartment *compartment = GetContextCompartment(cx);
+          JSCompartment* compartment = GetContextCompartment(cx);
           RootedObject global(cx, JS_GetGlobalForCompartmentOrNull(cx, compartment));
-          JSObject *obj = xpc_NewIDObject(cx, global, iid);
+          JSObject* obj = xpc_NewIDObject(cx, global, iid);
           if (!obj)
               return false;
           to.set(ObjectValue(*obj));
@@ -287,7 +287,7 @@ JavaScriptShared::toValue(JSContext *cx, const JSVariant &from, MutableHandleVal
 }
 
 /* static */ void
-JavaScriptShared::ConvertID(const nsID &from, JSIID *to)
+JavaScriptShared::ConvertID(const nsID& from, JSIID* to)
 {
     to->m0() = from.m0;
     to->m1() = from.m1;
@@ -303,7 +303,7 @@ JavaScriptShared::ConvertID(const nsID &from, JSIID *to)
 }
 
 /* static */ void
-JavaScriptShared::ConvertID(const JSIID &from, nsID *to)
+JavaScriptShared::ConvertID(const JSIID& from, nsID* to)
 {
     to->m0 = from.m0();
     to->m1 = from.m1();
@@ -323,8 +323,8 @@ static const uint32_t GetterOnlyPropertyStub = 2;
 static const uint32_t UnknownPropertyOp = 3;
 
 bool
-JavaScriptShared::fromDescriptor(JSContext *cx, Handle<JSPropertyDescriptor> desc,
-                                 PPropertyDescriptor *out)
+JavaScriptShared::fromDescriptor(JSContext* cx, Handle<JSPropertyDescriptor> desc,
+                                 PPropertyDescriptor* out)
 {
     out->attrs() = desc.attributes();
     if (!toVariant(cx, desc.value(), &out->value()))
@@ -336,7 +336,7 @@ JavaScriptShared::fromDescriptor(JSContext *cx, Handle<JSPropertyDescriptor> des
     if (!desc.getter()) {
         out->getter() = 0;
     } else if (desc.hasGetterObject()) {
-        JSObject *getter = desc.getterObject();
+        JSObject* getter = desc.getterObject();
         if (!makeId(cx, getter, &out->getter()))
             return false;
     } else {
@@ -349,7 +349,7 @@ JavaScriptShared::fromDescriptor(JSContext *cx, Handle<JSPropertyDescriptor> des
     if (!desc.setter()) {
         out->setter() = 0;
     } else if (desc.hasSetterObject()) {
-        JSObject *setter = desc.setterObject();
+        JSObject* setter = desc.setterObject();
         if (!makeId(cx, setter, &out->setter()))
             return false;
     } else {
@@ -365,21 +365,21 @@ JavaScriptShared::fromDescriptor(JSContext *cx, Handle<JSPropertyDescriptor> des
 }
 
 bool
-UnknownPropertyStub(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp)
+UnknownPropertyStub(JSContext* cx, HandleObject obj, HandleId id, MutableHandleValue vp)
 {
     JS_ReportError(cx, "getter could not be wrapped via CPOWs");
     return false;
 }
 
 bool
-UnknownStrictPropertyStub(JSContext *cx, HandleObject obj, HandleId id, bool strict, MutableHandleValue vp)
+UnknownStrictPropertyStub(JSContext* cx, HandleObject obj, HandleId id, bool strict, MutableHandleValue vp)
 {
     JS_ReportError(cx, "setter could not be wrapped via CPOWs");
     return false;
 }
 
 bool
-JavaScriptShared::toDescriptor(JSContext *cx, const PPropertyDescriptor &in,
+JavaScriptShared::toDescriptor(JSContext* cx, const PPropertyDescriptor& in,
                                MutableHandle<JSPropertyDescriptor> out)
 {
     out.setAttributes(in.attrs());
@@ -424,13 +424,13 @@ JavaScriptShared::toDescriptor(JSContext *cx, const PPropertyDescriptor &in,
 }
 
 bool
-CpowIdHolder::ToObject(JSContext *cx, JS::MutableHandleObject objp)
+CpowIdHolder::ToObject(JSContext* cx, JS::MutableHandleObject objp)
 {
     return js_->Unwrap(cx, cpows_, objp);
 }
 
 bool
-JavaScriptShared::Unwrap(JSContext *cx, const InfallibleTArray<CpowEntry> &aCpows,
+JavaScriptShared::Unwrap(JSContext* cx, const InfallibleTArray<CpowEntry>& aCpows,
                          JS::MutableHandleObject objp)
 {
     objp.set(nullptr);
@@ -445,7 +445,7 @@ JavaScriptShared::Unwrap(JSContext *cx, const InfallibleTArray<CpowEntry> &aCpow
     RootedValue v(cx);
     RootedString str(cx);
     for (size_t i = 0; i < aCpows.Length(); i++) {
-        const nsString &name = aCpows[i].name();
+        const nsString& name = aCpows[i].name();
 
         if (!toValue(cx, aCpows[i].value(), &v))
             return false;
@@ -468,7 +468,7 @@ JavaScriptShared::Unwrap(JSContext *cx, const InfallibleTArray<CpowEntry> &aCpow
 }
 
 bool
-JavaScriptShared::Wrap(JSContext *cx, HandleObject aObj, InfallibleTArray<CpowEntry> *outCpows)
+JavaScriptShared::Wrap(JSContext* cx, HandleObject aObj, InfallibleTArray<CpowEntry>* outCpows)
 {
     if (!aObj)
         return true;

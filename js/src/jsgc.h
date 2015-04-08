@@ -65,7 +65,7 @@ enum State {
 };
 
 class ChunkPool {
-    Chunk   *emptyChunkListHead;
+    Chunk*  emptyChunkListHead;
     size_t  emptyCount;
 
   public:
@@ -77,22 +77,22 @@ class ChunkPool {
         return emptyCount;
     }
 
-    inline bool wantBackgroundAllocation(JSRuntime *rt) const;
+    inline bool wantBackgroundAllocation(JSRuntime* rt) const;
 
     /* Must be called with the GC lock taken. */
-    inline Chunk *get(JSRuntime *rt);
+    inline Chunk* get(JSRuntime* rt);
 
     /* Must be called either during the GC or with the GC lock taken. */
-    inline void put(Chunk *chunk);
+    inline void put(Chunk* chunk);
 
     /*
      * Return the list of chunks that can be released outside the GC lock.
      * Must be called either during the GC or with the GC lock taken.
      */
-    Chunk *expire(JSRuntime *rt, bool releaseAll);
+    Chunk* expire(JSRuntime* rt, bool releaseAll);
 
     /* Must be called with the GC lock taken. */
-    void expireAndFree(JSRuntime *rt, bool releaseAll);
+    void expireAndFree(JSRuntime* rt, bool releaseAll);
 };
 
 static inline JSGCTraceKind
@@ -226,7 +226,7 @@ IsBackgroundFinalized(AllocKind kind)
 }
 
 static inline bool
-CanBeFinalizedInBackground(gc::AllocKind kind, const Class *clasp)
+CanBeFinalizedInBackground(gc::AllocKind kind, const Class* clasp)
 {
     JS_ASSERT(kind <= gc::FINALIZE_OBJECT_LAST);
     /* If the class has no finalizer or a finalizer that is safe to call on
@@ -241,7 +241,7 @@ CanBeFinalizedInBackground(gc::AllocKind kind, const Class *clasp)
 }
 
 inline JSGCTraceKind
-GetGCThingTraceKind(const void *thing);
+GetGCThingTraceKind(const void* thing);
 
 /* Capacity for slotsToThingKind */
 const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
@@ -293,7 +293,7 @@ GetBackgroundAllocKind(AllocKind kind)
  * consistent.
  */
 static inline bool
-TryIncrementAllocKind(AllocKind *kindp)
+TryIncrementAllocKind(AllocKind* kindp)
 {
     size_t next = size_t(*kindp) + 2;
     if (next >= size_t(FINALIZE_OBJECT_LIMIT))
@@ -332,7 +332,7 @@ GetGCKindSlots(AllocKind thingKind)
 }
 
 static inline size_t
-GetGCKindSlots(AllocKind thingKind, const Class *clasp)
+GetGCKindSlots(AllocKind thingKind, const Class* clasp)
 {
     size_t nslots = GetGCKindSlots(thingKind);
 
@@ -364,8 +364,8 @@ GetGCKindSlots(AllocKind thingKind, const Class *clasp)
  * other list manipulations.
  */
 struct ArenaList {
-    ArenaHeader     *head;
-    ArenaHeader     **cursor;
+    ArenaHeader*    head;
+    ArenaHeader**   cursor;
 
     ArenaList() {
         clear();
@@ -376,7 +376,7 @@ struct ArenaList {
         cursor = &head;
     }
 
-    void insert(ArenaHeader *arena);
+    void insert(ArenaHeader* arena);
 };
 
 class ArenaLists
@@ -420,10 +420,10 @@ class ArenaLists
 
   public:
     /* For each arena kind, a list of arenas remaining to be swept. */
-    ArenaHeader *arenaListsToSweep[FINALIZE_LIMIT];
+    ArenaHeader* arenaListsToSweep[FINALIZE_LIMIT];
 
     /* Shape arenas to be swept in the foreground. */
-    ArenaHeader *gcShapeArenasToSweep;
+    ArenaHeader* gcShapeArenasToSweep;
 
   public:
     ArenaLists() {
@@ -443,8 +443,8 @@ class ArenaLists
              * the background finalization is disabled.
              */
             JS_ASSERT(backgroundFinalizeState[i] == BFS_DONE);
-            ArenaHeader **headp = &arenaLists[i].head;
-            while (ArenaHeader *aheader = *headp) {
+            ArenaHeader** headp = &arenaLists[i].head;
+            while (ArenaHeader* aheader = *headp) {
                 *headp = aheader->next;
                 aheader->chunk()->releaseArena(aheader);
             }
@@ -456,15 +456,15 @@ class ArenaLists
         return offset + thingKind * sizeof(FreeSpan);
     }
 
-    const FreeSpan *getFreeList(AllocKind thingKind) const {
+    const FreeSpan* getFreeList(AllocKind thingKind) const {
         return &freeLists[thingKind];
     }
 
-    ArenaHeader *getFirstArena(AllocKind thingKind) const {
+    ArenaHeader* getFirstArena(AllocKind thingKind) const {
         return arenaLists[thingKind].head;
     }
 
-    ArenaHeader *getFirstArenaToSweep(AllocKind thingKind) const {
+    ArenaHeader* getFirstArenaToSweep(AllocKind thingKind) const {
         return arenaListsToSweep[thingKind];
     }
 
@@ -491,8 +491,8 @@ class ArenaLists
             /* The background finalization must have stopped at this point. */
             JS_ASSERT(backgroundFinalizeState[i] == BFS_DONE ||
                       backgroundFinalizeState[i] == BFS_JUST_FINISHED);
-            for (ArenaHeader *aheader = arenaLists[i].head; aheader; aheader = aheader->next) {
-                uintptr_t *word = aheader->chunk()->bitmap.arenaBits(aheader);
+            for (ArenaHeader* aheader = arenaLists[i].head; aheader; aheader = aheader->next) {
+                uintptr_t* word = aheader->chunk()->bitmap.arenaBits(aheader);
                 memset(word, 0, ArenaBitmapWords * sizeof(uintptr_t));
             }
         }
@@ -517,15 +517,15 @@ class ArenaLists
     }
 
     void purge(AllocKind i) {
-        FreeSpan *headSpan = &freeLists[i];
+        FreeSpan* headSpan = &freeLists[i];
         if (!headSpan->isEmpty()) {
-            ArenaHeader *aheader = headSpan->arenaHeader();
+            ArenaHeader* aheader = headSpan->arenaHeader();
             aheader->setFirstFreeSpan(headSpan);
             headSpan->initAsEmpty();
         }
     }
 
-    inline void prepareForIncrementalGC(JSRuntime *rt);
+    inline void prepareForIncrementalGC(JSRuntime* rt);
 
     /*
      * Temporarily copy the free list heads to the arenas so the code can see
@@ -538,9 +538,9 @@ class ArenaLists
     }
 
     void copyFreeListToArena(AllocKind thingKind) {
-        FreeSpan *headSpan = &freeLists[thingKind];
+        FreeSpan* headSpan = &freeLists[thingKind];
         if (!headSpan->isEmpty()) {
-            ArenaHeader *aheader = headSpan->arenaHeader();
+            ArenaHeader* aheader = headSpan->arenaHeader();
             JS_ASSERT(!aheader->hasFreeThings());
             aheader->setFirstFreeSpan(headSpan);
         }
@@ -557,9 +557,9 @@ class ArenaLists
 
 
     void clearFreeListInArena(AllocKind kind) {
-        FreeSpan *headSpan = &freeLists[kind];
+        FreeSpan* headSpan = &freeLists[kind];
         if (!headSpan->isEmpty()) {
-            ArenaHeader *aheader = headSpan->arenaHeader();
+            ArenaHeader* aheader = headSpan->arenaHeader();
             JS_ASSERT(aheader->getFirstFreeSpan().isSameNonEmptySpan(headSpan));
             aheader->setAsFullyUsed();
         }
@@ -570,10 +570,10 @@ class ArenaLists
      * arena using copyToArena().
      */
     bool isSynchronizedFreeList(AllocKind kind) {
-        FreeSpan *headSpan = &freeLists[kind];
+        FreeSpan* headSpan = &freeLists[kind];
         if (headSpan->isEmpty())
             return true;
-        ArenaHeader *aheader = headSpan->arenaHeader();
+        ArenaHeader* aheader = headSpan->arenaHeader();
         if (aheader->hasFreeThings()) {
             /*
              * If the arena has a free list, it must be the same as one in
@@ -585,12 +585,12 @@ class ArenaLists
         return false;
     }
 
-    MOZ_ALWAYS_INLINE void *allocateFromFreeList(AllocKind thingKind, size_t thingSize) {
+    MOZ_ALWAYS_INLINE void* allocateFromFreeList(AllocKind thingKind, size_t thingSize) {
         return freeLists[thingKind].allocate(thingSize);
     }
 
     template <AllowGC allowGC>
-    static void *refillFreeList(ThreadSafeContext *cx, AllocKind thingKind);
+    static void* refillFreeList(ThreadSafeContext* cx, AllocKind thingKind);
 
     /*
      * Moves all arenas from |fromArenaLists| into |this|.  In
@@ -599,10 +599,10 @@ class ArenaLists
      * whatever allocations may have been performed back into the
      * compartment's main arena list using this function.
      */
-    void adoptArenas(JSRuntime *runtime, ArenaLists *fromArenaLists);
+    void adoptArenas(JSRuntime* runtime, ArenaLists* fromArenaLists);
 
     /* True if the ArenaHeader in question is found in this ArenaLists */
-    bool containsArena(JSRuntime *runtime, ArenaHeader *arenaHeader);
+    bool containsArena(JSRuntime* runtime, ArenaHeader* arenaHeader);
 
     void checkEmptyFreeLists() {
 #ifdef DEBUG
@@ -615,25 +615,25 @@ class ArenaLists
         JS_ASSERT(freeLists[kind].isEmpty());
     }
 
-    void queueObjectsForSweep(FreeOp *fop);
-    void queueStringsForSweep(FreeOp *fop);
-    void queueShapesForSweep(FreeOp *fop);
-    void queueScriptsForSweep(FreeOp *fop);
-    void queueJitCodeForSweep(FreeOp *fop);
+    void queueObjectsForSweep(FreeOp* fop);
+    void queueStringsForSweep(FreeOp* fop);
+    void queueShapesForSweep(FreeOp* fop);
+    void queueScriptsForSweep(FreeOp* fop);
+    void queueJitCodeForSweep(FreeOp* fop);
 
-    bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget);
-    static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgroundThread);
+    bool foregroundFinalize(FreeOp* fop, AllocKind thingKind, SliceBudget& sliceBudget);
+    static void backgroundFinalize(FreeOp* fop, ArenaHeader* listHead, bool onBackgroundThread);
 
-    void wipeDuringParallelExecution(JSRuntime *rt);
+    void wipeDuringParallelExecution(JSRuntime* rt);
 
   private:
-    inline void finalizeNow(FreeOp *fop, AllocKind thingKind);
-    inline void forceFinalizeNow(FreeOp *fop, AllocKind thingKind);
-    inline void queueForForegroundSweep(FreeOp *fop, AllocKind thingKind);
-    inline void queueForBackgroundSweep(FreeOp *fop, AllocKind thingKind);
+    inline void finalizeNow(FreeOp* fop, AllocKind thingKind);
+    inline void forceFinalizeNow(FreeOp* fop, AllocKind thingKind);
+    inline void queueForForegroundSweep(FreeOp* fop, AllocKind thingKind);
+    inline void queueForBackgroundSweep(FreeOp* fop, AllocKind thingKind);
 
-    void *allocateFromArena(JS::Zone *zone, AllocKind thingKind);
-    inline void *allocateFromArenaInline(JS::Zone *zone, AllocKind thingKind);
+    void* allocateFromArena(JS::Zone* zone, AllocKind thingKind);
+    inline void* allocateFromArenaInline(JS::Zone* zone, AllocKind thingKind);
 
     inline void normalizeBackgroundFinalizeState(AllocKind thingKind);
 
@@ -661,68 +661,68 @@ typedef enum JSGCRootType {
 
 struct RootInfo {
     RootInfo() {}
-    RootInfo(const char *name, JSGCRootType type) : name(name), type(type) {}
-    const char *name;
+    RootInfo(const char* name, JSGCRootType type) : name(name), type(type) {}
+    const char* name;
     JSGCRootType type;
 };
 
-typedef js::HashMap<void *,
+typedef js::HashMap<void*,
                     RootInfo,
-                    js::DefaultHasher<void *>,
+                    js::DefaultHasher<void*>,
                     js::SystemAllocPolicy> RootedValueMap;
 
 extern bool
-AddValueRoot(JSContext *cx, js::Value *vp, const char *name);
+AddValueRoot(JSContext* cx, js::Value* vp, const char* name);
 
 extern bool
-AddValueRootRT(JSRuntime *rt, js::Value *vp, const char *name);
+AddValueRootRT(JSRuntime* rt, js::Value* vp, const char* name);
 
 extern bool
-AddStringRoot(JSContext *cx, JSString **rp, const char *name);
+AddStringRoot(JSContext* cx, JSString** rp, const char* name);
 
 extern bool
-AddObjectRoot(JSContext *cx, JSObject **rp, const char *name);
+AddObjectRoot(JSContext* cx, JSObject** rp, const char* name);
 
 extern bool
-AddObjectRoot(JSRuntime *rt, JSObject **rp, const char *name);
+AddObjectRoot(JSRuntime* rt, JSObject** rp, const char* name);
 
 extern bool
-AddScriptRoot(JSContext *cx, JSScript **rp, const char *name);
+AddScriptRoot(JSContext* cx, JSScript** rp, const char* name);
 
 extern void
-RemoveRoot(JSRuntime *rt, void *rp);
+RemoveRoot(JSRuntime* rt, void* rp);
 
 } /* namespace js */
 
 extern bool
-js_InitGC(JSRuntime *rt, uint32_t maxbytes);
+js_InitGC(JSRuntime* rt, uint32_t maxbytes);
 
 extern void
-js_FinishGC(JSRuntime *rt);
+js_FinishGC(JSRuntime* rt);
 
 namespace js {
 
 class InterpreterFrame;
 
 extern void
-MarkCompartmentActive(js::InterpreterFrame *fp);
+MarkCompartmentActive(js::InterpreterFrame* fp);
 
 extern void
-TraceRuntime(JSTracer *trc);
+TraceRuntime(JSTracer* trc);
 
 /* Must be called with GC lock taken. */
 extern bool
-TriggerGC(JSRuntime *rt, JS::gcreason::Reason reason);
+TriggerGC(JSRuntime* rt, JS::gcreason::Reason reason);
 
 /* Must be called with GC lock taken. */
 extern bool
-TriggerZoneGC(Zone *zone, JS::gcreason::Reason reason);
+TriggerZoneGC(Zone* zone, JS::gcreason::Reason reason);
 
 extern void
-MaybeGC(JSContext *cx);
+MaybeGC(JSContext* cx);
 
 extern void
-ReleaseAllJITCode(FreeOp *op);
+ReleaseAllJITCode(FreeOp* op);
 
 /*
  * Kinds of js_GC invocation.
@@ -736,44 +736,44 @@ typedef enum JSGCInvocationKind {
 } JSGCInvocationKind;
 
 extern void
-GC(JSRuntime *rt, JSGCInvocationKind gckind, JS::gcreason::Reason reason);
+GC(JSRuntime* rt, JSGCInvocationKind gckind, JS::gcreason::Reason reason);
 
 extern void
-GCSlice(JSRuntime *rt, JSGCInvocationKind gckind, JS::gcreason::Reason reason, int64_t millis = 0);
+GCSlice(JSRuntime* rt, JSGCInvocationKind gckind, JS::gcreason::Reason reason, int64_t millis = 0);
 
 extern void
-GCFinalSlice(JSRuntime *rt, JSGCInvocationKind gckind, JS::gcreason::Reason reason);
+GCFinalSlice(JSRuntime* rt, JSGCInvocationKind gckind, JS::gcreason::Reason reason);
 
 extern void
-GCDebugSlice(JSRuntime *rt, bool limit, int64_t objCount);
+GCDebugSlice(JSRuntime* rt, bool limit, int64_t objCount);
 
 extern void
-PrepareForDebugGC(JSRuntime *rt);
+PrepareForDebugGC(JSRuntime* rt);
 
 extern void
-MinorGC(JSRuntime *rt, JS::gcreason::Reason reason);
+MinorGC(JSRuntime* rt, JS::gcreason::Reason reason);
 
 extern void
-MinorGC(JSContext *cx, JS::gcreason::Reason reason);
+MinorGC(JSContext* cx, JS::gcreason::Reason reason);
 
 #ifdef JS_GC_ZEAL
 extern void
-SetGCZeal(JSRuntime *rt, uint8_t zeal, uint32_t frequency);
+SetGCZeal(JSRuntime* rt, uint8_t zeal, uint32_t frequency);
 #endif
 
 /* Functions for managing cross compartment gray pointers. */
 
 extern void
-DelayCrossCompartmentGrayMarking(JSObject *src);
+DelayCrossCompartmentGrayMarking(JSObject* src);
 
 extern void
-NotifyGCNukeWrapper(JSObject *o);
+NotifyGCNukeWrapper(JSObject* o);
 
 extern unsigned
-NotifyGCPreSwap(JSObject *a, JSObject *b);
+NotifyGCPreSwap(JSObject* a, JSObject* b);
 
 extern void
-NotifyGCPostSwap(JSObject *a, JSObject *b, unsigned preResult);
+NotifyGCPostSwap(JSObject* a, JSObject* b, unsigned preResult);
 
 /*
  * Helper that implements sweeping and allocation for kinds that can be swept
@@ -803,33 +803,33 @@ class GCHelperThread {
      * during buffer growth results in the pointer being freed immediately.
      */
     static const size_t FREE_ARRAY_SIZE = size_t(1) << 16;
-    static const size_t FREE_ARRAY_LENGTH = FREE_ARRAY_SIZE / sizeof(void *);
+    static const size_t FREE_ARRAY_LENGTH = FREE_ARRAY_SIZE / sizeof(void*);
 
-    JSRuntime         *const rt;
-    PRThread          *thread;
-    PRCondVar         *wakeup;
-    PRCondVar         *done;
+    JSRuntime*        const rt;
+    PRThread*         thread;
+    PRCondVar*        wakeup;
+    PRCondVar*        done;
     volatile State    state;
 
-    void wait(PRCondVar *which);
+    void wait(PRCondVar* which);
 
     bool              sweepFlag;
     bool              shrinkFlag;
 
-    Vector<void **, 16, js::SystemAllocPolicy> freeVector;
-    void            **freeCursor;
-    void            **freeCursorEnd;
+    Vector<void**, 16, js::SystemAllocPolicy> freeVector;
+    void**          freeCursor;
+    void**          freeCursorEnd;
 
     bool              backgroundAllocation;
 
     friend class js::gc::ArenaLists;
 
     void
-    replenishAndFreeLater(void *ptr);
+    replenishAndFreeLater(void* ptr);
 
-    static void freeElementsAndArray(void **array, void **end) {
+    static void freeElementsAndArray(void** array, void** end) {
         JS_ASSERT(array <= end);
-        for (void **p = array; p != end; ++p)
+        for (void** p = array; p != end; ++p)
             js_free(*p);
         js_free(array);
     }
@@ -841,7 +841,7 @@ class GCHelperThread {
     void doSweep();
 
   public:
-    GCHelperThread(JSRuntime *rt)
+    GCHelperThread(JSRuntime* rt)
       : rt(rt),
         thread(nullptr),
         wakeup(nullptr),
@@ -880,7 +880,7 @@ class GCHelperThread {
         backgroundAllocation = false;
     }
 
-    PRThread *getThread() const {
+    PRThread* getThread() const {
         return thread;
     }
 
@@ -899,7 +899,7 @@ class GCHelperThread {
         return shrinkFlag;
     }
 
-    void freeLater(void *ptr) {
+    void freeLater(void* ptr) {
         JS_ASSERT(!sweeping());
         if (freeCursor != freeCursorEnd)
             *freeCursor++ = ptr;
@@ -909,47 +909,47 @@ class GCHelperThread {
 };
 
 struct GCChunkHasher {
-    typedef gc::Chunk *Lookup;
+    typedef gc::Chunk* Lookup;
 
     /*
      * Strip zeros for better distribution after multiplying by the golden
      * ratio.
      */
-    static HashNumber hash(gc::Chunk *chunk) {
+    static HashNumber hash(gc::Chunk* chunk) {
         JS_ASSERT(!(uintptr_t(chunk) & gc::ChunkMask));
         return HashNumber(uintptr_t(chunk) >> gc::ChunkShift);
     }
 
-    static bool match(gc::Chunk *k, gc::Chunk *l) {
+    static bool match(gc::Chunk* k, gc::Chunk* l) {
         JS_ASSERT(!(uintptr_t(k) & gc::ChunkMask));
         JS_ASSERT(!(uintptr_t(l) & gc::ChunkMask));
         return k == l;
     }
 };
 
-typedef HashSet<js::gc::Chunk *, GCChunkHasher, SystemAllocPolicy> GCChunkSet;
+typedef HashSet<js::gc::Chunk*, GCChunkHasher, SystemAllocPolicy> GCChunkSet;
 
 struct GrayRoot {
-    void *thing;
+    void* thing;
     JSGCTraceKind kind;
 #ifdef DEBUG
     JSTraceNamePrinter debugPrinter;
-    const void *debugPrintArg;
+    const void* debugPrintArg;
     size_t debugPrintIndex;
 #endif
 
-    GrayRoot(void *thing, JSGCTraceKind kind)
+    GrayRoot(void* thing, JSGCTraceKind kind)
         : thing(thing), kind(kind) {}
 };
 
 void
-MarkStackRangeConservatively(JSTracer *trc, Value *begin, Value *end);
+MarkStackRangeConservatively(JSTracer* trc, Value* begin, Value* end);
 
-typedef void (*IterateChunkCallback)(JSRuntime *rt, void *data, gc::Chunk *chunk);
-typedef void (*IterateZoneCallback)(JSRuntime *rt, void *data, JS::Zone *zone);
-typedef void (*IterateArenaCallback)(JSRuntime *rt, void *data, gc::Arena *arena,
+typedef void (*IterateChunkCallback)(JSRuntime* rt, void* data, gc::Chunk* chunk);
+typedef void (*IterateZoneCallback)(JSRuntime* rt, void* data, JS::Zone* zone);
+typedef void (*IterateArenaCallback)(JSRuntime* rt, void* data, gc::Arena* arena,
                                      JSGCTraceKind traceKind, size_t thingSize);
-typedef void (*IterateCellCallback)(JSRuntime *rt, void *data, void *thing,
+typedef void (*IterateCellCallback)(JSRuntime* rt, void* data, void* thing,
                                     JSGCTraceKind traceKind, size_t thingSize);
 
 /*
@@ -958,7 +958,7 @@ typedef void (*IterateCellCallback)(JSRuntime *rt, void *data, void *thing,
  * on every in-use cell in the GC heap.
  */
 extern void
-IterateZonesCompartmentsArenasCells(JSRuntime *rt, void *data,
+IterateZonesCompartmentsArenasCells(JSRuntime* rt, void* data,
                                     IterateZoneCallback zoneCallback,
                                     JSIterateCompartmentCallback compartmentCallback,
                                     IterateArenaCallback arenaCallback,
@@ -969,7 +969,7 @@ IterateZonesCompartmentsArenasCells(JSRuntime *rt, void *data,
  * single zone.
  */
 extern void
-IterateZoneCompartmentsArenasCells(JSRuntime *rt, Zone *zone, void *data,
+IterateZoneCompartmentsArenasCells(JSRuntime* rt, Zone* zone, void* data,
                                    IterateZoneCallback zoneCallback,
                                    JSIterateCompartmentCallback compartmentCallback,
                                    IterateArenaCallback arenaCallback,
@@ -979,57 +979,57 @@ IterateZoneCompartmentsArenasCells(JSRuntime *rt, Zone *zone, void *data,
  * Invoke chunkCallback on every in-use chunk.
  */
 extern void
-IterateChunks(JSRuntime *rt, void *data, IterateChunkCallback chunkCallback);
+IterateChunks(JSRuntime* rt, void* data, IterateChunkCallback chunkCallback);
 
-typedef void (*IterateScriptCallback)(JSRuntime *rt, void *data, JSScript *script);
+typedef void (*IterateScriptCallback)(JSRuntime* rt, void* data, JSScript* script);
 
 /*
  * Invoke scriptCallback on every in-use script for
  * the given compartment or for all compartments if it is null.
  */
 extern void
-IterateScripts(JSRuntime *rt, JSCompartment *compartment,
-               void *data, IterateScriptCallback scriptCallback);
+IterateScripts(JSRuntime* rt, JSCompartment* compartment,
+               void* data, IterateScriptCallback scriptCallback);
 
 } /* namespace js */
 
 extern void
-js_FinalizeStringRT(JSRuntime *rt, JSString *str);
+js_FinalizeStringRT(JSRuntime* rt, JSString* str);
 
 namespace js {
 
-JSCompartment *
-NewCompartment(JSContext *cx, JS::Zone *zone, JSPrincipals *principals,
-               const JS::CompartmentOptions &options);
+JSCompartment*
+NewCompartment(JSContext* cx, JS::Zone* zone, JSPrincipals* principals,
+               const JS::CompartmentOptions& options);
 
 namespace gc {
 
 extern void
-GCIfNeeded(JSContext *cx);
+GCIfNeeded(JSContext* cx);
 
 /* Tries to run a GC no matter what (used for GC zeal). */
 void
-RunDebugGC(JSContext *cx);
+RunDebugGC(JSContext* cx);
 
 void
-SetDeterministicGC(JSContext *cx, bool enabled);
+SetDeterministicGC(JSContext* cx, bool enabled);
 
 void
-SetValidateGC(JSContext *cx, bool enabled);
+SetValidateGC(JSContext* cx, bool enabled);
 
 void
-SetFullCompartmentChecks(JSContext *cx, bool enabled);
+SetFullCompartmentChecks(JSContext* cx, bool enabled);
 
 /* Wait for the background thread to finish sweeping if it is running. */
 void
-FinishBackgroundFinalize(JSRuntime *rt);
+FinishBackgroundFinalize(JSRuntime* rt);
 
 /*
  * Merge all contents of source into target. This can only be used if source is
  * the only compartment in its zone.
  */
 void
-MergeCompartments(JSCompartment *source, JSCompartment *target);
+MergeCompartments(JSCompartment* source, JSCompartment* target);
 
 const int ZealPokeValue = 1;
 const int ZealAllocValue = 2;
@@ -1055,20 +1055,20 @@ enum VerifierType {
 
 /* Check that write barriers have been used correctly. See jsgc.cpp. */
 void
-VerifyBarriers(JSRuntime *rt, VerifierType type);
+VerifyBarriers(JSRuntime* rt, VerifierType type);
 
 void
-MaybeVerifyBarriers(JSContext *cx, bool always = false);
+MaybeVerifyBarriers(JSContext* cx, bool always = false);
 
 #else
 
 static inline void
-VerifyBarriers(JSRuntime *rt, VerifierType type)
+VerifyBarriers(JSRuntime* rt, VerifierType type)
 {
 }
 
 static inline void
-MaybeVerifyBarriers(JSContext *cx, bool always = false)
+MaybeVerifyBarriers(JSContext* cx, bool always = false)
 {
 }
 
@@ -1082,12 +1082,12 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false)
  */
 class AutoSuppressGC
 {
-    int32_t &suppressGC_;
+    int32_t& suppressGC_;
 
   public:
-    AutoSuppressGC(ExclusiveContext *cx);
-    AutoSuppressGC(JSCompartment *comp);
-    AutoSuppressGC(JSRuntime *rt);
+    AutoSuppressGC(ExclusiveContext* cx);
+    AutoSuppressGC(JSCompartment* comp);
+    AutoSuppressGC(JSRuntime* rt);
 
     ~AutoSuppressGC()
     {
@@ -1120,10 +1120,10 @@ class AutoEnterOOMUnsafeRegion {};
 class AutoDisableProxyCheck
 {
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER;
-    uintptr_t &count;
+    uintptr_t& count;
 
   public:
-    AutoDisableProxyCheck(JSRuntime *rt
+    AutoDisableProxyCheck(JSRuntime* rt
                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     ~AutoDisableProxyCheck() {
@@ -1133,16 +1133,16 @@ class AutoDisableProxyCheck
 #else
 struct AutoDisableProxyCheck
 {
-    AutoDisableProxyCheck(JSRuntime *rt) {}
+    AutoDisableProxyCheck(JSRuntime* rt) {}
 };
 #endif
 
 void
-PurgeJITCaches(JS::Zone *zone);
+PurgeJITCaches(JS::Zone* zone);
 
 // This is the same as IsInsideNursery, but not inlined.
 bool
-UninlinedIsInsideNursery(JSRuntime *rt, const void *thing);
+UninlinedIsInsideNursery(JSRuntime* rt, const void* thing);
 
 } /* namespace js */
 

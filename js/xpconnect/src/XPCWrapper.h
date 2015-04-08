@@ -23,7 +23,7 @@ namespace XPCNativeWrapper {
    (_wn)->GetScriptableInfo()->GetFlags()._flag())
 
 bool
-AttachNewConstructorObject(JSContext *aCx, JS::HandleObject aGlobalObject);
+AttachNewConstructorObject(JSContext* aCx, JS::HandleObject aGlobalObject);
 
 } // namespace XPCNativeWrapper
 
@@ -37,20 +37,20 @@ namespace XPCWrapper {
 /**
  * Returns the script security manager used by XPConnect.
  */
-inline nsIScriptSecurityManager *
+inline nsIScriptSecurityManager*
 GetSecurityManager()
 {
   return nsXPConnect::gScriptSecurityManager;
 }
 
 inline bool
-IsSecurityWrapper(JSObject *wrapper)
+IsSecurityWrapper(JSObject* wrapper)
 {
   return js::IsWrapper(wrapper);
 }
 
-JSObject *
-UnsafeUnwrapSecurityWrapper(JSObject *obj);
+JSObject*
+UnsafeUnwrapSecurityWrapper(JSObject* obj);
 
 } // namespace XPCWrapper
 

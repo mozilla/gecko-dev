@@ -35,7 +35,7 @@ XPCJSContextStack::Pop()
 
     uint32_t idx = mStack.Length() - 1; // The thing we're popping
 
-    JSContext *cx = mStack[idx].cx;
+    JSContext* cx = mStack[idx].cx;
 
     mStack.RemoveElementAt(idx);
     if (idx == 0) {
@@ -45,7 +45,7 @@ XPCJSContextStack::Pop()
 
     --idx; // Advance to new top of the stack
 
-    XPCJSContextInfo &e = mStack[idx];
+    XPCJSContextInfo& e = mStack[idx];
     if (e.cx && e.savedFrameChain) {
         // Pop() can be called outside any request for e.cx.
         JSAutoRequest ar(e.cx);
@@ -57,7 +57,7 @@ XPCJSContextStack::Pop()
 }
 
 bool
-XPCJSContextStack::Push(JSContext *cx)
+XPCJSContextStack::Push(JSContext* cx)
 {
     js::Debug_SetActiveJSContext(mRuntime->Runtime(), cx);
     if (mStack.Length() == 0) {
@@ -65,7 +65,7 @@ XPCJSContextStack::Push(JSContext *cx)
         return true;
     }
 
-    XPCJSContextInfo &e = mStack[mStack.Length() - 1];
+    XPCJSContextInfo& e = mStack[mStack.Length() - 1];
     if (e.cx) {
         // The cx we're pushing is also stack-top. In general we still need to
         // call JS_SaveFrameChain here. But if that would put us in a
@@ -78,9 +78,9 @@ XPCJSContextStack::Push(JSContext *cx)
             // default compartment object at all.
             RootedObject defaultScope(cx, GetDefaultScopeFromJSContext(cx));
             if (defaultScope) {
-                nsIPrincipal *currentPrincipal =
+                nsIPrincipal* currentPrincipal =
                   GetCompartmentPrincipal(js::GetContextCompartment(cx));
-                nsIPrincipal *defaultPrincipal = GetObjectPrincipal(defaultScope);
+                nsIPrincipal* defaultPrincipal = GetObjectPrincipal(defaultScope);
                 if (currentPrincipal->Equals(defaultPrincipal)) {
                     mStack.AppendElement(cx);
                     return true;
@@ -102,7 +102,7 @@ XPCJSContextStack::Push(JSContext *cx)
 }
 
 bool
-XPCJSContextStack::HasJSContext(JSContext *cx)
+XPCJSContextStack::HasJSContext(JSContext* cx)
 {
     for (uint32_t i = 0; i < mStack.Length(); i++)
         if (cx == mStack[i].cx)
@@ -111,14 +111,14 @@ XPCJSContextStack::HasJSContext(JSContext *cx)
 }
 
 static bool
-SafeGlobalResolve(JSContext *cx, HandleObject obj, HandleId id)
+SafeGlobalResolve(JSContext* cx, HandleObject obj, HandleId id)
 {
     bool resolved;
     return JS_ResolveStandardClass(cx, obj, id, &resolved);
 }
 
 static void
-SafeFinalize(JSFreeOp *fop, JSObject* obj)
+SafeFinalize(JSFreeOp* fop, JSObject* obj)
 {
     SandboxPrivate* sop =
         static_cast<SandboxPrivate*>(xpc_GetJSPrivate(obj));
@@ -162,7 +162,7 @@ XPCJSContextStack::InitSafeJSContext()
         MOZ_CRASH();
 
     nsXPConnect* xpc = nsXPConnect::XPConnect();
-    JSRuntime *rt = xpc->GetRuntime()->Runtime();
+    JSRuntime* rt = xpc->GetRuntime()->Runtime();
     if (!rt)
         MOZ_CRASH();
 

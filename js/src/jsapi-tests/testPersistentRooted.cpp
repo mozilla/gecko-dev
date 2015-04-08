@@ -14,8 +14,8 @@ struct BarkWhenTracedClass {
     static int traceCount;
 
     static const JSClass class_;
-    static void finalize(JSFreeOp *fop, JSObject *obj) { finalizeCount++; }
-    static void trace(JSTracer *trc, JSObject *obj) { traceCount++; }
+    static void finalize(JSFreeOp* fop, JSObject* obj) { finalizeCount++; }
+    static void trace(JSTracer* trc, JSObject* obj) { traceCount++; }
     static void reset() { finalizeCount = 0; traceCount = 0; }
 };
 
@@ -40,15 +40,15 @@ const JSClass BarkWhenTracedClass::class_ = {
 
 struct Kennel {
     PersistentRootedObject obj;
-    Kennel(JSContext *cx) : obj(cx) { }
-    Kennel(JSContext *cx, const HandleObject &woof) : obj(cx, woof) { };
+    Kennel(JSContext* cx) : obj(cx) { }
+    Kennel(JSContext* cx, const HandleObject& woof) : obj(cx, woof) { };
 };
 
 // A function for allocating a Kennel and a barker. Only allocating
 // PersistentRooteds on the heap, and in this function, helps ensure that the
 // conservative GC doesn't find stray references to the barker. Ugh.
-MOZ_NEVER_INLINE static Kennel *
-Allocate(JSContext *cx)
+MOZ_NEVER_INLINE static Kennel*
+Allocate(JSContext* cx)
 {
     RootedObject barker(cx, JS_NewObject(cx, &BarkWhenTracedClass::class_, JS::NullPtr(), JS::NullPtr()));
     if (!barker)
@@ -59,7 +59,7 @@ Allocate(JSContext *cx)
 
 // Do a GC, expecting |n| barkers to be finalized.
 static bool
-GCFinalizesNBarkers(JSContext *cx, int n)
+GCFinalizesNBarkers(JSContext* cx, int n)
 {
     int preGCTrace = BarkWhenTracedClass::traceCount;
     int preGCFinalize = BarkWhenTracedClass::finalizeCount;
@@ -75,7 +75,7 @@ BEGIN_TEST(test_PersistentRooted)
 {
     BarkWhenTracedClass::reset();
 
-    Kennel *kennel = Allocate(cx);
+    Kennel* kennel = Allocate(cx);
     CHECK(kennel);
 
     // GC should be able to find our barker.
@@ -111,13 +111,13 @@ BEGIN_TEST(test_PersistentRootedCopy)
 {
     BarkWhenTracedClass::reset();
 
-    Kennel *kennel = Allocate(cx);
+    Kennel* kennel = Allocate(cx);
     CHECK(kennel);
 
     CHECK(GCFinalizesNBarkers(cx, 0));
 
     // Copy construction! AMAZING!
-    Kennel *newKennel = new Kennel(*kennel);
+    Kennel* newKennel = new Kennel(*kennel);
 
     CHECK(GCFinalizesNBarkers(cx, 0));
 
@@ -141,13 +141,13 @@ BEGIN_TEST(test_PersistentRootedAssign)
 {
     BarkWhenTracedClass::reset();
 
-    Kennel *kennel = Allocate(cx);
+    Kennel* kennel = Allocate(cx);
     CHECK(kennel);
 
     CHECK(GCFinalizesNBarkers(cx, 0));
 
     // Allocate a new, empty kennel.
-    Kennel *kennel2 = new Kennel(cx);
+    Kennel* kennel2 = new Kennel(cx);
 
     // Assignment! ASTONISHING!
     *kennel2 = *kennel;

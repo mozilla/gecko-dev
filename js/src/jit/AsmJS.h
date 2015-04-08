@@ -31,8 +31,8 @@ typedef frontend::ParseContext<frontend::FullParseHandler> AsmJSParseContext;
 // In this case, the parser.tokenStream has been advanced an indeterminate
 // amount and the entire function should be reparsed from the beginning.
 extern bool
-CompileAsmJS(ExclusiveContext *cx, AsmJSParser &parser, frontend::ParseNode *stmtList,
-             bool *validated);
+CompileAsmJS(ExclusiveContext* cx, AsmJSParser& parser, frontend::ParseNode* stmtList,
+             bool* validated);
 
 // The assumed page size; dynamically checked in CompileAsmJS.
 const size_t AsmJSPageSize = 4096;
@@ -74,12 +74,12 @@ static const size_t AsmJSMappedSize = AsmJSPageSize + AsmJSBufferProtectedSize;
 // Return whether asm.js optimization is inhibitted by the platform or
 // dynamically disabled:
 extern bool
-IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, JS::Value *vp);
+IsAsmJSCompilationAvailable(JSContext* cx, unsigned argc, JS::Value* vp);
 
 #else // JS_ION
 
 inline bool
-IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, Value *vp)
+IsAsmJSCompilationAvailable(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     args.rval().set(BooleanValue(false));

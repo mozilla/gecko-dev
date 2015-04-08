@@ -33,8 +33,8 @@ class BailoutStack
     uint32_t frameSize() const {
         return frameSize_;
     }
-    uint8_t *parentStackPointer() {
-        return (uint8_t *)this + sizeof(BailoutStack);
+    uint8_t* parentStackPointer() {
+        return (uint8_t*)this + sizeof(BailoutStack);
     }
 };
 
@@ -45,13 +45,13 @@ class BailoutStack
 # pragma pack(pop)
 #endif
 
-IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
-                                       BailoutStack *bailout)
+IonBailoutIterator::IonBailoutIterator(const JitActivationIterator& activations,
+                                       BailoutStack* bailout)
   : JitFrameIterator(activations),
     machine_(bailout->machineState())
 {
-    uint8_t *sp = bailout->parentStackPointer();
-    uint8_t *fp = sp + bailout->frameSize();
+    uint8_t* sp = bailout->parentStackPointer();
+    uint8_t* fp = sp + bailout->frameSize();
 
     current_ = fp;
     type_ = JitFrame_IonJS;
@@ -60,14 +60,14 @@ IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
     snapshotOffset_ = bailout->snapshotOffset();
 }
 
-IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
-                                       InvalidationBailoutStack *bailout)
+IonBailoutIterator::IonBailoutIterator(const JitActivationIterator& activations,
+                                       InvalidationBailoutStack* bailout)
   : JitFrameIterator(activations),
     machine_(bailout->machine())
 {
     returnAddressToFp_ = bailout->osiPointReturnAddress();
     topIonScript_ = bailout->ionScript();
-    const OsiIndex *osiIndex = topIonScript_->getOsiIndex(returnAddressToFp_);
+    const OsiIndex* osiIndex = topIonScript_->getOsiIndex(returnAddressToFp_);
 
     current_ = (uint8_t*) bailout->fp();
     type_ = JitFrame_IonJS;

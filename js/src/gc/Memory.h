@@ -17,25 +17,25 @@ namespace gc {
 // Sanity check that our compiled configuration matches the currently running
 // instance and initialize any runtime data needed for allocation.
 void
-InitMemorySubsystem(JSRuntime *rt);
+InitMemorySubsystem(JSRuntime* rt);
 
 // Allocate or deallocate pages from the system with the given alignment.
-void *
-MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment);
+void*
+MapAlignedPages(JSRuntime* rt, size_t size, size_t alignment);
 
 void
-UnmapPages(JSRuntime *rt, void *p, size_t size);
+UnmapPages(JSRuntime* rt, void* p, size_t size);
 
 // Tell the OS that the given pages are not in use, so they should not
 // be written to a paging file. This may be a no-op on some platforms.
 bool
-MarkPagesUnused(JSRuntime *rt, void *p, size_t size);
+MarkPagesUnused(JSRuntime* rt, void* p, size_t size);
 
 // Undo |MarkPagesUnused|: tell the OS that the given pages are of interest
 // and should be paged in and out normally. This may be a no-op on some
 // platforms.
 bool
-MarkPagesInUse(JSRuntime *rt, void *p, size_t size);
+MarkPagesInUse(JSRuntime* rt, void* p, size_t size);
 
 // Returns #(hard faults) + #(soft faults)
 size_t
@@ -43,12 +43,12 @@ GetPageFaultCount();
 
 // Allocate memory mapped content.
 // The offset must be aligned according to alignment requirement.
-void *
+void*
 AllocateMappedContent(int fd, size_t offset, size_t length, size_t alignment);
 
 // Deallocate memory mapped content.
 void
-DeallocateMappedContent(void *p, size_t length);
+DeallocateMappedContent(void* p, size_t length);
 
 } // namespace gc
 } // namespace js

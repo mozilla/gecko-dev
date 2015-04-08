@@ -619,7 +619,7 @@ namespace JSC {
             return branch32(cond, left, SparcRegisters::g2);
         }
 
-        Jump branch32WithPatch(Condition cond, RegisterID left, TrustedImm32 right, DataLabel32 &dataLabel)
+        Jump branch32WithPatch(Condition cond, RegisterID left, TrustedImm32 right, DataLabel32& dataLabel)
         {
             // Always use move_nocheck, since the value is to be patched.
             dataLabel = DataLabel32(this);

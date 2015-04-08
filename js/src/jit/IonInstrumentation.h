@@ -19,17 +19,17 @@ typedef SPSInstrumentation<MacroAssembler, Register> BaseInstrumentation;
 
 class IonInstrumentation : public BaseInstrumentation
 {
-    jsbytecode **trackedPc_;
+    jsbytecode** trackedPc_;
 
   public:
-    IonInstrumentation(SPSProfiler *profiler, jsbytecode **pc)
+    IonInstrumentation(SPSProfiler* profiler, jsbytecode** pc)
       : BaseInstrumentation(profiler),
         trackedPc_(pc)
     {
         JS_ASSERT(pc != nullptr);
     }
 
-    void leave(MacroAssembler &masm, Register reg, bool inlinedFunction = false) {
+    void leave(MacroAssembler& masm, Register reg, bool inlinedFunction = false) {
         BaseInstrumentation::leave(*trackedPc_, masm, reg, inlinedFunction);
     }
 

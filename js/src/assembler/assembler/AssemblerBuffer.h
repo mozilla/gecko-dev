@@ -166,7 +166,7 @@ namespace JSC {
                 return 0;
             }
 
-            m_allocSize = js::AlignBytes(m_size, sizeof(void *));
+            m_allocSize = js::AlignBytes(m_size, sizeof(void*));
 
             void* result = allocator->alloc(m_allocSize, poolp, kind);
             if (!result) {
@@ -180,9 +180,9 @@ namespace JSC {
             return memcpy(result, m_buffer, m_size);
         }
 
-        unsigned char *buffer() const {
+        unsigned char* buffer() const {
             ASSERT(!m_oom);
-            return reinterpret_cast<unsigned char *>(m_buffer);
+            return reinterpret_cast<unsigned char*>(m_buffer);
         }
 
     protected:
@@ -270,7 +270,7 @@ namespace JSC {
 
     class GenericAssembler
     {
-        js::Sprinter *printer;
+        js::Sprinter* printer;
 
       public:
 
@@ -281,11 +281,11 @@ namespace JSC {
           , isOOLPath(false)
         {}
 
-        void setPrinter(js::Sprinter *sp) {
+        void setPrinter(js::Sprinter* sp) {
             printer = sp;
         }
 
-        void spew(const char *fmt, ...)
+        void spew(const char* fmt, ...)
 #ifdef __GNUC__
             __attribute__ ((format (printf, 2, 3)))
 #endif
@@ -316,7 +316,7 @@ namespace JSC {
             }
         }
 
-        static void staticSpew(const char *fmt, ...)
+        static void staticSpew(const char* fmt, ...)
 #ifdef __GNUC__
             __attribute__ ((format (printf, 1, 2)))
 #endif

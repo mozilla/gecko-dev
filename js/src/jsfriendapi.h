@@ -49,38 +49,38 @@ class JS_FRIEND_API(BaseProxyHandler);
 } /* namespace js */
 
 extern JS_FRIEND_API(void)
-JS_SetGrayGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
+JS_SetGrayGCRootsTracer(JSRuntime* rt, JSTraceDataOp traceOp, void* data);
 
-extern JS_FRIEND_API(JSString *)
-JS_GetAnonymousString(JSRuntime *rt);
+extern JS_FRIEND_API(JSString*)
+JS_GetAnonymousString(JSRuntime* rt);
 
 extern JS_FRIEND_API(void)
-JS_SetIsWorkerRuntime(JSRuntime *rt);
+JS_SetIsWorkerRuntime(JSRuntime* rt);
 
-extern JS_FRIEND_API(JSObject *)
-JS_FindCompilationScope(JSContext *cx, JS::HandleObject obj);
+extern JS_FRIEND_API(JSObject*)
+JS_FindCompilationScope(JSContext* cx, JS::HandleObject obj);
 
-extern JS_FRIEND_API(JSFunction *)
-JS_GetObjectFunction(JSObject *obj);
+extern JS_FRIEND_API(JSFunction*)
+JS_GetObjectFunction(JSObject* obj);
 
 extern JS_FRIEND_API(bool)
-JS_SplicePrototype(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto);
+JS_SplicePrototype(JSContext* cx, JS::HandleObject obj, JS::HandleObject proto);
 
-extern JS_FRIEND_API(JSObject *)
-JS_NewObjectWithUniqueType(JSContext *cx, const JSClass *clasp, JS::HandleObject proto,
+extern JS_FRIEND_API(JSObject*)
+JS_NewObjectWithUniqueType(JSContext* cx, const JSClass* clasp, JS::HandleObject proto,
                            JS::HandleObject parent);
 
 extern JS_FRIEND_API(uint32_t)
 JS_ObjectCountDynamicSlots(JS::HandleObject obj);
 
 extern JS_FRIEND_API(size_t)
-JS_SetProtoCalled(JSContext *cx);
+JS_SetProtoCalled(JSContext* cx);
 
 extern JS_FRIEND_API(size_t)
-JS_GetCustomIteratorCount(JSContext *cx);
+JS_GetCustomIteratorCount(JSContext* cx);
 
 extern JS_FRIEND_API(bool)
-JS_NondeterministicGetWeakMapKeys(JSContext *cx, JS::HandleObject obj, JS::MutableHandleObject ret);
+JS_NondeterministicGetWeakMapKeys(JSContext* cx, JS::HandleObject obj, JS::MutableHandleObject ret);
 
 /*
  * Determine whether the given object is backed by a DeadObjectProxy.
@@ -89,7 +89,7 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JS::HandleObject obj, JS::Mutab
  * and will throw if you touch them (e.g. by reading/writing a property).
  */
 extern JS_FRIEND_API(bool)
-JS_IsDeadWrapper(JSObject *obj);
+JS_IsDeadWrapper(JSObject* obj);
 
 /*
  * Used by the cycle collector to trace through the shape and all
@@ -97,7 +97,7 @@ JS_IsDeadWrapper(JSObject *obj);
  * process. Uses bounded stack space.
  */
 extern JS_FRIEND_API(void)
-JS_TraceShapeCycleCollectorChildren(JSTracer *trc, void *shape);
+JS_TraceShapeCycleCollectorChildren(JSTracer* trc, void* shape);
 
 enum {
     JS_TELEMETRY_GC_REASON,
@@ -121,49 +121,49 @@ typedef void
 (* JSAccumulateTelemetryDataCallback)(int id, uint32_t sample);
 
 extern JS_FRIEND_API(void)
-JS_SetAccumulateTelemetryCallback(JSRuntime *rt, JSAccumulateTelemetryDataCallback callback);
+JS_SetAccumulateTelemetryCallback(JSRuntime* rt, JSAccumulateTelemetryDataCallback callback);
 
-extern JS_FRIEND_API(JSPrincipals *)
-JS_GetCompartmentPrincipals(JSCompartment *compartment);
+extern JS_FRIEND_API(JSPrincipals*)
+JS_GetCompartmentPrincipals(JSCompartment* compartment);
 
 extern JS_FRIEND_API(void)
-JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals);
+JS_SetCompartmentPrincipals(JSCompartment* compartment, JSPrincipals* principals);
 
 /* Safe to call with input obj == nullptr. Returns non-nullptr iff obj != nullptr. */
-extern JS_FRIEND_API(JSObject *)
-JS_ObjectToInnerObject(JSContext *cx, JS::HandleObject obj);
+extern JS_FRIEND_API(JSObject*)
+JS_ObjectToInnerObject(JSContext* cx, JS::HandleObject obj);
 
 /* Requires obj != nullptr. */
-extern JS_FRIEND_API(JSObject *)
-JS_ObjectToOuterObject(JSContext *cx, JS::HandleObject obj);
+extern JS_FRIEND_API(JSObject*)
+JS_ObjectToOuterObject(JSContext* cx, JS::HandleObject obj);
 
-extern JS_FRIEND_API(JSObject *)
-JS_CloneObject(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto,
+extern JS_FRIEND_API(JSObject*)
+JS_CloneObject(JSContext* cx, JS::HandleObject obj, JS::HandleObject proto,
                JS::HandleObject parent);
 
-extern JS_FRIEND_API(JSString *)
-JS_BasicObjectToString(JSContext *cx, JS::HandleObject obj);
+extern JS_FRIEND_API(JSString*)
+JS_BasicObjectToString(JSContext* cx, JS::HandleObject obj);
 
 extern JS_FRIEND_API(bool)
-js_GetterOnlyPropertyStub(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool strict,
+js_GetterOnlyPropertyStub(JSContext* cx, JS::HandleObject obj, JS::HandleId id, bool strict,
                           JS::MutableHandleValue vp);
 
 JS_FRIEND_API(void)
-js_ReportOverRecursed(JSContext *maybecx);
+js_ReportOverRecursed(JSContext* maybecx);
 
 JS_FRIEND_API(bool)
-js_ObjectClassIs(JSContext *cx, JS::HandleObject obj, js::ESClassValue classValue);
+js_ObjectClassIs(JSContext* cx, JS::HandleObject obj, js::ESClassValue classValue);
 
-JS_FRIEND_API(const char *)
-js_ObjectClassName(JSContext *cx, JS::HandleObject obj);
+JS_FRIEND_API(const char*)
+js_ObjectClassName(JSContext* cx, JS::HandleObject obj);
 
 namespace js {
 
 JS_FRIEND_API(bool)
-AddRawValueRoot(JSContext *cx, JS::Value *vp, const char *name);
+AddRawValueRoot(JSContext* cx, JS::Value* vp, const char* name);
 
 JS_FRIEND_API(void)
-RemoveRawValueRoot(JSContext *cx, JS::Value *vp);
+RemoveRawValueRoot(JSContext* cx, JS::Value* vp);
 
 } /* namespace js */
 
@@ -176,16 +176,16 @@ RemoveRawValueRoot(JSContext *cx, JS::Value *vp);
  */
 
 extern JS_FRIEND_API(void)
-js_DumpString(JSString *str);
+js_DumpString(JSString* str);
 
 extern JS_FRIEND_API(void)
-js_DumpAtom(JSAtom *atom);
+js_DumpAtom(JSAtom* atom);
 
 extern JS_FRIEND_API(void)
-js_DumpObject(JSObject *obj);
+js_DumpObject(JSObject* obj);
 
 extern JS_FRIEND_API(void)
-js_DumpChars(const jschar *s, size_t n);
+js_DumpChars(const jschar* s, size_t n);
 #endif
 
 /*
@@ -196,7 +196,7 @@ js_DumpChars(const jschar *s, size_t n);
  * restrictions on the compartment of |cx|.
  */
 extern JS_FRIEND_API(bool)
-JS_CopyPropertiesFrom(JSContext *cx, JS::HandleObject target, JS::HandleObject obj);
+JS_CopyPropertiesFrom(JSContext* cx, JS::HandleObject target, JS::HandleObject obj);
 
 /*
  * Single-property version of the above. This function asserts that an |own|
@@ -205,26 +205,26 @@ JS_CopyPropertiesFrom(JSContext *cx, JS::HandleObject target, JS::HandleObject o
  * On entry, |cx| must be same-compartment with |obj|.
  */
 extern JS_FRIEND_API(bool)
-JS_CopyPropertyFrom(JSContext *cx, JS::HandleId id, JS::HandleObject target,
+JS_CopyPropertyFrom(JSContext* cx, JS::HandleId id, JS::HandleObject target,
                     JS::HandleObject obj);
 
 extern JS_FRIEND_API(bool)
-JS_WrapPropertyDescriptor(JSContext *cx, JS::MutableHandle<JSPropertyDescriptor> desc);
+JS_WrapPropertyDescriptor(JSContext* cx, JS::MutableHandle<JSPropertyDescriptor> desc);
 
 extern JS_FRIEND_API(bool)
-JS_WrapAutoIdVector(JSContext *cx, JS::AutoIdVector &props);
+JS_WrapAutoIdVector(JSContext* cx, JS::AutoIdVector& props);
 
 extern JS_FRIEND_API(bool)
-JS_EnumerateState(JSContext *cx, JS::HandleObject obj, JSIterateOp enum_op,
+JS_EnumerateState(JSContext* cx, JS::HandleObject obj, JSIterateOp enum_op,
                   JS::MutableHandleValue statep, JS::MutableHandleId idp);
 
 struct JSFunctionSpecWithHelp {
-    const char      *name;
+    const char*     name;
     JSNative        call;
     uint16_t        nargs;
     uint16_t        flags;
-    const char      *usage;
-    const char      *help;
+    const char*     usage;
+    const char*     help;
 };
 
 #define JS_FN_HELP(name,call,nargs,flags,usage,help)                          \
@@ -233,7 +233,7 @@ struct JSFunctionSpecWithHelp {
     {nullptr, nullptr, 0, 0, nullptr, nullptr}
 
 extern JS_FRIEND_API(bool)
-JS_DefineFunctionsWithHelp(JSContext *cx, JS::HandleObject obj, const JSFunctionSpecWithHelp *fs);
+JS_DefineFunctionsWithHelp(JSContext* cx, JS::HandleObject obj, const JSFunctionSpecWithHelp* fs);
 
 namespace js {
 
@@ -315,74 +315,74 @@ namespace js {
  */
 
 extern JS_FRIEND_API(bool)
-proxy_LookupGeneric(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHandleObject objp,
+proxy_LookupGeneric(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHandleObject objp,
                     JS::MutableHandle<Shape*> propp);
 extern JS_FRIEND_API(bool)
-proxy_LookupProperty(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
+proxy_LookupProperty(JSContext* cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
                      JS::MutableHandleObject objp, JS::MutableHandle<Shape*> propp);
 extern JS_FRIEND_API(bool)
-proxy_LookupElement(JSContext *cx, JS::HandleObject obj, uint32_t index, JS::MutableHandleObject objp,
+proxy_LookupElement(JSContext* cx, JS::HandleObject obj, uint32_t index, JS::MutableHandleObject objp,
                     JS::MutableHandle<Shape*> propp);
 extern JS_FRIEND_API(bool)
-proxy_DefineGeneric(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue value,
+proxy_DefineGeneric(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue value,
                     JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs);
 extern JS_FRIEND_API(bool)
-proxy_DefineProperty(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
+proxy_DefineProperty(JSContext* cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
                      JS::HandleValue value, JSPropertyOp getter, JSStrictPropertyOp setter,
                      unsigned attrs);
 extern JS_FRIEND_API(bool)
-proxy_DefineElement(JSContext *cx, JS::HandleObject obj, uint32_t index, JS::HandleValue value,
+proxy_DefineElement(JSContext* cx, JS::HandleObject obj, uint32_t index, JS::HandleValue value,
                     JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs);
 extern JS_FRIEND_API(bool)
-proxy_GetGeneric(JSContext *cx, JS::HandleObject obj, JS::HandleObject receiver, JS::HandleId id,
+proxy_GetGeneric(JSContext* cx, JS::HandleObject obj, JS::HandleObject receiver, JS::HandleId id,
                  JS::MutableHandleValue vp);
 extern JS_FRIEND_API(bool)
-proxy_GetProperty(JSContext *cx, JS::HandleObject obj, JS::HandleObject receiver,
+proxy_GetProperty(JSContext* cx, JS::HandleObject obj, JS::HandleObject receiver,
                   JS::Handle<PropertyName*> name, JS::MutableHandleValue vp);
 extern JS_FRIEND_API(bool)
-proxy_GetElement(JSContext *cx, JS::HandleObject obj, JS::HandleObject receiver, uint32_t index,
+proxy_GetElement(JSContext* cx, JS::HandleObject obj, JS::HandleObject receiver, uint32_t index,
                  JS::MutableHandleValue vp);
 extern JS_FRIEND_API(bool)
-proxy_SetGeneric(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+proxy_SetGeneric(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                  JS::MutableHandleValue bp, bool strict);
 extern JS_FRIEND_API(bool)
-proxy_SetProperty(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
+proxy_SetProperty(JSContext* cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
                   JS::MutableHandleValue bp, bool strict);
 extern JS_FRIEND_API(bool)
-proxy_SetElement(JSContext *cx, JS::HandleObject obj, uint32_t index, JS::MutableHandleValue vp,
+proxy_SetElement(JSContext* cx, JS::HandleObject obj, uint32_t index, JS::MutableHandleValue vp,
                  bool strict);
 extern JS_FRIEND_API(bool)
-proxy_GetGenericAttributes(JSContext *cx, JS::HandleObject obj, JS::HandleId id, unsigned *attrsp);
+proxy_GetGenericAttributes(JSContext* cx, JS::HandleObject obj, JS::HandleId id, unsigned* attrsp);
 extern JS_FRIEND_API(bool)
-proxy_SetGenericAttributes(JSContext *cx, JS::HandleObject obj, JS::HandleId id, unsigned *attrsp);
+proxy_SetGenericAttributes(JSContext* cx, JS::HandleObject obj, JS::HandleId id, unsigned* attrsp);
 extern JS_FRIEND_API(bool)
-proxy_DeleteProperty(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
-                     bool *succeeded);
+proxy_DeleteProperty(JSContext* cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
+                     bool* succeeded);
 extern JS_FRIEND_API(bool)
-proxy_DeleteElement(JSContext *cx, JS::HandleObject obj, uint32_t index, bool *succeeded);
+proxy_DeleteElement(JSContext* cx, JS::HandleObject obj, uint32_t index, bool* succeeded);
 
 extern JS_FRIEND_API(void)
-proxy_Trace(JSTracer *trc, JSObject *obj);
-extern JS_FRIEND_API(JSObject *)
-proxy_WeakmapKeyDelegate(JSObject *obj);
+proxy_Trace(JSTracer* trc, JSObject* obj);
+extern JS_FRIEND_API(JSObject*)
+proxy_WeakmapKeyDelegate(JSObject* obj);
 extern JS_FRIEND_API(bool)
-proxy_Convert(JSContext *cx, JS::HandleObject proxy, JSType hint, JS::MutableHandleValue vp);
+proxy_Convert(JSContext* cx, JS::HandleObject proxy, JSType hint, JS::MutableHandleValue vp);
 extern JS_FRIEND_API(void)
-proxy_Finalize(FreeOp *fop, JSObject *obj);
+proxy_Finalize(FreeOp* fop, JSObject* obj);
 extern JS_FRIEND_API(bool)
-proxy_HasInstance(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleValue v, bool *bp);
+proxy_HasInstance(JSContext* cx, JS::HandleObject proxy, JS::MutableHandleValue v, bool* bp);
 extern JS_FRIEND_API(bool)
-proxy_Call(JSContext *cx, unsigned argc, JS::Value *vp);
+proxy_Call(JSContext* cx, unsigned argc, JS::Value* vp);
 extern JS_FRIEND_API(bool)
-proxy_Construct(JSContext *cx, unsigned argc, JS::Value *vp);
-extern JS_FRIEND_API(JSObject *)
-proxy_innerObject(JSContext *cx, JS::HandleObject obj);
+proxy_Construct(JSContext* cx, unsigned argc, JS::Value* vp);
+extern JS_FRIEND_API(JSObject*)
+proxy_innerObject(JSContext* cx, JS::HandleObject obj);
 extern JS_FRIEND_API(bool)
-proxy_Watch(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
+proxy_Watch(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
 extern JS_FRIEND_API(bool)
-proxy_Unwatch(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
+proxy_Unwatch(JSContext* cx, JS::HandleObject obj, JS::HandleId id);
 extern JS_FRIEND_API(bool)
-proxy_Slice(JSContext *cx, JS::HandleObject proxy, uint32_t begin, uint32_t end,
+proxy_Slice(JSContext* cx, JS::HandleObject proxy, uint32_t begin, uint32_t end,
             JS::HandleObject result);
 
 /*
@@ -405,7 +405,7 @@ class SourceHook {
      * On success, the caller owns the buffer to which |*src| points, and
      * should use JS_free to free it.
      */
-    virtual bool load(JSContext *cx, const char *filename, jschar **src, size_t *length) = 0;
+    virtual bool load(JSContext* cx, const char* filename, jschar** src, size_t* length) = 0;
 };
 
 /*
@@ -415,17 +415,17 @@ class SourceHook {
  * set.
  */
 extern JS_FRIEND_API(void)
-SetSourceHook(JSRuntime *rt, SourceHook *hook);
+SetSourceHook(JSRuntime* rt, SourceHook* hook);
 
 /* Remove |rt|'s source hook, and return it. The caller now owns the hook. */
-extern JS_FRIEND_API(SourceHook *)
-ForgetSourceHook(JSRuntime *rt);
+extern JS_FRIEND_API(SourceHook*)
+ForgetSourceHook(JSRuntime* rt);
 
-extern JS_FRIEND_API(JS::Zone *)
-GetCompartmentZone(JSCompartment *comp);
+extern JS_FRIEND_API(JS::Zone*)
+GetCompartmentZone(JSCompartment* comp);
 
 typedef bool
-(* PreserveWrapperCallback)(JSContext *cx, JSObject *obj);
+(* PreserveWrapperCallback)(JSContext* cx, JSObject* obj);
 
 typedef enum  {
     CollectNurseryBeforeDump,
@@ -437,21 +437,21 @@ typedef enum  {
   * fp is the file for the dump output.
   */
 extern JS_FRIEND_API(void)
-DumpHeapComplete(JSRuntime *rt, FILE *fp, DumpHeapNurseryBehaviour nurseryBehaviour);
+DumpHeapComplete(JSRuntime* rt, FILE* fp, DumpHeapNurseryBehaviour nurseryBehaviour);
 
 #ifdef JS_OLD_GETTER_SETTER_METHODS
-JS_FRIEND_API(bool) obj_defineGetter(JSContext *cx, unsigned argc, JS::Value *vp);
-JS_FRIEND_API(bool) obj_defineSetter(JSContext *cx, unsigned argc, JS::Value *vp);
+JS_FRIEND_API(bool) obj_defineGetter(JSContext* cx, unsigned argc, JS::Value* vp);
+JS_FRIEND_API(bool) obj_defineSetter(JSContext* cx, unsigned argc, JS::Value* vp);
 #endif
 
 extern JS_FRIEND_API(bool)
-IsSystemCompartment(JSCompartment *comp);
+IsSystemCompartment(JSCompartment* comp);
 
 extern JS_FRIEND_API(bool)
-IsSystemZone(JS::Zone *zone);
+IsSystemZone(JS::Zone* zone);
 
 extern JS_FRIEND_API(bool)
-IsAtomsCompartment(JSCompartment *comp);
+IsAtomsCompartment(JSCompartment* comp);
 
 /*
  * Check whether it is OK to assign an undeclared variable with the name
@@ -461,7 +461,7 @@ IsAtomsCompartment(JSCompartment *comp);
  * particularly, always reports when it returns false).
  */
 extern JS_FRIEND_API(bool)
-ReportIfUndeclaredVarAssignment(JSContext *cx, JS::HandleString propname);
+ReportIfUndeclaredVarAssignment(JSContext* cx, JS::HandleString propname);
 
 /*
  * Returns whether we're in a non-strict property set (in that we're in a
@@ -470,7 +470,7 @@ ReportIfUndeclaredVarAssignment(JSContext *cx, JS::HandleString propname);
  * boolean.
  */
 extern JS_FRIEND_API(bool)
-IsInNonStrictPropertySet(JSContext *cx);
+IsInNonStrictPropertySet(JSContext* cx);
 
 struct WeakMapTracer;
 
@@ -481,52 +481,52 @@ struct WeakMapTracer;
  * m will be nullptr if the weak map is not contained in a JS Object.
  */
 typedef void
-(* WeakMapTraceCallback)(WeakMapTracer *trc, JSObject *m,
-                         void *k, JSGCTraceKind kkind,
-                         void *v, JSGCTraceKind vkind);
+(* WeakMapTraceCallback)(WeakMapTracer* trc, JSObject* m,
+                         void* k, JSGCTraceKind kkind,
+                         void* v, JSGCTraceKind vkind);
 
 struct WeakMapTracer {
-    JSRuntime            *runtime;
+    JSRuntime*           runtime;
     WeakMapTraceCallback callback;
 
-    WeakMapTracer(JSRuntime *rt, WeakMapTraceCallback cb)
+    WeakMapTracer(JSRuntime* rt, WeakMapTraceCallback cb)
         : runtime(rt), callback(cb) {}
 };
 
 extern JS_FRIEND_API(void)
-TraceWeakMaps(WeakMapTracer *trc);
+TraceWeakMaps(WeakMapTracer* trc);
 
 extern JS_FRIEND_API(bool)
-AreGCGrayBitsValid(JSRuntime *rt);
+AreGCGrayBitsValid(JSRuntime* rt);
 
 extern JS_FRIEND_API(bool)
-ZoneGlobalsAreAllGray(JS::Zone *zone);
+ZoneGlobalsAreAllGray(JS::Zone* zone);
 
 typedef void
-(*GCThingCallback)(void *closure, void *gcthing);
+(*GCThingCallback)(void* closure, void* gcthing);
 
 extern JS_FRIEND_API(void)
-VisitGrayWrapperTargets(JS::Zone *zone, GCThingCallback callback, void *closure);
+VisitGrayWrapperTargets(JS::Zone* zone, GCThingCallback callback, void* closure);
 
-extern JS_FRIEND_API(JSObject *)
-GetWeakmapKeyDelegate(JSObject *key);
+extern JS_FRIEND_API(JSObject*)
+GetWeakmapKeyDelegate(JSObject* key);
 
 JS_FRIEND_API(JSGCTraceKind)
-GCThingTraceKind(void *thing);
+GCThingTraceKind(void* thing);
 
 /*
  * Invoke cellCallback on every gray JS_OBJECT in the given zone.
  */
 extern JS_FRIEND_API(void)
-IterateGrayObjects(JS::Zone *zone, GCThingCallback cellCallback, void *data);
+IterateGrayObjects(JS::Zone* zone, GCThingCallback cellCallback, void* data);
 
 #ifdef JS_HAS_CTYPES
 extern JS_FRIEND_API(size_t)
-SizeOfDataIfCDataObject(mozilla::MallocSizeOf mallocSizeOf, JSObject *obj);
+SizeOfDataIfCDataObject(mozilla::MallocSizeOf mallocSizeOf, JSObject* obj);
 #endif
 
-extern JS_FRIEND_API(JSCompartment *)
-GetAnyCompartmentInZone(JS::Zone *zone);
+extern JS_FRIEND_API(JSCompartment*)
+GetAnyCompartmentInZone(JS::Zone* zone);
 
 /*
  * Shadow declarations of JS internal structures, for access by inline access
@@ -537,20 +537,20 @@ GetAnyCompartmentInZone(JS::Zone *zone);
 namespace shadow {
 
 struct TypeObject {
-    const Class *clasp;
-    JSObject    *proto;
+    const Class* clasp;
+    JSObject*   proto;
 };
 
 struct BaseShape {
-    const js::Class *clasp_;
-    JSObject *parent;
-    JSObject *_1;
-    JSCompartment *compartment;
+    const js::Class* clasp_;
+    JSObject* parent;
+    JSObject* _1;
+    JSCompartment* compartment;
 };
 
 class Shape {
 public:
-    shadow::BaseShape *base;
+    shadow::BaseShape* base;
     jsid              _1;
     uint32_t          slotInfo;
 
@@ -558,17 +558,17 @@ public:
 };
 
 struct Object {
-    shadow::Shape      *shape;
-    shadow::TypeObject *type;
-    JS::Value          *slots;
-    JS::Value          *_1;
+    shadow::Shape*     shape;
+    shadow::TypeObject* type;
+    JS::Value*         slots;
+    JS::Value*         _1;
 
     size_t numFixedSlots() const { return shape->slotInfo >> Shape::FIXED_SLOTS_SHIFT; }
-    JS::Value *fixedSlots() const {
-        return (JS::Value *)(uintptr_t(this) + sizeof(shadow::Object));
+    JS::Value* fixedSlots() const {
+        return (JS::Value*)(uintptr_t(this) + sizeof(shadow::Object));
     }
 
-    JS::Value &slotRef(size_t slot) const {
+    JS::Value& slotRef(size_t slot) const {
         size_t nfixed = numFixedSlots();
         if (slot < nfixed)
             return fixedSlots()[slot];
@@ -586,14 +586,14 @@ struct Function {
     uint16_t flags;
     /* Used only for natives */
     JSNative native;
-    const JSJitInfo *jitinfo;
-    void *_1;
+    const JSJitInfo* jitinfo;
+    void* _1;
 };
 
 struct Atom {
     static const size_t LENGTH_SHIFT = 4;
     size_t lengthAndFlags;
-    const jschar *chars;
+    const jschar* chars;
 };
 
 } /* namespace shadow */
@@ -602,80 +602,80 @@ struct Atom {
 // to #include jsobj.h.
 extern JS_FRIEND_DATA(const js::Class* const) ObjectClassPtr;
 
-inline const js::Class *
-GetObjectClass(JSObject *obj)
+inline const js::Class*
+GetObjectClass(JSObject* obj)
 {
     return reinterpret_cast<const shadow::Object*>(obj)->type->clasp;
 }
 
-inline const JSClass *
-GetObjectJSClass(JSObject *obj)
+inline const JSClass*
+GetObjectJSClass(JSObject* obj)
 {
     return js::Jsvalify(GetObjectClass(obj));
 }
 
 inline bool
-IsInnerObject(JSObject *obj) {
+IsInnerObject(JSObject* obj) {
     return !!GetObjectClass(obj)->ext.outerObject;
 }
 
 inline bool
-IsOuterObject(JSObject *obj) {
+IsOuterObject(JSObject* obj) {
     return !!GetObjectClass(obj)->ext.innerObject;
 }
 
 JS_FRIEND_API(bool)
-IsFunctionObject(JSObject *obj);
+IsFunctionObject(JSObject* obj);
 
 JS_FRIEND_API(bool)
-IsScopeObject(JSObject *obj);
+IsScopeObject(JSObject* obj);
 
 JS_FRIEND_API(bool)
-IsCallObject(JSObject *obj);
+IsCallObject(JSObject* obj);
 
-inline JSObject *
-GetObjectParent(JSObject *obj)
+inline JSObject*
+GetObjectParent(JSObject* obj)
 {
     JS_ASSERT(!IsScopeObject(obj));
     return reinterpret_cast<shadow::Object*>(obj)->shape->base->parent;
 }
 
-static MOZ_ALWAYS_INLINE JSCompartment *
-GetObjectCompartment(JSObject *obj)
+static MOZ_ALWAYS_INLINE JSCompartment*
+GetObjectCompartment(JSObject* obj)
 {
     return reinterpret_cast<shadow::Object*>(obj)->shape->base->compartment;
 }
 
-JS_FRIEND_API(JSObject *)
-GetObjectParentMaybeScope(JSObject *obj);
+JS_FRIEND_API(JSObject*)
+GetObjectParentMaybeScope(JSObject* obj);
 
-JS_FRIEND_API(JSObject *)
-GetGlobalForObjectCrossCompartment(JSObject *obj);
+JS_FRIEND_API(JSObject*)
+GetGlobalForObjectCrossCompartment(JSObject* obj);
 
 // Sidestep the activeContext checking implicitly performed in
 // JS_SetPendingException.
 JS_FRIEND_API(void)
-SetPendingExceptionCrossContext(JSContext *cx, JS::HandleValue v);
+SetPendingExceptionCrossContext(JSContext* cx, JS::HandleValue v);
 
 JS_FRIEND_API(void)
-AssertSameCompartment(JSContext *cx, JSObject *obj);
+AssertSameCompartment(JSContext* cx, JSObject* obj);
 
 #ifdef JS_DEBUG
 JS_FRIEND_API(void)
-AssertSameCompartment(JSObject *objA, JSObject *objB);
+AssertSameCompartment(JSObject* objA, JSObject* objB);
 #else
-inline void AssertSameCompartment(JSObject *objA, JSObject *objB) {}
+inline void AssertSameCompartment(JSObject* objA, JSObject* objB) {}
 #endif
 
 // For legacy consumers only. This whole concept is going away soon.
-JS_FRIEND_API(JSObject *)
-DefaultObjectForContextOrNull(JSContext *cx);
+JS_FRIEND_API(JSObject*)
+DefaultObjectForContextOrNull(JSContext* cx);
 
 JS_FRIEND_API(void)
-SetDefaultObjectForContext(JSContext *cx, JSObject *obj);
+SetDefaultObjectForContext(JSContext* cx, JSObject* obj);
 
 JS_FRIEND_API(void)
-NotifyAnimationActivity(JSObject *obj);
+NotifyAnimationActivity(JSObject* obj);
 
 /*
  * Return the outermost enclosing function (script) of the scripted caller.
@@ -686,45 +686,45 @@ NotifyAnimationActivity(JSObject *obj);
  * thus it will really return the outermost enclosing function *since the
  * innermost eval*.
  */
-JS_FRIEND_API(JSScript *)
-GetOutermostEnclosingFunctionOfScriptedCaller(JSContext *cx);
+JS_FRIEND_API(JSScript*)
+GetOutermostEnclosingFunctionOfScriptedCaller(JSContext* cx);
 
-JS_FRIEND_API(JSFunction *)
-DefineFunctionWithReserved(JSContext *cx, JSObject *obj, const char *name, JSNative call,
+JS_FRIEND_API(JSFunction*)
+DefineFunctionWithReserved(JSContext* cx, JSObject* obj, const char* name, JSNative call,
                            unsigned nargs, unsigned attrs);
 
-JS_FRIEND_API(JSFunction *)
-NewFunctionWithReserved(JSContext *cx, JSNative call, unsigned nargs, unsigned flags,
-                        JSObject *parent, const char *name);
+JS_FRIEND_API(JSFunction*)
+NewFunctionWithReserved(JSContext* cx, JSNative call, unsigned nargs, unsigned flags,
+                        JSObject* parent, const char* name);
 
-JS_FRIEND_API(JSFunction *)
-NewFunctionByIdWithReserved(JSContext *cx, JSNative native, unsigned nargs, unsigned flags,
-                            JSObject *parent, jsid id);
+JS_FRIEND_API(JSFunction*)
+NewFunctionByIdWithReserved(JSContext* cx, JSNative native, unsigned nargs, unsigned flags,
+                            JSObject* parent, jsid id);
 
-JS_FRIEND_API(JSObject *)
-InitClassWithReserved(JSContext *cx, JSObject *obj, JSObject *parent_proto,
-                      const JSClass *clasp, JSNative constructor, unsigned nargs,
-                      const JSPropertySpec *ps, const JSFunctionSpec *fs,
-                      const JSPropertySpec *static_ps, const JSFunctionSpec *static_fs);
+JS_FRIEND_API(JSObject*)
+InitClassWithReserved(JSContext* cx, JSObject* obj, JSObject* parent_proto,
+                      const JSClass* clasp, JSNative constructor, unsigned nargs,
+                      const JSPropertySpec* ps, const JSFunctionSpec* fs,
+                      const JSPropertySpec* static_ps, const JSFunctionSpec* static_fs);
 
-JS_FRIEND_API(const JS::Value &)
-GetFunctionNativeReserved(JSObject *fun, size_t which);
+JS_FRIEND_API(const JS::Value&)
+GetFunctionNativeReserved(JSObject* fun, size_t which);
 
 JS_FRIEND_API(void)
-SetFunctionNativeReserved(JSObject *fun, size_t which, const JS::Value &val);
+SetFunctionNativeReserved(JSObject* fun, size_t which, const JS::Value& val);
 
 JS_FRIEND_API(bool)
-GetObjectProto(JSContext *cx, JS::HandleObject obj, JS::MutableHandleObject proto);
+GetObjectProto(JSContext* cx, JS::HandleObject obj, JS::MutableHandleObject proto);
 
 JS_FRIEND_API(bool)
-GetOriginalEval(JSContext *cx, JS::HandleObject scope,
+GetOriginalEval(JSContext* cx, JS::HandleObject scope,
                 JS::MutableHandleObject eval);
 
-inline void *
-GetObjectPrivate(JSObject *obj)
+inline void*
+GetObjectPrivate(JSObject* obj)
 {
-    const shadow::Object *nobj = reinterpret_cast<const shadow::Object*>(obj);
-    void **addr = reinterpret_cast<void**>(&nobj->fixedSlots()[nobj->numFixedSlots()]);
+    const shadow::Object* nobj = reinterpret_cast<const shadow::Object*>(obj);
+    void** addr = reinterpret_cast<void**>(&nobj->fixedSlots()[nobj->numFixedSlots()]);
     return *addr;
 }
 
@@ -732,21 +732,21 @@ GetObjectPrivate(JSObject *obj)
  * Get a slot that is both reserved for object's clasp *and* is fixed (fits
  * within the maximum capacity for the object's fixed slots).
  */
-inline const JS::Value &
-GetReservedSlot(JSObject *obj, size_t slot)
+inline const JS::Value&
+GetReservedSlot(JSObject* obj, size_t slot)
 {
     JS_ASSERT(slot < JSCLASS_RESERVED_SLOTS(GetObjectClass(obj)));
-    return reinterpret_cast<const shadow::Object *>(obj)->slotRef(slot);
+    return reinterpret_cast<const shadow::Object*>(obj)->slotRef(slot);
 }
 
 JS_FRIEND_API(void)
-SetReservedSlotWithBarrier(JSObject *obj, size_t slot, const JS::Value &value);
+SetReservedSlotWithBarrier(JSObject* obj, size_t slot, const JS::Value& value);
 
 inline void
-SetReservedSlot(JSObject *obj, size_t slot, const JS::Value &value)
+SetReservedSlot(JSObject* obj, size_t slot, const JS::Value& value)
 {
     JS_ASSERT(slot < JSCLASS_RESERVED_SLOTS(GetObjectClass(obj)));
-    shadow::Object *sobj = reinterpret_cast<shadow::Object *>(obj);
+    shadow::Object* sobj = reinterpret_cast<shadow::Object*>(obj);
     if (sobj->slotRef(slot).isMarkable()
 #ifdef JSGC_GENERATIONAL
         || value.isMarkable()
@@ -760,51 +760,51 @@ SetReservedSlot(JSObject *obj, size_t slot, const JS::Value &value)
 }
 
 JS_FRIEND_API(uint32_t)
-GetObjectSlotSpan(JSObject *obj);
+GetObjectSlotSpan(JSObject* obj);
 
-inline const JS::Value &
-GetObjectSlot(JSObject *obj, size_t slot)
+inline const JS::Value&
+GetObjectSlot(JSObject* obj, size_t slot)
 {
     JS_ASSERT(slot < GetObjectSlotSpan(obj));
-    return reinterpret_cast<const shadow::Object *>(obj)->slotRef(slot);
+    return reinterpret_cast<const shadow::Object*>(obj)->slotRef(slot);
 }
 
-inline const jschar *
-GetAtomChars(JSAtom *atom)
+inline const jschar*
+GetAtomChars(JSAtom* atom)
 {
-    return reinterpret_cast<shadow::Atom *>(atom)->chars;
+    return reinterpret_cast<shadow::Atom*>(atom)->chars;
 }
 
 inline size_t
-GetAtomLength(JSAtom *atom)
+GetAtomLength(JSAtom* atom)
 {
     using shadow::Atom;
     return reinterpret_cast<Atom*>(atom)->lengthAndFlags >> Atom::LENGTH_SHIFT;
 }
 
-inline JSLinearString *
-AtomToLinearString(JSAtom *atom)
+inline JSLinearString*
+AtomToLinearString(JSAtom* atom)
 {
-    return reinterpret_cast<JSLinearString *>(atom);
+    return reinterpret_cast<JSLinearString*>(atom);
 }
 
 JS_FRIEND_API(bool)
-GetPropertyNames(JSContext *cx, JSObject *obj, unsigned flags, JS::AutoIdVector *props);
+GetPropertyNames(JSContext* cx, JSObject* obj, unsigned flags, JS::AutoIdVector* props);
 
 JS_FRIEND_API(bool)
-AppendUnique(JSContext *cx, JS::AutoIdVector &base, JS::AutoIdVector &others);
+AppendUnique(JSContext* cx, JS::AutoIdVector& base, JS::AutoIdVector& others);
 
 JS_FRIEND_API(bool)
-GetGeneric(JSContext *cx, JSObject *obj, JSObject *receiver, jsid id, JS::Value *vp);
+GetGeneric(JSContext* cx, JSObject* obj, JSObject* receiver, jsid id, JS::Value* vp);
 
 JS_FRIEND_API(bool)
-StringIsArrayIndex(JSLinearString *str, uint32_t *indexp);
+StringIsArrayIndex(JSLinearString* str, uint32_t* indexp);
 
 JS_FRIEND_API(void)
-SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback);
+SetPreserveWrapperCallback(JSRuntime* rt, PreserveWrapperCallback callback);
 
 JS_FRIEND_API(bool)
-IsObjectInContextCompartment(JSObject *obj, const JSContext *cx);
+IsObjectInContextCompartment(JSObject* obj, const JSContext* cx);
 
 /*
  * NB: these flag bits are encoded into the bytecode stream in the immediate
@@ -818,14 +818,14 @@ IsObjectInContextCompartment(JSObject *obj, const JSContext *cx);
 #define JSITER_HIDDEN     0x10  /* also enumerate non-enumerable properties */
 
 JS_FRIEND_API(bool)
-RunningWithTrustedPrincipals(JSContext *cx);
+RunningWithTrustedPrincipals(JSContext* cx);
 
 inline uintptr_t
-GetNativeStackLimit(JSContext *cx)
+GetNativeStackLimit(JSContext* cx)
 {
     StackKind kind = RunningWithTrustedPrincipals(cx) ? StackForTrustedScript
                                                       : StackForUntrustedScript;
-    PerThreadDataFriendFields *mainThread =
+    PerThreadDataFriendFields* mainThread =
       PerThreadDataFriendFields::getMainThread(GetRuntime(cx));
     return mainThread->nativeStackLimit[kind];
 }
@@ -881,30 +881,30 @@ GetNativeStackLimit(JSContext *cx)
     JS_END_MACRO
 
 JS_FRIEND_API(void)
-StartPCCountProfiling(JSContext *cx);
+StartPCCountProfiling(JSContext* cx);
 
 JS_FRIEND_API(void)
-StopPCCountProfiling(JSContext *cx);
+StopPCCountProfiling(JSContext* cx);
 
 JS_FRIEND_API(void)
-PurgePCCounts(JSContext *cx);
+PurgePCCounts(JSContext* cx);
 
 JS_FRIEND_API(size_t)
-GetPCCountScriptCount(JSContext *cx);
+GetPCCountScriptCount(JSContext* cx);
 
-JS_FRIEND_API(JSString *)
-GetPCCountScriptSummary(JSContext *cx, size_t script);
+JS_FRIEND_API(JSString*)
+GetPCCountScriptSummary(JSContext* cx, size_t script);
 
-JS_FRIEND_API(JSString *)
-GetPCCountScriptContents(JSContext *cx, size_t script);
+JS_FRIEND_API(JSString*)
+GetPCCountScriptContents(JSContext* cx, size_t script);
 
 #ifdef JS_THREADSAFE
 JS_FRIEND_API(bool)
-ContextHasOutstandingRequests(const JSContext *cx);
+ContextHasOutstandingRequests(const JSContext* cx);
 #endif
 
 typedef void
-(* ActivityCallback)(void *arg, bool active);
+(* ActivityCallback)(void* arg, bool active);
 
 /*
  * Sets a callback that is run whenever the runtime goes idle - the
@@ -912,39 +912,39 @@ typedef void
  * idle and a request begins.
  */
 JS_FRIEND_API(void)
-SetActivityCallback(JSRuntime *rt, ActivityCallback cb, void *arg);
+SetActivityCallback(JSRuntime* rt, ActivityCallback cb, void* arg);
 
-extern JS_FRIEND_API(const JSStructuredCloneCallbacks *)
-GetContextStructuredCloneCallbacks(JSContext *cx);
+extern JS_FRIEND_API(const JSStructuredCloneCallbacks*)
+GetContextStructuredCloneCallbacks(JSContext* cx);
 
 extern JS_FRIEND_API(bool)
-IsContextRunningJS(JSContext *cx);
+IsContextRunningJS(JSContext* cx);
 
 typedef bool
-(* DOMInstanceClassMatchesProto)(JSObject *protoObject, uint32_t protoID, uint32_t depth);
+(* DOMInstanceClassMatchesProto)(JSObject* protoObject, uint32_t protoID, uint32_t depth);
 struct JSDOMCallbacks {
     DOMInstanceClassMatchesProto instanceClassMatchesProto;
 };
 typedef struct JSDOMCallbacks DOMCallbacks;
 
 extern JS_FRIEND_API(void)
-SetDOMCallbacks(JSRuntime *rt, const DOMCallbacks *callbacks);
+SetDOMCallbacks(JSRuntime* rt, const DOMCallbacks* callbacks);
 
-extern JS_FRIEND_API(const DOMCallbacks *)
-GetDOMCallbacks(JSRuntime *rt);
+extern JS_FRIEND_API(const DOMCallbacks*)
+GetDOMCallbacks(JSRuntime* rt);
 
-extern JS_FRIEND_API(JSObject *)
-GetTestingFunctions(JSContext *cx);
+extern JS_FRIEND_API(JSObject*)
+GetTestingFunctions(JSContext* cx);
 
 /*
  * Helper to convert FreeOp to JSFreeOp when the definition of FreeOp is not
  * available and the compiler does not know that FreeOp inherits from
  * JSFreeOp.
  */
-inline JSFreeOp *
-CastToJSFreeOp(FreeOp *fop)
+inline JSFreeOp*
+CastToJSFreeOp(FreeOp* fop)
 {
-    return reinterpret_cast<JSFreeOp *>(fop);
+    return reinterpret_cast<JSFreeOp*>(fop);
 }
 
 /* Implemented in jsexn.cpp. */
@@ -972,35 +972,35 @@ typedef enum NukeReferencesToWindow {
  * do any rooting or holding of their members.
  */
 struct CompartmentFilter {
-    virtual bool match(JSCompartment *c) const = 0;
+    virtual bool match(JSCompartment* c) const = 0;
 };
 
 struct AllCompartments : public CompartmentFilter {
-    virtual bool match(JSCompartment *c) const { return true; }
+    virtual bool match(JSCompartment* c) const { return true; }
 };
 
 struct ContentCompartmentsOnly : public CompartmentFilter {
-    virtual bool match(JSCompartment *c) const {
+    virtual bool match(JSCompartment* c) const {
         return !IsSystemCompartment(c);
     }
 };
 
 struct ChromeCompartmentsOnly : public CompartmentFilter {
-    virtual bool match(JSCompartment *c) const {
+    virtual bool match(JSCompartment* c) const {
         return IsSystemCompartment(c);
     }
 };
 
 struct SingleCompartment : public CompartmentFilter {
-    JSCompartment *ours;
-    SingleCompartment(JSCompartment *c) : ours(c) {}
-    virtual bool match(JSCompartment *c) const { return c == ours; }
+    JSCompartment* ours;
+    SingleCompartment(JSCompartment* c) : ours(c) {}
+    virtual bool match(JSCompartment* c) const { return c == ours; }
 };
 
 struct CompartmentsWithPrincipals : public CompartmentFilter {
-    JSPrincipals *principals;
-    CompartmentsWithPrincipals(JSPrincipals *p) : principals(p) {}
-    virtual bool match(JSCompartment *c) const {
+    JSPrincipals* principals;
+    CompartmentsWithPrincipals(JSPrincipals* p) : principals(p) {}
+    virtual bool match(JSCompartment* c) const {
         return JS_GetCompartmentPrincipals(c) == principals;
     }
 };
@@ -1062,10 +1062,10 @@ typedef enum DOMProxyShadowsResult {
 typedef DOMProxyShadowsResult
 (* DOMProxyShadowsCheck)(JSContext* cx, JS::HandleObject object, JS::HandleId id);
 JS_FRIEND_API(void)
-SetDOMProxyInformation(const void *domProxyHandlerFamily, uint32_t domProxyExpandoSlot,
+SetDOMProxyInformation(const void* domProxyHandlerFamily, uint32_t domProxyExpandoSlot,
                        DOMProxyShadowsCheck domProxyShadowsCheck);
 
-const void *GetDOMProxyHandlerFamily();
+const void* GetDOMProxyHandlerFamily();
 uint32_t GetDOMProxyExpandoSlot();
 DOMProxyShadowsCheck GetDOMProxyShadowsCheck();
 
@@ -1081,7 +1081,7 @@ extern JS_FRIEND_API(bool)
 js_DateIsValid(JSObject* obj);
 
 extern JS_FRIEND_API(double)
-js_DateGetMsecSinceEpoch(JSObject *obj);
+js_DateGetMsecSinceEpoch(JSObject* obj);
 
 /* Implemented in jscntxt.cpp. */
 
@@ -1097,15 +1097,15 @@ typedef enum JSErrNum {
     JSErr_Limit
 } JSErrNum;
 
-extern JS_FRIEND_API(const JSErrorFormatString *)
-js_GetErrorMessage(void *userRef, const char *locale, const unsigned errorNumber);
+extern JS_FRIEND_API(const JSErrorFormatString*)
+js_GetErrorMessage(void* userRef, const char* locale, const unsigned errorNumber);
 
 namespace js {
 
 // Creates a string of the form |ErrorType: ErrorMessage| for a JSErrorReport,
 // which generally matches the toString() behavior of an ErrorObject.
-extern JS_FRIEND_API(JSString *)
-ErrorReportToString(JSContext *cx, JSErrorReport *reportp);
+extern JS_FRIEND_API(JSString*)
+ErrorReportToString(JSContext* cx, JSErrorReport* reportp);
 
 } /* namespace js */
 
@@ -1157,25 +1157,25 @@ typedef js::ArrayBufferView::ViewType JSArrayBufferViewType;
  * These functions (except the WithBuffer variants) fill in the array with zeros.
  */
 
-extern JS_FRIEND_API(JSObject *)
-JS_NewInt8Array(JSContext *cx, uint32_t nelements);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint8Array(JSContext *cx, uint32_t nelements);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint8ClampedArray(JSContext *cx, uint32_t nelements);
+extern JS_FRIEND_API(JSObject*)
+JS_NewInt8Array(JSContext* cx, uint32_t nelements);
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint8Array(JSContext* cx, uint32_t nelements);
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint8ClampedArray(JSContext* cx, uint32_t nelements);
 
-extern JS_FRIEND_API(JSObject *)
-JS_NewInt16Array(JSContext *cx, uint32_t nelements);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint16Array(JSContext *cx, uint32_t nelements);
-extern JS_FRIEND_API(JSObject *)
-JS_NewInt32Array(JSContext *cx, uint32_t nelements);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint32Array(JSContext *cx, uint32_t nelements);
-extern JS_FRIEND_API(JSObject *)
-JS_NewFloat32Array(JSContext *cx, uint32_t nelements);
-extern JS_FRIEND_API(JSObject *)
-JS_NewFloat64Array(JSContext *cx, uint32_t nelements);
+extern JS_FRIEND_API(JSObject*)
+JS_NewInt16Array(JSContext* cx, uint32_t nelements);
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint16Array(JSContext* cx, uint32_t nelements);
+extern JS_FRIEND_API(JSObject*)
+JS_NewInt32Array(JSContext* cx, uint32_t nelements);
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint32Array(JSContext* cx, uint32_t nelements);
+extern JS_FRIEND_API(JSObject*)
+JS_NewFloat32Array(JSContext* cx, uint32_t nelements);
+extern JS_FRIEND_API(JSObject*)
+JS_NewFloat64Array(JSContext* cx, uint32_t nelements);
 
 /*
  * Create a new typed array and copy in values from the given object. The
@@ -1185,24 +1185,24 @@ JS_NewFloat64Array(JSContext *cx, uint32_t nelements);
  * conversion to the typed array element type.
  */
 
-extern JS_FRIEND_API(JSObject *)
-JS_NewInt8ArrayFromArray(JSContext *cx, JS::HandleObject array);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint8ArrayFromArray(JSContext *cx, JS::HandleObject array);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint8ClampedArrayFromArray(JSContext *cx, JS::HandleObject array);
-extern JS_FRIEND_API(JSObject *)
-JS_NewInt16ArrayFromArray(JSContext *cx, JS::HandleObject array);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint16ArrayFromArray(JSContext *cx, JS::HandleObject array);
-extern JS_FRIEND_API(JSObject *)
-JS_NewInt32ArrayFromArray(JSContext *cx, JS::HandleObject array);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint32ArrayFromArray(JSContext *cx, JS::HandleObject array);
-extern JS_FRIEND_API(JSObject *)
-JS_NewFloat32ArrayFromArray(JSContext *cx, JS::HandleObject array);
-extern JS_FRIEND_API(JSObject *)
-JS_NewFloat64ArrayFromArray(JSContext *cx, JS::HandleObject array);
+extern JS_FRIEND_API(JSObject*)
+JS_NewInt8ArrayFromArray(JSContext* cx, JS::HandleObject array);
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint8ArrayFromArray(JSContext* cx, JS::HandleObject array);
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint8ClampedArrayFromArray(JSContext* cx, JS::HandleObject array);
+extern JS_FRIEND_API(JSObject*)
+JS_NewInt16ArrayFromArray(JSContext* cx, JS::HandleObject array);
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint16ArrayFromArray(JSContext* cx, JS::HandleObject array);
+extern JS_FRIEND_API(JSObject*)
+JS_NewInt32ArrayFromArray(JSContext* cx, JS::HandleObject array);
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint32ArrayFromArray(JSContext* cx, JS::HandleObject array);
+extern JS_FRIEND_API(JSObject*)
+JS_NewFloat32ArrayFromArray(JSContext* cx, JS::HandleObject array);
+extern JS_FRIEND_API(JSObject*)
+JS_NewFloat64ArrayFromArray(JSContext* cx, JS::HandleObject array);
 
 /*
  * Create a new typed array using the given ArrayBuffer for storage.  The
@@ -1210,39 +1210,39 @@ JS_NewFloat64ArrayFromArray(JSContext *cx, JS::HandleObject array);
  * remainder of the byte array is used as the default value.
  */
 
-extern JS_FRIEND_API(JSObject *)
-JS_NewInt8ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
+extern JS_FRIEND_API(JSObject*)
+JS_NewInt8ArrayWithBuffer(JSContext* cx, JS::HandleObject arrayBuffer,
                           uint32_t byteOffset, int32_t length);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint8ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint8ArrayWithBuffer(JSContext* cx, JS::HandleObject arrayBuffer,
                            uint32_t byteOffset, int32_t length);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint8ClampedArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint8ClampedArrayWithBuffer(JSContext* cx, JS::HandleObject arrayBuffer,
                                   uint32_t byteOffset, int32_t length);
-extern JS_FRIEND_API(JSObject *)
-JS_NewInt16ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
+extern JS_FRIEND_API(JSObject*)
+JS_NewInt16ArrayWithBuffer(JSContext* cx, JS::HandleObject arrayBuffer,
                            uint32_t byteOffset, int32_t length);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint16ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint16ArrayWithBuffer(JSContext* cx, JS::HandleObject arrayBuffer,
                             uint32_t byteOffset, int32_t length);
-extern JS_FRIEND_API(JSObject *)
-JS_NewInt32ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
+extern JS_FRIEND_API(JSObject*)
+JS_NewInt32ArrayWithBuffer(JSContext* cx, JS::HandleObject arrayBuffer,
                            uint32_t byteOffset, int32_t length);
-extern JS_FRIEND_API(JSObject *)
-JS_NewUint32ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
+extern JS_FRIEND_API(JSObject*)
+JS_NewUint32ArrayWithBuffer(JSContext* cx, JS::HandleObject arrayBuffer,
                             uint32_t byteOffset, int32_t length);
-extern JS_FRIEND_API(JSObject *)
-JS_NewFloat32ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
+extern JS_FRIEND_API(JSObject*)
+JS_NewFloat32ArrayWithBuffer(JSContext* cx, JS::HandleObject arrayBuffer,
                              uint32_t byteOffset, int32_t length);
-extern JS_FRIEND_API(JSObject *)
-JS_NewFloat64ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
+extern JS_FRIEND_API(JSObject*)
+JS_NewFloat64ArrayWithBuffer(JSContext* cx, JS::HandleObject arrayBuffer,
                              uint32_t byteOffset, int32_t length);
 
 /*
  * Create a new ArrayBuffer with the given byte length.
  */
-extern JS_FRIEND_API(JSObject *)
-JS_NewArrayBuffer(JSContext *cx, uint32_t nbytes);
+extern JS_FRIEND_API(JSObject*)
+JS_NewArrayBuffer(JSContext* cx, uint32_t nbytes);
 
 /*
  * Check whether obj supports JS_GetTypedArray* APIs. Note that this may return
@@ -1251,7 +1251,7 @@ JS_NewArrayBuffer(JSContext *cx, uint32_t nbytes);
  * the various accessor JSAPI calls defined below.
  */
 extern JS_FRIEND_API(bool)
-JS_IsTypedArrayObject(JSObject *obj);
+JS_IsTypedArrayObject(JSObject* obj);
 
 /*
  * Check whether obj supports JS_GetArrayBufferView* APIs. Note that this may
@@ -1261,30 +1261,30 @@ JS_IsTypedArrayObject(JSObject *obj);
  * below.
  */
 extern JS_FRIEND_API(bool)
-JS_IsArrayBufferViewObject(JSObject *obj);
+JS_IsArrayBufferViewObject(JSObject* obj);
 
 /*
  * Test for specific typed array types (ArrayBufferView subtypes)
  */
 
 extern JS_FRIEND_API(bool)
-JS_IsInt8Array(JSObject *obj);
+JS_IsInt8Array(JSObject* obj);
 extern JS_FRIEND_API(bool)
-JS_IsUint8Array(JSObject *obj);
+JS_IsUint8Array(JSObject* obj);
 extern JS_FRIEND_API(bool)
-JS_IsUint8ClampedArray(JSObject *obj);
+JS_IsUint8ClampedArray(JSObject* obj);
 extern JS_FRIEND_API(bool)
-JS_IsInt16Array(JSObject *obj);
+JS_IsInt16Array(JSObject* obj);
 extern JS_FRIEND_API(bool)
-JS_IsUint16Array(JSObject *obj);
+JS_IsUint16Array(JSObject* obj);
 extern JS_FRIEND_API(bool)
-JS_IsInt32Array(JSObject *obj);
+JS_IsInt32Array(JSObject* obj);
 extern JS_FRIEND_API(bool)
-JS_IsUint32Array(JSObject *obj);
+JS_IsUint32Array(JSObject* obj);
 extern JS_FRIEND_API(bool)
-JS_IsFloat32Array(JSObject *obj);
+JS_IsFloat32Array(JSObject* obj);
 extern JS_FRIEND_API(bool)
-JS_IsFloat64Array(JSObject *obj);
+JS_IsFloat64Array(JSObject* obj);
 
 /*
  * Test for specific typed array types (ArrayBufferView subtypes) and return
@@ -1293,30 +1293,30 @@ JS_IsFloat64Array(JSObject *obj);
 
 namespace js {
 
-extern JS_FRIEND_API(JSObject *)
-UnwrapInt8Array(JSObject *obj);
-extern JS_FRIEND_API(JSObject *)
-UnwrapUint8Array(JSObject *obj);
-extern JS_FRIEND_API(JSObject *)
-UnwrapUint8ClampedArray(JSObject *obj);
-extern JS_FRIEND_API(JSObject *)
-UnwrapInt16Array(JSObject *obj);
-extern JS_FRIEND_API(JSObject *)
-UnwrapUint16Array(JSObject *obj);
-extern JS_FRIEND_API(JSObject *)
-UnwrapInt32Array(JSObject *obj);
-extern JS_FRIEND_API(JSObject *)
-UnwrapUint32Array(JSObject *obj);
-extern JS_FRIEND_API(JSObject *)
-UnwrapFloat32Array(JSObject *obj);
-extern JS_FRIEND_API(JSObject *)
-UnwrapFloat64Array(JSObject *obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapInt8Array(JSObject* obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapUint8Array(JSObject* obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapUint8ClampedArray(JSObject* obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapInt16Array(JSObject* obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapUint16Array(JSObject* obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapInt32Array(JSObject* obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapUint32Array(JSObject* obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapFloat32Array(JSObject* obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapFloat64Array(JSObject* obj);
 
-extern JS_FRIEND_API(JSObject *)
-UnwrapArrayBuffer(JSObject *obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapArrayBuffer(JSObject* obj);
 
-extern JS_FRIEND_API(JSObject *)
-UnwrapArrayBufferView(JSObject *obj);
+extern JS_FRIEND_API(JSObject*)
+UnwrapArrayBufferView(JSObject* obj);
 
 namespace detail {
 
@@ -1341,10 +1341,10 @@ const size_t TypedArrayLengthSlot = 4;
 
 #define JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Type, type) \
 inline void \
-Get ## Type ## ArrayLengthAndData(JSObject *obj, uint32_t *length, type **data) \
+Get ## Type ## ArrayLengthAndData(JSObject* obj, uint32_t* length, type** data) \
 { \
     JS_ASSERT(GetObjectClass(obj) == detail::Type ## ArrayClassPtr); \
-    const JS::Value &slot = GetReservedSlot(obj, detail::TypedArrayLengthSlot); \
+    const JS::Value& slot = GetReservedSlot(obj, detail::TypedArrayLengthSlot); \
     *length = mozilla::SafeCast<uint32_t>(slot.toInt32()); \
     *data = static_cast<type*>(GetObjectPrivate(obj)); \
 }
@@ -1364,12 +1364,12 @@ JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Float64, double)
 // This one isn't inlined because it's rather tricky (by dint of having to deal
 // with a dozen-plus classes and varying slot layouts.
 extern JS_FRIEND_API(void)
-GetArrayBufferViewLengthAndData(JSObject *obj, uint32_t *length, uint8_t **data);
+GetArrayBufferViewLengthAndData(JSObject* obj, uint32_t* length, uint8_t** data);
 
 // This one isn't inlined because there are a bunch of different ArrayBuffer
 // classes that would have to be individually handled here.
 extern JS_FRIEND_API(void)
-GetArrayBufferLengthAndData(JSObject *obj, uint32_t *length, uint8_t **data);
+GetArrayBufferLengthAndData(JSObject* obj, uint32_t* length, uint8_t** data);
 
 } // namespace js
 
@@ -1378,28 +1378,28 @@ GetArrayBufferLengthAndData(JSObject *obj, uint32_t *length, uint8_t **data);
  * object cannot be viewed as the correct typed array, or the typed array
  * object on success, filling both outparameters.
  */
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsInt8Array(JSObject *obj, uint32_t *length, int8_t **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsUint8Array(JSObject *obj, uint32_t *length, uint8_t **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsUint8ClampedArray(JSObject *obj, uint32_t *length, uint8_t **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsInt16Array(JSObject *obj, uint32_t *length, int16_t **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsUint16Array(JSObject *obj, uint32_t *length, uint16_t **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsInt32Array(JSObject *obj, uint32_t *length, int32_t **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsUint32Array(JSObject *obj, uint32_t *length, uint32_t **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsFloat32Array(JSObject *obj, uint32_t *length, float **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsFloat64Array(JSObject *obj, uint32_t *length, double **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsArrayBufferView(JSObject *obj, uint32_t *length, uint8_t **data);
-extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsArrayBuffer(JSObject *obj, uint32_t *length, uint8_t **data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsInt8Array(JSObject* obj, uint32_t* length, int8_t** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsUint8Array(JSObject* obj, uint32_t* length, uint8_t** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsUint8ClampedArray(JSObject* obj, uint32_t* length, uint8_t** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsInt16Array(JSObject* obj, uint32_t* length, int16_t** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsUint16Array(JSObject* obj, uint32_t* length, uint16_t** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsInt32Array(JSObject* obj, uint32_t* length, int32_t** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsUint32Array(JSObject* obj, uint32_t* length, uint32_t** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsFloat32Array(JSObject* obj, uint32_t* length, float** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsFloat64Array(JSObject* obj, uint32_t* length, double** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsArrayBufferView(JSObject* obj, uint32_t* length, uint8_t** data);
+extern JS_FRIEND_API(JSObject*)
+JS_GetObjectAsArrayBuffer(JSObject* obj, uint32_t* length, uint8_t** data);
 
 /*
  * Get the type of elements in a typed array, or TYPE_DATAVIEW if a DataView.
@@ -1409,7 +1409,7 @@ JS_GetObjectAsArrayBuffer(JSObject *obj, uint32_t *length, uint8_t **data);
  * wrapper of an ArrayBufferView, and the unwrapping will succeed.
  */
 extern JS_FRIEND_API(JSArrayBufferViewType)
-JS_GetArrayBufferViewType(JSObject *obj);
+JS_GetArrayBufferViewType(JSObject* obj);
 
 /*
  * Check whether obj supports the JS_GetArrayBuffer* APIs. Note that this may
@@ -1418,7 +1418,7 @@ JS_GetArrayBufferViewType(JSObject *obj);
  * accessor JSAPI calls defined below.
  */
 extern JS_FRIEND_API(bool)
-JS_IsArrayBufferObject(JSObject *obj);
+JS_IsArrayBufferObject(JSObject* obj);
 
 /*
  * Return the available byte length of an array buffer.
@@ -1428,7 +1428,7 @@ JS_IsArrayBufferObject(JSObject *obj);
  * ArrayBuffer, and the unwrapping will succeed.
  */
 extern JS_FRIEND_API(uint32_t)
-JS_GetArrayBufferByteLength(JSObject *obj);
+JS_GetArrayBufferByteLength(JSObject* obj);
 
 /*
  * Check whether the obj is ArrayBufferObject and memory mapped. Note that this
@@ -1436,7 +1436,7 @@ JS_GetArrayBufferByteLength(JSObject *obj);
  * unwrapping.
  */
 extern JS_FRIEND_API(bool)
-JS_IsMappedArrayBufferObject(JSObject *obj);
+JS_IsMappedArrayBufferObject(JSObject* obj);
 
 /*
  * Return the number of elements in a typed array.
@@ -1446,7 +1446,7 @@ JS_IsMappedArrayBufferObject(JSObject *obj);
  * a typed array, and the unwrapping will succeed.
  */
 extern JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayLength(JSObject *obj);
+JS_GetTypedArrayLength(JSObject* obj);
 
 /*
  * Return the byte offset from the start of an array buffer to the start of a
@@ -1457,7 +1457,7 @@ JS_GetTypedArrayLength(JSObject *obj);
  * a typed array, and the unwrapping will succeed.
  */
 extern JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayByteOffset(JSObject *obj);
+JS_GetTypedArrayByteOffset(JSObject* obj);
 
 /*
  * Return the byte length of a typed array.
@@ -1467,7 +1467,7 @@ JS_GetTypedArrayByteOffset(JSObject *obj);
  * a typed array, and the unwrapping will succeed.
  */
 extern JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayByteLength(JSObject *obj);
+JS_GetTypedArrayByteLength(JSObject* obj);
 
 /*
  * Check whether obj supports JS_ArrayBufferView* APIs. Note that this may
@@ -1475,13 +1475,13 @@ JS_GetTypedArrayByteLength(JSObject *obj);
  * unwrapping.
  */
 extern JS_FRIEND_API(bool)
-JS_IsArrayBufferViewObject(JSObject *obj);
+JS_IsArrayBufferViewObject(JSObject* obj);
 
 /*
  * More generic name for JS_GetTypedArrayByteLength to cover DataViews as well
  */
 extern JS_FRIEND_API(uint32_t)
-JS_GetArrayBufferViewByteLength(JSObject *obj);
+JS_GetArrayBufferViewByteLength(JSObject* obj);
 
 /*
  * Return a pointer to the start of the data referenced by a typed array. The
@@ -1495,48 +1495,48 @@ JS_GetArrayBufferViewByteLength(JSObject *obj);
  * unwrapping will succeed.
  */
 
-extern JS_FRIEND_API(uint8_t *)
-JS_GetArrayBufferData(JSObject *obj);
-extern JS_FRIEND_API(int8_t *)
-JS_GetInt8ArrayData(JSObject *obj);
-extern JS_FRIEND_API(uint8_t *)
-JS_GetUint8ArrayData(JSObject *obj);
-extern JS_FRIEND_API(uint8_t *)
-JS_GetUint8ClampedArrayData(JSObject *obj);
-extern JS_FRIEND_API(int16_t *)
-JS_GetInt16ArrayData(JSObject *obj);
-extern JS_FRIEND_API(uint16_t *)
-JS_GetUint16ArrayData(JSObject *obj);
-extern JS_FRIEND_API(int32_t *)
-JS_GetInt32ArrayData(JSObject *obj);
-extern JS_FRIEND_API(uint32_t *)
-JS_GetUint32ArrayData(JSObject *obj);
-extern JS_FRIEND_API(float *)
-JS_GetFloat32ArrayData(JSObject *obj);
-extern JS_FRIEND_API(double *)
-JS_GetFloat64ArrayData(JSObject *obj);
+extern JS_FRIEND_API(uint8_t*)
+JS_GetArrayBufferData(JSObject* obj);
+extern JS_FRIEND_API(int8_t*)
+JS_GetInt8ArrayData(JSObject* obj);
+extern JS_FRIEND_API(uint8_t*)
+JS_GetUint8ArrayData(JSObject* obj);
+extern JS_FRIEND_API(uint8_t*)
+JS_GetUint8ClampedArrayData(JSObject* obj);
+extern JS_FRIEND_API(int16_t*)
+JS_GetInt16ArrayData(JSObject* obj);
+extern JS_FRIEND_API(uint16_t*)
+JS_GetUint16ArrayData(JSObject* obj);
+extern JS_FRIEND_API(int32_t*)
+JS_GetInt32ArrayData(JSObject* obj);
+extern JS_FRIEND_API(uint32_t*)
+JS_GetUint32ArrayData(JSObject* obj);
+extern JS_FRIEND_API(float*)
+JS_GetFloat32ArrayData(JSObject* obj);
+extern JS_FRIEND_API(double*)
+JS_GetFloat64ArrayData(JSObject* obj);
 
 /*
  * Stable versions of the above functions where the buffer remains valid as long
  * as the object is live.
  */
-extern JS_FRIEND_API(uint8_t *)
-JS_GetStableArrayBufferData(JSContext *cx, JS::HandleObject obj);
+extern JS_FRIEND_API(uint8_t*)
+JS_GetStableArrayBufferData(JSContext* cx, JS::HandleObject obj);
 
 /*
  * Same as above, but for any kind of ArrayBufferView. Prefer the type-specific
  * versions when possible.
  */
-extern JS_FRIEND_API(void *)
-JS_GetArrayBufferViewData(JSObject *obj);
+extern JS_FRIEND_API(void*)
+JS_GetArrayBufferViewData(JSObject* obj);
 
 /*
  * Return the ArrayBuffer underlying an ArrayBufferView. If the buffer has been
  * neutered, this will still return the neutered buffer. |obj| must be an
  * object that would return true for JS_IsArrayBufferViewObject().
  */
-extern JS_FRIEND_API(JSObject *)
-JS_GetArrayBufferViewBuffer(JSContext *cx, JSObject *obj);
+extern JS_FRIEND_API(JSObject*)
+JS_GetArrayBufferViewBuffer(JSContext* cx, JSObject* obj);
 
 typedef enum {
     ChangeData,
@@ -1553,14 +1553,14 @@ typedef enum {
  * accordingly.
  */
 extern JS_FRIEND_API(bool)
-JS_NeuterArrayBuffer(JSContext *cx, JS::HandleObject obj,
+JS_NeuterArrayBuffer(JSContext* cx, JS::HandleObject obj,
                      NeuterDataDisposition changeData);
 
 /*
  * Check whether obj supports JS_GetDataView* APIs.
  */
 JS_FRIEND_API(bool)
-JS_IsDataViewObject(JSObject *obj);
+JS_IsDataViewObject(JSObject* obj);
 
 /*
  * Return the byte offset of a data view into its array buffer. |obj| must be a
@@ -1571,7 +1571,7 @@ JS_IsDataViewObject(JSObject *obj);
  * and the unwrapping will succeed.
  */
 JS_FRIEND_API(uint32_t)
-JS_GetDataViewByteOffset(JSObject *obj);
+JS_GetDataViewByteOffset(JSObject* obj);
 
 /*
  * Return the byte length of a data view.
@@ -1582,7 +1582,7 @@ JS_GetDataViewByteOffset(JSObject *obj);
  * unable to assert when unwrapping should be disallowed.
  */
 JS_FRIEND_API(uint32_t)
-JS_GetDataViewByteLength(JSObject *obj);
+JS_GetDataViewByteLength(JSObject* obj);
 
 /*
  * Return a pointer to the beginning of the data referenced by a DataView.
@@ -1592,8 +1592,8 @@ JS_GetDataViewByteLength(JSObject *obj);
  * and the unwrapping will succeed. If cx is nullptr, then DEBUG builds may be
  * unable to assert when unwrapping should be disallowed.
  */
-JS_FRIEND_API(void *)
-JS_GetDataViewData(JSObject *obj);
+JS_FRIEND_API(void*)
+JS_GetDataViewData(JSObject* obj);
 
 namespace js {
 
@@ -1607,7 +1607,7 @@ namespace js {
  * Object.prototype.{,un}watch functions, at which point this will go too.
  */
 extern JS_FRIEND_API(bool)
-WatchGuts(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
+WatchGuts(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
 
 /*
  * Remove a watchpoint -- in the Object.prototype.watch sense -- from |obj| for
@@ -1618,7 +1618,7 @@ WatchGuts(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject
  * Object.prototype.{,un}watch functions, at which point this will go too.
  */
 extern JS_FRIEND_API(bool)
-UnwatchGuts(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
+UnwatchGuts(JSContext* cx, JS::HandleObject obj, JS::HandleId id);
 
 } // namespace js
 
@@ -1695,7 +1695,7 @@ class JSJitMethodCallArgs : protected JS::detail::CallArgsBase<JS::detail::NoUse
         return Base::hasDefined(i);
     }
 
-    JSObject &callee() const {
+    JSObject& callee() const {
         // We can't use Base::callee() because that will try to poke at
         // this->usedRval_, which we don't have.
         return argv_[-2].toObject();
@@ -1716,14 +1716,14 @@ struct JSJitMethodCallArgsTraits
  * available to general JSAPI users, but we are not currently ready to do so.
  */
 typedef bool
-(* JSJitGetterOp)(JSContext *cx, JS::HandleObject thisObj,
-                  void *specializedThis, JSJitGetterCallArgs args);
+(* JSJitGetterOp)(JSContext* cx, JS::HandleObject thisObj,
+                  void* specializedThis, JSJitGetterCallArgs args);
 typedef bool
-(* JSJitSetterOp)(JSContext *cx, JS::HandleObject thisObj,
-                  void *specializedThis, JSJitSetterCallArgs args);
+(* JSJitSetterOp)(JSContext* cx, JS::HandleObject thisObj,
+                  void* specializedThis, JSJitSetterCallArgs args);
 typedef bool
-(* JSJitMethodOp)(JSContext *cx, JS::HandleObject thisObj,
-                  void *specializedThis, const JSJitMethodCallArgs& args);
+(* JSJitMethodOp)(JSContext* cx, JS::HandleObject thisObj,
+                  void* specializedThis, const JSJitMethodCallArgs& args);
 
 struct JSJitInfo {
     enum OpType {
@@ -1931,27 +1931,27 @@ inline int CheckIsParallelNative(JSParallelNative parallelNative);
         {{JS_CAST_PARALLEL_NATIVE_TO(parallelOp, JSJitGetterOp)},0,0,JSJitInfo::ParallelNative,JSJitInfo::AliasEverything,JSVAL_TYPE_MISSING,false,false,false,false,0}
 
 #define JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(infoName, wrapperName, serialOp) \
-    bool wrapperName##_ParallelNativeThreadSafeWrapper(js::ForkJoinContext *cx, unsigned argc, \
-                                                       JS::Value *vp)   \
+    bool wrapperName##_ParallelNativeThreadSafeWrapper(js::ForkJoinContext* cx, unsigned argc, \
+                                                       JS::Value* vp)   \
     {                                                                   \
         return JSParallelNativeThreadSafeWrapper<serialOp>(cx, argc, vp); \
     }                                                                   \
     JS_JITINFO_NATIVE_PARALLEL(infoName, wrapperName##_ParallelNativeThreadSafeWrapper)
 
-static MOZ_ALWAYS_INLINE const JSJitInfo *
+static MOZ_ALWAYS_INLINE const JSJitInfo*
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)
 {
     JS_ASSERT(js::GetObjectClass(&v.toObject()) == js::FunctionClassPtr);
-    return reinterpret_cast<js::shadow::Function *>(&v.toObject())->jitinfo;
+    return reinterpret_cast<js::shadow::Function*>(&v.toObject())->jitinfo;
 }
 
 /* Statically asserted in jsfun.h. */
 static const unsigned JS_FUNCTION_INTERPRETED_BIT = 0x1;
 
 static MOZ_ALWAYS_INLINE void
-SET_JITINFO(JSFunction * func, const JSJitInfo *info)
+SET_JITINFO(JSFunction * func, const JSJitInfo* info)
 {
-    js::shadow::Function *fun = reinterpret_cast<js::shadow::Function *>(func);
+    js::shadow::Function* fun = reinterpret_cast<js::shadow::Function*>(func);
     JS_ASSERT(!(fun->flags & JS_FUNCTION_INTERPRETED_BIT));
     fun->jitinfo = info;
 }
@@ -1971,7 +1971,7 @@ JSID_FROM_BITS(size_t bits)
 
 namespace js {
 namespace detail {
-bool IdMatchesAtom(jsid id, JSAtom *atom);
+bool IdMatchesAtom(jsid id, JSAtom* atom);
 }
 }
 
@@ -1997,7 +1997,7 @@ bool IdMatchesAtom(jsid id, JSAtom *atom);
  * handles any JSAtom* that is known not to be representable with an int jsid.
  */
 static MOZ_ALWAYS_INLINE jsid
-NON_INTEGER_ATOM_TO_JSID(JSAtom *atom)
+NON_INTEGER_ATOM_TO_JSID(JSAtom* atom)
 {
     JS_ASSERT(((size_t)atom & 0x7) == 0);
     jsid id = JSID_FROM_BITS((size_t)atom);
@@ -2013,15 +2013,15 @@ JSID_IS_ATOM(jsid id)
 }
 
 static MOZ_ALWAYS_INLINE bool
-JSID_IS_ATOM(jsid id, JSAtom *atom)
+JSID_IS_ATOM(jsid id, JSAtom* atom)
 {
     return id == JSID_FROM_BITS((size_t)atom);
 }
 
-static MOZ_ALWAYS_INLINE JSAtom *
+static MOZ_ALWAYS_INLINE JSAtom*
 JSID_TO_ATOM(jsid id)
 {
-    return (JSAtom *)JSID_TO_STRING(id);
+    return (JSAtom*)JSID_TO_STRING(id);
 }
 
 JS_STATIC_ASSERT(sizeof(jsid) == sizeof(void*));
@@ -2049,14 +2049,14 @@ IsTypedArrayThisCheck(JS::IsAcceptableThis test);
  * result of the callback. Otherwise, asserts that |rt| has exactly one
  * JSContext associated with it, and returns that context.
  */
-extern JS_FRIEND_API(JSContext *)
-DefaultJSContext(JSRuntime *rt);
+extern JS_FRIEND_API(JSContext*)
+DefaultJSContext(JSRuntime* rt);
 
 typedef JSContext*
-(* DefaultJSContextCallback)(JSRuntime *rt);
+(* DefaultJSContextCallback)(JSRuntime* rt);
 
 JS_FRIEND_API(void)
-SetDefaultJSContextCallback(JSRuntime *rt, DefaultJSContextCallback cb);
+SetDefaultJSContextCallback(JSRuntime* rt, DefaultJSContextCallback cb);
 
 /*
  * To help embedders enforce their invariants, we allow them to specify in
@@ -2066,10 +2066,10 @@ SetDefaultJSContextCallback(JSRuntime *rt, DefaultJSContextCallback cb);
  */
 #ifdef DEBUG
 JS_FRIEND_API(void)
-Debug_SetActiveJSContext(JSRuntime *rt, JSContext *cx);
+Debug_SetActiveJSContext(JSRuntime* rt, JSContext* cx);
 #else
 inline void
-Debug_SetActiveJSContext(JSRuntime *rt, JSContext *cx) {};
+Debug_SetActiveJSContext(JSRuntime* rt, JSContext* cx) {};
 #endif
 
 
@@ -2081,24 +2081,24 @@ enum CTypesActivityType {
 };
 
 typedef void
-(* CTypesActivityCallback)(JSContext *cx, CTypesActivityType type);
+(* CTypesActivityCallback)(JSContext* cx, CTypesActivityType type);
 
 /*
  * Sets a callback that is run whenever js-ctypes is about to be used when
  * calling into C.
  */
 JS_FRIEND_API(void)
-SetCTypesActivityCallback(JSRuntime *rt, CTypesActivityCallback cb);
+SetCTypesActivityCallback(JSRuntime* rt, CTypesActivityCallback cb);
 
 class JS_FRIEND_API(AutoCTypesActivityCallback) {
   private:
-    JSContext *cx;
+    JSContext* cx;
     CTypesActivityCallback callback;
     CTypesActivityType endType;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
   public:
-    AutoCTypesActivityCallback(JSContext *cx, CTypesActivityType beginType,
+    AutoCTypesActivityCallback(JSContext* cx, CTypesActivityType beginType,
                                CTypesActivityType endType
                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
     ~AutoCTypesActivityCallback() {
@@ -2113,7 +2113,7 @@ class JS_FRIEND_API(AutoCTypesActivityCallback) {
 };
 
 typedef bool
-(* ObjectMetadataCallback)(JSContext *cx, JSObject **pmetadata);
+(* ObjectMetadataCallback)(JSContext* cx, JSObject** pmetadata);
 
 /*
  * Specify a callback to invoke when creating each JS object in the current
@@ -2122,18 +2122,18 @@ typedef bool
  * so for efficiency, objects should generally try to share metadata objects.
  */
 JS_FRIEND_API(void)
-SetObjectMetadataCallback(JSContext *cx, ObjectMetadataCallback callback);
+SetObjectMetadataCallback(JSContext* cx, ObjectMetadataCallback callback);
 
 /* Manipulate the metadata associated with an object. */
 
 JS_FRIEND_API(bool)
-SetObjectMetadata(JSContext *cx, JS::HandleObject obj, JS::HandleObject metadata);
+SetObjectMetadata(JSContext* cx, JS::HandleObject obj, JS::HandleObject metadata);
 
-JS_FRIEND_API(JSObject *)
-GetObjectMetadata(JSObject *obj);
+JS_FRIEND_API(JSObject*)
+GetObjectMetadata(JSObject* obj);
 
 JS_FRIEND_API(void)
-UnsafeDefineElement(JSContext *cx, JS::HandleObject obj, uint32_t index, JS::HandleValue value);
+UnsafeDefineElement(JSContext* cx, JS::HandleObject obj, uint32_t index, JS::HandleValue value);
 
 JS_FRIEND_API(bool)
 SliceSlowly(JSContext* cx, JS::HandleObject obj, JS::HandleObject receiver,
@@ -2141,7 +2141,7 @@ SliceSlowly(JSContext* cx, JS::HandleObject obj, JS::HandleObject receiver,
 
 /* ES5 8.12.8. */
 extern JS_FRIEND_API(bool)
-DefaultValue(JSContext *cx, JS::HandleObject obj, JSType hint, JS::MutableHandleValue vp);
+DefaultValue(JSContext* cx, JS::HandleObject obj, JSType hint, JS::MutableHandleValue vp);
 
 /*
  * Helper function. To approximate a call to the [[DefineOwnProperty]] internal
@@ -2157,7 +2157,7 @@ DefaultValue(JSContext *cx, JS::HandleObject obj, JSType hint, JS::MutableHandle
  * js::ProxyHandler, or the JSAPI with precisely the right semantics for it.
  */
 extern JS_FRIEND_API(bool)
-CheckDefineProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue value,
+CheckDefineProperty(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue value,
                     JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs);
 
 /*
@@ -2182,7 +2182,7 @@ CheckDefineProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::Ha
  * Implemented in jsproxy.cpp.
  */
 JS_FRIEND_API(bool)
-SetPropertyIgnoringNamedGetter(JSContext *cx, BaseProxyHandler *handler,
+SetPropertyIgnoringNamedGetter(JSContext* cx, BaseProxyHandler* handler,
                                JS::HandleObject proxy, JS::HandleObject receiver,
                                JS::HandleId id, JS::MutableHandle<JSPropertyDescriptor> desc,
                                bool descIsOwn, bool strict, JS::MutableHandleValue vp);
@@ -2190,32 +2190,32 @@ SetPropertyIgnoringNamedGetter(JSContext *cx, BaseProxyHandler *handler,
 } /* namespace js */
 
 extern JS_FRIEND_API(bool)
-js_DefineOwnProperty(JSContext *cx, JSObject *objArg, jsid idArg,
-                     JS::Handle<JSPropertyDescriptor> descriptor, bool *bp);
+js_DefineOwnProperty(JSContext* cx, JSObject* objArg, jsid idArg,
+                     JS::Handle<JSPropertyDescriptor> descriptor, bool* bp);
 
 extern JS_FRIEND_API(bool)
-js_ReportIsNotFunction(JSContext *cx, JS::HandleValue v);
+js_ReportIsNotFunction(JSContext* cx, JS::HandleValue v);
 
 #ifdef JSGC_GENERATIONAL
 extern JS_FRIEND_API(void)
 JS_StoreObjectPostBarrierCallback(JSContext* cx,
-                                  void (*callback)(JSTracer *trc, JSObject *key, void *data),
-                                  JSObject *key, void *data);
+                                  void (*callback)(JSTracer* trc, JSObject* key, void* data),
+                                  JSObject* key, void* data);
 
 extern JS_FRIEND_API(void)
 JS_StoreStringPostBarrierCallback(JSContext* cx,
-                                  void (*callback)(JSTracer *trc, JSString *key, void *data),
-                                  JSString *key, void *data);
+                                  void (*callback)(JSTracer* trc, JSString* key, void* data),
+                                  JSString* key, void* data);
 #else
 inline void
 JS_StoreObjectPostBarrierCallback(JSContext* cx,
-                                  void (*callback)(JSTracer *trc, JSObject *key, void *data),
-                                  JSObject *key, void *data) {}
+                                  void (*callback)(JSTracer* trc, JSObject* key, void* data),
+                                  JSObject* key, void* data) {}
 
 inline void
 JS_StoreStringPostBarrierCallback(JSContext* cx,
-                                  void (*callback)(JSTracer *trc, JSString *key, void *data),
-                                  JSString *key, void *data) {}
+                                  void (*callback)(JSTracer* trc, JSString* key, void* data),
+                                  JSString* key, void* data) {}
 #endif /* JSGC_GENERATIONAL */
 
 #endif /* jsfriendapi_h */

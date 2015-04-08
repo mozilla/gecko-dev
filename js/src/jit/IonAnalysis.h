@@ -21,7 +21,7 @@ class MIRGenerator;
 class MIRGraph;
 
 bool
-SplitCriticalEdges(MIRGraph &graph);
+SplitCriticalEdges(MIRGraph& graph);
 
 enum Observability {
     ConservativeObservability,
@@ -29,70 +29,70 @@ enum Observability {
 };
 
 bool
-EliminatePhis(MIRGenerator *mir, MIRGraph &graph, Observability observe);
+EliminatePhis(MIRGenerator* mir, MIRGraph& graph, Observability observe);
 
 bool
-EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph);
+EliminateDeadResumePointOperands(MIRGenerator* mir, MIRGraph& graph);
 
 bool
-EliminateDeadCode(MIRGenerator *mir, MIRGraph &graph);
+EliminateDeadCode(MIRGenerator* mir, MIRGraph& graph);
 
 bool
-ApplyTypeInformation(MIRGenerator *mir, MIRGraph &graph);
+ApplyTypeInformation(MIRGenerator* mir, MIRGraph& graph);
 
 bool
-MakeMRegExpHoistable(MIRGraph &graph);
+MakeMRegExpHoistable(MIRGraph& graph);
 
 bool
-RenumberBlocks(MIRGraph &graph);
+RenumberBlocks(MIRGraph& graph);
 
 bool
-BuildDominatorTree(MIRGraph &graph);
+BuildDominatorTree(MIRGraph& graph);
 
 bool
-BuildPhiReverseMapping(MIRGraph &graph);
+BuildPhiReverseMapping(MIRGraph& graph);
 
 void
-AssertBasicGraphCoherency(MIRGraph &graph);
+AssertBasicGraphCoherency(MIRGraph& graph);
 
 void
-AssertGraphCoherency(MIRGraph &graph);
+AssertGraphCoherency(MIRGraph& graph);
 
 void
-AssertExtendedGraphCoherency(MIRGraph &graph);
+AssertExtendedGraphCoherency(MIRGraph& graph);
 
 bool
-EliminateRedundantChecks(MIRGraph &graph);
+EliminateRedundantChecks(MIRGraph& graph);
 
 bool
-UnsplitEdges(LIRGraph *lir);
+UnsplitEdges(LIRGraph* lir);
 
 class MDefinition;
 
 // Simple linear sum of the form 'n' or 'x + n'.
 struct SimpleLinearSum
 {
-    MDefinition *term;
+    MDefinition* term;
     int32_t constant;
 
-    SimpleLinearSum(MDefinition *term, int32_t constant)
+    SimpleLinearSum(MDefinition* term, int32_t constant)
         : term(term), constant(constant)
     {}
 };
 
 SimpleLinearSum
-ExtractLinearSum(MDefinition *ins);
+ExtractLinearSum(MDefinition* ins);
 
 bool
-ExtractLinearInequality(MTest *test, BranchDirection direction,
-                        SimpleLinearSum *plhs, MDefinition **prhs, bool *plessEqual);
+ExtractLinearInequality(MTest* test, BranchDirection direction,
+                        SimpleLinearSum* plhs, MDefinition** prhs, bool* plessEqual);
 
 struct LinearTerm
 {
-    MDefinition *term;
+    MDefinition* term;
     int32_t scale;
 
-    LinearTerm(MDefinition *term, int32_t scale)
+    LinearTerm(MDefinition* term, int32_t scale)
       : term(term), scale(scale)
     {
     }
@@ -102,13 +102,13 @@ struct LinearTerm
 class LinearSum
 {
   public:
-    LinearSum(TempAllocator &alloc)
+    LinearSum(TempAllocator& alloc)
       : terms_(alloc),
         constant_(0)
     {
     }
 
-    LinearSum(const LinearSum &other)
+    LinearSum(const LinearSum& other)
       : terms_(other.terms_.allocPolicy()),
         constant_(other.constant_)
     {
@@ -116,16 +116,16 @@ class LinearSum
     }
 
     bool multiply(int32_t scale);
-    bool add(const LinearSum &other);
-    bool add(MDefinition *term, int32_t scale);
+    bool add(const LinearSum& other);
+    bool add(MDefinition* term, int32_t scale);
     bool add(int32_t constant);
 
     int32_t constant() const { return constant_; }
     size_t numTerms() const { return terms_.length(); }
     LinearTerm term(size_t i) const { return terms_[i]; }
 
-    void print(Sprinter &sp) const;
-    void dump(FILE *) const;
+    void print(Sprinter& sp) const;
+    void dump(FILE*) const;
     void dump() const;
 
   private:
@@ -134,12 +134,12 @@ class LinearSum
 };
 
 bool
-AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
-                           types::TypeObject *type, HandleObject baseobj,
-                           Vector<types::TypeNewScript::Initializer> *initializerList);
+AnalyzeNewScriptProperties(JSContext* cx, JSFunction* fun,
+                           types::TypeObject* type, HandleObject baseobj,
+                           Vector<types::TypeNewScript::Initializer>* initializerList);
 
 bool
-AnalyzeArgumentsUsage(JSContext *cx, JSScript *script);
+AnalyzeArgumentsUsage(JSContext* cx, JSScript* script);
 
 } // namespace jit
 } // namespace js

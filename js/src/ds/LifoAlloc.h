@@ -29,14 +29,14 @@ namespace detail {
 static const size_t LIFO_ALLOC_ALIGN = 8;
 
 MOZ_ALWAYS_INLINE
-char *
-AlignPtr(void *orig)
+char*
+AlignPtr(void* orig)
 {
     static_assert(mozilla::tl::FloorLog2<LIFO_ALLOC_ALIGN>::value ==
                   mozilla::tl::CeilingLog2<LIFO_ALLOC_ALIGN>::value,
                   "LIFO_ALLOC_ALIGN must be a power of two");
 
-    char *result = (char *) ((uintptr_t(orig) + (LIFO_ALLOC_ALIGN - 1)) & (~LIFO_ALLOC_ALIGN + 1));
+    char* result = (char*) ((uintptr_t(orig) + (LIFO_ALLOC_ALIGN - 1)) & (~LIFO_ALLOC_ALIGN + 1));
     JS_ASSERT(uintptr_t(result) % LIFO_ALLOC_ALIGN == 0);
     return result;
 }
@@ -44,29 +44,29 @@ AlignPtr(void *orig)
 // Header for a chunk of memory wrangled by the LifoAlloc.
 class BumpChunk
 {
-    char        *bump;          // start of the available data
-    char        *limit;         // end of the data
-    BumpChunk   *next_;         // the next BumpChunk
+    char*       bump;          // start of the available data
+    char*       limit;         // end of the data
+    BumpChunk*  next_;         // the next BumpChunk
     size_t      bumpSpaceSize;  // size of the data area
 
-    char *headerBase() { return reinterpret_cast<char *>(this); }
-    char *bumpBase() const { return limit - bumpSpaceSize; }
+    char* headerBase() { return reinterpret_cast<char*>(this); }
+    char* bumpBase() const { return limit - bumpSpaceSize; }
 
     explicit BumpChunk(size_t bumpSpaceSize)
-      : bump(reinterpret_cast<char *>(MOZ_THIS_IN_INITIALIZER_LIST()) + sizeof(BumpChunk)),
+      : bump(reinterpret_cast<char*>(MOZ_THIS_IN_INITIALIZER_LIST()) + sizeof(BumpChunk)),
         limit(bump + bumpSpaceSize),
         next_(nullptr), bumpSpaceSize(bumpSpaceSize)
     {
         JS_ASSERT(bump == AlignPtr(bump));
     }
 
-    void setBump(void *ptr) {
+    void setBump(void* ptr) {
         JS_ASSERT(bumpBase() <= ptr);
         JS_ASSERT(ptr <= limit);
 #if defined(DEBUG) || defined(MOZ_HAVE_MEM_CHECKS)
         char* prevBump = bump;
 #endif
-        bump = static_cast<char *>(ptr);
+        bump = static_cast<char*>(ptr);
 #ifdef DEBUG
         JS_ASSERT(contains(prevBump));
 
@@ -85,13 +85,13 @@ class BumpChunk
     }
 
   public:
-    BumpChunk *next() const { return next_; }
-    void setNext(BumpChunk *succ) { next_ = succ; }
+    BumpChunk* next() const { return next_; }
+    void setNext(BumpChunk* succ) { next_ = succ; }
 
     size_t used() const { return bump - bumpBase(); }
 
-    void *start() const { return bumpBase(); }
-    void *end() const { return limit; }
+    void* start() const { return bumpBase(); }
+    void* end() const { return limit; }
 
     size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
         return mallocSizeOf(this);
@@ -105,15 +105,15 @@ class BumpChunk
         setBump(headerBase() + sizeof(BumpChunk));
     }
 
-    void *mark() const { return bump; }
+    void* mark() const { return bump; }
 
-    void release(void *mark) {
+    void release(void* mark) {
         JS_ASSERT(contains(mark));
         JS_ASSERT(mark <= bump);
         setBump(mark);
     }
 
-    bool contains(void *mark) const {
+    bool contains(void* mark) const {
         return bumpBase() <= mark && mark <= limit;
     }
 
@@ -125,9 +125,9 @@ class BumpChunk
 
     // Try to perform an allocation of size |n|, return null if not possible.
     MOZ_ALWAYS_INLINE
-    void *tryAlloc(size_t n) {
-        char *aligned = AlignPtr(bump);
-        char *newBump = aligned + n;
+    void* tryAlloc(size_t n) {
+        char* aligned = AlignPtr(bump);
+        char* newBump = aligned + n;
 
         if (newBump > limit)
             return nullptr;
@@ -141,8 +141,8 @@ class BumpChunk
         return aligned;
     }
 
-    static BumpChunk *new_(size_t chunkSize);
-    static void delete_(BumpChunk *chunk);
+    static BumpChunk* new_(size_t chunkSize);
+    static void delete_(BumpChunk* chunk);
 };
 
 } // namespace detail
@@ -155,23 +155,23 @@ class LifoAlloc
 {
     typedef detail::BumpChunk BumpChunk;
 
-    BumpChunk   *first;
-    BumpChunk   *latest;
-    BumpChunk   *last;
+    BumpChunk*  first;
+    BumpChunk*  latest;
+    BumpChunk*  last;
     size_t      markCount;
     size_t      defaultChunkSize_;
     size_t      curSize_;
     size_t      peakSize_;
 
-    void operator=(const LifoAlloc &) MOZ_DELETE;
-    LifoAlloc(const LifoAlloc &) MOZ_DELETE;
+    void operator=(const LifoAlloc&) MOZ_DELETE;
+    LifoAlloc(const LifoAlloc&) MOZ_DELETE;
 
     // Return a BumpChunk that can perform an allocation of at least size |n|
     // and add it to the chain appropriately.
     //
     // Side effect: if retval is non-null, |first| and |latest| are initialized
     // appropriately.
-    BumpChunk *getOrCreateChunk(size_t n);
+    BumpChunk* getOrCreateChunk(size_t n);
 
     void reset(size_t defaultChunkSize) {
         JS_ASSERT(mozilla::RoundUpPow2(defaultChunkSize) == defaultChunkSize);
@@ -182,7 +182,7 @@ class LifoAlloc
     }
 
     // Append unused chunks to the end of this LifoAlloc.
-    void appendUnused(BumpChunk *start, BumpChunk *end) {
+    void appendUnused(BumpChunk* start, BumpChunk* end) {
         JS_ASSERT(start && end);
         if (last)
             last->setNext(start);
@@ -193,7 +193,7 @@ class LifoAlloc
 
     // Append used chunks to the end of this LifoAlloc. We act as if all the
     // chunks in |this| are used, even if they're not, so memory may be wasted.
-    void appendUsed(BumpChunk *otherFirst, BumpChunk *otherLatest, BumpChunk *otherLast) {
+    void appendUsed(BumpChunk* otherFirst, BumpChunk* otherLatest, BumpChunk* otherLast) {
         JS_ASSERT(otherFirst && otherLatest && otherLast);
         if (last)
             last->setNext(otherFirst);
@@ -221,7 +221,7 @@ class LifoAlloc
     }
 
     // Steal allocated chunks from |other|.
-    void steal(LifoAlloc *other) {
+    void steal(LifoAlloc* other) {
         JS_ASSERT(!other->markCount);
 
         // Copy everything from |other| to |this| except for |peakSize_|, which
@@ -234,10 +234,10 @@ class LifoAlloc
     }
 
     // Append all chunks from |other|. They are removed from |other|.
-    void transferFrom(LifoAlloc *other);
+    void transferFrom(LifoAlloc* other);
 
     // Append unused chunks from |other|. They are removed from |other|.
-    void transferUnusedFrom(LifoAlloc *other);
+    void transferUnusedFrom(LifoAlloc* other);
 
     ~LifoAlloc() { freeAll(); }
 
@@ -253,10 +253,10 @@ class LifoAlloc
     }
 
     MOZ_ALWAYS_INLINE
-    void *alloc(size_t n) {
+    void* alloc(size_t n) {
         JS_OOM_POSSIBLY_FAIL();
 
-        void *result;
+        void* result;
         if (latest && (result = latest->tryAlloc(n)))
             return result;
 
@@ -275,12 +275,12 @@ class LifoAlloc
     MOZ_ALWAYS_INLINE
     bool ensureUnusedApproximate(size_t n) {
         size_t total = 0;
-        for (BumpChunk *chunk = latest; chunk; chunk = chunk->next()) {
+        for (BumpChunk* chunk = latest; chunk; chunk = chunk->next()) {
             total += chunk->unused();
             if (total >= n)
                 return true;
         }
-        BumpChunk *latestBefore = latest;
+        BumpChunk* latestBefore = latest;
         if (!getOrCreateChunk(n))
             return false;
         if (latestBefore)
@@ -289,7 +289,7 @@ class LifoAlloc
     }
 
     template <typename T>
-    T *newArray(size_t count) {
+    T* newArray(size_t count) {
         JS_STATIC_ASSERT(mozilla::IsPod<T>::value);
         return newArrayUninitialized<T>(count);
     }
@@ -297,17 +297,17 @@ class LifoAlloc
     // Create an array with uninitialized elements of type |T|.
     // The caller is responsible for initialization.
     template <typename T>
-    T *newArrayUninitialized(size_t count) {
+    T* newArrayUninitialized(size_t count) {
         if (count & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
             return nullptr;
-        return static_cast<T *>(alloc(sizeof(T) * count));
+        return static_cast<T*>(alloc(sizeof(T) * count));
     }
 
     class Mark {
-        BumpChunk *chunk;
-        void *markInChunk;
+        BumpChunk* chunk;
+        void* markInChunk;
         friend class LifoAlloc;
-        Mark(BumpChunk *chunk, void *markInChunk) : chunk(chunk), markInChunk(markInChunk) {}
+        Mark(BumpChunk* chunk, void* markInChunk) : chunk(chunk), markInChunk(markInChunk) {}
       public:
         Mark() : chunk(nullptr), markInChunk(nullptr) {}
     };
@@ -339,7 +339,7 @@ class LifoAlloc
     // Get the total "used" (occupied bytes) count for the arena chunks.
     size_t used() const {
         size_t accum = 0;
-        for (BumpChunk *chunk = first; chunk; chunk = chunk->next()) {
+        for (BumpChunk* chunk = first; chunk; chunk = chunk->next()) {
             accum += chunk->used();
             if (chunk == latest)
                 break;
@@ -363,7 +363,7 @@ class LifoAlloc
     // Get the total size of the arena chunks (including unused space).
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
         size_t n = 0;
-        for (BumpChunk *chunk = first; chunk; chunk = chunk->next())
+        for (BumpChunk* chunk = first; chunk; chunk = chunk->next())
             n += chunk->sizeOfIncludingThis(mallocSizeOf);
         return n;
     }
@@ -380,8 +380,8 @@ class LifoAlloc
     // Doesn't perform construction; useful for lazily-initialized POD types.
     template <typename T>
     MOZ_ALWAYS_INLINE
-    T *newPod() {
-        return static_cast<T *>(alloc(sizeof(T)));
+    T* newPod() {
+        return static_cast<T*>(alloc(sizeof(T)));
     }
 
     JS_DECLARE_NEW_METHODS(new_, alloc, MOZ_ALWAYS_INLINE)
@@ -392,18 +392,18 @@ class LifoAlloc
         friend class LifoAlloc;
         friend class detail::BumpChunk;
 
-        LifoAlloc *alloc_;  // The LifoAlloc being traversed.
-        BumpChunk *chunk_;  // The current chunk.
-        char *position_;    // The current position (must be within chunk_).
+        LifoAlloc* alloc_;  // The LifoAlloc being traversed.
+        BumpChunk* chunk_;  // The current chunk.
+        char* position_;    // The current position (must be within chunk_).
 
         // If there is not enough room in the remaining block for |size|,
         // advance to the next block and update the position.
         void ensureSpaceAndAlignment(size_t size) {
             JS_ASSERT(!empty());
-            char *aligned = detail::AlignPtr(position_);
+            char* aligned = detail::AlignPtr(position_);
             if (aligned + size > chunk_->end()) {
                 chunk_ = chunk_->next();
-                position_ = static_cast<char *>(chunk_->start());
+                position_ = static_cast<char*>(chunk_->start());
             } else {
                 position_ = aligned;
             }
@@ -411,10 +411,10 @@ class LifoAlloc
         }
 
       public:
-        Enum(LifoAlloc &alloc)
+        Enum(LifoAlloc& alloc)
           : alloc_(&alloc),
             chunk_(alloc.first),
-            position_(static_cast<char *>(alloc.first ? alloc.first->start() : nullptr))
+            position_(static_cast<char*>(alloc.first ? alloc.first->start() : nullptr))
         {}
 
         // Return true if there are no more bytes to enumerate.
@@ -436,7 +436,7 @@ class LifoAlloc
 
         // Update the bytes at the current position with a new value.
         template <typename T>
-        void updateFront(const T &t) {
+        void updateFront(const T& t) {
             ensureSpaceAndAlignment(sizeof(T));
             memmove(position_, &t, sizeof(T));
         }
@@ -444,9 +444,9 @@ class LifoAlloc
         // Return a pointer to the item at the current position. This
         // returns a pointer to the inline storage, not a copy.
         template <typename T>
-        T *get(size_t size = sizeof(T)) {
+        T* get(size_t size = sizeof(T)) {
             ensureSpaceAndAlignment(size);
-            return reinterpret_cast<T *>(position_);
+            return reinterpret_cast<T*>(position_);
         }
 
         // Return a Mark at the current position of the Enum.
@@ -459,13 +459,13 @@ class LifoAlloc
 
 class LifoAllocScope
 {
-    LifoAlloc       *lifoAlloc;
+    LifoAlloc*      lifoAlloc;
     LifoAlloc::Mark mark;
     bool            shouldRelease;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
   public:
-    explicit LifoAllocScope(LifoAlloc *lifoAlloc
+    explicit LifoAllocScope(LifoAlloc* lifoAlloc
                             MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : lifoAlloc(lifoAlloc),
         mark(lifoAlloc->mark()),
@@ -479,7 +479,7 @@ class LifoAllocScope
             lifoAlloc->release(mark);
     }
 
-    LifoAlloc &alloc() {
+    LifoAlloc& alloc() {
         return *lifoAlloc;
     }
 
@@ -492,29 +492,29 @@ class LifoAllocScope
 
 class LifoAllocPolicy
 {
-    LifoAlloc &alloc_;
+    LifoAlloc& alloc_;
 
   public:
-    LifoAllocPolicy(LifoAlloc &alloc)
+    LifoAllocPolicy(LifoAlloc& alloc)
       : alloc_(alloc)
     {}
-    void *malloc_(size_t bytes) {
+    void* malloc_(size_t bytes) {
         return alloc_.alloc(bytes);
     }
-    void *calloc_(size_t bytes) {
-        void *p = malloc_(bytes);
+    void* calloc_(size_t bytes) {
+        void* p = malloc_(bytes);
         if (p)
             memset(p, 0, bytes);
         return p;
     }
-    void *realloc_(void *p, size_t oldBytes, size_t bytes) {
-        void *n = malloc_(bytes);
+    void* realloc_(void* p, size_t oldBytes, size_t bytes) {
+        void* n = malloc_(bytes);
         if (!n)
             return n;
         memcpy(n, p, Min(oldBytes, bytes));
         return n;
     }
-    void free_(void *p) {
+    void free_(void* p) {
     }
     void reportAllocOverflow() const {
     }

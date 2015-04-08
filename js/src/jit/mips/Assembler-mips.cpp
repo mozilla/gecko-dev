@@ -88,41 +88,41 @@ js::jit::SA(FloatRegister r)
 }
 
 Register
-js::jit::toRS(Instruction &i)
+js::jit::toRS(Instruction& i)
 {
     return Register::FromCode((i.encode() & RSMask ) >> RSShift);
 }
 
 Register
-js::jit::toRT(Instruction &i)
+js::jit::toRT(Instruction& i)
 {
     return Register::FromCode((i.encode() & RTMask ) >> RTShift);
 }
 
 Register
-js::jit::toRD(Instruction &i)
+js::jit::toRD(Instruction& i)
 {
     return Register::FromCode((i.encode() & RDMask ) >> RDShift);
 }
 
 Register
-js::jit::toR(Instruction &i)
+js::jit::toR(Instruction& i)
 {
     return Register::FromCode(i.encode() & RegMask);
 }
 
 void
-InstImm::extractImm16(BOffImm16 *dest)
+InstImm::extractImm16(BOffImm16* dest)
 {
     *dest = BOffImm16(*this);
 }
 
 // Used to patch jumps created by MacroAssemblerMIPSCompat::jumpWithPatch.
 void
-jit::PatchJump(CodeLocationJump &jump_, CodeLocationLabel label)
+jit::PatchJump(CodeLocationJump& jump_, CodeLocationLabel label)
 {
-    Instruction *inst1 = (Instruction *)jump_.raw();
-    Instruction *inst2 = inst1->next();
+    Instruction* inst1 = (Instruction*)jump_.raw();
+    Instruction* inst2 = inst1->next();
 
     Assembler::updateLuiOriValue(inst1, inst2, (uint32_t)label.raw());
 
@@ -137,14 +137,14 @@ Assembler::finish()
 }
 
 void
-Assembler::executableCopy(uint8_t *buffer)
+Assembler::executableCopy(uint8_t* buffer)
 {
     JS_ASSERT(isFinished);
     m_buffer.executableCopy(buffer);
 
     // Patch all long jumps during code copy.
     for (size_t i = 0; i < longJumps_.length(); i++) {
-        Instruction *inst1 = (Instruction *) ((uint32_t)buffer + longJumps_[i]);
+        Instruction* inst1 = (Instruction*) ((uint32_t)buffer + longJumps_[i]);
 
         uint32_t value = extractLuiOriValue(inst1, inst1->next());
         updateLuiOriValue(inst1, inst1->next(), (uint32_t)buffer + value);
@@ -165,8 +165,8 @@ Assembler::actualIndex(uint32_t idx_) const
     return idx_;
 }
 
-uint8_t *
-Assembler::PatchableJumpAddress(JitCode *code, uint32_t pe_)
+uint8_t*
+Assembler::PatchableJumpAddress(JitCode* code, uint32_t pe_)
 {
     return code->raw() + pe_;
 }
@@ -178,7 +178,7 @@ class RelocationIterator
     uint32_t offset_;
 
   public:
-    RelocationIterator(CompactBufferReader &reader)
+    RelocationIterator(CompactBufferReader& reader)
       : reader_(reader)
     { }
 
@@ -195,92 +195,92 @@ class RelocationIterator
 };
 
 uintptr_t
-Assembler::getPointer(uint8_t *instPtr)
+Assembler::getPointer(uint8_t* instPtr)
 {
-    Instruction *inst = (Instruction*)instPtr;
+    Instruction* inst = (Instruction*)instPtr;
     return Assembler::extractLuiOriValue(inst, inst->next());
 }
 
-static JitCode *
-CodeFromJump(Instruction *jump)
+static JitCode*
+CodeFromJump(Instruction* jump)
 {
-    uint8_t *target = (uint8_t *)Assembler::extractLuiOriValue(jump, jump->next());
+    uint8_t* target = (uint8_t*)Assembler::extractLuiOriValue(jump, jump->next());
     return JitCode::FromExecutable(target);
 }
 
 void
-Assembler::TraceJumpRelocations(JSTracer *trc, JitCode *code, CompactBufferReader &reader)
+Assembler::TraceJumpRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader)
 {
     RelocationIterator iter(reader);
     while (iter.read()) {
-        JitCode *child = CodeFromJump((Instruction *)(code->raw() + iter.offset()));
+        JitCode* child = CodeFromJump((Instruction*)(code->raw() + iter.offset()));
         MarkJitCodeUnbarriered(trc, &child, "rel32");
     }
 }
 
 static void
-TraceDataRelocations(JSTracer *trc, uint8_t *buffer, CompactBufferReader &reader)
+TraceDataRelocations(JSTracer* trc, uint8_t* buffer, CompactBufferReader& reader)
 {
     while (reader.more()) {
         size_t offset = reader.readUnsigned();
-        Instruction *inst = (Instruction*)(buffer + offset);
-        void *ptr = (void *)Assembler::extractLuiOriValue(inst, inst->next());
+        Instruction* inst = (Instruction*)(buffer + offset);
+        void* ptr = (void*)Assembler::extractLuiOriValue(inst, inst->next());
 
         // No barrier needed since these are constants.
-        gc::MarkGCThingUnbarriered(trc, reinterpret_cast<void **>(&ptr), "ion-masm-ptr");
+        gc::MarkGCThingUnbarriered(trc, reinterpret_cast<void**>(&ptr), "ion-masm-ptr");
     }
 }
 
 static void
-TraceDataRelocations(JSTracer *trc, MIPSBuffer *buffer, CompactBufferReader &reader)
+TraceDataRelocations(JSTracer* trc, MIPSBuffer* buffer, CompactBufferReader& reader)
 {
     while (reader.more()) {
         BufferOffset bo (reader.readUnsigned());
         MIPSBuffer::AssemblerBufferInstIterator iter(bo, buffer);
 
-        void *ptr = (void *)Assembler::extractLuiOriValue(iter.cur(), iter.next());
+        void* ptr = (void*)Assembler::extractLuiOriValue(iter.cur(), iter.next());
 
         // No barrier needed since these are constants.
-        gc::MarkGCThingUnbarriered(trc, reinterpret_cast<void **>(&ptr), "ion-masm-ptr");
+        gc::MarkGCThingUnbarriered(trc, reinterpret_cast<void**>(&ptr), "ion-masm-ptr");
     }
 }
 
 void
-Assembler::TraceDataRelocations(JSTracer *trc, JitCode *code, CompactBufferReader &reader)
+Assembler::TraceDataRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader)
 {
     ::TraceDataRelocations(trc, code->raw(), reader);
 }
 
 void
-Assembler::copyJumpRelocationTable(uint8_t *dest)
+Assembler::copyJumpRelocationTable(uint8_t* dest)
 {
     if (jumpRelocations_.length())
         memcpy(dest, jumpRelocations_.buffer(), jumpRelocations_.length());
 }
 
 void
-Assembler::copyDataRelocationTable(uint8_t *dest)
+Assembler::copyDataRelocationTable(uint8_t* dest)
 {
     if (dataRelocations_.length())
         memcpy(dest, dataRelocations_.buffer(), dataRelocations_.length());
 }
 
 void
-Assembler::copyPreBarrierTable(uint8_t *dest)
+Assembler::copyPreBarrierTable(uint8_t* dest)
 {
     if (preBarriers_.length())
         memcpy(dest, preBarriers_.buffer(), preBarriers_.length());
 }
 
 void
-Assembler::trace(JSTracer *trc)
+Assembler::trace(JSTracer* trc)
 {
     for (size_t i = 0; i < jumps_.length(); i++) {
-        RelativePatch &rp = jumps_[i];
+        RelativePatch& rp = jumps_[i];
         if (rp.kind == Relocation::JITCODE) {
-            JitCode *code = JitCode::FromExecutable((uint8_t *)rp.target);
+            JitCode* code = JitCode::FromExecutable((uint8_t*)rp.target);
             MarkJitCodeUnbarriered(trc, &code, "masmrel32");
-            JS_ASSERT(code == JitCode::FromExecutable((uint8_t *)rp.target));
+            JS_ASSERT(code == JitCode::FromExecutable((uint8_t*)rp.target));
         }
     }
     if (dataRelocations_.length()) {
@@ -290,7 +290,7 @@ Assembler::trace(JSTracer *trc)
 }
 
 void
-Assembler::processCodeLabels(uint8_t *rawCode)
+Assembler::processCodeLabels(uint8_t* rawCode)
 {
     for (size_t i = 0; i < codeLabels_.length(); i++) {
         CodeLabel label = codeLabels_[i];
@@ -299,12 +299,12 @@ Assembler::processCodeLabels(uint8_t *rawCode)
 }
 
 void
-Assembler::Bind(uint8_t *rawCode, AbsoluteLabel *label, const void *address)
+Assembler::Bind(uint8_t* rawCode, AbsoluteLabel* label, const void* address)
 {
     if (label->used()) {
         int32_t src = label->offset();
         do {
-            Instruction *inst = (Instruction *) (rawCode + src);
+            Instruction* inst = (Instruction*) (rawCode + src);
             uint32_t next = Assembler::extractLuiOriValue(inst, inst->next());
             Assembler::updateLuiOriValue(inst, inst->next(), (uint32_t)address);
             src = next;
@@ -448,7 +448,7 @@ Assembler::bytesNeeded() const
 
 // write a blob of binary into the instruction stream
 BufferOffset
-Assembler::writeInst(uint32_t x, uint32_t *dest)
+Assembler::writeInst(uint32_t x, uint32_t* dest)
 {
     if (dest == nullptr)
         return m_buffer.putInt(x);
@@ -458,7 +458,7 @@ Assembler::writeInst(uint32_t x, uint32_t *dest)
 }
 
 void
-Assembler::writeInstStatic(uint32_t x, uint32_t *dest)
+Assembler::writeInstStatic(uint32_t x, uint32_t* dest)
 {
     JS_ASSERT(dest != nullptr);
     *dest = x;
@@ -1178,7 +1178,7 @@ Assembler::as_cule(FloatFormat fmt, FloatRegister fs, FloatRegister ft, FPCondit
 
 
 void
-Assembler::bind(Label *label, BufferOffset boff)
+Assembler::bind(Label* label, BufferOffset boff)
 {
     // If our caller didn't give us an explicit target to bind to
     // then we want to bind to the location of the next instruction
@@ -1189,11 +1189,11 @@ Assembler::bind(Label *label, BufferOffset boff)
         // A used label holds a link to branch that uses it.
         BufferOffset b(label);
         do {
-            Instruction *inst = editSrc(b);
+            Instruction* inst = editSrc(b);
 
             // Second word holds a pointer to the next branch in label's chain.
             next = inst[1].encode();
-            bind(reinterpret_cast<InstImm *>(inst), b.getOffset(), dest.getOffset());
+            bind(reinterpret_cast<InstImm*>(inst), b.getOffset(), dest.getOffset());
 
             b = BufferOffset(next);
         } while (next != LabelBase::INVALID_OFFSET);
@@ -1202,7 +1202,7 @@ Assembler::bind(Label *label, BufferOffset boff)
 }
 
 void
-Assembler::bind(InstImm *inst, uint32_t branch, uint32_t target)
+Assembler::bind(InstImm* inst, uint32_t branch, uint32_t target)
 {
     int32_t offset = target - branch;
     InstImm inst_bgezal = InstImm(op_regimm, zero, rt_bgezal, BOffImm16(0));
@@ -1224,7 +1224,7 @@ Assembler::bind(InstImm *inst, uint32_t branch, uint32_t target)
 
         // Skip the trailing nops in conditional branches.
         if (conditional) {
-            inst[2] = InstImm(op_regimm, zero, rt_bgez, BOffImm16(3 * sizeof(void *))).encode();
+            inst[2] = InstImm(op_regimm, zero, rt_bgez, BOffImm16(3 * sizeof(void*))).encode();
             // There are 2 nops after this
         }
         return;
@@ -1244,9 +1244,9 @@ Assembler::bind(InstImm *inst, uint32_t branch, uint32_t target)
         // There is 1 nop after this.
     } else {
         // Handle long conditional jump.
-        inst[0] = invertBranch(inst[0], BOffImm16(5 * sizeof(void *)));
+        inst[0] = invertBranch(inst[0], BOffImm16(5 * sizeof(void*)));
         // No need for a "nop" here because we can clobber scratch.
-        addLongJump(BufferOffset(branch + sizeof(void *)));
+        addLongJump(BufferOffset(branch + sizeof(void*)));
         writeLuiOriInstructions(&inst[1], &inst[2], ScratchRegister, target);
         inst[3] = InstReg(op_special, ScratchRegister, zero, zero, ff_jr).encode();
         // There is 1 nop after this.
@@ -1254,15 +1254,15 @@ Assembler::bind(InstImm *inst, uint32_t branch, uint32_t target)
 }
 
 void
-Assembler::bind(RepatchLabel *label)
+Assembler::bind(RepatchLabel* label)
 {
     BufferOffset dest = nextOffset();
     if (label->used()) {
         // If the label has a use, then change this use to refer to
         // the bound label;
         BufferOffset b(label->offset());
-        Instruction *inst1 = editSrc(b);
-        Instruction *inst2 = inst1->next();
+        Instruction* inst1 = editSrc(b);
+        Instruction* inst2 = inst1->next();
 
         updateLuiOriValue(inst1, inst2, dest.getOffset());
     }
@@ -1270,7 +1270,7 @@ Assembler::bind(RepatchLabel *label)
 }
 
 void
-Assembler::retarget(Label *label, Label *target)
+Assembler::retarget(Label* label, Label* target)
 {
     if (label->used()) {
         if (target->bound()) {
@@ -1283,7 +1283,7 @@ Assembler::retarget(Label *label, Label *target)
 
             // Find the head of the use chain for label.
             do {
-                Instruction *inst = editSrc(labelBranchOffset);
+                Instruction* inst = editSrc(labelBranchOffset);
 
                 // Second word holds a pointer to the next branch in chain.
                 next = inst[1].encode();
@@ -1292,7 +1292,7 @@ Assembler::retarget(Label *label, Label *target)
 
             // Then patch the head of label's use chain to the tail of
             // target's use chain, prepending the entire use chain of target.
-            Instruction *inst = editSrc(labelBranchOffset);
+            Instruction* inst = editSrc(labelBranchOffset);
             int32_t prev = target->use(label->offset());
             inst[1].setData(prev);
         } else {
@@ -1323,8 +1323,8 @@ Assembler::patchWrite_NearCallSize()
 void
 Assembler::patchWrite_NearCall(CodeLocationLabel start, CodeLocationLabel toCall)
 {
-    Instruction *inst = (Instruction *) start.raw();
-    uint8_t *dest = toCall.raw();
+    Instruction* inst = (Instruction*) start.raw();
+    uint8_t* dest = toCall.raw();
 
     // Overwrite whatever instruction used to be here with a call.
     // Always use long jump for two reasons:
@@ -1340,10 +1340,10 @@ Assembler::patchWrite_NearCall(CodeLocationLabel start, CodeLocationLabel toCall
 }
 
 uint32_t
-Assembler::extractLuiOriValue(Instruction *inst0, Instruction *inst1)
+Assembler::extractLuiOriValue(Instruction* inst0, Instruction* inst1)
 {
-    InstImm *i0 = (InstImm *) inst0;
-    InstImm *i1 = (InstImm *) inst1;
+    InstImm* i0 = (InstImm*) inst0;
+    InstImm* i1 = (InstImm*) inst1;
     JS_ASSERT(i0->extractOpcode() == ((uint32_t)op_lui >> OpcodeShift));
     JS_ASSERT(i1->extractOpcode() == ((uint32_t)op_ori >> OpcodeShift));
 
@@ -1353,17 +1353,17 @@ Assembler::extractLuiOriValue(Instruction *inst0, Instruction *inst1)
 }
 
 void
-Assembler::updateLuiOriValue(Instruction *inst0, Instruction *inst1, uint32_t value)
+Assembler::updateLuiOriValue(Instruction* inst0, Instruction* inst1, uint32_t value)
 {
     JS_ASSERT(inst0->extractOpcode() == ((uint32_t)op_lui >> OpcodeShift));
     JS_ASSERT(inst1->extractOpcode() == ((uint32_t)op_ori >> OpcodeShift));
 
-    ((InstImm *) inst0)->setImm16(Imm16::upper(Imm32(value)));
-    ((InstImm *) inst1)->setImm16(Imm16::lower(Imm32(value)));
+    ((InstImm*) inst0)->setImm16(Imm16::upper(Imm32(value)));
+    ((InstImm*) inst1)->setImm16(Imm16::lower(Imm32(value)));
 }
 
 void
-Assembler::writeLuiOriInstructions(Instruction *inst0, Instruction *inst1,
+Assembler::writeLuiOriInstructions(Instruction* inst0, Instruction* inst1,
                                    Register reg, uint32_t value)
 {
     *inst0 = InstImm(op_lui, zero, reg, Imm16::upper(Imm32(value)));
@@ -1374,7 +1374,7 @@ void
 Assembler::patchDataWithValueCheck(CodeLocationLabel label, PatchedImmPtr newValue,
                                    PatchedImmPtr expectedValue)
 {
-    Instruction *inst = (Instruction *) label.raw();
+    Instruction* inst = (Instruction*) label.raw();
 
     // Extract old Value
     DebugOnly<uint32_t> value = Assembler::extractLuiOriValue(&inst[0], &inst[1]);
@@ -1402,23 +1402,23 @@ void
 Assembler::patchWrite_Imm32(CodeLocationLabel label, Imm32 imm)
 {
     // Raw is going to be the return address.
-    uint32_t *raw = (uint32_t*)label.raw();
+    uint32_t* raw = (uint32_t*)label.raw();
     // Overwrite the 4 bytes before the return address, which will
     // end up being the call instruction.
     *(raw - 1) = imm.value;
 }
 
-uint8_t *
-Assembler::nextInstruction(uint8_t *inst_, uint32_t *count)
+uint8_t*
+Assembler::nextInstruction(uint8_t* inst_, uint32_t* count)
 {
-    Instruction *inst = reinterpret_cast<Instruction*>(inst_);
+    Instruction* inst = reinterpret_cast<Instruction*>(inst_);
     if (count != nullptr)
         *count += sizeof(Instruction);
     return reinterpret_cast<uint8_t*>(inst->next());
 }
 
 // Since there are no pools in MIPS implementation, this should be simple.
-Instruction *
+Instruction*
 Instruction::next()
 {
     return this + 1;
@@ -1479,7 +1479,7 @@ InstImm Assembler::invertBranch(InstImm branch, BOffImm16 skipOffset)
 void
 Assembler::ToggleToJmp(CodeLocationLabel inst_)
 {
-    InstImm * inst = (InstImm *)inst_.raw();
+    InstImm * inst = (InstImm*)inst_.raw();
 
     JS_ASSERT(inst->extractOpcode() == ((uint32_t)op_andi >> OpcodeShift));
     // We converted beq to andi, so now we restore it.
@@ -1491,7 +1491,7 @@ Assembler::ToggleToJmp(CodeLocationLabel inst_)
 void
 Assembler::ToggleToCmp(CodeLocationLabel inst_)
 {
-    InstImm * inst = (InstImm *)inst_.raw();
+    InstImm * inst = (InstImm*)inst_.raw();
 
     // toggledJump is allways used for short jumps.
     JS_ASSERT(inst->extractOpcode() == ((uint32_t)op_beq >> OpcodeShift));
@@ -1504,10 +1504,10 @@ Assembler::ToggleToCmp(CodeLocationLabel inst_)
 void
 Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled)
 {
-    Instruction *inst = (Instruction *)inst_.raw();
-    InstImm *i0 = (InstImm *) inst;
-    InstImm *i1 = (InstImm *) i0->next();
-    Instruction *i2 = (Instruction *) i1->next();
+    Instruction* inst = (Instruction*)inst_.raw();
+    InstImm* i0 = (InstImm*) inst;
+    InstImm* i1 = (InstImm*) i0->next();
+    Instruction* i2 = (Instruction*) i1->next();
 
     JS_ASSERT(i0->extractOpcode() == ((uint32_t)op_lui >> OpcodeShift));
     JS_ASSERT(i1->extractOpcode() == ((uint32_t)op_ori >> OpcodeShift));
@@ -1523,7 +1523,7 @@ Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled)
     AutoFlushICache::flush(uintptr_t(i2), 4);
 }
 
-void Assembler::updateBoundsCheck(uint32_t heapSize, Instruction *inst)
+void Assembler::updateBoundsCheck(uint32_t heapSize, Instruction* inst)
 {
     MOZ_ASSUME_UNREACHABLE("NYI");
 }

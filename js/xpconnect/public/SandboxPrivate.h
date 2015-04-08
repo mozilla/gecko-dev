@@ -24,7 +24,7 @@ class SandboxPrivate : public nsIGlobalObject,
                        public nsWrapperCache
 {
 public:
-    SandboxPrivate(nsIPrincipal *principal, JSObject *global)
+    SandboxPrivate(nsIPrincipal* principal, JSObject* global)
         : mPrincipal(principal)
     {
         SetWrapper(global);
@@ -35,12 +35,12 @@ public:
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(SandboxPrivate,
                                                            nsIGlobalObject)
 
-    nsIPrincipal *GetPrincipal()
+    nsIPrincipal* GetPrincipal()
     {
         return mPrincipal;
     }
 
-    JSObject *GetGlobalJSObject()
+    JSObject* GetGlobalJSObject()
     {
         return GetWrapper();
     }

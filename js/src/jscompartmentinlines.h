@@ -12,28 +12,28 @@
 #include "gc/Barrier-inl.h"
 
 inline void
-JSCompartment::initGlobal(js::GlobalObject &global)
+JSCompartment::initGlobal(js::GlobalObject& global)
 {
     JS_ASSERT(global.compartment() == this);
     JS_ASSERT(!global_);
     global_ = &global;
 }
 
-js::GlobalObject *
+js::GlobalObject*
 JSCompartment::maybeGlobal() const
 {
     JS_ASSERT_IF(global_, global_->compartment() == this);
     return global_;
 }
 
-js::AutoCompartment::AutoCompartment(ExclusiveContext *cx, JSObject *target)
+js::AutoCompartment::AutoCompartment(ExclusiveContext* cx, JSObject* target)
   : cx_(cx),
     origin_(cx->compartment_)
 {
     cx_->enterCompartment(target->compartment());
 }
 
-js::AutoCompartment::AutoCompartment(ExclusiveContext *cx, JSCompartment *target)
+js::AutoCompartment::AutoCompartment(ExclusiveContext* cx, JSCompartment* target)
   : cx_(cx),
     origin_(cx_->compartment_)
 {
@@ -46,7 +46,7 @@ js::AutoCompartment::~AutoCompartment()
 }
 
 inline bool
-JSCompartment::wrap(JSContext *cx, JS::MutableHandleValue vp, JS::HandleObject existing)
+JSCompartment::wrap(JSContext* cx, JS::MutableHandleValue vp, JS::HandleObject existing)
 {
     JS_ASSERT_IF(existing, vp.isObject());
 

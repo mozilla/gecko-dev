@@ -27,7 +27,7 @@ enum OptimizationLevel
 #ifdef JS_ION
 
 #ifdef DEBUG
-inline const char *
+inline const char*
 OptimizationLevelString(OptimizationLevel level)
 {
     switch (level) {
@@ -125,7 +125,7 @@ class OptimizationInfo
         return inlineNative_ && !js_JitOptions.disableInlining;
     }
 
-    uint32_t usesBeforeCompile(JSScript *script, jsbytecode *pc = nullptr) const;
+    uint32_t usesBeforeCompile(JSScript* script, jsbytecode* pc = nullptr) const;
 
     bool gvnEnabled() const {
         return gvn_ && !js_JitOptions.disableGvn;
@@ -171,7 +171,7 @@ class OptimizationInfo
         return smallFunctionMaxInlineDepth_;
     }
 
-    bool isSmallFunction(JSScript *script) const;
+    bool isSmallFunction(JSScript* script) const;
 
     uint32_t maxInlineDepth() const {
         return maxInlineDepth_;
@@ -201,7 +201,7 @@ class OptimizationInfos
   public:
     OptimizationInfos();
 
-    const OptimizationInfo *get(OptimizationLevel level) const {
+    const OptimizationInfo* get(OptimizationLevel level) const {
         JS_ASSERT(level < Optimization_Count);
         JS_ASSERT(level != Optimization_DontCompile);
 
@@ -211,7 +211,7 @@ class OptimizationInfos
     OptimizationLevel nextLevel(OptimizationLevel level) const;
     OptimizationLevel firstLevel() const;
     bool isLastLevel(OptimizationLevel level) const;
-    OptimizationLevel levelForScript(JSScript *script, jsbytecode *pc = nullptr) const;
+    OptimizationLevel levelForScript(JSScript* script, jsbytecode* pc = nullptr) const;
 };
 
 extern OptimizationInfos js_IonOptimizations;

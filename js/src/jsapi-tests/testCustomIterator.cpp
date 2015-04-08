@@ -8,7 +8,7 @@
 static int iterCount = 0;
 
 static bool
-IterNext(JSContext *cx, unsigned argc, jsval *vp)
+IterNext(JSContext* cx, unsigned argc, jsval* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     if (iterCount++ == 100)
@@ -17,8 +17,8 @@ IterNext(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
-static JSObject *
-IterHook(JSContext *cx, JS::HandleObject obj, bool keysonly)
+static JSObject*
+IterHook(JSContext* cx, JS::HandleObject obj, bool keysonly)
 {
     JS::RootedObject iterObj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
     if (!iterObj)
@@ -53,10 +53,10 @@ const js::Class HasCustomIterClass = {
 };
 
 static bool
-IterClassConstructor(JSContext *cx, unsigned argc, jsval *vp)
+IterClassConstructor(JSContext* cx, unsigned argc, jsval* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-    JSObject *obj = JS_NewObjectForConstructor(cx, Jsvalify(&HasCustomIterClass), args);
+    JSObject* obj = JS_NewObjectForConstructor(cx, Jsvalify(&HasCustomIterClass), args);
     if (!obj)
         return false;
     args.rval().setObject(*obj);

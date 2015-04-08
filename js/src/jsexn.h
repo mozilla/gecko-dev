@@ -17,11 +17,11 @@
 namespace js {
 class ErrorObject;
 
-JSErrorReport *
-CopyErrorReport(JSContext *cx, JSErrorReport *report);
+JSErrorReport*
+CopyErrorReport(JSContext* cx, JSErrorReport* report);
 
-JSString *
-ComputeStackString(JSContext *cx);
+JSString*
+ComputeStackString(JSContext* cx);
 }
 
 /*
@@ -51,8 +51,8 @@ ComputeStackString(JSContext *cx);
  *     unless the caller decides to call CallErrorReporter explicitly.
  */
 extern bool
-js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
-                    JSErrorCallback callback, void *userRef);
+js_ErrorToException(JSContext* cx, const char* message, JSErrorReport* reportp,
+                    JSErrorCallback callback, void* userRef);
 
 /*
  * Called if a JS API call to js_Execute or js_InternalCall fails; calls the
@@ -71,13 +71,13 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
  * this flag.
  */
 extern bool
-js_ReportUncaughtException(JSContext *cx);
+js_ReportUncaughtException(JSContext* cx);
 
-extern JSErrorReport *
-js_ErrorFromException(JSContext *cx, js::HandleObject obj);
+extern JSErrorReport*
+js_ErrorFromException(JSContext* cx, js::HandleObject obj);
 
-extern const JSErrorFormatString *
-js_GetLocalizedErrorMessage(js::ExclusiveContext *cx, void *userRef, const char *locale,
+extern const JSErrorFormatString*
+js_GetLocalizedErrorMessage(js::ExclusiveContext* cx, void* userRef, const char* locale,
                             const unsigned errorNumber);
 
 /*
@@ -88,8 +88,8 @@ js_GetLocalizedErrorMessage(js::ExclusiveContext *cx, void *userRef, const char 
  * must not be one of the prototype objects created by js_InitExceptionClasses
  * (errobj->getPrivate() must not be nullptr).
  */
-extern JSObject *
-js_CopyErrorObject(JSContext *cx, JS::Handle<js::ErrorObject*> errobj, js::HandleObject scope);
+extern JSObject*
+js_CopyErrorObject(JSContext* cx, JS::Handle<js::ErrorObject*> errobj, js::HandleObject scope);
 
 static inline JSProtoKey
 GetExceptionProtoKey(JSExnType exn)

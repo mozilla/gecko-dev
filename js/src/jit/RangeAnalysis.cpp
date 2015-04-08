@@ -95,9 +95,9 @@ using JS::GenericNaN;
 // encounter beta nodes.
 
 static bool
-IsDominatedUse(MBasicBlock *block, MUse *use)
+IsDominatedUse(MBasicBlock* block, MUse* use)
 {
-    MNode *n = use->consumer();
+    MNode* n = use->consumer();
     bool isPhi = n->isDefinition() && n->toDefinition()->isPhi();
 
     if (isPhi)
@@ -107,7 +107,7 @@ IsDominatedUse(MBasicBlock *block, MUse *use)
 }
 
 static inline void
-SpewRange(MDefinition *def)
+SpewRange(MDefinition* def)
 {
 #ifdef DEBUG
     if (IonSpewEnabled(IonSpew_Range) && def->type() != MIRType_None && def->range()) {
@@ -119,15 +119,15 @@ SpewRange(MDefinition *def)
 #endif
 }
 
-TempAllocator &
+TempAllocator&
 RangeAnalysis::alloc() const
 {
     return graph_.alloc();
 }
 
 void
-RangeAnalysis::replaceDominatedUsesWith(MDefinition *orig, MDefinition *dom,
-                                            MBasicBlock *block)
+RangeAnalysis::replaceDominatedUsesWith(MDefinition* orig, MDefinition* dom,
+                                            MBasicBlock* block)
 {
     for (MUseIterator i(orig->usesBegin()); i != orig->usesEnd(); ) {
         if (i->consumer() != dom && IsDominatedUse(block, *i))
@@ -143,27 +143,27 @@ RangeAnalysis::addBetaNodes()
     IonSpew(IonSpew_Range, "Adding beta nodes");
 
     for (PostorderIterator i(graph_.poBegin()); i != graph_.poEnd(); i++) {
-        MBasicBlock *block = *i;
+        MBasicBlock* block = *i;
         IonSpew(IonSpew_Range, "Looking at block %d", block->id());
 
         BranchDirection branch_dir;
-        MTest *test = block->immediateDominatorBranch(&branch_dir);
+        MTest* test = block->immediateDominatorBranch(&branch_dir);
 
         if (!test || !test->getOperand(0)->isCompare())
             continue;
 
-        MCompare *compare = test->getOperand(0)->toCompare();
+        MCompare* compare = test->getOperand(0)->toCompare();
 
         // TODO: support unsigned comparisons
         if (compare->compareType() == MCompare::Compare_UInt32)
             continue;
 
-        MDefinition *left = compare->getOperand(0);
-        MDefinition *right = compare->getOperand(1);
+        MDefinition* left = compare->getOperand(0);
+        MDefinition* right = compare->getOperand(1);
         double bound;
         double conservativeLower = NegativeInfinity<double>();
         double conservativeUpper = PositiveInfinity<double>();
-        MDefinition *val = nullptr;
+        MDefinition* val = nullptr;
 
         JSOp jsop = compare->jsop();
 
@@ -181,8 +181,8 @@ RangeAnalysis::addBetaNodes()
             bound = right->toConstant()->value().toNumber();
             val = left;
         } else if (left->type() == MIRType_Int32 && right->type() == MIRType_Int32) {
-            MDefinition *smaller = nullptr;
-            MDefinition *greater = nullptr;
+            MDefinition* smaller = nullptr;
+            MDefinition* greater = nullptr;
             if (jsop == JSOP_LT) {
                 smaller = left;
                 greater = right;
@@ -191,7 +191,7 @@ RangeAnalysis::addBetaNodes()
                 greater = left;
             }
             if (smaller && greater) {
-                MBeta *beta;
+                MBeta* beta;
                 beta = MBeta::New(alloc(), smaller,
                                   Range::NewInt32Range(alloc(), JSVAL_INT_MIN, JSVAL_INT_MAX-1));
                 block->insertBefore(*block->begin(), beta);
@@ -252,7 +252,7 @@ RangeAnalysis::addBetaNodes()
             comp.dump(IonSpewFile);
         }
 
-        MBeta *beta = MBeta::New(alloc(), val, new(alloc()) Range(comp));
+        MBeta* beta = MBeta::New(alloc(), val, new(alloc()) Range(comp));
         block->insertBefore(*block->begin(), beta);
         replaceDominatedUsesWith(val, beta, block);
     }
@@ -266,11 +266,11 @@ RangeAnalysis::removeBetaNodes()
     IonSpew(IonSpew_Range, "Removing beta nodes");
 
     for (PostorderIterator i(graph_.poBegin()); i != graph_.poEnd(); i++) {
-        MBasicBlock *block = *i;
+        MBasicBlock* block = *i;
         for (MDefinitionIterator iter(*i); iter; ) {
-            MDefinition *def = *iter;
+            MDefinition* def = *iter;
             if (def->isBeta()) {
-                MDefinition *op = def->getOperand(0);
+                MDefinition* op = def->getOperand(0);
                 IonSpew(IonSpew_Range, "Removing beta node %d for %d",
                         def->id(), op->id());
                 def->replaceAllUsesWith(op);
@@ -287,7 +287,7 @@ RangeAnalysis::removeBetaNodes()
 }
 
 void
-SymbolicBound::print(Sprinter &sp) const
+SymbolicBound::print(Sprinter& sp) const
 {
     if (loop)
         sp.printf("[loop] ");
@@ -306,7 +306,7 @@ SymbolicBound::dump() const
 // Test whether the given range's exponent tells us anything that its lower
 // and upper bound values don't.
 static bool
-IsExponentInteresting(const Range *r)
+IsExponentInteresting(const Range* r)
 {
    // If it lacks either a lower or upper bound, the exponent is interesting.
    if (!r->hasInt32Bounds())
@@ -323,7 +323,7 @@ IsExponentInteresting(const Range *r)
 }
 
 void
-Range::print(Sprinter &sp) const
+Range::print(Sprinter& sp) const
 {
     assertInvariants();
 
@@ -369,7 +369,7 @@ Range::print(Sprinter &sp) const
 }
 
 void
-Range::dump(FILE *fp) const
+Range::dump(FILE* fp) const
 {
     Sprinter sp(GetIonContext()->cx);
     sp.init();
@@ -383,8 +383,8 @@ Range::dump() const
     dump(stderr);
 }
 
-Range *
-Range::intersect(TempAllocator &alloc, const Range *lhs, const Range *rhs, bool *emptyRange)
+Range*
+Range::intersect(TempAllocator& alloc, const Range* lhs, const Range* rhs, bool* emptyRange)
 {
     *emptyRange = false;
 
@@ -471,7 +471,7 @@ Range::intersect(TempAllocator &alloc, const Range *lhs, const Range *rhs, bool 
 }
 
 void
-Range::unionWith(const Range *other)
+Range::unionWith(const Range* other)
 {
     int32_t newLower = Min(lower_, other->lower_);
     int32_t newUpper = Max(upper_, other->upper_);
@@ -485,11 +485,11 @@ Range::unionWith(const Range *other)
                   newFractional, newExponent);
 }
 
-Range::Range(const MDefinition *def)
+Range::Range(const MDefinition* def)
   : symbolicLower_(nullptr),
     symbolicUpper_(nullptr)
 {
-    if (const Range *other = def->range()) {
+    if (const Range* other = def->range()) {
         // The instruction has range information; use it.
         *this = *other;
 
@@ -588,13 +588,13 @@ Range::setDouble(double l, double h)
 }
 
 static inline bool
-MissingAnyInt32Bounds(const Range *lhs, const Range *rhs)
+MissingAnyInt32Bounds(const Range* lhs, const Range* rhs)
 {
     return !lhs->hasInt32Bounds() || !rhs->hasInt32Bounds();
 }
 
-Range *
-Range::add(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::add(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     int64_t l = (int64_t) lhs->lower_ + (int64_t) rhs->lower_;
     if (!lhs->hasInt32LowerBound() || !rhs->hasInt32LowerBound())
@@ -617,8 +617,8 @@ Range::add(TempAllocator &alloc, const Range *lhs, const Range *rhs)
     return new(alloc) Range(l, h, lhs->canHaveFractionalPart() || rhs->canHaveFractionalPart(), e);
 }
 
-Range *
-Range::sub(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::sub(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     int64_t l = (int64_t) lhs->lower_ - (int64_t) rhs->upper_;
     if (!lhs->hasInt32LowerBound() || !rhs->hasInt32UpperBound())
@@ -641,8 +641,8 @@ Range::sub(TempAllocator &alloc, const Range *lhs, const Range *rhs)
     return new(alloc) Range(l, h, lhs->canHaveFractionalPart() || rhs->canHaveFractionalPart(), e);
 }
 
-Range *
-Range::and_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::and_(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     JS_ASSERT(lhs->isInt32());
     JS_ASSERT(rhs->isInt32());
@@ -668,8 +668,8 @@ Range::and_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
     return Range::NewInt32Range(alloc, lower, upper);
 }
 
-Range *
-Range::or_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::or_(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     JS_ASSERT(lhs->isInt32());
     JS_ASSERT(rhs->isInt32());
@@ -725,8 +725,8 @@ Range::or_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
     return Range::NewInt32Range(alloc, lower, upper);
 }
 
-Range *
-Range::xor_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::xor_(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     JS_ASSERT(lhs->isInt32());
     JS_ASSERT(rhs->isInt32());
@@ -789,15 +789,15 @@ Range::xor_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
     return Range::NewInt32Range(alloc, lower, upper);
 }
 
-Range *
-Range::not_(TempAllocator &alloc, const Range *op)
+Range*
+Range::not_(TempAllocator& alloc, const Range* op)
 {
     JS_ASSERT(op->isInt32());
     return Range::NewInt32Range(alloc, ~op->upper(), ~op->lower());
 }
 
-Range *
-Range::mul(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::mul(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     bool fractional = lhs->canHaveFractionalPart() || rhs->canHaveFractionalPart();
 
@@ -831,8 +831,8 @@ Range::mul(TempAllocator &alloc, const Range *lhs, const Range *rhs)
         fractional, exponent);
 }
 
-Range *
-Range::lsh(TempAllocator &alloc, const Range *lhs, int32_t c)
+Range*
+Range::lsh(TempAllocator& alloc, const Range* lhs, int32_t c)
 {
     JS_ASSERT(lhs->isInt32());
     int32_t shift = c & 0x1f;
@@ -850,8 +850,8 @@ Range::lsh(TempAllocator &alloc, const Range *lhs, int32_t c)
     return Range::NewInt32Range(alloc, INT32_MIN, INT32_MAX);
 }
 
-Range *
-Range::rsh(TempAllocator &alloc, const Range *lhs, int32_t c)
+Range*
+Range::rsh(TempAllocator& alloc, const Range* lhs, int32_t c)
 {
     JS_ASSERT(lhs->isInt32());
     int32_t shift = c & 0x1f;
@@ -860,8 +860,8 @@ Range::rsh(TempAllocator &alloc, const Range *lhs, int32_t c)
         lhs->upper() >> shift);
 }
 
-Range *
-Range::ursh(TempAllocator &alloc, const Range *lhs, int32_t c)
+Range*
+Range::ursh(TempAllocator& alloc, const Range* lhs, int32_t c)
 {
     // ursh's left operand is uint32, not int32, but for range analysis we
     // currently approximate it as int32. We assume here that the range has
@@ -882,24 +882,24 @@ Range::ursh(TempAllocator &alloc, const Range *lhs, int32_t c)
     return Range::NewUInt32Range(alloc, 0, UINT32_MAX >> shift);
 }
 
-Range *
-Range::lsh(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::lsh(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     JS_ASSERT(lhs->isInt32());
     JS_ASSERT(rhs->isInt32());
     return Range::NewInt32Range(alloc, INT32_MIN, INT32_MAX);
 }
 
-Range *
-Range::rsh(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::rsh(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     JS_ASSERT(lhs->isInt32());
     JS_ASSERT(rhs->isInt32());
     return Range::NewInt32Range(alloc, Min(lhs->lower(), 0), Max(lhs->upper(), 0));
 }
 
-Range *
-Range::ursh(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::ursh(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     // ursh's left operand is uint32, not int32, but for range analysis we
     // currently approximate it as int32. We assume here that the range has
@@ -909,8 +909,8 @@ Range::ursh(TempAllocator &alloc, const Range *lhs, const Range *rhs)
     return Range::NewUInt32Range(alloc, 0, lhs->isFiniteNonNegative() ? lhs->upper() : UINT32_MAX);
 }
 
-Range *
-Range::abs(TempAllocator &alloc, const Range *op)
+Range*
+Range::abs(TempAllocator& alloc, const Range* op)
 {
     int32_t l = op->lower_;
     int32_t u = op->upper_;
@@ -923,8 +923,8 @@ Range::abs(TempAllocator &alloc, const Range *op)
                             op->max_exponent_);
 }
 
-Range *
-Range::min(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::min(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     // If either operand is NaN, the result is NaN.
     if (lhs->canBeNaN() || rhs->canBeNaN())
@@ -938,8 +938,8 @@ Range::min(TempAllocator &alloc, const Range *lhs, const Range *rhs)
                             Max(lhs->max_exponent_, rhs->max_exponent_));
 }
 
-Range *
-Range::max(TempAllocator &alloc, const Range *lhs, const Range *rhs)
+Range*
+Range::max(TempAllocator& alloc, const Range* lhs, const Range* rhs)
 {
     // If either operand is NaN, the result is NaN.
     if (lhs->canBeNaN() || rhs->canBeNaN())
@@ -954,7 +954,7 @@ Range::max(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 }
 
 bool
-Range::negativeZeroMul(const Range *lhs, const Range *rhs)
+Range::negativeZeroMul(const Range* lhs, const Range* rhs)
 {
     // The result can only be negative zero if both sides are finite and they
     // have differing signs.
@@ -963,7 +963,7 @@ Range::negativeZeroMul(const Range *lhs, const Range *rhs)
 }
 
 bool
-Range::update(const Range *other)
+Range::update(const Range* other)
 {
     bool changed =
         lower_ != other->lower_ ||
@@ -990,12 +990,12 @@ Range::update(const Range *other)
 ///////////////////////////////////////////////////////////////////////////////
 
 void
-MPhi::computeRange(TempAllocator &alloc)
+MPhi::computeRange(TempAllocator& alloc)
 {
     if (type() != MIRType_Int32 && type() != MIRType_Double)
         return;
 
-    Range *range = nullptr;
+    Range* range = nullptr;
     for (size_t i = 0, e = numOperands(); i < e; i++) {
         if (getOperand(i)->block()->unreachable()) {
             IonSpew(IonSpew_Range, "Ignoring unreachable input %d", getOperand(i)->id());
@@ -1019,12 +1019,12 @@ MPhi::computeRange(TempAllocator &alloc)
 }
 
 void
-MBeta::computeRange(TempAllocator &alloc)
+MBeta::computeRange(TempAllocator& alloc)
 {
     bool emptyRange = false;
 
     Range opRange(getOperand(0));
-    Range *range = Range::intersect(alloc, &opRange, comparison_, &emptyRange);
+    Range* range = Range::intersect(alloc, &opRange, comparison_, &emptyRange);
     if (emptyRange) {
         IonSpew(IonSpew_Range, "Marking block for inst %d unreachable", id());
         block()->setUnreachable();
@@ -1034,7 +1034,7 @@ MBeta::computeRange(TempAllocator &alloc)
 }
 
 void
-MConstant::computeRange(TempAllocator &alloc)
+MConstant::computeRange(TempAllocator& alloc)
 {
     if (value().isNumber()) {
         double d = value().toNumber();
@@ -1046,20 +1046,20 @@ MConstant::computeRange(TempAllocator &alloc)
 }
 
 void
-MCharCodeAt::computeRange(TempAllocator &alloc)
+MCharCodeAt::computeRange(TempAllocator& alloc)
 {
     // ECMA 262 says that the integer will be non-negative and at most 65535.
     setRange(Range::NewInt32Range(alloc, 0, 65535));
 }
 
 void
-MClampToUint8::computeRange(TempAllocator &alloc)
+MClampToUint8::computeRange(TempAllocator& alloc)
 {
     setRange(Range::NewUInt32Range(alloc, 0, 255));
 }
 
 void
-MBitAnd::computeRange(TempAllocator &alloc)
+MBitAnd::computeRange(TempAllocator& alloc)
 {
     Range left(getOperand(0));
     Range right(getOperand(1));
@@ -1070,7 +1070,7 @@ MBitAnd::computeRange(TempAllocator &alloc)
 }
 
 void
-MBitOr::computeRange(TempAllocator &alloc)
+MBitOr::computeRange(TempAllocator& alloc)
 {
     Range left(getOperand(0));
     Range right(getOperand(1));
@@ -1081,7 +1081,7 @@ MBitOr::computeRange(TempAllocator &alloc)
 }
 
 void
-MBitXor::computeRange(TempAllocator &alloc)
+MBitXor::computeRange(TempAllocator& alloc)
 {
     Range left(getOperand(0));
     Range right(getOperand(1));
@@ -1092,7 +1092,7 @@ MBitXor::computeRange(TempAllocator &alloc)
 }
 
 void
-MBitNot::computeRange(TempAllocator &alloc)
+MBitNot::computeRange(TempAllocator& alloc)
 {
     Range op(getOperand(0));
     op.wrapAroundToInt32();
@@ -1101,13 +1101,13 @@ MBitNot::computeRange(TempAllocator &alloc)
 }
 
 void
-MLsh::computeRange(TempAllocator &alloc)
+MLsh::computeRange(TempAllocator& alloc)
 {
     Range left(getOperand(0));
     Range right(getOperand(1));
     left.wrapAroundToInt32();
 
-    MDefinition *rhs = getOperand(1);
+    MDefinition* rhs = getOperand(1);
     if (!rhs->isConstant()) {
         right.wrapAroundToShiftCount();
         setRange(Range::lsh(alloc, &left, &right));
@@ -1119,13 +1119,13 @@ MLsh::computeRange(TempAllocator &alloc)
 }
 
 void
-MRsh::computeRange(TempAllocator &alloc)
+MRsh::computeRange(TempAllocator& alloc)
 {
     Range left(getOperand(0));
     Range right(getOperand(1));
     left.wrapAroundToInt32();
 
-    MDefinition *rhs = getOperand(1);
+    MDefinition* rhs = getOperand(1);
     if (!rhs->isConstant()) {
         right.wrapAroundToShiftCount();
         setRange(Range::rsh(alloc, &left, &right));
@@ -1137,7 +1137,7 @@ MRsh::computeRange(TempAllocator &alloc)
 }
 
 void
-MUrsh::computeRange(TempAllocator &alloc)
+MUrsh::computeRange(TempAllocator& alloc)
 {
     Range left(getOperand(0));
     Range right(getOperand(1));
@@ -1150,7 +1150,7 @@ MUrsh::computeRange(TempAllocator &alloc)
     left.wrapAroundToInt32();
     right.wrapAroundToShiftCount();
 
-    MDefinition *rhs = getOperand(1);
+    MDefinition* rhs = getOperand(1);
     if (!rhs->isConstant()) {
         setRange(Range::ursh(alloc, &left, &right));
     } else {
@@ -1162,20 +1162,20 @@ MUrsh::computeRange(TempAllocator &alloc)
 }
 
 void
-MAbs::computeRange(TempAllocator &alloc)
+MAbs::computeRange(TempAllocator& alloc)
 {
     if (specialization_ != MIRType_Int32 && specialization_ != MIRType_Double)
         return;
 
     Range other(getOperand(0));
-    Range *next = Range::abs(alloc, &other);
+    Range* next = Range::abs(alloc, &other);
     if (implicitTruncate_)
         next->wrapAroundToInt32();
     setRange(next);
 }
 
 void
-MMinMax::computeRange(TempAllocator &alloc)
+MMinMax::computeRange(TempAllocator& alloc)
 {
     if (specialization_ != MIRType_Int32 && specialization_ != MIRType_Double)
         return;
@@ -1186,33 +1186,33 @@ MMinMax::computeRange(TempAllocator &alloc)
 }
 
 void
-MAdd::computeRange(TempAllocator &alloc)
+MAdd::computeRange(TempAllocator& alloc)
 {
     if (specialization() != MIRType_Int32 && specialization() != MIRType_Double)
         return;
     Range left(getOperand(0));
     Range right(getOperand(1));
-    Range *next = Range::add(alloc, &left, &right);
+    Range* next = Range::add(alloc, &left, &right);
     if (isTruncated())
         next->wrapAroundToInt32();
     setRange(next);
 }
 
 void
-MSub::computeRange(TempAllocator &alloc)
+MSub::computeRange(TempAllocator& alloc)
 {
     if (specialization() != MIRType_Int32 && specialization() != MIRType_Double)
         return;
     Range left(getOperand(0));
     Range right(getOperand(1));
-    Range *next = Range::sub(alloc, &left, &right);
+    Range* next = Range::sub(alloc, &left, &right);
     if (isTruncated())
         next->wrapAroundToInt32();
     setRange(next);
 }
 
 void
-MMul::computeRange(TempAllocator &alloc)
+MMul::computeRange(TempAllocator& alloc)
 {
     if (specialization() != MIRType_Int32 && specialization() != MIRType_Double)
         return;
@@ -1220,7 +1220,7 @@ MMul::computeRange(TempAllocator &alloc)
     Range right(getOperand(1));
     if (canBeNegativeZero())
         canBeNegativeZero_ = Range::negativeZeroMul(&left, &right);
-    Range *next = Range::mul(alloc, &left, &right);
+    Range* next = Range::mul(alloc, &left, &right);
     // Truncated multiplications could overflow in both directions
     if (isTruncated())
         next->wrapAroundToInt32();
@@ -1228,7 +1228,7 @@ MMul::computeRange(TempAllocator &alloc)
 }
 
 void
-MMod::computeRange(TempAllocator &alloc)
+MMod::computeRange(TempAllocator& alloc)
 {
     if (specialization() != MIRType_Int32 && specialization() != MIRType_Double)
         return;
@@ -1312,7 +1312,7 @@ MMod::computeRange(TempAllocator &alloc)
 }
 
 void
-MDiv::computeRange(TempAllocator &alloc)
+MDiv::computeRange(TempAllocator& alloc)
 {
     if (specialization() != MIRType_Int32 && specialization() != MIRType_Double)
         return;
@@ -1338,7 +1338,7 @@ MDiv::computeRange(TempAllocator &alloc)
 }
 
 void
-MSqrt::computeRange(TempAllocator &alloc)
+MSqrt::computeRange(TempAllocator& alloc)
 {
     Range input(getOperand(0));
 
@@ -1357,33 +1357,33 @@ MSqrt::computeRange(TempAllocator &alloc)
 }
 
 void
-MToDouble::computeRange(TempAllocator &alloc)
+MToDouble::computeRange(TempAllocator& alloc)
 {
     setRange(new(alloc) Range(getOperand(0)));
 }
 
 void
-MToFloat32::computeRange(TempAllocator &alloc)
+MToFloat32::computeRange(TempAllocator& alloc)
 {
 }
 
 void
-MTruncateToInt32::computeRange(TempAllocator &alloc)
+MTruncateToInt32::computeRange(TempAllocator& alloc)
 {
-    Range *output = new(alloc) Range(getOperand(0));
+    Range* output = new(alloc) Range(getOperand(0));
     output->wrapAroundToInt32();
     setRange(output);
 }
 
 void
-MToInt32::computeRange(TempAllocator &alloc)
+MToInt32::computeRange(TempAllocator& alloc)
 {
-    Range *output = new(alloc) Range(getOperand(0));
+    Range* output = new(alloc) Range(getOperand(0));
     output->clampToInt32();
     setRange(output);
 }
 
-static Range *GetTypedArrayRange(TempAllocator &alloc, int type)
+static Range* GetTypedArrayRange(TempAllocator& alloc, int type)
 {
     switch (type) {
       case ScalarTypeDescr::TYPE_UINT8_CLAMPED:
@@ -1410,7 +1410,7 @@ static Range *GetTypedArrayRange(TempAllocator &alloc, int type)
 }
 
 void
-MLoadTypedArrayElement::computeRange(TempAllocator &alloc)
+MLoadTypedArrayElement::computeRange(TempAllocator& alloc)
 {
     // We have an Int32 type and if this is a UInt32 load it may produce a value
     // outside of our range, but we have a bailout to handle those cases.
@@ -1418,7 +1418,7 @@ MLoadTypedArrayElement::computeRange(TempAllocator &alloc)
 }
 
 void
-MLoadTypedArrayElementStatic::computeRange(TempAllocator &alloc)
+MLoadTypedArrayElementStatic::computeRange(TempAllocator& alloc)
 {
     // We don't currently use MLoadTypedArrayElementStatic for uint32, so we
     // don't have to worry about it returning a value outside our type.
@@ -1428,7 +1428,7 @@ MLoadTypedArrayElementStatic::computeRange(TempAllocator &alloc)
 }
 
 void
-MArrayLength::computeRange(TempAllocator &alloc)
+MArrayLength::computeRange(TempAllocator& alloc)
 {
     // Array lengths can go up to UINT32_MAX, but we only create MArrayLength
     // nodes when the value is known to be int32 (see the
@@ -1437,19 +1437,19 @@ MArrayLength::computeRange(TempAllocator &alloc)
 }
 
 void
-MInitializedLength::computeRange(TempAllocator &alloc)
+MInitializedLength::computeRange(TempAllocator& alloc)
 {
     setRange(Range::NewUInt32Range(alloc, 0, JSObject::NELEMENTS_LIMIT));
 }
 
 void
-MTypedArrayLength::computeRange(TempAllocator &alloc)
+MTypedArrayLength::computeRange(TempAllocator& alloc)
 {
     setRange(Range::NewUInt32Range(alloc, 0, INT32_MAX));
 }
 
 void
-MStringLength::computeRange(TempAllocator &alloc)
+MStringLength::computeRange(TempAllocator& alloc)
 {
     static_assert(JSString::MAX_LENGTH <= UINT32_MAX,
                   "NewUInt32Range requires a uint32 value");
@@ -1457,7 +1457,7 @@ MStringLength::computeRange(TempAllocator &alloc)
 }
 
 void
-MArgumentsLength::computeRange(TempAllocator &alloc)
+MArgumentsLength::computeRange(TempAllocator& alloc)
 {
     // This is is a conservative upper bound on what |TooManyArguments| checks.
     // If exceeded, Ion will not be entered in the first place.
@@ -1467,7 +1467,7 @@ MArgumentsLength::computeRange(TempAllocator &alloc)
 }
 
 void
-MBoundsCheck::computeRange(TempAllocator &alloc)
+MBoundsCheck::computeRange(TempAllocator& alloc)
 {
     // Just transfer the incoming index range to the output. The length() is
     // also interesting, but it is handled as a bailout check, and we're
@@ -1476,14 +1476,14 @@ MBoundsCheck::computeRange(TempAllocator &alloc)
 }
 
 void
-MArrayPush::computeRange(TempAllocator &alloc)
+MArrayPush::computeRange(TempAllocator& alloc)
 {
     // MArrayPush returns the new array length.
     setRange(Range::NewUInt32Range(alloc, 0, UINT32_MAX));
 }
 
 void
-MMathFunction::computeRange(TempAllocator &alloc)
+MMathFunction::computeRange(TempAllocator& alloc)
 {
     Range opRange(getOperand(0));
     switch (function()) {
@@ -1510,7 +1510,7 @@ MMathFunction::computeRange(TempAllocator &alloc)
 }
 
 void
-MRandom::computeRange(TempAllocator &alloc)
+MRandom::computeRange(TempAllocator& alloc)
 {
     setRange(Range::NewDoubleRange(alloc, 0.0, 1.0));
 }
@@ -1520,9 +1520,9 @@ MRandom::computeRange(TempAllocator &alloc)
 ///////////////////////////////////////////////////////////////////////////////
 
 bool
-RangeAnalysis::markBlocksInLoopBody(MBasicBlock *header, MBasicBlock *backedge)
+RangeAnalysis::markBlocksInLoopBody(MBasicBlock* header, MBasicBlock* backedge)
 {
-    Vector<MBasicBlock *, 16, IonAllocPolicy> worklist(alloc());
+    Vector<MBasicBlock*, 16, IonAllocPolicy> worklist(alloc());
 
     // Mark the header as being in the loop. This terminates the walk.
     header->mark();
@@ -1534,9 +1534,9 @@ RangeAnalysis::markBlocksInLoopBody(MBasicBlock *header, MBasicBlock *backedge)
     // If we haven't reached the loop header yet, walk up the predecessors
     // we haven't seen already.
     while (!worklist.empty()) {
-        MBasicBlock *current = worklist.popCopy();
+        MBasicBlock* current = worklist.popCopy();
         for (size_t i = 0; i < current->numPredecessors(); i++) {
-            MBasicBlock *pred = current->getPredecessor(i);
+            MBasicBlock* pred = current->getPredecessor(i);
 
             if (pred->isMarked())
                 continue;
@@ -1551,14 +1551,14 @@ RangeAnalysis::markBlocksInLoopBody(MBasicBlock *header, MBasicBlock *backedge)
 }
 
 bool
-RangeAnalysis::analyzeLoop(MBasicBlock *header)
+RangeAnalysis::analyzeLoop(MBasicBlock* header)
 {
     JS_ASSERT(header->hasUniqueBackedge());
 
     // Try to compute an upper bound on the number of times the loop backedge
     // will be taken. Look for tests that dominate the backedge and which have
     // an edge leaving the loop body.
-    MBasicBlock *backedge = header->backedge();
+    MBasicBlock* backedge = header->backedge();
 
     // Ignore trivial infinite loops.
     if (backedge == header)
@@ -1567,12 +1567,12 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
     if (!markBlocksInLoopBody(header, backedge))
         return false;
 
-    LoopIterationBound *iterationBound = nullptr;
+    LoopIterationBound* iterationBound = nullptr;
 
-    MBasicBlock *block = backedge;
+    MBasicBlock* block = backedge;
     do {
         BranchDirection direction;
-        MTest *branch = block->immediateDominatorBranch(&direction);
+        MTest* branch = block->immediateDominatorBranch(&direction);
 
         if (block == block->immediateDominator())
             break;
@@ -1581,7 +1581,7 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
 
         if (branch) {
             direction = NegateBranchDirection(direction);
-            MBasicBlock *otherBlock = branch->branchSuccessor(direction);
+            MBasicBlock* otherBlock = branch->branchSuccessor(direction);
             if (!otherBlock->isMarked()) {
                 iterationBound =
                     analyzeLoopIterationCount(header, branch, direction);
@@ -1615,15 +1615,15 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
     if (!mir->compilingAsmJS()) {
         // Try to hoist any bounds checks from the loop using symbolic bounds.
 
-        Vector<MBoundsCheck *, 0, IonAllocPolicy> hoistedChecks(alloc());
+        Vector<MBoundsCheck*, 0, IonAllocPolicy> hoistedChecks(alloc());
 
         for (ReversePostorderIterator iter(graph_.rpoBegin(header)); iter != graph_.rpoEnd(); iter++) {
-            MBasicBlock *block = *iter;
+            MBasicBlock* block = *iter;
             if (!block->isMarked())
                 continue;
 
             for (MDefinitionIterator iter(block); iter; iter++) {
-                MDefinition *def = *iter;
+                MDefinition* def = *iter;
                 if (def->isBoundsCheck() && def->isMovable()) {
                     if (tryHoistBoundsCheck(header, def->toBoundsCheck())) {
                         if (!hoistedChecks.append(def->toBoundsCheck()))
@@ -1639,7 +1639,7 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
         // definitely not loop-invariant, so we will never move it before
         // one of the bounds checks we just added.
         for (size_t i = 0; i < hoistedChecks.length(); i++) {
-            MBoundsCheck *ins = hoistedChecks[i];
+            MBoundsCheck* ins = hoistedChecks[i];
             ins->replaceAllUsesWith(ins->index());
             ins->block()->discard(ins);
         }
@@ -1649,12 +1649,12 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
     return true;
 }
 
-LoopIterationBound *
-RangeAnalysis::analyzeLoopIterationCount(MBasicBlock *header,
-                                         MTest *test, BranchDirection direction)
+LoopIterationBound*
+RangeAnalysis::analyzeLoopIterationCount(MBasicBlock* header,
+                                         MTest* test, BranchDirection direction)
 {
     SimpleLinearSum lhs(nullptr, 0);
-    MDefinition *rhs;
+    MDefinition* rhs;
     bool lessEqual;
     if (!ExtractLinearInequality(test, direction, &lhs, &rhs, &lessEqual))
         return nullptr;
@@ -1663,7 +1663,7 @@ RangeAnalysis::analyzeLoopIterationCount(MBasicBlock *header,
     if (rhs && rhs->block()->isMarked()) {
         if (lhs.term && lhs.term->block()->isMarked())
             return nullptr;
-        MDefinition *temp = lhs.term;
+        MDefinition* temp = lhs.term;
         lhs.term = rhs;
         rhs = temp;
         if (!SafeSub(0, lhs.constant, &lhs.constant))
@@ -1688,20 +1688,20 @@ RangeAnalysis::analyzeLoopIterationCount(MBasicBlock *header,
     // The first operand of the phi should be the lhs' value at the start of
     // the first executed iteration, and not a value written which could
     // replace the second operand below during the middle of execution.
-    MDefinition *lhsInitial = lhs.term->toPhi()->getOperand(0);
+    MDefinition* lhsInitial = lhs.term->toPhi()->getOperand(0);
     if (lhsInitial->block()->isMarked())
         return nullptr;
 
     // The second operand of the phi should be a value written by an add/sub
     // in every loop iteration, i.e. in a block which dominates the backedge.
-    MDefinition *lhsWrite = lhs.term->toPhi()->getOperand(1);
+    MDefinition* lhsWrite = lhs.term->toPhi()->getOperand(1);
     if (lhsWrite->isBeta())
         lhsWrite = lhsWrite->getOperand(0);
     if (!lhsWrite->isAdd() && !lhsWrite->isSub())
         return nullptr;
     if (!lhsWrite->block()->isMarked())
         return nullptr;
-    MBasicBlock *bb = header->backedge();
+    MBasicBlock* bb = header->backedge();
     for (; bb != lhsWrite->block() && bb != header; bb = bb->immediateDominator()) {}
     if (bb != lhsWrite->block())
         return nullptr;
@@ -1763,7 +1763,7 @@ RangeAnalysis::analyzeLoopIterationCount(MBasicBlock *header,
 }
 
 void
-RangeAnalysis::analyzeLoopPhi(MBasicBlock *header, LoopIterationBound *loopBound, MPhi *phi)
+RangeAnalysis::analyzeLoopPhi(MBasicBlock* header, LoopIterationBound* loopBound, MPhi* phi)
 {
     // Given a bound on the number of backedges taken, compute an upper and
     // lower bound for a phi node that may change by a constant amount each
@@ -1774,13 +1774,13 @@ RangeAnalysis::analyzeLoopPhi(MBasicBlock *header, LoopIterationBound *loopBound
 
     JS_ASSERT(phi->numOperands() == 2);
 
-    MBasicBlock *preLoop = header->loopPredecessor();
+    MBasicBlock* preLoop = header->loopPredecessor();
     JS_ASSERT(!preLoop->isMarked() && preLoop->successorWithPhis() == header);
 
-    MBasicBlock *backedge = header->backedge();
+    MBasicBlock* backedge = header->backedge();
     JS_ASSERT(backedge->isMarked() && backedge->successorWithPhis() == header);
 
-    MDefinition *initial = phi->getOperand(preLoop->positionInPhiSuccessor());
+    MDefinition* initial = phi->getOperand(preLoop->positionInPhiSuccessor());
     if (initial->block()->isMarked())
         return;
 
@@ -1820,7 +1820,7 @@ RangeAnalysis::analyzeLoopPhi(MBasicBlock *header, LoopIterationBound *loopBound
     if (!SafeSub(0, modified.constant, &negativeConstant) || !limitSum.add(negativeConstant))
         return;
 
-    Range *initRange = initial->range();
+    Range* initRange = initial->range();
     if (modified.constant > 0) {
         if (initRange && initRange->hasInt32LowerBound())
             phi->range()->refineLower(initRange->lower());
@@ -1840,13 +1840,13 @@ RangeAnalysis::analyzeLoopPhi(MBasicBlock *header, LoopIterationBound *loopBound
 // Whether bound is valid at the specified bounds check instruction in a loop,
 // and may be used to hoist ins.
 static inline bool
-SymbolicBoundIsValid(MBasicBlock *header, MBoundsCheck *ins, const SymbolicBound *bound)
+SymbolicBoundIsValid(MBasicBlock* header, MBoundsCheck* ins, const SymbolicBound* bound)
 {
     if (!bound->loop)
         return true;
     if (ins->block() == header)
         return false;
-    MBasicBlock *bb = ins->block()->immediateDominator();
+    MBasicBlock* bb = ins->block()->immediateDominator();
     while (bb != header && bb != bound->loop->test->block())
         bb = bb->immediateDominator();
     return bb == bound->loop->test->block();
@@ -1854,10 +1854,10 @@ SymbolicBoundIsValid(MBasicBlock *header, MBoundsCheck *ins, const SymbolicBound
 
 // Convert all components of a linear sum *except* its constant to a definition,
 // adding any necessary instructions to the end of block.
-static inline MDefinition *
-ConvertLinearSum(TempAllocator &alloc, MBasicBlock *block, const LinearSum &sum)
+static inline MDefinition*
+ConvertLinearSum(TempAllocator& alloc, MBasicBlock* block, const LinearSum& sum)
 {
-    MDefinition *def = nullptr;
+    MDefinition* def = nullptr;
 
     for (size_t i = 0; i < sum.numTerms(); i++) {
         LinearTerm term = sum.term(i);
@@ -1883,9 +1883,9 @@ ConvertLinearSum(TempAllocator &alloc, MBasicBlock *block, const LinearSum &sum)
             def->computeRange(alloc);
         } else {
             JS_ASSERT(term.scale != 0);
-            MConstant *factor = MConstant::New(alloc, Int32Value(term.scale));
+            MConstant* factor = MConstant::New(alloc, Int32Value(term.scale));
             block->insertBefore(block->lastIns(), factor);
-            MMul *mul = MMul::New(alloc, term.term, factor);
+            MMul* mul = MMul::New(alloc, term.term, factor);
             mul->setInt32();
             block->insertBefore(block->lastIns(), mul);
             mul->computeRange(alloc);
@@ -1910,7 +1910,7 @@ ConvertLinearSum(TempAllocator &alloc, MBasicBlock *block, const LinearSum &sum)
 }
 
 bool
-RangeAnalysis::tryHoistBoundsCheck(MBasicBlock *header, MBoundsCheck *ins)
+RangeAnalysis::tryHoistBoundsCheck(MBasicBlock* header, MBoundsCheck* ins)
 {
     // The bounds check's length must be loop invariant.
     if (ins->length()->block()->isMarked())
@@ -1927,21 +1927,21 @@ RangeAnalysis::tryHoistBoundsCheck(MBasicBlock *header, MBoundsCheck *ins)
     // the bounds check is dominated by the iteration bound's test.
     if (!index.term->range())
         return false;
-    const SymbolicBound *lower = index.term->range()->symbolicLower();
+    const SymbolicBound* lower = index.term->range()->symbolicLower();
     if (!lower || !SymbolicBoundIsValid(header, ins, lower))
         return false;
-    const SymbolicBound *upper = index.term->range()->symbolicUpper();
+    const SymbolicBound* upper = index.term->range()->symbolicUpper();
     if (!upper || !SymbolicBoundIsValid(header, ins, upper))
         return false;
 
-    MBasicBlock *preLoop = header->loopPredecessor();
+    MBasicBlock* preLoop = header->loopPredecessor();
     JS_ASSERT(!preLoop->isMarked());
 
-    MDefinition *lowerTerm = ConvertLinearSum(alloc(), preLoop, lower->sum);
+    MDefinition* lowerTerm = ConvertLinearSum(alloc(), preLoop, lower->sum);
     if (!lowerTerm)
         return false;
 
-    MDefinition *upperTerm = ConvertLinearSum(alloc(), preLoop, upper->sum);
+    MDefinition* upperTerm = ConvertLinearSum(alloc(), preLoop, upper->sum);
     if (!upperTerm)
         return false;
 
@@ -1966,10 +1966,10 @@ RangeAnalysis::tryHoistBoundsCheck(MBasicBlock *header, MBoundsCheck *ins)
     if (!SafeAdd(upper->sum.constant(), upperConstant, &upperConstant))
         return false;
 
-    MBoundsCheckLower *lowerCheck = MBoundsCheckLower::New(alloc(), lowerTerm);
+    MBoundsCheckLower* lowerCheck = MBoundsCheckLower::New(alloc(), lowerTerm);
     lowerCheck->setMinimum(lowerConstant);
 
-    MBoundsCheck *upperCheck = MBoundsCheck::New(alloc(), upperTerm, ins->length());
+    MBoundsCheck* upperCheck = MBoundsCheck::New(alloc(), upperTerm, ins->length());
     upperCheck->setMinimum(upperConstant);
     upperCheck->setMaximum(upperConstant);
 
@@ -1986,13 +1986,13 @@ RangeAnalysis::analyze()
     IonSpew(IonSpew_Range, "Doing range propagation");
 
     for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
-        MBasicBlock *block = *iter;
+        MBasicBlock* block = *iter;
 
         if (block->unreachable())
             continue;
 
         for (MDefinitionIterator iter(block); iter; iter++) {
-            MDefinition *def = *iter;
+            MDefinition* def = *iter;
 
             def->computeRange(alloc());
             IonSpew(IonSpew_Range, "computing range on %d", def->id());
@@ -2014,15 +2014,15 @@ RangeAnalysis::analyze()
             if (mir->compilingAsmJS()) {
                 uint32_t minHeapLength = mir->minAsmJSHeapLength();
                 if (iter->isAsmJSLoadHeap()) {
-                    MAsmJSLoadHeap *ins = iter->toAsmJSLoadHeap();
-                    Range *range = ins->ptr()->range();
+                    MAsmJSLoadHeap* ins = iter->toAsmJSLoadHeap();
+                    Range* range = ins->ptr()->range();
                     if (range && range->hasInt32LowerBound() && range->lower() >= 0 &&
                         range->hasInt32UpperBound() && (uint32_t) range->upper() < minHeapLength) {
                         ins->setSkipBoundsCheck(true);
                     }
                 } else if (iter->isAsmJSStoreHeap()) {
-                    MAsmJSStoreHeap *ins = iter->toAsmJSStoreHeap();
-                    Range *range = ins->ptr()->range();
+                    MAsmJSStoreHeap* ins = iter->toAsmJSStoreHeap();
+                    Range* range = ins->ptr()->range();
                     if (range && range->hasInt32LowerBound() && range->lower() >= 0 &&
                         range->hasInt32UpperBound() && (uint32_t) range->upper() < minHeapLength) {
                         ins->setSkipBoundsCheck(true);
@@ -2046,10 +2046,10 @@ RangeAnalysis::addRangeAssertions()
     // instructions for each MInstruction with a computed range, and it uses
     // registers, so it also affects register allocation.
     for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
-        MBasicBlock *block = *iter;
+        MBasicBlock* block = *iter;
 
         for (MDefinitionIterator iter(block); iter; iter++) {
-            MDefinition *ins = *iter;
+            MDefinition* ins = *iter;
 
             // Perform range checking for all numeric and numeric-like types.
             if (!IsNumberType(ins->type()) &&
@@ -2065,7 +2065,7 @@ RangeAnalysis::addRangeAssertions()
             if (r.isUnknown() || (ins->type() == MIRType_Int32 && r.isUnknownInt32()))
                 continue;
 
-            MAssertRange *guard = MAssertRange::New(alloc(), ins, new(alloc()) Range(r));
+            MAssertRange* guard = MAssertRange::New(alloc(), ins, new(alloc()) Range(r));
 
             // Beta nodes and interrupt checks are required to be located at the
             // beginnings of basic blocks, so we must insert range assertions
@@ -2380,7 +2380,7 @@ MCompare::isOperandTruncated(size_t index) const
 // Ensure that all observables uses can work with a truncated
 // version of the |candidate|'s result.
 static bool
-AllUsesTruncate(MInstruction *candidate)
+AllUsesTruncate(MInstruction* candidate)
 {
     // If the value naturally produces an int32 value (before bailout checks)
     // that needs no conversion, we don't have to worry about resume points
@@ -2407,7 +2407,7 @@ AllUsesTruncate(MInstruction *candidate)
 }
 
 static bool
-CanTruncate(MInstruction *candidate)
+CanTruncate(MInstruction* candidate)
 {
     // Compare operations might coerce its inputs to int32 if the ranges are
     // correct.  So we do not need to check if all uses are coerced.
@@ -2418,7 +2418,7 @@ CanTruncate(MInstruction *candidate)
     // rounding errors and no fractional part. Note that we can't use
     // the MDefinition Range constructor, because we need to know if
     // the value will have rounding errors before any bailout checks.
-    const Range *r = candidate->range();
+    const Range* r = candidate->range();
     bool canHaveRoundingErrors = !r || r->canHaveRoundingErrors();
 
     // Special case integer division: the result of a/b can be infinite
@@ -2434,7 +2434,7 @@ CanTruncate(MInstruction *candidate)
 }
 
 static void
-RemoveTruncatesOnOutput(MInstruction *truncated)
+RemoveTruncatesOnOutput(MInstruction* truncated)
 {
     // Compare returns a boolean so it doen't have any output truncates.
     if (truncated->isCompare())
@@ -2444,7 +2444,7 @@ RemoveTruncatesOnOutput(MInstruction *truncated)
     JS_ASSERT(Range(truncated).isInt32());
 
     for (MUseDefIterator use(truncated); use; use++) {
-        MDefinition *def = use.def();
+        MDefinition* def = use.def();
         if (!def->isTruncateToInt32() || !def->isToInt32())
             continue;
 
@@ -2453,14 +2453,14 @@ RemoveTruncatesOnOutput(MInstruction *truncated)
 }
 
 static void
-AdjustTruncatedInputs(TempAllocator &alloc, MInstruction *truncated)
+AdjustTruncatedInputs(TempAllocator& alloc, MInstruction* truncated)
 {
-    MBasicBlock *block = truncated->block();
+    MBasicBlock* block = truncated->block();
     for (size_t i = 0, e = truncated->numOperands(); i < e; i++) {
         if (!truncated->isOperandTruncated(i))
             continue;
 
-        MDefinition *input = truncated->getOperand(i);
+        MDefinition* input = truncated->getOperand(i);
         if (input->type() == MIRType_Int32)
             continue;
 
@@ -2468,7 +2468,7 @@ AdjustTruncatedInputs(TempAllocator &alloc, MInstruction *truncated)
             JS_ASSERT(input->range()->isInt32());
             truncated->replaceOperand(i, input->getOperand(0));
         } else {
-            MTruncateToInt32 *op = MTruncateToInt32::New(alloc, truncated->getOperand(i));
+            MTruncateToInt32* op = MTruncateToInt32::New(alloc, truncated->getOperand(i));
             block->insertBefore(truncated, op);
             truncated->replaceOperand(i, op);
         }
@@ -2496,8 +2496,8 @@ RangeAnalysis::truncate()
 {
     IonSpew(IonSpew_Range, "Do range-base truncation (backward loop)");
 
-    Vector<MInstruction *, 16, SystemAllocPolicy> worklist;
-    Vector<MBinaryBitwiseInstruction *, 16, SystemAllocPolicy> bitops;
+    Vector<MInstruction*, 16, SystemAllocPolicy> worklist;
+    Vector<MBinaryBitwiseInstruction*, 16, SystemAllocPolicy> bitops;
 
     for (PostorderIterator block(graph_.poBegin()); block != graph_.poEnd(); block++) {
         for (MInstructionReverseIterator iter(block->rbegin()); iter != block->rend(); iter++) {
@@ -2535,7 +2535,7 @@ RangeAnalysis::truncate()
     // Update inputs/outputs of truncated instructions.
     IonSpew(IonSpew_Range, "Do graph type fixup (dequeue)");
     while (!worklist.empty()) {
-        MInstruction *ins = worklist.popCopy();
+        MInstruction* ins = worklist.popCopy();
         ins->setNotInWorklist();
         RemoveTruncatesOnOutput(ins);
         AdjustTruncatedInputs(alloc(), ins);
@@ -2545,8 +2545,8 @@ RangeAnalysis::truncate()
     // input. This is done after range analysis rather than during GVN as the
     // presence of the bitop can change which instructions are truncated.
     for (size_t i = 0; i < bitops.length(); i++) {
-        MBinaryBitwiseInstruction *ins = bitops[i];
-        MDefinition *folded = ins->foldUnnecessaryBitop();
+        MBinaryBitwiseInstruction* ins = bitops[i];
+        MDefinition* folded = ins->foldUnnecessaryBitop();
         if (folded != ins)
             ins->replaceAllUsesWith(folded);
     }
@@ -2640,25 +2640,25 @@ MUrsh::collectRangeInfoPreTrunc()
 }
 
 bool
-RangeAnalysis::prepareForUCE(bool *shouldRemoveDeadCode)
+RangeAnalysis::prepareForUCE(bool* shouldRemoveDeadCode)
 {
     *shouldRemoveDeadCode = false;
 
     for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
-        MBasicBlock *block = *iter;
+        MBasicBlock* block = *iter;
 
         if (!block->unreachable())
             continue;
 
-        MControlInstruction *cond = block->getPredecessor(0)->lastIns();
+        MControlInstruction* cond = block->getPredecessor(0)->lastIns();
         if (!cond->isTest())
             continue;
 
         // Replace the condition of the test control instruction by a constant
         // chosen based which of the successors has the unreachable flag which is
         // added by MBeta::computeRange on its own block.
-        MTest *test = cond->toTest();
-        MConstant *constant = nullptr;
+        MTest* test = cond->toTest();
+        MConstant* constant = nullptr;
         if (block == test->ifTrue()) {
             constant = MConstant::New(alloc(), BooleanValue(false));
         } else {

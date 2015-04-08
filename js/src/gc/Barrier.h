@@ -122,7 +122,7 @@
  * call, this file contains a bunch of C++ classes and templates that use
  * operator overloading to take care of barriers automatically. In many cases,
  * all that's necessary to make some field be barriered is to replace
- *     Type *field;
+ *     Type* field;
  * with
  *     HeapPtr<Type> field;
  * There are also special classes HeapValue and HeapId, which barrier js::Value
@@ -156,25 +156,25 @@ class PropertyName;
 
 #ifdef DEBUG
 bool
-RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone *shadowZone);
+RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone* shadowZone);
 #endif
 
 namespace gc {
 
 template <typename T>
 void
-MarkUnbarriered(JSTracer *trc, T **thingp, const char *name);
+MarkUnbarriered(JSTracer* trc, T** thingp, const char* name);
 
 // Direct value access used by the write barriers and the jits.
 void
-MarkValueUnbarriered(JSTracer *trc, Value *v, const char *name);
+MarkValueUnbarriered(JSTracer* trc, Value* v, const char* name);
 
 // These two declarations are also present in gc/Marking.h, via the DeclMarker
 // macro.  Not great, but hard to avoid.
 void
-MarkObjectUnbarriered(JSTracer *trc, JSObject **obj, const char *name);
+MarkObjectUnbarriered(JSTracer* trc, JSObject** obj, const char* name);
 void
-MarkStringUnbarriered(JSTracer *trc, JSString **str, const char *name);
+MarkStringUnbarriered(JSTracer* trc, JSString** str, const char* name);
 
 // Note that some subclasses (e.g. ObjectImpl) specialize some of these
 // methods.
@@ -182,26 +182,26 @@ template <typename T>
 class BarrieredCell : public gc::Cell
 {
   public:
-    MOZ_ALWAYS_INLINE JS::Zone *zone() const { return tenuredZone(); }
-    MOZ_ALWAYS_INLINE JS::shadow::Zone *shadowZone() const { return JS::shadow::Zone::asShadowZone(zone()); }
-    MOZ_ALWAYS_INLINE JS::Zone *zoneFromAnyThread() const { return tenuredZoneFromAnyThread(); }
-    MOZ_ALWAYS_INLINE JS::shadow::Zone *shadowZoneFromAnyThread() const {
+    MOZ_ALWAYS_INLINE JS::Zone* zone() const { return tenuredZone(); }
+    MOZ_ALWAYS_INLINE JS::shadow::Zone* shadowZone() const { return JS::shadow::Zone::asShadowZone(zone()); }
+    MOZ_ALWAYS_INLINE JS::Zone* zoneFromAnyThread() const { return tenuredZoneFromAnyThread(); }
+    MOZ_ALWAYS_INLINE JS::shadow::Zone* shadowZoneFromAnyThread() const {
         return JS::shadow::Zone::asShadowZone(zoneFromAnyThread());
     }
 
-    static MOZ_ALWAYS_INLINE void readBarrier(T *thing) {
+    static MOZ_ALWAYS_INLINE void readBarrier(T* thing) {
 #ifdef JSGC_INCREMENTAL
-        JS::shadow::Zone *shadowZone = thing->shadowZoneFromAnyThread();
+        JS::shadow::Zone* shadowZone = thing->shadowZoneFromAnyThread();
         if (shadowZone->needsBarrier()) {
             MOZ_ASSERT(!RuntimeFromMainThreadIsHeapMajorCollecting(shadowZone));
-            T *tmp = thing;
+            T* tmp = thing;
             js::gc::MarkUnbarriered<T>(shadowZone->barrierTracer(), &tmp, "read barrier");
             JS_ASSERT(tmp == thing);
         }
 #endif
     }
 
-    static MOZ_ALWAYS_INLINE bool needWriteBarrierPre(JS::Zone *zone) {
+    static MOZ_ALWAYS_INLINE bool needWriteBarrierPre(JS::Zone* zone) {
 #ifdef JSGC_INCREMENTAL
         return JS::shadow::Zone::asShadowZone(zone)->needsBarrier();
 #else
@@ -209,26 +209,26 @@ class BarrieredCell : public gc::Cell
 #endif
     }
 
-    static MOZ_ALWAYS_INLINE bool isNullLike(T *thing) { return !thing; }
+    static MOZ_ALWAYS_INLINE bool isNullLike(T* thing) { return !thing; }
 
-    static MOZ_ALWAYS_INLINE void writeBarrierPre(T *thing) {
+    static MOZ_ALWAYS_INLINE void writeBarrierPre(T* thing) {
 #ifdef JSGC_INCREMENTAL
         if (isNullLike(thing) || !thing->shadowRuntimeFromAnyThread()->needsBarrier())
             return;
 
-        JS::shadow::Zone *shadowZone = thing->shadowZoneFromAnyThread();
+        JS::shadow::Zone* shadowZone = thing->shadowZoneFromAnyThread();
         if (shadowZone->needsBarrier()) {
             MOZ_ASSERT(!RuntimeFromMainThreadIsHeapMajorCollecting(shadowZone));
-            T *tmp = thing;
+            T* tmp = thing;
             js::gc::MarkUnbarriered<T>(shadowZone->barrierTracer(), &tmp, "write barrier");
             JS_ASSERT(tmp == thing);
         }
 #endif
     }
 
-    static void writeBarrierPost(T *thing, void *addr) {}
-    static void writeBarrierPostRelocate(T *thing, void *addr) {}
-    static void writeBarrierPostRemove(T *thing, void *addr) {}
+    static void writeBarrierPost(T* thing, void* addr) {}
+    static void writeBarrierPostRelocate(T* thing, void* addr) {}
+    static void writeBarrierPostRemove(T* thing, void* addr) {}
 };
 
 } // namespace gc
@@ -236,53 +236,53 @@ class BarrieredCell : public gc::Cell
 // Note: the following Zone-getting functions must be equivalent to the zone()
 // and shadowZone() functions implemented by the subclasses of BarrieredCell.
 
-JS::Zone *
-ZoneOfObject(const JSObject &obj);
+JS::Zone*
+ZoneOfObject(const JSObject& obj);
 
-static inline JS::shadow::Zone *
-ShadowZoneOfObject(JSObject *obj)
+static inline JS::shadow::Zone*
+ShadowZoneOfObject(JSObject* obj)
 {
     return JS::shadow::Zone::asShadowZone(ZoneOfObject(*obj));
 }
 
-static inline JS::shadow::Zone *
-ShadowZoneOfString(JSString *str)
+static inline JS::shadow::Zone*
+ShadowZoneOfString(JSString* str)
 {
-    return JS::shadow::Zone::asShadowZone(reinterpret_cast<const js::gc::Cell *>(str)->tenuredZone());
+    return JS::shadow::Zone::asShadowZone(reinterpret_cast<const js::gc::Cell*>(str)->tenuredZone());
 }
 
-MOZ_ALWAYS_INLINE JS::Zone *
-ZoneOfValue(const JS::Value &value)
+MOZ_ALWAYS_INLINE JS::Zone*
+ZoneOfValue(const JS::Value& value)
 {
     JS_ASSERT(value.isMarkable());
     if (value.isObject())
         return ZoneOfObject(value.toObject());
-    return static_cast<js::gc::Cell *>(value.toGCThing())->tenuredZone();
+    return static_cast<js::gc::Cell*>(value.toGCThing())->tenuredZone();
 }
 
-JS::Zone *
-ZoneOfObjectFromAnyThread(const JSObject &obj);
+JS::Zone*
+ZoneOfObjectFromAnyThread(const JSObject& obj);
 
-static inline JS::shadow::Zone *
-ShadowZoneOfObjectFromAnyThread(JSObject *obj)
+static inline JS::shadow::Zone*
+ShadowZoneOfObjectFromAnyThread(JSObject* obj)
 {
     return JS::shadow::Zone::asShadowZone(ZoneOfObjectFromAnyThread(*obj));
 }
 
-static inline JS::shadow::Zone *
-ShadowZoneOfStringFromAnyThread(JSString *str)
+static inline JS::shadow::Zone*
+ShadowZoneOfStringFromAnyThread(JSString* str)
 {
     return JS::shadow::Zone::asShadowZone(
-        reinterpret_cast<const js::gc::Cell *>(str)->tenuredZoneFromAnyThread());
+        reinterpret_cast<const js::gc::Cell*>(str)->tenuredZoneFromAnyThread());
 }
 
-MOZ_ALWAYS_INLINE JS::Zone *
-ZoneOfValueFromAnyThread(const JS::Value &value)
+MOZ_ALWAYS_INLINE JS::Zone*
+ZoneOfValueFromAnyThread(const JS::Value& value)
 {
     JS_ASSERT(value.isMarkable());
     if (value.isObject())
         return ZoneOfObjectFromAnyThread(value.toObject());
-    return static_cast<js::gc::Cell *>(value.toGCThing())->tenuredZoneFromAnyThread();
+    return static_cast<js::gc::Cell*>(value.toGCThing())->tenuredZoneFromAnyThread();
 }
 
 /*
@@ -293,33 +293,33 @@ class BarrieredPtr
 {
   protected:
     union {
-        T *value;
+        T* value;
         Unioned other;
     };
 
-    BarrieredPtr(T *v) : value(v) {}
+    BarrieredPtr(T* v) : value(v) {}
     ~BarrieredPtr() { pre(); }
 
   public:
-    void init(T *v) {
+    void init(T* v) {
         JS_ASSERT(!IsPoisonedPtr<T>(v));
         this->value = v;
     }
 
     /* Use this if the automatic coercion to T* isn't working. */
-    T *get() const { return value; }
+    T* get() const { return value; }
 
     /*
      * Use these if you want to change the value without invoking the barrier.
      * Obviously this is dangerous unless you know the barrier is not needed.
      */
-    T **unsafeGet() { return &value; }
-    void unsafeSet(T *v) { value = v; }
+    T** unsafeGet() { return &value; }
+    void unsafeSet(T* v) { value = v; }
 
-    Unioned *unsafeGetUnioned() { return &other; }
+    Unioned* unsafeGetUnioned() { return &other; }
 
-    T &operator*() const { return *value; }
-    T *operator->() const { return value; }
+    T& operator*() const { return *value; }
+    T* operator->() const { return value; }
 
     operator T*() const { return value; }
 
@@ -338,8 +338,8 @@ class EncapsulatedPtr : public BarrieredPtr<T, Unioned>
 {
   public:
     EncapsulatedPtr() : BarrieredPtr<T, Unioned>(nullptr) {}
-    EncapsulatedPtr(T *v) : BarrieredPtr<T, Unioned>(v) {}
-    explicit EncapsulatedPtr(const EncapsulatedPtr<T, Unioned> &v)
+    EncapsulatedPtr(T* v) : BarrieredPtr<T, Unioned>(v) {}
+    explicit EncapsulatedPtr(const EncapsulatedPtr<T, Unioned>& v)
       : BarrieredPtr<T, Unioned>(v.value) {}
 
     /* Use to set the pointer to nullptr. */
@@ -348,14 +348,14 @@ class EncapsulatedPtr : public BarrieredPtr<T, Unioned>
         this->value = nullptr;
     }
 
-    EncapsulatedPtr<T, Unioned> &operator=(T *v) {
+    EncapsulatedPtr<T, Unioned>& operator=(T* v) {
         this->pre();
         JS_ASSERT(!IsPoisonedPtr<T>(v));
         this->value = v;
         return *this;
     }
 
-    EncapsulatedPtr<T, Unioned> &operator=(const EncapsulatedPtr<T> &v) {
+    EncapsulatedPtr<T, Unioned>& operator=(const EncapsulatedPtr<T>& v) {
         this->pre();
         JS_ASSERT(!IsPoisonedPtr<T>(v.value));
         this->value = v.value;
@@ -380,16 +380,16 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
 {
   public:
     HeapPtr() : BarrieredPtr<T, Unioned>(nullptr) {}
-    explicit HeapPtr(T *v) : BarrieredPtr<T, Unioned>(v) { post(); }
-    explicit HeapPtr(const HeapPtr<T, Unioned> &v) : BarrieredPtr<T, Unioned>(v) { post(); }
+    explicit HeapPtr(T* v) : BarrieredPtr<T, Unioned>(v) { post(); }
+    explicit HeapPtr(const HeapPtr<T, Unioned>& v) : BarrieredPtr<T, Unioned>(v) { post(); }
 
-    void init(T *v) {
+    void init(T* v) {
         JS_ASSERT(!IsPoisonedPtr<T>(v));
         this->value = v;
         post();
     }
 
-    HeapPtr<T, Unioned> &operator=(T *v) {
+    HeapPtr<T, Unioned>& operator=(T* v) {
         this->pre();
         JS_ASSERT(!IsPoisonedPtr<T>(v));
         this->value = v;
@@ -397,7 +397,7 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
         return *this;
     }
 
-    HeapPtr<T, Unioned> &operator=(const HeapPtr<T, Unioned> &v) {
+    HeapPtr<T, Unioned>& operator=(const HeapPtr<T, Unioned>& v) {
         this->pre();
         JS_ASSERT(!IsPoisonedPtr<T>(v.value));
         this->value = v.value;
@@ -406,14 +406,14 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
     }
 
   protected:
-    void post() { T::writeBarrierPost(this->value, (void *)&this->value); }
+    void post() { T::writeBarrierPost(this->value, (void*)&this->value); }
 
     /* Make this friend so it can access pre() and post(). */
     template <class T1, class T2>
     friend inline void
-    BarrieredSetPair(Zone *zone,
-                     HeapPtr<T1> &v1, T1 *val1,
-                     HeapPtr<T2> &v2, T2 *val2);
+    BarrieredSetPair(Zone* zone,
+                     HeapPtr<T1>& v1, T1* val1,
+                     HeapPtr<T2>& v2, T2* val2);
 
   private:
     /*
@@ -423,8 +423,8 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
      * and are deleted here. Please note that not all containers support move
      * semantics, so this does not completely prevent invalid uses.
      */
-    HeapPtr(HeapPtr<T> &&) MOZ_DELETE;
-    HeapPtr<T, Unioned> &operator=(HeapPtr<T, Unioned> &&) MOZ_DELETE;
+    HeapPtr(HeapPtr<T>&&) MOZ_DELETE;
+    HeapPtr<T, Unioned>& operator=(HeapPtr<T, Unioned>&&) MOZ_DELETE;
 };
 
 /*
@@ -442,7 +442,7 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
 template <class T>
 class FixedHeapPtr
 {
-    T *value;
+    T* value;
 
   public:
     operator T*() const { return value; }
@@ -452,7 +452,7 @@ class FixedHeapPtr
         return Handle<T*>::fromMarkedLocation(&value);
     }
 
-    void init(T *ptr) {
+    void init(T* ptr) {
         value = ptr;
     }
 };
@@ -469,7 +469,7 @@ class RelocatablePtr : public BarrieredPtr<T>
 {
   public:
     RelocatablePtr() : BarrieredPtr<T>(nullptr) {}
-    explicit RelocatablePtr(T *v) : BarrieredPtr<T>(v) {
+    explicit RelocatablePtr(T* v) : BarrieredPtr<T>(v) {
         if (v)
             post();
     }
@@ -480,7 +480,7 @@ class RelocatablePtr : public BarrieredPtr<T>
      * function that will be used for both lvalue and rvalue copies, so we can
      * simply omit the rvalue variant.
      */
-    RelocatablePtr(const RelocatablePtr<T> &v) : BarrieredPtr<T>(v) {
+    RelocatablePtr(const RelocatablePtr<T>& v) : BarrieredPtr<T>(v) {
         if (this->value)
             post();
     }
@@ -490,7 +490,7 @@ class RelocatablePtr : public BarrieredPtr<T>
             relocate();
     }
 
-    RelocatablePtr<T> &operator=(T *v) {
+    RelocatablePtr<T>& operator=(T* v) {
         this->pre();
         JS_ASSERT(!IsPoisonedPtr<T>(v));
         if (v) {
@@ -503,7 +503,7 @@ class RelocatablePtr : public BarrieredPtr<T>
         return *this;
     }
 
-    RelocatablePtr<T> &operator=(const RelocatablePtr<T> &v) {
+    RelocatablePtr<T>& operator=(const RelocatablePtr<T>& v) {
         this->pre();
         JS_ASSERT(!IsPoisonedPtr<T>(v.value));
         if (v.value) {
@@ -538,9 +538,9 @@ class RelocatablePtr : public BarrieredPtr<T>
  */
 template <class T1, class T2>
 static inline void
-BarrieredSetPair(Zone *zone,
-                 HeapPtr<T1> &v1, T1 *val1,
-                 HeapPtr<T2> &v2, T2 *val2)
+BarrieredSetPair(Zone* zone,
+                 HeapPtr<T1>& v1, T1* val1,
+                 HeapPtr<T2>& v2, T2* val2)
 {
     if (T1::needWriteBarrierPre(zone)) {
         v1.pre();
@@ -580,11 +580,11 @@ template <class T>
 struct HeapPtrHasher
 {
     typedef HeapPtr<T> Key;
-    typedef T *Lookup;
+    typedef T* Lookup;
 
-    static HashNumber hash(Lookup obj) { return DefaultHasher<T *>::hash(obj); }
-    static bool match(const Key &k, Lookup l) { return k.get() == l; }
-    static void rekey(Key &k, const Key& newKey) { k.unsafeSet(newKey); }
+    static HashNumber hash(Lookup obj) { return DefaultHasher<T*>::hash(obj); }
+    static bool match(const Key& k, Lookup l) { return k.get() == l; }
+    static void rekey(Key& k, const Key& newKey) { k.unsafeSet(newKey); }
 };
 
 /* Specialized hashing policy for HeapPtrs. */
@@ -595,18 +595,18 @@ template <class T>
 struct EncapsulatedPtrHasher
 {
     typedef EncapsulatedPtr<T> Key;
-    typedef T *Lookup;
+    typedef T* Lookup;
 
-    static HashNumber hash(Lookup obj) { return DefaultHasher<T *>::hash(obj); }
-    static bool match(const Key &k, Lookup l) { return k.get() == l; }
-    static void rekey(Key &k, const Key& newKey) { k.unsafeSet(newKey); }
+    static HashNumber hash(Lookup obj) { return DefaultHasher<T*>::hash(obj); }
+    static bool match(const Key& k, Lookup l) { return k.get() == l; }
+    static void rekey(Key& k, const Key& newKey) { k.unsafeSet(newKey); }
 };
 
 template <class T>
 struct DefaultHasher< EncapsulatedPtr<T> > : EncapsulatedPtrHasher<T> { };
 
 bool
-StringIsPermanentAtom(JSString *str);
+StringIsPermanentAtom(JSString* str);
 
 /*
  * Base class for barriered value types.
@@ -622,7 +622,7 @@ class BarrieredValue : public ValueOperations<BarrieredValue>
      */
     BarrieredValue() MOZ_DELETE;
 
-    BarrieredValue(const Value &v) : value(v) {
+    BarrieredValue(const Value& v) : value(v) {
         JS_ASSERT(!IsPoisonedValue(v));
     }
 
@@ -631,38 +631,38 @@ class BarrieredValue : public ValueOperations<BarrieredValue>
     }
 
   public:
-    void init(const Value &v) {
+    void init(const Value& v) {
         JS_ASSERT(!IsPoisonedValue(v));
         value = v;
     }
-    void init(JSRuntime *rt, const Value &v) {
+    void init(JSRuntime* rt, const Value& v) {
         JS_ASSERT(!IsPoisonedValue(v));
         value = v;
     }
 
-    bool operator==(const BarrieredValue &v) const { return value == v.value; }
-    bool operator!=(const BarrieredValue &v) const { return value != v.value; }
+    bool operator==(const BarrieredValue& v) const { return value == v.value; }
+    bool operator!=(const BarrieredValue& v) const { return value != v.value; }
 
-    const Value &get() const { return value; }
-    Value *unsafeGet() { return &value; }
-    operator const Value &() const { return value; }
+    const Value& get() const { return value; }
+    Value* unsafeGet() { return &value; }
+    operator const Value&() const { return value; }
 
     JSGCTraceKind gcKind() const { return value.gcKind(); }
 
     uint64_t asRawBits() const { return value.asRawBits(); }
 
-    static void writeBarrierPre(const Value &v) {
+    static void writeBarrierPre(const Value& v) {
 #ifdef JSGC_INCREMENTAL
         if (v.isMarkable() && shadowRuntimeFromAnyThread(v)->needsBarrier())
             writeBarrierPre(ZoneOfValueFromAnyThread(v), v);
 #endif
     }
 
-    static void writeBarrierPre(Zone *zone, const Value &v) {
+    static void writeBarrierPre(Zone* zone, const Value& v) {
 #ifdef JSGC_INCREMENTAL
         if (v.isString() && StringIsPermanentAtom(v.toString()))
             return;
-        JS::shadow::Zone *shadowZone = JS::shadow::Zone::asShadowZone(zone);
+        JS::shadow::Zone* shadowZone = JS::shadow::Zone::asShadowZone(zone);
         if (shadowZone->needsBarrier()) {
             JS_ASSERT_IF(v.isMarkable(), shadowRuntimeFromMainThread(v)->needsBarrier());
             Value tmp(v);
@@ -674,20 +674,20 @@ class BarrieredValue : public ValueOperations<BarrieredValue>
 
   protected:
     void pre() { writeBarrierPre(value); }
-    void pre(Zone *zone) { writeBarrierPre(zone, value); }
+    void pre(Zone* zone) { writeBarrierPre(zone, value); }
 
-    static JSRuntime *runtimeFromMainThread(const Value &v) {
+    static JSRuntime* runtimeFromMainThread(const Value& v) {
         JS_ASSERT(v.isMarkable());
-        return static_cast<js::gc::Cell *>(v.toGCThing())->runtimeFromMainThread();
+        return static_cast<js::gc::Cell*>(v.toGCThing())->runtimeFromMainThread();
     }
-    static JSRuntime *runtimeFromAnyThread(const Value &v) {
+    static JSRuntime* runtimeFromAnyThread(const Value& v) {
         JS_ASSERT(v.isMarkable());
-        return static_cast<js::gc::Cell *>(v.toGCThing())->runtimeFromAnyThread();
+        return static_cast<js::gc::Cell*>(v.toGCThing())->runtimeFromAnyThread();
     }
-    static JS::shadow::Runtime *shadowRuntimeFromMainThread(const Value &v) {
+    static JS::shadow::Runtime* shadowRuntimeFromMainThread(const Value& v) {
         return reinterpret_cast<JS::shadow::Runtime*>(runtimeFromMainThread(v));
     }
-    static JS::shadow::Runtime *shadowRuntimeFromAnyThread(const Value &v) {
+    static JS::shadow::Runtime* shadowRuntimeFromAnyThread(const Value& v) {
         return reinterpret_cast<JS::shadow::Runtime*>(runtimeFromAnyThread(v));
     }
 
@@ -701,17 +701,17 @@ class BarrieredValue : public ValueOperations<BarrieredValue>
 class EncapsulatedValue : public BarrieredValue
 {
   public:
-    EncapsulatedValue(const Value &v) : BarrieredValue(v) {}
-    EncapsulatedValue(const EncapsulatedValue &v) : BarrieredValue(v) {}
+    EncapsulatedValue(const Value& v) : BarrieredValue(v) {}
+    EncapsulatedValue(const EncapsulatedValue& v) : BarrieredValue(v) {}
 
-    EncapsulatedValue &operator=(const Value &v) {
+    EncapsulatedValue& operator=(const Value& v) {
         pre();
         JS_ASSERT(!IsPoisonedValue(v));
         value = v;
         return *this;
     }
 
-    EncapsulatedValue &operator=(const EncapsulatedValue &v) {
+    EncapsulatedValue& operator=(const EncapsulatedValue& v) {
         pre();
         JS_ASSERT(!IsPoisonedValue(v));
         value = v.get();
@@ -730,14 +730,14 @@ class HeapValue : public BarrieredValue
         post();
     }
 
-    explicit HeapValue(const Value &v)
+    explicit HeapValue(const Value& v)
       : BarrieredValue(v)
     {
         JS_ASSERT(!IsPoisonedValue(v));
         post();
     }
 
-    explicit HeapValue(const HeapValue &v)
+    explicit HeapValue(const HeapValue& v)
       : BarrieredValue(v.value)
     {
         JS_ASSERT(!IsPoisonedValue(v.value));
@@ -748,19 +748,19 @@ class HeapValue : public BarrieredValue
         pre();
     }
 
-    void init(const Value &v) {
+    void init(const Value& v) {
         JS_ASSERT(!IsPoisonedValue(v));
         value = v;
         post();
     }
 
-    void init(JSRuntime *rt, const Value &v) {
+    void init(JSRuntime* rt, const Value& v) {
         JS_ASSERT(!IsPoisonedValue(v));
         value = v;
         post(rt);
     }
 
-    HeapValue &operator=(const Value &v) {
+    HeapValue& operator=(const Value& v) {
         pre();
         JS_ASSERT(!IsPoisonedValue(v));
         value = v;
@@ -768,7 +768,7 @@ class HeapValue : public BarrieredValue
         return *this;
     }
 
-    HeapValue &operator=(const HeapValue &v) {
+    HeapValue& operator=(const HeapValue& v) {
         pre();
         JS_ASSERT(!IsPoisonedValue(v.value));
         value = v.value;
@@ -777,7 +777,7 @@ class HeapValue : public BarrieredValue
     }
 
 #ifdef DEBUG
-    bool preconditionForSet(Zone *zone);
+    bool preconditionForSet(Zone* zone);
 #endif
 
     /*
@@ -786,8 +786,8 @@ class HeapValue : public BarrieredValue
      * the barrier. If you already know the compartment, it's faster to pass it
      * in.
      */
-    void set(Zone *zone, const Value &v) {
-        JS::shadow::Zone *shadowZone = JS::shadow::Zone::asShadowZone(zone);
+    void set(Zone* zone, const Value& v) {
+        JS::shadow::Zone* shadowZone = JS::shadow::Zone::asShadowZone(zone);
         JS_ASSERT(preconditionForSet(zone));
         pre(zone);
         JS_ASSERT(!IsPoisonedValue(v));
@@ -795,17 +795,17 @@ class HeapValue : public BarrieredValue
         post(shadowZone->runtimeFromAnyThread());
     }
 
-    static void writeBarrierPost(const Value &value, Value *addr) {
+    static void writeBarrierPost(const Value& value, Value* addr) {
 #ifdef JSGC_GENERATIONAL
         if (value.isMarkable())
             shadowRuntimeFromAnyThread(value)->gcStoreBufferPtr()->putValue(addr);
 #endif
     }
 
-    static void writeBarrierPost(JSRuntime *rt, const Value &value, Value *addr) {
+    static void writeBarrierPost(JSRuntime* rt, const Value& value, Value* addr) {
 #ifdef JSGC_GENERATIONAL
         if (value.isMarkable()) {
-            JS::shadow::Runtime *shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
+            JS::shadow::Runtime* shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
             shadowRuntime->gcStoreBufferPtr()->putValue(addr);
         }
 #endif
@@ -816,12 +816,12 @@ class HeapValue : public BarrieredValue
         writeBarrierPost(value, &value);
     }
 
-    void post(JSRuntime *rt) {
+    void post(JSRuntime* rt) {
         writeBarrierPost(rt, value, &value);
     }
 
-    HeapValue(HeapValue &&) MOZ_DELETE;
-    HeapValue &operator=(HeapValue &&) MOZ_DELETE;
+    HeapValue(HeapValue&&) MOZ_DELETE;
+    HeapValue& operator=(HeapValue&&) MOZ_DELETE;
 };
 
 // Like RelocatablePtr, but specialized for Value.
@@ -831,14 +831,14 @@ class RelocatableValue : public BarrieredValue
   public:
     explicit RelocatableValue() : BarrieredValue(UndefinedValue()) {}
 
-    explicit RelocatableValue(const Value &v)
+    explicit RelocatableValue(const Value& v)
       : BarrieredValue(v)
     {
         if (v.isMarkable())
             post();
     }
 
-    RelocatableValue(const RelocatableValue &v)
+    RelocatableValue(const RelocatableValue& v)
       : BarrieredValue(v.value)
     {
         JS_ASSERT(!IsPoisonedValue(v.value));
@@ -852,14 +852,14 @@ class RelocatableValue : public BarrieredValue
             relocate(runtimeFromAnyThread(value));
     }
 
-    RelocatableValue &operator=(const Value &v) {
+    RelocatableValue& operator=(const Value& v) {
         pre();
         JS_ASSERT(!IsPoisonedValue(v));
         if (v.isMarkable()) {
             value = v;
             post();
         } else if (value.isMarkable()) {
-            JSRuntime *rt = runtimeFromAnyThread(value);
+            JSRuntime* rt = runtimeFromAnyThread(value);
             relocate(rt);
             value = v;
         } else {
@@ -868,14 +868,14 @@ class RelocatableValue : public BarrieredValue
         return *this;
     }
 
-    RelocatableValue &operator=(const RelocatableValue &v) {
+    RelocatableValue& operator=(const RelocatableValue& v) {
         pre();
         JS_ASSERT(!IsPoisonedValue(v.value));
         if (v.value.isMarkable()) {
             value = v.value;
             post();
         } else if (value.isMarkable()) {
-            JSRuntime *rt = runtimeFromAnyThread(value);
+            JSRuntime* rt = runtimeFromAnyThread(value);
             relocate(rt);
             value = v.value;
         } else {
@@ -892,9 +892,9 @@ class RelocatableValue : public BarrieredValue
 #endif
     }
 
-    void relocate(JSRuntime *rt) {
+    void relocate(JSRuntime* rt) {
 #ifdef JSGC_GENERATIONAL
-        JS::shadow::Runtime *shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
+        JS::shadow::Runtime* shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
         shadowRuntime->gcStoreBufferPtr()->removeRelocatableValue(&value);
 #endif
     }
@@ -913,14 +913,14 @@ class HeapSlot : public BarrieredValue
 
     explicit HeapSlot() MOZ_DELETE;
 
-    explicit HeapSlot(JSObject *obj, Kind kind, uint32_t slot, const Value &v)
+    explicit HeapSlot(JSObject* obj, Kind kind, uint32_t slot, const Value& v)
       : BarrieredValue(v)
     {
         JS_ASSERT(!IsPoisonedValue(v));
         post(obj, kind, slot, v);
     }
 
-    explicit HeapSlot(JSObject *obj, Kind kind, uint32_t slot, const HeapSlot &s)
+    explicit HeapSlot(JSObject* obj, Kind kind, uint32_t slot, const HeapSlot& s)
       : BarrieredValue(s.value)
     {
         JS_ASSERT(!IsPoisonedValue(s.value));
@@ -931,24 +931,24 @@ class HeapSlot : public BarrieredValue
         pre();
     }
 
-    void init(JSObject *owner, Kind kind, uint32_t slot, const Value &v) {
+    void init(JSObject* owner, Kind kind, uint32_t slot, const Value& v) {
         value = v;
         post(owner, kind, slot, v);
     }
 
-    void init(JSRuntime *rt, JSObject *owner, Kind kind, uint32_t slot, const Value &v) {
+    void init(JSRuntime* rt, JSObject* owner, Kind kind, uint32_t slot, const Value& v) {
         value = v;
         post(rt, owner, kind, slot, v);
     }
 
 #ifdef DEBUG
-    bool preconditionForSet(JSObject *owner, Kind kind, uint32_t slot);
-    bool preconditionForSet(Zone *zone, JSObject *owner, Kind kind, uint32_t slot);
-    static void preconditionForWriteBarrierPost(JSObject *obj, Kind kind, uint32_t slot,
+    bool preconditionForSet(JSObject* owner, Kind kind, uint32_t slot);
+    bool preconditionForSet(Zone* zone, JSObject* owner, Kind kind, uint32_t slot);
+    static void preconditionForWriteBarrierPost(JSObject* obj, Kind kind, uint32_t slot,
                                                 Value target);
 #endif
 
-    void set(JSObject *owner, Kind kind, uint32_t slot, const Value &v) {
+    void set(JSObject* owner, Kind kind, uint32_t slot, const Value& v) {
         JS_ASSERT(preconditionForSet(owner, kind, slot));
         pre();
         JS_ASSERT(!IsPoisonedValue(v));
@@ -956,24 +956,24 @@ class HeapSlot : public BarrieredValue
         post(owner, kind, slot, v);
     }
 
-    void set(Zone *zone, JSObject *owner, Kind kind, uint32_t slot, const Value &v) {
+    void set(Zone* zone, JSObject* owner, Kind kind, uint32_t slot, const Value& v) {
         JS_ASSERT(preconditionForSet(zone, owner, kind, slot));
-        JS::shadow::Zone *shadowZone = JS::shadow::Zone::asShadowZone(zone);
+        JS::shadow::Zone* shadowZone = JS::shadow::Zone::asShadowZone(zone);
         pre(zone);
         JS_ASSERT(!IsPoisonedValue(v));
         value = v;
         post(shadowZone->runtimeFromAnyThread(), owner, kind, slot, v);
     }
 
-    static void writeBarrierPost(JSObject *obj, Kind kind, uint32_t slot, Value target)
+    static void writeBarrierPost(JSObject* obj, Kind kind, uint32_t slot, Value target)
     {
 #ifdef JSGC_GENERATIONAL
-        js::gc::Cell *cell = reinterpret_cast<js::gc::Cell*>(obj);
+        js::gc::Cell* cell = reinterpret_cast<js::gc::Cell*>(obj);
         writeBarrierPost(cell->runtimeFromAnyThread(), obj, kind, slot, target);
 #endif
     }
 
-    static void writeBarrierPost(JSRuntime *rt, JSObject *obj, Kind kind, uint32_t slot,
+    static void writeBarrierPost(JSRuntime* rt, JSObject* obj, Kind kind, uint32_t slot,
                                  Value target)
     {
 #ifdef DEBUG
@@ -981,47 +981,47 @@ class HeapSlot : public BarrieredValue
 #endif
 #ifdef JSGC_GENERATIONAL
         if (target.isObject()) {
-            JS::shadow::Runtime *shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
+            JS::shadow::Runtime* shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
             shadowRuntime->gcStoreBufferPtr()->putSlot(obj, kind, slot, 1);
         }
 #endif
     }
 
   private:
-    void post(JSObject *owner, Kind kind, uint32_t slot, Value target) {
+    void post(JSObject* owner, Kind kind, uint32_t slot, Value target) {
         HeapSlot::writeBarrierPost(owner, kind, slot, target);
     }
 
-    void post(JSRuntime *rt, JSObject *owner, Kind kind, uint32_t slot, Value target) {
+    void post(JSRuntime* rt, JSObject* owner, Kind kind, uint32_t slot, Value target) {
         HeapSlot::writeBarrierPost(rt, owner, kind, slot, target);
     }
 };
 
-static inline const Value *
-Valueify(const BarrieredValue *array)
+static inline const Value*
+Valueify(const BarrieredValue* array)
 {
     JS_STATIC_ASSERT(sizeof(HeapValue) == sizeof(Value));
     JS_STATIC_ASSERT(sizeof(HeapSlot) == sizeof(Value));
-    return (const Value *)array;
+    return (const Value*)array;
 }
 
-static inline HeapValue *
-HeapValueify(Value *v)
+static inline HeapValue*
+HeapValueify(Value* v)
 {
     JS_STATIC_ASSERT(sizeof(HeapValue) == sizeof(Value));
     JS_STATIC_ASSERT(sizeof(HeapSlot) == sizeof(Value));
-    return (HeapValue *)v;
+    return (HeapValue*)v;
 }
 
 class HeapSlotArray
 {
-    HeapSlot *array;
+    HeapSlot* array;
 
   public:
-    HeapSlotArray(HeapSlot *array) : array(array) {}
+    HeapSlotArray(HeapSlot* array) : array(array) {}
 
-    operator const Value *() const { return Valueify(array); }
-    operator HeapSlot *() const { return array; }
+    operator const Value*() const { return Valueify(array); }
+    operator HeapSlot*() const { return array; }
 
     HeapSlotArray operator +(int offset) const { return HeapSlotArray(array + offset); }
     HeapSlotArray operator +(uint32_t offset) const { return HeapSlotArray(array + offset); }
@@ -1036,7 +1036,7 @@ class BarrieredId
     jsid value;
 
   private:
-    BarrieredId(const BarrieredId &v) MOZ_DELETE;
+    BarrieredId(const BarrieredId& v) MOZ_DELETE;
 
   protected:
     explicit BarrieredId(jsid id) : value(id) {}
@@ -1047,7 +1047,7 @@ class BarrieredId
     bool operator!=(jsid id) const { return value != id; }
 
     jsid get() const { return value; }
-    jsid *unsafeGet() { return &value; }
+    jsid* unsafeGet() { return &value; }
     void unsafeSet(jsid newId) { value = newId; }
     operator jsid() const { return value; }
 
@@ -1055,15 +1055,15 @@ class BarrieredId
     void pre() {
 #ifdef JSGC_INCREMENTAL
         if (JSID_IS_OBJECT(value)) {
-            JSObject *obj = JSID_TO_OBJECT(value);
-            JS::shadow::Zone *shadowZone = ShadowZoneOfObjectFromAnyThread(obj);
+            JSObject* obj = JSID_TO_OBJECT(value);
+            JS::shadow::Zone* shadowZone = ShadowZoneOfObjectFromAnyThread(obj);
             if (shadowZone->needsBarrier()) {
                 js::gc::MarkObjectUnbarriered(shadowZone->barrierTracer(), &obj, "write barrier");
                 JS_ASSERT(obj == JSID_TO_OBJECT(value));
             }
         } else if (JSID_IS_STRING(value)) {
-            JSString *str = JSID_TO_STRING(value);
-            JS::shadow::Zone *shadowZone = ShadowZoneOfStringFromAnyThread(str);
+            JSString* str = JSID_TO_STRING(value);
+            JS::shadow::Zone* shadowZone = ShadowZoneOfStringFromAnyThread(str);
             if (shadowZone->needsBarrier()) {
                 js::gc::MarkStringUnbarriered(shadowZone->barrierTracer(), &str, "write barrier");
                 JS_ASSERT(str == JSID_TO_STRING(value));
@@ -1081,7 +1081,7 @@ class EncapsulatedId : public BarrieredId
     explicit EncapsulatedId(jsid id) : BarrieredId(id) {}
     explicit EncapsulatedId() : BarrieredId(JSID_VOID) {}
 
-    EncapsulatedId &operator=(const EncapsulatedId &v) {
+    EncapsulatedId& operator=(const EncapsulatedId& v) {
         if (v.value != value)
             pre();
         JS_ASSERT(!IsPoisonedId(v.value));
@@ -1105,9 +1105,9 @@ class RelocatableId : public BarrieredId
     jsid get() const { return value; }
     operator jsid() const { return value; }
 
-    jsid *unsafeGet() { return &value; }
+    jsid* unsafeGet() { return &value; }
 
-    RelocatableId &operator=(jsid id) {
+    RelocatableId& operator=(jsid id) {
         if (id != value)
             pre();
         JS_ASSERT(!IsPoisonedId(id));
@@ -1115,7 +1115,7 @@ class RelocatableId : public BarrieredId
         return *this;
     }
 
-    RelocatableId &operator=(const RelocatableId &v) {
+    RelocatableId& operator=(const RelocatableId& v) {
         if (v.value != value)
             pre();
         JS_ASSERT(!IsPoisonedId(v.value));
@@ -1146,7 +1146,7 @@ class HeapId : public BarrieredId
         post();
     }
 
-    HeapId &operator=(jsid id) {
+    HeapId& operator=(jsid id) {
         if (id != value)
             pre();
         JS_ASSERT(!IsPoisonedId(id));
@@ -1155,7 +1155,7 @@ class HeapId : public BarrieredId
         return *this;
     }
 
-    HeapId &operator=(const HeapId &v) {
+    HeapId& operator=(const HeapId& v) {
         if (v.value != value)
             pre();
         JS_ASSERT(!IsPoisonedId(v.value));
@@ -1167,10 +1167,10 @@ class HeapId : public BarrieredId
   private:
     void post() {};
 
-    HeapId(const HeapId &v) MOZ_DELETE;
+    HeapId(const HeapId& v) MOZ_DELETE;
 
-    HeapId(HeapId &&) MOZ_DELETE;
-    HeapId &operator=(HeapId &&) MOZ_DELETE;
+    HeapId(HeapId&&) MOZ_DELETE;
+    HeapId& operator=(HeapId&&) MOZ_DELETE;
 };
 
 /*
@@ -1186,14 +1186,14 @@ class HeapId : public BarrieredId
 template <class T>
 class ReadBarriered
 {
-    T *value;
+    T* value;
 
   public:
     ReadBarriered() : value(nullptr) {}
-    ReadBarriered(T *value) : value(value) {}
-    ReadBarriered(const Rooted<T*> &rooted) : value(rooted) {}
+    ReadBarriered(T* value) : value(value) {}
+    ReadBarriered(const Rooted<T*>& rooted) : value(rooted) {}
 
-    T *get() const {
+    T* get() const {
         if (!value)
             return nullptr;
         T::readBarrier(value);
@@ -1202,13 +1202,13 @@ class ReadBarriered
 
     operator T*() const { return get(); }
 
-    T &operator*() const { return *get(); }
-    T *operator->() const { return get(); }
+    T& operator*() const { return *get(); }
+    T* operator->() const { return get(); }
 
-    T **unsafeGet() { return &value; }
+    T** unsafeGet() { return &value; }
     T * const * unsafeGet() const { return &value; }
 
-    void set(T *v) { value = v; }
+    void set(T* v) { value = v; }
 
     operator bool() { return !!value; }
 };
@@ -1219,13 +1219,13 @@ class ReadBarrieredValue
 
   public:
     ReadBarrieredValue() : value(UndefinedValue()) {}
-    ReadBarrieredValue(const Value &value) : value(value) {}
+    ReadBarrieredValue(const Value& value) : value(value) {}
 
-    inline const Value &get() const;
-    Value *unsafeGet() { return &value; }
-    inline operator const Value &() const;
+    inline const Value& get() const;
+    Value* unsafeGet() { return &value; }
+    inline operator const Value&() const;
 
-    inline JSObject &toObject() const;
+    inline JSObject& toObject() const;
 };
 
 /*
@@ -1234,12 +1234,12 @@ class ReadBarrieredValue
  * is templatized.
  */
 template <typename T> struct Unbarriered {};
-template <typename S> struct Unbarriered< EncapsulatedPtr<S> > { typedef S *type; };
-template <typename S> struct Unbarriered< RelocatablePtr<S> > { typedef S *type; };
+template <typename S> struct Unbarriered< EncapsulatedPtr<S> > { typedef S* type; };
+template <typename S> struct Unbarriered< RelocatablePtr<S> > { typedef S* type; };
 template <> struct Unbarriered<EncapsulatedValue> { typedef Value type; };
 template <> struct Unbarriered<RelocatableValue> { typedef Value type; };
 template <typename S> struct Unbarriered< DefaultHasher< EncapsulatedPtr<S> > > {
-    typedef DefaultHasher<S *> type;
+    typedef DefaultHasher<S*> type;
 };
 
 } /* namespace js */

@@ -17,22 +17,22 @@ namespace js {
 namespace jit {
 
 // Distance from Stack top to the top Value inside an IC stub (this is the return address).
-static const size_t ICStackValueOffset = sizeof(void *);
+static const size_t ICStackValueOffset = sizeof(void*);
 
 inline void
-EmitRestoreTailCallReg(MacroAssembler &masm)
+EmitRestoreTailCallReg(MacroAssembler& masm)
 {
     masm.pop(BaselineTailCallReg);
 }
 
 inline void
-EmitRepushTailCallReg(MacroAssembler &masm)
+EmitRepushTailCallReg(MacroAssembler& masm)
 {
     masm.push(BaselineTailCallReg);
 }
 
 inline void
-EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
+EmitCallIC(CodeOffsetLabel* patchOffset, MacroAssembler& masm)
 {
     // Move ICEntry offset into BaselineStubReg
     CodeOffsetLabel offset = masm.movWithPatch(ImmWord(-1), BaselineStubReg);
@@ -47,7 +47,7 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 }
 
 inline void
-EmitEnterTypeMonitorIC(MacroAssembler &masm,
+EmitEnterTypeMonitorIC(MacroAssembler& masm,
                        size_t monitorStubOffset = ICMonitoredStub::offsetOfFirstMonitorStub())
 {
     // This is expected to be called from within an IC, when BaselineStubReg
@@ -59,19 +59,19 @@ EmitEnterTypeMonitorIC(MacroAssembler &masm,
 }
 
 inline void
-EmitReturnFromIC(MacroAssembler &masm)
+EmitReturnFromIC(MacroAssembler& masm)
 {
     masm.ret();
 }
 
 inline void
-EmitChangeICReturnAddress(MacroAssembler &masm, Register reg)
+EmitChangeICReturnAddress(MacroAssembler& masm, Register reg)
 {
     masm.storePtr(reg, Address(StackPointer, 0));
 }
 
 inline void
-EmitTailCallVM(JitCode *target, MacroAssembler &masm, uint32_t argSize)
+EmitTailCallVM(JitCode* target, MacroAssembler& masm, uint32_t argSize)
 {
     // We an assume during this that R0 and R1 have been pushed.
     masm.movq(BaselineFrameReg, ScratchReg);
@@ -91,19 +91,19 @@ EmitTailCallVM(JitCode *target, MacroAssembler &masm, uint32_t argSize)
 }
 
 inline void
-EmitCreateStubFrameDescriptor(MacroAssembler &masm, Register reg)
+EmitCreateStubFrameDescriptor(MacroAssembler& masm, Register reg)
 {
     // Compute stub frame size. We have to add two pointers: the stub reg and previous
     // frame pointer pushed by EmitEnterStubFrame.
     masm.movq(BaselineFrameReg, reg);
-    masm.addq(Imm32(sizeof(void *) * 2), reg);
+    masm.addq(Imm32(sizeof(void*) * 2), reg);
     masm.subq(BaselineStackReg, reg);
 
     masm.makeFrameDescriptor(reg, JitFrame_BaselineStub);
 }
 
 inline void
-EmitCallVM(JitCode *target, MacroAssembler &masm)
+EmitCallVM(JitCode* target, MacroAssembler& masm)
 {
     EmitCreateStubFrameDescriptor(masm, ScratchReg);
     masm.push(ScratchReg);
@@ -111,11 +111,11 @@ EmitCallVM(JitCode *target, MacroAssembler &masm)
 }
 
 // Size of vales pushed by EmitEnterStubFrame.
-static const uint32_t STUB_FRAME_SIZE = 4 * sizeof(void *);
-static const uint32_t STUB_FRAME_SAVED_STUB_OFFSET = sizeof(void *);
+static const uint32_t STUB_FRAME_SIZE = 4 * sizeof(void*);
+static const uint32_t STUB_FRAME_SAVED_STUB_OFFSET = sizeof(void*);
 
 inline void
-EmitEnterStubFrame(MacroAssembler &masm, Register)
+EmitEnterStubFrame(MacroAssembler& masm, Register)
 {
     EmitRestoreTailCallReg(masm);
 
@@ -141,7 +141,7 @@ EmitEnterStubFrame(MacroAssembler &masm, Register)
 }
 
 inline void
-EmitLeaveStubFrameHead(MacroAssembler &masm, bool calledIntoIon = false)
+EmitLeaveStubFrameHead(MacroAssembler& masm, bool calledIntoIon = false)
 {
     // Ion frames do not save and restore the frame pointer. If we called
     // into Ion, we have to restore the stack pointer from the frame descriptor.
@@ -157,7 +157,7 @@ EmitLeaveStubFrameHead(MacroAssembler &masm, bool calledIntoIon = false)
 }
 
 inline void
-EmitLeaveStubFrameCommonTail(MacroAssembler &masm)
+EmitLeaveStubFrameCommonTail(MacroAssembler& masm)
 {
     masm.pop(BaselineFrameReg);
     masm.pop(BaselineStubReg);
@@ -171,14 +171,14 @@ EmitLeaveStubFrameCommonTail(MacroAssembler &masm)
 }
 
 inline void
-EmitLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false)
+EmitLeaveStubFrame(MacroAssembler& masm, bool calledIntoIon = false)
 {
     EmitLeaveStubFrameHead(masm, calledIntoIon);
     EmitLeaveStubFrameCommonTail(masm);
 }
 
 inline void
-EmitStowICValues(MacroAssembler &masm, int values)
+EmitStowICValues(MacroAssembler& masm, int values)
 {
     JS_ASSERT(values >= 0 && values <= 2);
     switch(values) {
@@ -199,7 +199,7 @@ EmitStowICValues(MacroAssembler &masm, int values)
 }
 
 inline void
-EmitUnstowICValues(MacroAssembler &masm, int values, bool discard = false)
+EmitUnstowICValues(MacroAssembler& masm, int values, bool discard = false)
 {
     JS_ASSERT(values >= 0 && values <= 2);
     switch(values) {
@@ -227,7 +227,7 @@ EmitUnstowICValues(MacroAssembler &masm, int values, bool discard = false)
 }
 
 inline void
-EmitCallTypeUpdateIC(MacroAssembler &masm, JitCode *code, uint32_t objectOffset)
+EmitCallTypeUpdateIC(MacroAssembler& masm, JitCode* code, uint32_t objectOffset)
 {
     // R0 contains the value that needs to be typechecked.
     // The object we're updating is a boxed Value on the stack, at offset
@@ -262,7 +262,7 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, JitCode *code, uint32_t objectOffset)
     masm.pushValue(R1);
     masm.push(BaselineStubReg);
 
-    // Load previous frame pointer, push BaselineFrame *.
+    // Load previous frame pointer, push BaselineFrame*.
     masm.loadPtr(Address(BaselineFrameReg, 0), R0.scratchReg());
     masm.pushBaselineFramePtr(R0.scratchReg(), R0.scratchReg());
 
@@ -275,13 +275,13 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, JitCode *code, uint32_t objectOffset)
 
 template <typename AddrType>
 inline void
-EmitPreBarrier(MacroAssembler &masm, const AddrType &addr, MIRType type)
+EmitPreBarrier(MacroAssembler& masm, const AddrType& addr, MIRType type)
 {
     masm.patchableCallPreBarrier(addr, type);
 }
 
 inline void
-EmitStubGuardFailure(MacroAssembler &masm)
+EmitStubGuardFailure(MacroAssembler& masm)
 {
     // NOTE: This routine assumes that the stub guard code left the stack in the
     // same state it was in when it was entered.

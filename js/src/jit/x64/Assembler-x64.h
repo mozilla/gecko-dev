@@ -164,7 +164,7 @@ class ABIArgGenerator
   public:
     ABIArgGenerator();
     ABIArg next(MIRType argType);
-    ABIArg &current() { return current_; }
+    ABIArg& current() { return current_; }
     uint32_t stackBytesConsumedSoFar() const { return stackOffset_; }
 
     // Note: these registers are all guaranteed to be different
@@ -230,7 +230,7 @@ class Assembler : public AssemblerX86Shared
 
     uint32_t extendedJumpTable_;
 
-    static JitCode *CodeFromJump(JitCode *code, uint8_t *jump);
+    static JitCode* CodeFromJump(JitCode* code, uint8_t* jump);
 
   private:
     void writeRelocation(JmpSrc src, Relocation::Kind reloc);
@@ -245,15 +245,15 @@ class Assembler : public AssemblerX86Shared
     using AssemblerX86Shared::push;
     using AssemblerX86Shared::pop;
 
-    static uint8_t *PatchableJumpAddress(JitCode *code, size_t index);
-    static void PatchJumpEntry(uint8_t *entry, uint8_t *target);
+    static uint8_t* PatchableJumpAddress(JitCode* code, size_t index);
+    static void PatchJumpEntry(uint8_t* entry, uint8_t* target);
 
     Assembler()
       : extendedJumpTable_(0)
     {
     }
 
-    static void TraceJumpRelocations(JSTracer *trc, JitCode *code, CompactBufferReader &reader);
+    static void TraceJumpRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader);
 
     // The buffer is about to be linked, make sure any constant pools or excess
     // bookkeeping has been flushed to the instruction stream.
@@ -261,7 +261,7 @@ class Assembler : public AssemblerX86Shared
 
     // Copy the assembly code to the given buffer, and perform any pending
     // relocations relying on the target address.
-    void executableCopy(uint8_t *buffer);
+    void executableCopy(uint8_t* buffer);
 
     // Actual assembly emitting functions.
 
@@ -279,36 +279,36 @@ class Assembler : public AssemblerX86Shared
             push(ScratchReg);
         }
     }
-    void push(const ImmPtr &imm) {
+    void push(const ImmPtr& imm) {
         push(ImmWord(uintptr_t(imm.value)));
     }
-    void push(const FloatRegister &src) {
+    void push(const FloatRegister& src) {
         subq(Imm32(sizeof(double)), StackPointer);
         movsd(src, Address(StackPointer, 0));
     }
-    CodeOffsetLabel pushWithPatch(const ImmWord &word) {
+    CodeOffsetLabel pushWithPatch(const ImmWord& word) {
         CodeOffsetLabel label = movWithPatch(word, ScratchReg);
         push(ScratchReg);
         return label;
     }
 
-    void pop(const FloatRegister &src) {
+    void pop(const FloatRegister& src) {
         movsd(Address(StackPointer, 0), src);
         addq(Imm32(sizeof(double)), StackPointer);
     }
 
-    CodeOffsetLabel movWithPatch(const ImmWord &word, const Register &dest) {
+    CodeOffsetLabel movWithPatch(const ImmWord& word, const Register& dest) {
         masm.movq_i64r(word.value, dest.code());
         return masm.currentOffset();
     }
-    CodeOffsetLabel movWithPatch(const ImmPtr &imm, const Register &dest) {
+    CodeOffsetLabel movWithPatch(const ImmPtr& imm, const Register& dest) {
         return movWithPatch(ImmWord(uintptr_t(imm.value)), dest);
     }
 
     // Load an ImmWord value into a register. Note that this instruction will
     // attempt to optimize its immediate field size. When a full 64-bit
     // immediate is needed for a relocation, use movWithPatch.
-    void movq(ImmWord word, const Register &dest) {
+    void movq(ImmWord word, const Register& dest) {
         // Load a 64-bit immediate into a register. If the value falls into
         // certain ranges, we can use specialized instructions which have
         // smaller encodings.
@@ -323,14 +323,14 @@ class Assembler : public AssemblerX86Shared
             masm.movq_i64r(word.value, dest.code());
         }
     }
-    void movq(ImmPtr imm, const Register &dest) {
+    void movq(ImmPtr imm, const Register& dest) {
         movq(ImmWord(uintptr_t(imm.value)), dest);
     }
-    void movq(ImmGCPtr ptr, const Register &dest) {
+    void movq(ImmGCPtr ptr, const Register& dest) {
         masm.movq_i64r(ptr.value, dest.code());
         writeDataRelocation(ptr);
     }
-    void movq(const Operand &src, const Register &dest) {
+    void movq(const Operand& src, const Register& dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.movq_rr(src.reg(), dest.code());
@@ -348,7 +348,7 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void movq(const Register &src, const Operand &dest) {
+    void movq(const Register& src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::REG:
             masm.movq_rr(src.code(), dest.reg());
@@ -366,7 +366,7 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void movq(Imm32 imm32, const Operand &dest) {
+    void movq(Imm32 imm32, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::REG:
             masm.movl_i32r(imm32.value, dest.reg());
@@ -384,31 +384,31 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void movq(const Register &src, const FloatRegister &dest) {
+    void movq(const Register& src, const FloatRegister& dest) {
         masm.movq_rr(src.code(), dest.code());
     }
-    void movq(const FloatRegister &src, const Register &dest) {
+    void movq(const FloatRegister& src, const Register& dest) {
         masm.movq_rr(src.code(), dest.code());
     }
-    void movq(const Register &src, const Register &dest) {
+    void movq(const Register& src, const Register& dest) {
         masm.movq_rr(src.code(), dest.code());
     }
 
-    void xchgq(const Register &src, const Register &dest) {
+    void xchgq(const Register& src, const Register& dest) {
         masm.xchgq_rr(src.code(), dest.code());
     }
 
-    void andq(const Register &src, const Register &dest) {
+    void andq(const Register& src, const Register& dest) {
         masm.andq_rr(src.code(), dest.code());
     }
-    void andq(Imm32 imm, const Register &dest) {
+    void andq(Imm32 imm, const Register& dest) {
         masm.andq_ir(imm.value, dest.code());
     }
 
-    void addq(Imm32 imm, const Register &dest) {
+    void addq(Imm32 imm, const Register& dest) {
         masm.addq_ir(imm.value, dest.code());
     }
-    void addq(Imm32 imm, const Operand &dest) {
+    void addq(Imm32 imm, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::REG:
             masm.addq_ir(imm.value, dest.reg());
@@ -423,10 +423,10 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void addq(const Register &src, const Register &dest) {
+    void addq(const Register& src, const Register& dest) {
         masm.addq_rr(src.code(), dest.code());
     }
-    void addq(const Operand &src, const Register &dest) {
+    void addq(const Operand& src, const Register& dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.addq_rr(src.reg(), dest.code());
@@ -442,13 +442,13 @@ class Assembler : public AssemblerX86Shared
         }
     }
 
-    void subq(Imm32 imm, const Register &dest) {
+    void subq(Imm32 imm, const Register& dest) {
         masm.subq_ir(imm.value, dest.code());
     }
-    void subq(const Register &src, const Register &dest) {
+    void subq(const Register& src, const Register& dest) {
         masm.subq_rr(src.code(), dest.code());
     }
-    void subq(const Operand &src, const Register &dest) {
+    void subq(const Operand& src, const Register& dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.subq_rr(src.reg(), dest.code());
@@ -463,7 +463,7 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void subq(const Register &src, const Operand &dest) {
+    void subq(const Register& src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::REG:
             masm.subq_rr(src.code(), dest.reg());
@@ -475,22 +475,22 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void shlq(Imm32 imm, const Register &dest) {
+    void shlq(Imm32 imm, const Register& dest) {
         masm.shlq_i8r(imm.value, dest.code());
     }
-    void shrq(Imm32 imm, const Register &dest) {
+    void shrq(Imm32 imm, const Register& dest) {
         masm.shrq_i8r(imm.value, dest.code());
     }
-    void sarq(Imm32 imm, const Register &dest) {
+    void sarq(Imm32 imm, const Register& dest) {
         masm.sarq_i8r(imm.value, dest.code());
     }
-    void orq(Imm32 imm, const Register &dest) {
+    void orq(Imm32 imm, const Register& dest) {
         masm.orq_ir(imm.value, dest.code());
     }
-    void orq(const Register &src, const Register &dest) {
+    void orq(const Register& src, const Register& dest) {
         masm.orq_rr(src.code(), dest.code());
     }
-    void orq(const Operand &src, const Register &dest) {
+    void orq(const Operand& src, const Register& dest) {
         switch (src.kind()) {
           case Operand::REG:
             masm.orq_rr(src.reg(), dest.code());
@@ -505,14 +505,14 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void xorq(const Register &src, const Register &dest) {
+    void xorq(const Register& src, const Register& dest) {
         masm.xorq_rr(src.code(), dest.code());
     }
-    void xorq(Imm32 imm, const Register &dest) {
+    void xorq(Imm32 imm, const Register& dest) {
         masm.xorq_ir(imm.value, dest.code());
     }
 
-    void mov(ImmWord word, const Register &dest) {
+    void mov(ImmWord word, const Register& dest) {
         // Use xor for setting registers to zero, as it is specially optimized
         // for this purpose on modern hardware. Note that it does clobber FLAGS
         // though. Use xorl instead of xorq since they are functionally
@@ -523,36 +523,36 @@ class Assembler : public AssemblerX86Shared
         else
             movq(word, dest);
     }
-    void mov(ImmPtr imm, const Register &dest) {
+    void mov(ImmPtr imm, const Register& dest) {
         movq(imm, dest);
     }
-    void mov(AsmJSImmPtr imm, const Register &dest) {
+    void mov(AsmJSImmPtr imm, const Register& dest) {
         masm.movq_i64r(-1, dest.code());
         enoughMemory_ &= append(AsmJSAbsoluteLink(masm.currentOffset(), imm.kind()));
     }
-    void mov(const Operand &src, const Register &dest) {
+    void mov(const Operand& src, const Register& dest) {
         movq(src, dest);
     }
-    void mov(const Register &src, const Operand &dest) {
+    void mov(const Register& src, const Operand& dest) {
         movq(src, dest);
     }
-    void mov(const Imm32 &imm32, const Operand &dest) {
+    void mov(const Imm32& imm32, const Operand& dest) {
         movq(imm32, dest);
     }
-    void mov(const Register &src, const Register &dest) {
+    void mov(const Register& src, const Register& dest) {
         movq(src, dest);
     }
-    void mov(AbsoluteLabel *label, const Register &dest) {
+    void mov(AbsoluteLabel* label, const Register& dest) {
         JS_ASSERT(!label->bound());
         // Thread the patch list through the unpatched address word in the
         // instruction stream.
         masm.movq_i64r(label->prev(), dest.code());
         label->setPrev(masm.size());
     }
-    void xchg(const Register &src, const Register &dest) {
+    void xchg(const Register& src, const Register& dest) {
         xchgq(src, dest);
     }
-    void lea(const Operand &src, const Register &dest) {
+    void lea(const Operand& src, const Register& dest) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             masm.leaq_mr(src.disp(), src.base(), dest.code());
@@ -565,29 +565,29 @@ class Assembler : public AssemblerX86Shared
         }
     }
 
-    CodeOffsetLabel loadRipRelativeInt32(const Register &dest) {
+    CodeOffsetLabel loadRipRelativeInt32(const Register& dest) {
         return CodeOffsetLabel(masm.movl_ripr(dest.code()).offset());
     }
-    CodeOffsetLabel loadRipRelativeInt64(const Register &dest) {
+    CodeOffsetLabel loadRipRelativeInt64(const Register& dest) {
         return CodeOffsetLabel(masm.movq_ripr(dest.code()).offset());
     }
-    CodeOffsetLabel loadRipRelativeDouble(const FloatRegister &dest) {
+    CodeOffsetLabel loadRipRelativeDouble(const FloatRegister& dest) {
         return CodeOffsetLabel(masm.movsd_ripr(dest.code()).offset());
     }
-    CodeOffsetLabel storeRipRelativeInt32(const Register &dest) {
+    CodeOffsetLabel storeRipRelativeInt32(const Register& dest) {
         return CodeOffsetLabel(masm.movl_rrip(dest.code()).offset());
     }
-    CodeOffsetLabel storeRipRelativeDouble(const FloatRegister &dest) {
+    CodeOffsetLabel storeRipRelativeDouble(const FloatRegister& dest) {
         return CodeOffsetLabel(masm.movsd_rrip(dest.code()).offset());
     }
-    CodeOffsetLabel leaRipRelative(const Register &dest) {
+    CodeOffsetLabel leaRipRelative(const Register& dest) {
         return CodeOffsetLabel(masm.leaq_rip(dest.code()).offset());
     }
 
     // The below cmpq methods switch the lhs and rhs when it invokes the
     // macroassembler to conform with intel standard.  When calling this
     // function put the left operand on the left as you would expect.
-    void cmpq(const Operand &lhs, const Register &rhs) {
+    void cmpq(const Operand& lhs, const Register& rhs) {
         switch (lhs.kind()) {
           case Operand::REG:
             masm.cmpq_rr(rhs.code(), lhs.reg());
@@ -602,7 +602,7 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void cmpq(const Operand &lhs, Imm32 rhs) {
+    void cmpq(const Operand& lhs, Imm32 rhs) {
         switch (lhs.kind()) {
           case Operand::REG:
             masm.cmpq_ir(rhs.value, lhs.reg());
@@ -617,7 +617,7 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void cmpq(const Register &lhs, const Operand &rhs) {
+    void cmpq(const Register& lhs, const Operand& rhs) {
         switch (rhs.kind()) {
           case Operand::REG:
             masm.cmpq_rr(rhs.reg(), lhs.code());
@@ -629,20 +629,20 @@ class Assembler : public AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    void cmpq(const Register &lhs, const Register &rhs) {
+    void cmpq(const Register& lhs, const Register& rhs) {
         masm.cmpq_rr(rhs.code(), lhs.code());
     }
-    void cmpq(const Register &lhs, Imm32 rhs) {
+    void cmpq(const Register& lhs, Imm32 rhs) {
         masm.cmpq_ir(rhs.value, lhs.code());
     }
 
-    void testq(const Register &lhs, Imm32 rhs) {
+    void testq(const Register& lhs, Imm32 rhs) {
         masm.testq_i32r(rhs.value, lhs.code());
     }
-    void testq(const Register &lhs, const Register &rhs) {
+    void testq(const Register& lhs, const Register& rhs) {
         masm.testq_rr(rhs.code(), lhs.code());
     }
-    void testq(const Operand &lhs, Imm32 rhs) {
+    void testq(const Operand& lhs, Imm32 rhs) {
         switch (lhs.kind()) {
           case Operand::REG:
             masm.testq_i32r(rhs.value, lhs.reg());
@@ -666,20 +666,20 @@ class Assembler : public AssemblerX86Shared
         addPendingJump(src, target, reloc);
     }
 
-    void jmp(JitCode *target) {
+    void jmp(JitCode* target) {
         jmp(ImmPtr(target->raw()), Relocation::JITCODE);
     }
-    void j(Condition cond, JitCode *target) {
+    void j(Condition cond, JitCode* target) {
         j(cond, ImmPtr(target->raw()), Relocation::JITCODE);
     }
-    void call(JitCode *target) {
+    void call(JitCode* target) {
         JmpSrc src = masm.call();
         addPendingJump(src, ImmPtr(target->raw()), Relocation::JITCODE);
     }
 
     // Emit a CALL or CMP (nop) instruction. ToggleCall can be used to patch
     // this instruction.
-    CodeOffsetLabel toggledCall(JitCode *target, bool enabled) {
+    CodeOffsetLabel toggledCall(JitCode* target, bool enabled) {
         CodeOffsetLabel offset(size());
         JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
         addPendingJump(src, ImmPtr(target->raw()), Relocation::JITCODE);
@@ -695,16 +695,16 @@ class Assembler : public AssemblerX86Shared
     // Do not mask shared implementations.
     using AssemblerX86Shared::call;
 
-    void cvttsd2sq(const FloatRegister &src, const Register &dest) {
+    void cvttsd2sq(const FloatRegister& src, const Register& dest) {
         masm.cvttsd2sq_rr(src.code(), dest.code());
     }
-    void cvttss2sq(const FloatRegister &src, const Register &dest) {
+    void cvttss2sq(const FloatRegister& src, const Register& dest) {
         masm.cvttss2sq_rr(src.code(), dest.code());
     }
-    void cvtsq2sd(const Register &src, const FloatRegister &dest) {
+    void cvtsq2sd(const Register& src, const FloatRegister& dest) {
         masm.cvtsq2sd_rr(src.code(), dest.code());
     }
-    void cvtsq2ss(const Register &src, const FloatRegister &dest) {
+    void cvtsq2ss(const Register& src, const FloatRegister& dest) {
         masm.cvtsq2ss_rr(src.code(), dest.code());
     }
 };
@@ -721,7 +721,7 @@ PatchJump(CodeLocationJump jump, CodeLocationLabel label)
 }
 
 static inline bool
-GetIntArgReg(uint32_t intArg, uint32_t floatArg, Register *out)
+GetIntArgReg(uint32_t intArg, uint32_t floatArg, Register* out)
 {
 #if defined(_WIN64)
     uint32_t arg = intArg + floatArg;
@@ -740,7 +740,7 @@ GetIntArgReg(uint32_t intArg, uint32_t floatArg, Register *out)
 // CallTempReg* don't overlap the argument registers, and only fail once those
 // run out too.
 static inline bool
-GetTempRegForIntArg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
+GetTempRegForIntArg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register* out)
 {
     if (GetIntArgReg(usedIntArgs, usedFloatArgs, out))
         return true;
@@ -760,7 +760,7 @@ GetTempRegForIntArg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
 }
 
 static inline bool
-GetFloatArgReg(uint32_t intArg, uint32_t floatArg, FloatRegister *out)
+GetFloatArgReg(uint32_t intArg, uint32_t floatArg, FloatRegister* out)
 {
 #if defined(_WIN64)
     uint32_t arg = intArg + floatArg;

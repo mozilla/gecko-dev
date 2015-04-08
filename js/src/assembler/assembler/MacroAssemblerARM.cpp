@@ -78,7 +78,7 @@ static bool isVFPPresent()
 #endif
 
 #ifdef WTF_OS_ANDROID
-    FILE *fp = fopen("/proc/cpuinfo", "r");
+    FILE* fp = fopen("/proc/cpuinfo", "r");
     if (!fp)
         return false;
 

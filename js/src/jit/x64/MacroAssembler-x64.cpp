@@ -16,7 +16,7 @@ using namespace js;
 using namespace js::jit;
 
 void
-MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister &dest)
+MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister& dest)
 {
     if (maybeInlineDouble(d, dest))
         return;
@@ -36,7 +36,7 @@ MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister &dest)
         if (!enoughMemory_)
             return;
     }
-    Double &dbl = doubles_[doubleIndex];
+    Double& dbl = doubles_[doubleIndex];
     JS_ASSERT(!dbl.uses.bound());
 
     // The constants will be stored in a pool appended to the text (see
@@ -50,7 +50,7 @@ MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister &dest)
 }
 
 void
-MacroAssemblerX64::loadConstantFloat32(float f, const FloatRegister &dest)
+MacroAssemblerX64::loadConstantFloat32(float f, const FloatRegister& dest)
 {
     if (maybeInlineFloat(f, dest))
         return;
@@ -70,7 +70,7 @@ MacroAssemblerX64::loadConstantFloat32(float f, const FloatRegister &dest)
         if (!enoughMemory_)
             return;
     }
-    Float &flt = floats_[floatIndex];
+    Float& flt = floats_[floatIndex];
     JS_ASSERT(!flt.uses.bound());
 
     // See comment in loadConstantDouble
@@ -85,7 +85,7 @@ MacroAssemblerX64::finish()
     if (!doubles_.empty())
         masm.align(sizeof(double));
     for (size_t i = 0; i < doubles_.length(); i++) {
-        Double &dbl = doubles_[i];
+        Double& dbl = doubles_[i];
         bind(&dbl.uses);
         masm.doubleConstant(dbl.value);
     }
@@ -93,7 +93,7 @@ MacroAssemblerX64::finish()
     if (!floats_.empty())
         masm.align(sizeof(float));
     for (size_t i = 0; i < floats_.length(); i++) {
-        Float &flt = floats_[i];
+        Float& flt = floats_[i];
         bind(&flt.uses);
         masm.floatConstant(flt.value);
     }
@@ -121,7 +121,7 @@ MacroAssemblerX64::setupAlignedABICall(uint32_t args)
 }
 
 void
-MacroAssemblerX64::setupUnalignedABICall(uint32_t args, const Register &scratch)
+MacroAssemblerX64::setupUnalignedABICall(uint32_t args, const Register& scratch)
 {
     setupABICall(args);
     dynamicAlignment_ = true;
@@ -132,7 +132,7 @@ MacroAssemblerX64::setupUnalignedABICall(uint32_t args, const Register &scratch)
 }
 
 void
-MacroAssemblerX64::passABIArg(const MoveOperand &from, MoveOp::Type type)
+MacroAssemblerX64::passABIArg(const MoveOperand& from, MoveOp::Type type)
 {
     MoveOperand to;
     switch (type) {
@@ -177,19 +177,19 @@ MacroAssemblerX64::passABIArg(const MoveOperand &from, MoveOp::Type type)
 }
 
 void
-MacroAssemblerX64::passABIArg(const Register &reg)
+MacroAssemblerX64::passABIArg(const Register& reg)
 {
     passABIArg(MoveOperand(reg), MoveOp::GENERAL);
 }
 
 void
-MacroAssemblerX64::passABIArg(const FloatRegister &reg, MoveOp::Type type)
+MacroAssemblerX64::passABIArg(const FloatRegister& reg, MoveOp::Type type)
 {
     passABIArg(MoveOperand(reg), type);
 }
 
 void
-MacroAssemblerX64::callWithABIPre(uint32_t *stackAdjust)
+MacroAssemblerX64::callWithABIPre(uint32_t* stackAdjust)
 {
     JS_ASSERT(inCall_);
     JS_ASSERT(args_ == passedIntArgs_ + passedFloatArgs_);
@@ -240,7 +240,7 @@ MacroAssemblerX64::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX64::callWithABI(void *fun, MoveOp::Type result)
+MacroAssemblerX64::callWithABI(void* fun, MoveOp::Type result)
 {
     uint32_t stackAdjust;
     callWithABIPre(&stackAdjust);
@@ -287,7 +287,7 @@ MacroAssemblerX64::callWithABI(Address fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX64::handleFailureWithHandlerTail(void *handler)
+MacroAssemblerX64::handleFailureWithHandlerTail(void* handler)
 {
     // Reserve space for exception information.
     subq(Imm32(sizeof(ResumeFromException)), rsp);
@@ -363,23 +363,23 @@ MacroAssemblerX64::handleFailureWithHandlerTail(void *handler)
 #ifdef JSGC_GENERATIONAL
 
 void
-MacroAssemblerX64::branchPtrInNurseryRange(Register ptr, Register temp, Label *label)
+MacroAssemblerX64::branchPtrInNurseryRange(Register ptr, Register temp, Label* label)
 {
     JS_ASSERT(ptr != temp);
     JS_ASSERT(ptr != ScratchReg);
 
-    const Nursery &nursery = GetIonContext()->runtime->gcNursery();
+    const Nursery& nursery = GetIonContext()->runtime->gcNursery();
     movePtr(ImmWord(-ptrdiff_t(nursery.start())), ScratchReg);
     addPtr(ptr, ScratchReg);
     branchPtr(Assembler::Below, ScratchReg, Imm32(Nursery::NurserySize), label);
 }
 
 void
-MacroAssemblerX64::branchValueIsNurseryObject(ValueOperand value, Register temp, Label *label)
+MacroAssemblerX64::branchValueIsNurseryObject(ValueOperand value, Register temp, Label* label)
 {
     // 'Value' representing the start of the nursery tagged as a JSObject
-    const Nursery &nursery = GetIonContext()->runtime->gcNursery();
-    Value start = ObjectValue(*reinterpret_cast<JSObject *>(nursery.start()));
+    const Nursery& nursery = GetIonContext()->runtime->gcNursery();
+    Value start = ObjectValue(*reinterpret_cast<JSObject*>(nursery.start()));
 
     movePtr(ImmWord(-ptrdiff_t(start.asRawBits())), ScratchReg);
     addPtr(value.valueReg(), ScratchReg);

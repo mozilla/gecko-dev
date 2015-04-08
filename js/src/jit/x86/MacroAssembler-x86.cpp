@@ -18,7 +18,7 @@
 using namespace js;
 using namespace js::jit;
 
-MacroAssemblerX86::Double *
+MacroAssemblerX86::Double*
 MacroAssemblerX86::getDouble(double d)
 {
     if (!doubleMap_.initialized()) {
@@ -37,34 +37,34 @@ MacroAssemblerX86::getDouble(double d)
         if (!enoughMemory_)
             return nullptr;
     }
-    Double &dbl = doubles_[doubleIndex];
+    Double& dbl = doubles_[doubleIndex];
     JS_ASSERT(!dbl.uses.bound());
     return &dbl;
 }
 
 void
-MacroAssemblerX86::loadConstantDouble(double d, const FloatRegister &dest)
+MacroAssemblerX86::loadConstantDouble(double d, const FloatRegister& dest)
 {
     if (maybeInlineDouble(d, dest))
         return;
-    Double *dbl = getDouble(d);
+    Double* dbl = getDouble(d);
     if (!dbl)
         return;
-    masm.movsd_mr(reinterpret_cast<const void *>(dbl->uses.prev()), dest.code());
+    masm.movsd_mr(reinterpret_cast<const void*>(dbl->uses.prev()), dest.code());
     dbl->uses.setPrev(masm.size());
 }
 
 void
-MacroAssemblerX86::addConstantDouble(double d, const FloatRegister &dest)
+MacroAssemblerX86::addConstantDouble(double d, const FloatRegister& dest)
 {
-    Double *dbl = getDouble(d);
+    Double* dbl = getDouble(d);
     if (!dbl)
         return;
-    masm.addsd_mr(reinterpret_cast<const void *>(dbl->uses.prev()), dest.code());
+    masm.addsd_mr(reinterpret_cast<const void*>(dbl->uses.prev()), dest.code());
     dbl->uses.setPrev(masm.size());
 }
 
-MacroAssemblerX86::Float *
+MacroAssemblerX86::Float*
 MacroAssemblerX86::getFloat(float f)
 {
     if (!floatMap_.initialized()) {
@@ -83,30 +83,30 @@ MacroAssemblerX86::getFloat(float f)
         if (!enoughMemory_)
             return nullptr;
     }
-    Float &flt = floats_[floatIndex];
+    Float& flt = floats_[floatIndex];
     JS_ASSERT(!flt.uses.bound());
     return &flt;
 }
 
 void
-MacroAssemblerX86::loadConstantFloat32(float f, const FloatRegister &dest)
+MacroAssemblerX86::loadConstantFloat32(float f, const FloatRegister& dest)
 {
     if (maybeInlineFloat(f, dest))
         return;
-    Float *flt = getFloat(f);
+    Float* flt = getFloat(f);
     if (!flt)
         return;
-    masm.movss_mr(reinterpret_cast<const void *>(flt->uses.prev()), dest.code());
+    masm.movss_mr(reinterpret_cast<const void*>(flt->uses.prev()), dest.code());
     flt->uses.setPrev(masm.size());
 }
 
 void
-MacroAssemblerX86::addConstantFloat32(float f, const FloatRegister &dest)
+MacroAssemblerX86::addConstantFloat32(float f, const FloatRegister& dest)
 {
-    Float *flt = getFloat(f);
+    Float* flt = getFloat(f);
     if (!flt)
         return;
-    masm.addss_mr(reinterpret_cast<const void *>(flt->uses.prev()), dest.code());
+    masm.addss_mr(reinterpret_cast<const void*>(flt->uses.prev()), dest.code());
     flt->uses.setPrev(masm.size());
 }
 
@@ -153,7 +153,7 @@ MacroAssemblerX86::setupAlignedABICall(uint32_t args)
 }
 
 void
-MacroAssemblerX86::setupUnalignedABICall(uint32_t args, const Register &scratch)
+MacroAssemblerX86::setupUnalignedABICall(uint32_t args, const Register& scratch)
 {
     setupABICall(args);
     dynamicAlignment_ = true;
@@ -164,7 +164,7 @@ MacroAssemblerX86::setupUnalignedABICall(uint32_t args, const Register &scratch)
 }
 
 void
-MacroAssemblerX86::passABIArg(const MoveOperand &from, MoveOp::Type type)
+MacroAssemblerX86::passABIArg(const MoveOperand& from, MoveOp::Type type)
 {
     ++passedArgs_;
     MoveOperand to = MoveOperand(StackPointer, stackForCall_);
@@ -179,19 +179,19 @@ MacroAssemblerX86::passABIArg(const MoveOperand &from, MoveOp::Type type)
 }
 
 void
-MacroAssemblerX86::passABIArg(const Register &reg)
+MacroAssemblerX86::passABIArg(const Register& reg)
 {
     passABIArg(MoveOperand(reg), MoveOp::GENERAL);
 }
 
 void
-MacroAssemblerX86::passABIArg(const FloatRegister &reg, MoveOp::Type type)
+MacroAssemblerX86::passABIArg(const FloatRegister& reg, MoveOp::Type type)
 {
     passABIArg(MoveOperand(reg), type);
 }
 
 void
-MacroAssemblerX86::callWithABIPre(uint32_t *stackAdjust)
+MacroAssemblerX86::callWithABIPre(uint32_t* stackAdjust)
 {
     JS_ASSERT(inCall_);
     JS_ASSERT(args_ == passedArgs_);
@@ -254,7 +254,7 @@ MacroAssemblerX86::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX86::callWithABI(void *fun, MoveOp::Type result)
+MacroAssemblerX86::callWithABI(void* fun, MoveOp::Type result)
 {
     uint32_t stackAdjust;
     callWithABIPre(&stackAdjust);
@@ -272,7 +272,7 @@ MacroAssemblerX86::callWithABI(AsmJSImmPtr fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX86::callWithABI(const Address &fun, MoveOp::Type result)
+MacroAssemblerX86::callWithABI(const Address& fun, MoveOp::Type result)
 {
     uint32_t stackAdjust;
     callWithABIPre(&stackAdjust);
@@ -281,7 +281,7 @@ MacroAssemblerX86::callWithABI(const Address &fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX86::handleFailureWithHandlerTail(void *handler)
+MacroAssemblerX86::handleFailureWithHandlerTail(void* handler)
 {
     // Reserve space for exception information.
     subl(Imm32(sizeof(ResumeFromException)), esp);
@@ -355,11 +355,11 @@ MacroAssemblerX86::handleFailureWithHandlerTail(void *handler)
 }
 
 void
-MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand &value, const Value &v, Label *label)
+MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand& value, const Value& v, Label* label)
 {
     jsval_layout jv = JSVAL_TO_IMPL(v);
     if (v.isMarkable())
-        cmpl(value.payloadReg(), ImmGCPtr(reinterpret_cast<gc::Cell *>(v.toGCThing())));
+        cmpl(value.payloadReg(), ImmGCPtr(reinterpret_cast<gc::Cell*>(v.toGCThing())));
     else
         cmpl(value.payloadReg(), Imm32(jv.s.payload.i32));
 
@@ -383,19 +383,19 @@ MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand &value, co
 #ifdef JSGC_GENERATIONAL
 
 void
-MacroAssemblerX86::branchPtrInNurseryRange(Register ptr, Register temp, Label *label)
+MacroAssemblerX86::branchPtrInNurseryRange(Register ptr, Register temp, Label* label)
 {
     JS_ASSERT(ptr != temp);
     JS_ASSERT(temp != InvalidReg);  // A temp register is required for x86.
 
-    const Nursery &nursery = GetIonContext()->runtime->gcNursery();
+    const Nursery& nursery = GetIonContext()->runtime->gcNursery();
     movePtr(ImmWord(-ptrdiff_t(nursery.start())), temp);
     addPtr(ptr, temp);
     branchPtr(Assembler::Below, temp, Imm32(Nursery::NurserySize), label);
 }
 
 void
-MacroAssemblerX86::branchValueIsNurseryObject(ValueOperand value, Register temp, Label *label)
+MacroAssemblerX86::branchValueIsNurseryObject(ValueOperand value, Register temp, Label* label)
 {
     Label done;
 

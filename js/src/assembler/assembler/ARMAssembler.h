@@ -134,7 +134,7 @@ namespace JSC {
         typedef AssemblerBufferWithConstantPool<2048, 4, 4, ARMAssembler> ARMBuffer;
         typedef SegmentedVector<int, 64> Jumps;
 
-        unsigned char *buffer() const { return m_buffer.buffer(); }
+        unsigned char* buffer() const { return m_buffer.buffer(); }
         bool oom() const { return m_buffer.oom(); }
 
         // ARM conditional constants
@@ -964,7 +964,7 @@ namespace JSC {
             return loadBranchTarget(ARMRegisters::pc, cc, useConstantPool);
         }
 
-        void* executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool **poolp, CodeKind kind);
+        void* executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool** poolp, CodeKind kind);
         void executableCopy(void* buffer);
         void fixUpOffsets(void* buffer);
 
@@ -1701,7 +1701,7 @@ namespace JSC {
         void putInst32(uint32_t data) {
             m_buffer.putInt(data);
         }
-        uint32_t *editSrc(JmpSrc src) {
+        uint32_t* editSrc(JmpSrc src) {
             return (uint32_t*)(((char*)m_buffer.data()) + src.offset());
         }
     }; // ARMAssembler

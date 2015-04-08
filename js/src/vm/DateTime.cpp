@@ -13,12 +13,12 @@
 using mozilla::UnspecifiedNaN;
 
 static bool
-ComputeLocalTime(time_t local, struct tm *ptm)
+ComputeLocalTime(time_t local, struct tm* ptm)
 {
 #ifdef HAVE_LOCALTIME_R
     return localtime_r(&local, ptm);
 #else
-    struct tm *otm = localtime(&local);
+    struct tm* otm = localtime(&local);
     if (!otm)
         return false;
     *ptm = *otm;
@@ -27,12 +27,12 @@ ComputeLocalTime(time_t local, struct tm *ptm)
 }
 
 static bool
-ComputeUTCTime(time_t t, struct tm *ptm)
+ComputeUTCTime(time_t t, struct tm* ptm)
 {
 #ifdef HAVE_GMTIME_R
     return gmtime_r(&t, ptm);
 #else
-    struct tm *otm = gmtime(&t);
+    struct tm* otm = gmtime(&t);
     if (!otm)
         return false;
     *ptm = *otm;

@@ -29,11 +29,11 @@ class RInstruction
     bool isResumePoint() const {
         return opcode() == Recover_ResumePoint;
     }
-    inline const RResumePoint *toResumePoint() const;
+    inline const RResumePoint* toResumePoint() const;
 
     virtual uint32_t numOperands() const = 0;
 
-    static void readRecoverData(CompactBufferReader &reader, RInstructionStorage *raw);
+    static void readRecoverData(CompactBufferReader& reader, RInstructionStorage* raw);
 };
 
 class RResumePoint MOZ_FINAL : public RInstruction
@@ -43,7 +43,7 @@ class RResumePoint MOZ_FINAL : public RInstruction
     uint32_t numOperands_;        // Number of slots.
 
     friend class RInstruction;
-    RResumePoint(CompactBufferReader &reader);
+    RResumePoint(CompactBufferReader& reader);
 
   public:
     virtual Opcode opcode() const {
@@ -58,11 +58,11 @@ class RResumePoint MOZ_FINAL : public RInstruction
     }
 };
 
-const RResumePoint *
+const RResumePoint*
 RInstruction::toResumePoint() const
 {
     MOZ_ASSERT(isResumePoint());
-    return static_cast<const RResumePoint *>(this);
+    return static_cast<const RResumePoint*>(this);
 }
 
 }

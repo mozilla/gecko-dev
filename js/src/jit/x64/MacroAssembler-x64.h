@@ -110,7 +110,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         call(rax);
     }
 
-    void call(const CallSiteDesc &desc, AsmJSImmPtr target) {
+    void call(const CallSiteDesc& desc, AsmJSImmPtr target) {
         call(target);
         appendCallSite(desc);
     }
@@ -133,10 +133,10 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
-    static inline Operand ToUpper32(const Address &address) {
+    static inline Operand ToUpper32(const Address& address) {
         return Operand(address.base, address.offset + 4);
     }
-    static inline Operand ToUpper32(const BaseIndex &address) {
+    static inline Operand ToUpper32(const BaseIndex& address) {
         return Operand(address.base, address.index, address.scale, address.offset + 4);
     }
 
@@ -162,11 +162,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void storeValue(ValueOperand val, Operand dest) {
         movq(val.valueReg(), dest);
     }
-    void storeValue(ValueOperand val, const Address &dest) {
+    void storeValue(ValueOperand val, const Address& dest) {
         storeValue(val, Operand(dest));
     }
     template <typename T>
-    void storeValue(JSValueType type, Register reg, const T &dest) {
+    void storeValue(JSValueType type, Register reg, const T& dest) {
         // Value types with 32-bit payloads can be emitted as two 32-bit moves.
         if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
             movl(reg, Operand(dest));
@@ -177,7 +177,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         }
     }
     template <typename T>
-    void storeValue(const Value &val, const T &dest) {
+    void storeValue(const Value& val, const T& dest) {
         jsval_layout jv = JSVAL_TO_IMPL(val);
         if (val.isMarkable()) {
             movWithPatch(ImmWord(jv.asBits), ScratchReg);
@@ -196,7 +196,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void loadValue(Address src, ValueOperand val) {
         loadValue(Operand(src), val);
     }
-    void loadValue(const BaseIndex &src, ValueOperand val) {
+    void loadValue(const BaseIndex& src, ValueOperand val) {
         loadValue(Operand(src), val);
     }
     void tagValue(JSValueType type, Register payload, ValueOperand dest) {
@@ -209,14 +209,14 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void pushValue(ValueOperand val) {
         push(val.valueReg());
     }
-    void Push(const ValueOperand &val) {
+    void Push(const ValueOperand& val) {
         pushValue(val);
         framePushed_ += sizeof(Value);
     }
     void popValue(ValueOperand val) {
         pop(val.valueReg());
     }
-    void pushValue(const Value &val) {
+    void pushValue(const Value& val) {
         jsval_layout jv = JSVAL_TO_IMPL(val);
         push(ImmWord(jv.asBits));
     }
@@ -224,23 +224,23 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         boxValue(type, reg, ScratchReg);
         push(ScratchReg);
     }
-    void pushValue(const Address &addr) {
+    void pushValue(const Address& addr) {
         push(Operand(addr));
     }
-    void Pop(const ValueOperand &val) {
+    void Pop(const ValueOperand& val) {
         popValue(val);
         framePushed_ -= sizeof(Value);
     }
 
-    void moveValue(const Value &val, const Register &dest) {
+    void moveValue(const Value& val, const Register& dest) {
         jsval_layout jv = JSVAL_TO_IMPL(val);
         movWithPatch(ImmWord(jv.asBits), dest);
         writeDataRelocation(val);
     }
-    void moveValue(const Value &src, const ValueOperand &dest) {
+    void moveValue(const Value& src, const ValueOperand& dest) {
         moveValue(src, dest.valueReg());
     }
-    void moveValue(const ValueOperand &src, const ValueOperand &dest) {
+    void moveValue(const ValueOperand& src, const ValueOperand& dest) {
         if (src.valueReg() != dest.valueReg())
             movq(src.valueReg(), dest.valueReg());
     }
@@ -307,172 +307,172 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         return cond == Equal ? AboveOrEqual : Below;
     }
 
-    Condition testMagic(Condition cond, const Register &tag) {
+    Condition testMagic(Condition cond, const Register& tag) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         cmpl(tag, ImmTag(JSVAL_TAG_MAGIC));
         return cond;
     }
-    Condition testError(Condition cond, const Register &tag) {
+    Condition testError(Condition cond, const Register& tag) {
         return testMagic(cond, tag);
     }
-    Condition testPrimitive(Condition cond, const Register &tag) {
+    Condition testPrimitive(Condition cond, const Register& tag) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         cmpl(tag, ImmTag(JSVAL_UPPER_EXCL_TAG_OF_PRIMITIVE_SET));
         return cond == Equal ? Below : AboveOrEqual;
     }
 
-    Condition testUndefined(Condition cond, const ValueOperand &src) {
+    Condition testUndefined(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testUndefined(cond, ScratchReg);
     }
-    Condition testInt32(Condition cond, const ValueOperand &src) {
+    Condition testInt32(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testInt32(cond, ScratchReg);
     }
-    Condition testBoolean(Condition cond, const ValueOperand &src) {
+    Condition testBoolean(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testBoolean(cond, ScratchReg);
     }
-    Condition testDouble(Condition cond, const ValueOperand &src) {
+    Condition testDouble(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testDouble(cond, ScratchReg);
     }
-    Condition testNumber(Condition cond, const ValueOperand &src) {
+    Condition testNumber(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testNumber(cond, ScratchReg);
     }
-    Condition testNull(Condition cond, const ValueOperand &src) {
+    Condition testNull(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testNull(cond, ScratchReg);
     }
-    Condition testString(Condition cond, const ValueOperand &src) {
+    Condition testString(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testString(cond, ScratchReg);
     }
-    Condition testObject(Condition cond, const ValueOperand &src) {
+    Condition testObject(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testObject(cond, ScratchReg);
     }
-    Condition testGCThing(Condition cond, const ValueOperand &src) {
+    Condition testGCThing(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testGCThing(cond, ScratchReg);
     }
-    Condition testPrimitive(Condition cond, const ValueOperand &src) {
+    Condition testPrimitive(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testPrimitive(cond, ScratchReg);
     }
 
 
-    Condition testUndefined(Condition cond, const Address &src) {
+    Condition testUndefined(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testUndefined(cond, ScratchReg);
     }
-    Condition testInt32(Condition cond, const Address &src) {
+    Condition testInt32(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testInt32(cond, ScratchReg);
     }
-    Condition testBoolean(Condition cond, const Address &src) {
+    Condition testBoolean(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testBoolean(cond, ScratchReg);
     }
-    Condition testDouble(Condition cond, const Address &src) {
+    Condition testDouble(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testDouble(cond, ScratchReg);
     }
-    Condition testNumber(Condition cond, const Address &src) {
+    Condition testNumber(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testNumber(cond, ScratchReg);
     }
-    Condition testNull(Condition cond, const Address &src) {
+    Condition testNull(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testNull(cond, ScratchReg);
     }
-    Condition testString(Condition cond, const Address &src) {
+    Condition testString(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testString(cond, ScratchReg);
     }
-    Condition testObject(Condition cond, const Address &src) {
+    Condition testObject(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testObject(cond, ScratchReg);
     }
-    Condition testPrimitive(Condition cond, const Address &src) {
+    Condition testPrimitive(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testPrimitive(cond, ScratchReg);
     }
-    Condition testGCThing(Condition cond, const Address &src) {
+    Condition testGCThing(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testGCThing(cond, ScratchReg);
     }
-    Condition testMagic(Condition cond, const Address &src) {
+    Condition testMagic(Condition cond, const Address& src) {
         splitTag(src, ScratchReg);
         return testMagic(cond, ScratchReg);
     }
 
 
-    Condition testUndefined(Condition cond, const BaseIndex &src) {
+    Condition testUndefined(Condition cond, const BaseIndex& src) {
         splitTag(src, ScratchReg);
         return testUndefined(cond, ScratchReg);
     }
-    Condition testNull(Condition cond, const BaseIndex &src) {
+    Condition testNull(Condition cond, const BaseIndex& src) {
         splitTag(src, ScratchReg);
         return testNull(cond, ScratchReg);
     }
-    Condition testBoolean(Condition cond, const BaseIndex &src) {
+    Condition testBoolean(Condition cond, const BaseIndex& src) {
         splitTag(src, ScratchReg);
         return testBoolean(cond, ScratchReg);
     }
-    Condition testString(Condition cond, const BaseIndex &src) {
+    Condition testString(Condition cond, const BaseIndex& src) {
         splitTag(src, ScratchReg);
         return testString(cond, ScratchReg);
     }
-    Condition testInt32(Condition cond, const BaseIndex &src) {
+    Condition testInt32(Condition cond, const BaseIndex& src) {
         splitTag(src, ScratchReg);
         return testInt32(cond, ScratchReg);
     }
-    Condition testObject(Condition cond, const BaseIndex &src) {
+    Condition testObject(Condition cond, const BaseIndex& src) {
         splitTag(src, ScratchReg);
         return testObject(cond, ScratchReg);
     }
-    Condition testDouble(Condition cond, const BaseIndex &src) {
+    Condition testDouble(Condition cond, const BaseIndex& src) {
         splitTag(src, ScratchReg);
         return testDouble(cond, ScratchReg);
     }
-    Condition testMagic(Condition cond, const BaseIndex &src) {
+    Condition testMagic(Condition cond, const BaseIndex& src) {
         splitTag(src, ScratchReg);
         return testMagic(cond, ScratchReg);
     }
-    Condition testGCThing(Condition cond, const BaseIndex &src) {
+    Condition testGCThing(Condition cond, const BaseIndex& src) {
         splitTag(src, ScratchReg);
         return testGCThing(cond, ScratchReg);
     }
 
-    Condition isMagic(Condition cond, const ValueOperand &src, JSWhyMagic why) {
+    Condition isMagic(Condition cond, const ValueOperand& src, JSWhyMagic why) {
         uint64_t magic = MagicValue(why).asRawBits();
         cmpPtr(src.valueReg(), ImmWord(magic));
         return cond;
     }
 
-    void cmpPtr(const Register &lhs, const ImmWord rhs) {
+    void cmpPtr(const Register& lhs, const ImmWord rhs) {
         JS_ASSERT(lhs != ScratchReg);
         mov(rhs, ScratchReg);
         cmpq(lhs, ScratchReg);
     }
-    void cmpPtr(const Register &lhs, const ImmPtr rhs) {
+    void cmpPtr(const Register& lhs, const ImmPtr rhs) {
         cmpPtr(lhs, ImmWord(uintptr_t(rhs.value)));
     }
-    void cmpPtr(const Register &lhs, const ImmGCPtr rhs) {
+    void cmpPtr(const Register& lhs, const ImmGCPtr rhs) {
         JS_ASSERT(lhs != ScratchReg);
         movq(rhs, ScratchReg);
         cmpq(lhs, ScratchReg);
     }
-    void cmpPtr(const Register &lhs, const Imm32 rhs) {
+    void cmpPtr(const Register& lhs, const Imm32 rhs) {
         cmpq(lhs, rhs);
     }
-    void cmpPtr(const Operand &lhs, const ImmGCPtr rhs) {
+    void cmpPtr(const Operand& lhs, const ImmGCPtr rhs) {
         movq(rhs, ScratchReg);
         cmpq(lhs, ScratchReg);
     }
-    void cmpPtr(const Operand &lhs, const ImmWord rhs) {
+    void cmpPtr(const Operand& lhs, const ImmWord rhs) {
         if ((intptr_t)rhs.value <= INT32_MAX && (intptr_t)rhs.value >= INT32_MIN) {
             cmpq(lhs, Imm32((int32_t)rhs.value));
         } else {
@@ -480,36 +480,36 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             cmpq(lhs, ScratchReg);
         }
     }
-    void cmpPtr(const Operand &lhs, const ImmPtr rhs) {
+    void cmpPtr(const Operand& lhs, const ImmPtr rhs) {
         cmpPtr(lhs, ImmWord(uintptr_t(rhs.value)));
     }
-    void cmpPtr(const Address &lhs, const ImmGCPtr rhs) {
+    void cmpPtr(const Address& lhs, const ImmGCPtr rhs) {
         cmpPtr(Operand(lhs), rhs);
     }
-    void cmpPtr(const Address &lhs, const ImmWord rhs) {
+    void cmpPtr(const Address& lhs, const ImmWord rhs) {
         cmpPtr(Operand(lhs), rhs);
     }
-    void cmpPtr(const Address &lhs, const ImmPtr rhs) {
+    void cmpPtr(const Address& lhs, const ImmPtr rhs) {
         cmpPtr(lhs, ImmWord(uintptr_t(rhs.value)));
     }
-    void cmpPtr(const Operand &lhs, const Register &rhs) {
+    void cmpPtr(const Operand& lhs, const Register& rhs) {
         cmpq(lhs, rhs);
     }
-    void cmpPtr(const Operand &lhs, const Imm32 rhs) {
+    void cmpPtr(const Operand& lhs, const Imm32 rhs) {
         cmpq(lhs, rhs);
     }
-    void cmpPtr(const Address &lhs, const Register &rhs) {
+    void cmpPtr(const Address& lhs, const Register& rhs) {
         cmpPtr(Operand(lhs), rhs);
     }
-    void cmpPtr(const Register &lhs, const Register &rhs) {
+    void cmpPtr(const Register& lhs, const Register& rhs) {
         return cmpq(lhs, rhs);
     }
-    void testPtr(const Register &lhs, const Register &rhs) {
+    void testPtr(const Register& lhs, const Register& rhs) {
         testq(lhs, rhs);
     }
 
     template <typename T1, typename T2>
-    void cmpPtrSet(Assembler::Condition cond, T1 lhs, T2 rhs, const Register &dest)
+    void cmpPtrSet(Assembler::Condition cond, T1 lhs, T2 rhs, const Register& dest)
     {
         cmpPtr(lhs, rhs);
         emitSet(cond, dest);
@@ -533,19 +533,19 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         addq(amount, StackPointer);
     }
 
-    void addPtr(const Register &src, const Register &dest) {
+    void addPtr(const Register& src, const Register& dest) {
         addq(src, dest);
     }
-    void addPtr(Imm32 imm, const Register &dest) {
+    void addPtr(Imm32 imm, const Register& dest) {
         addq(imm, dest);
     }
-    void addPtr(Imm32 imm, const Address &dest) {
+    void addPtr(Imm32 imm, const Address& dest) {
         addq(imm, Operand(dest));
     }
-    void addPtr(Imm32 imm, const Operand &dest) {
+    void addPtr(Imm32 imm, const Operand& dest) {
         addq(imm, dest);
     }
-    void addPtr(ImmWord imm, const Register &dest) {
+    void addPtr(ImmWord imm, const Register& dest) {
         JS_ASSERT(dest != ScratchReg);
         if ((intptr_t)imm.value <= INT32_MAX && (intptr_t)imm.value >= INT32_MIN) {
             addq(Imm32((int32_t)imm.value), dest);
@@ -554,26 +554,26 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             addq(ScratchReg, dest);
         }
     }
-    void addPtr(ImmPtr imm, const Register &dest) {
+    void addPtr(ImmPtr imm, const Register& dest) {
         addPtr(ImmWord(uintptr_t(imm.value)), dest);
     }
-    void addPtr(const Address &src, const Register &dest) {
+    void addPtr(const Address& src, const Register& dest) {
         addq(Operand(src), dest);
     }
-    void subPtr(Imm32 imm, const Register &dest) {
+    void subPtr(Imm32 imm, const Register& dest) {
         subq(imm, dest);
     }
-    void subPtr(const Register &src, const Register &dest) {
+    void subPtr(const Register& src, const Register& dest) {
         subq(src, dest);
     }
-    void subPtr(const Address &addr, const Register &dest) {
+    void subPtr(const Address& addr, const Register& dest) {
         subq(Operand(addr), dest);
     }
-    void subPtr(const Register &src, const Address &dest) {
+    void subPtr(const Register& src, const Address& dest) {
         subq(src, Operand(dest));
     }
 
-    void branch32(Condition cond, const AbsoluteAddress &lhs, Imm32 rhs, Label *label) {
+    void branch32(Condition cond, const AbsoluteAddress& lhs, Imm32 rhs, Label* label) {
         if (JSC::X86Assembler::isAddressImmediate(lhs.addr)) {
             branch32(cond, Operand(lhs), rhs, label);
         } else {
@@ -581,7 +581,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             branch32(cond, Address(ScratchReg, 0), rhs, label);
         }
     }
-    void branch32(Condition cond, const AbsoluteAddress &lhs, Register rhs, Label *label) {
+    void branch32(Condition cond, const AbsoluteAddress& lhs, Register rhs, Label* label) {
         if (JSC::X86Assembler::isAddressImmediate(lhs.addr)) {
             branch32(cond, Operand(lhs), rhs, label);
         } else {
@@ -591,7 +591,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
 
     // Specialization for AbsoluteAddress.
-    void branchPtr(Condition cond, const AbsoluteAddress &addr, const Register &ptr, Label *label) {
+    void branchPtr(Condition cond, const AbsoluteAddress& addr, const Register& ptr, Label* label) {
         JS_ASSERT(ptr != ScratchReg);
         if (JSC::X86Assembler::isAddressImmediate(addr.addr)) {
             branchPtr(cond, Operand(addr), ptr, label);
@@ -600,17 +600,17 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             branchPtr(cond, Operand(ScratchReg, 0x0), ptr, label);
         }
     }
-    void branchPtr(Condition cond, const AsmJSAbsoluteAddress &addr, const Register &ptr, Label *label) {
+    void branchPtr(Condition cond, const AsmJSAbsoluteAddress& addr, const Register& ptr, Label* label) {
         JS_ASSERT(ptr != ScratchReg);
         mov(AsmJSImmPtr(addr.kind()), ScratchReg);
         branchPtr(cond, Operand(ScratchReg, 0x0), ptr, label);
     }
 
-    void branchPrivatePtr(Condition cond, Address lhs, ImmPtr ptr, Label *label) {
+    void branchPrivatePtr(Condition cond, Address lhs, ImmPtr ptr, Label* label) {
         branchPtr(cond, lhs, ImmWord(uintptr_t(ptr.value) >> 1), label);
     }
 
-    void branchPrivatePtr(Condition cond, Address lhs, Register ptr, Label *label) {
+    void branchPrivatePtr(Condition cond, Address lhs, Register ptr, Label* label) {
         if (ptr != ScratchReg)
             movePtr(ptr, ScratchReg);
         rshiftPtr(Imm32(1), ScratchReg);
@@ -618,51 +618,51 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
 
     template <typename T, typename S>
-    void branchPtr(Condition cond, T lhs, S ptr, Label *label) {
+    void branchPtr(Condition cond, T lhs, S ptr, Label* label) {
         cmpPtr(Operand(lhs), ptr);
         j(cond, label);
     }
 
-    CodeOffsetJump jumpWithPatch(RepatchLabel *label) {
+    CodeOffsetJump jumpWithPatch(RepatchLabel* label) {
         JmpSrc src = jmpSrc(label);
         return CodeOffsetJump(size(), addPatchableJump(src, Relocation::HARDCODED));
     }
 
-    CodeOffsetJump jumpWithPatch(RepatchLabel *label, Condition cond) {
+    CodeOffsetJump jumpWithPatch(RepatchLabel* label, Condition cond) {
         JmpSrc src = jSrc(cond, label);
         return CodeOffsetJump(size(), addPatchableJump(src, Relocation::HARDCODED));
     }
 
     template <typename S, typename T>
-    CodeOffsetJump branchPtrWithPatch(Condition cond, S lhs, T ptr, RepatchLabel *label) {
+    CodeOffsetJump branchPtrWithPatch(Condition cond, S lhs, T ptr, RepatchLabel* label) {
         cmpPtr(lhs, ptr);
         return jumpWithPatch(label, cond);
     }
-    void branchPtr(Condition cond, Register lhs, Register rhs, Label *label) {
+    void branchPtr(Condition cond, Register lhs, Register rhs, Label* label) {
         cmpPtr(lhs, rhs);
         j(cond, label);
     }
-    void branchTestPtr(Condition cond, Register lhs, Register rhs, Label *label) {
+    void branchTestPtr(Condition cond, Register lhs, Register rhs, Label* label) {
         testq(lhs, rhs);
         j(cond, label);
     }
-    void branchTestPtr(Condition cond, Register lhs, Imm32 imm, Label *label) {
+    void branchTestPtr(Condition cond, Register lhs, Imm32 imm, Label* label) {
         testq(lhs, imm);
         j(cond, label);
     }
-    void branchTestPtr(Condition cond, const Address &lhs, Imm32 imm, Label *label) {
+    void branchTestPtr(Condition cond, const Address& lhs, Imm32 imm, Label* label) {
         testq(Operand(lhs), imm);
         j(cond, label);
     }
-    void decBranchPtr(Condition cond, const Register &lhs, Imm32 imm, Label *label) {
+    void decBranchPtr(Condition cond, const Register& lhs, Imm32 imm, Label* label) {
         subPtr(imm, lhs);
         j(cond, label);
     }
 
-    void movePtr(const Register &src, const Register &dest) {
+    void movePtr(const Register& src, const Register& dest) {
         movq(src, dest);
     }
-    void movePtr(const Register &src, const Operand &dest) {
+    void movePtr(const Register& src, const Operand& dest) {
         movq(src, dest);
     }
     void movePtr(ImmWord imm, Register dest) {
@@ -671,13 +671,13 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void movePtr(ImmPtr imm, Register dest) {
         mov(imm, dest);
     }
-    void movePtr(AsmJSImmPtr imm, const Register &dest) {
+    void movePtr(AsmJSImmPtr imm, const Register& dest) {
         mov(imm, dest);
     }
     void movePtr(ImmGCPtr imm, Register dest) {
         movq(imm, dest);
     }
-    void loadPtr(const AbsoluteAddress &address, Register dest) {
+    void loadPtr(const AbsoluteAddress& address, Register dest) {
         if (JSC::X86Assembler::isAddressImmediate(address.addr)) {
             movq(Operand(address), dest);
         } else {
@@ -685,20 +685,20 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             loadPtr(Address(ScratchReg, 0x0), dest);
         }
     }
-    void loadPtr(const Address &address, Register dest) {
+    void loadPtr(const Address& address, Register dest) {
         movq(Operand(address), dest);
     }
-    void loadPtr(const Operand &src, Register dest) {
+    void loadPtr(const Operand& src, Register dest) {
         movq(src, dest);
     }
-    void loadPtr(const BaseIndex &src, Register dest) {
+    void loadPtr(const BaseIndex& src, Register dest) {
         movq(Operand(src), dest);
     }
-    void loadPrivate(const Address &src, Register dest) {
+    void loadPrivate(const Address& src, Register dest) {
         loadPtr(src, dest);
         shlq(Imm32(1), dest);
     }
-    void load32(const AbsoluteAddress &address, Register dest) {
+    void load32(const AbsoluteAddress& address, Register dest) {
         if (JSC::X86Assembler::isAddressImmediate(address.addr)) {
             movl(Operand(address), dest);
         } else {
@@ -706,7 +706,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             load32(Address(ScratchReg, 0x0), dest);
         }
     }
-    void storePtr(ImmWord imm, const Address &address) {
+    void storePtr(ImmWord imm, const Address& address) {
         if ((intptr_t)imm.value <= INT32_MAX && (intptr_t)imm.value >= INT32_MIN) {
             movq(Imm32((int32_t)imm.value), Operand(address));
         } else {
@@ -714,20 +714,20 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             movq(ScratchReg, Operand(address));
         }
     }
-    void storePtr(ImmPtr imm, const Address &address) {
+    void storePtr(ImmPtr imm, const Address& address) {
         storePtr(ImmWord(uintptr_t(imm.value)), address);
     }
-    void storePtr(ImmGCPtr imm, const Address &address) {
+    void storePtr(ImmGCPtr imm, const Address& address) {
         movq(imm, ScratchReg);
         movq(ScratchReg, Operand(address));
     }
-    void storePtr(Register src, const Address &address) {
+    void storePtr(Register src, const Address& address) {
         movq(src, Operand(address));
     }
-    void storePtr(Register src, const Operand &dest) {
+    void storePtr(Register src, const Operand& dest) {
         movq(src, dest);
     }
-    void storePtr(const Register &src, const AbsoluteAddress &address) {
+    void storePtr(const Register& src, const AbsoluteAddress& address) {
         if (JSC::X86Assembler::isAddressImmediate(address.addr)) {
             movq(src, Operand(address));
         } else {
@@ -735,7 +735,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             storePtr(src, Address(ScratchReg, 0x0));
         }
     }
-    void store32(const Register &src, const AbsoluteAddress &address) {
+    void store32(const Register& src, const AbsoluteAddress& address) {
         if (JSC::X86Assembler::isAddressImmediate(address.addr)) {
             movl(src, Operand(address));
         } else {
@@ -773,59 +773,59 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             movq(src, dest);
         shrq(Imm32(JSVAL_TAG_SHIFT), dest);
     }
-    void splitTag(const ValueOperand &operand, const Register &dest) {
+    void splitTag(const ValueOperand& operand, const Register& dest) {
         splitTag(operand.valueReg(), dest);
     }
-    void splitTag(const Operand &operand, const Register &dest) {
+    void splitTag(const Operand& operand, const Register& dest) {
         movq(operand, dest);
         shrq(Imm32(JSVAL_TAG_SHIFT), dest);
     }
-    void splitTag(const Address &operand, const Register &dest) {
+    void splitTag(const Address& operand, const Register& dest) {
         splitTag(Operand(operand), dest);
     }
-    void splitTag(const BaseIndex &operand, const Register &dest) {
+    void splitTag(const BaseIndex& operand, const Register& dest) {
         splitTag(Operand(operand), dest);
     }
 
     // Extracts the tag of a value and places it in ScratchReg.
-    Register splitTagForTest(const ValueOperand &value) {
+    Register splitTagForTest(const ValueOperand& value) {
         splitTag(value, ScratchReg);
         return ScratchReg;
     }
-    void cmpTag(const ValueOperand &operand, ImmTag tag) {
+    void cmpTag(const ValueOperand& operand, ImmTag tag) {
         Register reg = splitTagForTest(operand);
         cmpl(reg, tag);
     }
 
-    void branchTestUndefined(Condition cond, Register tag, Label *label) {
+    void branchTestUndefined(Condition cond, Register tag, Label* label) {
         cond = testUndefined(cond, tag);
         j(cond, label);
     }
-    void branchTestInt32(Condition cond, Register tag, Label *label) {
+    void branchTestInt32(Condition cond, Register tag, Label* label) {
         cond = testInt32(cond, tag);
         j(cond, label);
     }
-    void branchTestDouble(Condition cond, Register tag, Label *label) {
+    void branchTestDouble(Condition cond, Register tag, Label* label) {
         cond = testDouble(cond, tag);
         j(cond, label);
     }
-    void branchTestBoolean(Condition cond, Register tag, Label *label) {
+    void branchTestBoolean(Condition cond, Register tag, Label* label) {
         cond = testBoolean(cond, tag);
         j(cond, label);
     }
-    void branchTestNull(Condition cond, Register tag, Label *label) {
+    void branchTestNull(Condition cond, Register tag, Label* label) {
         cond = testNull(cond, tag);
         j(cond, label);
     }
-    void branchTestString(Condition cond, Register tag, Label *label) {
+    void branchTestString(Condition cond, Register tag, Label* label) {
         cond = testString(cond, tag);
         j(cond, label);
     }
-    void branchTestObject(Condition cond, Register tag, Label *label) {
+    void branchTestObject(Condition cond, Register tag, Label* label) {
         cond = testObject(cond, tag);
         j(cond, label);
     }
-    void branchTestNumber(Condition cond, Register tag, Label *label) {
+    void branchTestNumber(Condition cond, Register tag, Label* label) {
         cond = testNumber(cond, tag);
         j(cond, label);
     }
@@ -833,39 +833,39 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     // x64 can test for certain types directly from memory when the payload
     // of the type is limited to 32 bits. This avoids loading into a register,
     // accesses half as much memory, and removes a right-shift.
-    void branchTestUndefined(Condition cond, const Operand &operand, Label *label) {
+    void branchTestUndefined(Condition cond, const Operand& operand, Label* label) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         cmpl(ToUpper32(operand), Imm32(Upper32Of(GetShiftedTag(JSVAL_TYPE_UNDEFINED))));
         j(cond, label);
     }
-    void branchTestUndefined(Condition cond, const Address &address, Label *label) {
+    void branchTestUndefined(Condition cond, const Address& address, Label* label) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         branchTestUndefined(cond, Operand(address), label);
     }
-    void branchTestInt32(Condition cond, const Operand &operand, Label *label) {
+    void branchTestInt32(Condition cond, const Operand& operand, Label* label) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         cmpl(ToUpper32(operand), Imm32(Upper32Of(GetShiftedTag(JSVAL_TYPE_INT32))));
         j(cond, label);
     }
-    void branchTestInt32(Condition cond, const Address &address, Label *label) {
+    void branchTestInt32(Condition cond, const Address& address, Label* label) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         branchTestInt32(cond, Operand(address), label);
     }
-    void branchTestDouble(Condition cond, const Operand &operand, Label *label) {
+    void branchTestDouble(Condition cond, const Operand& operand, Label* label) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         splitTag(operand, ScratchReg);
         branchTestDouble(cond, ScratchReg, label);
     }
-    void branchTestDouble(Condition cond, const Address &address, Label *label) {
+    void branchTestDouble(Condition cond, const Address& address, Label* label) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         branchTestDouble(cond, Operand(address), label);
     }
-    void branchTestBoolean(Condition cond, const Operand &operand, Label *label) {
+    void branchTestBoolean(Condition cond, const Operand& operand, Label* label) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         cmpl(ToUpper32(operand), Imm32(Upper32Of(GetShiftedTag(JSVAL_TYPE_BOOLEAN))));
         j(cond, label);
     }
-    void branchTestNull(Condition cond, const Operand &operand, Label *label) {
+    void branchTestNull(Condition cond, const Operand& operand, Label* label) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         cmpl(ToUpper32(operand), Imm32(Upper32Of(GetShiftedTag(JSVAL_TYPE_NULL))));
         j(cond, label);
@@ -873,87 +873,87 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
     // Perform a type-test on a full Value loaded into a register.
     // Clobbers the ScratchReg.
-    void branchTestUndefined(Condition cond, const ValueOperand &src, Label *label) {
+    void branchTestUndefined(Condition cond, const ValueOperand& src, Label* label) {
         cond = testUndefined(cond, src);
         j(cond, label);
     }
-    void branchTestInt32(Condition cond, const ValueOperand &src, Label *label) {
+    void branchTestInt32(Condition cond, const ValueOperand& src, Label* label) {
         splitTag(src, ScratchReg);
         branchTestInt32(cond, ScratchReg, label);
     }
-    void branchTestBoolean(Condition cond, const ValueOperand &src, Label *label) {
+    void branchTestBoolean(Condition cond, const ValueOperand& src, Label* label) {
         splitTag(src, ScratchReg);
         branchTestBoolean(cond, ScratchReg, label);
     }
-    void branchTestDouble(Condition cond, const ValueOperand &src, Label *label) {
+    void branchTestDouble(Condition cond, const ValueOperand& src, Label* label) {
         cond = testDouble(cond, src);
         j(cond, label);
     }
-    void branchTestNull(Condition cond, const ValueOperand &src, Label *label) {
+    void branchTestNull(Condition cond, const ValueOperand& src, Label* label) {
         cond = testNull(cond, src);
         j(cond, label);
     }
-    void branchTestString(Condition cond, const ValueOperand &src, Label *label) {
+    void branchTestString(Condition cond, const ValueOperand& src, Label* label) {
         cond = testString(cond, src);
         j(cond, label);
     }
-    void branchTestObject(Condition cond, const ValueOperand &src, Label *label) {
+    void branchTestObject(Condition cond, const ValueOperand& src, Label* label) {
         cond = testObject(cond, src);
         j(cond, label);
     }
-    void branchTestNumber(Condition cond, const ValueOperand &src, Label *label) {
+    void branchTestNumber(Condition cond, const ValueOperand& src, Label* label) {
         cond = testNumber(cond, src);
         j(cond, label);
     }
 
     // Perform a type-test on a Value addressed by BaseIndex.
     // Clobbers the ScratchReg.
-    void branchTestUndefined(Condition cond, const BaseIndex &address, Label *label) {
+    void branchTestUndefined(Condition cond, const BaseIndex& address, Label* label) {
         cond = testUndefined(cond, address);
         j(cond, label);
     }
-    void branchTestInt32(Condition cond, const BaseIndex &address, Label *label) {
+    void branchTestInt32(Condition cond, const BaseIndex& address, Label* label) {
         splitTag(address, ScratchReg);
         branchTestInt32(cond, ScratchReg, label);
     }
-    void branchTestBoolean(Condition cond, const BaseIndex &address, Label *label) {
+    void branchTestBoolean(Condition cond, const BaseIndex& address, Label* label) {
         splitTag(address, ScratchReg);
         branchTestBoolean(cond, ScratchReg, label);
     }
-    void branchTestDouble(Condition cond, const BaseIndex &address, Label *label) {
+    void branchTestDouble(Condition cond, const BaseIndex& address, Label* label) {
         cond = testDouble(cond, address);
         j(cond, label);
     }
-    void branchTestNull(Condition cond, const BaseIndex &address, Label *label) {
+    void branchTestNull(Condition cond, const BaseIndex& address, Label* label) {
         cond = testNull(cond, address);
         j(cond, label);
     }
-    void branchTestString(Condition cond, const BaseIndex &address, Label *label) {
+    void branchTestString(Condition cond, const BaseIndex& address, Label* label) {
         cond = testString(cond, address);
         j(cond, label);
     }
-    void branchTestObject(Condition cond, const BaseIndex &address, Label *label) {
+    void branchTestObject(Condition cond, const BaseIndex& address, Label* label) {
         cond = testObject(cond, address);
         j(cond, label);
     }
 
     template <typename T>
-    void branchTestGCThing(Condition cond, const T &src, Label *label) {
+    void branchTestGCThing(Condition cond, const T& src, Label* label) {
         cond = testGCThing(cond, src);
         j(cond, label);
     }
     template <typename T>
-    void branchTestPrimitive(Condition cond, const T &t, Label *label) {
+    void branchTestPrimitive(Condition cond, const T& t, Label* label) {
         cond = testPrimitive(cond, t);
         j(cond, label);
     }
     template <typename T>
-    void branchTestMagic(Condition cond, const T &t, Label *label) {
+    void branchTestMagic(Condition cond, const T& t, Label* label) {
         cond = testMagic(cond, t);
         j(cond, label);
     }
-    void branchTestMagicValue(Condition cond, const ValueOperand &val, JSWhyMagic why,
-                              Label *label)
+    void branchTestMagicValue(Condition cond, const ValueOperand& val, JSWhyMagic why,
+                              Label* label)
     {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         // Test for magic
@@ -965,97 +965,97 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         branch32(cond, ScratchReg, Imm32(static_cast<int32_t>(why)), label);
         bind(&notmagic);
     }
-    Condition testMagic(Condition cond, const ValueOperand &src) {
+    Condition testMagic(Condition cond, const ValueOperand& src) {
         splitTag(src, ScratchReg);
         return testMagic(cond, ScratchReg);
     }
-    Condition testError(Condition cond, const ValueOperand &src) {
+    Condition testError(Condition cond, const ValueOperand& src) {
         return testMagic(cond, src);
     }
-    void branchTestValue(Condition cond, const ValueOperand &value, const Value &v, Label *label) {
+    void branchTestValue(Condition cond, const ValueOperand& value, const Value& v, Label* label) {
         JS_ASSERT(value.valueReg() != ScratchReg);
         moveValue(v, ScratchReg);
         cmpq(value.valueReg(), ScratchReg);
         j(cond, label);
     }
-    void branchTestValue(Condition cond, const Address &valaddr, const ValueOperand &value,
-                         Label *label)
+    void branchTestValue(Condition cond, const Address& valaddr, const ValueOperand& value,
+                         Label* label)
     {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         branchPtr(cond, valaddr, value.valueReg(), label);
     }
 
-    void testNullSet(Condition cond, const ValueOperand &value, Register dest) {
+    void testNullSet(Condition cond, const ValueOperand& value, Register dest) {
         cond = testNull(cond, value);
         emitSet(cond, dest);
     }
-    void testUndefinedSet(Condition cond, const ValueOperand &value, Register dest) {
+    void testUndefinedSet(Condition cond, const ValueOperand& value, Register dest) {
         cond = testUndefined(cond, value);
         emitSet(cond, dest);
     }
 
-    void boxDouble(const FloatRegister &src, const ValueOperand &dest) {
+    void boxDouble(const FloatRegister& src, const ValueOperand& dest) {
         movq(src, dest.valueReg());
     }
-    void boxNonDouble(JSValueType type, const Register &src, const ValueOperand &dest) {
+    void boxNonDouble(JSValueType type, const Register& src, const ValueOperand& dest) {
         JS_ASSERT(src != dest.valueReg());
         boxValue(type, src, dest.valueReg());
     }
 
     // Note that the |dest| register here may be ScratchReg, so we shouldn't
     // use it.
-    void unboxInt32(const ValueOperand &src, const Register &dest) {
+    void unboxInt32(const ValueOperand& src, const Register& dest) {
         movl(src.valueReg(), dest);
     }
-    void unboxInt32(const Operand &src, const Register &dest) {
+    void unboxInt32(const Operand& src, const Register& dest) {
         movl(src, dest);
     }
-    void unboxInt32(const Address &src, const Register &dest) {
+    void unboxInt32(const Address& src, const Register& dest) {
         unboxInt32(Operand(src), dest);
     }
-    void unboxDouble(const Address &src, const FloatRegister &dest) {
+    void unboxDouble(const Address& src, const FloatRegister& dest) {
         loadDouble(Operand(src), dest);
     }
 
-    void unboxArgObjMagic(const ValueOperand &src, const Register &dest) {
+    void unboxArgObjMagic(const ValueOperand& src, const Register& dest) {
         unboxArgObjMagic(Operand(src.valueReg()), dest);
     }
-    void unboxArgObjMagic(const Operand &src, const Register &dest) {
+    void unboxArgObjMagic(const Operand& src, const Register& dest) {
         mov(ImmWord(0), dest);
     }
-    void unboxArgObjMagic(const Address &src, const Register &dest) {
+    void unboxArgObjMagic(const Address& src, const Register& dest) {
         unboxArgObjMagic(Operand(src), dest);
     }
 
-    void unboxBoolean(const ValueOperand &src, const Register &dest) {
+    void unboxBoolean(const ValueOperand& src, const Register& dest) {
         movl(src.valueReg(), dest);
     }
-    void unboxBoolean(const Operand &src, const Register &dest) {
+    void unboxBoolean(const Operand& src, const Register& dest) {
         movl(src, dest);
     }
-    void unboxBoolean(const Address &src, const Register &dest) {
+    void unboxBoolean(const Address& src, const Register& dest) {
         unboxBoolean(Operand(src), dest);
     }
 
-    void unboxMagic(const ValueOperand &src, const Register &dest) {
+    void unboxMagic(const ValueOperand& src, const Register& dest) {
         movl(src.valueReg(), dest);
     }
 
-    void unboxDouble(const ValueOperand &src, const FloatRegister &dest) {
+    void unboxDouble(const ValueOperand& src, const FloatRegister& dest) {
         movq(src.valueReg(), dest);
     }
-    void unboxPrivate(const ValueOperand &src, const Register dest) {
+    void unboxPrivate(const ValueOperand& src, const Register dest) {
         movq(src.valueReg(), dest);
         shlq(Imm32(1), dest);
     }
 
-    void notBoolean(const ValueOperand &val) {
+    void notBoolean(const ValueOperand& val) {
         xorq(Imm32(1), val.valueReg());
     }
 
     // Unbox any non-double value into dest. Prefer unboxInt32 or unboxBoolean
     // instead if the source type is known.
-    void unboxNonDouble(const ValueOperand &src, const Register &dest) {
+    void unboxNonDouble(const ValueOperand& src, const Register& dest) {
         // In a non-trivial coupling, we're not permitted to use ScratchReg when
         // src and dest are different registers, because of how extractObject is
         // implemented.
@@ -1067,7 +1067,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             andq(src.valueReg(), dest);
         }
     }
-    void unboxNonDouble(const Operand &src, const Register &dest) {
+    void unboxNonDouble(const Operand& src, const Register& dest) {
         // Explicitly permits |dest| to be used in |src|.
         JS_ASSERT(dest != ScratchReg);
         mov(ImmWord(JSVAL_PAYLOAD_MASK), ScratchReg);
@@ -1075,16 +1075,16 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         andq(ScratchReg, dest);
     }
 
-    void unboxString(const ValueOperand &src, const Register &dest) { unboxNonDouble(src, dest); }
-    void unboxString(const Operand &src, const Register &dest) { unboxNonDouble(src, dest); }
+    void unboxString(const ValueOperand& src, const Register& dest) { unboxNonDouble(src, dest); }
+    void unboxString(const Operand& src, const Register& dest) { unboxNonDouble(src, dest); }
 
-    void unboxObject(const ValueOperand &src, const Register &dest) { unboxNonDouble(src, dest); }
-    void unboxObject(const Operand &src, const Register &dest) { unboxNonDouble(src, dest); }
+    void unboxObject(const ValueOperand& src, const Register& dest) { unboxNonDouble(src, dest); }
+    void unboxObject(const Operand& src, const Register& dest) { unboxNonDouble(src, dest); }
 
     // Extended unboxing API. If the payload is already in a register, returns
     // that register. Otherwise, provides a move to the given scratch register,
     // and returns that.
-    Register extractObject(const Address &address, Register scratch) {
+    Register extractObject(const Address& address, Register scratch) {
         JS_ASSERT(scratch != ScratchReg);
         loadPtr(address, ScratchReg);
         // We have a special coupling with unboxObject. As long as the registers
@@ -1092,34 +1092,34 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         unboxObject(ValueOperand(ScratchReg), scratch);
         return scratch;
     }
-    Register extractObject(const ValueOperand &value, Register scratch) {
+    Register extractObject(const ValueOperand& value, Register scratch) {
         JS_ASSERT(scratch != ScratchReg);
         unboxObject(value, scratch);
         return scratch;
     }
-    Register extractInt32(const ValueOperand &value, Register scratch) {
+    Register extractInt32(const ValueOperand& value, Register scratch) {
         JS_ASSERT(scratch != ScratchReg);
         unboxInt32(value, scratch);
         return scratch;
     }
-    Register extractBoolean(const ValueOperand &value, Register scratch) {
+    Register extractBoolean(const ValueOperand& value, Register scratch) {
         JS_ASSERT(scratch != ScratchReg);
         unboxBoolean(value, scratch);
         return scratch;
     }
-    Register extractTag(const Address &address, Register scratch) {
+    Register extractTag(const Address& address, Register scratch) {
         JS_ASSERT(scratch != ScratchReg);
         loadPtr(address, scratch);
         splitTag(scratch, scratch);
         return scratch;
     }
-    Register extractTag(const ValueOperand &value, Register scratch) {
+    Register extractTag(const ValueOperand& value, Register scratch) {
         JS_ASSERT(scratch != ScratchReg);
         splitTag(value, scratch);
         return scratch;
     }
 
-    void unboxValue(const ValueOperand &src, AnyRegister dest) {
+    void unboxValue(const ValueOperand& src, AnyRegister dest) {
         if (dest.isFloat()) {
             Label notInt32, end;
             branchTestInt32(Assembler::NotEqual, src, &notInt32);
@@ -1134,24 +1134,24 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
 
     // These two functions use the low 32-bits of the full value register.
-    void boolValueToDouble(const ValueOperand &operand, const FloatRegister &dest) {
+    void boolValueToDouble(const ValueOperand& operand, const FloatRegister& dest) {
         convertInt32ToDouble(operand.valueReg(), dest);
     }
-    void int32ValueToDouble(const ValueOperand &operand, const FloatRegister &dest) {
+    void int32ValueToDouble(const ValueOperand& operand, const FloatRegister& dest) {
         convertInt32ToDouble(operand.valueReg(), dest);
     }
 
-    void boolValueToFloat32(const ValueOperand &operand, const FloatRegister &dest) {
+    void boolValueToFloat32(const ValueOperand& operand, const FloatRegister& dest) {
         convertInt32ToFloat32(operand.valueReg(), dest);
     }
-    void int32ValueToFloat32(const ValueOperand &operand, const FloatRegister &dest) {
+    void int32ValueToFloat32(const ValueOperand& operand, const FloatRegister& dest) {
         convertInt32ToFloat32(operand.valueReg(), dest);
     }
 
-    void loadConstantDouble(double d, const FloatRegister &dest);
-    void loadConstantFloat32(float f, const FloatRegister &dest);
+    void loadConstantDouble(double d, const FloatRegister& dest);
+    void loadConstantFloat32(float f, const FloatRegister& dest);
 
-    void branchTruncateDouble(const FloatRegister &src, const Register &dest, Label *fail) {
+    void branchTruncateDouble(const FloatRegister& src, const Register& dest, Label* fail) {
         cvttsd2sq(src, dest);
 
         // cvttsd2sq returns 0x8000000000000000 on failure. Test for it by
@@ -1162,7 +1162,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
         movl(dest, dest); // Zero upper 32-bits.
     }
-    void branchTruncateFloat32(const FloatRegister &src, const Register &dest, Label *fail) {
+    void branchTruncateFloat32(const FloatRegister& src, const Register& dest, Label* fail) {
         cvttss2sq(src, dest);
 
         // Same trick as for Doubles
@@ -1172,31 +1172,31 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         movl(dest, dest); // Zero upper 32-bits.
     }
 
-    Condition testInt32Truthy(bool truthy, const ValueOperand &operand) {
+    Condition testInt32Truthy(bool truthy, const ValueOperand& operand) {
         testl(operand.valueReg(), operand.valueReg());
         return truthy ? NonZero : Zero;
     }
-    void branchTestInt32Truthy(bool truthy, const ValueOperand &operand, Label *label) {
+    void branchTestInt32Truthy(bool truthy, const ValueOperand& operand, Label* label) {
         Condition cond = testInt32Truthy(truthy, operand);
         j(cond, label);
     }
-    void branchTestBooleanTruthy(bool truthy, const ValueOperand &operand, Label *label) {
+    void branchTestBooleanTruthy(bool truthy, const ValueOperand& operand, Label* label) {
         testl(operand.valueReg(), operand.valueReg());
         j(truthy ? NonZero : Zero, label);
     }
-    Condition testStringTruthy(bool truthy, const ValueOperand &value) {
+    Condition testStringTruthy(bool truthy, const ValueOperand& value) {
         unboxString(value, ScratchReg);
 
         Operand lengthAndFlags(ScratchReg, JSString::offsetOfLengthAndFlags());
         testq(lengthAndFlags, Imm32(-1 << JSString::LENGTH_SHIFT));
         return truthy ? Assembler::NonZero : Assembler::Zero;
     }
-    void branchTestStringTruthy(bool truthy, const ValueOperand &value, Label *label) {
+    void branchTestStringTruthy(bool truthy, const ValueOperand& value, Label* label) {
         Condition cond = testStringTruthy(truthy, value);
         j(cond, label);
     }
 
-    void loadInt32OrDouble(const Operand &operand, const FloatRegister &dest) {
+    void loadInt32OrDouble(const Operand& operand, const FloatRegister& dest) {
         Label notInt32, end;
         branchTestInt32(Assembler::NotEqual, operand, &notInt32);
         convertInt32ToDouble(operand, dest);
@@ -1207,7 +1207,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
 
     template <typename T>
-    void loadUnboxedValue(const T &src, MIRType type, AnyRegister dest) {
+    void loadUnboxedValue(const T& src, MIRType type, AnyRegister dest) {
         if (dest.isFloat())
             loadInt32OrDouble(Operand(src), dest.fpu());
         else if (type == MIRType_Int32 || type == MIRType_Boolean)
@@ -1216,15 +1216,15 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             unboxNonDouble(Operand(src), dest.gpr());
     }
 
-    void loadInstructionPointerAfterCall(const Register &dest) {
+    void loadInstructionPointerAfterCall(const Register& dest) {
         loadPtr(Address(StackPointer, 0x0), dest);
     }
 
-    void convertUInt32ToDouble(const Register &src, const FloatRegister &dest) {
+    void convertUInt32ToDouble(const Register& src, const FloatRegister& dest) {
         cvtsq2sd(src, dest);
     }
 
-    void convertUInt32ToFloat32(const Register &src, const FloatRegister &dest) {
+    void convertUInt32ToFloat32(const Register& src, const FloatRegister& dest) {
         cvtsq2ss(src, dest);
     }
 
@@ -1239,7 +1239,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
     // If source is a double, load it into dest. If source is int32,
     // convert it to double. Else, branch to failure.
-    void ensureDouble(const ValueOperand &source, FloatRegister dest, Label *failure) {
+    void ensureDouble(const ValueOperand& source, FloatRegister dest, Label* failure) {
         Label isDouble, done;
         Register tag = splitTagForTest(source);
         branchTestDouble(Assembler::Equal, tag, &isDouble);
@@ -1266,7 +1266,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
     // Sets up an ABI call for when the alignment is not known. This may need a
     // scratch register.
-    void setupUnalignedABICall(uint32_t args, const Register &scratch);
+    void setupUnalignedABICall(uint32_t args, const Register& scratch);
 
     // Arguments must be assigned to a C/C++ call in order. They are moved
     // in parallel immediately before performing the call. This process may
@@ -1274,21 +1274,21 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     // automatically adjusted. It is extremely important that esp-relative
     // addresses are computed *after* setupABICall(). Furthermore, no
     // operations should be emitted while setting arguments.
-    void passABIArg(const MoveOperand &from, MoveOp::Type type);
-    void passABIArg(const Register &reg);
-    void passABIArg(const FloatRegister &reg, MoveOp::Type type);
+    void passABIArg(const MoveOperand& from, MoveOp::Type type);
+    void passABIArg(const Register& reg);
+    void passABIArg(const FloatRegister& reg, MoveOp::Type type);
 
   private:
-    void callWithABIPre(uint32_t *stackAdjust);
+    void callWithABIPre(uint32_t* stackAdjust);
     void callWithABIPost(uint32_t stackAdjust, MoveOp::Type result);
 
   public:
     // Emits a call to a C/C++ function, resolving all argument moves.
-    void callWithABI(void *fun, MoveOp::Type result = MoveOp::GENERAL);
+    void callWithABI(void* fun, MoveOp::Type result = MoveOp::GENERAL);
     void callWithABI(AsmJSImmPtr imm, MoveOp::Type result = MoveOp::GENERAL);
     void callWithABI(Address fun, MoveOp::Type result = MoveOp::GENERAL);
 
-    void handleFailureWithHandlerTail(void *handler);
+    void handleFailureWithHandlerTail(void* handler);
 
     void makeFrameDescriptor(Register frameSizeReg, FrameType type) {
         shlq(Imm32(FRAMESIZE_SHIFT), frameSizeReg);
@@ -1302,7 +1302,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
                  AbsoluteAddress(GetIonContext()->runtime->addressOfIonTop()));
     }
 
-    void callWithExitFrame(JitCode *target, Register dynStack) {
+    void callWithExitFrame(JitCode* target, Register dynStack) {
         addPtr(Imm32(framePushed()), dynStack);
         makeFrameDescriptor(dynStack, JitFrame_IonJS);
         Push(dynStack);
@@ -1310,19 +1310,19 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
 
     // Save an exit frame to the thread data of the current thread, given a
-    // register that holds a PerThreadData *.
-    void linkParallelExitFrame(const Register &pt) {
+    // register that holds a PerThreadData*.
+    void linkParallelExitFrame(const Register& pt) {
         storePtr(StackPointer, Address(pt, offsetof(PerThreadData, ionTop)));
     }
 
     // See CodeGeneratorX64 calls to noteAsmJSGlobalAccess.
-    void patchAsmJSGlobalAccess(CodeOffsetLabel patchAt, uint8_t *code, uint8_t *globalData,
+    void patchAsmJSGlobalAccess(CodeOffsetLabel patchAt, uint8_t* code, uint8_t* globalData,
                                 unsigned globalDataOffset)
     {
-        uint8_t *nextInsn = code + patchAt.offset();
+        uint8_t* nextInsn = code + patchAt.offset();
         JS_ASSERT(nextInsn <= globalData);
-        uint8_t *target = globalData + globalDataOffset;
-        ((int32_t *)nextInsn)[-1] = target - nextInsn;
+        uint8_t* target = globalData + globalDataOffset;
+        ((int32_t*)nextInsn)[-1] = target - nextInsn;
     }
     void memIntToValue(Address Source, Address Dest) {
         load32(Source, ScratchReg);
@@ -1330,8 +1330,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
 
 #ifdef JSGC_GENERATIONAL
-    void branchPtrInNurseryRange(Register ptr, Register temp, Label *label);
-    void branchValueIsNurseryObject(ValueOperand value, Register temp, Label *label);
+    void branchPtrInNurseryRange(Register ptr, Register temp, Label* label);
+    void branchValueIsNurseryObject(ValueOperand value, Register temp, Label* label);
 #endif
 };
 

@@ -18,7 +18,7 @@
 namespace js {
 
 /* static */ inline bool
-ObjectImpl::isExtensible(ExclusiveContext *cx, Handle<ObjectImpl*> obj, bool *extensible)
+ObjectImpl::isExtensible(ExclusiveContext* cx, Handle<ObjectImpl*> obj, bool* extensible)
 {
     if (obj->asObjectPtr()->is<ProxyObject>()) {
         if (!cx->shouldBeJSContext())
@@ -33,7 +33,7 @@ ObjectImpl::isExtensible(ExclusiveContext *cx, Handle<ObjectImpl*> obj, bool *ex
 }
 
 inline bool
-ClassCanHaveFixedData(const Class *clasp)
+ClassCanHaveFixedData(const Class* clasp)
 {
     // Normally, the number of fixed slots given an object is the maximum
     // permitted for its size class. For array buffers and typed arrays we only
@@ -42,7 +42,7 @@ ClassCanHaveFixedData(const Class *clasp)
     return clasp == &ArrayBufferObject::class_ || IsTypedArrayClass(clasp);
 }
 
-inline void *
+inline void*
 ObjectImpl::fixedData(size_t nslots) const
 {
     JS_ASSERT(ClassCanHaveFixedData(getClass()));

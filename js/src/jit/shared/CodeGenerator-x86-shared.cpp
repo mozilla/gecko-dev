@@ -31,7 +31,7 @@ using mozilla::SpecificNaN;
 namespace js {
 namespace jit {
 
-CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
+CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm)
   : CodeGeneratorShared(gen, graph, masm)
 {
 }
@@ -48,7 +48,7 @@ CodeGeneratorX86Shared::generatePrologue()
 }
 
 bool
-CodeGeneratorX86Shared::generateAsmJSPrologue(Label *stackOverflowLabel)
+CodeGeneratorX86Shared::generateAsmJSPrologue(Label* stackOverflowLabel)
 {
     JS_ASSERT(gen->compilingAsmJS());
 
@@ -90,14 +90,14 @@ CodeGeneratorX86Shared::generateEpilogue()
 }
 
 bool
-OutOfLineBailout::accept(CodeGeneratorX86Shared *codegen)
+OutOfLineBailout::accept(CodeGeneratorX86Shared* codegen)
 {
     return codegen->visitOutOfLineBailout(this);
 }
 
 void
-CodeGeneratorX86Shared::emitBranch(Assembler::Condition cond, MBasicBlock *mirTrue,
-                                   MBasicBlock *mirFalse, Assembler::NaNCond ifNaN)
+CodeGeneratorX86Shared::emitBranch(Assembler::Condition cond, MBasicBlock* mirTrue,
+                                   MBasicBlock* mirFalse, Assembler::NaNCond ifNaN)
 {
     if (ifNaN == Assembler::NaN_IsFalse)
         jumpToBlock(mirFalse, Assembler::Parity);
@@ -113,25 +113,25 @@ CodeGeneratorX86Shared::emitBranch(Assembler::Condition cond, MBasicBlock *mirTr
 }
 
 bool
-CodeGeneratorX86Shared::visitDouble(LDouble *ins)
+CodeGeneratorX86Shared::visitDouble(LDouble* ins)
 {
-    const LDefinition *out = ins->getDef(0);
+    const LDefinition* out = ins->getDef(0);
     masm.loadConstantDouble(ins->getDouble(), ToFloatRegister(out));
     return true;
 }
 
 bool
-CodeGeneratorX86Shared::visitFloat32(LFloat32 *ins)
+CodeGeneratorX86Shared::visitFloat32(LFloat32* ins)
 {
-    const LDefinition *out = ins->getDef(0);
+    const LDefinition* out = ins->getDef(0);
     masm.loadConstantFloat32(ins->getFloat(), ToFloatRegister(out));
     return true;
 }
 
 bool
-CodeGeneratorX86Shared::visitTestIAndBranch(LTestIAndBranch *test)
+CodeGeneratorX86Shared::visitTestIAndBranch(LTestIAndBranch* test)
 {
-    const LAllocation *opd = test->input();
+    const LAllocation* opd = test->input();
 
     // Test the operand
     masm.testl(ToRegister(opd), ToRegister(opd));
@@ -140,9 +140,9 @@ CodeGeneratorX86Shared::visitTestIAndBranch(LTestIAndBranch *test)
 }
 
 bool
-CodeGeneratorX86Shared::visitTestDAndBranch(LTestDAndBranch *test)
+CodeGeneratorX86Shared::visitTestDAndBranch(LTestDAndBranch* test)
 {
-    const LAllocation *opd = test->input();
+    const LAllocation* opd = test->input();
 
     // ucomisd flags:
     //             Z  P  C
@@ -161,9 +161,9 @@ CodeGeneratorX86Shared::visitTestDAndBranch(LTestDAndBranch *test)
 }
 
 bool
-CodeGeneratorX86Shared::visitTestFAndBranch(LTestFAndBranch *test)
+CodeGeneratorX86Shared::visitTestFAndBranch(LTestFAndBranch* test)
 {
-    const LAllocation *opd = test->input();
+    const LAllocation* opd = test->input();
     // ucomiss flags are the same as doubles; see comment above
     masm.xorps(ScratchFloatReg, ScratchFloatReg);
     masm.ucomiss(ToFloatRegister(opd), ScratchFloatReg);
@@ -172,7 +172,7 @@ CodeGeneratorX86Shared::visitTestFAndBranch(LTestFAndBranch *test)
 }
 
 bool
-CodeGeneratorX86Shared::visitBitAndAndBranch(LBitAndAndBranch *baab)
+CodeGeneratorX86Shared::visitBitAndAndBranch(LBitAndAndBranch* baab)
 {
     if (baab->right()->isConstant())
         masm.testl(ToRegister(baab->left()), Imm32(ToInt32(baab->right())));
@@ -183,7 +183,7 @@ CodeGeneratorX86Shared::visitBitAndAndBranch(LBitAndAndBranch *baab)
 }
 
 void
-CodeGeneratorX86Shared::emitCompare(MCompare::CompareType type, const LAllocation *left, const LAllocation *right)
+CodeGeneratorX86Shared::emitCompare(MCompare::CompareType type, const LAllocation* left, const LAllocation* right)
 {
 #ifdef JS_CODEGEN_X64
     if (type == MCompare::Compare_Object) {
@@ -199,18 +199,18 @@ CodeGeneratorX86Shared::emitCompare(MCompare::CompareType type, const LAllocatio
 }
 
 bool
-CodeGeneratorX86Shared::visitCompare(LCompare *comp)
+CodeGeneratorX86Shared::visitCompare(LCompare* comp)
 {
-    MCompare *mir = comp->mir();
+    MCompare* mir = comp->mir();
     emitCompare(mir->compareType(), comp->left(), comp->right());
     masm.emitSet(JSOpToCondition(mir->compareType(), comp->jsop()), ToRegister(comp->output()));
     return true;
 }
 
 bool
-CodeGeneratorX86Shared::visitCompareAndBranch(LCompareAndBranch *comp)
+CodeGeneratorX86Shared::visitCompareAndBranch(LCompareAndBranch* comp)
 {
-    MCompare *mir = comp->cmpMir();
+    MCompare* mir = comp->cmpMir();
     emitCompare(mir->compareType(), comp->left(), comp->right());
     Assembler::Condition cond = JSOpToCondition(mir->compareType(), comp->jsop());
     emitBranch(cond, comp->ifTrue(), comp->ifFalse());
@@ -218,7 +218,7 @@ CodeGeneratorX86Shared::visitCompareAndBranch(LCompareAndBranch *comp)
 }
 
 bool
-CodeGeneratorX86Shared::visitCompareD(LCompareD *comp)
+CodeGeneratorX86Shared::visitCompareD(LCompareD* comp)
 {
     FloatRegister lhs = ToFloatRegister(comp->left());
     FloatRegister rhs = ToFloatRegister(comp->right());
@@ -235,7 +235,7 @@ CodeGeneratorX86Shared::visitCompareD(LCompareD *comp)
 }
 
 bool
-CodeGeneratorX86Shared::visitCompareF(LCompareF *comp)
+CodeGeneratorX86Shared::visitCompareF(LCompareF* comp)
 {
     FloatRegister lhs = ToFloatRegister(comp->left());
     FloatRegister rhs = ToFloatRegister(comp->right());
@@ -252,7 +252,7 @@ CodeGeneratorX86Shared::visitCompareF(LCompareF *comp)
 }
 
 bool
-CodeGeneratorX86Shared::visitNotI(LNotI *ins)
+CodeGeneratorX86Shared::visitNotI(LNotI* ins)
 {
     masm.cmpl(ToRegister(ins->input()), Imm32(0));
     masm.emitSet(Assembler::Equal, ToRegister(ins->output()));
@@ -260,7 +260,7 @@ CodeGeneratorX86Shared::visitNotI(LNotI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitNotD(LNotD *ins)
+CodeGeneratorX86Shared::visitNotD(LNotD* ins)
 {
     FloatRegister opd = ToFloatRegister(ins->input());
 
@@ -277,7 +277,7 @@ CodeGeneratorX86Shared::visitNotD(LNotD *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitNotF(LNotF *ins)
+CodeGeneratorX86Shared::visitNotF(LNotF* ins)
 {
     FloatRegister opd = ToFloatRegister(ins->input());
 
@@ -294,7 +294,7 @@ CodeGeneratorX86Shared::visitNotF(LNotF *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitCompareDAndBranch(LCompareDAndBranch *comp)
+CodeGeneratorX86Shared::visitCompareDAndBranch(LCompareDAndBranch* comp)
 {
     FloatRegister lhs = ToFloatRegister(comp->left());
     FloatRegister rhs = ToFloatRegister(comp->right());
@@ -311,7 +311,7 @@ CodeGeneratorX86Shared::visitCompareDAndBranch(LCompareDAndBranch *comp)
 }
 
 bool
-CodeGeneratorX86Shared::visitCompareFAndBranch(LCompareFAndBranch *comp)
+CodeGeneratorX86Shared::visitCompareFAndBranch(LCompareFAndBranch* comp)
 {
     FloatRegister lhs = ToFloatRegister(comp->left());
     FloatRegister rhs = ToFloatRegister(comp->right());
@@ -328,9 +328,9 @@ CodeGeneratorX86Shared::visitCompareFAndBranch(LCompareFAndBranch *comp)
 }
 
 bool
-CodeGeneratorX86Shared::visitAsmJSPassStackArg(LAsmJSPassStackArg *ins)
+CodeGeneratorX86Shared::visitAsmJSPassStackArg(LAsmJSPassStackArg* ins)
 {
-    const MAsmJSPassStackArg *mir = ins->mir();
+    const MAsmJSPassStackArg* mir = ins->mir();
     Address dst(StackPointer, mir->spOffset());
     if (ins->arg()->isConstant()) {
         masm.storePtr(ImmWord(ToInt32(ins->arg())), dst);
@@ -356,7 +356,7 @@ CodeGeneratorX86Shared::generateOutOfLineCode()
         // Push the frame size, so the handler can recover the IonScript.
         masm.push(Imm32(frameSize()));
 
-        JitCode *handler = gen->jitRuntime()->getGenericBailoutHandler();
+        JitCode* handler = gen->jitRuntime()->getGenericBailoutHandler();
         masm.jmp(ImmPtr(handler->raw()), Relocation::JITCODE);
     }
 
@@ -370,39 +370,39 @@ class BailoutJump {
     BailoutJump(Assembler::Condition cond) : cond_(cond)
     { }
 #ifdef JS_CODEGEN_X86
-    void operator()(MacroAssembler &masm, uint8_t *code) const {
+    void operator()(MacroAssembler& masm, uint8_t* code) const {
         masm.j(cond_, ImmPtr(code), Relocation::HARDCODED);
     }
 #endif
-    void operator()(MacroAssembler &masm, Label *label) const {
+    void operator()(MacroAssembler& masm, Label* label) const {
         masm.j(cond_, label);
     }
 };
 
 class BailoutLabel {
-    Label *label_;
+    Label* label_;
 
   public:
-    BailoutLabel(Label *label) : label_(label)
+    BailoutLabel(Label* label) : label_(label)
     { }
 #ifdef JS_CODEGEN_X86
-    void operator()(MacroAssembler &masm, uint8_t *code) const {
+    void operator()(MacroAssembler& masm, uint8_t* code) const {
         masm.retarget(label_, ImmPtr(code), Relocation::HARDCODED);
     }
 #endif
-    void operator()(MacroAssembler &masm, Label *label) const {
+    void operator()(MacroAssembler& masm, Label* label) const {
         masm.retarget(label_, label);
     }
 };
 
 template <typename T> bool
-CodeGeneratorX86Shared::bailout(const T &binder, LSnapshot *snapshot)
+CodeGeneratorX86Shared::bailout(const T& binder, LSnapshot* snapshot)
 {
-    CompileInfo &info = snapshot->mir()->block()->info();
+    CompileInfo& info = snapshot->mir()->block()->info();
     switch (info.executionMode()) {
       case ParallelExecution: {
         // in parallel mode, make no attempt to recover, just signal an error.
-        OutOfLineAbortPar *ool = oolAbortPar(ParallelBailoutUnsupported,
+        OutOfLineAbortPar* ool = oolAbortPar(ParallelBailoutUnsupported,
                                              snapshot->mir()->block(),
                                              snapshot->mir()->pc());
         binder(masm, ool->entry());
@@ -436,7 +436,7 @@ CodeGeneratorX86Shared::bailout(const T &binder, LSnapshot *snapshot)
     // We could not use a jump table, either because all bailout IDs were
     // reserved, or a jump table is not optimal for this frame size or
     // platform. Whatever, we will generate a lazy bailout.
-    OutOfLineBailout *ool = new(alloc()) OutOfLineBailout(snapshot);
+    OutOfLineBailout* ool = new(alloc()) OutOfLineBailout(snapshot);
     if (!addOutOfLineCode(ool))
         return false;
 
@@ -445,27 +445,27 @@ CodeGeneratorX86Shared::bailout(const T &binder, LSnapshot *snapshot)
 }
 
 bool
-CodeGeneratorX86Shared::bailoutIf(Assembler::Condition condition, LSnapshot *snapshot)
+CodeGeneratorX86Shared::bailoutIf(Assembler::Condition condition, LSnapshot* snapshot)
 {
     return bailout(BailoutJump(condition), snapshot);
 }
 
 bool
-CodeGeneratorX86Shared::bailoutIf(Assembler::DoubleCondition condition, LSnapshot *snapshot)
+CodeGeneratorX86Shared::bailoutIf(Assembler::DoubleCondition condition, LSnapshot* snapshot)
 {
     JS_ASSERT(Assembler::NaNCondFromDoubleCondition(condition) == Assembler::NaN_HandledByCond);
     return bailoutIf(Assembler::ConditionFromDoubleCondition(condition), snapshot);
 }
 
 bool
-CodeGeneratorX86Shared::bailoutFrom(Label *label, LSnapshot *snapshot)
+CodeGeneratorX86Shared::bailoutFrom(Label* label, LSnapshot* snapshot)
 {
     JS_ASSERT(label->used() && !label->bound());
     return bailout(BailoutLabel(label), snapshot);
 }
 
 bool
-CodeGeneratorX86Shared::bailout(LSnapshot *snapshot)
+CodeGeneratorX86Shared::bailout(LSnapshot* snapshot)
 {
     Label label;
     masm.jump(&label);
@@ -473,7 +473,7 @@ CodeGeneratorX86Shared::bailout(LSnapshot *snapshot)
 }
 
 bool
-CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout *ool)
+CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout* ool)
 {
     masm.push(Imm32(ool->snapshot()->snapshotOffset()));
     masm.jmp(&deoptLabel_);
@@ -481,7 +481,7 @@ CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout *ool)
 }
 
 bool
-CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
+CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD* ins)
 {
     FloatRegister first = ToFloatRegister(ins->first());
     FloatRegister second = ToFloatRegister(ins->second());
@@ -533,7 +533,7 @@ CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitAbsD(LAbsD *ins)
+CodeGeneratorX86Shared::visitAbsD(LAbsD* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     JS_ASSERT(input == ToFloatRegister(ins->output()));
@@ -545,7 +545,7 @@ CodeGeneratorX86Shared::visitAbsD(LAbsD *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitAbsF(LAbsF *ins)
+CodeGeneratorX86Shared::visitAbsF(LAbsF* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     JS_ASSERT(input == ToFloatRegister(ins->output()));
@@ -557,7 +557,7 @@ CodeGeneratorX86Shared::visitAbsF(LAbsF *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitSqrtD(LSqrtD *ins)
+CodeGeneratorX86Shared::visitSqrtD(LSqrtD* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     FloatRegister output = ToFloatRegister(ins->output());
@@ -566,7 +566,7 @@ CodeGeneratorX86Shared::visitSqrtD(LSqrtD *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitSqrtF(LSqrtF *ins)
+CodeGeneratorX86Shared::visitSqrtF(LSqrtF* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     FloatRegister output = ToFloatRegister(ins->output());
@@ -575,7 +575,7 @@ CodeGeneratorX86Shared::visitSqrtF(LSqrtF *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitPowHalfD(LPowHalfD *ins)
+CodeGeneratorX86Shared::visitPowHalfD(LPowHalfD* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     JS_ASSERT(input == ToFloatRegister(ins->output()));
@@ -613,23 +613,23 @@ CodeGeneratorX86Shared::visitPowHalfD(LPowHalfD *ins)
 
 class OutOfLineUndoALUOperation : public OutOfLineCodeBase<CodeGeneratorX86Shared>
 {
-    LInstruction *ins_;
+    LInstruction* ins_;
 
   public:
-    OutOfLineUndoALUOperation(LInstruction *ins)
+    OutOfLineUndoALUOperation(LInstruction* ins)
         : ins_(ins)
     { }
 
-    virtual bool accept(CodeGeneratorX86Shared *codegen) {
+    virtual bool accept(CodeGeneratorX86Shared* codegen) {
         return codegen->visitOutOfLineUndoALUOperation(this);
     }
-    LInstruction *ins() const {
+    LInstruction* ins() const {
         return ins_;
     }
 };
 
 bool
-CodeGeneratorX86Shared::visitAddI(LAddI *ins)
+CodeGeneratorX86Shared::visitAddI(LAddI* ins)
 {
     if (ins->rhs()->isConstant())
         masm.addl(Imm32(ToInt32(ins->rhs())), ToOperand(ins->lhs()));
@@ -638,7 +638,7 @@ CodeGeneratorX86Shared::visitAddI(LAddI *ins)
 
     if (ins->snapshot()) {
         if (ins->recoversInput()) {
-            OutOfLineUndoALUOperation *ool = new(alloc()) OutOfLineUndoALUOperation(ins);
+            OutOfLineUndoALUOperation* ool = new(alloc()) OutOfLineUndoALUOperation(ins);
             if (!addOutOfLineCode(ool))
                 return false;
             masm.j(Assembler::Overflow, ool->entry());
@@ -651,7 +651,7 @@ CodeGeneratorX86Shared::visitAddI(LAddI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitSubI(LSubI *ins)
+CodeGeneratorX86Shared::visitSubI(LSubI* ins)
 {
     if (ins->rhs()->isConstant())
         masm.subl(Imm32(ToInt32(ins->rhs())), ToOperand(ins->lhs()));
@@ -660,7 +660,7 @@ CodeGeneratorX86Shared::visitSubI(LSubI *ins)
 
     if (ins->snapshot()) {
         if (ins->recoversInput()) {
-            OutOfLineUndoALUOperation *ool = new(alloc()) OutOfLineUndoALUOperation(ins);
+            OutOfLineUndoALUOperation* ool = new(alloc()) OutOfLineUndoALUOperation(ins);
             if (!addOutOfLineCode(ool))
                 return false;
             masm.j(Assembler::Overflow, ool->entry());
@@ -673,13 +673,13 @@ CodeGeneratorX86Shared::visitSubI(LSubI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitOutOfLineUndoALUOperation(OutOfLineUndoALUOperation *ool)
+CodeGeneratorX86Shared::visitOutOfLineUndoALUOperation(OutOfLineUndoALUOperation* ool)
 {
-    LInstruction *ins = ool->ins();
+    LInstruction* ins = ool->ins();
     Register reg = ToRegister(ins->getDef(0));
 
-    mozilla::DebugOnly<LAllocation *> lhs = ins->getOperand(0);
-    LAllocation *rhs = ins->getOperand(1);
+    mozilla::DebugOnly<LAllocation*> lhs = ins->getOperand(0);
+    LAllocation* rhs = ins->getOperand(1);
 
     JS_ASSERT(reg == ToRegister(lhs));
     JS_ASSERT_IF(rhs->isGeneralReg(), reg != ToRegister(rhs));
@@ -708,27 +708,27 @@ CodeGeneratorX86Shared::visitOutOfLineUndoALUOperation(OutOfLineUndoALUOperation
 
 class MulNegativeZeroCheck : public OutOfLineCodeBase<CodeGeneratorX86Shared>
 {
-    LMulI *ins_;
+    LMulI* ins_;
 
   public:
-    MulNegativeZeroCheck(LMulI *ins)
+    MulNegativeZeroCheck(LMulI* ins)
       : ins_(ins)
     { }
 
-    virtual bool accept(CodeGeneratorX86Shared *codegen) {
+    virtual bool accept(CodeGeneratorX86Shared* codegen) {
         return codegen->visitMulNegativeZeroCheck(this);
     }
-    LMulI *ins() const {
+    LMulI* ins() const {
         return ins_;
     }
 };
 
 bool
-CodeGeneratorX86Shared::visitMulI(LMulI *ins)
+CodeGeneratorX86Shared::visitMulI(LMulI* ins)
 {
-    const LAllocation *lhs = ins->lhs();
-    const LAllocation *rhs = ins->rhs();
-    MMul *mul = ins->mir();
+    const LAllocation* lhs = ins->lhs();
+    const LAllocation* rhs = ins->rhs();
+    MMul* mul = ins->mir();
     JS_ASSERT_IF(mul->mode() == MMul::Integer, !mul->canBeNegativeZero() && !mul->canOverflow());
 
     if (rhs->isConstant()) {
@@ -778,7 +778,7 @@ CodeGeneratorX86Shared::visitMulI(LMulI *ins)
 
         if (mul->canBeNegativeZero()) {
             // Jump to an OOL path if the result is 0.
-            MulNegativeZeroCheck *ool = new(alloc()) MulNegativeZeroCheck(ins);
+            MulNegativeZeroCheck* ool = new(alloc()) MulNegativeZeroCheck(ins);
             if (!addOutOfLineCode(ool))
                 return false;
 
@@ -800,7 +800,7 @@ class ReturnZero : public OutOfLineCodeBase<CodeGeneratorX86Shared>
       : reg_(reg)
     { }
 
-    virtual bool accept(CodeGeneratorX86Shared *codegen) {
+    virtual bool accept(CodeGeneratorX86Shared* codegen) {
         return codegen->visitReturnZero(this);
     }
     Register reg() const {
@@ -809,7 +809,7 @@ class ReturnZero : public OutOfLineCodeBase<CodeGeneratorX86Shared>
 };
 
 bool
-CodeGeneratorX86Shared::visitReturnZero(ReturnZero *ool)
+CodeGeneratorX86Shared::visitReturnZero(ReturnZero* ool)
 {
     masm.mov(ImmWord(0), ool->reg());
     masm.jmp(ool->rejoin());
@@ -817,7 +817,7 @@ CodeGeneratorX86Shared::visitReturnZero(ReturnZero *ool)
 }
 
 bool
-CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
+CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod* ins)
 {
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
@@ -827,7 +827,7 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
     JS_ASSERT(rhs != edx);
     JS_ASSERT_IF(output == eax, ToRegister(ins->remainder()) == edx);
 
-    ReturnZero *ool = nullptr;
+    ReturnZero* ool = nullptr;
 
     // Put the lhs in eax.
     if (lhs != eax)
@@ -868,9 +868,9 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitMulNegativeZeroCheck(MulNegativeZeroCheck *ool)
+CodeGeneratorX86Shared::visitMulNegativeZeroCheck(MulNegativeZeroCheck* ool)
 {
-    LMulI *ins = ool->ins();
+    LMulI* ins = ool->ins();
     Register result = ToRegister(ins->output());
     Operand lhsCopy = ToOperand(ins->lhsCopy());
     Operand rhs = ToOperand(ins->rhs());
@@ -888,14 +888,14 @@ CodeGeneratorX86Shared::visitMulNegativeZeroCheck(MulNegativeZeroCheck *ool)
 }
 
 bool
-CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI *ins)
+CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI* ins)
 {
     Register lhs = ToRegister(ins->numerator());
     mozilla::DebugOnly<Register> output = ToRegister(ins->output());
 
     int32_t shift = ins->shift();
     bool negativeDivisor = ins->negativeDivisor();
-    MDiv *mir = ins->mir();
+    MDiv* mir = ins->mir();
 
     // We use defineReuseInput so these should always be the same, which is
     // convenient since all of our instructions here are two-address.
@@ -942,7 +942,7 @@ CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI *ins) {
+CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI* ins) {
     Register lhs = ToRegister(ins->numerator());
     Register output = ToRegister(ins->output());
     int32_t d = ins->denominator();
@@ -1024,14 +1024,14 @@ CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI *ins) {
 }
 
 bool
-CodeGeneratorX86Shared::visitDivI(LDivI *ins)
+CodeGeneratorX86Shared::visitDivI(LDivI* ins)
 {
     Register remainder = ToRegister(ins->remainder());
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
     Register output = ToRegister(ins->output());
 
-    MDiv *mir = ins->mir();
+    MDiv* mir = ins->mir();
 
     JS_ASSERT_IF(lhs != rhs, rhs != eax);
     JS_ASSERT(rhs != edx);
@@ -1039,7 +1039,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     JS_ASSERT(output == eax);
 
     Label done;
-    ReturnZero *ool = nullptr;
+    ReturnZero* ool = nullptr;
 
     // Put the lhs in eax, for either the negative overflow case or the regular
     // divide case.
@@ -1115,7 +1115,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitModPowTwoI(LModPowTwoI *ins)
+CodeGeneratorX86Shared::visitModPowTwoI(LModPowTwoI* ins)
 {
     Register lhs = ToRegister(ins->getOperand(0));
     int32_t shift = ins->shift();
@@ -1160,21 +1160,21 @@ CodeGeneratorX86Shared::visitModPowTwoI(LModPowTwoI *ins)
 class ModOverflowCheck : public OutOfLineCodeBase<CodeGeneratorX86Shared>
 {
     Label done_;
-    LModI *ins_;
+    LModI* ins_;
     Register rhs_;
 
   public:
-    explicit ModOverflowCheck(LModI *ins, Register rhs)
+    explicit ModOverflowCheck(LModI* ins, Register rhs)
       : ins_(ins), rhs_(rhs)
     { }
 
-    virtual bool accept(CodeGeneratorX86Shared *codegen) {
+    virtual bool accept(CodeGeneratorX86Shared* codegen) {
         return codegen->visitModOverflowCheck(this);
     }
-    Label *done() {
+    Label* done() {
         return &done_;
     }
-    LModI *ins() const {
+    LModI* ins() const {
         return ins_;
     }
     Register rhs() const {
@@ -1183,7 +1183,7 @@ class ModOverflowCheck : public OutOfLineCodeBase<CodeGeneratorX86Shared>
 };
 
 bool
-CodeGeneratorX86Shared::visitModOverflowCheck(ModOverflowCheck *ool)
+CodeGeneratorX86Shared::visitModOverflowCheck(ModOverflowCheck* ool)
 {
     masm.cmpl(ool->rhs(), Imm32(-1));
     if (ool->ins()->mir()->isTruncated()) {
@@ -1199,7 +1199,7 @@ CodeGeneratorX86Shared::visitModOverflowCheck(ModOverflowCheck *ool)
 }
 
 bool
-CodeGeneratorX86Shared::visitModI(LModI *ins)
+CodeGeneratorX86Shared::visitModI(LModI* ins)
 {
     Register remainder = ToRegister(ins->remainder());
     Register lhs = ToRegister(ins->lhs());
@@ -1212,8 +1212,8 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
     JS_ASSERT(ToRegister(ins->getTemp(0)) == eax);
 
     Label done;
-    ReturnZero *ool = nullptr;
-    ModOverflowCheck *overflow = nullptr;
+    ReturnZero* ool = nullptr;
+    ModOverflowCheck* overflow = nullptr;
 
     // Set up eax in preparation for doing a div.
     if (lhs != eax)
@@ -1307,9 +1307,9 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitBitNotI(LBitNotI *ins)
+CodeGeneratorX86Shared::visitBitNotI(LBitNotI* ins)
 {
-    const LAllocation *input = ins->getOperand(0);
+    const LAllocation* input = ins->getOperand(0);
     JS_ASSERT(!input->isConstant());
 
     masm.notl(ToOperand(input));
@@ -1317,10 +1317,10 @@ CodeGeneratorX86Shared::visitBitNotI(LBitNotI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitBitOpI(LBitOpI *ins)
+CodeGeneratorX86Shared::visitBitOpI(LBitOpI* ins)
 {
-    const LAllocation *lhs = ins->getOperand(0);
-    const LAllocation *rhs = ins->getOperand(1);
+    const LAllocation* lhs = ins->getOperand(0);
+    const LAllocation* rhs = ins->getOperand(1);
 
     switch (ins->bitop()) {
         case JSOP_BITOR:
@@ -1349,10 +1349,10 @@ CodeGeneratorX86Shared::visitBitOpI(LBitOpI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitShiftI(LShiftI *ins)
+CodeGeneratorX86Shared::visitShiftI(LShiftI* ins)
 {
     Register lhs = ToRegister(ins->lhs());
-    const LAllocation *rhs = ins->rhs();
+    const LAllocation* rhs = ins->rhs();
 
     if (rhs->isConstant()) {
         int32_t shift = ToInt32(rhs) & 0x1F;
@@ -1405,12 +1405,12 @@ CodeGeneratorX86Shared::visitShiftI(LShiftI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitUrshD(LUrshD *ins)
+CodeGeneratorX86Shared::visitUrshD(LUrshD* ins)
 {
     Register lhs = ToRegister(ins->lhs());
     JS_ASSERT(ToRegister(ins->temp()) == lhs);
 
-    const LAllocation *rhs = ins->rhs();
+    const LAllocation* rhs = ins->rhs();
     FloatRegister out = ToFloatRegister(ins->output());
 
     if (rhs->isConstant()) {
@@ -1427,7 +1427,7 @@ CodeGeneratorX86Shared::visitUrshD(LUrshD *ins)
 }
 
 MoveOperand
-CodeGeneratorX86Shared::toMoveOperand(const LAllocation *a) const
+CodeGeneratorX86Shared::toMoveOperand(const LAllocation* a) const
 {
     if (a->isGeneralReg())
         return MoveOperand(ToRegister(a));
@@ -1438,31 +1438,31 @@ CodeGeneratorX86Shared::toMoveOperand(const LAllocation *a) const
 
 class OutOfLineTableSwitch : public OutOfLineCodeBase<CodeGeneratorX86Shared>
 {
-    MTableSwitch *mir_;
+    MTableSwitch* mir_;
     CodeLabel jumpLabel_;
 
-    bool accept(CodeGeneratorX86Shared *codegen) {
+    bool accept(CodeGeneratorX86Shared* codegen) {
         return codegen->visitOutOfLineTableSwitch(this);
     }
 
   public:
-    OutOfLineTableSwitch(MTableSwitch *mir)
+    OutOfLineTableSwitch(MTableSwitch* mir)
       : mir_(mir)
     {}
 
-    MTableSwitch *mir() const {
+    MTableSwitch* mir() const {
         return mir_;
     }
 
-    CodeLabel *jumpLabel() {
+    CodeLabel* jumpLabel() {
         return &jumpLabel_;
     }
 };
 
 bool
-CodeGeneratorX86Shared::visitOutOfLineTableSwitch(OutOfLineTableSwitch *ool)
+CodeGeneratorX86Shared::visitOutOfLineTableSwitch(OutOfLineTableSwitch* ool)
 {
-    MTableSwitch *mir = ool->mir();
+    MTableSwitch* mir = ool->mir();
 
     masm.align(sizeof(void*));
     masm.bind(ool->jumpLabel()->src());
@@ -1470,8 +1470,8 @@ CodeGeneratorX86Shared::visitOutOfLineTableSwitch(OutOfLineTableSwitch *ool)
         return false;
 
     for (size_t i = 0; i < mir->numCases(); i++) {
-        LBlock *caseblock = mir->getCase(i)->lir();
-        Label *caseheader = caseblock->label();
+        LBlock* caseblock = mir->getCase(i)->lir();
+        Label* caseheader = caseblock->label();
         uint32_t caseoffset = caseheader->offset();
 
         // The entries of the jump table need to be absolute addresses and thus
@@ -1487,10 +1487,10 @@ CodeGeneratorX86Shared::visitOutOfLineTableSwitch(OutOfLineTableSwitch *ool)
 }
 
 bool
-CodeGeneratorX86Shared::emitTableSwitchDispatch(MTableSwitch *mir, const Register &index,
-                                                const Register &base)
+CodeGeneratorX86Shared::emitTableSwitchDispatch(MTableSwitch* mir, const Register& index,
+                                                const Register& base)
 {
-    Label *defaultcase = mir->getDefault()->lir()->label();
+    Label* defaultcase = mir->getDefault()->lir()->label();
 
     // Lower value with low value
     if (mir->low() != 0)
@@ -1504,7 +1504,7 @@ CodeGeneratorX86Shared::emitTableSwitchDispatch(MTableSwitch *mir, const Registe
     // To fill in the CodeLabels for the case entries, we need to first
     // generate the case entries (we don't yet know their offsets in the
     // instruction stream).
-    OutOfLineTableSwitch *ool = new(alloc()) OutOfLineTableSwitch(mir);
+    OutOfLineTableSwitch* ool = new(alloc()) OutOfLineTableSwitch(mir);
     if (!addOutOfLineCode(ool))
         return false;
 
@@ -1519,7 +1519,7 @@ CodeGeneratorX86Shared::emitTableSwitchDispatch(MTableSwitch *mir, const Registe
 }
 
 bool
-CodeGeneratorX86Shared::visitMathD(LMathD *math)
+CodeGeneratorX86Shared::visitMathD(LMathD* math)
 {
     FloatRegister lhs = ToFloatRegister(math->lhs());
     Operand rhs = ToOperand(math->rhs());
@@ -1546,7 +1546,7 @@ CodeGeneratorX86Shared::visitMathD(LMathD *math)
 }
 
 bool
-CodeGeneratorX86Shared::visitMathF(LMathF *math)
+CodeGeneratorX86Shared::visitMathF(LMathF* math)
 {
     FloatRegister lhs = ToFloatRegister(math->lhs());
     Operand rhs = ToOperand(math->rhs());
@@ -1574,7 +1574,7 @@ CodeGeneratorX86Shared::visitMathF(LMathF *math)
 }
 
 bool
-CodeGeneratorX86Shared::visitFloor(LFloor *lir)
+CodeGeneratorX86Shared::visitFloor(LFloor* lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
     FloatRegister scratch = ScratchFloatReg;
@@ -1643,7 +1643,7 @@ CodeGeneratorX86Shared::visitFloor(LFloor *lir)
 }
 
 bool
-CodeGeneratorX86Shared::visitFloorF(LFloorF *lir)
+CodeGeneratorX86Shared::visitFloorF(LFloorF* lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
     FloatRegister scratch = ScratchFloatReg;
@@ -1712,7 +1712,7 @@ CodeGeneratorX86Shared::visitFloorF(LFloorF *lir)
 }
 
 bool
-CodeGeneratorX86Shared::visitRound(LRound *lir)
+CodeGeneratorX86Shared::visitRound(LRound* lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
     FloatRegister temp = ToFloatRegister(lir->temp());
@@ -1800,7 +1800,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
 }
 
 bool
-CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
+CodeGeneratorX86Shared::visitRoundF(LRoundF* lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
     FloatRegister temp = ToFloatRegister(lir->temp());
@@ -1887,7 +1887,7 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
 }
 
 bool
-CodeGeneratorX86Shared::visitGuardShape(LGuardShape *guard)
+CodeGeneratorX86Shared::visitGuardShape(LGuardShape* guard)
 {
     Register obj = ToRegister(guard->input());
     masm.cmpPtr(Operand(obj, JSObject::offsetOfShape()), ImmGCPtr(guard->mir()->shape()));
@@ -1896,7 +1896,7 @@ CodeGeneratorX86Shared::visitGuardShape(LGuardShape *guard)
 }
 
 bool
-CodeGeneratorX86Shared::visitGuardObjectType(LGuardObjectType *guard)
+CodeGeneratorX86Shared::visitGuardObjectType(LGuardObjectType* guard)
 {
     Register obj = ToRegister(guard->input());
     masm.cmpPtr(Operand(obj, JSObject::offsetOfType()), ImmGCPtr(guard->mir()->typeObject()));
@@ -1907,7 +1907,7 @@ CodeGeneratorX86Shared::visitGuardObjectType(LGuardObjectType *guard)
 }
 
 bool
-CodeGeneratorX86Shared::visitGuardClass(LGuardClass *guard)
+CodeGeneratorX86Shared::visitGuardClass(LGuardClass* guard)
 {
     Register obj = ToRegister(guard->input());
     Register tmp = ToRegister(guard->tempInt());
@@ -1920,9 +1920,9 @@ CodeGeneratorX86Shared::visitGuardClass(LGuardClass *guard)
 }
 
 bool
-CodeGeneratorX86Shared::visitEffectiveAddress(LEffectiveAddress *ins)
+CodeGeneratorX86Shared::visitEffectiveAddress(LEffectiveAddress* ins)
 {
-    const MEffectiveAddress *mir = ins->mir();
+    const MEffectiveAddress* mir = ins->mir();
     Register base = ToRegister(ins->base());
     Register index = ToRegister(ins->index());
     Register output = ToRegister(ins->output());
@@ -1931,7 +1931,7 @@ CodeGeneratorX86Shared::visitEffectiveAddress(LEffectiveAddress *ins)
 }
 
 Operand
-CodeGeneratorX86Shared::createArrayElementOperand(Register elements, const LAllocation *index)
+CodeGeneratorX86Shared::createArrayElementOperand(Register elements, const LAllocation* index)
 {
     if (index->isConstant())
         return Operand(elements, ToInt32(index) * sizeof(js::Value));
@@ -1944,14 +1944,14 @@ CodeGeneratorX86Shared::generateInvalidateEpilogue()
     // Ensure that there is enough space in the buffer for the OsiPoint
     // patching to occur. Otherwise, we could overwrite the invalidation
     // epilogue.
-    for (size_t i = 0; i < sizeof(void *); i+= Assembler::nopSize())
+    for (size_t i = 0; i < sizeof(void*); i+= Assembler::nopSize())
         masm.nop();
 
     masm.bind(&invalidate_);
 
     // Push the Ion script onto the stack (when we determine what that pointer is).
     invalidateEpilogueData_ = masm.pushWithPatch(ImmWord(uintptr_t(-1)));
-    JitCode *thunk = gen->jitRuntime()->getInvalidationThunk();
+    JitCode* thunk = gen->jitRuntime()->getInvalidationThunk();
 
     masm.call(thunk);
 
@@ -1962,7 +1962,7 @@ CodeGeneratorX86Shared::generateInvalidateEpilogue()
 }
 
 bool
-CodeGeneratorX86Shared::visitNegI(LNegI *ins)
+CodeGeneratorX86Shared::visitNegI(LNegI* ins)
 {
     Register input = ToRegister(ins->input());
     JS_ASSERT(input == ToRegister(ins->output()));
@@ -1972,7 +1972,7 @@ CodeGeneratorX86Shared::visitNegI(LNegI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitNegD(LNegD *ins)
+CodeGeneratorX86Shared::visitNegD(LNegD* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     JS_ASSERT(input == ToFloatRegister(ins->output()));
@@ -1982,7 +1982,7 @@ CodeGeneratorX86Shared::visitNegD(LNegD *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitNegF(LNegF *ins)
+CodeGeneratorX86Shared::visitNegF(LNegF* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     JS_ASSERT(input == ToFloatRegister(ins->output()));
@@ -1992,7 +1992,7 @@ CodeGeneratorX86Shared::visitNegF(LNegF *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitForkJoinGetSlice(LForkJoinGetSlice *ins)
+CodeGeneratorX86Shared::visitForkJoinGetSlice(LForkJoinGetSlice* ins)
 {
     MOZ_ASSERT(gen->info().executionMode() == ParallelExecution);
     MOZ_ASSERT(ToRegister(ins->forkJoinContext()) == ForkJoinGetSliceReg_cx);
@@ -2006,8 +2006,8 @@ CodeGeneratorX86Shared::visitForkJoinGetSlice(LForkJoinGetSlice *ins)
     return true;
 }
 
-JitCode *
-JitRuntime::generateForkJoinGetSliceStub(JSContext *cx)
+JitCode*
+JitRuntime::generateForkJoinGetSliceStub(JSContext* cx)
 {
 #ifdef JS_THREADSAFE
     MacroAssembler masm(cx);
@@ -2151,7 +2151,7 @@ JitRuntime::generateForkJoinGetSliceStub(JSContext *cx)
     masm.ret();
 
     Linker linker(masm);
-    JitCode *code = linker.newCode<NoGC>(cx, JSC::OTHER_CODE);
+    JitCode* code = linker.newCode<NoGC>(cx, JSC::OTHER_CODE);
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "ForkJoinGetSliceStub");

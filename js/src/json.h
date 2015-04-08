@@ -15,17 +15,17 @@ namespace js {
 class StringBuffer;
 }
 
-extern JSObject *
-js_InitJSONClass(JSContext *cx, js::HandleObject obj);
+extern JSObject*
+js_InitJSONClass(JSContext* cx, js::HandleObject obj);
 
 extern bool
-js_Stringify(JSContext *cx, js::MutableHandleValue vp, JSObject *replacer,
-             js::Value space, js::StringBuffer &sb);
+js_Stringify(JSContext* cx, js::MutableHandleValue vp, JSObject* replacer,
+             js::Value space, js::StringBuffer& sb);
 
 namespace js {
 
 extern bool
-ParseJSONWithReviver(JSContext *cx, JS::ConstTwoByteChars chars, size_t length,
+ParseJSONWithReviver(JSContext* cx, JS::ConstTwoByteChars chars, size_t length,
                      HandleValue reviver, MutableHandleValue vp);
 
 } // namespace js

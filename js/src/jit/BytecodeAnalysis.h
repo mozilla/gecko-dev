@@ -37,7 +37,7 @@ struct BytecodeInfo
 
 class BytecodeAnalysis
 {
-    JSScript *script_;
+    JSScript* script_;
     Vector<BytecodeInfo, 0, IonAllocPolicy> infos_;
 
     bool usesScopeChain_;
@@ -45,16 +45,16 @@ class BytecodeAnalysis
     bool hasSetArg_;
 
   public:
-    explicit BytecodeAnalysis(TempAllocator &alloc, JSScript *script);
+    explicit BytecodeAnalysis(TempAllocator& alloc, JSScript* script);
 
-    bool init(TempAllocator &alloc, GSNCache &gsn);
+    bool init(TempAllocator& alloc, GSNCache& gsn);
 
-    BytecodeInfo &info(jsbytecode *pc) {
+    BytecodeInfo& info(jsbytecode* pc) {
         JS_ASSERT(infos_[script_->pcToOffset(pc)].initialized);
         return infos_[script_->pcToOffset(pc)];
     }
 
-    BytecodeInfo *maybeInfo(jsbytecode *pc) {
+    BytecodeInfo* maybeInfo(jsbytecode* pc) {
         if (infos_[script_->pcToOffset(pc)].initialized)
             return &infos_[script_->pcToOffset(pc)];
         return nullptr;

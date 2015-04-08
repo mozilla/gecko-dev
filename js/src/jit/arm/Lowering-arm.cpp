@@ -18,7 +18,7 @@ using namespace js::jit;
 using mozilla::FloorLog2;
 
 bool
-LIRGeneratorARM::useBox(LInstruction *lir, size_t n, MDefinition *mir,
+LIRGeneratorARM::useBox(LInstruction* lir, size_t n, MDefinition* mir,
                         LUse::Policy policy, bool useAtStart)
 {
     JS_ASSERT(mir->type() == MIRType_Value);
@@ -30,7 +30,7 @@ LIRGeneratorARM::useBox(LInstruction *lir, size_t n, MDefinition *mir,
 }
 
 bool
-LIRGeneratorARM::useBoxFixed(LInstruction *lir, size_t n, MDefinition *mir, Register reg1,
+LIRGeneratorARM::useBoxFixed(LInstruction* lir, size_t n, MDefinition* mir, Register reg1,
                              Register reg2)
 {
     JS_ASSERT(mir->type() == MIRType_Value);
@@ -44,31 +44,31 @@ LIRGeneratorARM::useBoxFixed(LInstruction *lir, size_t n, MDefinition *mir, Regi
 }
 
 LAllocation
-LIRGeneratorARM::useByteOpRegister(MDefinition *mir)
+LIRGeneratorARM::useByteOpRegister(MDefinition* mir)
 {
     return useRegister(mir);
 }
 
 LAllocation
-LIRGeneratorARM::useByteOpRegisterOrNonDoubleConstant(MDefinition *mir)
+LIRGeneratorARM::useByteOpRegisterOrNonDoubleConstant(MDefinition* mir)
 {
     return useRegisterOrNonDoubleConstant(mir);
 }
 
 bool
-LIRGeneratorARM::lowerConstantDouble(double d, MInstruction *mir)
+LIRGeneratorARM::lowerConstantDouble(double d, MInstruction* mir)
 {
     return define(new(alloc()) LDouble(d), mir);
 }
 
 bool
-LIRGeneratorARM::lowerConstantFloat32(float d, MInstruction *mir)
+LIRGeneratorARM::lowerConstantFloat32(float d, MInstruction* mir)
 {
     return define(new(alloc()) LFloat32(d), mir);
 }
 
 bool
-LIRGeneratorARM::visitConstant(MConstant *ins)
+LIRGeneratorARM::visitConstant(MConstant* ins)
 {
     if (ins->type() == MIRType_Double)
         return lowerConstantDouble(ins->value().toDouble(), ins);
@@ -84,9 +84,9 @@ LIRGeneratorARM::visitConstant(MConstant *ins)
 }
 
 bool
-LIRGeneratorARM::visitBox(MBox *box)
+LIRGeneratorARM::visitBox(MBox* box)
 {
-    MDefinition *inner = box->getOperand(0);
+    MDefinition* inner = box->getOperand(0);
 
     // If the box wrapped a double, it needs a new register.
     if (IsFloatingPointType(inner->type()))
@@ -99,7 +99,7 @@ LIRGeneratorARM::visitBox(MBox *box)
     if (inner->isConstant())
         return defineBox(new(alloc()) LValue(inner->toConstant()->value()), box);
 
-    LBox *lir = new(alloc()) LBox(use(inner), inner->type());
+    LBox* lir = new(alloc()) LBox(use(inner), inner->type());
 
     // Otherwise, we should not define a new register for the payload portion
     // of the output, so bypass defineBox().
@@ -121,18 +121,18 @@ LIRGeneratorARM::visitBox(MBox *box)
 }
 
 bool
-LIRGeneratorARM::visitUnbox(MUnbox *unbox)
+LIRGeneratorARM::visitUnbox(MUnbox* unbox)
 {
     // An unbox on arm reads in a type tag (either in memory or a register) and
     // a payload. Unlike most instructions conusming a box, we ask for the type
     // second, so that the result can re-use the first input.
-    MDefinition *inner = unbox->getOperand(0);
+    MDefinition* inner = unbox->getOperand(0);
 
     if (!ensureDefined(inner))
         return false;
 
     if (IsFloatingPointType(unbox->type())) {
-        LUnboxFloatingPoint *lir = new(alloc()) LUnboxFloatingPoint(unbox->type());
+        LUnboxFloatingPoint* lir = new(alloc()) LUnboxFloatingPoint(unbox->type());
         if (unbox->fallible() && !assignSnapshot(lir, unbox->bailoutKind()))
             return false;
         if (!useBox(lir, LUnboxFloatingPoint::Input, inner))
@@ -141,7 +141,7 @@ LIRGeneratorARM::visitUnbox(MUnbox *unbox)
     }
 
     // Swap the order we use the box pieces so we can re-use the payload register.
-    LUnbox *lir = new(alloc()) LUnbox;
+    LUnbox* lir = new(alloc()) LUnbox;
     lir->setOperand(0, usePayloadInRegisterAtStart(inner));
     lir->setOperand(1, useType(inner, LUse::REGISTER));
 
@@ -158,12 +158,12 @@ LIRGeneratorARM::visitUnbox(MUnbox *unbox)
 }
 
 bool
-LIRGeneratorARM::visitReturn(MReturn *ret)
+LIRGeneratorARM::visitReturn(MReturn* ret)
 {
-    MDefinition *opd = ret->getOperand(0);
+    MDefinition* opd = ret->getOperand(0);
     JS_ASSERT(opd->type() == MIRType_Value);
 
-    LReturn *ins = new(alloc()) LReturn;
+    LReturn* ins = new(alloc()) LReturn;
     ins->setOperand(0, LUse(JSReturnReg_Type));
     ins->setOperand(1, LUse(JSReturnReg_Data));
     return fillBoxUses(ins, 0, opd) && add(ins);
@@ -171,7 +171,7 @@ LIRGeneratorARM::visitReturn(MReturn *ret)
 
 // x = !y
 bool
-LIRGeneratorARM::lowerForALU(LInstructionHelper<1, 1, 0> *ins, MDefinition *mir, MDefinition *input)
+LIRGeneratorARM::lowerForALU(LInstructionHelper<1, 1, 0>* ins, MDefinition* mir, MDefinition* input)
 {
     ins->setOperand(0, useRegister(input));
     return define(ins, mir,
@@ -180,7 +180,7 @@ LIRGeneratorARM::lowerForALU(LInstructionHelper<1, 1, 0> *ins, MDefinition *mir,
 
 // z = x+y
 bool
-LIRGeneratorARM::lowerForALU(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir, MDefinition *lhs, MDefinition *rhs)
+LIRGeneratorARM::lowerForALU(LInstructionHelper<1, 2, 0>* ins, MDefinition* mir, MDefinition* lhs, MDefinition* rhs)
 {
     ins->setOperand(0, useRegister(lhs));
     ins->setOperand(1, useRegisterOrConstant(rhs));
@@ -189,7 +189,7 @@ LIRGeneratorARM::lowerForALU(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir,
 }
 
 bool
-LIRGeneratorARM::lowerForFPU(LInstructionHelper<1, 1, 0> *ins, MDefinition *mir, MDefinition *input)
+LIRGeneratorARM::lowerForFPU(LInstructionHelper<1, 1, 0>* ins, MDefinition* mir, MDefinition* input)
 {
     ins->setOperand(0, useRegister(input));
     return define(ins, mir,
@@ -198,7 +198,7 @@ LIRGeneratorARM::lowerForFPU(LInstructionHelper<1, 1, 0> *ins, MDefinition *mir,
 }
 
 bool
-LIRGeneratorARM::lowerForFPU(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir, MDefinition *lhs, MDefinition *rhs)
+LIRGeneratorARM::lowerForFPU(LInstructionHelper<1, 2, 0>* ins, MDefinition* mir, MDefinition* lhs, MDefinition* rhs)
 {
     ins->setOperand(0, useRegister(lhs));
     ins->setOperand(1, useRegister(rhs));
@@ -207,8 +207,8 @@ LIRGeneratorARM::lowerForFPU(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir,
 }
 
 bool
-LIRGeneratorARM::lowerForBitAndAndBranch(LBitAndAndBranch *baab, MInstruction *mir,
-                                         MDefinition *lhs, MDefinition *rhs)
+LIRGeneratorARM::lowerForBitAndAndBranch(LBitAndAndBranch* baab, MInstruction* mir,
+                                         MDefinition* lhs, MDefinition* rhs)
 {
     baab->setOperand(0, useRegisterAtStart(lhs));
     baab->setOperand(1, useRegisterOrConstantAtStart(rhs));
@@ -216,10 +216,10 @@ LIRGeneratorARM::lowerForBitAndAndBranch(LBitAndAndBranch *baab, MInstruction *m
 }
 
 bool
-LIRGeneratorARM::defineUntypedPhi(MPhi *phi, size_t lirIndex)
+LIRGeneratorARM::defineUntypedPhi(MPhi* phi, size_t lirIndex)
 {
-    LPhi *type = current->getPhi(lirIndex + VREG_TYPE_OFFSET);
-    LPhi *payload = current->getPhi(lirIndex + VREG_DATA_OFFSET);
+    LPhi* type = current->getPhi(lirIndex + VREG_TYPE_OFFSET);
+    LPhi* payload = current->getPhi(lirIndex + VREG_DATA_OFFSET);
 
     uint32_t typeVreg = getVirtualRegister();
     if (typeVreg >= MAX_VIRTUAL_REGISTERS)
@@ -240,18 +240,18 @@ LIRGeneratorARM::defineUntypedPhi(MPhi *phi, size_t lirIndex)
 }
 
 void
-LIRGeneratorARM::lowerUntypedPhiInput(MPhi *phi, uint32_t inputPosition, LBlock *block, size_t lirIndex)
+LIRGeneratorARM::lowerUntypedPhiInput(MPhi* phi, uint32_t inputPosition, LBlock* block, size_t lirIndex)
 {
     // oh god, what is this code?
-    MDefinition *operand = phi->getOperand(inputPosition);
-    LPhi *type = block->getPhi(lirIndex + VREG_TYPE_OFFSET);
-    LPhi *payload = block->getPhi(lirIndex + VREG_DATA_OFFSET);
+    MDefinition* operand = phi->getOperand(inputPosition);
+    LPhi* type = block->getPhi(lirIndex + VREG_TYPE_OFFSET);
+    LPhi* payload = block->getPhi(lirIndex + VREG_DATA_OFFSET);
     type->setOperand(inputPosition, LUse(operand->virtualRegister() + VREG_TYPE_OFFSET, LUse::ANY));
     payload->setOperand(inputPosition, LUse(VirtualRegisterOfPayload(operand), LUse::ANY));
 }
 
 bool
-LIRGeneratorARM::lowerForShift(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir, MDefinition *lhs, MDefinition *rhs)
+LIRGeneratorARM::lowerForShift(LInstructionHelper<1, 2, 0>* ins, MDefinition* mir, MDefinition* lhs, MDefinition* rhs)
 {
 
     ins->setOperand(0, useRegister(lhs));
@@ -260,7 +260,7 @@ LIRGeneratorARM::lowerForShift(LInstructionHelper<1, 2, 0> *ins, MDefinition *mi
 }
 
 bool
-LIRGeneratorARM::lowerDivI(MDiv *div)
+LIRGeneratorARM::lowerDivI(MDiv* div)
 {
     if (div->isUnsigned())
         return lowerUDiv(div);
@@ -276,7 +276,7 @@ LIRGeneratorARM::lowerDivI(MDiv *div)
         // constants can be optimized by a reciprocal multiplication technique.
         int32_t shift = FloorLog2(rhs);
         if (rhs > 0 && 1 << shift == rhs) {
-            LDivPowTwoI *lir = new(alloc()) LDivPowTwoI(useRegisterAtStart(div->lhs()), shift);
+            LDivPowTwoI* lir = new(alloc()) LDivPowTwoI(useRegisterAtStart(div->lhs()), shift);
             if (div->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
                 return false;
             return define(lir, div);
@@ -284,13 +284,13 @@ LIRGeneratorARM::lowerDivI(MDiv *div)
     }
 
     if (hasIDIV()) {
-        LDivI *lir = new(alloc()) LDivI(useRegister(div->lhs()), useRegister(div->rhs()), temp());
+        LDivI* lir = new(alloc()) LDivI(useRegister(div->lhs()), useRegister(div->rhs()), temp());
         if (div->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
             return false;
         return define(lir, div);
     }
 
-    LSoftDivI *lir = new(alloc()) LSoftDivI(useFixedAtStart(div->lhs(), r0), useFixedAtStart(div->rhs(), r1),
+    LSoftDivI* lir = new(alloc()) LSoftDivI(useFixedAtStart(div->lhs(), r0), useFixedAtStart(div->rhs(), r1),
                                             tempFixed(r1), tempFixed(r2), tempFixed(r3));
     if (div->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
         return false;
@@ -298,16 +298,16 @@ LIRGeneratorARM::lowerDivI(MDiv *div)
 }
 
 bool
-LIRGeneratorARM::lowerMulI(MMul *mul, MDefinition *lhs, MDefinition *rhs)
+LIRGeneratorARM::lowerMulI(MMul* mul, MDefinition* lhs, MDefinition* rhs)
 {
-    LMulI *lir = new(alloc()) LMulI;
+    LMulI* lir = new(alloc()) LMulI;
     if (mul->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
         return false;
     return lowerForALU(lir, mul, lhs, rhs);
 }
 
 bool
-LIRGeneratorARM::lowerModI(MMod *mod)
+LIRGeneratorARM::lowerModI(MMod* mod)
 {
     if (mod->isUnsigned())
         return lowerUMod(mod);
@@ -316,12 +316,12 @@ LIRGeneratorARM::lowerModI(MMod *mod)
         int32_t rhs = mod->rhs()->toConstant()->value().toInt32();
         int32_t shift = FloorLog2(rhs);
         if (rhs > 0 && 1 << shift == rhs) {
-            LModPowTwoI *lir = new(alloc()) LModPowTwoI(useRegister(mod->lhs()), shift);
+            LModPowTwoI* lir = new(alloc()) LModPowTwoI(useRegister(mod->lhs()), shift);
             if (mod->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
                 return false;
             return define(lir, mod);
         } else if (shift < 31 && (1 << (shift+1)) - 1 == rhs) {
-            LModMaskI *lir = new(alloc()) LModMaskI(useRegister(mod->lhs()), temp(), temp(), shift+1);
+            LModMaskI* lir = new(alloc()) LModMaskI(useRegister(mod->lhs()), temp(), temp(), shift+1);
             if (mod->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
                 return false;
             return define(lir, mod);
@@ -329,13 +329,13 @@ LIRGeneratorARM::lowerModI(MMod *mod)
     }
 
     if (hasIDIV()) {
-        LModI *lir = new(alloc()) LModI(useRegister(mod->lhs()), useRegister(mod->rhs()), temp());
+        LModI* lir = new(alloc()) LModI(useRegister(mod->lhs()), useRegister(mod->rhs()), temp());
         if (mod->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
             return false;
         return define(lir, mod);
     }
 
-    LSoftModI *lir = new(alloc()) LSoftModI(useFixedAtStart(mod->lhs(), r0), useFixedAtStart(mod->rhs(), r1),
+    LSoftModI* lir = new(alloc()) LSoftModI(useFixedAtStart(mod->lhs(), r0), useFixedAtStart(mod->rhs(), r1),
                                             tempFixed(r0), tempFixed(r2), tempFixed(r3),
                                             temp(LDefinition::GENERAL));
     if (mod->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
@@ -344,34 +344,34 @@ LIRGeneratorARM::lowerModI(MMod *mod)
 }
 
 bool
-LIRGeneratorARM::visitPowHalf(MPowHalf *ins)
+LIRGeneratorARM::visitPowHalf(MPowHalf* ins)
 {
-    MDefinition *input = ins->input();
+    MDefinition* input = ins->input();
     JS_ASSERT(input->type() == MIRType_Double);
-    LPowHalfD *lir = new(alloc()) LPowHalfD(useRegisterAtStart(input));
+    LPowHalfD* lir = new(alloc()) LPowHalfD(useRegisterAtStart(input));
     return defineReuseInput(lir, ins, 0);
 }
 
-LTableSwitch *
-LIRGeneratorARM::newLTableSwitch(const LAllocation &in, const LDefinition &inputCopy,
-                                       MTableSwitch *tableswitch)
+LTableSwitch*
+LIRGeneratorARM::newLTableSwitch(const LAllocation& in, const LDefinition& inputCopy,
+                                       MTableSwitch* tableswitch)
 {
     return new(alloc()) LTableSwitch(in, inputCopy, tableswitch);
 }
 
-LTableSwitchV *
-LIRGeneratorARM::newLTableSwitchV(MTableSwitch *tableswitch)
+LTableSwitchV*
+LIRGeneratorARM::newLTableSwitchV(MTableSwitch* tableswitch)
 {
     return new(alloc()) LTableSwitchV(temp(), tempDouble(), tableswitch);
 }
 
 bool
-LIRGeneratorARM::visitGuardShape(MGuardShape *ins)
+LIRGeneratorARM::visitGuardShape(MGuardShape* ins)
 {
     JS_ASSERT(ins->obj()->type() == MIRType_Object);
 
     LDefinition tempObj = temp(LDefinition::OBJECT);
-    LGuardShape *guard = new(alloc()) LGuardShape(useRegister(ins->obj()), tempObj);
+    LGuardShape* guard = new(alloc()) LGuardShape(useRegister(ins->obj()), tempObj);
     if (!assignSnapshot(guard, ins->bailoutKind()))
         return false;
     if (!add(guard, ins))
@@ -380,12 +380,12 @@ LIRGeneratorARM::visitGuardShape(MGuardShape *ins)
 }
 
 bool
-LIRGeneratorARM::visitGuardObjectType(MGuardObjectType *ins)
+LIRGeneratorARM::visitGuardObjectType(MGuardObjectType* ins)
 {
     JS_ASSERT(ins->obj()->type() == MIRType_Object);
 
     LDefinition tempObj = temp(LDefinition::OBJECT);
-    LGuardObjectType *guard = new(alloc()) LGuardObjectType(useRegister(ins->obj()), tempObj);
+    LGuardObjectType* guard = new(alloc()) LGuardObjectType(useRegister(ins->obj()), tempObj);
     if (!assignSnapshot(guard))
         return false;
     if (!add(guard, ins))
@@ -394,20 +394,20 @@ LIRGeneratorARM::visitGuardObjectType(MGuardObjectType *ins)
 }
 
 bool
-LIRGeneratorARM::lowerUrshD(MUrsh *mir)
+LIRGeneratorARM::lowerUrshD(MUrsh* mir)
 {
-    MDefinition *lhs = mir->lhs();
-    MDefinition *rhs = mir->rhs();
+    MDefinition* lhs = mir->lhs();
+    MDefinition* rhs = mir->rhs();
 
     JS_ASSERT(lhs->type() == MIRType_Int32);
     JS_ASSERT(rhs->type() == MIRType_Int32);
 
-    LUrshD *lir = new(alloc()) LUrshD(useRegister(lhs), useRegisterOrConstant(rhs), temp());
+    LUrshD* lir = new(alloc()) LUrshD(useRegister(lhs), useRegisterOrConstant(rhs), temp());
     return define(lir, mir);
 }
 
 bool
-LIRGeneratorARM::visitAsmJSNeg(MAsmJSNeg *ins)
+LIRGeneratorARM::visitAsmJSNeg(MAsmJSNeg* ins)
 {
     if (ins->type() == MIRType_Int32)
         return define(new(alloc()) LNegI(useRegisterAtStart(ins->input())), ins);
@@ -420,20 +420,20 @@ LIRGeneratorARM::visitAsmJSNeg(MAsmJSNeg *ins)
 }
 
 bool
-LIRGeneratorARM::lowerUDiv(MDiv *div)
+LIRGeneratorARM::lowerUDiv(MDiv* div)
 {
-    MDefinition *lhs = div->getOperand(0);
-    MDefinition *rhs = div->getOperand(1);
+    MDefinition* lhs = div->getOperand(0);
+    MDefinition* rhs = div->getOperand(1);
 
     if (hasIDIV()) {
-        LUDiv *lir = new(alloc()) LUDiv;
+        LUDiv* lir = new(alloc()) LUDiv;
         lir->setOperand(0, useRegister(lhs));
         lir->setOperand(1, useRegister(rhs));
         if (div->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
             return false;
         return define(lir, div);
     } else {
-        LSoftUDivOrMod *lir = new(alloc()) LSoftUDivOrMod(useFixedAtStart(lhs, r0), useFixedAtStart(rhs, r1),
+        LSoftUDivOrMod* lir = new(alloc()) LSoftUDivOrMod(useFixedAtStart(lhs, r0), useFixedAtStart(rhs, r1),
                                                           tempFixed(r1), tempFixed(r2), tempFixed(r3));
         if (div->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
             return false;
@@ -442,20 +442,20 @@ LIRGeneratorARM::lowerUDiv(MDiv *div)
 }
 
 bool
-LIRGeneratorARM::lowerUMod(MMod *mod)
+LIRGeneratorARM::lowerUMod(MMod* mod)
 {
-    MDefinition *lhs = mod->getOperand(0);
-    MDefinition *rhs = mod->getOperand(1);
+    MDefinition* lhs = mod->getOperand(0);
+    MDefinition* rhs = mod->getOperand(1);
 
     if (hasIDIV()) {
-        LUMod *lir = new(alloc()) LUMod;
+        LUMod* lir = new(alloc()) LUMod;
         lir->setOperand(0, useRegister(lhs));
         lir->setOperand(1, useRegister(rhs));
         if (mod->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
             return false;
         return define(lir, mod);
     } else {
-        LSoftUDivOrMod *lir = new(alloc()) LSoftUDivOrMod(useFixedAtStart(lhs, r0), useFixedAtStart(rhs, r1),
+        LSoftUDivOrMod* lir = new(alloc()) LSoftUDivOrMod(useFixedAtStart(lhs, r0), useFixedAtStart(rhs, r1),
                                                           tempFixed(r0), tempFixed(r2), tempFixed(r3));
         if (mod->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
             return false;
@@ -464,25 +464,25 @@ LIRGeneratorARM::lowerUMod(MMod *mod)
 }
 
 bool
-LIRGeneratorARM::visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble *ins)
+LIRGeneratorARM::visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble* ins)
 {
     JS_ASSERT(ins->input()->type() == MIRType_Int32);
-    LAsmJSUInt32ToDouble *lir = new(alloc()) LAsmJSUInt32ToDouble(useRegisterAtStart(ins->input()));
+    LAsmJSUInt32ToDouble* lir = new(alloc()) LAsmJSUInt32ToDouble(useRegisterAtStart(ins->input()));
     return define(lir, ins);
 }
 
 bool
-LIRGeneratorARM::visitAsmJSUnsignedToFloat32(MAsmJSUnsignedToFloat32 *ins)
+LIRGeneratorARM::visitAsmJSUnsignedToFloat32(MAsmJSUnsignedToFloat32* ins)
 {
     JS_ASSERT(ins->input()->type() == MIRType_Int32);
-    LAsmJSUInt32ToFloat32 *lir = new(alloc()) LAsmJSUInt32ToFloat32(useRegisterAtStart(ins->input()));
+    LAsmJSUInt32ToFloat32* lir = new(alloc()) LAsmJSUInt32ToFloat32(useRegisterAtStart(ins->input()));
     return define(lir, ins);
 }
 
 bool
-LIRGeneratorARM::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
+LIRGeneratorARM::visitAsmJSLoadHeap(MAsmJSLoadHeap* ins)
 {
-    MDefinition *ptr = ins->ptr();
+    MDefinition* ptr = ins->ptr();
     JS_ASSERT(ptr->type() == MIRType_Int32);
     LAllocation ptrAlloc;
 
@@ -499,9 +499,9 @@ LIRGeneratorARM::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
 }
 
 bool
-LIRGeneratorARM::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
+LIRGeneratorARM::visitAsmJSStoreHeap(MAsmJSStoreHeap* ins)
 {
-    MDefinition *ptr = ins->ptr();
+    MDefinition* ptr = ins->ptr();
     JS_ASSERT(ptr->type() == MIRType_Int32);
     LAllocation ptrAlloc;
 
@@ -515,37 +515,37 @@ LIRGeneratorARM::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
 }
 
 bool
-LIRGeneratorARM::visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr *ins)
+LIRGeneratorARM::visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr* ins)
 {
     return define(new(alloc()) LAsmJSLoadFuncPtr(useRegister(ins->index()), temp()), ins);
 }
 
 bool
-LIRGeneratorARM::lowerTruncateDToInt32(MTruncateToInt32 *ins)
+LIRGeneratorARM::lowerTruncateDToInt32(MTruncateToInt32* ins)
 {
-    MDefinition *opd = ins->input();
+    MDefinition* opd = ins->input();
     JS_ASSERT(opd->type() == MIRType_Double);
 
     return define(new(alloc()) LTruncateDToInt32(useRegister(opd), LDefinition::BogusTemp()), ins);
 }
 
 bool
-LIRGeneratorARM::lowerTruncateFToInt32(MTruncateToInt32 *ins)
+LIRGeneratorARM::lowerTruncateFToInt32(MTruncateToInt32* ins)
 {
-    MDefinition *opd = ins->input();
+    MDefinition* opd = ins->input();
     JS_ASSERT(opd->type() == MIRType_Float32);
 
     return define(new(alloc()) LTruncateFToInt32(useRegister(opd), LDefinition::BogusTemp()), ins);
 }
 
 bool
-LIRGeneratorARM::visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic *ins)
+LIRGeneratorARM::visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic* ins)
 {
     MOZ_ASSUME_UNREACHABLE("NYI");
 }
 
 bool
-LIRGeneratorARM::visitForkJoinGetSlice(MForkJoinGetSlice *ins)
+LIRGeneratorARM::visitForkJoinGetSlice(MForkJoinGetSlice* ins)
 {
     MOZ_ASSUME_UNREACHABLE("NYI");
 }

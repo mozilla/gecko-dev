@@ -172,7 +172,7 @@ private:
     void* alloc(size_t n, CodeKind kind)
     {
         JS_ASSERT(n <= available());
-        void *result = m_freePtr;
+        void* result = m_freePtr;
         m_freePtr += n;
 
         switch (kind) {
@@ -259,12 +259,12 @@ public:
 
         // This alloc is infallible because poolForSize() just obtained
         // (found, or created if necessary) a pool that had enough space.
-        void *result = (*poolp)->alloc(n, type);
+        void* result = (*poolp)->alloc(n, type);
         JS_ASSERT(result);
         return result;
     }
 
-    void releasePoolPages(ExecutablePool *pool) {
+    void releasePoolPages(ExecutablePool* pool) {
         JS_ASSERT(pool->m_allocation.pages);
         if (destroyCallback)
             destroyCallback(pool->m_allocation.pages, pool->m_allocation.size);
@@ -273,7 +273,7 @@ public:
         m_pools.remove(m_pools.lookup(pool));   // this asserts if |pool| is not in m_pools
     }
 
-    void addSizeOfCode(JS::CodeSizes *sizes) const;
+    void addSizeOfCode(JS::CodeSizes* sizes) const;
     void toggleAllCodeAsAccessible(bool accessible);
     bool codeContains(char* address);
 
@@ -311,7 +311,7 @@ private:
     // On OOM, this will return an Allocation where pages is NULL.
     ExecutablePool::Allocation systemAlloc(size_t n);
     static void systemRelease(const ExecutablePool::Allocation& alloc);
-    void *computeRandomAllocationAddress();
+    void* computeRandomAllocationAddress();
 
     ExecutablePool* createPool(size_t n)
     {
@@ -330,7 +330,7 @@ private:
         if (!a.pages)
             return NULL;
 
-        ExecutablePool *pool = js_new<ExecutablePool>(this, a);
+        ExecutablePool* pool = js_new<ExecutablePool>(this, a);
         if (!pool) {
             systemRelease(a);
             return NULL;
@@ -348,9 +348,9 @@ public:
         // best strategy because (a) it maximizes the chance of the next
         // allocation fitting in a small pool, and (b) it minimizes the
         // potential waste when a small pool is next abandoned.
-        ExecutablePool *minPool = NULL;
+        ExecutablePool* minPool = NULL;
         for (size_t i = 0; i < m_smallPools.length(); i++) {
-            ExecutablePool *pool = m_smallPools[i];
+            ExecutablePool* pool = m_smallPools[i];
             if (n <= pool->available() && (!minPool || pool->available() < minPool->available()))
                 minPool = pool;
         }
@@ -386,7 +386,7 @@ public:
 
             // If the new allocator will result in more free space than the small
             // pool with the least space, then we will use it instead
-            ExecutablePool *minPool = m_smallPools[iMin];
+            ExecutablePool* minPool = m_smallPools[iMin];
             if ((pool->available() - n) > minPool->available()) {
                 minPool->release();
                 m_smallPools[iMin] = pool;
@@ -419,7 +419,7 @@ public:
     {
     }
 #elif defined(JS_ARM_SIMULATOR)
-    static void cacheFlush(void *code, size_t size)
+    static void cacheFlush(void* code, size_t size)
     {
         js::jit::Simulator::FlushICache(code, size);
     }
@@ -509,13 +509,13 @@ private:
 
     // These are strong references;  they keep pools alive.
     static const size_t maxSmallPools = 4;
-    typedef js::Vector<ExecutablePool *, maxSmallPools, js::SystemAllocPolicy> SmallExecPoolVector;
+    typedef js::Vector<ExecutablePool*, maxSmallPools, js::SystemAllocPolicy> SmallExecPoolVector;
     SmallExecPoolVector m_smallPools;
 
     // All live pools are recorded here, just for stats purposes.  These are
     // weak references;  they don't keep pools alive.  When a pool is destroyed
     // its reference is removed from m_pools.
-    typedef js::HashSet<ExecutablePool *, js::DefaultHasher<ExecutablePool *>, js::SystemAllocPolicy>
+    typedef js::HashSet<ExecutablePool*, js::DefaultHasher<ExecutablePool*>, js::SystemAllocPolicy>
             ExecPoolHashSet;
     ExecPoolHashSet m_pools;    // All pools, just for stats purposes.
 

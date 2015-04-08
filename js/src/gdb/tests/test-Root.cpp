@@ -2,14 +2,14 @@
 #include "jsapi.h"
 
 FRAGMENT(Root, null) {
-  JS::Rooted<JSObject *> null(cx, nullptr);
+  JS::Rooted<JSObject*> null(cx, nullptr);
 
   breakpoint();
 
   (void) null;
 }
 
-void callee(JS::Handle<JSObject *> obj, JS::MutableHandle<JSObject *> mutableObj)
+void callee(JS::Handle<JSObject*> obj, JS::MutableHandle<JSObject*> mutableObj)
 {
   // Prevent the linker from unifying this function with others that are
   // equivalent in machine code but not type.
@@ -18,14 +18,14 @@ void callee(JS::Handle<JSObject *> obj, JS::MutableHandle<JSObject *> mutableObj
 }
 
 FRAGMENT(Root, handle) {
-  JS::Rooted<JSObject *> global(cx, JS::CurrentGlobalOrNull(cx));
+  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
   callee(global, &global);
   (void) global;
 }
 
 FRAGMENT(Root, HeapSlot) {
   JS::Rooted<jsval> plinth(cx, STRING_TO_JSVAL(JS_NewStringCopyZ(cx, "plinth")));
-  JS::Rooted<JSObject *> array(cx, JS_NewArrayObject(cx, plinth));
+  JS::Rooted<JSObject*> array(cx, JS_NewArrayObject(cx, plinth));
 
   breakpoint();
 

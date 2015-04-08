@@ -28,7 +28,7 @@ namespace mozilla {
 class MOZ_STACK_CLASS AutoCxPusher
 {
 public:
-  AutoCxPusher(JSContext *aCx, bool aAllowNull = false);
+  AutoCxPusher(JSContext* aCx, bool aAllowNull = false);
   // XPCShell uses an nsCxPusher, which contains an AutoCxPusher.
   ~AutoCxPusher();
 
@@ -67,13 +67,13 @@ class MOZ_STACK_CLASS nsCxPusher
 {
 public:
   // Returns false if something erroneous happened.
-  bool Push(mozilla::dom::EventTarget *aCurrentTarget);
+  bool Push(mozilla::dom::EventTarget* aCurrentTarget);
   // If nothing has been pushed to stack, this works like Push.
   // Otherwise if context will change, Pop and Push will be called.
-  bool RePush(mozilla::dom::EventTarget *aCurrentTarget);
+  bool RePush(mozilla::dom::EventTarget* aCurrentTarget);
   // If a null JSContext is passed to Push(), that will cause no
   // push to happen and false to be returned.
-  void Push(JSContext *cx);
+  void Push(JSContext* cx);
   // Explicitly push a null JSContext on the the stack
   void PushNull();
 

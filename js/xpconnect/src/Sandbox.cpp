@@ -71,9 +71,9 @@ public:
     virtual ~nsXPCComponents_utils_Sandbox();
 
 private:
-    static nsresult CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
-                                    JSContext *cx, HandleObject obj,
-                                    const CallArgs &args, bool *_retval);
+    static nsresult CallOrConstruct(nsIXPConnectWrappedNative* wrapper,
+                                    JSContext* cx, HandleObject obj,
+                                    const CallArgs& args, bool* _retval);
 };
 
 already_AddRefed<nsIXPCComponents_utils_Sandbox>
@@ -85,7 +85,7 @@ xpc::NewSandboxConstructor()
 }
 
 static bool
-SandboxDump(JSContext *cx, unsigned argc, jsval *vp)
+SandboxDump(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -97,18 +97,18 @@ SandboxDump(JSContext *cx, unsigned argc, jsval *vp)
         return false;
 
     size_t length;
-    const jschar *chars = JS_GetStringCharsZAndLength(cx, str, &length);
+    const jschar* chars = JS_GetStringCharsZAndLength(cx, str, &length);
     if (!chars)
         return false;
 
     nsDependentString wstr(chars, length);
-    char *cstr = ToNewUTF8String(wstr);
+    char* cstr = ToNewUTF8String(wstr);
     if (!cstr)
         return false;
 
 #if defined(XP_MACOSX)
     // Be nice and convert all \r to \n.
-    char *c = cstr, *cEnd = cstr + strlen(cstr);
+    char* c = cstr, *cEnd = cstr + strlen(cstr);
     while (c < cEnd) {
         if (*c == '\r')
             *c = '\n';
@@ -127,7 +127,7 @@ SandboxDump(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-SandboxDebug(JSContext *cx, unsigned argc, jsval *vp)
+SandboxDebug(JSContext* cx, unsigned argc, jsval* vp)
 {
 #ifdef DEBUG
     return SandboxDump(cx, argc, vp);
@@ -137,7 +137,7 @@ SandboxDebug(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-SandboxImport(JSContext *cx, unsigned argc, Value *vp)
+SandboxImport(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -162,7 +162,7 @@ SandboxImport(JSContext *cx, unsigned argc, Value *vp)
         JSAutoCompartment ac(cx, funobj);
 
         RootedValue funval(cx, ObjectValue(*funobj));
-        JSFunction *fun = JS_ValueToFunction(cx, funval);
+        JSFunction* fun = JS_ValueToFunction(cx, funval);
         if (!fun) {
             XPCThrower::Throw(NS_ERROR_INVALID_ARG, cx);
             return false;
@@ -195,23 +195,23 @@ SandboxImport(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-CreateXMLHttpRequest(JSContext *cx, unsigned argc, jsval *vp)
+CreateXMLHttpRequest(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+    nsIScriptSecurityManager* ssm = XPCWrapper::GetSecurityManager();
     if (!ssm)
         return false;
 
-    nsIPrincipal *subjectPrincipal = ssm->GetCxSubjectPrincipal(cx);
+    nsIPrincipal* subjectPrincipal = ssm->GetCxSubjectPrincipal(cx);
     if (!subjectPrincipal)
         return false;
 
     RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
     MOZ_ASSERT(global);
 
-    nsIScriptObjectPrincipal *sop =
-        static_cast<nsIScriptObjectPrincipal *>(xpc_GetJSPrivate(global));
+    nsIScriptObjectPrincipal* sop =
+        static_cast<nsIScriptObjectPrincipal*>(xpc_GetJSPrivate(global));
     nsCOMPtr<nsIGlobalObject> iglobal = do_QueryInterface(sop);
 
     nsCOMPtr<nsIXMLHttpRequest> xhr = new nsXMLHttpRequest();
@@ -227,7 +227,7 @@ CreateXMLHttpRequest(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-IsProxy(JSContext *cx, unsigned argc, jsval *vp)
+IsProxy(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 1) {
@@ -250,7 +250,7 @@ IsProxy(JSContext *cx, unsigned argc, jsval *vp)
 namespace xpc {
 
 bool
-ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleValue voptions,
+ExportFunction(JSContext* cx, HandleValue vfunction, HandleValue vscope, HandleValue voptions,
                MutableHandleValue rval)
 {
     bool hasOptions = !voptions.isUndefined();
@@ -294,7 +294,7 @@ ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleV
         if (JSID_IS_VOID(id)) {
             // If there wasn't any function name specified,
             // copy the name from the function being imported.
-            JSFunction *fun = JS_GetObjectFunction(funObj);
+            JSFunction* fun = JS_GetObjectFunction(funObj);
             RootedString funName(cx, JS_GetFunctionId(fun));
             if (!funName)
                 funName = JS_InternString(cx, "");
@@ -343,7 +343,7 @@ ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleV
  *                         [optional] object options)
  */
 static bool
-ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
+ExportFunction(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 2) {
@@ -357,11 +357,11 @@ ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
 } /* namespace xpc */
 
 static bool
-GetFilenameAndLineNumber(JSContext *cx, nsACString &filename, unsigned &lineno)
+GetFilenameAndLineNumber(JSContext* cx, nsACString& filename, unsigned& lineno)
 {
     JS::AutoFilename scriptFilename;
     if (JS::DescribeScriptedCaller(cx, &scriptFilename, &lineno)) {
-        if (const char *cfilename = scriptFilename.get()) {
+        if (const char* cfilename = scriptFilename.get()) {
             filename.Assign(nsDependentCString(cfilename));
             return true;
         }
@@ -370,7 +370,7 @@ GetFilenameAndLineNumber(JSContext *cx, nsACString &filename, unsigned &lineno)
 }
 
 bool
-xpc::IsReflector(JSObject *obj)
+xpc::IsReflector(JSObject* obj)
 {
     return IS_WN_REFLECTOR(obj) || dom::IsDOMObject(obj);
 }
@@ -380,12 +380,12 @@ enum ForwarderCloneTags {
     SCTAG_REFLECTOR
 };
 
-static JSObject *
-CloneNonReflectorsRead(JSContext *cx, JSStructuredCloneReader *reader, uint32_t tag,
-                       uint32_t data, void *closure)
+static JSObject*
+CloneNonReflectorsRead(JSContext* cx, JSStructuredCloneReader* reader, uint32_t tag,
+                       uint32_t data, void* closure)
 {
     MOZ_ASSERT(closure, "Null pointer!");
-    AutoObjectVector *reflectors = static_cast<AutoObjectVector *>(closure);
+    AutoObjectVector* reflectors = static_cast<AutoObjectVector*>(closure);
     if (tag == SCTAG_REFLECTOR) {
         MOZ_ASSERT(!data);
 
@@ -409,14 +409,14 @@ CloneNonReflectorsRead(JSContext *cx, JSStructuredCloneReader *reader, uint32_t 
 }
 
 static bool
-CloneNonReflectorsWrite(JSContext *cx, JSStructuredCloneWriter *writer,
-                        Handle<JSObject *> obj, void *closure)
+CloneNonReflectorsWrite(JSContext* cx, JSStructuredCloneWriter* writer,
+                        Handle<JSObject*> obj, void* closure)
 {
     MOZ_ASSERT(closure, "Null pointer!");
 
     // We need to maintain a list of reflectors to make sure all these objects
     // are properly rooter. Only their indices will be serialized.
-    AutoObjectVector *reflectors = static_cast<AutoObjectVector *>(closure);
+    AutoObjectVector* reflectors = static_cast<AutoObjectVector*>(closure);
     if (IsReflector(obj)) {
         if (!reflectors->append(obj))
             return false;
@@ -448,7 +448,7 @@ static const JSStructuredCloneCallbacks gForwarderStructuredCloneCallbacks = {
  * clone from.
  */
 static bool
-CloneNonReflectors(JSContext *cx, MutableHandleValue val)
+CloneNonReflectors(JSContext* cx, MutableHandleValue val)
 {
     JSAutoStructuredCloneBuffer buffer;
     AutoObjectVector rootedReflectors(cx);
@@ -484,7 +484,7 @@ CloneNonReflectors(JSContext *cx, MutableHandleValue val)
 namespace xpc {
 
 bool
-EvalInWindow(JSContext *cx, const nsAString &source, HandleObject scope, MutableHandleValue rval)
+EvalInWindow(JSContext* cx, const nsAString& source, HandleObject scope, MutableHandleValue rval)
 {
     // If we cannot unwrap we must not eval in it.
     RootedObject targetScope(cx, CheckedUnwrap(scope));
@@ -524,7 +524,7 @@ EvalInWindow(JSContext *cx, const nsAString &source, HandleObject scope, Mutable
     {
         // CompileOptions must be created from the context
         // we will execute this script in.
-        JSContext *wndCx = context->GetNativeContext();
+        JSContext* wndCx = context->GetNativeContext();
         AutoCxPusher pusher(wndCx);
         JS::CompileOptions compileOptions(wndCx);
         compileOptions.setFileAndLine(filename.get(), lineNo);
@@ -582,7 +582,7 @@ EvalInWindow(JSContext *cx, const nsAString &source, HandleObject scope, Mutable
  *                    object window)
  */
 static bool
-EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
+EvalInWindow(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 2) {
@@ -608,7 +608,7 @@ EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-CreateObjectIn(JSContext *cx, unsigned argc, jsval *vp)
+CreateObjectIn(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 1) {
@@ -634,7 +634,7 @@ CreateObjectIn(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-CloneInto(JSContext *cx, unsigned argc, jsval *vp)
+CloneInto(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 2) {
@@ -649,31 +649,31 @@ CloneInto(JSContext *cx, unsigned argc, jsval *vp)
 } /* namespace xpc */
 
 static bool
-sandbox_enumerate(JSContext *cx, HandleObject obj)
+sandbox_enumerate(JSContext* cx, HandleObject obj)
 {
     return JS_EnumerateStandardClasses(cx, obj);
 }
 
 static bool
-sandbox_resolve(JSContext *cx, HandleObject obj, HandleId id)
+sandbox_resolve(JSContext* cx, HandleObject obj, HandleId id)
 {
     bool resolved;
     return JS_ResolveStandardClass(cx, obj, id, &resolved);
 }
 
 static void
-sandbox_finalize(JSFreeOp *fop, JSObject *obj)
+sandbox_finalize(JSFreeOp* fop, JSObject* obj)
 {
-    nsIScriptObjectPrincipal *sop =
-        static_cast<nsIScriptObjectPrincipal *>(xpc_GetJSPrivate(obj));
+    nsIScriptObjectPrincipal* sop =
+        static_cast<nsIScriptObjectPrincipal*>(xpc_GetJSPrivate(obj));
     MOZ_ASSERT(sop);
-    static_cast<SandboxPrivate *>(sop)->ForgetGlobalObject();
+    static_cast<SandboxPrivate*>(sop)->ForgetGlobalObject();
     NS_IF_RELEASE(sop);
     DestroyProtoAndIfaceCache(obj);
 }
 
 static bool
-sandbox_convert(JSContext *cx, HandleObject obj, JSType type, MutableHandleValue vp)
+sandbox_convert(JSContext* cx, HandleObject obj, JSType type, MutableHandleValue vp)
 {
     if (type == JSTYPE_OBJECT) {
         vp.set(OBJECT_TO_JSVAL(obj));
@@ -701,7 +701,7 @@ static const JSFunctionSpec SandboxFunctions[] = {
 };
 
 bool
-xpc::IsSandbox(JSObject *obj)
+xpc::IsSandbox(JSObject* obj)
 {
     return GetObjectJSClass(obj) == &SandboxClass;
 }
@@ -735,15 +735,15 @@ NS_IMPL_RELEASE(nsXPCComponents_utils_Sandbox)
 xpc::SandboxProxyHandler xpc::sandboxProxyHandler;
 
 bool
-xpc::IsSandboxPrototypeProxy(JSObject *obj)
+xpc::IsSandboxPrototypeProxy(JSObject* obj)
 {
     return js::IsProxy(obj) &&
            js::GetProxyHandler(obj) == &xpc::sandboxProxyHandler;
 }
 
 bool
-xpc::SandboxCallableProxyHandler::call(JSContext *cx, JS::Handle<JSObject*> proxy,
-                                       const JS::CallArgs &args)
+xpc::SandboxCallableProxyHandler::call(JSContext* cx, JS::Handle<JSObject*> proxy,
+                                       const JS::CallArgs& args)
 {
     // We forward the call to our underlying callable.
 
@@ -803,7 +803,7 @@ xpc::SandboxCallableProxyHandler xpc::sandboxCallableProxyHandler;
  * "this" we will instead call it with newThisObj as the this.
  */
 static JSObject*
-WrapCallable(JSContext *cx, JSObject *callable, JSObject *sandboxProtoProxy)
+WrapCallable(JSContext* cx, JSObject* callable, JSObject* sandboxProtoProxy)
 {
     MOZ_ASSERT(JS_ObjectIsCallable(cx, callable));
     // Our proxy is wrapping the callable.  So we need to use the
@@ -822,7 +822,7 @@ WrapCallable(JSContext *cx, JSObject *callable, JSObject *sandboxProtoProxy)
 }
 
 template<typename Op>
-bool BindPropertyOp(JSContext *cx, Op &op, JSPropertyDescriptor *desc, HandleId id,
+bool BindPropertyOp(JSContext* cx, Op& op, JSPropertyDescriptor* desc, HandleId id,
                     unsigned attrFlag, HandleObject sandboxProtoProxy)
 {
     if (!op) {
@@ -832,7 +832,7 @@ bool BindPropertyOp(JSContext *cx, Op &op, JSPropertyDescriptor *desc, HandleId 
     RootedObject func(cx);
     if (desc->attrs & attrFlag) {
         // Already an object
-        func = JS_FUNC_TO_DATA_PTR(JSObject *, op);
+        func = JS_FUNC_TO_DATA_PTR(JSObject*, op);
     } else {
         // We have an actual property op.  For getters, we use 0
         // args, for setters we use 1 arg.
@@ -851,12 +851,12 @@ bool BindPropertyOp(JSContext *cx, Op &op, JSPropertyDescriptor *desc, HandleId 
 }
 
 extern bool
-XPC_WN_Helper_GetProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp);
+XPC_WN_Helper_GetProperty(JSContext* cx, HandleObject obj, HandleId id, MutableHandleValue vp);
 extern bool
-XPC_WN_Helper_SetProperty(JSContext *cx, HandleObject obj, HandleId id, bool strict, MutableHandleValue vp);
+XPC_WN_Helper_SetProperty(JSContext* cx, HandleObject obj, HandleId id, bool strict, MutableHandleValue vp);
 
 bool
-xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx,
+xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext* cx,
                                                 JS::Handle<JSObject*> proxy,
                                                 JS::Handle<jsid> id,
                                                 JS::MutableHandle<JSPropertyDescriptor> desc)
@@ -902,7 +902,7 @@ xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx,
 }
 
 bool
-xpc::SandboxProxyHandler::getOwnPropertyDescriptor(JSContext *cx,
+xpc::SandboxProxyHandler::getOwnPropertyDescriptor(JSContext* cx,
                                                    JS::Handle<JSObject*> proxy,
                                                    JS::Handle<jsid> id,
                                                    JS::MutableHandle<JSPropertyDescriptor> desc)
@@ -922,20 +922,20 @@ xpc::SandboxProxyHandler::getOwnPropertyDescriptor(JSContext *cx,
  */
 
 bool
-xpc::SandboxProxyHandler::has(JSContext *cx, JS::Handle<JSObject*> proxy,
-                              JS::Handle<jsid> id, bool *bp)
+xpc::SandboxProxyHandler::has(JSContext* cx, JS::Handle<JSObject*> proxy,
+                              JS::Handle<jsid> id, bool* bp)
 {
     return BaseProxyHandler::has(cx, proxy, id, bp);
 }
 bool
-xpc::SandboxProxyHandler::hasOwn(JSContext *cx, JS::Handle<JSObject*> proxy,
-                                 JS::Handle<jsid> id, bool *bp)
+xpc::SandboxProxyHandler::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
+                                 JS::Handle<jsid> id, bool* bp)
 {
     return BaseProxyHandler::hasOwn(cx, proxy, id, bp);
 }
 
 bool
-xpc::SandboxProxyHandler::get(JSContext *cx, JS::Handle<JSObject*> proxy,
+xpc::SandboxProxyHandler::get(JSContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<JSObject*> receiver,
                               JS::Handle<jsid> id,
                               JS::MutableHandle<Value> vp)
@@ -944,7 +944,7 @@ xpc::SandboxProxyHandler::get(JSContext *cx, JS::Handle<JSObject*> proxy,
 }
 
 bool
-xpc::SandboxProxyHandler::set(JSContext *cx, JS::Handle<JSObject*> proxy,
+xpc::SandboxProxyHandler::set(JSContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<JSObject*> receiver,
                               JS::Handle<jsid> id,
                               bool strict,
@@ -954,21 +954,21 @@ xpc::SandboxProxyHandler::set(JSContext *cx, JS::Handle<JSObject*> proxy,
 }
 
 bool
-xpc::SandboxProxyHandler::keys(JSContext *cx, JS::Handle<JSObject*> proxy,
-                               AutoIdVector &props)
+xpc::SandboxProxyHandler::keys(JSContext* cx, JS::Handle<JSObject*> proxy,
+                               AutoIdVector& props)
 {
     return BaseProxyHandler::keys(cx, proxy, props);
 }
 
 bool
-xpc::SandboxProxyHandler::iterate(JSContext *cx, JS::Handle<JSObject*> proxy,
+xpc::SandboxProxyHandler::iterate(JSContext* cx, JS::Handle<JSObject*> proxy,
                                   unsigned flags, JS::MutableHandle<Value> vp)
 {
     return BaseProxyHandler::iterate(cx, proxy, flags, vp);
 }
 
 bool
-xpc::GlobalProperties::Parse(JSContext *cx, JS::HandleObject obj)
+xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj)
 {
     MOZ_ASSERT(JS_IsArrayObject(cx, obj));
 
@@ -1011,7 +1011,7 @@ xpc::GlobalProperties::Parse(JSContext *cx, JS::HandleObject obj)
 }
 
 bool
-xpc::GlobalProperties::Define(JSContext *cx, JS::HandleObject obj)
+xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj)
 {
     if (Promise && !dom::PromiseBinding::GetConstructorObject(cx, obj))
         return false;
@@ -1048,7 +1048,7 @@ xpc::GlobalProperties::Define(JSContext *cx, JS::HandleObject obj)
 }
 
 nsresult
-xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prinOrSop,
+xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp, nsISupports* prinOrSop,
                          SandboxOptions& options)
 {
     // Create the sandbox global object
@@ -1120,8 +1120,8 @@ xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prin
             }
 
             // Now check what sort of thing we've got in |proto|
-            JSObject *unwrappedProto = js::UncheckedUnwrap(options.proto, false);
-            const js::Class *unwrappedClass = js::GetObjectClass(unwrappedProto);
+            JSObject* unwrappedProto = js::UncheckedUnwrap(options.proto, false);
+            const js::Class* unwrappedClass = js::GetObjectClass(unwrappedProto);
             if (IS_WN_CLASS(unwrappedClass) ||
                 mozilla::dom::IsDOMClass(Jsvalify(unwrappedClass))) {
                 // Wrap it up in a proxy that will do the right thing in terms
@@ -1197,8 +1197,8 @@ xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prin
  *           in JSValPtr vp);
  */
 NS_IMETHODIMP
-nsXPCComponents_utils_Sandbox::Call(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                                    JSObject *objArg, const CallArgs &args, bool *_retval)
+nsXPCComponents_utils_Sandbox::Call(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
+                                    JSObject* objArg, const CallArgs& args, bool* _retval)
 {
     RootedObject obj(cx, objArg);
     return CallOrConstruct(wrapper, cx, obj, args, _retval);
@@ -1212,8 +1212,8 @@ nsXPCComponents_utils_Sandbox::Call(nsIXPConnectWrappedNative *wrapper, JSContex
  *                in JSValPtr vp);
  */
 NS_IMETHODIMP
-nsXPCComponents_utils_Sandbox::Construct(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                                         JSObject *objArg, const CallArgs &args, bool *_retval)
+nsXPCComponents_utils_Sandbox::Construct(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
+                                         JSObject* objArg, const CallArgs& args, bool* _retval)
 {
     RootedObject obj(cx, objArg);
     return CallOrConstruct(wrapper, cx, obj, args, _retval);
@@ -1224,7 +1224,7 @@ nsXPCComponents_utils_Sandbox::Construct(nsIXPConnectWrappedNative *wrapper, JSC
  * we use the related Codebase Principal for the sandbox.
  */
 bool
-ParsePrincipal(JSContext *cx, HandleString codebase, nsIPrincipal **principal)
+ParsePrincipal(JSContext* cx, HandleString codebase, nsIPrincipal** principal)
 {
     MOZ_ASSERT(principal);
     MOZ_ASSERT(codebase);
@@ -1257,7 +1257,7 @@ ParsePrincipal(JSContext *cx, HandleString codebase, nsIPrincipal **principal)
  * a script object principal (Document, Window).
  */
 static bool
-GetPrincipalOrSOP(JSContext *cx, HandleObject from, nsISupports **out)
+GetPrincipalOrSOP(JSContext* cx, HandleObject from, nsISupports** out)
 {
     MOZ_ASSERT(out);
     *out = nullptr;
@@ -1282,7 +1282,7 @@ GetPrincipalOrSOP(JSContext *cx, HandleObject from, nsISupports **out)
  * format or actual objects (see GetPrincipalOrSOP)
  */
 static bool
-GetExpandedPrincipal(JSContext *cx, HandleObject arrayObj, nsIExpandedPrincipal **out)
+GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj, nsIExpandedPrincipal** out)
 {
     MOZ_ASSERT(out);
     uint32_t length;
@@ -1300,7 +1300,7 @@ GetExpandedPrincipal(JSContext *cx, HandleObject arrayObj, nsIExpandedPrincipal 
 
     nsTArray< nsCOMPtr<nsIPrincipal> > allowedDomains(length);
     allowedDomains.SetLength(length);
-    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+    nsIScriptSecurityManager* ssm = XPCWrapper::GetSecurityManager();
     NS_ENSURE_TRUE(ssm, false);
 
     for (uint32_t i = 0; i < length; ++i) {
@@ -1350,7 +1350,7 @@ GetExpandedPrincipal(JSContext *cx, HandleObject arrayObj, nsIExpandedPrincipal 
  * Helper that tries to get a property from the options object.
  */
 bool
-OptionsBase::ParseValue(const char *name, MutableHandleValue prop, bool *aFound)
+OptionsBase::ParseValue(const char* name, MutableHandleValue prop, bool* aFound)
 {
     bool found;
     bool ok = JS_HasProperty(mCx, mObject, name, &found);
@@ -1369,7 +1369,7 @@ OptionsBase::ParseValue(const char *name, MutableHandleValue prop, bool *aFound)
  * Helper that tries to get a boolean property from the options object.
  */
 bool
-OptionsBase::ParseBoolean(const char *name, bool *prop)
+OptionsBase::ParseBoolean(const char* name, bool* prop)
 {
     MOZ_ASSERT(prop);
     RootedValue value(mCx);
@@ -1393,7 +1393,7 @@ OptionsBase::ParseBoolean(const char *name, bool *prop)
  * Helper that tries to get an object property from the options object.
  */
 bool
-OptionsBase::ParseObject(const char *name, MutableHandleObject prop)
+OptionsBase::ParseObject(const char* name, MutableHandleObject prop)
 {
     RootedValue value(mCx);
     bool found;
@@ -1415,7 +1415,7 @@ OptionsBase::ParseObject(const char *name, MutableHandleObject prop)
  * Helper that tries to get a string property from the options object.
  */
 bool
-OptionsBase::ParseString(const char *name, nsCString &prop)
+OptionsBase::ParseString(const char* name, nsCString& prop)
 {
     RootedValue value(mCx);
     bool found;
@@ -1430,7 +1430,7 @@ OptionsBase::ParseString(const char *name, nsCString &prop)
         return false;
     }
 
-    char *tmp = JS_EncodeString(mCx, value.toString());
+    char* tmp = JS_EncodeString(mCx, value.toString());
     NS_ENSURE_TRUE(tmp, false);
     prop.Adopt(tmp, strlen(tmp));
     return true;
@@ -1440,7 +1440,7 @@ OptionsBase::ParseString(const char *name, nsCString &prop)
  * Helper that tries to get a string property from the options object.
  */
 bool
-OptionsBase::ParseString(const char *name, nsString &prop)
+OptionsBase::ParseString(const char* name, nsString& prop)
 {
     RootedValue value(mCx);
     bool found;
@@ -1465,7 +1465,7 @@ OptionsBase::ParseString(const char *name, nsString &prop)
  * Helper that tries to get jsid property from the options object.
  */
 bool
-OptionsBase::ParseId(const char *name, MutableHandleId prop)
+OptionsBase::ParseId(const char* name, MutableHandleId prop)
 {
     RootedValue value(mCx);
     bool found;
@@ -1524,7 +1524,7 @@ SandboxOptions::Parse()
 }
 
 static nsresult
-AssembleSandboxMemoryReporterName(JSContext *cx, nsCString &sandboxName)
+AssembleSandboxMemoryReporterName(JSContext* cx, nsCString& sandboxName)
 {
     // Use a default name when the caller did not provide a sandboxName.
     if (sandboxName.IsEmpty())
@@ -1532,7 +1532,7 @@ AssembleSandboxMemoryReporterName(JSContext *cx, nsCString &sandboxName)
 
     nsXPConnect* xpc = nsXPConnect::XPConnect();
     // Get the xpconnect native call context.
-    nsAXPCNativeCallContext *cc = nullptr;
+    nsAXPCNativeCallContext* cc = nullptr;
     xpc->GetCurrentNativeCallContext(&cc);
     NS_ENSURE_TRUE(cc, NS_ERROR_INVALID_ARG);
 
@@ -1559,9 +1559,9 @@ AssembleSandboxMemoryReporterName(JSContext *cx, nsCString &sandboxName)
 
 // static
 nsresult
-nsXPCComponents_utils_Sandbox::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
-                                               JSContext *cx, HandleObject obj,
-                                               const CallArgs &args, bool *_retval)
+nsXPCComponents_utils_Sandbox::CallOrConstruct(nsIXPConnectWrappedNative* wrapper,
+                                               JSContext* cx, HandleObject obj,
+                                               const CallArgs& args, bool* _retval)
 {
     if (args.length() < 1)
         return ThrowAndFail(NS_ERROR_XPC_NOT_ENOUGH_ARGS, cx, _retval);
@@ -1627,7 +1627,7 @@ nsXPCComponents_utils_Sandbox::CallOrConstruct(nsIXPConnectWrappedNative *wrappe
 class ContextHolder : public nsIScriptObjectPrincipal
 {
 public:
-    ContextHolder(JSContext *aOuterCx, HandleObject aSandbox, nsIPrincipal *aPrincipal);
+    ContextHolder(JSContext* aOuterCx, HandleObject aSandbox, nsIPrincipal* aPrincipal);
     virtual ~ContextHolder();
 
     JSContext * GetJSContext()
@@ -1646,9 +1646,9 @@ private:
 
 NS_IMPL_ISUPPORTS(ContextHolder, nsIScriptObjectPrincipal)
 
-ContextHolder::ContextHolder(JSContext *aOuterCx,
+ContextHolder::ContextHolder(JSContext* aOuterCx,
                              HandleObject aSandbox,
-                             nsIPrincipal *aPrincipal)
+                             nsIPrincipal* aPrincipal)
     : mJSContext(JS_NewContext(JS_GetRuntime(aOuterCx), 1024)),
       mPrincipal(aPrincipal)
 {
@@ -1672,7 +1672,7 @@ ContextHolder::~ContextHolder()
 }
 
 nsresult
-xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& source,
+xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg, const nsAString& source,
                    const nsACString& filename, int32_t lineNo,
                    JSVersion jsVersion, bool returnStringOnly, MutableHandleValue rval)
 {
@@ -1685,7 +1685,7 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
         return NS_ERROR_INVALID_ARG;
     }
 
-    nsIScriptObjectPrincipal *sop =
+    nsIScriptObjectPrincipal* sop =
         (nsIScriptObjectPrincipal*)xpc_GetJSPrivate(sandbox);
     MOZ_ASSERT(sop, "Invalid sandbox passed");
     nsCOMPtr<nsIPrincipal> prin = sop->GetPrincipal();
@@ -1709,7 +1709,7 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
         // NB: As soon as the RefPtr goes away, the cx goes away. So declare
         // it first so that it disappears last.
         nsRefPtr<ContextHolder> sandcxHolder = new ContextHolder(cx, sandbox, prin);
-        JSContext *sandcx = sandcxHolder->GetJSContext();
+        JSContext* sandcx = sandcxHolder->GetJSContext();
         if (!sandcx) {
             JS_ReportError(cx, "Can't prepare context for evalInSandbox");
             return NS_ERROR_OUT_OF_MEMORY;
@@ -1726,7 +1726,7 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
         ok = JS::Evaluate(sandcx, rootedSandbox, options,
                           PromiseFlatString(source).get(), source.Length(), &v);
         if (ok && returnStringOnly && !v.isUndefined()) {
-            JSString *str = ToString(sandcx, v);
+            JSString* str = ToString(sandcx, v);
             ok = !!str;
             v = ok ? JS::StringValue(str) : JS::UndefinedValue();
         }
@@ -1738,7 +1738,7 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
             if (returnStringOnly) {
                 // The caller asked for strings only, convert the
                 // exception into a string.
-                JSString *str = ToString(sandcx, exn);
+                JSString* str = ToString(sandcx, exn);
                 exn = str ? JS::StringValue(str) : JS::UndefinedValue();
             }
         }
@@ -1774,7 +1774,7 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
 }
 
 static bool
-NonCloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
+NonCloningFunctionForwarder(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -1793,7 +1793,7 @@ NonCloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
  * the |this| argument.
  */
 static bool
-CloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
+CloningFunctionForwarder(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -1823,24 +1823,24 @@ CloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-xpc::NewFunctionForwarder(JSContext *cx, HandleId id, HandleObject callable, bool doclone,
+xpc::NewFunctionForwarder(JSContext* cx, HandleId id, HandleObject callable, bool doclone,
                           MutableHandleValue vp)
 {
-    JSFunction *fun = js::NewFunctionByIdWithReserved(cx, doclone ? CloningFunctionForwarder :
+    JSFunction* fun = js::NewFunctionByIdWithReserved(cx, doclone ? CloningFunctionForwarder :
                                                                     NonCloningFunctionForwarder,
                                                                     0,0, JS::CurrentGlobalOrNull(cx), id);
 
     if (!fun)
         return false;
 
-    JSObject *funobj = JS_GetFunctionObject(fun);
+    JSObject* funobj = JS_GetFunctionObject(fun);
     js::SetFunctionNativeReserved(funobj, 0, ObjectValue(*callable));
     vp.setObject(*funobj);
     return true;
 }
 
 bool
-xpc::NewFunctionForwarder(JSContext *cx, HandleObject callable, bool doclone,
+xpc::NewFunctionForwarder(JSContext* cx, HandleObject callable, bool doclone,
                           MutableHandleValue vp)
 {
     RootedId emptyId(cx);
@@ -1853,7 +1853,7 @@ xpc::NewFunctionForwarder(JSContext *cx, HandleObject callable, bool doclone,
 
 
 nsresult
-xpc::GetSandboxMetadata(JSContext *cx, HandleObject sandbox, MutableHandleValue rval)
+xpc::GetSandboxMetadata(JSContext* cx, HandleObject sandbox, MutableHandleValue rval)
 {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(IsSandbox(sandbox));
@@ -1872,7 +1872,7 @@ xpc::GetSandboxMetadata(JSContext *cx, HandleObject sandbox, MutableHandleValue 
 }
 
 nsresult
-xpc::SetSandboxMetadata(JSContext *cx, HandleObject sandbox, HandleValue metadataArg)
+xpc::SetSandboxMetadata(JSContext* cx, HandleObject sandbox, HandleValue metadataArg)
 {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(IsSandbox(sandbox));

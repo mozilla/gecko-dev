@@ -40,7 +40,7 @@ namespace JSC {
 
 void ARMAssembler::patchConstantPoolLoad(void* loadAddr, void* constPoolAddr)
 {
-    ARMWord *ldr = reinterpret_cast<ARMWord*>(loadAddr);
+    ARMWord* ldr = reinterpret_cast<ARMWord*>(loadAddr);
     ARMWord diff = reinterpret_cast<ARMWord*>(constPoolAddr) - ldr;
     ARMWord index = (*ldr & 0xfff) >> 1;
 
@@ -615,7 +615,7 @@ void ARMAssembler::baseIndexFloatTransfer(bool isLoad, bool isDouble, FPRegister
 // already contain the code from m_buffer.
 inline void ARMAssembler::fixUpOffsets(void * buffer)
 {
-    char * data = reinterpret_cast<char *>(buffer);
+    char * data = reinterpret_cast<char*>(buffer);
     for (Jumps::Iterator iter = m_jumps.begin(); iter != m_jumps.end(); ++iter) {
         // The last bit is set if the constant must be placed on constant pool.
         int pos = (*iter) & (~0x1);
@@ -640,7 +640,7 @@ inline void ARMAssembler::fixUpOffsets(void * buffer)
     }
 }
 
-void* ARMAssembler::executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool **poolp, CodeKind kind)
+void* ARMAssembler::executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool** poolp, CodeKind kind)
 {
     // 64-bit alignment is required for next constant pool and JIT code as well
     m_buffer.flushWithoutBarrier(true);

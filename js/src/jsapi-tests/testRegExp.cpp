@@ -48,7 +48,7 @@ BEGIN_TEST(testGetRegExpSource)
 
     EVAL("/foopy/", &val);
     obj = JSVAL_TO_OBJECT(val);
-    JSString *source = JS_GetRegExpSource(cx, obj);
+    JSString* source = JS_GetRegExpSource(cx, obj);
     CHECK(JS_FlatStringEqualsAscii(JS_ASSERT_STRING_IS_FLAT(source), "foopy"));
 
     return true;

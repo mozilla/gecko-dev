@@ -20,18 +20,18 @@
 namespace js {
 
 template <AllowGC allowGC>
-static MOZ_ALWAYS_INLINE JSInlineString *
-NewFatInlineString(ThreadSafeContext *cx, JS::Latin1Chars chars)
+static MOZ_ALWAYS_INLINE JSInlineString*
+NewFatInlineString(ThreadSafeContext* cx, JS::Latin1Chars chars)
 {
     size_t len = chars.length();
     JS_ASSERT(JSFatInlineString::lengthFits(len));
-    JSInlineString *str = JSInlineString::lengthFits(len)
+    JSInlineString* str = JSInlineString::lengthFits(len)
                           ? JSInlineString::new_<allowGC>(cx)
                           : JSFatInlineString::new_<allowGC>(cx);
     if (!str)
         return nullptr;
 
-    jschar *p = str->init(len);
+    jschar* p = str->init(len);
     for (size_t i = 0; i < len; ++i)
         p[i] = static_cast<jschar>(chars[i]);
     p[len] = '\0';
@@ -39,8 +39,8 @@ NewFatInlineString(ThreadSafeContext *cx, JS::Latin1Chars chars)
 }
 
 template <AllowGC allowGC>
-static MOZ_ALWAYS_INLINE JSInlineString *
-NewFatInlineString(ExclusiveContext *cx, JS::TwoByteChars chars)
+static MOZ_ALWAYS_INLINE JSInlineString*
+NewFatInlineString(ExclusiveContext* cx, JS::TwoByteChars chars)
 {
     size_t len = chars.length();
 
@@ -49,32 +49,32 @@ NewFatInlineString(ExclusiveContext *cx, JS::TwoByteChars chars)
      * many get here (for one, Atomize is catching them).
      */
     JS_ASSERT(JSFatInlineString::lengthFits(len));
-    JSInlineString *str = JSInlineString::lengthFits(len)
+    JSInlineString* str = JSInlineString::lengthFits(len)
                           ? JSInlineString::new_<allowGC>(cx)
                           : JSFatInlineString::new_<allowGC>(cx);
     if (!str)
         return nullptr;
 
-    jschar *storage = str->init(len);
+    jschar* storage = str->init(len);
     mozilla::PodCopy(storage, chars.start().get(), len);
     storage[len] = 0;
     return str;
 }
 
 static inline void
-StringWriteBarrierPost(js::ThreadSafeContext *maybecx, JSString **strp)
+StringWriteBarrierPost(js::ThreadSafeContext* maybecx, JSString** strp)
 {
 }
 
 static inline void
-StringWriteBarrierPostRemove(js::ThreadSafeContext *maybecx, JSString **strp)
+StringWriteBarrierPostRemove(js::ThreadSafeContext* maybecx, JSString** strp)
 {
 }
 
 } /* namespace js */
 
 MOZ_ALWAYS_INLINE bool
-JSString::validateLength(js::ThreadSafeContext *maybecx, size_t length)
+JSString::validateLength(js::ThreadSafeContext* maybecx, size_t length)
 {
     if (MOZ_UNLIKELY(length > JSString::MAX_LENGTH)) {
         js_ReportAllocationOverflow(maybecx);
@@ -85,7 +85,7 @@ JSString::validateLength(js::ThreadSafeContext *maybecx, size_t length)
 }
 
 MOZ_ALWAYS_INLINE void
-JSRope::init(js::ThreadSafeContext *cx, JSString *left, JSString *right, size_t length)
+JSRope::init(js::ThreadSafeContext* cx, JSString* left, JSString* right, size_t length)
 {
     d.lengthAndFlags = buildLengthAndFlags(length, ROPE_FLAGS);
     d.u1.left = left;
@@ -95,15 +95,15 @@ JSRope::init(js::ThreadSafeContext *cx, JSString *left, JSString *right, size_t 
 }
 
 template <js::AllowGC allowGC>
-MOZ_ALWAYS_INLINE JSRope *
-JSRope::new_(js::ThreadSafeContext *cx,
+MOZ_ALWAYS_INLINE JSRope*
+JSRope::new_(js::ThreadSafeContext* cx,
              typename js::MaybeRooted<JSString*, allowGC>::HandleType left,
              typename js::MaybeRooted<JSString*, allowGC>::HandleType right,
              size_t length)
 {
     if (!validateLength(cx, length))
         return nullptr;
-    JSRope *str = (JSRope *) js_NewGCString<allowGC>(cx);
+    JSRope* str = (JSRope*) js_NewGCString<allowGC>(cx);
     if (!str)
         return nullptr;
     str->init(cx, left, right, length);
@@ -111,26 +111,26 @@ JSRope::new_(js::ThreadSafeContext *cx,
 }
 
 inline void
-JSRope::markChildren(JSTracer *trc)
+JSRope::markChildren(JSTracer* trc)
 {
     js::gc::MarkStringUnbarriered(trc, &d.u1.left, "left child");
     js::gc::MarkStringUnbarriered(trc, &d.s.u2.right, "right child");
 }
 
 MOZ_ALWAYS_INLINE void
-JSDependentString::init(js::ThreadSafeContext *cx, JSLinearString *base, const jschar *chars,
+JSDependentString::init(js::ThreadSafeContext* cx, JSLinearString* base, const jschar* chars,
                         size_t length)
 {
     JS_ASSERT(!js::IsPoisonedPtr(base));
     d.lengthAndFlags = buildLengthAndFlags(length, DEPENDENT_FLAGS);
     d.u1.chars = chars;
     d.s.u2.base = base;
-    js::StringWriteBarrierPost(cx, reinterpret_cast<JSString **>(&d.s.u2.base));
+    js::StringWriteBarrierPost(cx, reinterpret_cast<JSString**>(&d.s.u2.base));
 }
 
-MOZ_ALWAYS_INLINE JSLinearString *
-JSDependentString::new_(js::ExclusiveContext *cx,
-                        JSLinearString *baseArg, const jschar *chars, size_t length)
+MOZ_ALWAYS_INLINE JSLinearString*
+JSDependentString::new_(js::ExclusiveContext* cx,
+                        JSLinearString* baseArg, const jschar* chars, size_t length)
 {
     /* Try to avoid long chains of dependent strings. */
     while (baseArg->isDependent())
@@ -143,7 +143,7 @@ JSDependentString::new_(js::ExclusiveContext *cx,
      * of dependent or undepended strings kept alive by our base pointer.
      */
 #ifdef DEBUG
-    for (JSLinearString *b = baseArg; ; b = b->base()) {
+    for (JSLinearString* b = baseArg; ; b = b->base()) {
         if (chars >= b->chars() && chars < b->chars() + b->length() &&
             length <= b->length() - (chars - b->chars()))
         {
@@ -160,7 +160,7 @@ JSDependentString::new_(js::ExclusiveContext *cx,
     if (JSFatInlineString::lengthFits(length))
         return js::NewFatInlineString<js::CanGC>(cx, JS::TwoByteChars(chars, length));
 
-    JSDependentString *str = (JSDependentString *)js_NewGCString<js::NoGC>(cx);
+    JSDependentString* str = (JSDependentString*)js_NewGCString<js::NoGC>(cx);
     if (str) {
         str->init(cx, baseArg, chars, length);
         return str;
@@ -168,7 +168,7 @@ JSDependentString::new_(js::ExclusiveContext *cx,
 
     JS::Rooted<JSLinearString*> base(cx, baseArg);
 
-    str = (JSDependentString *)js_NewGCString<js::CanGC>(cx);
+    str = (JSDependentString*)js_NewGCString<js::CanGC>(cx);
     if (!str)
         return nullptr;
     str->init(cx, base, chars, length);
@@ -176,36 +176,36 @@ JSDependentString::new_(js::ExclusiveContext *cx,
 }
 
 inline void
-JSString::markBase(JSTracer *trc)
+JSString::markBase(JSTracer* trc)
 {
     JS_ASSERT(hasBase());
     js::gc::MarkStringUnbarriered(trc, &d.s.u2.base, "base");
 }
 
 MOZ_ALWAYS_INLINE void
-JSFlatString::init(const jschar *chars, size_t length)
+JSFlatString::init(const jschar* chars, size_t length)
 {
     d.lengthAndFlags = buildLengthAndFlags(length, FIXED_FLAGS);
     d.u1.chars = chars;
 }
 
 template <js::AllowGC allowGC>
-MOZ_ALWAYS_INLINE JSFlatString *
-JSFlatString::new_(js::ThreadSafeContext *cx, const jschar *chars, size_t length)
+MOZ_ALWAYS_INLINE JSFlatString*
+JSFlatString::new_(js::ThreadSafeContext* cx, const jschar* chars, size_t length)
 {
     JS_ASSERT(chars[length] == jschar(0));
 
     if (!validateLength(cx, length))
         return nullptr;
-    JSFlatString *str = (JSFlatString *)js_NewGCString<allowGC>(cx);
+    JSFlatString* str = (JSFlatString*)js_NewGCString<allowGC>(cx);
     if (!str)
         return nullptr;
     str->init(chars, length);
     return str;
 }
 
-inline js::PropertyName *
-JSFlatString::toPropertyName(JSContext *cx)
+inline js::PropertyName*
+JSFlatString::toPropertyName(JSContext* cx)
 {
 #ifdef DEBUG
     uint32_t dummy;
@@ -213,20 +213,20 @@ JSFlatString::toPropertyName(JSContext *cx)
 #endif
     if (isAtom())
         return asAtom().asPropertyName();
-    JSAtom *atom = js::AtomizeString(cx, this);
+    JSAtom* atom = js::AtomizeString(cx, this);
     if (!atom)
         return nullptr;
     return atom->asPropertyName();
 }
 
 template <js::AllowGC allowGC>
-MOZ_ALWAYS_INLINE JSInlineString *
-JSInlineString::new_(js::ThreadSafeContext *cx)
+MOZ_ALWAYS_INLINE JSInlineString*
+JSInlineString::new_(js::ThreadSafeContext* cx)
 {
-    return (JSInlineString *)js_NewGCString<allowGC>(cx);
+    return (JSInlineString*)js_NewGCString<allowGC>(cx);
 }
 
-MOZ_ALWAYS_INLINE jschar *
+MOZ_ALWAYS_INLINE jschar*
 JSInlineString::init(size_t length)
 {
     d.lengthAndFlags = buildLengthAndFlags(length, FIXED_FLAGS);
@@ -243,14 +243,14 @@ JSInlineString::resetLength(size_t length)
 }
 
 template <js::AllowGC allowGC>
-MOZ_ALWAYS_INLINE JSFatInlineString *
-JSFatInlineString::new_(js::ThreadSafeContext *cx)
+MOZ_ALWAYS_INLINE JSFatInlineString*
+JSFatInlineString::new_(js::ThreadSafeContext* cx)
 {
     return js_NewGCFatInlineString<allowGC>(cx);
 }
 
 MOZ_ALWAYS_INLINE void
-JSExternalString::init(const jschar *chars, size_t length, const JSStringFinalizer *fin)
+JSExternalString::init(const jschar* chars, size_t length, const JSStringFinalizer* fin)
 {
     JS_ASSERT(fin);
     JS_ASSERT(fin->finalize);
@@ -259,15 +259,15 @@ JSExternalString::init(const jschar *chars, size_t length, const JSStringFinaliz
     d.s.u2.externalFinalizer = fin;
 }
 
-MOZ_ALWAYS_INLINE JSExternalString *
-JSExternalString::new_(JSContext *cx, const jschar *chars, size_t length,
-                       const JSStringFinalizer *fin)
+MOZ_ALWAYS_INLINE JSExternalString*
+JSExternalString::new_(JSContext* cx, const jschar* chars, size_t length,
+                       const JSStringFinalizer* fin)
 {
     JS_ASSERT(chars[length] == 0);
 
     if (!validateLength(cx, length))
         return nullptr;
-    JSExternalString *str = js_NewGCExternalString(cx);
+    JSExternalString* str = js_NewGCExternalString(cx);
     if (!str)
         return nullptr;
     str->init(chars, length, fin);
@@ -275,8 +275,8 @@ JSExternalString::new_(JSContext *cx, const jschar *chars, size_t length,
     return str;
 }
 
-inline JSLinearString *
-js::StaticStrings::getUnitStringForElement(JSContext *cx, JSString *str, size_t index)
+inline JSLinearString*
+js::StaticStrings::getUnitStringForElement(JSContext* cx, JSString* str, size_t index)
 {
     JS_ASSERT(index < str->length());
 
@@ -288,7 +288,7 @@ js::StaticStrings::getUnitStringForElement(JSContext *cx, JSString *str, size_t 
     return js_NewDependentString(cx, str, index, 1);
 }
 
-inline JSAtom *
+inline JSAtom*
 js::StaticStrings::getLength2(jschar c1, jschar c2)
 {
     JS_ASSERT(fitsInSmallChar(c1));
@@ -298,7 +298,7 @@ js::StaticStrings::getLength2(jschar c1, jschar c2)
 }
 
 MOZ_ALWAYS_INLINE void
-JSString::finalize(js::FreeOp *fop)
+JSString::finalize(js::FreeOp* fop)
 {
     /* FatInline strings are in a different arena. */
     JS_ASSERT(getAllocKind() != js::gc::FINALIZE_FAT_INLINE_STRING);
@@ -310,38 +310,38 @@ JSString::finalize(js::FreeOp *fop)
 }
 
 inline void
-JSFlatString::finalize(js::FreeOp *fop)
+JSFlatString::finalize(js::FreeOp* fop)
 {
     JS_ASSERT(getAllocKind() != js::gc::FINALIZE_FAT_INLINE_STRING);
 
     if (chars() != d.inlineStorage)
-        fop->free_(const_cast<jschar *>(chars()));
+        fop->free_(const_cast<jschar*>(chars()));
 }
 
 inline void
-JSFatInlineString::finalize(js::FreeOp *fop)
+JSFatInlineString::finalize(js::FreeOp* fop)
 {
     JS_ASSERT(getAllocKind() == js::gc::FINALIZE_FAT_INLINE_STRING);
 
     if (chars() != d.inlineStorage)
-        fop->free_(const_cast<jschar *>(chars()));
+        fop->free_(const_cast<jschar*>(chars()));
 }
 
 inline void
-JSAtom::finalize(js::FreeOp *fop)
+JSAtom::finalize(js::FreeOp* fop)
 {
     JS_ASSERT(JSString::isAtom());
     JS_ASSERT(JSString::isFlat());
 
     if (chars() != d.inlineStorage)
-        fop->free_(const_cast<jschar *>(chars()));
+        fop->free_(const_cast<jschar*>(chars()));
 }
 
 inline void
-JSExternalString::finalize(js::FreeOp *fop)
+JSExternalString::finalize(js::FreeOp* fop)
 {
-    const JSStringFinalizer *fin = externalFinalizer();
-    fin->finalize(fin, const_cast<jschar *>(chars()));
+    const JSStringFinalizer* fin = externalFinalizer();
+    fin->finalize(fin, const_cast<jschar*>(chars()));
 }
 
 #endif /* vm_String_inl_h */

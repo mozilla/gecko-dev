@@ -19,16 +19,16 @@ using namespace mozilla::jsipc;
 
 using mozilla::AutoSafeJSContext;
 
-JavaScriptChild::JavaScriptChild(JSRuntime *rt)
+JavaScriptChild::JavaScriptChild(JSRuntime* rt)
   : lastId_(0),
     rt_(rt)
 {
 }
 
 static void
-Trace(JSTracer *trc, void *data)
+Trace(JSTracer* trc, void* data)
 {
-    reinterpret_cast<JavaScriptChild *>(data)->trace(trc);
+    reinterpret_cast<JavaScriptChild*>(data)->trace(trc);
 }
 
 JavaScriptChild::~JavaScriptChild()
@@ -37,7 +37,7 @@ JavaScriptChild::~JavaScriptChild()
 }
 
 void
-JavaScriptChild::trace(JSTracer *trc)
+JavaScriptChild::trace(JSTracer* trc)
 {
     objects_.trace(trc);
     ids_.trace(trc);
@@ -56,9 +56,9 @@ JavaScriptChild::init()
 }
 
 bool
-JavaScriptChild::RecvDropObject(const ObjectId &objId)
+JavaScriptChild::RecvDropObject(const ObjectId& objId)
 {
-    JSObject *obj = findObject(objId);
+    JSObject* obj = findObject(objId);
     if (obj) {
         ids_.remove(obj);
         objects_.remove(objId);
@@ -67,7 +67,7 @@ JavaScriptChild::RecvDropObject(const ObjectId &objId)
 }
 
 bool
-JavaScriptChild::makeId(JSContext *cx, JSObject *obj, ObjectId *idp)
+JavaScriptChild::makeId(JSContext* cx, JSObject* obj, ObjectId* idp)
 {
     if (!obj) {
         *idp = 0;
@@ -99,16 +99,16 @@ JavaScriptChild::makeId(JSContext *cx, JSObject *obj, ObjectId *idp)
     return true;
 }
 
-JSObject *
-JavaScriptChild::unwrap(JSContext *cx, ObjectId id)
+JSObject*
+JavaScriptChild::unwrap(JSContext* cx, ObjectId id)
 {
-    JSObject *obj = findObject(id);
+    JSObject* obj = findObject(id);
     MOZ_ASSERT(obj);
     return obj;
 }
 
 bool
-JavaScriptChild::fail(JSContext *cx, ReturnStatus *rs)
+JavaScriptChild::fail(JSContext* cx, ReturnStatus* rs)
 {
     // By default, we set |undefined| unless we can get a more meaningful
     // exception.
@@ -139,14 +139,14 @@ JavaScriptChild::fail(JSContext *cx, ReturnStatus *rs)
 }
 
 bool
-JavaScriptChild::ok(ReturnStatus *rs)
+JavaScriptChild::ok(ReturnStatus* rs)
 {
     *rs = ReturnStatus(ReturnSuccess());
     return true;
 }
 
 bool
-JavaScriptChild::AnswerPreventExtensions(const ObjectId &objId, ReturnStatus *rs)
+JavaScriptChild::AnswerPreventExtensions(const ObjectId& objId, ReturnStatus* rs)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -163,7 +163,7 @@ JavaScriptChild::AnswerPreventExtensions(const ObjectId &objId, ReturnStatus *rs
 }
 
 static void
-EmptyDesc(PPropertyDescriptor *desc)
+EmptyDesc(PPropertyDescriptor* desc)
 {
     desc->objId() = 0;
     desc->attrs() = 0;
@@ -173,8 +173,8 @@ EmptyDesc(PPropertyDescriptor *desc)
 }
 
 bool
-JavaScriptChild::AnswerGetPropertyDescriptor(const ObjectId &objId, const nsString &id,
-                                             ReturnStatus *rs, PPropertyDescriptor *out)
+JavaScriptChild::AnswerGetPropertyDescriptor(const ObjectId& objId, const nsString& id,
+                                             ReturnStatus* rs, PPropertyDescriptor* out)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -205,8 +205,8 @@ JavaScriptChild::AnswerGetPropertyDescriptor(const ObjectId &objId, const nsStri
 }
 
 bool
-JavaScriptChild::AnswerGetOwnPropertyDescriptor(const ObjectId &objId, const nsString &id,
-                                                ReturnStatus *rs, PPropertyDescriptor *out)
+JavaScriptChild::AnswerGetOwnPropertyDescriptor(const ObjectId& objId, const nsString& id,
+                                                ReturnStatus* rs, PPropertyDescriptor* out)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -237,8 +237,8 @@ JavaScriptChild::AnswerGetOwnPropertyDescriptor(const ObjectId &objId, const nsS
 }
 
 bool
-JavaScriptChild::AnswerDefineProperty(const ObjectId &objId, const nsString &id,
-                                      const PPropertyDescriptor &descriptor, ReturnStatus *rs)
+JavaScriptChild::AnswerDefineProperty(const ObjectId& objId, const nsString& id,
+                                      const PPropertyDescriptor& descriptor, ReturnStatus* rs)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -273,8 +273,8 @@ JavaScriptChild::AnswerDefineProperty(const ObjectId &objId, const nsString &id,
 }
 
 bool
-JavaScriptChild::AnswerDelete(const ObjectId &objId, const nsString &id, ReturnStatus *rs,
-                              bool *success)
+JavaScriptChild::AnswerDelete(const ObjectId& objId, const nsString& id, ReturnStatus* rs,
+                              bool* success)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -298,7 +298,7 @@ JavaScriptChild::AnswerDelete(const ObjectId &objId, const nsString &id, ReturnS
 }
 
 bool
-JavaScriptChild::AnswerHas(const ObjectId &objId, const nsString &id, ReturnStatus *rs, bool *bp)
+JavaScriptChild::AnswerHas(const ObjectId& objId, const nsString& id, ReturnStatus* rs, bool* bp)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -324,7 +324,7 @@ JavaScriptChild::AnswerHas(const ObjectId &objId, const nsString &id, ReturnStat
 }
 
 bool
-JavaScriptChild::AnswerHasOwn(const ObjectId &objId, const nsString &id, ReturnStatus *rs, bool *bp)
+JavaScriptChild::AnswerHasOwn(const ObjectId& objId, const nsString& id, ReturnStatus* rs, bool* bp)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -350,8 +350,8 @@ JavaScriptChild::AnswerHasOwn(const ObjectId &objId, const nsString &id, ReturnS
 }
 
 bool
-JavaScriptChild::AnswerGet(const ObjectId &objId, const ObjectId &receiverId, const nsString &id,
-                           ReturnStatus *rs, JSVariant *result)
+JavaScriptChild::AnswerGet(const ObjectId& objId, const ObjectId& receiverId, const nsString& id,
+                           ReturnStatus* rs, JSVariant* result)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -385,9 +385,9 @@ JavaScriptChild::AnswerGet(const ObjectId &objId, const ObjectId &receiverId, co
 }
 
 bool
-JavaScriptChild::AnswerSet(const ObjectId &objId, const ObjectId &receiverId, const nsString &id,
-                           const bool &strict, const JSVariant &value, ReturnStatus *rs,
-                           JSVariant *result)
+JavaScriptChild::AnswerSet(const ObjectId& objId, const ObjectId& receiverId, const nsString& id,
+                           const bool& strict, const JSVariant& value, ReturnStatus* rs,
+                           JSVariant* result)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -426,7 +426,7 @@ JavaScriptChild::AnswerSet(const ObjectId &objId, const ObjectId &receiverId, co
 }
 
 bool
-JavaScriptChild::AnswerIsExtensible(const ObjectId &objId, ReturnStatus *rs, bool *result)
+JavaScriptChild::AnswerIsExtensible(const ObjectId& objId, ReturnStatus* rs, bool* result)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -448,8 +448,8 @@ JavaScriptChild::AnswerIsExtensible(const ObjectId &objId, ReturnStatus *rs, boo
 }
 
 bool
-JavaScriptChild::AnswerCall(const ObjectId &objId, const nsTArray<JSParam> &argv, ReturnStatus *rs,
-                            JSVariant *result, nsTArray<JSParam> *outparams)
+JavaScriptChild::AnswerCall(const ObjectId& objId, const nsTArray<JSParam>& argv, ReturnStatus* rs,
+                            JSVariant* result, nsTArray<JSParam>* outparams)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -477,7 +477,7 @@ JavaScriptChild::AnswerCall(const ObjectId &objId, const nsTArray<JSParam> &argv
     for (size_t i = 0; i < argv.Length(); i++) {
         if (argv[i].type() == JSParam::Tvoid_t) {
             // This is an outparam.
-            JSCompartment *compartment = js::GetContextCompartment(cx);
+            JSCompartment* compartment = js::GetContextCompartment(cx);
             RootedObject global(cx, JS_GetGlobalForCompartmentOrNull(cx, compartment));
             RootedObject obj(cx, xpc::NewOutObject(cx, global));
             if (!obj)
@@ -545,8 +545,8 @@ JavaScriptChild::AnswerCall(const ObjectId &objId, const nsTArray<JSParam> &argv
 }
 
 bool
-JavaScriptChild::AnswerObjectClassIs(const ObjectId &objId, const uint32_t &classValue,
-                                     bool *result)
+JavaScriptChild::AnswerObjectClassIs(const ObjectId& objId, const uint32_t& classValue,
+                                     bool* result)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -562,7 +562,7 @@ JavaScriptChild::AnswerObjectClassIs(const ObjectId &objId, const uint32_t &clas
 }
 
 bool
-JavaScriptChild::AnswerClassName(const ObjectId &objId, nsString *name)
+JavaScriptChild::AnswerClassName(const ObjectId& objId, nsString* name)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -578,8 +578,8 @@ JavaScriptChild::AnswerClassName(const ObjectId &objId, nsString *name)
 }
 
 bool
-JavaScriptChild::AnswerGetPropertyNames(const ObjectId &objId, const uint32_t &flags,
-                                        ReturnStatus *rs, nsTArray<nsString> *names)
+JavaScriptChild::AnswerGetPropertyNames(const ObjectId& objId, const uint32_t& flags,
+                                        ReturnStatus* rs, nsTArray<nsString>* names)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -606,8 +606,8 @@ JavaScriptChild::AnswerGetPropertyNames(const ObjectId &objId, const uint32_t &f
 }
 
 bool
-JavaScriptChild::AnswerInstanceOf(const ObjectId &objId, const JSIID &iid, ReturnStatus *rs,
-                                  bool *instanceof)
+JavaScriptChild::AnswerInstanceOf(const ObjectId& objId, const JSIID& iid, ReturnStatus* rs,
+                                  bool* instanceof)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -631,9 +631,9 @@ JavaScriptChild::AnswerInstanceOf(const ObjectId &objId, const JSIID &iid, Retur
 }
 
 bool
-JavaScriptChild::AnswerDOMInstanceOf(const ObjectId &objId, const int &prototypeID,
-                                     const int &depth,
-                                     ReturnStatus *rs, bool *instanceof)
+JavaScriptChild::AnswerDOMInstanceOf(const ObjectId& objId, const int& prototypeID,
+                                     const int& depth,
+                                     ReturnStatus* rs, bool* instanceof)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);

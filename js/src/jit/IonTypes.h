@@ -54,7 +54,7 @@ enum BailoutKind
     Bailout_IonExceptionDebugMode,
 };
 
-inline const char *
+inline const char*
 BailoutKindString(BailoutKind kind)
 {
     switch (kind) {
@@ -186,7 +186,7 @@ MIRTypeToTag(MIRType type)
     return JSVAL_TYPE_TO_TAG(ValueTypeFromMIRType(type));
 }
 
-static inline const char *
+static inline const char*
 StringFromMIRType(MIRType type)
 {
   switch (type) {

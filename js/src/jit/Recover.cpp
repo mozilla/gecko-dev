@@ -14,7 +14,7 @@ using namespace js;
 using namespace js::jit;
 
 void
-RInstruction::readRecoverData(CompactBufferReader &reader, RInstructionStorage *raw)
+RInstruction::readRecoverData(CompactBufferReader& reader, RInstructionStorage* raw)
 {
     uint32_t op = reader.readUnsigned();
     switch (Opcode(op)) {
@@ -28,13 +28,13 @@ RInstruction::readRecoverData(CompactBufferReader &reader, RInstructionStorage *
 }
 
 bool
-MResumePoint::writeRecoverData(CompactBufferWriter &writer) const
+MResumePoint::writeRecoverData(CompactBufferWriter& writer) const
 {
     writer.writeUnsigned(uint32_t(RInstruction::Recover_ResumePoint));
 
-    MBasicBlock *bb = block();
-    JSFunction *fun = bb->info().funMaybeLazy();
-    JSScript *script = bb->info().script();
+    MBasicBlock* bb = block();
+    JSFunction* fun = bb->info().funMaybeLazy();
+    JSScript* script = bb->info().script();
     uint32_t exprStack = stackDepth() - bb->info().ninvoke();
 
 #ifdef DEBUG
@@ -43,7 +43,7 @@ MResumePoint::writeRecoverData(CompactBufferWriter &writer) const
     if (GetIonContext()->cx) {
         uint32_t stackDepth;
         bool reachablePC;
-        jsbytecode *bailPC = pc();
+        jsbytecode* bailPC = pc();
 
         if (mode() == MResumePoint::ResumeAfter)
             bailPC = GetNextPc(pc());
@@ -99,7 +99,7 @@ MResumePoint::writeRecoverData(CompactBufferWriter &writer) const
     return true;
 }
 
-RResumePoint::RResumePoint(CompactBufferReader &reader)
+RResumePoint::RResumePoint(CompactBufferReader& reader)
 {
     static_assert(sizeof(*this) <= sizeof(RInstructionStorage),
                   "Storage space is too small to decode this recover instruction.");

@@ -38,8 +38,8 @@ namespace js {
 namespace jit {
 
 class SimulatorRuntime;
-SimulatorRuntime *CreateSimulatorRuntime();
-void DestroySimulatorRuntime(SimulatorRuntime *srt);
+SimulatorRuntime* CreateSimulatorRuntime();
+void DestroySimulatorRuntime(SimulatorRuntime* srt);
 
 // VFP rounding modes. See ARM DDI 0406B Page A2-29.
 enum VFPRoundingMode {
@@ -89,12 +89,12 @@ class Simulator
         num_q_registers = 16
     };
 
-    explicit Simulator(SimulatorRuntime *srt);
+    explicit Simulator(SimulatorRuntime* srt);
     ~Simulator();
 
     // The currently executing Simulator instance. Potentially there can be one
     // for each native thread.
-    static Simulator *Current();
+    static Simulator* Current();
 
     static inline uintptr_t StackLimit() {
         return Simulator::Current()->stackLimit();
@@ -160,8 +160,8 @@ class Simulator
     int64_t call(uint8_t* entry, int argument_count, ...);
 
     // Debugger input.
-    void setLastDebuggerInput(char *input);
-    char *lastDebuggerInput() { return lastDebuggerInput_; }
+    void setLastDebuggerInput(char* input);
+    char* lastDebuggerInput() { return lastDebuggerInput_; }
 
     // Returns true if pc register contains one of the 'special_values' defined
     // below (bad_lr, end_sim_pc).
@@ -199,16 +199,16 @@ class Simulator
     inline double canonicalizeNaN(double value);
 
     // Helper functions to decode common "addressing" modes
-    int32_t getShiftRm(SimInstruction *instr, bool* carry_out);
-    int32_t getImm(SimInstruction *instr, bool* carry_out);
-    int32_t processPU(SimInstruction *instr, int num_regs, int operand_size,
-                      intptr_t *start_address, intptr_t *end_address);
-    void handleRList(SimInstruction *instr, bool load);
-    void handleVList(SimInstruction *inst);
-    void softwareInterrupt(SimInstruction *instr);
+    int32_t getShiftRm(SimInstruction* instr, bool* carry_out);
+    int32_t getImm(SimInstruction* instr, bool* carry_out);
+    int32_t processPU(SimInstruction* instr, int num_regs, int operand_size,
+                      intptr_t* start_address, intptr_t* end_address);
+    void handleRList(SimInstruction* instr, bool load);
+    void handleVList(SimInstruction* inst);
+    void softwareInterrupt(SimInstruction* instr);
 
     // Stop helper functions.
-    inline bool isStopInstruction(SimInstruction *instr);
+    inline bool isStopInstruction(SimInstruction* instr);
     inline bool isWatchedStop(uint32_t bkpt_code);
     inline bool isEnabledStop(uint32_t bkpt_code);
     inline void enableStop(uint32_t bkpt_code);
@@ -222,54 +222,54 @@ class Simulator
     inline void writeB(int32_t addr, uint8_t value);
     inline void writeB(int32_t addr, int8_t value);
 
-    inline uint16_t readHU(int32_t addr, SimInstruction *instr);
-    inline int16_t readH(int32_t addr, SimInstruction *instr);
+    inline uint16_t readHU(int32_t addr, SimInstruction* instr);
+    inline int16_t readH(int32_t addr, SimInstruction* instr);
     // Note: Overloaded on the sign of the value.
-    inline void writeH(int32_t addr, uint16_t value, SimInstruction *instr);
-    inline void writeH(int32_t addr, int16_t value, SimInstruction *instr);
+    inline void writeH(int32_t addr, uint16_t value, SimInstruction* instr);
+    inline void writeH(int32_t addr, int16_t value, SimInstruction* instr);
 
-    inline int readW(int32_t addr, SimInstruction *instr);
-    inline void writeW(int32_t addr, int value, SimInstruction *instr);
+    inline int readW(int32_t addr, SimInstruction* instr);
+    inline void writeW(int32_t addr, int value, SimInstruction* instr);
 
-    int32_t *readDW(int32_t addr);
+    int32_t* readDW(int32_t addr);
     void writeDW(int32_t addr, int32_t value1, int32_t value2);
 
     // Executing is handled based on the instruction type.
     // Both type 0 and type 1 rolled into one.
-    void decodeType01(SimInstruction *instr);
-    void decodeType2(SimInstruction *instr);
-    void decodeType3(SimInstruction *instr);
-    void decodeType4(SimInstruction *instr);
-    void decodeType5(SimInstruction *instr);
-    void decodeType6(SimInstruction *instr);
-    void decodeType7(SimInstruction *instr);
+    void decodeType01(SimInstruction* instr);
+    void decodeType2(SimInstruction* instr);
+    void decodeType3(SimInstruction* instr);
+    void decodeType4(SimInstruction* instr);
+    void decodeType5(SimInstruction* instr);
+    void decodeType6(SimInstruction* instr);
+    void decodeType7(SimInstruction* instr);
 
     // Support for VFP.
-    void decodeTypeVFP(SimInstruction *instr);
-    void decodeType6CoprocessorIns(SimInstruction *instr);
-    void decodeSpecialCondition(SimInstruction *instr);
+    void decodeTypeVFP(SimInstruction* instr);
+    void decodeType6CoprocessorIns(SimInstruction* instr);
+    void decodeSpecialCondition(SimInstruction* instr);
 
-    void decodeVMOVBetweenCoreAndSinglePrecisionRegisters(SimInstruction *instr);
-    void decodeVCMP(SimInstruction *instr);
-    void decodeVCVTBetweenDoubleAndSingle(SimInstruction *instr);
-    void decodeVCVTBetweenFloatingPointAndInteger(SimInstruction *instr);
-    void decodeVCVTBetweenFloatingPointAndIntegerFrac(SimInstruction *instr);
+    void decodeVMOVBetweenCoreAndSinglePrecisionRegisters(SimInstruction* instr);
+    void decodeVCMP(SimInstruction* instr);
+    void decodeVCVTBetweenDoubleAndSingle(SimInstruction* instr);
+    void decodeVCVTBetweenFloatingPointAndInteger(SimInstruction* instr);
+    void decodeVCVTBetweenFloatingPointAndIntegerFrac(SimInstruction* instr);
 
     // Executes one instruction.
-    void instructionDecode(SimInstruction *instr);
+    void instructionDecode(SimInstruction* instr);
 
   public:
     static bool ICacheCheckingEnabled;
-    static void FlushICache(void *start, size_t size);
+    static void FlushICache(void* start, size_t size);
 
     static int64_t StopSimAt;
 
     // Runtime call support.
-    static void *RedirectNativeFunction(void *nativeFunction, ABIFunctionType type);
+    static void* RedirectNativeFunction(void* nativeFunction, ABIFunctionType type);
 
   private:
     // Handle arguments and return value for runtime FP functions.
-    void getFpArgs(double *x, double *y, int32_t *z);
+    void getFpArgs(double* x, double* y, int32_t* z);
     void setCallResultDouble(double result);
     void setCallResultFloat(float result);
     void setCallResult(int64_t res);
@@ -312,20 +312,20 @@ class Simulator
     bool inexact_vfp_flag_;
 
     // Simulator support.
-    char *stack_;
+    char* stack_;
     bool pc_modified_;
     int64_t icount_;
 
     int32_t resume_pc_;
 
     // Debugger input.
-    char *lastDebuggerInput_;
+    char* lastDebuggerInput_;
 
     // Registered breakpoints.
-    SimInstruction *break_pc_;
+    SimInstruction* break_pc_;
     Instr break_instr_;
 
-    SimulatorRuntime *srt_;
+    SimulatorRuntime* srt_;
 
     // A stop is watched if its code is less than kNumOfWatchedStops.
     // Only watched stops support enabling/disabling and the counter feature.
@@ -340,7 +340,7 @@ class Simulator
     // the breakpoint was hit or gone through.
     struct StopCountAndDesc {
         uint32_t count;
-        char *desc;
+        char* desc;
     };
     StopCountAndDesc watched_stops_[kNumOfWatchedStops];
 

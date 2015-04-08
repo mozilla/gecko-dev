@@ -11,7 +11,7 @@
 static unsigned errorCount = 0;
 
 static void
-ErrorCounter(JSContext *cx, const char *message, JSErrorReport *report)
+ErrorCounter(JSContext* cx, const char* message, JSErrorReport* report)
 {
     ++errorCount;
 }
@@ -52,7 +52,7 @@ BEGIN_TEST(testGCOutOfMemory)
 }
 
 virtual JSRuntime * createRuntime() {
-    JSRuntime *rt = JS_NewRuntime(768 * 1024, JS_USE_HELPER_THREADS);
+    JSRuntime* rt = JS_NewRuntime(768 * 1024, JS_USE_HELPER_THREADS);
     if (!rt)
         return nullptr;
     setNativeStackQuota(rt);

@@ -13,14 +13,14 @@
 
 using namespace js;
 
-/* static */ ProxyObject *
-ProxyObject::New(JSContext *cx, BaseProxyHandler *handler, HandleValue priv, TaggedProto proto_,
-                 JSObject *parent_, const ProxyOptions &options)
+/* static */ ProxyObject*
+ProxyObject::New(JSContext* cx, BaseProxyHandler* handler, HandleValue priv, TaggedProto proto_,
+                 JSObject* parent_, const ProxyOptions& options)
 {
     Rooted<TaggedProto> proto(cx, proto_);
     RootedObject parent(cx, parent_);
 
-    const Class *clasp = options.clasp();
+    const Class* clasp = options.clasp();
 
     JS_ASSERT(isValidProxyClass(clasp));
     JS_ASSERT_IF(proto.isObject(), cx->compartment() == proto.toObject()->compartment());
@@ -65,17 +65,17 @@ ProxyObject::initCrossCompartmentPrivate(HandleValue priv)
 }
 
 void
-ProxyObject::initHandler(BaseProxyHandler *handler)
+ProxyObject::initHandler(BaseProxyHandler* handler)
 {
     initSlot(HANDLER_SLOT, PrivateValue(handler));
 }
 
 static void
-NukeSlot(ProxyObject *proxy, uint32_t slot)
+NukeSlot(ProxyObject* proxy, uint32_t slot)
 {
     Value old = proxy->getSlot(slot);
     if (old.isMarkable()) {
-        Zone *zone = ZoneOfValue(old);
+        Zone* zone = ZoneOfValue(old);
         AutoMarkInDeadZone amd(zone);
         proxy->setReservedSlot(slot, NullValue());
     } else {
@@ -84,7 +84,7 @@ NukeSlot(ProxyObject *proxy, uint32_t slot)
 }
 
 void
-ProxyObject::nuke(BaseProxyHandler *handler)
+ProxyObject::nuke(BaseProxyHandler* handler)
 {
     /* Allow people to add their own number of reserved slots beyond the expected 4 */
     unsigned numSlots = JSCLASS_RESERVED_SLOTS(getClass());

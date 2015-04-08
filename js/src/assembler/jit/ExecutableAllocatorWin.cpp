@@ -30,7 +30,7 @@
 #include "jswin.h"
 #include "mozilla/WindowsVersion.h"
 
-extern uint64_t random_next(uint64_t *, int);
+extern uint64_t random_next(uint64_t*, int);
 
 namespace JSC {
 
@@ -43,7 +43,7 @@ size_t ExecutableAllocator::determinePageSize()
     return system_info.dwPageSize;
 }
 
-void *ExecutableAllocator::computeRandomAllocationAddress()
+void* ExecutableAllocator::computeRandomAllocationAddress()
 {
     /*
      * Inspiration is V8's OS::Allocate in platform-win32.cc.
@@ -67,7 +67,7 @@ void *ExecutableAllocator::computeRandomAllocationAddress()
 # error "Unsupported architecture"
 #endif
     uint64_t rand = random_next(&rngSeed, 32) << chunkBits;
-    return (void *) (base | rand & mask);
+    return (void*) (base | rand & mask);
 }
 
 static bool
@@ -88,12 +88,12 @@ RandomizeIsBroken()
 
 ExecutablePool::Allocation ExecutableAllocator::systemAlloc(size_t n)
 {
-    void *allocation = NULL;
+    void* allocation = NULL;
     // Randomization disabled to avoid a performance fault on x64 builds.
     // See bug 728623.
 #ifndef JS_CPU_X64
     if (!RandomizeIsBroken()) {
-        void *randomAddress = computeRandomAllocationAddress();
+        void* randomAddress = computeRandomAllocationAddress();
         allocation = VirtualAlloc(randomAddress, n, MEM_COMMIT | MEM_RESERVE,
                                   PAGE_EXECUTE_READWRITE);
     }

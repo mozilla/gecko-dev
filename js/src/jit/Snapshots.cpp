@@ -28,7 +28,7 @@ using namespace js::jit;
 // Snapshot body, repeated "frame count" times, from oldest frame to newest frame.
 // Note that the first frame doesn't have the "parent PC" field.
 //
-//   [ptr] Debug only: JSScript *
+//   [ptr] Debug only: JSScript*
 //   [vwu] pc offset
 //   [vwu] # of RVA's indexes, including nargs
 //  [vwu*] List of indexes to R(ecover)ValueAllocation table. Contains
@@ -114,7 +114,7 @@ using namespace js::jit;
 //                           of the RValueAllocation.
 //
 
-const RValueAllocation::Layout &
+const RValueAllocation::Layout&
 RValueAllocation::layoutFromMode(Mode mode)
 {
     switch (mode) {
@@ -258,8 +258,8 @@ RValueAllocation::layoutFromMode(Mode mode)
 static const size_t ALLOCATION_TABLE_ALIGNMENT = 2; /* bytes */
 
 void
-RValueAllocation::readPayload(CompactBufferReader &reader, PayloadType type,
-                              uint8_t *mode, Payload *p)
+RValueAllocation::readPayload(CompactBufferReader& reader, PayloadType type,
+                              uint8_t* mode, Payload* p)
 {
     switch (type) {
       case PAYLOAD_NONE:
@@ -284,10 +284,10 @@ RValueAllocation::readPayload(CompactBufferReader &reader, PayloadType type,
 }
 
 RValueAllocation
-RValueAllocation::read(CompactBufferReader &reader)
+RValueAllocation::read(CompactBufferReader& reader)
 {
     uint8_t mode = reader.readByte();
-    const Layout &layout = layoutFromMode(Mode(mode));
+    const Layout& layout = layoutFromMode(Mode(mode));
     Payload arg1, arg2;
 
     readPayload(reader, layout.type1, &mode, &arg1);
@@ -296,7 +296,7 @@ RValueAllocation::read(CompactBufferReader &reader)
 }
 
 void
-RValueAllocation::writePayload(CompactBufferWriter &writer, PayloadType type,
+RValueAllocation::writePayload(CompactBufferWriter& writer, PayloadType type,
                                Payload p)
 {
     switch (type) {
@@ -322,7 +322,7 @@ RValueAllocation::writePayload(CompactBufferWriter &writer, PayloadType type,
         // This code assumes that the PACKED_TAG payload is following the
         // writeByte of the mode.
         MOZ_ASSERT(writer.length());
-        uint8_t *mode = writer.buffer() + (writer.length() - 1);
+        uint8_t* mode = writer.buffer() + (writer.length() - 1);
         MOZ_ASSERT((*mode & 0x07) == 0 && (p.type & ~0x07) == 0);
         *mode = *mode | p.type;
         break;
@@ -331,7 +331,7 @@ RValueAllocation::writePayload(CompactBufferWriter &writer, PayloadType type,
 }
 
 void
-RValueAllocation::writePadding(CompactBufferWriter &writer)
+RValueAllocation::writePadding(CompactBufferWriter& writer)
 {
     // Write 0x7f in all padding bytes.
     while (writer.length() % ALLOCATION_TABLE_ALIGNMENT)
@@ -339,9 +339,9 @@ RValueAllocation::writePadding(CompactBufferWriter &writer)
 }
 
 void
-RValueAllocation::write(CompactBufferWriter &writer) const
+RValueAllocation::write(CompactBufferWriter& writer) const
 {
-    const Layout &layout = layoutFromMode(mode());
+    const Layout& layout = layoutFromMode(mode());
     MOZ_ASSERT(layout.type2 != PAYLOAD_PACKED_TAG);
     MOZ_ASSERT(writer.length() % ALLOCATION_TABLE_ALIGNMENT == 0);
 
@@ -370,7 +370,7 @@ RValueAllocation::hash() const {
     return res;
 }
 
-static const char *
+static const char*
 ValTypeToString(JSValueType type)
 {
     switch (type) {
@@ -392,7 +392,7 @@ ValTypeToString(JSValueType type)
 }
 
 void
-RValueAllocation::dumpPayload(FILE *fp, PayloadType type, Payload p)
+RValueAllocation::dumpPayload(FILE* fp, PayloadType type, Payload p)
 {
     switch (type) {
       case PAYLOAD_NONE:
@@ -416,9 +416,9 @@ RValueAllocation::dumpPayload(FILE *fp, PayloadType type, Payload p)
 }
 
 void
-RValueAllocation::dump(FILE *fp) const
+RValueAllocation::dump(FILE* fp) const
 {
-    const Layout &layout = layoutFromMode(mode());
+    const Layout& layout = layoutFromMode(mode());
     fprintf(fp, "%s", layout.name);
 
     if (layout.type1 != PAYLOAD_NONE)
@@ -452,7 +452,7 @@ RValueAllocation::equalPayloads(PayloadType type, Payload lhs, Payload rhs)
     return false;
 }
 
-SnapshotReader::SnapshotReader(const uint8_t *snapshots, uint32_t offset,
+SnapshotReader::SnapshotReader(const uint8_t* snapshots, uint32_t offset,
                                uint32_t RVATableSize, uint32_t listSize)
   : reader_(snapshots + offset, snapshots + listSize),
     allocReader_(snapshots + listSize, snapshots + listSize + RVATableSize),
@@ -556,7 +556,7 @@ SnapshotWriter::init()
     return allocMap_.init(32);
 }
 
-RecoverReader::RecoverReader(SnapshotReader &snapshot, const uint8_t *recovers, uint32_t size)
+RecoverReader::RecoverReader(SnapshotReader& snapshot, const uint8_t* recovers, uint32_t size)
   : reader_(nullptr, nullptr),
     numInstructions_(0),
     numInstructionsRead_(0)
@@ -622,7 +622,7 @@ SnapshotWriter::trackSnapshot(uint32_t pcOpcode, uint32_t mirOpcode, uint32_t mi
 #endif
 
 bool
-SnapshotWriter::add(const RValueAllocation &alloc)
+SnapshotWriter::add(const RValueAllocation& alloc)
 {
     MOZ_ASSERT(allocMap_.initialized());
 
@@ -683,7 +683,7 @@ RecoverWriter::startRecover(uint32_t frameCount, bool resumeAfter)
 }
 
 bool
-RecoverWriter::writeFrame(const MResumePoint *rp)
+RecoverWriter::writeFrame(const MResumePoint* rp)
 {
     if (!rp->writeRecoverData(writer_))
         return false;

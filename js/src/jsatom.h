@@ -36,10 +36,10 @@ HashId(jsid id)
 struct JsidHasher
 {
     typedef jsid Lookup;
-    static HashNumber hash(const Lookup &l) {
+    static HashNumber hash(const Lookup& l) {
         return HashNumber(JSID_BITS(l));
     }
-    static bool match(const jsid &id, const Lookup &l) {
+    static bool match(const jsid& id, const Lookup& l) {
         return id == l;
     }
 };
@@ -48,8 +48,8 @@ struct JsidHasher
  * Return a printable, lossless char[] representation of a string-type atom.
  * The lifetime of the result matches the lifetime of bytes.
  */
-extern const char *
-AtomToPrintableString(ExclusiveContext *cx, JSAtom *atom, JSAutoByteString *bytes);
+extern const char*
+AtomToPrintableString(ExclusiveContext* cx, JSAtom* atom, JSAutoByteString* bytes);
 
 class AtomStateEntry
 {
@@ -59,8 +59,8 @@ class AtomStateEntry
 
   public:
     AtomStateEntry() : bits(0) {}
-    AtomStateEntry(const AtomStateEntry &other) : bits(other.bits) {}
-    AtomStateEntry(JSAtom *ptr, bool tagged)
+    AtomStateEntry(const AtomStateEntry& other) : bits(other.bits) {}
+    AtomStateEntry(JSAtom* ptr, bool tagged)
       : bits(uintptr_t(ptr) | uintptr_t(tagged))
     {
         JS_ASSERT((uintptr_t(ptr) & 0x1) == 0);
@@ -75,33 +75,33 @@ class AtomStateEntry
      * the hash function doesn't consider the tag to be a portion of the key.
      */
     void setTagged(bool enabled) const {
-        const_cast<AtomStateEntry *>(this)->bits |= uintptr_t(enabled);
+        const_cast<AtomStateEntry*>(this)->bits |= uintptr_t(enabled);
     }
 
-    JSAtom *asPtr() const;
+    JSAtom* asPtr() const;
 };
 
 struct AtomHasher
 {
     struct Lookup
     {
-        const jschar    *chars;
+        const jschar*   chars;
         size_t          length;
-        const JSAtom    *atom; /* Optional. */
+        const JSAtom*   atom; /* Optional. */
 
         HashNumber hash;
 
-        Lookup(const jschar *chars, size_t length)
+        Lookup(const jschar* chars, size_t length)
           : chars(chars), length(length), atom(nullptr)
         {
             hash = mozilla::HashString(chars, length);
         }
-        inline Lookup(const JSAtom *atom);
+        inline Lookup(const JSAtom* atom);
     };
 
-    static HashNumber hash(const Lookup &l) { return l.hash; }
-    static inline bool match(const AtomStateEntry &entry, const Lookup &lookup);
-    static void rekey(AtomStateEntry &k, const AtomStateEntry& newKey) { k = newKey; }
+    static HashNumber hash(const Lookup& l) { return l.hash; }
+    static inline bool match(const AtomStateEntry& entry, const Lookup& lookup);
+    static void rekey(AtomStateEntry& k, const AtomStateEntry& newKey) { k = newKey; }
 };
 
 typedef HashSet<AtomStateEntry, AtomHasher, SystemAllocPolicy> AtomSet;
@@ -111,7 +111,7 @@ class PropertyName;
 }  /* namespace js */
 
 extern bool
-AtomIsInterned(JSContext *cx, JSAtom *atom);
+AtomIsInterned(JSContext* cx, JSAtom* atom);
 
 /* Well-known predefined C strings. */
 #define DECLARE_PROTO_STR(name,code,init,clasp) extern const char js_##name##_str[];
@@ -171,10 +171,10 @@ extern const char * const TypeStrings[];
  * Atom tracing and garbage collection hooks.
  */
 extern void
-MarkAtoms(JSTracer *trc);
+MarkAtoms(JSTracer* trc);
 
 extern void
-MarkPermanentAtoms(JSTracer *trc);
+MarkPermanentAtoms(JSTracer* trc);
 
 /* N.B. must correspond to boolean tagging behavior. */
 enum InternBehavior
@@ -183,20 +183,20 @@ enum InternBehavior
     InternAtom = true
 };
 
-extern JSAtom *
-Atomize(ExclusiveContext *cx, const char *bytes, size_t length,
+extern JSAtom*
+Atomize(ExclusiveContext* cx, const char* bytes, size_t length,
         js::InternBehavior ib = js::DoNotInternAtom);
 
-extern JSAtom *
-AtomizeChars(ExclusiveContext *cx, const jschar *chars, size_t length,
+extern JSAtom*
+AtomizeChars(ExclusiveContext* cx, const jschar* chars, size_t length,
              js::InternBehavior ib = js::DoNotInternAtom);
 
-extern JSAtom *
-AtomizeString(ExclusiveContext *cx, JSString *str, js::InternBehavior ib = js::DoNotInternAtom);
+extern JSAtom*
+AtomizeString(ExclusiveContext* cx, JSString* str, js::InternBehavior ib = js::DoNotInternAtom);
 
 template <AllowGC allowGC>
-extern JSAtom *
-ToAtom(ExclusiveContext *cx, typename MaybeRooted<Value, allowGC>::HandleType v);
+extern JSAtom*
+ToAtom(ExclusiveContext* cx, typename MaybeRooted<Value, allowGC>::HandleType v);
 
 enum XDRMode {
     XDR_ENCODE,
@@ -208,7 +208,7 @@ class XDRState;
 
 template<XDRMode mode>
 bool
-XDRAtom(XDRState<mode> *xdr, js::MutableHandleAtom atomp);
+XDRAtom(XDRState<mode>* xdr, js::MutableHandleAtom atomp);
 
 } /* namespace js */
 

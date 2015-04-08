@@ -233,7 +233,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                     // XPConnect may have constructed an object to represent a
                     // C++ QI failure. See if that is the case.
                     using namespace mozilla::dom;
-                    Exception *e = nullptr;
+                    Exception* e = nullptr;
                     UNWRAP_OBJECT(Exception, &jsexception.toObject(), e);
 
                     if (e &&
@@ -366,7 +366,7 @@ nsXPCWrappedJSClass::BuildPropertyEnumerator(XPCCallContext& ccx,
             return NS_ERROR_FAILURE;
 
         size_t length;
-        const jschar *chars = JS_GetStringCharsAndLength(cx, name, &length);
+        const jschar* chars = JS_GetStringCharsAndLength(cx, name, &length);
         if (!chars)
             return NS_ERROR_FAILURE;
 
@@ -452,7 +452,7 @@ nsXPCWrappedJSClass::IsWrappedJS(nsISupports* aPtr)
 
 // NB: This will return the top JSContext on the JSContext stack if there is one,
 // before attempting to get the context from the wrapped JS object.
-static JSContext *
+static JSContext*
 GetContextFromObjectOrDefault(nsXPCWrappedJS* wrapper)
 {
     // First, try the cx stack.
@@ -461,10 +461,10 @@ GetContextFromObjectOrDefault(nsXPCWrappedJS* wrapper)
         return stack->Peek();
 
     // If the cx stack is empty, try the wrapper's JSObject.
-    JSCompartment *c = js::GetObjectCompartment(wrapper->GetJSObject());
-    XPCContext *xpcc = EnsureCompartmentPrivate(c)->scope->GetContext();
+    JSCompartment* c = js::GetObjectCompartment(wrapper->GetJSObject());
+    XPCContext* xpcc = EnsureCompartmentPrivate(c)->scope->GetContext();
     if (xpcc) {
-        JSContext *cx = xpcc->GetJSContext();
+        JSContext* cx = xpcc->GetJSContext();
         JS_AbortIfWrongThread(JS_GetRuntime(cx));
         return cx;
     }
@@ -597,8 +597,8 @@ nsXPCWrappedJSClass::GetRootJSObject(JSContext* cx, JSObject* aJSObjArg)
 }
 
 void
-xpcWrappedJSErrorReporter(JSContext *cx, const char *message,
-                          JSErrorReport *report)
+xpcWrappedJSErrorReporter(JSContext* cx, const char* message,
+                          JSErrorReport* report)
 {
     if (report) {
         // If it is an exception report, then we can just deal with the
@@ -772,7 +772,7 @@ nsXPCWrappedJSClass::CleanupPointerTypeObject(const nsXPTType& type,
 class AutoClearPendingException
 {
 public:
-  AutoClearPendingException(JSContext *cx) : mCx(cx) { }
+  AutoClearPendingException(JSContext* cx) : mCx(cx) { }
   ~AutoClearPendingException() { JS_ClearPendingException(mCx); }
 private:
   JSContext* mCx;
@@ -981,8 +981,8 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     if (!ccx.IsValid())
         return retval;
 
-    XPCContext *xpcc = ccx.GetXPCContext();
-    JSContext *cx = ccx.GetJSContext();
+    XPCContext* xpcc = ccx.GetXPCContext();
+    JSContext* cx = ccx.GetJSContext();
 
     if (!cx || !xpcc || !IsReflectable(methodIndex))
         return NS_ERROR_FAILURE;
@@ -990,7 +990,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     // [implicit_jscontext] and [optional_argc] have a different calling
     // convention, which we don't support for JS-implemented components.
     if (info->WantsOptArgc() || info->WantsContext()) {
-        const char *str = "IDL methods marked with [implicit_jscontext] "
+        const char* str = "IDL methods marked with [implicit_jscontext] "
                           "or [optional_argc] may not be implemented in JS";
         // Throw and warn for good measure.
         JS_ReportError(cx, str);
@@ -1503,7 +1503,7 @@ nsXPCWrappedJSClass::GetInterfaceName()
 }
 
 static void
-FinalizeStub(JSFreeOp *fop, JSObject *obj)
+FinalizeStub(JSFreeOp* fop, JSObject* obj)
 {
 }
 

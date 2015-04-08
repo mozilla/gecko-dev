@@ -42,21 +42,21 @@ class RegExpStatics
     bool                    pendingLazyEvaluation;
 
     /* Linkage for preserving RegExpStatics during nested RegExp execution. */
-    RegExpStatics           *bufferLink;
+    RegExpStatics*          bufferLink;
     bool                    copied;
 
   public:
     RegExpStatics() : bufferLink(nullptr), copied(false) { clear(); }
-    static JSObject *create(JSContext *cx, GlobalObject *parent);
+    static JSObject* create(JSContext* cx, GlobalObject* parent);
 
   private:
-    bool executeLazy(JSContext *cx);
+    bool executeLazy(JSContext* cx);
 
     inline void aboutToWrite();
-    inline void copyTo(RegExpStatics &dst);
+    inline void copyTo(RegExpStatics& dst);
 
     inline void restore();
-    bool save(JSContext *cx, RegExpStatics *buffer) {
+    bool save(JSContext* cx, RegExpStatics* buffer) {
         JS_ASSERT(!buffer->copied && !buffer->bufferLink);
         buffer->bufferLink = bufferLink;
         bufferLink = buffer;
@@ -74,10 +74,10 @@ class RegExpStatics
      * If so, construct a string for it and place it in |*out|.
      * If not, place undefined in |*out|.
      */
-    bool makeMatch(JSContext *cx, size_t checkValidIndex, size_t pairNum, MutableHandleValue out);
-    bool createDependent(JSContext *cx, size_t start, size_t end, MutableHandleValue out);
+    bool makeMatch(JSContext* cx, size_t checkValidIndex, size_t pairNum, MutableHandleValue out);
+    bool createDependent(JSContext* cx, size_t start, size_t end, MutableHandleValue out);
 
-    void markFlagsSet(JSContext *cx);
+    void markFlagsSet(JSContext* cx);
 
     struct InitBuffer {};
     explicit RegExpStatics(InitBuffer) : bufferLink(nullptr), copied(false) {}
@@ -87,11 +87,11 @@ class RegExpStatics
 
   public:
     /* Mutators. */
-    inline void updateLazily(JSContext *cx, JSLinearString *input,
-                             RegExpShared *shared, size_t lastIndex);
-    inline bool updateFromMatchPairs(JSContext *cx, JSLinearString *input, MatchPairs &newPairs);
+    inline void updateLazily(JSContext* cx, JSLinearString* input,
+                             RegExpShared* shared, size_t lastIndex);
+    inline bool updateFromMatchPairs(JSContext* cx, JSLinearString* input, MatchPairs& newPairs);
 
-    void setMultiline(JSContext *cx, bool enabled) {
+    void setMultiline(JSContext* cx, bool enabled) {
         aboutToWrite();
         if (enabled) {
             flags = RegExpFlag(flags | MultilineFlag);
@@ -104,7 +104,7 @@ class RegExpStatics
     inline void clear();
 
     /* Corresponds to JSAPI functionality to set the pending RegExp input. */
-    void reset(JSContext *cx, JSString *newInput, bool newMultiline) {
+    void reset(JSContext* cx, JSString* newInput, bool newMultiline) {
         aboutToWrite();
         clear();
         pendingInput = newInput;
@@ -112,17 +112,17 @@ class RegExpStatics
         checkInvariants();
     }
 
-    inline void setPendingInput(JSString *newInput);
+    inline void setPendingInput(JSString* newInput);
 
   public:
     /* Default match accessor. */
-    const MatchPairs &getMatches() const {
+    const MatchPairs& getMatches() const {
         /* Safe: only used by String methods, which do not set lazy mode. */
         JS_ASSERT(!pendingLazyEvaluation);
         return matches;
     }
 
-    JSString *getPendingInput() const { return pendingInput; }
+    JSString* getPendingInput() const { return pendingInput; }
 
     RegExpFlag getFlags() const { return flags; }
     bool multiline() const { return flags & MultilineFlag; }
@@ -135,7 +135,7 @@ class RegExpStatics
         return matches[0].limit - matches[0].start > 0;
     }
 
-    void mark(JSTracer *trc) {
+    void mark(JSTracer* trc) {
         /*
          * Changes to this function must also be reflected in
          * RegExpStatics::AutoRooter::trace().
@@ -150,26 +150,26 @@ class RegExpStatics
 
     /* Value creators. */
 
-    bool createPendingInput(JSContext *cx, MutableHandleValue out);
-    bool createLastMatch(JSContext *cx, MutableHandleValue out);
-    bool createLastParen(JSContext *cx, MutableHandleValue out);
-    bool createParen(JSContext *cx, size_t pairNum, MutableHandleValue out);
-    bool createLeftContext(JSContext *cx, MutableHandleValue out);
-    bool createRightContext(JSContext *cx, MutableHandleValue out);
+    bool createPendingInput(JSContext* cx, MutableHandleValue out);
+    bool createLastMatch(JSContext* cx, MutableHandleValue out);
+    bool createLastParen(JSContext* cx, MutableHandleValue out);
+    bool createParen(JSContext* cx, size_t pairNum, MutableHandleValue out);
+    bool createLeftContext(JSContext* cx, MutableHandleValue out);
+    bool createRightContext(JSContext* cx, MutableHandleValue out);
 
     /* Infallible substring creators. */
 
-    void getParen(size_t pairNum, JSSubString *out) const;
-    void getLastMatch(JSSubString *out) const;
-    void getLastParen(JSSubString *out) const;
-    void getLeftContext(JSSubString *out) const;
-    void getRightContext(JSSubString *out) const;
+    void getParen(size_t pairNum, JSSubString* out) const;
+    void getLastMatch(JSSubString* out) const;
+    void getLastParen(JSSubString* out) const;
+    void getLeftContext(JSSubString* out) const;
+    void getRightContext(JSSubString* out) const;
 };
 
 class AutoRegExpStaticsBuffer : private JS::CustomAutoRooter
 {
   public:
-    explicit AutoRegExpStaticsBuffer(JSContext *cx
+    explicit AutoRegExpStaticsBuffer(JSContext* cx
                                      MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : CustomAutoRooter(cx), statics(RegExpStatics::InitBuffer())
     {
@@ -179,7 +179,7 @@ class AutoRegExpStaticsBuffer : private JS::CustomAutoRooter
     RegExpStatics& getStatics() { return statics; }
 
   private:
-    virtual void trace(JSTracer *trc) {
+    virtual void trace(JSTracer* trc) {
         if (statics.matchesInput) {
             MarkStringRoot(trc, reinterpret_cast<JSString**>(&statics.matchesInput),
                                 "AutoRegExpStaticsBuffer matchesInput");
@@ -204,12 +204,12 @@ class PreserveRegExpStatics
     AutoRegExpStaticsBuffer buffer;
 
   public:
-    explicit PreserveRegExpStatics(JSContext *cx, RegExpStatics *original)
+    explicit PreserveRegExpStatics(JSContext* cx, RegExpStatics* original)
      : original(original),
        buffer(cx)
     {}
 
-    bool init(JSContext *cx) {
+    bool init(JSContext* cx) {
         return original->save(cx, &buffer.getStatics());
     }
 
@@ -217,14 +217,14 @@ class PreserveRegExpStatics
 };
 
 inline bool
-RegExpStatics::createDependent(JSContext *cx, size_t start, size_t end, MutableHandleValue out)
+RegExpStatics::createDependent(JSContext* cx, size_t start, size_t end, MutableHandleValue out)
 {
     /* Private function: caller must perform lazy evaluation. */
     JS_ASSERT(!pendingLazyEvaluation);
 
     JS_ASSERT(start <= end);
     JS_ASSERT(end <= matchesInput->length());
-    JSString *str = js_NewDependentString(cx, matchesInput, start, end - start);
+    JSString* str = js_NewDependentString(cx, matchesInput, start, end - start);
     if (!str)
         return false;
     out.setString(str);
@@ -232,7 +232,7 @@ RegExpStatics::createDependent(JSContext *cx, size_t start, size_t end, MutableH
 }
 
 inline bool
-RegExpStatics::createPendingInput(JSContext *cx, MutableHandleValue out)
+RegExpStatics::createPendingInput(JSContext* cx, MutableHandleValue out)
 {
     /* Lazy evaluation need not be resolved to return the input. */
     out.setString(pendingInput ? pendingInput.get() : cx->runtime()->emptyString);
@@ -240,7 +240,7 @@ RegExpStatics::createPendingInput(JSContext *cx, MutableHandleValue out)
 }
 
 inline bool
-RegExpStatics::makeMatch(JSContext *cx, size_t checkValidIndex, size_t pairNum,
+RegExpStatics::makeMatch(JSContext* cx, size_t checkValidIndex, size_t pairNum,
                          MutableHandleValue out)
 {
     /* Private function: caller must perform lazy evaluation. */
@@ -255,12 +255,12 @@ RegExpStatics::makeMatch(JSContext *cx, size_t checkValidIndex, size_t pairNum,
         out.setString(cx->runtime()->emptyString);
         return true;
     }
-    const MatchPair &pair = matches[pairNum];
+    const MatchPair& pair = matches[pairNum];
     return createDependent(cx, pair.start, pair.limit, out);
 }
 
 inline bool
-RegExpStatics::createLastMatch(JSContext *cx, MutableHandleValue out)
+RegExpStatics::createLastMatch(JSContext* cx, MutableHandleValue out)
 {
     if (!executeLazy(cx))
         return false;
@@ -268,7 +268,7 @@ RegExpStatics::createLastMatch(JSContext *cx, MutableHandleValue out)
 }
 
 inline bool
-RegExpStatics::createLastParen(JSContext *cx, MutableHandleValue out)
+RegExpStatics::createLastParen(JSContext* cx, MutableHandleValue out)
 {
     if (!executeLazy(cx))
         return false;
@@ -277,7 +277,7 @@ RegExpStatics::createLastParen(JSContext *cx, MutableHandleValue out)
         out.setString(cx->runtime()->emptyString);
         return true;
     }
-    const MatchPair &pair = matches[matches.pairCount() - 1];
+    const MatchPair& pair = matches[matches.pairCount() - 1];
     if (pair.start == -1) {
         out.setString(cx->runtime()->emptyString);
         return true;
@@ -288,7 +288,7 @@ RegExpStatics::createLastParen(JSContext *cx, MutableHandleValue out)
 }
 
 inline bool
-RegExpStatics::createParen(JSContext *cx, size_t pairNum, MutableHandleValue out)
+RegExpStatics::createParen(JSContext* cx, size_t pairNum, MutableHandleValue out)
 {
     JS_ASSERT(pairNum >= 1);
     if (!executeLazy(cx))
@@ -302,7 +302,7 @@ RegExpStatics::createParen(JSContext *cx, size_t pairNum, MutableHandleValue out
 }
 
 inline bool
-RegExpStatics::createLeftContext(JSContext *cx, MutableHandleValue out)
+RegExpStatics::createLeftContext(JSContext* cx, MutableHandleValue out)
 {
     if (!executeLazy(cx))
         return false;
@@ -319,7 +319,7 @@ RegExpStatics::createLeftContext(JSContext *cx, MutableHandleValue out)
 }
 
 inline bool
-RegExpStatics::createRightContext(JSContext *cx, MutableHandleValue out)
+RegExpStatics::createRightContext(JSContext* cx, MutableHandleValue out)
 {
     if (!executeLazy(cx))
         return false;
@@ -336,12 +336,12 @@ RegExpStatics::createRightContext(JSContext *cx, MutableHandleValue out)
 }
 
 inline void
-RegExpStatics::getParen(size_t pairNum, JSSubString *out) const
+RegExpStatics::getParen(size_t pairNum, JSSubString* out) const
 {
     JS_ASSERT(!pendingLazyEvaluation);
 
     JS_ASSERT(pairNum >= 1 && pairNum < matches.pairCount());
-    const MatchPair &pair = matches[pairNum];
+    const MatchPair& pair = matches[pairNum];
     if (pair.isUndefined()) {
         *out = js_EmptySubString;
         return;
@@ -351,7 +351,7 @@ RegExpStatics::getParen(size_t pairNum, JSSubString *out) const
 }
 
 inline void
-RegExpStatics::getLastMatch(JSSubString *out) const
+RegExpStatics::getLastMatch(JSSubString* out) const
 {
     JS_ASSERT(!pendingLazyEvaluation);
 
@@ -366,7 +366,7 @@ RegExpStatics::getLastMatch(JSSubString *out) const
 }
 
 inline void
-RegExpStatics::getLastParen(JSSubString *out) const
+RegExpStatics::getLastParen(JSSubString* out) const
 {
     JS_ASSERT(!pendingLazyEvaluation);
 
@@ -379,7 +379,7 @@ RegExpStatics::getLastParen(JSSubString *out) const
 }
 
 inline void
-RegExpStatics::getLeftContext(JSSubString *out) const
+RegExpStatics::getLeftContext(JSSubString* out) const
 {
     JS_ASSERT(!pendingLazyEvaluation);
 
@@ -392,7 +392,7 @@ RegExpStatics::getLeftContext(JSSubString *out) const
 }
 
 inline void
-RegExpStatics::getRightContext(JSSubString *out) const
+RegExpStatics::getRightContext(JSSubString* out) const
 {
     JS_ASSERT(!pendingLazyEvaluation);
 
@@ -406,7 +406,7 @@ RegExpStatics::getRightContext(JSSubString *out) const
 }
 
 inline void
-RegExpStatics::copyTo(RegExpStatics &dst)
+RegExpStatics::copyTo(RegExpStatics& dst)
 {
     /* Destination buffer has already been reserved by save(). */
     if (!pendingLazyEvaluation)
@@ -442,8 +442,8 @@ RegExpStatics::restore()
 }
 
 inline void
-RegExpStatics::updateLazily(JSContext *cx, JSLinearString *input,
-                            RegExpShared *shared, size_t lastIndex)
+RegExpStatics::updateLazily(JSContext* cx, JSLinearString* input,
+                            RegExpShared* shared, size_t lastIndex)
 {
     JS_ASSERT(input && shared);
     aboutToWrite();
@@ -459,7 +459,7 @@ RegExpStatics::updateLazily(JSContext *cx, JSLinearString *input,
 }
 
 inline bool
-RegExpStatics::updateFromMatchPairs(JSContext *cx, JSLinearString *input, MatchPairs &newPairs)
+RegExpStatics::updateFromMatchPairs(JSContext* cx, JSLinearString* input, MatchPairs& newPairs)
 {
     JS_ASSERT(input);
     aboutToWrite();
@@ -497,7 +497,7 @@ RegExpStatics::clear()
 }
 
 inline void
-RegExpStatics::setPendingInput(JSString *newInput)
+RegExpStatics::setPendingInput(JSString* newInput)
 {
     aboutToWrite();
     pendingInput = newInput;
@@ -531,7 +531,7 @@ RegExpStatics::checkInvariants()
     for (size_t i = 0; i < matches.pairCount(); i++) {
         if (matches[i].isUndefined())
             continue;
-        const MatchPair &pair = matches[i];
+        const MatchPair& pair = matches[i];
         JS_ASSERT(mpiLen >= size_t(pair.limit) && pair.limit >= pair.start && pair.start >= 0);
     }
 #endif /* DEBUG */

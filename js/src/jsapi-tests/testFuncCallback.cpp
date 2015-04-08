@@ -12,9 +12,9 @@ static int leaves = 0;
 static int interpreted = 0;
 
 static void
-funcTransition(const JSFunction *,
-               const JSScript *,
-               const JSContext *cx,
+funcTransition(const JSFunction*,
+               const JSScript*,
+               const JSContext* cx,
                int entering)
 {
     if (entering > 0) {
@@ -30,7 +30,7 @@ funcTransition(const JSFunction *,
 static bool called2 = false;
 
 static void
-funcTransition2(const JSFunction *, const JSScript*, const JSContext*, int)
+funcTransition2(const JSFunction*, const JSScript*, const JSContext*, int)
 {
     called2 = true;
 }
@@ -38,9 +38,9 @@ funcTransition2(const JSFunction *, const JSScript*, const JSContext*, int)
 static int overlays = 0;
 static JSFunctionCallback innerCallback = nullptr;
 static void
-funcTransitionOverlay(const JSFunction *fun,
-                      const JSScript *script,
-                      const JSContext *cx,
+funcTransitionOverlay(const JSFunction* fun,
+                      const JSScript* script,
+                      const JSContext* cx,
                       int entering)
 {
     (*innerCallback)(fun, script, cx, entering);
@@ -128,9 +128,9 @@ BEGIN_TEST(testFuncCallback_bug507012)
 // Make sure that the method jit is enabled.
 // We'll probably want to test in all modes.
 virtual
-JSContext *createContext()
+JSContext* createContext()
 {
-    JSContext *cx = JSAPITest::createContext();
+    JSContext* cx = JSAPITest::createContext();
     if (!cx)
         return nullptr;
     JS::RuntimeOptionsRef(cx).setBaseline(true)

@@ -20,7 +20,7 @@ namespace jit {
 template <AllowGC allowGC>
 inline
 InlineFrameIteratorMaybeGC<allowGC>::InlineFrameIteratorMaybeGC(
-                                                JSContext *cx, const IonBailoutIterator *iter)
+                                                JSContext* cx, const IonBailoutIterator* iter)
   : frame_(iter),
     framesRead_(0),
     frameCount_(UINT32_MAX),
@@ -33,11 +33,11 @@ InlineFrameIteratorMaybeGC<allowGC>::InlineFrameIteratorMaybeGC(
     }
 }
 
-inline BaselineFrame *
+inline BaselineFrame*
 JitFrameIterator::baselineFrame() const
 {
     JS_ASSERT(isBaselineJS());
-    return (BaselineFrame *)(fp() - BaselineFrame::FramePointerOffset - BaselineFrame::Size());
+    return (BaselineFrame*)(fp() - BaselineFrame::FramePointerOffset - BaselineFrame::Size());
 }
 
 } // namespace jit

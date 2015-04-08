@@ -21,8 +21,8 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                HandleObject funobj /* = nullptr               */,
                                HandleId name       /* = JSID_VOID             */,
                                unsigned argc       /* = NO_ARGS               */,
-                               jsval *argv         /* = nullptr               */,
-                               jsval *rval         /* = nullptr               */)
+                               jsval* argv         /* = nullptr               */,
+                               jsval* rval         /* = nullptr               */)
     :   mAr(cx),
         mState(INIT_FAILED),
         mXPC(nsXPConnect::XPConnect()),
@@ -59,7 +59,7 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
 
     // If the object is a security wrapper, GetWrappedNativeOfJSObject can't
     // handle it. Do special handling here to make cross-origin Xrays work.
-    JSObject *unwrapped = js::CheckedUnwrap(obj, /* stopAtOuter = */ false);
+    JSObject* unwrapped = js::CheckedUnwrap(obj, /* stopAtOuter = */ false);
     if (!unwrapped) {
         mWrapper = UnwrapThisIfAllowed(obj, funobj, argc);
         if (!mWrapper) {
@@ -68,7 +68,7 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
             return;
         }
     } else {
-        const js::Class *clasp = js::GetObjectClass(unwrapped);
+        const js::Class* clasp = js::GetObjectClass(unwrapped);
         if (IS_WN_CLASS(clasp)) {
             mWrapper = XPCWrappedNative::Get(unwrapped);
         } else if (IS_TEAROFF_CLASS(clasp)) {
@@ -97,7 +97,7 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
 }
 
 // static
-JSContext *
+JSContext*
 XPCCallContext::GetDefaultJSContext()
 {
     // This is slightly questionable. If called without an explicit
@@ -109,7 +109,7 @@ XPCCallContext::GetDefaultJSContext()
     // Note: this *is* what the pre-XPCCallContext xpconnect did too.
 
     XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
-    JSContext *topJSContext = stack->Peek();
+    JSContext* topJSContext = stack->Peek();
 
     return topJSContext ? topJSContext : stack->GetSafeJSContext();
 }
@@ -174,8 +174,8 @@ XPCCallContext::SetCallInfo(XPCNativeInterface* iface, XPCNativeMember* member,
 
 void
 XPCCallContext::SetArgsAndResultPtr(unsigned argc,
-                                    jsval *argv,
-                                    jsval *rval)
+                                    jsval* argv,
+                                    jsval* rval)
 {
     CHECK_STATE(HAVE_OBJECT);
 
@@ -252,7 +252,7 @@ XPCCallContext::GetCallee(nsISupports * *aCallee)
 
 /* readonly attribute uint16_t CalleeMethodIndex; */
 NS_IMETHODIMP
-XPCCallContext::GetCalleeMethodIndex(uint16_t *aCalleeMethodIndex)
+XPCCallContext::GetCalleeMethodIndex(uint16_t* aCalleeMethodIndex)
 {
     *aCalleeMethodIndex = mMethodIndex;
     return NS_OK;
@@ -296,7 +296,7 @@ XPCCallContext::GetJSContext(JSContext * *aJSContext)
 
 /* readonly attribute uint32_t Argc; */
 NS_IMETHODIMP
-XPCCallContext::GetArgc(uint32_t *aArgc)
+XPCCallContext::GetArgc(uint32_t* aArgc)
 {
     *aArgc = (uint32_t) mArgc;
     return NS_OK;
@@ -311,7 +311,7 @@ XPCCallContext::GetArgvPtr(jsval * *aArgvPtr)
 }
 
 NS_IMETHODIMP
-XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext **aResult)
+XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext** aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = GetPrevCallContext();
@@ -319,7 +319,7 @@ XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext **aResult)
 }
 
 NS_IMETHODIMP
-XPCCallContext::GetLanguage(uint16_t *aResult)
+XPCCallContext::GetLanguage(uint16_t* aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = GetCallerLanguage();
@@ -358,11 +358,11 @@ XPCCallContext::UnwrapThisIfAllowed(HandleObject obj, HandleObject fun, unsigned
     // Make sure we have an XPCWN, and grab it.
     if (!IS_WN_REFLECTOR(unwrapped))
         return nullptr;
-    XPCWrappedNative *wn = XPCWrappedNative::Get(unwrapped);
+    XPCWrappedNative* wn = XPCWrappedNative::Get(unwrapped);
 
     // Next, get the call info off the function object.
-    XPCNativeInterface *interface;
-    XPCNativeMember *member;
+    XPCNativeInterface* interface;
+    XPCNativeMember* member;
     XPCNativeMember::GetCallInfo(fun, &interface, &member);
 
     // To be extra safe, make sure that the underlying native implements the
@@ -377,7 +377,7 @@ XPCCallContext::UnwrapThisIfAllowed(HandleObject obj, HandleObject fun, unsigned
     // XPC_WN_GetterSetter does.
     bool set = argc && argc != NO_ARGS && member->IsWritableAttribute();
     js::Wrapper::Action act = set ? js::Wrapper::SET : js::Wrapper::GET;
-    js::Wrapper *handler = js::Wrapper::wrapperHandler(obj);
+    js::Wrapper* handler = js::Wrapper::wrapperHandler(obj);
     bool ignored;
     JS::Rooted<jsid> id(mJSContext, member->GetName());
     if (!handler->enter(mJSContext, obj, id, act, &ignored))

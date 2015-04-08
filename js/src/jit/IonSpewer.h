@@ -96,7 +96,7 @@ static const int NULL_ID = -1;
 class IonSpewer
 {
   private:
-    MIRGraph *graph;
+    MIRGraph* graph;
     JS::HandleScript function;
     C1Spewer c1Spewer;
     JSONSpewer jsonSpewer;
@@ -111,29 +111,29 @@ class IonSpewer
     ~IonSpewer();
 
     bool init();
-    void beginFunction(MIRGraph *graph, JS::HandleScript);
+    void beginFunction(MIRGraph* graph, JS::HandleScript);
     bool isSpewingFunction() const;
-    void spewPass(const char *pass);
-    void spewPass(const char *pass, LinearScanAllocator *ra);
+    void spewPass(const char* pass);
+    void spewPass(const char* pass, LinearScanAllocator* ra);
     void endFunction();
 };
 
-void IonSpewNewFunction(MIRGraph *graph, JS::HandleScript function);
-void IonSpewPass(const char *pass);
-void IonSpewPass(const char *pass, LinearScanAllocator *ra);
+void IonSpewNewFunction(MIRGraph* graph, JS::HandleScript function);
+void IonSpewPass(const char* pass);
+void IonSpewPass(const char* pass, LinearScanAllocator* ra);
 void IonSpewEndFunction();
 
 void CheckLogging();
-extern FILE *IonSpewFile;
-void IonSpew(IonSpewChannel channel, const char *fmt, ...);
-void IonSpewStart(IonSpewChannel channel, const char *fmt, ...);
-void IonSpewCont(IonSpewChannel channel, const char *fmt, ...);
+extern FILE* IonSpewFile;
+void IonSpew(IonSpewChannel channel, const char* fmt, ...);
+void IonSpewStart(IonSpewChannel channel, const char* fmt, ...);
+void IonSpewCont(IonSpewChannel channel, const char* fmt, ...);
 void IonSpewFin(IonSpewChannel channel);
 void IonSpewHeader(IonSpewChannel channel);
 bool IonSpewEnabled(IonSpewChannel channel);
-void IonSpewVA(IonSpewChannel channel, const char *fmt, va_list ap);
-void IonSpewStartVA(IonSpewChannel channel, const char *fmt, va_list ap);
-void IonSpewContVA(IonSpewChannel channel, const char *fmt, va_list ap);
+void IonSpewVA(IonSpewChannel channel, const char* fmt, va_list ap);
+void IonSpewStartVA(IonSpewChannel channel, const char* fmt, va_list ap);
+void IonSpewContVA(IonSpewChannel channel, const char* fmt, va_list ap);
 
 void EnableChannel(IonSpewChannel channel);
 void DisableChannel(IonSpewChannel channel);
@@ -141,23 +141,23 @@ void EnableIonDebugLogging();
 
 #else
 
-static inline void IonSpewNewFunction(MIRGraph *graph, JS::HandleScript function)
+static inline void IonSpewNewFunction(MIRGraph* graph, JS::HandleScript function)
 { }
-static inline void IonSpewPass(const char *pass)
+static inline void IonSpewPass(const char* pass)
 { }
-static inline void IonSpewPass(const char *pass, LinearScanAllocator *ra)
+static inline void IonSpewPass(const char* pass, LinearScanAllocator* ra)
 { }
 static inline void IonSpewEndFunction()
 { }
 
 static inline void CheckLogging()
 { }
-static FILE *const IonSpewFile = nullptr;
-static inline void IonSpew(IonSpewChannel, const char *fmt, ...)
+static FILE* const IonSpewFile = nullptr;
+static inline void IonSpew(IonSpewChannel, const char* fmt, ...)
 { }
-static inline void IonSpewStart(IonSpewChannel channel, const char *fmt, ...)
+static inline void IonSpewStart(IonSpewChannel channel, const char* fmt, ...)
 { }
-static inline void IonSpewCont(IonSpewChannel channel, const char *fmt, ...)
+static inline void IonSpewCont(IonSpewChannel channel, const char* fmt, ...)
 { }
 static inline void IonSpewFin(IonSpewChannel channel)
 { }
@@ -166,7 +166,7 @@ static inline void IonSpewHeader(IonSpewChannel channel)
 { }
 static inline bool IonSpewEnabled(IonSpewChannel channel)
 { return false; }
-static inline void IonSpewVA(IonSpewChannel channel, const char *fmt, va_list ap)
+static inline void IonSpewVA(IonSpewChannel channel, const char* fmt, va_list ap)
 { }
 
 static inline void EnableChannel(IonSpewChannel)

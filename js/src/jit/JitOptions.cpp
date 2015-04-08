@@ -116,7 +116,7 @@ JitOptions::JitOptions()
 }
 
 bool
-JitOptions::isSmallFunction(JSScript *script) const
+JitOptions::isSmallFunction(JSScript* script) const
 {
     return script->length() <= smallFunctionMaxBytecodeLength_;
 }

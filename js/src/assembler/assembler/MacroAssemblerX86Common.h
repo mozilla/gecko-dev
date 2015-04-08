@@ -892,7 +892,7 @@ public:
     }
 
     // Branch and record a label after the comparison.
-    Jump branch32WithPatch(Condition cond, RegisterID left, TrustedImm32 right, DataLabel32 &dataLabel)
+    Jump branch32WithPatch(Condition cond, RegisterID left, TrustedImm32 right, DataLabel32& dataLabel)
     {
         // Always use cmpl, since the value is to be patched.
         m_assembler.cmpl_ir_force32(right.m_value, left);
@@ -900,7 +900,7 @@ public:
         return Jump(m_assembler.jCC(x86Condition(cond)));
     }
 
-    Jump branch32WithPatch(Condition cond, Address left, TrustedImm32 right, DataLabel32 &dataLabel)
+    Jump branch32WithPatch(Condition cond, Address left, TrustedImm32 right, DataLabel32& dataLabel)
     {
         m_assembler.cmpl_im_force32(right.m_value, left.offset, left.base);
         dataLabel = DataLabel32(this);

@@ -14,9 +14,9 @@ using namespace js;
 
 static int callCounts[2] = {0, 0};
 
-static void *
-callCountHook(JSContext *cx, JSAbstractFramePtr frame, bool isConstructing, bool before,
-              bool *ok, void *closure)
+static void*
+callCountHook(JSContext* cx, JSAbstractFramePtr frame, bool isConstructing, bool before,
+              bool* ok, void* closure)
 {
     callCounts[before]++;
 
@@ -40,12 +40,12 @@ BEGIN_TEST(testDebugger_bug519719)
 }
 END_TEST(testDebugger_bug519719)
 
-static void *
-nonStrictThisHook(JSContext *cx, JSAbstractFramePtr frame, bool isConstructing, bool before,
-                  bool *ok, void *closure)
+static void*
+nonStrictThisHook(JSContext* cx, JSAbstractFramePtr frame, bool isConstructing, bool before,
+                  bool* ok, void* closure)
 {
     if (before) {
-        bool *allWrapped = (bool *) closure;
+        bool* allWrapped = (bool*) closure;
         JS::RootedValue thisv(cx);
         frame.getThisValue(cx, &thisv);
         *allWrapped = *allWrapped && !JSVAL_IS_PRIMITIVE(thisv);
@@ -57,7 +57,7 @@ BEGIN_TEST(testDebugger_getThisNonStrict)
 {
     bool allWrapped = true;
     CHECK(JS_SetDebugMode(cx, true));
-    JS_SetCallHook(rt, nonStrictThisHook, (void *) &allWrapped);
+    JS_SetCallHook(rt, nonStrictThisHook, (void*) &allWrapped);
     EXEC("function nonstrict() { }\n"
          "Boolean.prototype.nonstrict = nonstrict;\n"
          "String.prototype.nonstrict = nonstrict;\n"
@@ -79,12 +79,12 @@ BEGIN_TEST(testDebugger_getThisNonStrict)
 }
 END_TEST(testDebugger_getThisNonStrict)
 
-static void *
-strictThisHook(JSContext *cx, JSAbstractFramePtr frame, bool isConstructing, bool before,
-               bool *ok, void *closure)
+static void*
+strictThisHook(JSContext* cx, JSAbstractFramePtr frame, bool isConstructing, bool before,
+               bool* ok, void* closure)
 {
     if (before) {
-        bool *anyWrapped = (bool *) closure;
+        bool* anyWrapped = (bool*) closure;
         JS::RootedValue thisv(cx);
         frame.getThisValue(cx, &thisv);
         *anyWrapped = *anyWrapped || !JSVAL_IS_PRIMITIVE(thisv);
@@ -96,7 +96,7 @@ BEGIN_TEST(testDebugger_getThisStrict)
 {
     bool anyWrapped = false;
     CHECK(JS_SetDebugMode(cx, true));
-    JS_SetCallHook(rt, strictThisHook, (void *) &anyWrapped);
+    JS_SetCallHook(rt, strictThisHook, (void*) &anyWrapped);
     EXEC("function strict() { 'use strict'; }\n"
          "Boolean.prototype.strict = strict;\n"
          "String.prototype.strict = strict;\n"
@@ -117,7 +117,7 @@ END_TEST(testDebugger_getThisStrict)
 static bool calledThrowHook = false;
 
 static JSTrapStatus
-ThrowHook(JSContext *cx, JSScript *, jsbytecode *, jsval *rval, void *closure)
+ThrowHook(JSContext* cx, JSScript*, jsbytecode*, jsval* rval, void* closure)
 {
     JS_ASSERT(!closure);
     calledThrowHook = true;
@@ -218,13 +218,13 @@ BEGIN_TEST(testDebugger_newScriptHook)
     return testIndirectEval(g, "Math.abs(0)");
 }
 
-bool testIndirectEval(JS::HandleObject scope, const char *code)
+bool testIndirectEval(JS::HandleObject scope, const char* code)
 {
     EXEC("hits = 0;");
 
     {
         JSAutoCompartment ae(cx, scope);
-        JSString *codestr = JS_NewStringCopyZ(cx, code);
+        JSString* codestr = JS_NewStringCopyZ(cx, code);
         CHECK(codestr);
         JS::RootedValue arg(cx, JS::StringValue(codestr));
         JS::RootedValue v(cx);
@@ -253,7 +253,7 @@ BEGIN_TEST(testDebugger_singleStepThrow)
     }
 
     static bool
-    setStepMode(JSContext *cx, unsigned argc, jsval *vp)
+    setStepMode(JSContext* cx, unsigned argc, jsval* vp)
     {
         CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -267,7 +267,7 @@ BEGIN_TEST(testDebugger_singleStepThrow)
     }
 
     static JSTrapStatus
-    onStep(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval, void *closure)
+    onStep(JSContext* cx, JSScript* script, jsbytecode* pc, jsval* rval, void* closure)
     {
         return JSTRAP_CONTINUE;
     }

@@ -21,7 +21,7 @@
 using namespace js;
 using namespace js::gc;
 
-JS::Zone::Zone(JSRuntime *rt)
+JS::Zone::Zone(JSRuntime* rt)
   : JS::shadow::Zone(rt, &rt->gcMarker),
     allocator(this),
     ionUsingBarriers_(false),
@@ -46,8 +46,8 @@ JS::Zone::Zone(JSRuntime *rt)
 #endif
 {
     /* Ensure that there are no vtables to mess us up here. */
-    JS_ASSERT(reinterpret_cast<JS::shadow::Zone *>(this) ==
-              static_cast<JS::shadow::Zone *>(this));
+    JS_ASSERT(reinterpret_cast<JS::shadow::Zone*>(this) ==
+              static_cast<JS::shadow::Zone*>(this));
 
     setGCMaxMallocBytes(rt->gcMaxMallocBytes * 0.9);
 }
@@ -105,7 +105,7 @@ Zone::onTooMuchMalloc()
 }
 
 void
-Zone::sweep(FreeOp *fop, bool releaseTypes, bool *oom)
+Zone::sweep(FreeOp* fop, bool releaseTypes, bool* oom)
 {
     /*
      * Periodically release observed types for all scripts. This is safe to
@@ -126,7 +126,7 @@ Zone::sweep(FreeOp *fop, bool releaseTypes, bool *oom)
 }
 
 void
-Zone::sweepBreakpoints(FreeOp *fop)
+Zone::sweepBreakpoints(FreeOp* fop)
 {
     /*
      * Sweep all compartments in a zone at the same time, since there is no way
@@ -138,7 +138,7 @@ Zone::sweepBreakpoints(FreeOp *fop)
 
     JS_ASSERT(isGCSweeping());
     for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-        JSScript *script = i.get<JSScript>();
+        JSScript* script = i.get<JSScript>();
         JS_ASSERT(script->zone()->isGCSweeping());
         if (!script->hasAnyBreakpointsOrStepMode())
             continue;
@@ -146,12 +146,12 @@ Zone::sweepBreakpoints(FreeOp *fop)
         bool scriptGone = IsScriptAboutToBeFinalized(&script);
         JS_ASSERT(script == i.get<JSScript>());
         for (unsigned i = 0; i < script->length(); i++) {
-            BreakpointSite *site = script->getBreakpointSite(script->offsetToPC(i));
+            BreakpointSite* site = script->getBreakpointSite(script->offsetToPC(i));
             if (!site)
                 continue;
 
-            Breakpoint *nextbp;
-            for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = nextbp) {
+            Breakpoint* nextbp;
+            for (Breakpoint* bp = site->firstBreakpoint(); bp; bp = nextbp) {
                 nextbp = bp->nextInSite();
                 HeapPtrObject& dbgobj = bp->debugger->toJSObjectRef();
                 JS_ASSERT(dbgobj->zone()->isGCSweeping());
@@ -165,7 +165,7 @@ Zone::sweepBreakpoints(FreeOp *fop)
 }
 
 void
-Zone::discardJitCode(FreeOp *fop)
+Zone::discardJitCode(FreeOp* fop)
 {
 #ifdef JS_ION
     if (!jitZone())
@@ -178,7 +178,7 @@ Zone::discardJitCode(FreeOp *fop)
 # ifdef DEBUG
         /* Assert no baseline scripts are marked as active. */
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
+            JSScript* script = i.get<JSScript>();
             JS_ASSERT_IF(script->hasBaselineScript(), !script->baselineScript()->active());
         }
 # endif
@@ -190,7 +190,7 @@ Zone::discardJitCode(FreeOp *fop)
         jit::InvalidateAll(fop, this);
 
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
+            JSScript* script = i.get<JSScript>();
             jit::FinishInvalidation<SequentialExecution>(fop, script);
 
             // Preserve JIT code that have been recently used in
@@ -233,8 +233,8 @@ Zone::gcNumber()
 }
 
 #ifdef JS_ION
-js::jit::JitZone *
-Zone::createJitZone(JSContext *cx)
+js::jit::JitZone*
+Zone::createJitZone(JSContext* cx)
 {
     MOZ_ASSERT(!jitZone_);
 
@@ -246,14 +246,14 @@ Zone::createJitZone(JSContext *cx)
 }
 #endif
 
-JS::Zone *
-js::ZoneOfObject(const JSObject &obj)
+JS::Zone*
+js::ZoneOfObject(const JSObject& obj)
 {
     return obj.zone();
 }
 
-JS::Zone *
-js::ZoneOfObjectFromAnyThread(const JSObject &obj)
+JS::Zone*
+js::ZoneOfObjectFromAnyThread(const JSObject& obj)
 {
     return obj.zoneFromAnyThread();
 }

@@ -30,18 +30,18 @@ class MIRGraph;
 struct LoopIterationBound : public TempObject
 {
     // Loop for which this bound applies.
-    MBasicBlock *header;
+    MBasicBlock* header;
 
     // Test from which this bound was derived. Code in the loop body which this
     // test dominates (will include the backedge) will execute at most 'bound'
     // times. Other code in the loop will execute at most '1 + Max(bound, 0)'
     // times.
-    MTest *test;
+    MTest* test;
 
     // Symbolic bound computed for the number of backedge executions.
     LinearSum sum;
 
-    LoopIterationBound(MBasicBlock *header, MTest *test, LinearSum sum)
+    LoopIterationBound(MBasicBlock* header, MTest* test, LinearSum sum)
       : header(header), test(test), sum(sum)
     {
     }
@@ -51,7 +51,7 @@ struct LoopIterationBound : public TempObject
 struct SymbolicBound : public TempObject
 {
   private:
-    SymbolicBound(LoopIterationBound *loop, LinearSum sum)
+    SymbolicBound(LoopIterationBound* loop, LinearSum sum)
       : loop(loop), sum(sum)
     {
     }
@@ -63,49 +63,49 @@ struct SymbolicBound : public TempObject
     // points dominated by the loop bound's test (see LoopIterationBound).
     //
     // If nullptr, then 'sum' is always valid.
-    LoopIterationBound *loop;
+    LoopIterationBound* loop;
 
-    static SymbolicBound *New(TempAllocator &alloc, LoopIterationBound *loop, LinearSum sum) {
+    static SymbolicBound* New(TempAllocator& alloc, LoopIterationBound* loop, LinearSum sum) {
         return new(alloc) SymbolicBound(loop, sum);
     }
 
     // Computed symbolic bound, see above.
     LinearSum sum;
 
-    void print(Sprinter &sp) const;
+    void print(Sprinter& sp) const;
     void dump() const;
 };
 
 class RangeAnalysis
 {
   protected:
-    bool blockDominates(MBasicBlock *b, MBasicBlock *b2);
-    void replaceDominatedUsesWith(MDefinition *orig, MDefinition *dom,
-                                  MBasicBlock *block);
+    bool blockDominates(MBasicBlock* b, MBasicBlock* b2);
+    void replaceDominatedUsesWith(MDefinition* orig, MDefinition* dom,
+                                  MBasicBlock* block);
 
   protected:
-    MIRGenerator *mir;
-    MIRGraph &graph_;
+    MIRGenerator* mir;
+    MIRGraph& graph_;
 
-    TempAllocator &alloc() const;
+    TempAllocator& alloc() const;
 
   public:
-    MOZ_CONSTEXPR RangeAnalysis(MIRGenerator *mir, MIRGraph &graph) :
+    MOZ_CONSTEXPR RangeAnalysis(MIRGenerator* mir, MIRGraph& graph) :
         mir(mir), graph_(graph) {}
     bool addBetaNodes();
     bool analyze();
     bool addRangeAssertions();
     bool removeBetaNodes();
-    bool prepareForUCE(bool *shouldRemoveDeadCode);
+    bool prepareForUCE(bool* shouldRemoveDeadCode);
     bool truncate();
 
   private:
-    bool analyzeLoop(MBasicBlock *header);
-    LoopIterationBound *analyzeLoopIterationCount(MBasicBlock *header,
-                                                  MTest *test, BranchDirection direction);
-    void analyzeLoopPhi(MBasicBlock *header, LoopIterationBound *loopBound, MPhi *phi);
-    bool tryHoistBoundsCheck(MBasicBlock *header, MBoundsCheck *ins);
-    bool markBlocksInLoopBody(MBasicBlock *header, MBasicBlock *current);
+    bool analyzeLoop(MBasicBlock* header);
+    LoopIterationBound* analyzeLoopIterationCount(MBasicBlock* header,
+                                                  MTest* test, BranchDirection direction);
+    void analyzeLoopPhi(MBasicBlock* header, LoopIterationBound* loopBound, MPhi* phi);
+    bool tryHoistBoundsCheck(MBasicBlock* header, MBoundsCheck* ins);
+    bool markBlocksInLoopBody(MBasicBlock* header, MBasicBlock* current);
 };
 
 class Range : public TempObject {
@@ -184,8 +184,8 @@ class Range : public TempObject {
     uint16_t max_exponent_;
 
     // Any symbolic lower or upper bound computed for this term.
-    const SymbolicBound *symbolicLower_;
-    const SymbolicBound *symbolicUpper_;
+    const SymbolicBound* symbolicLower_;
+    const SymbolicBound* symbolicUpper_;
 
     // This function simply makes several JS_ASSERTs to verify the internal
     // consistency of this range.
@@ -277,7 +277,7 @@ class Range : public TempObject {
     // Given an exponent value and pointers to the lower and upper bound values,
     // this function refines the lower and upper bound values to the tighest
     // bound for integer values implied by the exponent.
-    static void refineInt32BoundsByExponent(uint16_t e, int32_t *l, int32_t *h) {
+    static void refineInt32BoundsByExponent(uint16_t e, int32_t* l, int32_t* h) {
        if (e < MaxInt32Exponent) {
            // pow(2, max_exponent_+1)-1 to compute a maximum absolute value.
            int32_t limit = (uint32_t(1) << (e + 1)) - 1;
@@ -345,7 +345,7 @@ class Range : public TempObject {
         set(l, h, f, e);
     }
 
-    Range(const Range &other)
+    Range(const Range& other)
       : lower_(other.lower_),
         hasInt32LowerBound_(other.hasInt32LowerBound_),
         upper_(other.upper_),
@@ -361,57 +361,57 @@ class Range : public TempObject {
     // Construct a range from the given MDefinition. This differs from the
     // MDefinition's range() method in that it describes the range of values
     // *after* any bailout checks.
-    Range(const MDefinition *def);
+    Range(const MDefinition* def);
 
-    static Range *NewInt32Range(TempAllocator &alloc, int32_t l, int32_t h) {
+    static Range* NewInt32Range(TempAllocator& alloc, int32_t l, int32_t h) {
         return new(alloc) Range(l, h, false, MaxInt32Exponent);
     }
 
-    static Range *NewUInt32Range(TempAllocator &alloc, uint32_t l, uint32_t h) {
+    static Range* NewUInt32Range(TempAllocator& alloc, uint32_t l, uint32_t h) {
         // For now, just pass them to the constructor as int64_t values.
         // They'll become unbounded if they're not in the int32_t range.
         return new(alloc) Range(l, h, false, MaxUInt32Exponent);
     }
 
-    static Range *NewDoubleRange(TempAllocator &alloc, double l, double h) {
+    static Range* NewDoubleRange(TempAllocator& alloc, double l, double h) {
         if (mozilla::IsNaN(l) && mozilla::IsNaN(h))
             return nullptr;
 
-        Range *r = new(alloc) Range();
+        Range* r = new(alloc) Range();
         r->setDouble(l, h);
         return r;
     }
 
-    void print(Sprinter &sp) const;
-    void dump(FILE *fp) const;
+    void print(Sprinter& sp) const;
+    void dump(FILE* fp) const;
     void dump() const;
-    bool update(const Range *other);
+    bool update(const Range* other);
 
     // Unlike the other operations, unionWith is an in-place
     // modification. This is to avoid a bunch of useless extra
     // copying when chaining together unions when handling Phi
     // nodes.
-    void unionWith(const Range *other);
-    static Range *intersect(TempAllocator &alloc, const Range *lhs, const Range *rhs,
-                             bool *emptyRange);
-    static Range *add(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *sub(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *mul(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *and_(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *or_(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *xor_(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *not_(TempAllocator &alloc, const Range *op);
-    static Range *lsh(TempAllocator &alloc, const Range *lhs, int32_t c);
-    static Range *rsh(TempAllocator &alloc, const Range *lhs, int32_t c);
-    static Range *ursh(TempAllocator &alloc, const Range *lhs, int32_t c);
-    static Range *lsh(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *rsh(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *ursh(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *abs(TempAllocator &alloc, const Range *op);
-    static Range *min(TempAllocator &alloc, const Range *lhs, const Range *rhs);
-    static Range *max(TempAllocator &alloc, const Range *lhs, const Range *rhs);
+    void unionWith(const Range* other);
+    static Range* intersect(TempAllocator& alloc, const Range* lhs, const Range* rhs,
+                             bool* emptyRange);
+    static Range* add(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* sub(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* mul(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* and_(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* or_(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* xor_(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* not_(TempAllocator& alloc, const Range* op);
+    static Range* lsh(TempAllocator& alloc, const Range* lhs, int32_t c);
+    static Range* rsh(TempAllocator& alloc, const Range* lhs, int32_t c);
+    static Range* ursh(TempAllocator& alloc, const Range* lhs, int32_t c);
+    static Range* lsh(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* rsh(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* ursh(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* abs(TempAllocator& alloc, const Range* op);
+    static Range* min(TempAllocator& alloc, const Range* lhs, const Range* rhs);
+    static Range* max(TempAllocator& alloc, const Range* lhs, const Range* rhs);
 
-    static bool negativeZeroMul(const Range *lhs, const Range *rhs);
+    static bool negativeZeroMul(const Range* lhs, const Range* rhs);
 
     bool isUnknownInt32() const {
         return isInt32() && lower() == INT32_MIN && upper() == INT32_MAX;
@@ -570,17 +570,17 @@ class Range : public TempObject {
     // it to the [0, 1] range.  Otherwise do nothing.
     void wrapAroundToBoolean();
 
-    const SymbolicBound *symbolicLower() const {
+    const SymbolicBound* symbolicLower() const {
         return symbolicLower_;
     }
-    const SymbolicBound *symbolicUpper() const {
+    const SymbolicBound* symbolicUpper() const {
         return symbolicUpper_;
     }
 
-    void setSymbolicLower(SymbolicBound *bound) {
+    void setSymbolicLower(SymbolicBound* bound) {
         symbolicLower_ = bound;
     }
-    void setSymbolicUpper(SymbolicBound *bound) {
+    void setSymbolicUpper(SymbolicBound* bound) {
         symbolicUpper_ = bound;
     }
 };

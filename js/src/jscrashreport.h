@@ -21,13 +21,13 @@ void
 SnapshotErrorStack();
 
 void
-SaveCrashData(uint64_t tag, void *ptr, size_t size);
+SaveCrashData(uint64_t tag, void* ptr, size_t size);
 
 template<size_t size, unsigned char marker>
 class StackBuffer
 {
   public:
-    StackBuffer(void *data
+    StackBuffer(void* data
                 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;

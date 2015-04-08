@@ -47,29 +47,29 @@ enum AbortReason {
 class IonContext
 {
   public:
-    IonContext(JSContext *cx, TempAllocator *temp);
-    IonContext(ExclusiveContext *cx, TempAllocator *temp);
-    IonContext(CompileRuntime *rt, CompileCompartment *comp, TempAllocator *temp);
-    IonContext(CompileRuntime *rt);
+    IonContext(JSContext* cx, TempAllocator* temp);
+    IonContext(ExclusiveContext* cx, TempAllocator* temp);
+    IonContext(CompileRuntime* rt, CompileCompartment* comp, TempAllocator* temp);
+    IonContext(CompileRuntime* rt);
     ~IonContext();
 
     // Running context when executing on the main thread. Not available during
     // compilation.
-    JSContext *cx;
+    JSContext* cx;
 
     // Allocator for temporary memory during compilation.
-    TempAllocator *temp;
+    TempAllocator* temp;
 
     // Wrappers with information about the current runtime/compartment for use
     // during compilation.
-    CompileRuntime *runtime;
-    CompileCompartment *compartment;
+    CompileRuntime* runtime;
+    CompileCompartment* compartment;
 
     int getNextAssemblerId() {
         return assemblerCount_++;
     }
   private:
-    IonContext *prev_;
+    IonContext* prev_;
     int assemblerCount_;
 };
 
@@ -77,24 +77,24 @@ class IonContext
 bool InitializeIon();
 
 // Get and set the current Ion context.
-IonContext *GetIonContext();
-IonContext *MaybeGetIonContext();
+IonContext* GetIonContext();
+IonContext* MaybeGetIonContext();
 
-void SetIonContext(IonContext *ctx);
+void SetIonContext(IonContext* ctx);
 
-bool CanIonCompileScript(JSContext *cx, JSScript *script, bool osr);
+bool CanIonCompileScript(JSContext* cx, JSScript* script, bool osr);
 
-MethodStatus CanEnterAtBranch(JSContext *cx, JSScript *script,
-                              BaselineFrame *frame, jsbytecode *pc, bool isConstructing);
-MethodStatus CanEnter(JSContext *cx, RunState &state);
-MethodStatus CompileFunctionForBaseline(JSContext *cx, HandleScript script, BaselineFrame *frame,
+MethodStatus CanEnterAtBranch(JSContext* cx, JSScript* script,
+                              BaselineFrame* frame, jsbytecode* pc, bool isConstructing);
+MethodStatus CanEnter(JSContext* cx, RunState& state);
+MethodStatus CompileFunctionForBaseline(JSContext* cx, HandleScript script, BaselineFrame* frame,
                                         bool isConstructing);
-MethodStatus CanEnterUsingFastInvoke(JSContext *cx, HandleScript script, uint32_t numActualArgs);
+MethodStatus CanEnterUsingFastInvoke(JSContext* cx, HandleScript script, uint32_t numActualArgs);
 
-MethodStatus CanEnterInParallel(JSContext *cx, HandleScript script);
+MethodStatus CanEnterInParallel(JSContext* cx, HandleScript script);
 
 MethodStatus
-Recompile(JSContext *cx, HandleScript script, BaselineFrame *osrFrame, jsbytecode *osrPc,
+Recompile(JSContext* cx, HandleScript script, BaselineFrame* osrFrame, jsbytecode* osrPc,
           bool constructing);
 
 enum IonExecStatus
@@ -119,45 +119,45 @@ IsErrorStatus(IonExecStatus status)
 
 struct EnterJitData;
 
-bool SetEnterJitData(JSContext *cx, EnterJitData &data, RunState &state, AutoValueVector &vals);
+bool SetEnterJitData(JSContext* cx, EnterJitData& data, RunState& state, AutoValueVector& vals);
 
-IonExecStatus IonCannon(JSContext *cx, RunState &state);
+IonExecStatus IonCannon(JSContext* cx, RunState& state);
 
 // Used to enter Ion from C++ natives like Array.map. Called from FastInvokeGuard.
-IonExecStatus FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args);
+IonExecStatus FastInvoke(JSContext* cx, HandleFunction fun, CallArgs& args);
 
 // Walk the stack and invalidate active Ion frames for the invalid scripts.
-void Invalidate(types::TypeZone &types, FreeOp *fop,
-                const Vector<types::RecompileInfo> &invalid, bool resetUses = true,
+void Invalidate(types::TypeZone& types, FreeOp* fop,
+                const Vector<types::RecompileInfo>& invalid, bool resetUses = true,
                 bool cancelOffThread = true);
-void Invalidate(JSContext *cx, const Vector<types::RecompileInfo> &invalid, bool resetUses = true,
+void Invalidate(JSContext* cx, const Vector<types::RecompileInfo>& invalid, bool resetUses = true,
                 bool cancelOffThread = true);
-bool Invalidate(JSContext *cx, JSScript *script, ExecutionMode mode, bool resetUses = true,
+bool Invalidate(JSContext* cx, JSScript* script, ExecutionMode mode, bool resetUses = true,
                 bool cancelOffThread = true);
-bool Invalidate(JSContext *cx, JSScript *script, bool resetUses = true,
+bool Invalidate(JSContext* cx, JSScript* script, bool resetUses = true,
                 bool cancelOffThread = true);
 
-void MarkValueFromIon(JSRuntime *rt, Value *vp);
-void MarkShapeFromIon(JSRuntime *rt, Shape **shapep);
+void MarkValueFromIon(JSRuntime* rt, Value* vp);
+void MarkShapeFromIon(JSRuntime* rt, Shape** shapep);
 
-void ToggleBarriers(JS::Zone *zone, bool needs);
+void ToggleBarriers(JS::Zone* zone, bool needs);
 
 class IonBuilder;
 class MIRGenerator;
 class LIRGraph;
 class CodeGenerator;
 
-bool OptimizeMIR(MIRGenerator *mir);
-LIRGraph *GenerateLIR(MIRGenerator *mir);
-CodeGenerator *GenerateCode(MIRGenerator *mir, LIRGraph *lir);
-CodeGenerator *CompileBackEnd(MIRGenerator *mir);
+bool OptimizeMIR(MIRGenerator* mir);
+LIRGraph* GenerateLIR(MIRGenerator* mir);
+CodeGenerator* GenerateCode(MIRGenerator* mir, LIRGraph* lir);
+CodeGenerator* CompileBackEnd(MIRGenerator* mir);
 
-void AttachFinishedCompilations(JSContext *cx);
-void FinishOffThreadBuilder(IonBuilder *builder);
-void StopAllOffThreadCompilations(JSCompartment *comp);
+void AttachFinishedCompilations(JSContext* cx);
+void FinishOffThreadBuilder(IonBuilder* builder);
+void StopAllOffThreadCompilations(JSCompartment* comp);
 
 static inline bool
-IsIonEnabled(JSContext *cx)
+IsIonEnabled(JSContext* cx)
 {
     return cx->runtime()->options().ion() &&
            cx->runtime()->options().baseline() &&
@@ -165,7 +165,7 @@ IsIonEnabled(JSContext *cx)
 }
 
 inline bool
-IsIonInlinablePC(jsbytecode *pc) {
+IsIonInlinablePC(jsbytecode* pc) {
     // CALL, FUNCALL, FUNAPPLY, EVAL, NEW (Normal Callsites)
     // GETPROP, CALLPROP, and LENGTH. (Inlined Getters)
     // SETPROP, SETNAME, SETGNAME (Inlined Setters)
@@ -178,19 +178,19 @@ TooManyArguments(unsigned nargs)
     return nargs >= SNAPSHOT_MAX_NARGS || nargs > js_JitOptions.maxStackArgs;
 }
 
-void ForbidCompilation(JSContext *cx, JSScript *script);
-void ForbidCompilation(JSContext *cx, JSScript *script, ExecutionMode mode);
+void ForbidCompilation(JSContext* cx, JSScript* script);
+void ForbidCompilation(JSContext* cx, JSScript* script, ExecutionMode mode);
 
-void PurgeCaches(JSScript *script);
-size_t SizeOfIonData(JSScript *script, mozilla::MallocSizeOf mallocSizeOf);
-void DestroyIonScripts(FreeOp *fop, JSScript *script);
-void TraceIonScripts(JSTracer* trc, JSScript *script);
+void PurgeCaches(JSScript* script);
+size_t SizeOfIonData(JSScript* script, mozilla::MallocSizeOf mallocSizeOf);
+void DestroyIonScripts(FreeOp* fop, JSScript* script);
+void TraceIonScripts(JSTracer* trc, JSScript* script);
 
-void RequestInterruptForIonCode(JSRuntime *rt, JSRuntime::InterruptMode mode);
+void RequestInterruptForIonCode(JSRuntime* rt, JSRuntime::InterruptMode mode);
 
-bool RematerializeAllFrames(JSContext *cx, JSCompartment *comp);
-bool UpdateForDebugMode(JSContext *maybecx, JSCompartment *comp,
-                        AutoDebugModeInvalidation &invalidate);
+bool RematerializeAllFrames(JSContext* cx, JSCompartment* comp);
+bool UpdateForDebugMode(JSContext* maybecx, JSCompartment* comp,
+                        AutoDebugModeInvalidation& invalidate);
 
 } // namespace jit
 } // namespace js

@@ -12,11 +12,11 @@
 using namespace JS;
 
 Latin1CharsZ
-JS::LossyTwoByteCharsToNewLatin1CharsZ(js::ThreadSafeContext *cx, TwoByteChars tbchars)
+JS::LossyTwoByteCharsToNewLatin1CharsZ(js::ThreadSafeContext* cx, TwoByteChars tbchars)
 {
     JS_ASSERT(cx);
     size_t len = tbchars.length();
-    unsigned char *latin1 = cx->pod_malloc<unsigned char>(len + 1);
+    unsigned char* latin1 = cx->pod_malloc<unsigned char>(len + 1);
     if (!latin1)
         return Latin1CharsZ();
     for (size_t i = 0; i < len; ++i)
@@ -26,10 +26,10 @@ JS::LossyTwoByteCharsToNewLatin1CharsZ(js::ThreadSafeContext *cx, TwoByteChars t
 }
 
 static size_t
-GetDeflatedUTF8StringLength(const jschar *chars, size_t nchars)
+GetDeflatedUTF8StringLength(const jschar* chars, size_t nchars)
 {
     size_t nbytes;
-    const jschar *end;
+    const jschar* end;
     unsigned c, c2;
 
     nbytes = nchars;
@@ -63,7 +63,7 @@ GetDeflatedUTF8StringLength(const jschar *chars, size_t nchars)
 }
 
 static bool
-PutUTF8ReplacementCharacter(char **dst, size_t *dstlenp) {
+PutUTF8ReplacementCharacter(char** dst, size_t* dstlenp) {
     if (*dstlenp < 3)
         return false;
     *(*dst)++ = (char) 0xEF;
@@ -78,8 +78,8 @@ PutUTF8ReplacementCharacter(char **dst, size_t *dstlenp) {
  * into |*dstlenp| on success.  Returns false on failure.
  */
 static bool
-DeflateStringToUTF8Buffer(js::ThreadSafeContext *cx, const jschar *src, size_t srclen,
-                          char *dst, size_t *dstlenp)
+DeflateStringToUTF8Buffer(js::ThreadSafeContext* cx, const jschar* src, size_t srclen,
+                          char* dst, size_t* dstlenp)
 {
     size_t dstlen = *dstlenp;
     size_t origDstlen = dstlen;
@@ -140,21 +140,21 @@ bufferTooSmall:
 
 
 UTF8CharsZ
-JS::TwoByteCharsToNewUTF8CharsZ(js::ThreadSafeContext *cx, TwoByteChars tbchars)
+JS::TwoByteCharsToNewUTF8CharsZ(js::ThreadSafeContext* cx, TwoByteChars tbchars)
 {
     JS_ASSERT(cx);
 
     /* Get required buffer size. */
-    jschar *str = tbchars.start().get();
+    jschar* str = tbchars.start().get();
     size_t len = GetDeflatedUTF8StringLength(str, tbchars.length());
 
     /* Allocate buffer. */
-    unsigned char *utf8 = cx->pod_malloc<unsigned char>(len + 1);
+    unsigned char* utf8 = cx->pod_malloc<unsigned char>(len + 1);
     if (!utf8)
         return UTF8CharsZ();
 
     /* Encode to UTF8. */
-    DeflateStringToUTF8Buffer(cx, str, tbchars.length(), (char *)utf8, &len);
+    DeflateStringToUTF8Buffer(cx, str, tbchars.length(), (char*)utf8, &len);
     utf8[len] = '\0';
 
     return UTF8CharsZ(utf8, len);
@@ -168,7 +168,7 @@ static const uint32_t INVALID_UTF8 = UINT32_MAX;
  * is valid.
  */
 uint32_t
-JS::Utf8ToOneUcs4Char(const uint8_t *utf8Buffer, int utf8Length)
+JS::Utf8ToOneUcs4Char(const uint8_t* utf8Buffer, int utf8Length)
 {
     JS_ASSERT(1 <= utf8Length && utf8Length <= 4);
 
@@ -196,7 +196,7 @@ JS::Utf8ToOneUcs4Char(const uint8_t *utf8Buffer, int utf8Length)
 }
 
 static void
-ReportInvalidCharacter(JSContext *cx, uint32_t offset)
+ReportInvalidCharacter(JSContext* cx, uint32_t offset)
 {
     char buffer[10];
     JS_snprintf(buffer, 10, "%d", offset);
@@ -205,13 +205,13 @@ ReportInvalidCharacter(JSContext *cx, uint32_t offset)
 }
 
 static void
-ReportBufferTooSmall(JSContext *cx, uint32_t dummy)
+ReportBufferTooSmall(JSContext* cx, uint32_t dummy)
 {
     JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_BUFFER_TOO_SMALL);
 }
 
 static void
-ReportTooBigCharacter(JSContext *cx, uint32_t v)
+ReportTooBigCharacter(JSContext* cx, uint32_t v)
 {
     char buffer[10];
     JS_snprintf(buffer, 10, "0x%x", v + 0x10000);
@@ -231,8 +231,8 @@ static const uint32_t REPLACE_UTF8 = 0xFFFD;
 // LossyConvertUTF8toUTF16() in dom/wifi/WifiUtils.cpp
 template <InflateUTF8Action action>
 static bool
-InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, jschar *dst, size_t *dstlenp,
-                          bool *isAsciip)
+InflateUTF8StringToBuffer(JSContext* cx, const UTF8Chars src, jschar* dst, size_t* dstlenp,
+                          bool* isAsciip)
 {
     *isAsciip = true;
 
@@ -293,7 +293,7 @@ InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, jschar *dst, size_
                     INVALID(ReportInvalidCharacter, i, m);
 
             // Determine the code unit's length in jschars and act accordingly.
-            v = Utf8ToOneUcs4Char((uint8_t *)&src[i], n);
+            v = Utf8ToOneUcs4Char((uint8_t*)&src[i], n);
             if (v < 0x10000) {
                 // The n-byte UTF8 code unit will fit in a single jschar.
                 if (action == Copy)
@@ -328,10 +328,10 @@ InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, jschar *dst, size_
     return true;
 }
 
-typedef bool (*CountAction)(JSContext *, const UTF8Chars, jschar *, size_t *, bool *isAsciip);
+typedef bool (*CountAction)(JSContext*, const UTF8Chars, jschar*, size_t*, bool* isAsciip);
 
 static TwoByteCharsZ
-InflateUTF8StringHelper(JSContext *cx, const UTF8Chars src, CountAction countAction, size_t *outlen)
+InflateUTF8StringHelper(JSContext* cx, const UTF8Chars src, CountAction countAction, size_t* outlen)
 {
     *outlen = 0;
 
@@ -339,7 +339,7 @@ InflateUTF8StringHelper(JSContext *cx, const UTF8Chars src, CountAction countAct
     if (!countAction(cx, src, /* dst = */ nullptr, outlen, &isAscii))
         return TwoByteCharsZ();
 
-    jschar *dst = cx->pod_malloc<jschar>(*outlen + 1);  // +1 for NUL
+    jschar* dst = cx->pod_malloc<jschar>(*outlen + 1);  // +1 for NUL
     if (!dst)
         return TwoByteCharsZ();
 
@@ -359,14 +359,14 @@ InflateUTF8StringHelper(JSContext *cx, const UTF8Chars src, CountAction countAct
 }
 
 TwoByteCharsZ
-JS::UTF8CharsToNewTwoByteCharsZ(JSContext *cx, const UTF8Chars utf8, size_t *outlen)
+JS::UTF8CharsToNewTwoByteCharsZ(JSContext* cx, const UTF8Chars utf8, size_t* outlen)
 {
     return InflateUTF8StringHelper(cx, utf8, InflateUTF8StringToBuffer<CountAndReportInvalids>,
                                    outlen);
 }
 
 TwoByteCharsZ
-JS::LossyUTF8CharsToNewTwoByteCharsZ(JSContext *cx, const UTF8Chars utf8, size_t *outlen)
+JS::LossyUTF8CharsToNewTwoByteCharsZ(JSContext* cx, const UTF8Chars utf8, size_t* outlen)
 {
     return InflateUTF8StringHelper(cx, utf8, InflateUTF8StringToBuffer<CountAndIgnoreInvalids>,
                                    outlen);

@@ -49,7 +49,7 @@ TypeDescrSetBuilder::TypeDescrSetBuilder()
 {}
 
 bool
-TypeDescrSetBuilder::insert(TypeDescr *descr)
+TypeDescrSetBuilder::insert(TypeDescr* descr)
 {
     // All type descriptors should be tenured, so it is safe to assume
     // that the pointers do not change during compilation, since no
@@ -65,7 +65,7 @@ TypeDescrSetBuilder::insert(TypeDescr *descr)
     // Check that this new type repr is of the same basic kind as the
     // ones we have seen thus far. If not, for example if we have an
     // `int` and a `struct`, then convert this set to the invalid set.
-    TypeDescr *entry0 = entries_[0];
+    TypeDescr* entry0 = entries_[0];
     if (descr->kind() != entry0->kind()) {
         invalid_ = true;
         entries_.clear();
@@ -104,19 +104,19 @@ TypeDescrSetBuilder::insert(TypeDescr *descr)
     // Not present. Insert at position `min`.
     if (min == entries_.length())
         return entries_.append(descr);
-    TypeDescr **insertLoc = &entries_[min];
+    TypeDescr** insertLoc = &entries_[min];
     return entries_.insert(insertLoc, descr) != nullptr;
 }
 
 bool
-TypeDescrSetBuilder::build(IonBuilder &builder, TypeDescrSet *out)
+TypeDescrSetBuilder::build(IonBuilder& builder, TypeDescrSet* out)
 {
     if (invalid_) {
         *out = TypeDescrSet();
         return true;
     }
 
-    TypeDescrSetHash *table = builder.getOrCreateDescrSetHash();
+    TypeDescrSetHash* table = builder.getOrCreateDescrSetHash();
     if (!table)
         return false;
 
@@ -131,7 +131,7 @@ TypeDescrSetBuilder::build(IonBuilder &builder, TypeDescrSet *out)
 
     // If not, allocate a permanent copy in Ion temp memory and add it.
     size_t space = sizeof(TypeDescr*) * length;
-    TypeDescr **array = (TypeDescr**)
+    TypeDescr** array = (TypeDescr**)
         GetIonContext()->temp->allocate(space);
     if (!array)
         return false;
@@ -147,13 +147,13 @@ TypeDescrSetBuilder::build(IonBuilder &builder, TypeDescrSet *out)
 ///////////////////////////////////////////////////////////////////////////
 // TypeDescrSet
 
-TypeDescrSet::TypeDescrSet(const TypeDescrSet &c)
+TypeDescrSet::TypeDescrSet(const TypeDescrSet& c)
   : length_(c.length_),
     entries_(c.entries_)
 {}
 
 TypeDescrSet::TypeDescrSet(size_t length,
-                           TypeDescr **entries)
+                           TypeDescr** entries)
   : length_(length),
     entries_(entries)
 {}
@@ -200,7 +200,7 @@ TypeDescrSet::allOfKind(TypeDescr::Kind aKind)
 }
 
 bool
-TypeDescrSet::allHaveSameSize(int32_t *out)
+TypeDescrSet::allHaveSameSize(int32_t* out)
 {
     if (empty())
         return false;
@@ -217,7 +217,7 @@ TypeDescrSet::allHaveSameSize(int32_t *out)
     return true;
 }
 
-JSObject *
+JSObject*
 TypeDescrSet::knownPrototype() const
 {
     JS_ASSERT(!empty());
@@ -235,7 +235,7 @@ TypeDescrSet::kind()
 
 template<typename T>
 bool
-TypeDescrSet::genericType(typename T::Type *out)
+TypeDescrSet::genericType(typename T::Type* out)
 {
     JS_ASSERT(allOfKind(TypeDescr::Scalar));
 
@@ -250,25 +250,25 @@ TypeDescrSet::genericType(typename T::Type *out)
 }
 
 bool
-TypeDescrSet::scalarType(ScalarTypeDescr::Type *out)
+TypeDescrSet::scalarType(ScalarTypeDescr::Type* out)
 {
     return genericType<ScalarTypeDescr>(out);
 }
 
 bool
-TypeDescrSet::referenceType(ReferenceTypeDescr::Type *out)
+TypeDescrSet::referenceType(ReferenceTypeDescr::Type* out)
 {
     return genericType<ReferenceTypeDescr>(out);
 }
 
 bool
-TypeDescrSet::x4Type(X4TypeDescr::Type *out)
+TypeDescrSet::x4Type(X4TypeDescr::Type* out)
 {
     return genericType<X4TypeDescr>(out);
 }
 
 bool
-TypeDescrSet::hasKnownArrayLength(int32_t *l)
+TypeDescrSet::hasKnownArrayLength(int32_t* l)
 {
     switch (kind()) {
       case TypeDescr::UnsizedArray:
@@ -292,7 +292,7 @@ TypeDescrSet::hasKnownArrayLength(int32_t *l)
 }
 
 bool
-TypeDescrSet::arrayElementType(IonBuilder &builder, TypeDescrSet *out)
+TypeDescrSet::arrayElementType(IonBuilder& builder, TypeDescrSet* out)
 {
     TypeDescrSetBuilder elementTypes;
     for (size_t i = 0; i < length(); i++) {
@@ -315,11 +315,11 @@ TypeDescrSet::arrayElementType(IonBuilder &builder, TypeDescrSet *out)
 }
 
 bool
-TypeDescrSet::fieldNamed(IonBuilder &builder,
+TypeDescrSet::fieldNamed(IonBuilder& builder,
                          jsid id,
-                         int32_t *offset,
-                         TypeDescrSet *out,
-                         size_t *index)
+                         int32_t* offset,
+                         TypeDescrSet* out,
+                         size_t* index)
 {
     JS_ASSERT(kind() == TypeDescr::Struct);
 
@@ -334,7 +334,7 @@ TypeDescrSet::fieldNamed(IonBuilder &builder,
     size_t index0;
     TypeDescrSetBuilder fieldTypes;
     {
-        StructTypeDescr &descr0 = get(0)->as<StructTypeDescr>();
+        StructTypeDescr& descr0 = get(0)->as<StructTypeDescr>();
         if (!descr0.fieldIndex(id, &index0))
             return true;
 
@@ -346,7 +346,7 @@ TypeDescrSet::fieldNamed(IonBuilder &builder,
     // Check that all subsequent fields are at the same offset
     // and compute the union of their types.
     for (size_t i = 1; i < length(); i++) {
-        StructTypeDescr &descri = get(i)->as<StructTypeDescr>();
+        StructTypeDescr& descri = get(i)->as<StructTypeDescr>();
 
         size_t indexi;
         if (!descri.fieldIndex(id, &indexi))

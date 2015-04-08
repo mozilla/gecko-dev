@@ -53,11 +53,11 @@ BEGIN_TEST(testTypedArrays)
     return ok;
 }
 
-template<JSObject *Create(JSContext *, uint32_t),
+template<JSObject* Create(JSContext*, uint32_t),
          typename Element,
-         Element *GetData(JSObject *)>
+         Element* GetData(JSObject*)>
 bool
-TestPlainTypedArray(JSContext *cx)
+TestPlainTypedArray(JSContext* cx)
 {
     {
         RootedObject notArray(cx, Create(cx, UINT32_MAX));
@@ -76,7 +76,7 @@ TestPlainTypedArray(JSContext *cx)
     CHECK_EQUAL(JS_GetTypedArrayByteOffset(array), 0);
     CHECK_EQUAL(JS_GetTypedArrayByteLength(array), sizeof(Element) * 7);
 
-    Element *data;
+    Element* data;
     CHECK(data = GetData(array));
     *data = 13;
     RootedValue v(cx);
@@ -86,17 +86,17 @@ TestPlainTypedArray(JSContext *cx)
     return true;
 }
 
-template<JSObject *CreateWithBuffer(JSContext *, JS::HandleObject, uint32_t, int32_t),
-         JSObject *CreateFromArray(JSContext *, JS::HandleObject),
+template<JSObject* CreateWithBuffer(JSContext*, JS::HandleObject, uint32_t, int32_t),
+         JSObject* CreateFromArray(JSContext*, JS::HandleObject),
          typename Element,
-         Element *GetData(JSObject *)>
+         Element* GetData(JSObject*)>
 bool
-TestArrayFromBuffer(JSContext *cx)
+TestArrayFromBuffer(JSContext* cx)
 {
     size_t elts = 8;
     size_t nbytes = elts * sizeof(Element);
     RootedObject buffer(cx, JS_NewArrayBuffer(cx, nbytes));
-    uint8_t *bufdata;
+    uint8_t* bufdata;
     CHECK(bufdata = JS_GetStableArrayBufferData(cx, buffer));
     memset(bufdata, 1, nbytes);
 
@@ -111,7 +111,7 @@ TestArrayFromBuffer(JSContext *cx)
     CHECK_EQUAL(JS_GetTypedArrayByteLength(array), nbytes);
     CHECK_EQUAL(JS_GetArrayBufferViewBuffer(cx, array), (JSObject*) buffer);
 
-    Element *data;
+    Element* data;
     CHECK(data = GetData(array));
     CHECK(bufdata = JS_GetStableArrayBufferData(cx, buffer));
     CHECK_EQUAL((void*) data, (void*) bufdata);

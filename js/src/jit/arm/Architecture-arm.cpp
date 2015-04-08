@@ -45,7 +45,7 @@ uint32_t GetARMFlags()
     flags |= HWCAP_USE_HARDFP_ABI;
 #endif
 
-    static const char *env = getenv("ARMHWCAP");
+    static const char* env = getenv("ARMHWCAP");
 
     if (env && env[0]) {
         if (strstr(env, "help")) {
@@ -71,7 +71,7 @@ uint32_t GetARMFlags()
             /*NOTREACHED*/
         } else {
             // Canonicalize each token to have a leading and trailing space.
-            const char *start = env;  // Token start.
+            const char* start = env;  // Token start.
             for (;;) {
                 char  ch = *start;
                 if (!ch) {
@@ -84,7 +84,7 @@ uint32_t GetARMFlags()
                     continue;
                 }
                 // Find the end of the token.
-                const char *end = start + 1;
+                const char* end = start + 1;
                 for (; ; end++) {
                     ch = *end;
                     if (!ch || ch == ' ' || ch == ',')
@@ -159,7 +159,7 @@ uint32_t GetARMFlags()
     return flags;
 
 #elif defined(WTF_OS_ANDROID) || defined(MOZ_B2G)
-    FILE *fp = fopen("/proc/cpuinfo", "r");
+    FILE* fp = fopen("/proc/cpuinfo", "r");
     if (!fp)
         return false;
 
@@ -258,7 +258,7 @@ bool useHardFpABI()
 #endif
 
 Registers::Code
-Registers::FromName(const char *name)
+Registers::FromName(const char* name)
 {
     // Check for some register aliases first.
     if (strcmp(name, "ip") == 0)
@@ -279,7 +279,7 @@ Registers::FromName(const char *name)
 }
 
 FloatRegisters::Code
-FloatRegisters::FromName(const char *name)
+FloatRegisters::FromName(const char* name)
 {
     for (size_t i = 0; i < Total; i++) {
         if (strcmp(GetName(i), name) == 0)

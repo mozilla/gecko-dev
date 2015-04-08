@@ -111,11 +111,11 @@ public:
   operator JS::Value() const { return mVal; }
   JS::Value get() const { return mVal; }
 
-  nsAutoJSValHolder &operator=(JSObject* aOther) {
+  nsAutoJSValHolder& operator=(JSObject* aOther) {
     return *this = OBJECT_TO_JSVAL(aOther);
   }
 
-  nsAutoJSValHolder &operator=(JS::Value aOther) {
+  nsAutoJSValHolder& operator=(JS::Value aOther) {
 #ifdef DEBUG
     if (JSVAL_IS_GCTHING(aOther) && !JSVAL_IS_NULL(aOther)) {
       MOZ_ASSERT(IsHeld(), "Not rooted!");

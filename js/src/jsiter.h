@@ -30,30 +30,30 @@ namespace js {
 struct NativeIterator
 {
     HeapPtrObject obj;                  // Object being iterated.
-    JSObject *iterObj_;                 // Internal iterator object.
-    HeapPtr<JSFlatString> *props_array;
-    HeapPtr<JSFlatString> *props_cursor;
-    HeapPtr<JSFlatString> *props_end;
-    Shape **shapes_array;
+    JSObject* iterObj_;                 // Internal iterator object.
+    HeapPtr<JSFlatString>* props_array;
+    HeapPtr<JSFlatString>* props_cursor;
+    HeapPtr<JSFlatString>* props_end;
+    Shape** shapes_array;
     uint32_t shapes_length;
     uint32_t shapes_key;
     uint32_t flags;
 
   private:
     /* While in compartment->enumerators, these form a doubly linked list. */
-    NativeIterator *next_;
-    NativeIterator *prev_;
+    NativeIterator* next_;
+    NativeIterator* prev_;
 
   public:
     bool isKeyIter() const {
         return (flags & JSITER_FOREACH) == 0;
     }
 
-    inline HeapPtr<JSFlatString> *begin() const {
+    inline HeapPtr<JSFlatString>* begin() const {
         return props_array;
     }
 
-    inline HeapPtr<JSFlatString> *end() const {
+    inline HeapPtr<JSFlatString>* end() const {
         return props_end;
     }
 
@@ -61,15 +61,15 @@ struct NativeIterator
         return end() - begin();
     }
 
-    JSObject *iterObj() const {
+    JSObject* iterObj() const {
         return iterObj_;
     }
-    HeapPtr<JSFlatString> *current() const {
+    HeapPtr<JSFlatString>* current() const {
         JS_ASSERT(props_cursor < props_end);
         return props_cursor;
     }
 
-    NativeIterator *next() {
+    NativeIterator* next() {
         return next_;
     }
 
@@ -83,7 +83,7 @@ struct NativeIterator
     void incCursor() {
         props_cursor = props_cursor + 1;
     }
-    void link(NativeIterator *other) {
+    void link(NativeIterator* other) {
         /* A NativeIterator cannot appear in the enumerator list twice. */
         JS_ASSERT(!next_ && !prev_);
         JS_ASSERT(flags & JSITER_ENUMERATE);
@@ -102,14 +102,14 @@ struct NativeIterator
         prev_ = nullptr;
     }
 
-    static NativeIterator *allocateSentinel(JSContext *cx);
-    static NativeIterator *allocateIterator(JSContext *cx, uint32_t slength,
-                                            const js::AutoIdVector &props);
-    void init(JSObject *obj, JSObject *iterObj, unsigned flags, uint32_t slength, uint32_t key);
+    static NativeIterator* allocateSentinel(JSContext* cx);
+    static NativeIterator* allocateIterator(JSContext* cx, uint32_t slength,
+                                            const js::AutoIdVector& props);
+    void init(JSObject* obj, JSObject* iterObj, unsigned flags, uint32_t slength, uint32_t key);
 
-    void mark(JSTracer *trc);
+    void mark(JSTracer* trc);
 
-    static void destroy(NativeIterator *iter) {
+    static void destroy(NativeIterator* iter) {
         js_free(iter);
     }
 };
@@ -119,18 +119,18 @@ class PropertyIteratorObject : public JSObject
   public:
     static const Class class_;
 
-    NativeIterator *getNativeIterator() const {
-        return static_cast<js::NativeIterator *>(getPrivate());
+    NativeIterator* getNativeIterator() const {
+        return static_cast<js::NativeIterator*>(getPrivate());
     }
-    void setNativeIterator(js::NativeIterator *ni) {
+    void setNativeIterator(js::NativeIterator* ni) {
         setPrivate(ni);
     }
 
     size_t sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf) const;
 
   private:
-    static void trace(JSTracer *trc, JSObject *obj);
-    static void finalize(FreeOp *fop, JSObject *obj);
+    static void trace(JSTracer* trc, JSObject* obj);
+    static void finalize(FreeOp* fop, JSObject* obj);
 };
 
 class ArrayIteratorObject : public JSObject
@@ -146,20 +146,20 @@ class StringIteratorObject : public JSObject
 };
 
 bool
-VectorToIdArray(JSContext *cx, AutoIdVector &props, JSIdArray **idap);
+VectorToIdArray(JSContext* cx, AutoIdVector& props, JSIdArray** idap);
 
 bool
-GetIterator(JSContext *cx, HandleObject obj, unsigned flags, MutableHandleValue vp);
+GetIterator(JSContext* cx, HandleObject obj, unsigned flags, MutableHandleValue vp);
 
-JSObject *
-GetIteratorObject(JSContext *cx, HandleObject obj, unsigned flags);
+JSObject*
+GetIteratorObject(JSContext* cx, HandleObject obj, unsigned flags);
 
 bool
-VectorToKeyIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props,
+VectorToKeyIterator(JSContext* cx, HandleObject obj, unsigned flags, AutoIdVector& props,
                     MutableHandleValue vp);
 
 bool
-VectorToValueIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props,
+VectorToValueIterator(JSContext* cx, HandleObject obj, unsigned flags, AutoIdVector& props,
                       MutableHandleValue vp);
 
 /*
@@ -167,7 +167,7 @@ VectorToValueIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVec
  * iterator, performs value-lookup to convert the given list of jsids.
  */
 bool
-EnumeratedIdVectorToIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props,
+EnumeratedIdVectorToIterator(JSContext* cx, HandleObject obj, unsigned flags, AutoIdVector& props,
                              MutableHandleValue vp);
 
 /*
@@ -177,30 +177,30 @@ EnumeratedIdVectorToIterator(JSContext *cx, HandleObject obj, unsigned flags, Au
  * iterator will never be exposed to scripts.
  */
 bool
-ValueToIterator(JSContext *cx, unsigned flags, MutableHandleValue vp);
+ValueToIterator(JSContext* cx, unsigned flags, MutableHandleValue vp);
 
 bool
-CloseIterator(JSContext *cx, HandleObject iterObj);
+CloseIterator(JSContext* cx, HandleObject iterObj);
 
 bool
-UnwindIteratorForException(JSContext *cx, js::HandleObject obj);
+UnwindIteratorForException(JSContext* cx, js::HandleObject obj);
 
 void
-UnwindIteratorForUncatchableException(JSContext *cx, JSObject *obj);
+UnwindIteratorForUncatchableException(JSContext* cx, JSObject* obj);
 
 bool
-IteratorConstructor(JSContext *cx, unsigned argc, Value *vp);
+IteratorConstructor(JSContext* cx, unsigned argc, Value* vp);
 
 } /* namespace js */
 
 extern bool
-js_SuppressDeletedProperty(JSContext *cx, js::HandleObject obj, jsid id);
+js_SuppressDeletedProperty(JSContext* cx, js::HandleObject obj, jsid id);
 
 extern bool
-js_SuppressDeletedElement(JSContext *cx, js::HandleObject obj, uint32_t index);
+js_SuppressDeletedElement(JSContext* cx, js::HandleObject obj, uint32_t index);
 
 extern bool
-js_SuppressDeletedElements(JSContext *cx, js::HandleObject obj, uint32_t begin, uint32_t end);
+js_SuppressDeletedElements(JSContext* cx, js::HandleObject obj, uint32_t begin, uint32_t end);
 
 /*
  * IteratorMore() indicates whether another value is available. It might
@@ -208,13 +208,13 @@ js_SuppressDeletedElements(JSContext *cx, js::HandleObject obj, uint32_t begin, 
  * picked up by IteratorNext(). The value is cached in the current context.
  */
 extern bool
-js_IteratorMore(JSContext *cx, js::HandleObject iterobj, js::MutableHandleValue rval);
+js_IteratorMore(JSContext* cx, js::HandleObject iterobj, js::MutableHandleValue rval);
 
 extern bool
-js_IteratorNext(JSContext *cx, js::HandleObject iterobj, js::MutableHandleValue rval);
+js_IteratorNext(JSContext* cx, js::HandleObject iterobj, js::MutableHandleValue rval);
 
 extern bool
-js_ThrowStopIteration(JSContext *cx);
+js_ThrowStopIteration(JSContext* cx);
 
 namespace js {
 
@@ -222,8 +222,8 @@ namespace js {
  * Create an object of the form { value: VALUE, done: DONE }.
  * ES6 draft from 2013-09-05, section 25.4.3.4.
  */
-extern JSObject *
-CreateItrResultObject(JSContext *cx, js::HandleValue value, bool done);
+extern JSObject*
+CreateItrResultObject(JSContext* cx, js::HandleValue value, bool done);
 
 } /* namespace js */
 
@@ -244,15 +244,15 @@ struct JSGenerator
     js::HeapPtrObject    obj;
     JSGeneratorState     state;
     js::InterpreterRegs  regs;
-    JSGenerator          *prevGenerator;
-    js::InterpreterFrame *fp;
+    JSGenerator*         prevGenerator;
+    js::InterpreterFrame* fp;
     js::HeapValue        stackSnapshot[1];
 };
 
-extern JSObject *
-js_NewGenerator(JSContext *cx, const js::InterpreterRegs &regs);
+extern JSObject*
+js_NewGenerator(JSContext* cx, const js::InterpreterRegs& regs);
 
-extern JSObject *
-js_InitIteratorClasses(JSContext *cx, js::HandleObject obj);
+extern JSObject*
+js_InitIteratorClasses(JSContext* cx, js::HandleObject obj);
 
 #endif /* jsiter_h */

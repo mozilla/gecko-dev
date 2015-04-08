@@ -17,11 +17,11 @@ class MIRGraph;
 
 class LICM
 {
-    MIRGenerator *mir;
-    MIRGraph &graph;
+    MIRGenerator* mir;
+    MIRGraph& graph;
 
   public:
-    LICM(MIRGenerator *mir, MIRGraph &graph);
+    LICM(MIRGenerator* mir, MIRGraph& graph);
     bool analyze();
 };
 

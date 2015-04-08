@@ -19,38 +19,38 @@ class SavedFrame : public JSObject {
 
   public:
     static const Class          class_;
-    static void finalize(FreeOp *fop, JSObject *obj);
+    static void finalize(FreeOp* fop, JSObject* obj);
 
     // Prototype methods and properties to be exposed to JS.
     static const JSPropertySpec properties[];
     static const JSFunctionSpec methods[];
-    static bool construct(JSContext *cx, unsigned argc, Value *vp);
-    static bool sourceProperty(JSContext *cx, unsigned argc, Value *vp);
-    static bool lineProperty(JSContext *cx, unsigned argc, Value *vp);
-    static bool columnProperty(JSContext *cx, unsigned argc, Value *vp);
-    static bool functionDisplayNameProperty(JSContext *cx, unsigned argc, Value *vp);
-    static bool parentProperty(JSContext *cx, unsigned argc, Value *vp);
-    static bool toStringMethod(JSContext *cx, unsigned argc, Value *vp);
+    static bool construct(JSContext* cx, unsigned argc, Value* vp);
+    static bool sourceProperty(JSContext* cx, unsigned argc, Value* vp);
+    static bool lineProperty(JSContext* cx, unsigned argc, Value* vp);
+    static bool columnProperty(JSContext* cx, unsigned argc, Value* vp);
+    static bool functionDisplayNameProperty(JSContext* cx, unsigned argc, Value* vp);
+    static bool parentProperty(JSContext* cx, unsigned argc, Value* vp);
+    static bool toStringMethod(JSContext* cx, unsigned argc, Value* vp);
 
     // Convenient getters for SavedFrame's reserved slots for use from C++.
-    JSAtom       *getSource();
+    JSAtom*      getSource();
     size_t       getLine();
     size_t       getColumn();
-    JSAtom       *getFunctionDisplayName();
-    SavedFrame   *getParent();
-    JSPrincipals *getPrincipals();
+    JSAtom*      getFunctionDisplayName();
+    SavedFrame*  getParent();
+    JSPrincipals* getPrincipals();
 
     bool         isSelfHosted();
 
     struct Lookup;
     struct HashPolicy;
 
-    typedef HashSet<SavedFrame *,
+    typedef HashSet<SavedFrame*,
                     HashPolicy,
                     SystemAllocPolicy> Set;
 
   private:
-    void initFromLookup(Lookup &lookup);
+    void initFromLookup(Lookup& lookup);
 
     enum {
         // The reserved slots in the SavedFrame class.
@@ -77,12 +77,12 @@ class SavedFrame : public JSObject {
     bool         parentMoved();
     void         updatePrivateParent();
 
-    static SavedFrame *checkThis(JSContext *cx, CallArgs &args, const char *fnName);
+    static SavedFrame* checkThis(JSContext* cx, CallArgs& args, const char* fnName);
 };
 
 struct SavedFrame::Lookup {
-    Lookup(JSAtom *source, size_t line, size_t column, JSAtom *functionDisplayName,
-           Handle<SavedFrame*> parent, JSPrincipals *principals)
+    Lookup(JSAtom* source, size_t line, size_t column, JSAtom* functionDisplayName,
+           Handle<SavedFrame*> parent, JSPrincipals* principals)
         : source(source),
           line(line),
           column(column),
@@ -93,25 +93,25 @@ struct SavedFrame::Lookup {
         JS_ASSERT(source);
     }
 
-    JSAtom              *source;
+    JSAtom*             source;
     size_t              line;
     size_t              column;
-    JSAtom              *functionDisplayName;
+    JSAtom*             functionDisplayName;
     Handle<SavedFrame*> parent;
-    JSPrincipals        *principals;
+    JSPrincipals*       principals;
 };
 
 struct SavedFrame::HashPolicy
 {
     typedef SavedFrame::Lookup               Lookup;
-    typedef PointerHasher<SavedFrame *, 3>   SavedFramePtrHasher;
-    typedef PointerHasher<JSPrincipals *, 3> JSPrincipalsPtrHasher;
+    typedef PointerHasher<SavedFrame*, 3>   SavedFramePtrHasher;
+    typedef PointerHasher<JSPrincipals*, 3> JSPrincipalsPtrHasher;
 
-    static HashNumber hash(const Lookup &lookup);
-    static bool       match(SavedFrame *existing, const Lookup &lookup);
+    static HashNumber hash(const Lookup& lookup);
+    static bool       match(SavedFrame* existing, const Lookup& lookup);
 
     typedef SavedFrame* Key;
-    static void rekey(Key &key, const Key &newKey);
+    static void rekey(Key& key, const Key& newKey);
 };
 
 class SavedStacks {
@@ -120,8 +120,8 @@ class SavedStacks {
 
     bool     init();
     bool     initialized() const { return frames.initialized(); }
-    bool     saveCurrentStack(JSContext *cx, MutableHandle<SavedFrame*> frame);
-    void     sweep(JSRuntime *rt);
+    bool     saveCurrentStack(JSContext* cx, MutableHandle<SavedFrame*> frame);
+    void     sweep(JSRuntime* rt);
     uint32_t count();
     void     clear();
 
@@ -129,14 +129,14 @@ class SavedStacks {
 
   private:
     SavedFrame::Set          frames;
-    JSObject                 *savedFrameProto;
+    JSObject*                savedFrameProto;
 
-    bool       insertFrames(JSContext *cx, ScriptFrameIter &iter, MutableHandle<SavedFrame*> frame);
-    SavedFrame *getOrCreateSavedFrame(JSContext *cx, SavedFrame::Lookup &lookup);
+    bool       insertFrames(JSContext* cx, ScriptFrameIter& iter, MutableHandle<SavedFrame*> frame);
+    SavedFrame* getOrCreateSavedFrame(JSContext* cx, SavedFrame::Lookup& lookup);
     // |SavedFrame.prototype| is created lazily and held weakly. It should only
     // be accessed through this method.
-    JSObject   *getOrCreateSavedFramePrototype(JSContext *cx);
-    SavedFrame *createFrameFromLookup(JSContext *cx, SavedFrame::Lookup &lookup);
+    JSObject*  getOrCreateSavedFramePrototype(JSContext* cx);
+    SavedFrame* createFrameFromLookup(JSContext* cx, SavedFrame::Lookup& lookup);
 };
 
 } /* namespace js */

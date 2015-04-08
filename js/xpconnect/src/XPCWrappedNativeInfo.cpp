@@ -48,7 +48,7 @@ XPCNativeMember::NewFunctionObject(XPCCallContext& ccx,
 
 bool
 XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
-                         HandleObject parent, jsval *vp)
+                         HandleObject parent, jsval* vp)
 {
     if (IsConstant()) {
         const nsXPTConstant* constant;
@@ -95,7 +95,7 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
         callback = XPC_WN_GetterSetter;
     }
 
-    JSFunction *fun = js::NewFunctionByIdWithReserved(ccx, callback, argc, 0, parent, GetName());
+    JSFunction* fun = js::NewFunctionByIdWithReserved(ccx, callback, argc, 0, parent, GetName());
     if (!fun)
         return false;
 

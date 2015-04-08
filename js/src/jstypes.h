@@ -169,7 +169,7 @@
 **      last element of a C array. Use them like this:
 **
 **      jschar buf[10], *s;
-**      JSString *str;
+**      JSString* str;
 **      ...
 **      for (s = buf; s != JS_ARRAY_END(buf); ++s) *s = ...;
 **      ...
@@ -198,9 +198,9 @@
 **      they have the same size. Use them like this:
 **
 **      JSPropertyOp nativeGetter;
-**      JSObject *scriptedGetter;
+**      JSObject* scriptedGetter;
 **      ...
-**      scriptedGetter = JS_FUNC_TO_DATA_PTR(JSObject *, nativeGetter);
+**      scriptedGetter = JS_FUNC_TO_DATA_PTR(JSObject*, nativeGetter);
 **      ...
 **      nativeGetter = JS_DATA_TO_FUNC_PTR(JSPropertyOp, scriptedGetter);
 **
@@ -210,9 +210,9 @@
 # define JS_FUNC_TO_DATA_PTR(type, fun) (__extension__ (type) (size_t) (fun))
 # define JS_DATA_TO_FUNC_PTR(type, ptr) (__extension__ (type) (size_t) (ptr))
 #else
-/* Use an extra (void *) cast for MSVC. */
-# define JS_FUNC_TO_DATA_PTR(type, fun) ((type) (void *) (fun))
-# define JS_DATA_TO_FUNC_PTR(type, ptr) ((type) (void *) (ptr))
+/* Use an extra (void*) cast for MSVC. */
+# define JS_FUNC_TO_DATA_PTR(type, fun) ((type) (void*) (fun))
+# define JS_DATA_TO_FUNC_PTR(type, ptr) ((type) (void*) (ptr))
 #endif
 
 #ifdef __GNUC__

@@ -35,10 +35,10 @@ XPCContext::~XPCContext()
     JS_SetSecondContextPrivate(mJSContext, nullptr);
 
     // Iterate over our scopes and tell them that we have been destroyed
-    for (PRCList *scopeptr = PR_NEXT_LINK(&mScopes);
+    for (PRCList* scopeptr = PR_NEXT_LINK(&mScopes);
          scopeptr != &mScopes;
          scopeptr = PR_NEXT_LINK(scopeptr)) {
-        XPCWrappedNativeScope *scope =
+        XPCWrappedNativeScope* scope =
             static_cast<XPCWrappedNativeScope*>(scopeptr);
         scope->ClearContext();
     }

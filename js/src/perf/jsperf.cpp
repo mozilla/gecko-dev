@@ -18,7 +18,7 @@ static PerfMeasurement* GetPM(JSContext* cx, JS::HandleValue value, const char* 
 
 #define GETTER(name)                                                    \
     static bool                                                         \
-    pm_get_##name(JSContext* cx, unsigned argc, Value *vp)              \
+    pm_get_##name(JSContext* cx, unsigned argc, Value* vp)              \
     {                                                                   \
         CallArgs args = CallArgsFromVp(argc, vp);                       \
         PerfMeasurement* p = GetPM(cx, args.thisv(), #name);            \
@@ -136,7 +136,7 @@ static const uint8_t PM_CATTRS = JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANE
 #define CONSTANT(name) { #name, PerfMeasurement::name }
 
 static const struct pm_const {
-    const char *name;
+    const char* name;
     PerfMeasurement::EventMask value;
 } pm_consts[] = {
     CONSTANT(CPU_CYCLES),
@@ -230,7 +230,7 @@ GetPM(JSContext* cx, JS::HandleValue value, const char* fname)
 namespace JS {
 
 JSObject*
-RegisterPerfMeasurement(JSContext *cx, HandleObject globalArg)
+RegisterPerfMeasurement(JSContext* cx, HandleObject globalArg)
 {
     RootedObject global(cx, globalArg);
     RootedObject prototype(cx);
@@ -245,7 +245,7 @@ RegisterPerfMeasurement(JSContext *cx, HandleObject globalArg)
     if (!ctor)
         return 0;
 
-    for (const pm_const *c = pm_consts; c->name; c++) {
+    for (const pm_const* c = pm_consts; c->name; c++) {
         if (!JS_DefineProperty(cx, ctor, c->name, c->value, PM_CATTRS,
                                JS_PropertyStub, JS_StrictPropertyStub))
             return 0;
@@ -267,7 +267,7 @@ ExtractPerfMeasurement(jsval wrapper)
 
     // This is what JS_GetInstancePrivate does internally.  We can't
     // call JS_anything from here, because we don't have a JSContext.
-    JSObject *obj = JSVAL_TO_OBJECT(wrapper);
+    JSObject* obj = JSVAL_TO_OBJECT(wrapper);
     if (obj->getClass() != js::Valueify(&pm_class))
         return 0;
 

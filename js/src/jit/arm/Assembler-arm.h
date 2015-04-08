@@ -76,7 +76,7 @@ class ABIArgGenerator
   public:
     ABIArgGenerator();
     ABIArg next(MIRType argType);
-    ABIArg &current() { return current_; }
+    ABIArg& current() { return current_; }
     uint32_t stackBytesConsumedSoFar() const { return stackOffset_; }
     static const Register NonArgReturnVolatileReg0;
     static const Register NonArgReturnVolatileReg1;
@@ -157,10 +157,10 @@ uint32_t maybeRD(Register r);
 uint32_t maybeRT(Register r);
 uint32_t maybeRN(Register r);
 
-Register toRN (Instruction &i);
-Register toRM (Instruction &i);
-Register toRD (Instruction &i);
-Register toR (Instruction &i);
+Register toRN (Instruction& i);
+Register toRM (Instruction& i);
+Register toRD (Instruction& i);
+Register toR (Instruction& i);
 
 class VFPRegister;
 uint32_t VD(VFPRegister vr);
@@ -406,7 +406,7 @@ enum VFPOp {
     opv_cmpz  = 0xB << 20 | 0x1 << 6 | 0x5 << 16
 };
 // Negate the operation, AND negate the immediate that we were passed in.
-ALUOp ALUNeg(ALUOp op, Register dest, Imm32 *imm, Register *negDest);
+ALUOp ALUNeg(ALUOp op, Register dest, Imm32* imm, Register* negDest);
 bool can_dbl(ALUOp op);
 bool condsAreSafe(ALUOp op);
 // If there is a variant of op that has a dest (think cmp/sub)
@@ -456,7 +456,7 @@ struct Reg
     uint32_t encode() {
         return RM | RRS << 4 | Type << 5 | ShiftAmount << 7;
     }
-    explicit Reg(const Op2Reg &op) {
+    explicit Reg(const Op2Reg& op) {
         memcpy(this, &op, sizeof(*this));
     }
 };
@@ -725,7 +725,7 @@ class Op2Reg : public Operand2
         datastore::Reg r(*this);
         return r.RM == rm.code();
     }
-    bool getRM(Register *rm) {
+    bool getRM(Register* rm) {
         datastore::Reg r(*this);
         *rm = Register::FromCode(r.RM);
         return true;
@@ -1005,11 +1005,11 @@ class BOffImm
     bool isInvalid() {
         return data == uint32_t(INVALID);
     }
-    Instruction *getDest(Instruction *src);
+    Instruction* getDest(Instruction* src);
 
   private:
     friend class InstBranchImm;
-    BOffImm(Instruction &inst);
+    BOffImm(Instruction& inst);
 };
 
 class Imm16
@@ -1022,7 +1022,7 @@ class Imm16
   public:
     Imm16();
     Imm16(uint32_t imm);
-    Imm16(Instruction &inst);
+    Imm16(Instruction& inst);
 
     uint32_t encode() {
         return lower | upper << 16;
@@ -1075,7 +1075,7 @@ class Operand
       : Tag(MEM), reg(base.code()), offset(off)
     { }
 
-    Operand (const Address &addr)
+    Operand (const Address& addr)
       : Tag(MEM), reg(addr.base.code()), offset(addr.offset)
     { }
 
@@ -1093,7 +1093,7 @@ class Operand
         return Register::FromCode(reg);
     }
 
-    void toAddr(Register *r, Imm32 *dest) const {
+    void toAddr(Register* r, Imm32* dest) const {
         JS_ASSERT(Tag == MEM);
         *r = Register::FromCode(reg);
         *dest = Imm32(offset);
@@ -1122,7 +1122,7 @@ class Operand
 };
 
 void
-PatchJump(CodeLocationJump &jump_, CodeLocationLabel label);
+PatchJump(CodeLocationJump& jump_, CodeLocationLabel label);
 class InstructionIterator;
 class Assembler;
 typedef js::jit::AssemblerBufferWithConstantPool<1024, 4, Instruction, Assembler, 1> ARMBuffer;
@@ -1221,7 +1221,7 @@ class Assembler : public AssemblerShared
     }
 
   protected:
-    BufferOffset labelOffset (Label *l) {
+    BufferOffset labelOffset (Label* l) {
         return BufferOffset(l->bound());
     }
 
@@ -1232,7 +1232,7 @@ class Assembler : public AssemblerShared
     void resetCounter();
     uint32_t actualOffset(uint32_t) const;
     uint32_t actualIndex(uint32_t) const;
-    static uint8_t *PatchableJumpAddress(JitCode *code, uint32_t index);
+    static uint8_t* PatchableJumpAddress(JitCode* code, uint32_t index);
     BufferOffset actualOffset(BufferOffset) const;
   protected:
 
@@ -1240,9 +1240,9 @@ class Assembler : public AssemblerShared
     // gets moved (executable copy, gc, etc.)
     struct RelativePatch
     {
-        void *target;
+        void* target;
         Relocation::Kind kind;
-        RelativePatch(void *target, Relocation::Kind kind)
+        RelativePatch(void* target, Relocation::Kind kind)
             : target(target), kind(kind)
         { }
     };
@@ -1274,10 +1274,10 @@ class Assembler : public AssemblerShared
     // after assembly buffers no longer exist, when calling with a third
     // dest parameter, a this object is still needed.  dummy always happens
     // to be null, but we shouldn't be looking at it in any case.
-    static Assembler *dummy;
+    static Assembler* dummy;
     mozilla::Array<Pool, 4> pools_;
-    Pool *int32Pool;
-    Pool *doublePool;
+    Pool* int32Pool;
+    Pool* doublePool;
 
   public:
     Assembler()
@@ -1315,14 +1315,14 @@ class Assembler : public AssemblerShared
     static Condition InvertCondition(Condition cond);
 
     // MacroAssemblers hold onto gcthings, so they are traced by the GC.
-    void trace(JSTracer *trc);
+    void trace(JSTracer* trc);
     void writeRelocation(BufferOffset src) {
         tmpJumpRelocations_.append(src);
     }
 
     // As opposed to x86/x64 version, the data relocation has to be executed
     // before to recover the pointer, and not after.
-    void writeDataRelocation(const ImmGCPtr &ptr) {
+    void writeDataRelocation(const ImmGCPtr& ptr) {
         if (ptr.value)
             tmpDataRelocations_.append(nextOffset());
     }
@@ -1347,25 +1347,25 @@ class Assembler : public AssemblerShared
     // given the start of a function that loads an address into a register get the address that
     // ends up in the register.
     template <class Iter>
-    static const uint32_t * getCF32Target(Iter *iter);
+    static const uint32_t * getCF32Target(Iter* iter);
 
-    static uintptr_t getPointer(uint8_t *);
+    static uintptr_t getPointer(uint8_t*);
     template <class Iter>
-    static const uint32_t * getPtr32Target(Iter *iter, Register *dest = nullptr, RelocStyle *rs = nullptr);
+    static const uint32_t * getPtr32Target(Iter* iter, Register* dest = nullptr, RelocStyle* rs = nullptr);
 
     bool oom() const;
 
-    void setPrinter(Sprinter *sp) {
+    void setPrinter(Sprinter* sp) {
     }
 
   private:
     bool isFinished;
   public:
     void finish();
-    void executableCopy(void *buffer);
-    void copyJumpRelocationTable(uint8_t *dest);
-    void copyDataRelocationTable(uint8_t *dest);
-    void copyPreBarrierTable(uint8_t *dest);
+    void executableCopy(void* buffer);
+    void copyJumpRelocationTable(uint8_t* dest);
+    void copyDataRelocationTable(uint8_t* dest);
+    void copyPreBarrierTable(uint8_t* dest);
 
     bool addCodeLabel(CodeLabel label);
     size_t numCodeLabels() const {
@@ -1390,21 +1390,21 @@ class Assembler : public AssemblerShared
     // instruction gets written into the instruction stream. If dest is not null
     // it is interpreted as a pointer to the location that we want the
     // instruction to be written.
-    BufferOffset writeInst(uint32_t x, uint32_t *dest = nullptr);
+    BufferOffset writeInst(uint32_t x, uint32_t* dest = nullptr);
     // A static variant for the cases where we don't want to have an assembler
     // object at all. Normally, you would use the dummy (nullptr) object.
-    static void writeInstStatic(uint32_t x, uint32_t *dest);
+    static void writeInstStatic(uint32_t x, uint32_t* dest);
 
   public:
-    void writeCodePointer(AbsoluteLabel *label);
+    void writeCodePointer(AbsoluteLabel* label);
 
     BufferOffset align(int alignment);
     BufferOffset as_nop();
     BufferOffset as_alu(Register dest, Register src1, Operand2 op2,
-                ALUOp op, SetCond_ sc = NoSetCond, Condition c = Always, Instruction *instdest = nullptr);
+                ALUOp op, SetCond_ sc = NoSetCond, Condition c = Always, Instruction* instdest = nullptr);
 
     BufferOffset as_mov(Register dest,
-                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always, Instruction *instdest = nullptr);
+                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always, Instruction* instdest = nullptr);
     BufferOffset as_mvn(Register dest, Operand2 op2,
                 SetCond_ sc = NoSetCond, Condition c = Always);
     // logical operations
@@ -1442,8 +1442,8 @@ class Assembler : public AssemblerShared
     // Not quite ALU worthy, but useful none the less:
     // These also have the isue of these being formatted
     // completly differently from the standard ALU operations.
-    BufferOffset as_movw(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = nullptr);
-    BufferOffset as_movt(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = nullptr);
+    BufferOffset as_movw(Register dest, Imm16 imm, Condition c = Always, Instruction* pos = nullptr);
+    BufferOffset as_movt(Register dest, Imm16 imm, Condition c = Always, Instruction* pos = nullptr);
 
     BufferOffset as_genmul(Register d1, Register d2, Register rm, Register rn,
                    MULOp op, SetCond_ sc, Condition c = Always);
@@ -1471,21 +1471,21 @@ class Assembler : public AssemblerShared
     // Using an int to differentiate between 8 bits and 32 bits is
     // overkill, but meh
     BufferOffset as_dtr(LoadStore ls, int size, Index mode,
-                Register rt, DTRAddr addr, Condition c = Always, uint32_t *dest = nullptr);
+                Register rt, DTRAddr addr, Condition c = Always, uint32_t* dest = nullptr);
     // Handles all of the other integral data transferring functions:
     // ldrsb, ldrsh, ldrd, etc.
     // size is given in bits.
     BufferOffset as_extdtr(LoadStore ls, int size, bool IsSigned, Index mode,
-                   Register rt, EDtrAddr addr, Condition c = Always, uint32_t *dest = nullptr);
+                   Register rt, EDtrAddr addr, Condition c = Always, uint32_t* dest = nullptr);
 
     BufferOffset as_dtm(LoadStore ls, Register rn, uint32_t mask,
                 DTMMode mode, DTMWriteBack wb, Condition c = Always);
     //overwrite a pool entry with new data.
-    void as_WritePoolEntry(Instruction *addr, Condition c, uint32_t data);
+    void as_WritePoolEntry(Instruction* addr, Condition c, uint32_t data);
     // load a 32 bit immediate from a pool into a register
     BufferOffset as_Imm32Pool(Register dest, uint32_t value, Condition c = Always);
     // make a patchable jump that can target the entire 32 bit address space.
-    BufferOffset as_BranchPool(uint32_t value, RepatchLabel *label, ARMBuffer::PoolEntry *pe = nullptr, Condition c = Always);
+    BufferOffset as_BranchPool(uint32_t value, RepatchLabel* label, ARMBuffer::PoolEntry* pe = nullptr, Condition c = Always);
 
     // load a 64 bit floating point immediate from a pool into a register
     BufferOffset as_FImm64Pool(VFPRegister dest, double value, Condition c = Always);
@@ -1503,14 +1503,14 @@ class Assembler : public AssemblerShared
     // are absolute
     BufferOffset as_b(BOffImm off, Condition c, bool isPatchable = false);
 
-    BufferOffset as_b(Label *l, Condition c = Always, bool isPatchable = false);
+    BufferOffset as_b(Label* l, Condition c = Always, bool isPatchable = false);
     BufferOffset as_b(BOffImm off, Condition c, BufferOffset inst);
 
     // blx can go to either an immediate or a register.
     // When blx'ing to a register, we change processor mode
     // depending on the low bit of the register
     // when blx'ing to an immediate, we *always* change processor state.
-    BufferOffset as_blx(Label *l);
+    BufferOffset as_blx(Label* l);
 
     BufferOffset as_blx(Register r, Condition c = Always);
     BufferOffset as_bl(BOffImm off, Condition c);
@@ -1519,7 +1519,7 @@ class Assembler : public AssemblerShared
     BufferOffset as_bl();
     // bl #imm can have a condition code, blx #imm cannot.
     // blx reg can be conditional.
-    BufferOffset as_bl(Label *l, Condition c);
+    BufferOffset as_bl(Label* l, Condition c);
     BufferOffset as_bl(BOffImm off, Condition c, BufferOffset inst);
 
     BufferOffset as_mrs(Register r, Condition c = Always);
@@ -1532,7 +1532,7 @@ class Assembler : public AssemblerShared
         isSingle = 0 << 8
     };
 
-    BufferOffset writeVFPInst(vfp_size sz, uint32_t blob, uint32_t *dest=nullptr);
+    BufferOffset writeVFPInst(vfp_size sz, uint32_t blob, uint32_t* dest=nullptr);
     // Unityped variants: all registers hold the same (ieee754 single/double)
     // notably not included are vcvt; vmov vd, #imm; vmov rt, vn.
     BufferOffset as_vfp_float(VFPRegister vd, VFPRegister vn, VFPRegister vm,
@@ -1604,7 +1604,7 @@ class Assembler : public AssemblerShared
     /* xfer between VFP and memory*/
     BufferOffset as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
                  Condition c = Always /* vfp doesn't have a wb option*/,
-                 uint32_t *dest = nullptr);
+                 uint32_t* dest = nullptr);
 
     // VFP's ldm/stm work differently from the standard arm ones.
     // You can only transfer a range
@@ -1617,31 +1617,31 @@ class Assembler : public AssemblerShared
     BufferOffset as_vmrs(Register r, Condition c = Always);
     BufferOffset as_vmsr(Register r, Condition c = Always);
     // label operations
-    bool nextLink(BufferOffset b, BufferOffset *next);
-    void bind(Label *label, BufferOffset boff = BufferOffset());
-    void bind(RepatchLabel *label);
+    bool nextLink(BufferOffset b, BufferOffset* next);
+    void bind(Label* label, BufferOffset boff = BufferOffset());
+    void bind(RepatchLabel* label);
     uint32_t currentOffset() {
         return nextOffset().getOffset();
     }
-    void retarget(Label *label, Label *target);
+    void retarget(Label* label, Label* target);
     // I'm going to pretend this doesn't exist for now.
-    void retarget(Label *label, void *target, Relocation::Kind reloc);
+    void retarget(Label* label, void* target, Relocation::Kind reloc);
 
-    void Bind(uint8_t *rawCode, AbsoluteLabel *label, const void *address);
+    void Bind(uint8_t* rawCode, AbsoluteLabel* label, const void* address);
 
     // See Bind
     size_t labelOffsetToPatchOffset(size_t offset) {
         return actualOffset(offset);
     }
 
-    void call(Label *label);
-    void call(void *target);
+    void call(Label* label);
+    void call(void* target);
 
     void as_bkpt();
 
   public:
-    static void TraceJumpRelocations(JSTracer *trc, JitCode *code, CompactBufferReader &reader);
-    static void TraceDataRelocations(JSTracer *trc, JitCode *code, CompactBufferReader &reader);
+    static void TraceJumpRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader);
+    static void TraceDataRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader);
 
   protected:
     void addPendingJump(BufferOffset src, ImmPtr target, Relocation::Kind kind) {
@@ -1661,7 +1661,7 @@ class Assembler : public AssemblerShared
 
     // Copy the assembly code to the given buffer, and perform any pending
     // relocations relying on the target address.
-    void executableCopy(uint8_t *buffer);
+    void executableCopy(uint8_t* buffer);
 
     // Actual assembly emitting functions.
 
@@ -1756,7 +1756,7 @@ class Assembler : public AssemblerShared
 
     // API for speaking with the IonAssemblerBufferWithConstantPools
     // generate an initial placeholder instruction that we want to later fix up
-    static void insertTokenIntoTag(uint32_t size, uint8_t *load, int32_t token);
+    static void insertTokenIntoTag(uint32_t size, uint8_t* load, int32_t token);
     // take the stub value that was written in before, and write in an actual load
     // using the index we'd computed previously as well as the address of the pool start.
     static bool patchConstantPoolLoad(void* loadAddr, void* constPoolAddr);
@@ -1775,14 +1775,14 @@ class Assembler : public AssemblerShared
     void leaveNoPool();
     // this should return a BOffImm, but I didn't want to require everyplace that used the
     // AssemblerBuffer to make that class.
-    static ptrdiff_t getBranchOffset(const Instruction *i);
-    static void retargetNearBranch(Instruction *i, int offset, Condition cond, bool final = true);
-    static void retargetNearBranch(Instruction *i, int offset, bool final = true);
-    static void retargetFarBranch(Instruction *i, uint8_t **slot, uint8_t *dest, Condition cond);
+    static ptrdiff_t getBranchOffset(const Instruction* i);
+    static void retargetNearBranch(Instruction* i, int offset, Condition cond, bool final = true);
+    static void retargetNearBranch(Instruction* i, int offset, bool final = true);
+    static void retargetFarBranch(Instruction* i, uint8_t** slot, uint8_t* dest, Condition cond);
 
-    static void writePoolHeader(uint8_t *start, Pool *p, bool isNatural);
-    static void writePoolFooter(uint8_t *start, Pool *p, bool isNatural);
-    static void writePoolGuard(BufferOffset branch, Instruction *inst, BufferOffset dest);
+    static void writePoolHeader(uint8_t* start, Pool* p, bool isNatural);
+    static void writePoolFooter(uint8_t* start, Pool* p, bool isNatural);
+    static void writePoolGuard(BufferOffset branch, Instruction* inst, BufferOffset dest);
 
 
     static uint32_t patchWrite_NearCallSize();
@@ -1796,7 +1796,7 @@ class Assembler : public AssemblerShared
     static uint32_t alignDoubleArg(uint32_t offset) {
         return (offset+1)&~1;
     }
-    static uint8_t *nextInstruction(uint8_t *instruction, uint32_t *count = nullptr);
+    static uint8_t* nextInstruction(uint8_t* instruction, uint32_t* count = nullptr);
     // Toggle a jmp or cmp emitted by toggledJump().
 
     static void ToggleToJmp(CodeLocationLabel inst_);
@@ -1804,8 +1804,8 @@ class Assembler : public AssemblerShared
 
     static void ToggleCall(CodeLocationLabel inst_, bool enabled);
 
-    static void updateBoundsCheck(uint32_t logHeapSize, Instruction *inst);
-    void processCodeLabels(uint8_t *rawCode);
+    static void updateBoundsCheck(uint32_t logHeapSize, Instruction* inst);
+    void processCodeLabels(uint8_t* rawCode);
     bool bailed() {
         return m_buffer.bail();
     }
@@ -1840,25 +1840,25 @@ class Instruction
 
     // safely get a more specific variant of this pointer
     template <class C>
-    C *as() const { return C::asTHIS(*this); }
+    C* as() const { return C::asTHIS(*this); }
 
-    const Instruction & operator=(const Instruction &src) {
+    const Instruction & operator=(const Instruction& src) {
         data = src.data;
         return *this;
     }
     // Since almost all instructions have condition codes, the condition
     // code extractor resides in the base class.
-    void extractCond(Assembler::Condition *c) {
+    void extractCond(Assembler::Condition* c) {
         if (data >> 28 != 0xf )
             *c = (Assembler::Condition)(data & 0xf0000000);
     }
     // Get the next instruction in the instruction stream.
     // This does neat things like ignoreconstant pools and their guards.
-    Instruction *next();
+    Instruction* next();
 
     // Sometimes, an api wants a uint32_t (or a pointer to it) rather than
     // an instruction.  raw() just coerces this into a pointer to a uint32_t
-    const uint32_t *raw() const { return &data; }
+    const uint32_t* raw() const { return &data; }
     uint32_t size() const { return 4; }
 }; // Instruction
 
@@ -1881,8 +1881,8 @@ class InstDTR : public Instruction
       : Instruction(ls | ib | mode | RT(rt) | addr.encode() | IsDTR, c)
     { }
 
-    static bool isTHIS(const Instruction &i);
-    static InstDTR *asTHIS(const Instruction &i);
+    static bool isTHIS(const Instruction& i);
+    static InstDTR* asTHIS(const Instruction& i);
 
 };
 JS_STATIC_ASSERT(sizeof(InstDTR) == sizeof(Instruction));
@@ -1893,8 +1893,8 @@ class InstLDR : public InstDTR
     InstLDR(Index mode, Register rt, DTRAddr addr, Assembler::Condition c)
         : InstDTR(IsLoad, IsWord, mode, rt, addr, c)
     { }
-    static bool isTHIS(const Instruction &i);
-    static InstLDR *asTHIS(const Instruction &i);
+    static bool isTHIS(const Instruction& i);
+    static InstLDR* asTHIS(const Instruction& i);
 
 };
 JS_STATIC_ASSERT(sizeof(InstDTR) == sizeof(InstLDR));
@@ -1908,8 +1908,8 @@ class InstNOP : public Instruction
       : Instruction(NopInst, Assembler::Always)
     { }
 
-    static bool isTHIS(const Instruction &i);
-    static InstNOP *asTHIS(Instruction &i);
+    static bool isTHIS(const Instruction& i);
+    static InstNOP* asTHIS(Instruction& i);
 };
 
 // Branching to a register, or calling a register
@@ -1926,10 +1926,10 @@ class InstBranchReg : public Instruction
       : Instruction(tag | rm.code(), c)
     { }
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstBranchReg *asTHIS (const Instruction &i);
+    static bool isTHIS (const Instruction& i);
+    static InstBranchReg* asTHIS (const Instruction& i);
     // Get the register that is being branched to
-    void extractDest(Register *dest);
+    void extractDest(Register* dest);
     // Make sure we are branching to a pre-known register
     bool checkDest(Register dest);
 };
@@ -1950,9 +1950,9 @@ class InstBranchImm : public Instruction
     { }
 
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstBranchImm *asTHIS (const Instruction &i);
-    void extractImm(BOffImm *dest);
+    static bool isTHIS (const Instruction& i);
+    static InstBranchImm* asTHIS (const Instruction& i);
+    void extractImm(BOffImm* dest);
 };
 JS_STATIC_ASSERT(sizeof(InstBranchImm) == sizeof(Instruction));
 
@@ -1960,8 +1960,8 @@ JS_STATIC_ASSERT(sizeof(InstBranchImm) == sizeof(Instruction));
 class InstBXReg : public InstBranchReg
 {
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstBXReg *asTHIS (const Instruction &i);
+    static bool isTHIS (const Instruction& i);
+    static InstBXReg* asTHIS (const Instruction& i);
 };
 class InstBLXReg : public InstBranchReg
 {
@@ -1970,8 +1970,8 @@ class InstBLXReg : public InstBranchReg
       : InstBranchReg(IsBLX, reg, c)
     { }
 
-    static bool isTHIS (const Instruction &i);
-    static InstBLXReg *asTHIS (const Instruction &i);
+    static bool isTHIS (const Instruction& i);
+    static InstBLXReg* asTHIS (const Instruction& i);
 };
 class InstBImm : public InstBranchImm
 {
@@ -1980,8 +1980,8 @@ class InstBImm : public InstBranchImm
       : InstBranchImm(IsB, off, c)
     { }
 
-    static bool isTHIS (const Instruction &i);
-    static InstBImm *asTHIS (const Instruction &i);
+    static bool isTHIS (const Instruction& i);
+    static InstBImm* asTHIS (const Instruction& i);
 };
 class InstBLImm : public InstBranchImm
 {
@@ -1990,8 +1990,8 @@ class InstBLImm : public InstBranchImm
       : InstBranchImm(IsBL, off, c)
     { }
 
-    static bool isTHIS (const Instruction &i);
-    static InstBLImm *asTHIS (Instruction &i);
+    static bool isTHIS (const Instruction& i);
+    static InstBLImm* asTHIS (Instruction& i);
 };
 
 // Both movw and movt. The layout of both the immediate and the destination
@@ -2010,13 +2010,13 @@ class InstMovWT : public Instruction
     { }
 
   public:
-    void extractImm(Imm16 *dest);
-    void extractDest(Register *dest);
+    void extractImm(Imm16* dest);
+    void extractDest(Register* dest);
     bool checkImm(Imm16 dest);
     bool checkDest(Register dest);
 
-    static bool isTHIS (Instruction &i);
-    static InstMovWT *asTHIS (Instruction &i);
+    static bool isTHIS (Instruction& i);
+    static InstMovWT* asTHIS (Instruction& i);
 
 };
 JS_STATIC_ASSERT(sizeof(InstMovWT) == sizeof(Instruction));
@@ -2028,8 +2028,8 @@ class InstMovW : public InstMovWT
       : InstMovWT(rd, imm, IsW, c)
     { }
 
-    static bool isTHIS (const Instruction &i);
-    static InstMovW *asTHIS (const Instruction &i);
+    static bool isTHIS (const Instruction& i);
+    static InstMovW* asTHIS (const Instruction& i);
 };
 
 class InstMovT : public InstMovWT
@@ -2038,8 +2038,8 @@ class InstMovT : public InstMovWT
     InstMovT (Register rd, Imm16 imm, Assembler::Condition c)
       : InstMovWT(rd, imm, IsT, c)
     { }
-    static bool isTHIS (const Instruction &i);
-    static InstMovT *asTHIS (const Instruction &i);
+    static bool isTHIS (const Instruction& i);
+    static InstMovT* asTHIS (const Instruction& i);
 };
 
 class InstALU : public Instruction
@@ -2049,13 +2049,13 @@ class InstALU : public Instruction
     InstALU (Register rd, Register rn, Operand2 op2, ALUOp op, SetCond_ sc, Assembler::Condition c)
         : Instruction(maybeRD(rd) | maybeRN(rn) | op2.encode() | op | sc, c)
     { }
-    static bool isTHIS (const Instruction &i);
-    static InstALU *asTHIS (const Instruction &i);
-    void extractOp(ALUOp *ret);
+    static bool isTHIS (const Instruction& i);
+    static InstALU* asTHIS (const Instruction& i);
+    void extractOp(ALUOp* ret);
     bool checkOp(ALUOp op);
-    void extractDest(Register *ret);
+    void extractDest(Register* ret);
     bool checkDest(Register rd);
-    void extractOp1(Register *ret);
+    void extractOp1(Register* ret);
     bool checkOp1(Register rn);
     Operand2 extractOp2();
 };
@@ -2063,28 +2063,28 @@ class InstALU : public Instruction
 class InstCMP : public InstALU
 {
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstCMP *asTHIS (const Instruction &i);
+    static bool isTHIS (const Instruction& i);
+    static InstCMP* asTHIS (const Instruction& i);
 };
 
 class InstMOV : public InstALU
 {
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstMOV *asTHIS (const Instruction &i);
+    static bool isTHIS (const Instruction& i);
+    static InstMOV* asTHIS (const Instruction& i);
 };
 
 
 class InstructionIterator {
   private:
-    Instruction *i;
+    Instruction* i;
   public:
-    InstructionIterator(Instruction *i_);
-    Instruction *next() {
+    InstructionIterator(Instruction* i_);
+    Instruction* next() {
         i = i->next();
         return cur();
     }
-    Instruction *cur() const {
+    Instruction* cur() const {
         return i;
     }
 };
@@ -2093,7 +2093,7 @@ static const uint32_t NumIntArgRegs = 4;
 static const uint32_t NumFloatArgRegs = 8;
 
 static inline bool
-GetIntArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
+GetIntArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register* out)
 {
     if (usedIntArgs >= NumIntArgRegs)
         return false;
@@ -2107,7 +2107,7 @@ GetIntArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
 // CallTempReg* don't overlap the argument registers, and only fail once those
 // run out too.
 static inline bool
-GetTempRegForIntArg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
+GetTempRegForIntArg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register* out)
 {
     if (GetIntArgReg(usedIntArgs, usedFloatArgs, out))
         return true;
@@ -2138,7 +2138,7 @@ GetArgStackDisp(uint32_t arg)
 #if defined(JS_CODEGEN_ARM_HARDFP) || defined(JS_ARM_SIMULATOR)
 
 static inline bool
-GetFloatArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs, FloatRegister *out)
+GetFloatArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs, FloatRegister* out)
 {
     JS_ASSERT(useHardFpABI());
     if (usedFloatArgs >= NumFloatArgRegs)
@@ -2148,7 +2148,7 @@ GetFloatArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs, FloatRegister *out)
 }
 
 static inline uint32_t
-GetIntArgStackDisp(uint32_t usedIntArgs, uint32_t usedFloatArgs, uint32_t *padding)
+GetIntArgStackDisp(uint32_t usedIntArgs, uint32_t usedFloatArgs, uint32_t* padding)
 {
     JS_ASSERT(useHardFpABI());
     JS_ASSERT(usedIntArgs >= NumIntArgRegs);
@@ -2159,7 +2159,7 @@ GetIntArgStackDisp(uint32_t usedIntArgs, uint32_t usedFloatArgs, uint32_t *paddi
 }
 
 static inline uint32_t
-GetFloat32ArgStackDisp(uint32_t usedIntArgs, uint32_t usedFloatArgs, uint32_t *padding)
+GetFloat32ArgStackDisp(uint32_t usedIntArgs, uint32_t usedFloatArgs, uint32_t* padding)
 {
     JS_ASSERT(useHardFpABI());
     JS_ASSERT(usedFloatArgs >= NumFloatArgRegs);
@@ -2171,7 +2171,7 @@ GetFloat32ArgStackDisp(uint32_t usedIntArgs, uint32_t usedFloatArgs, uint32_t *p
 }
 
 static inline uint32_t
-GetDoubleArgStackDisp(uint32_t usedIntArgs, uint32_t usedFloatArgs, uint32_t *padding)
+GetDoubleArgStackDisp(uint32_t usedIntArgs, uint32_t usedFloatArgs, uint32_t* padding)
 {
     JS_ASSERT(useHardFpABI());
     JS_ASSERT(usedFloatArgs >= NumFloatArgRegs);
@@ -2236,7 +2236,7 @@ class DoubleEncoder {
         }
     }
 
-    bool lookup(uint32_t top, datastore::Imm8VFPImmData *ret) {
+    bool lookup(uint32_t top, datastore::Imm8VFPImmData* ret) {
         for (int i = 0; i < 256; i++) {
             if (table[i].dblTop == top) {
                 *ret = table[i].data;
@@ -2248,9 +2248,9 @@ class DoubleEncoder {
 };
 
 class AutoForbidPools {
-    Assembler *masm_;
+    Assembler* masm_;
   public:
-    AutoForbidPools(Assembler *masm) : masm_(masm) {
+    AutoForbidPools(Assembler* masm) : masm_(masm) {
         masm_->enterNoPool();
     }
     ~AutoForbidPools() {

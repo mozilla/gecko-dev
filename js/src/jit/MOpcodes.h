@@ -232,7 +232,7 @@ namespace jit {
 class MInstructionVisitor // interface i.e. pure abstract class
 {
   public:
-#define VISIT_INS(op) virtual bool visit##op(M##op *) = 0;
+#define VISIT_INS(op) virtual bool visit##op(M##op*) = 0;
     MIR_OPCODE_LIST(VISIT_INS)
 #undef VISIT_INS
 };
@@ -240,7 +240,7 @@ class MInstructionVisitor // interface i.e. pure abstract class
 class MInstructionVisitorWithDefaults : public MInstructionVisitor
 {
   public:
-#define VISIT_INS(op) virtual bool visit##op(M##op *) { MOZ_ASSUME_UNREACHABLE("NYI: " #op); }
+#define VISIT_INS(op) virtual bool visit##op(M##op*) { MOZ_ASSUME_UNREACHABLE("NYI: " #op); }
     MIR_OPCODE_LIST(VISIT_INS)
 #undef VISIT_INS
 };

@@ -36,15 +36,15 @@ class Allocator
      */
     friend class gc::ArenaLists;
 
-    JS::Zone *zone_;
+    JS::Zone* zone_;
 
   public:
-    explicit Allocator(JS::Zone *zone);
+    explicit Allocator(JS::Zone* zone);
 
     js::gc::ArenaLists arenas;
 };
 
-typedef Vector<JSCompartment *, 1, SystemAllocPolicy> CompartmentVector;
+typedef Vector<JSCompartment*, 1, SystemAllocPolicy> CompartmentVector;
 
 } /* namespace js */
 
@@ -101,7 +101,7 @@ struct Zone : public JS::shadow::Zone,
               public js::MallocProvider<JS::Zone>
 {
   private:
-    friend bool js::CurrentThreadCanAccessZone(Zone *zone);
+    friend bool js::CurrentThreadCanAccessZone(Zone* zone);
 
   public:
     js::Allocator                allocator;
@@ -129,7 +129,7 @@ struct Zone : public JS::shadow::Zone,
 
     void setNeedsBarrier(bool needs, ShouldUpdateIon updateIon);
 
-    const bool *addressOfNeedsBarrier() const {
+    const bool* addressOfNeedsBarrier() const {
         return &needsBarrier_;
     }
 
@@ -194,7 +194,7 @@ struct Zone : public JS::shadow::Zone,
         // Zones cannot be collected while in use by other threads.
         if (usedByExclusiveThread)
             return false;
-        JSRuntime *rt = runtimeFromAnyThread();
+        JSRuntime* rt = runtimeFromAnyThread();
         if (rt->isAtomsZone(this) && rt->exclusiveThreadsPresent())
             return false;
         return true;
@@ -272,18 +272,18 @@ struct Zone : public JS::shadow::Zone,
     js::Vector<js::GrayRoot, 0, js::SystemAllocPolicy> gcGrayRoots;
 
     /* Per-zone data for use by an embedder. */
-    void *data;
+    void* data;
 
-    Zone(JSRuntime *rt);
+    Zone(JSRuntime* rt);
     ~Zone();
 
-    void findOutgoingEdges(js::gc::ComponentFinder<JS::Zone> &finder);
+    void findOutgoingEdges(js::gc::ComponentFinder<JS::Zone>& finder);
 
-    void discardJitCode(js::FreeOp *fop);
+    void discardJitCode(js::FreeOp* fop);
 
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
-                                size_t *typePool,
-                                size_t *baselineStubsOptimized);
+                                size_t* typePool,
+                                size_t* baselineStubsOptimized);
 
     void setGCLastBytes(size_t lastBytes, js::JSGCInvocationKind gckind);
     void reduceGCTriggerBytes(size_t amount);
@@ -306,7 +306,7 @@ struct Zone : public JS::shadow::Zone,
 
     void onTooMuchMalloc();
 
-    void *onOutOfMemory(void *p, size_t nbytes) {
+    void* onOutOfMemory(void* p, size_t nbytes) {
         return runtimeFromMainThread()->onOutOfMemory(p, nbytes);
     }
     void reportAllocationOverflow() {
@@ -315,22 +315,22 @@ struct Zone : public JS::shadow::Zone,
 
     js::types::TypeZone types;
 
-    void sweep(js::FreeOp *fop, bool releaseTypes, bool *oom);
+    void sweep(js::FreeOp* fop, bool releaseTypes, bool* oom);
 
     bool hasMarkedCompartments();
 
   private:
-    void sweepBreakpoints(js::FreeOp *fop);
+    void sweepBreakpoints(js::FreeOp* fop);
 
 #ifdef JS_ION
-    js::jit::JitZone *jitZone_;
-    js::jit::JitZone *createJitZone(JSContext *cx);
+    js::jit::JitZone* jitZone_;
+    js::jit::JitZone* createJitZone(JSContext* cx);
 
   public:
-    js::jit::JitZone *getJitZone(JSContext *cx) {
+    js::jit::JitZone* getJitZone(JSContext* cx) {
         return jitZone_ ? jitZone_ : createJitZone(cx);
     }
-    js::jit::JitZone *jitZone() {
+    js::jit::JitZone* jitZone() {
         return jitZone_;
     }
 #endif
@@ -353,10 +353,10 @@ enum ZoneSelector {
 
 class ZonesIter {
   private:
-    JS::Zone **it, **end;
+    JS::Zone** it, **end;
 
   public:
-    ZonesIter(JSRuntime *rt, ZoneSelector selector) {
+    ZonesIter(JSRuntime* rt, ZoneSelector selector) {
         it = rt->zones.begin();
         end = rt->zones.end();
 
@@ -375,13 +375,13 @@ class ZonesIter {
         } while (!done() && (*it)->usedByExclusiveThread);
     }
 
-    JS::Zone *get() const {
+    JS::Zone* get() const {
         JS_ASSERT(!done());
         return *it;
     }
 
-    operator JS::Zone *() const { return get(); }
-    JS::Zone *operator->() const { return get(); }
+    operator JS::Zone*() const { return get(); }
+    JS::Zone* operator->() const { return get(); }
 };
 
 struct CompartmentsInZoneIter
@@ -389,15 +389,15 @@ struct CompartmentsInZoneIter
     // This is for the benefit of CompartmentsIterT::comp.
     friend class mozilla::Maybe<CompartmentsInZoneIter>;
   private:
-    JS::Zone *zone;
-    JSCompartment **it;
+    JS::Zone* zone;
+    JSCompartment** it;
 
     CompartmentsInZoneIter()
       : zone(nullptr), it(nullptr)
     {}
 
   public:
-    explicit CompartmentsInZoneIter(JS::Zone *zone) : zone(zone) {
+    explicit CompartmentsInZoneIter(JS::Zone* zone) : zone(zone) {
         it = zone->compartments.begin();
     }
 
@@ -411,13 +411,13 @@ struct CompartmentsInZoneIter
         it++;
     }
 
-    JSCompartment *get() const {
+    JSCompartment* get() const {
         JS_ASSERT(it);
         return *it;
     }
 
-    operator JSCompartment *() const { return get(); }
-    JSCompartment *operator->() const { return get(); }
+    operator JSCompartment*() const { return get(); }
+    JSCompartment* operator->() const { return get(); }
 };
 
 /*
@@ -432,7 +432,7 @@ class CompartmentsIterT
     mozilla::Maybe<CompartmentsInZoneIter> comp;
 
   public:
-    explicit CompartmentsIterT(JSRuntime *rt)
+    explicit CompartmentsIterT(JSRuntime* rt)
       : zone(rt)
     {
         if (zone.done())
@@ -441,7 +441,7 @@ class CompartmentsIterT
             comp.construct(zone);
     }
 
-    CompartmentsIterT(JSRuntime *rt, ZoneSelector selector)
+    CompartmentsIterT(JSRuntime* rt, ZoneSelector selector)
       : zone(rt, selector)
     {
         if (zone.done())
@@ -464,13 +464,13 @@ class CompartmentsIterT
         }
     }
 
-    JSCompartment *get() const {
+    JSCompartment* get() const {
         JS_ASSERT(!done());
         return comp.ref();
     }
 
-    operator JSCompartment *() const { return get(); }
-    JSCompartment *operator->() const { return get(); }
+    operator JSCompartment*() const { return get(); }
+    JSCompartment* operator->() const { return get(); }
 };
 
 typedef CompartmentsIterT<ZonesIter> CompartmentsIter;

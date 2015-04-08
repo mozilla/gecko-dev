@@ -47,16 +47,16 @@ BEGIN_TEST(testConservativeGC)
 
     JS_GC(rt);
 
-    checkObjectFields((JSObject *)objCopy, JSVAL_TO_OBJECT(v2));
+    checkObjectFields((JSObject*)objCopy, JSVAL_TO_OBJECT(v2));
     CHECK(!memcmp(strCopy, JSVAL_TO_STRING(v3), sizeof(strCopy)));
 
-    checkObjectFields((JSObject *)obj2Copy, obj2);
+    checkObjectFields((JSObject*)obj2Copy, obj2);
     CHECK(!memcmp(str2Copy, str2, sizeof(str2Copy)));
 
     return true;
 }
 
-bool checkObjectFields(JSObject *savedCopy, JSObject *obj)
+bool checkObjectFields(JSObject* savedCopy, JSObject* obj)
 {
     /* Ignore fields which are unstable across GCs. */
     CHECK(savedCopy->lastProperty() == obj->lastProperty());
@@ -67,10 +67,10 @@ END_TEST(testConservativeGC)
 
 BEGIN_TEST(testDerivedValues)
 {
-  JSString *str = JS_NewStringCopyZ(cx, "once upon a midnight dreary");
-  JS::Anchor<JSString *> str_anchor(str);
+  JSString* str = JS_NewStringCopyZ(cx, "once upon a midnight dreary");
+  JS::Anchor<JSString*> str_anchor(str);
   static const jschar expected[] = { 'o', 'n', 'c', 'e' };
-  const jschar *ch = JS_GetStringCharsZ(cx, str);
+  const jschar* ch = JS_GetStringCharsZ(cx, str);
   str = nullptr;
 
   /* Do a lot of allocation and collection. */

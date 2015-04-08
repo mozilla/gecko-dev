@@ -28,7 +28,7 @@
 namespace js {
 
 inline bool
-ComputeThis(JSContext *cx, AbstractFramePtr frame)
+ComputeThis(JSContext* cx, AbstractFramePtr frame)
 {
     JS_ASSERT_IF(frame.isInterpreterFrame(), !frame.asInterpreterFrame()->runningInJit());
 
@@ -59,7 +59,7 @@ ComputeThis(JSContext *cx, AbstractFramePtr frame)
         JS_ASSERT_IF(frame.isEvalFrame(), thisv.isUndefined() || thisv.isNull());
     }
 
-    JSObject *thisObj = BoxNonStrictThis(cx, thisv);
+    JSObject* thisObj = BoxNonStrictThis(cx, thisv);
     if (!thisObj)
         return false;
 
@@ -78,7 +78,7 @@ ComputeThis(JSContext *cx, AbstractFramePtr frame)
  * arguments object.
  */
 static inline bool
-IsOptimizedArguments(AbstractFramePtr frame, Value *vp)
+IsOptimizedArguments(AbstractFramePtr frame, Value* vp)
 {
     if (vp->isMagic(JS_OPTIMIZED_ARGUMENTS) && frame.script()->needsArgsObj())
         *vp = ObjectValue(frame.argsObj());
@@ -91,8 +91,8 @@ IsOptimizedArguments(AbstractFramePtr frame, Value *vp)
  * is not the builtin Function.prototype.apply.
  */
 static inline bool
-GuardFunApplyArgumentsOptimization(JSContext *cx, AbstractFramePtr frame, HandleValue callee,
-                                   Value *args, uint32_t argc)
+GuardFunApplyArgumentsOptimization(JSContext* cx, AbstractFramePtr frame, HandleValue callee,
+                                   Value* args, uint32_t argc)
 {
     if (argc == 2 && IsOptimizedArguments(frame, &args[1])) {
         if (!IsNativeFunction(callee, js_fun_apply)) {
@@ -117,8 +117,8 @@ GuardFunApplyArgumentsOptimization(JSContext *cx, AbstractFramePtr frame, Handle
  * undefined and null, throw an error and return nullptr, attributing the
  * problem to the value at |spindex| on the stack.
  */
-MOZ_ALWAYS_INLINE JSObject *
-ValuePropertyBearer(JSContext *cx, InterpreterFrame *fp, HandleValue v, int spindex)
+MOZ_ALWAYS_INLINE JSObject*
+ValuePropertyBearer(JSContext* cx, InterpreterFrame* fp, HandleValue v, int spindex)
 {
     if (v.isObject())
         return &v.toObject();
@@ -138,7 +138,7 @@ ValuePropertyBearer(JSContext *cx, InterpreterFrame *fp, HandleValue v, int spin
 }
 
 inline bool
-GetLengthProperty(const Value &lval, MutableHandleValue vp)
+GetLengthProperty(const Value& lval, MutableHandleValue vp)
 {
     /* Optimize length accesses on strings, arrays, and arguments. */
     if (lval.isString()) {
@@ -146,14 +146,14 @@ GetLengthProperty(const Value &lval, MutableHandleValue vp)
         return true;
     }
     if (lval.isObject()) {
-        JSObject *obj = &lval.toObject();
+        JSObject* obj = &lval.toObject();
         if (obj->is<ArrayObject>()) {
             vp.setNumber(obj->as<ArrayObject>().length());
             return true;
         }
 
         if (obj->is<ArgumentsObject>()) {
-            ArgumentsObject *argsobj = &obj->as<ArgumentsObject>();
+            ArgumentsObject* argsobj = &obj->as<ArgumentsObject>();
             if (!argsobj->hasOverriddenLength()) {
                 uint32_t length = argsobj->initialLength();
                 JS_ASSERT(length < INT32_MAX);
@@ -167,7 +167,7 @@ GetLengthProperty(const Value &lval, MutableHandleValue vp)
 }
 
 template <bool TypeOf> inline bool
-FetchName(JSContext *cx, HandleObject obj, HandleObject obj2, HandlePropertyName name,
+FetchName(JSContext* cx, HandleObject obj, HandleObject obj2, HandlePropertyName name,
           HandleShape shape, MutableHandleValue vp)
 {
     if (!shape) {
@@ -202,7 +202,7 @@ FetchName(JSContext *cx, HandleObject obj, HandleObject obj2, HandlePropertyName
 }
 
 inline bool
-FetchNameNoGC(JSObject *pobj, Shape *shape, MutableHandleValue vp)
+FetchNameNoGC(JSObject* pobj, Shape* shape, MutableHandleValue vp)
 {
     if (!shape || !pobj->isNative() || !shape->isDataDescriptor() || !shape->hasDefaultGetter())
         return false;
@@ -212,21 +212,21 @@ FetchNameNoGC(JSObject *pobj, Shape *shape, MutableHandleValue vp)
 }
 
 inline bool
-GetIntrinsicOperation(JSContext *cx, jsbytecode *pc, MutableHandleValue vp)
+GetIntrinsicOperation(JSContext* cx, jsbytecode* pc, MutableHandleValue vp)
 {
     RootedPropertyName name(cx, cx->currentScript()->getName(pc));
     return GlobalObject::getIntrinsicValue(cx, cx->global(), name, vp);
 }
 
 inline bool
-SetIntrinsicOperation(JSContext *cx, JSScript *script, jsbytecode *pc, HandleValue val)
+SetIntrinsicOperation(JSContext* cx, JSScript* script, jsbytecode* pc, HandleValue val)
 {
     RootedPropertyName name(cx, script->getName(pc));
     return cx->global()->setIntrinsicValue(cx, name, val);
 }
 
 inline bool
-SetNameOperation(JSContext *cx, JSScript *script, jsbytecode *pc, HandleObject scope,
+SetNameOperation(JSContext* cx, JSScript* script, jsbytecode* pc, HandleObject scope,
                  HandleValue val)
 {
     JS_ASSERT(*pc == JSOP_SETNAME || *pc == JSOP_SETGNAME);
@@ -253,7 +253,7 @@ SetNameOperation(JSContext *cx, JSScript *script, jsbytecode *pc, HandleObject s
 }
 
 inline bool
-DefVarOrConstOperation(JSContext *cx, HandleObject varobj, HandlePropertyName dn, unsigned attrs)
+DefVarOrConstOperation(JSContext* cx, HandleObject varobj, HandlePropertyName dn, unsigned attrs)
 {
     JS_ASSERT(varobj->isVarObj());
 
@@ -295,7 +295,7 @@ DefVarOrConstOperation(JSContext *cx, HandleObject varobj, HandlePropertyName dn
 }
 
 static MOZ_ALWAYS_INLINE bool
-NegOperation(JSContext *cx, HandleScript script, jsbytecode *pc, HandleValue val,
+NegOperation(JSContext* cx, HandleScript script, jsbytecode* pc, HandleValue val,
              MutableHandleValue res)
 {
     /*
@@ -317,7 +317,7 @@ NegOperation(JSContext *cx, HandleScript script, jsbytecode *pc, HandleValue val
 }
 
 static MOZ_ALWAYS_INLINE bool
-ToIdOperation(JSContext *cx, HandleScript script, jsbytecode *pc, HandleValue objval,
+ToIdOperation(JSContext* cx, HandleScript script, jsbytecode* pc, HandleValue objval,
               HandleValue idval, MutableHandleValue res)
 {
     if (idval.isInt32()) {
@@ -325,7 +325,7 @@ ToIdOperation(JSContext *cx, HandleScript script, jsbytecode *pc, HandleValue ob
         return true;
     }
 
-    JSObject *obj = ToObjectFromStack(cx, objval);
+    JSObject* obj = ToObjectFromStack(cx, objval);
     if (!obj)
         return false;
 
@@ -338,7 +338,7 @@ ToIdOperation(JSContext *cx, HandleScript script, jsbytecode *pc, HandleValue ob
 }
 
 static MOZ_ALWAYS_INLINE bool
-GetObjectElementOperation(JSContext *cx, JSOp op, JSObject *objArg, bool wasObject,
+GetObjectElementOperation(JSContext* cx, JSOp op, JSObject* objArg, bool wasObject,
                           HandleValue rref, MutableHandleValue res)
 {
     JS_ASSERT(op == JSOP_GETELEM || op == JSOP_CALLELEM);
@@ -356,7 +356,7 @@ GetObjectElementOperation(JSContext *cx, JSOp op, JSObject *objArg, bool wasObje
             break;
         }
 
-        JSAtom *name = ToAtom<NoGC>(cx, rref);
+        JSAtom* name = ToAtom<NoGC>(cx, rref);
         if (name) {
             if (name->isIndex(&index)) {
                 if (JSObject::getElementNoGC(cx, objArg, objArg, index, res.address()))
@@ -397,8 +397,8 @@ GetObjectElementOperation(JSContext *cx, JSOp op, JSObject *objArg, bool wasObje
 }
 
 static MOZ_ALWAYS_INLINE bool
-GetElemOptimizedArguments(JSContext *cx, AbstractFramePtr frame, MutableHandleValue lref,
-                          HandleValue rref, MutableHandleValue res, bool *done)
+GetElemOptimizedArguments(JSContext* cx, AbstractFramePtr frame, MutableHandleValue lref,
+                          HandleValue rref, MutableHandleValue res, bool* done)
 {
     JS_ASSERT(!*done);
 
@@ -423,14 +423,14 @@ GetElemOptimizedArguments(JSContext *cx, AbstractFramePtr frame, MutableHandleVa
 }
 
 static MOZ_ALWAYS_INLINE bool
-GetElementOperation(JSContext *cx, JSOp op, MutableHandleValue lref, HandleValue rref,
+GetElementOperation(JSContext* cx, JSOp op, MutableHandleValue lref, HandleValue rref,
                     MutableHandleValue res)
 {
     JS_ASSERT(op == JSOP_GETELEM || op == JSOP_CALLELEM);
 
     uint32_t index;
     if (lref.isString() && IsDefinitelyIndex(rref, &index)) {
-        JSString *str = lref.toString();
+        JSString* str = lref.toString();
         if (index < str->length()) {
             str = cx->staticStrings().getUnitStringForElement(cx, str, index);
             if (!str)
@@ -441,28 +441,28 @@ GetElementOperation(JSContext *cx, JSOp op, MutableHandleValue lref, HandleValue
     }
 
     bool isObject = lref.isObject();
-    JSObject *obj = ToObjectFromStack(cx, lref);
+    JSObject* obj = ToObjectFromStack(cx, lref);
     if (!obj)
         return false;
     return GetObjectElementOperation(cx, op, obj, isObject, rref, res);
 }
 
-static MOZ_ALWAYS_INLINE JSString *
-TypeOfOperation(const Value &v, JSRuntime *rt)
+static MOZ_ALWAYS_INLINE JSString*
+TypeOfOperation(const Value& v, JSRuntime* rt)
 {
     JSType type = js::TypeOfValue(v);
     return TypeName(type, *rt->commonNames);
 }
 
-static inline JSString *
-TypeOfObjectOperation(JSObject *obj, JSRuntime *rt)
+static inline JSString*
+TypeOfObjectOperation(JSObject* obj, JSRuntime* rt)
 {
     JSType type = js::TypeOfObject(obj);
     return TypeName(type, *rt->commonNames);
 }
 
 static MOZ_ALWAYS_INLINE bool
-InitElemOperation(JSContext *cx, HandleObject obj, HandleValue idval, HandleValue val)
+InitElemOperation(JSContext* cx, HandleObject obj, HandleValue idval, HandleValue val)
 {
     JS_ASSERT(!val.isMagic(JS_ELEMENTS_HOLE));
 
@@ -474,7 +474,7 @@ InitElemOperation(JSContext *cx, HandleObject obj, HandleValue idval, HandleValu
 }
 
 static MOZ_ALWAYS_INLINE bool
-InitArrayElemOperation(JSContext *cx, jsbytecode *pc, HandleObject obj, uint32_t index, HandleValue val)
+InitArrayElemOperation(JSContext* cx, jsbytecode* pc, HandleObject obj, uint32_t index, HandleValue val)
 {
     JSOp op = JSOp(*pc);
     JS_ASSERT(op == JSOP_INITELEM_ARRAY || op == JSOP_INITELEM_INC);
@@ -519,7 +519,7 @@ InitArrayElemOperation(JSContext *cx, jsbytecode *pc, HandleObject obj, uint32_t
             if (!ToPrimitive(cx, JSTYPE_NUMBER, rhs))                         \
                 return false;                                                 \
             if (lhs.isString() && rhs.isString()) {                           \
-                JSString *l = lhs.toString(), *r = rhs.toString();            \
+                JSString* l = lhs.toString(), *r = rhs.toString();            \
                 int32_t result;                                               \
                 if (!CompareStrings(cx, l, r, &result))                       \
                     return false;                                             \
@@ -535,27 +535,27 @@ InitArrayElemOperation(JSContext *cx, jsbytecode *pc, HandleObject obj, uint32_t
     JS_END_MACRO
 
 static MOZ_ALWAYS_INLINE bool
-LessThanOperation(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, bool *res) {
+LessThanOperation(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs, bool* res) {
     RELATIONAL_OP(<);
 }
 
 static MOZ_ALWAYS_INLINE bool
-LessThanOrEqualOperation(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, bool *res) {
+LessThanOrEqualOperation(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs, bool* res) {
     RELATIONAL_OP(<=);
 }
 
 static MOZ_ALWAYS_INLINE bool
-GreaterThanOperation(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, bool *res) {
+GreaterThanOperation(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs, bool* res) {
     RELATIONAL_OP(>);
 }
 
 static MOZ_ALWAYS_INLINE bool
-GreaterThanOrEqualOperation(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, bool *res) {
+GreaterThanOrEqualOperation(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs, bool* res) {
     RELATIONAL_OP(>=);
 }
 
 static MOZ_ALWAYS_INLINE bool
-BitNot(JSContext *cx, HandleValue in, int *out)
+BitNot(JSContext* cx, HandleValue in, int* out)
 {
     int i;
     if (!ToInt32(cx, in, &i))
@@ -565,7 +565,7 @@ BitNot(JSContext *cx, HandleValue in, int *out)
 }
 
 static MOZ_ALWAYS_INLINE bool
-BitXor(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
+BitXor(JSContext* cx, HandleValue lhs, HandleValue rhs, int* out)
 {
     int left, right;
     if (!ToInt32(cx, lhs, &left) || !ToInt32(cx, rhs, &right))
@@ -575,7 +575,7 @@ BitXor(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
 }
 
 static MOZ_ALWAYS_INLINE bool
-BitOr(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
+BitOr(JSContext* cx, HandleValue lhs, HandleValue rhs, int* out)
 {
     int left, right;
     if (!ToInt32(cx, lhs, &left) || !ToInt32(cx, rhs, &right))
@@ -585,7 +585,7 @@ BitOr(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
 }
 
 static MOZ_ALWAYS_INLINE bool
-BitAnd(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
+BitAnd(JSContext* cx, HandleValue lhs, HandleValue rhs, int* out)
 {
     int left, right;
     if (!ToInt32(cx, lhs, &left) || !ToInt32(cx, rhs, &right))
@@ -595,7 +595,7 @@ BitAnd(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
 }
 
 static MOZ_ALWAYS_INLINE bool
-BitLsh(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
+BitLsh(JSContext* cx, HandleValue lhs, HandleValue rhs, int* out)
 {
     int32_t left, right;
     if (!ToInt32(cx, lhs, &left) || !ToInt32(cx, rhs, &right))
@@ -605,7 +605,7 @@ BitLsh(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
 }
 
 static MOZ_ALWAYS_INLINE bool
-BitRsh(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
+BitRsh(JSContext* cx, HandleValue lhs, HandleValue rhs, int* out)
 {
     int32_t left, right;
     if (!ToInt32(cx, lhs, &left) || !ToInt32(cx, rhs, &right))
@@ -615,7 +615,7 @@ BitRsh(JSContext *cx, HandleValue lhs, HandleValue rhs, int *out)
 }
 
 static MOZ_ALWAYS_INLINE bool
-UrshOperation(JSContext *cx, HandleValue lhs, HandleValue rhs, MutableHandleValue out)
+UrshOperation(JSContext* cx, HandleValue lhs, HandleValue rhs, MutableHandleValue out)
 {
     uint32_t left;
     int32_t  right;
@@ -628,8 +628,8 @@ UrshOperation(JSContext *cx, HandleValue lhs, HandleValue rhs, MutableHandleValu
 
 #undef RELATIONAL_OP
 
-inline JSFunction *
-ReportIfNotFunction(JSContext *cx, HandleValue v, MaybeConstruct construct = NO_CONSTRUCT)
+inline JSFunction*
+ReportIfNotFunction(JSContext* cx, HandleValue v, MaybeConstruct construct = NO_CONSTRUCT)
 {
     if (v.isObject() && v.toObject().is<JSFunction>())
         return &v.toObject().as<JSFunction>();
@@ -656,7 +656,7 @@ class FastInvokeGuard
 #endif
 
   public:
-    FastInvokeGuard(JSContext *cx, const Value &fval)
+    FastInvokeGuard(JSContext* cx, const Value& fval)
       : args_(cx)
       , fun_(cx)
       , script_(cx)
@@ -668,19 +668,19 @@ class FastInvokeGuard
         initFunction(fval);
     }
 
-    void initFunction(const Value &fval) {
+    void initFunction(const Value& fval) {
         if (fval.isObject() && fval.toObject().is<JSFunction>()) {
-            JSFunction *fun = &fval.toObject().as<JSFunction>();
+            JSFunction* fun = &fval.toObject().as<JSFunction>();
             if (fun->isInterpreted())
                 fun_ = fun;
         }
     }
 
-    InvokeArgs &args() {
+    InvokeArgs& args() {
         return args_;
     }
 
-    bool invoke(JSContext *cx) {
+    bool invoke(JSContext* cx) {
 #ifdef JS_ION
         if (useIon_ && fun_) {
             if (!script_) {

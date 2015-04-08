@@ -74,10 +74,10 @@ class BaselineFrame
     uint32_t loReturnValue_;        // If HAS_RVAL, the frame's return value.
     uint32_t hiReturnValue_;
     uint32_t frameSize_;
-    JSObject *scopeChain_;          // Scope chain (always initialized).
-    JSScript *evalScript_;          // If isEvalFrame(), the current eval script.
-    ArgumentsObject *argsObj_;      // If HAS_ARGS_OBJ, the arguments object.
-    void *hookData_;                // If HAS_HOOK_DATA, debugger call hook data.
+    JSObject* scopeChain_;          // Scope chain (always initialized).
+    JSScript* evalScript_;          // If isEvalFrame(), the current eval script.
+    ArgumentsObject* argsObj_;      // If HAS_ARGS_OBJ, the arguments object.
+    void* hookData_;                // If HAS_HOOK_DATA, debugger call hook data.
     uint32_t flags_;
 #if JS_BITS_PER_WORD == 32
     uint32_t padding_;              // Pad to 8-byte alignment.
@@ -86,9 +86,9 @@ class BaselineFrame
   public:
     // Distance between the frame pointer and the frame header (return address).
     // This is the old frame pointer saved in the prologue.
-    static const uint32_t FramePointerOffset = sizeof(void *);
+    static const uint32_t FramePointerOffset = sizeof(void*);
 
-    bool initForOsr(InterpreterFrame *fp, uint32_t numStackValues);
+    bool initForOsr(InterpreterFrame* fp, uint32_t numStackValues);
 
     uint32_t frameSize() const {
         return frameSize_;
@@ -96,48 +96,48 @@ class BaselineFrame
     void setFrameSize(uint32_t frameSize) {
         frameSize_ = frameSize;
     }
-    inline uint32_t *addressOfFrameSize() {
+    inline uint32_t* addressOfFrameSize() {
         return &frameSize_;
     }
-    JSObject *scopeChain() const {
+    JSObject* scopeChain() const {
         return scopeChain_;
     }
-    void setScopeChain(JSObject *scopeChain) {
+    void setScopeChain(JSObject* scopeChain) {
         scopeChain_ = scopeChain;
     }
-    inline JSObject **addressOfScopeChain() {
+    inline JSObject** addressOfScopeChain() {
         return &scopeChain_;
     }
 
-    inline Value *addressOfScratchValue() {
-        return reinterpret_cast<Value *>(&loScratchValue_);
+    inline Value* addressOfScratchValue() {
+        return reinterpret_cast<Value*>(&loScratchValue_);
     }
 
-    inline void pushOnScopeChain(ScopeObject &scope);
+    inline void pushOnScopeChain(ScopeObject& scope);
     inline void popOffScopeChain();
 
-    inline void popWith(JSContext *cx);
+    inline void popWith(JSContext* cx);
 
     CalleeToken calleeToken() const {
-        uint8_t *pointer = (uint8_t *)this + Size() + offsetOfCalleeToken();
-        return *(CalleeToken *)pointer;
+        uint8_t* pointer = (uint8_t*)this + Size() + offsetOfCalleeToken();
+        return *(CalleeToken*)pointer;
     }
     void replaceCalleeToken(CalleeToken token) {
-        uint8_t *pointer = (uint8_t *)this + Size() + offsetOfCalleeToken();
-        *(CalleeToken *)pointer = token;
+        uint8_t* pointer = (uint8_t*)this + Size() + offsetOfCalleeToken();
+        *(CalleeToken*)pointer = token;
     }
-    JSScript *script() const {
+    JSScript* script() const {
         if (isEvalFrame())
             return evalScript();
         return ScriptFromCalleeToken(calleeToken());
     }
-    JSFunction *fun() const {
+    JSFunction* fun() const {
         return CalleeTokenToFunction(calleeToken());
     }
-    JSFunction *maybeFun() const {
+    JSFunction* maybeFun() const {
         return isFunctionFrame() ? fun() : nullptr;
     }
-    JSFunction *callee() const {
+    JSFunction* callee() const {
         return CalleeTokenToFunction(calleeToken());
     }
     Value calleev() const {
@@ -152,32 +152,32 @@ class BaselineFrame
         JS_ASSERT((size % sizeof(Value)) == 0);
         return size / sizeof(Value);
     }
-    Value *valueSlot(size_t slot) const {
+    Value* valueSlot(size_t slot) const {
         JS_ASSERT(slot < numValueSlots());
-        return (Value *)this - (slot + 1);
+        return (Value*)this - (slot + 1);
     }
 
-    Value &unaliasedVar(uint32_t i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
+    Value& unaliasedVar(uint32_t i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
         JS_ASSERT(i < script()->nfixedvars());
         JS_ASSERT_IF(checkAliasing, !script()->varIsAliased(i));
         return *valueSlot(i);
     }
 
-    Value &unaliasedFormal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
+    Value& unaliasedFormal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
         JS_ASSERT(i < numFormalArgs());
         JS_ASSERT_IF(checkAliasing, !script()->argsObjAliasesFormals() &&
                                     !script()->formalIsAliased(i));
         return argv()[i];
     }
 
-    Value &unaliasedActual(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
+    Value& unaliasedActual(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
         JS_ASSERT(i < numActualArgs());
         JS_ASSERT_IF(checkAliasing, !script()->argsObjAliasesFormals());
         JS_ASSERT_IF(checkAliasing && i < numFormalArgs(), !script()->formalIsAliased(i));
         return argv()[i];
     }
 
-    Value &unaliasedLocal(uint32_t i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
+    Value& unaliasedLocal(uint32_t i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
         JS_ASSERT(i < script()->nfixed());
 #ifdef DEBUG
         CheckLocalUnaliased(checkAliasing, script(), i);
@@ -186,72 +186,72 @@ class BaselineFrame
     }
 
     unsigned numActualArgs() const {
-        return *(size_t *)(reinterpret_cast<const uint8_t *>(this) +
+        return *(size_t*)(reinterpret_cast<const uint8_t*>(this) +
                              BaselineFrame::Size() +
                              offsetOfNumActualArgs());
     }
     unsigned numFormalArgs() const {
         return script()->functionNonDelazifying()->nargs();
     }
-    Value &thisValue() const {
-        return *(Value *)(reinterpret_cast<const uint8_t *>(this) +
+    Value& thisValue() const {
+        return *(Value*)(reinterpret_cast<const uint8_t*>(this) +
                          BaselineFrame::Size() +
                          offsetOfThis());
     }
-    Value *argv() const {
-        return (Value *)(reinterpret_cast<const uint8_t *>(this) +
+    Value* argv() const {
+        return (Value*)(reinterpret_cast<const uint8_t*>(this) +
                          BaselineFrame::Size() +
                          offsetOfArg(0));
     }
 
-    bool copyRawFrameSlots(AutoValueVector *vec) const;
+    bool copyRawFrameSlots(AutoValueVector* vec) const;
 
     bool hasReturnValue() const {
         return flags_ & HAS_RVAL;
     }
     MutableHandleValue returnValue() {
-        return MutableHandleValue::fromMarkedLocation(reinterpret_cast<Value *>(&loReturnValue_));
+        return MutableHandleValue::fromMarkedLocation(reinterpret_cast<Value*>(&loReturnValue_));
     }
-    void setReturnValue(const Value &v) {
+    void setReturnValue(const Value& v) {
         flags_ |= HAS_RVAL;
         returnValue().set(v);
     }
-    inline Value *addressOfReturnValue() {
-        return reinterpret_cast<Value *>(&loReturnValue_);
+    inline Value* addressOfReturnValue() {
+        return reinterpret_cast<Value*>(&loReturnValue_);
     }
 
     bool hasCallObj() const {
         return flags_ & HAS_CALL_OBJ;
     }
 
-    inline CallObject &callObj() const;
+    inline CallObject& callObj() const;
 
     void setFlags(uint32_t flags) {
         flags_ = flags;
     }
-    uint32_t *addressOfFlags() {
+    uint32_t* addressOfFlags() {
         return &flags_;
     }
 
-    inline bool pushBlock(JSContext *cx, Handle<StaticBlockObject *> block);
-    inline void popBlock(JSContext *cx);
+    inline bool pushBlock(JSContext* cx, Handle<StaticBlockObject*> block);
+    inline void popBlock(JSContext* cx);
 
-    bool strictEvalPrologue(JSContext *cx);
-    bool heavyweightFunPrologue(JSContext *cx);
-    bool initFunctionScopeObjects(JSContext *cx);
+    bool strictEvalPrologue(JSContext* cx);
+    bool heavyweightFunPrologue(JSContext* cx);
+    bool initFunctionScopeObjects(JSContext* cx);
 
-    void initArgsObjUnchecked(ArgumentsObject &argsobj) {
+    void initArgsObjUnchecked(ArgumentsObject& argsobj) {
         flags_ |= HAS_ARGS_OBJ;
         argsObj_ = &argsobj;
     }
-    void initArgsObj(ArgumentsObject &argsobj) {
+    void initArgsObj(ArgumentsObject& argsobj) {
         JS_ASSERT(script()->needsArgsObj());
         initArgsObjUnchecked(argsobj);
     }
     bool hasArgsObj() const {
         return flags_ & HAS_ARGS_OBJ;
     }
-    ArgumentsObject &argsObj() const {
+    ArgumentsObject& argsObj() const {
         JS_ASSERT(hasArgsObj());
         JS_ASSERT(script()->needsArgsObj());
         return *argsObj_;
@@ -264,7 +264,7 @@ class BaselineFrame
         flags_ |= PREV_UP_TO_DATE;
     }
 
-    JSScript *evalScript() const {
+    JSScript* evalScript() const {
         JS_ASSERT(isEvalFrame());
         return evalScript_;
     }
@@ -273,11 +273,11 @@ class BaselineFrame
         return flags_ & HAS_HOOK_DATA;
     }
 
-    void *maybeHookData() const {
+    void* maybeHookData() const {
         return hasHookData() ? hookData_ : nullptr;
     }
 
-    void setHookData(void *v) {
+    void setHookData(void* v) {
         hookData_ = v;
         flags_ |= HAS_HOOK_DATA;
     }
@@ -302,25 +302,25 @@ class BaselineFrame
         flags_ |= OVER_RECURSED;
     }
 
-    BaselineDebugModeOSRInfo *debugModeOSRInfo() {
+    BaselineDebugModeOSRInfo* debugModeOSRInfo() {
         MOZ_ASSERT(flags_ & HAS_DEBUG_MODE_OSR_INFO);
-        return *reinterpret_cast<BaselineDebugModeOSRInfo **>(&loScratchValue_);
+        return *reinterpret_cast<BaselineDebugModeOSRInfo**>(&loScratchValue_);
     }
 
-    BaselineDebugModeOSRInfo *getDebugModeOSRInfo() {
+    BaselineDebugModeOSRInfo* getDebugModeOSRInfo() {
         if (flags_ & HAS_DEBUG_MODE_OSR_INFO)
             return debugModeOSRInfo();
         return nullptr;
     }
 
-    void setDebugModeOSRInfo(BaselineDebugModeOSRInfo *info) {
+    void setDebugModeOSRInfo(BaselineDebugModeOSRInfo* info) {
         flags_ |= HAS_DEBUG_MODE_OSR_INFO;
-        *reinterpret_cast<BaselineDebugModeOSRInfo **>(&loScratchValue_) = info;
+        *reinterpret_cast<BaselineDebugModeOSRInfo**>(&loScratchValue_) = info;
     }
 
     void deleteDebugModeOSRInfo();
 
-    void trace(JSTracer *trc, JitFrameIterator &frame);
+    void trace(JSTracer* trc, JitFrameIterator& frame);
 
     bool isFunctionFrame() const {
         return CalleeTokenIsFunction(calleeToken());
@@ -353,9 +353,9 @@ class BaselineFrame
         return false;
     }
 
-    IonJSFrameLayout *framePrefix() const {
-        uint8_t *fp = (uint8_t *)this + Size() + FramePointerOffset;
-        return (IonJSFrameLayout *)fp;
+    IonJSFrameLayout* framePrefix() const {
+        uint8_t* fp = (uint8_t*)this + Size() + FramePointerOffset;
+        return (IonJSFrameLayout*)fp;
     }
 
     // Methods below are used by the compiler.

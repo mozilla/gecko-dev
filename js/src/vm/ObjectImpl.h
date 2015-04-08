@@ -37,16 +37,16 @@ class Shape;
  * pointer.
  */
 static MOZ_ALWAYS_INLINE void
-Debug_SetValueRangeToCrashOnTouch(Value *beg, Value *end)
+Debug_SetValueRangeToCrashOnTouch(Value* beg, Value* end)
 {
 #ifdef DEBUG
-    for (Value *v = beg; v != end; ++v)
-        v->setObject(*reinterpret_cast<JSObject *>(0x42));
+    for (Value* v = beg; v != end; ++v)
+        v->setObject(*reinterpret_cast<JSObject*>(0x42));
 #endif
 }
 
 static MOZ_ALWAYS_INLINE void
-Debug_SetValueRangeToCrashOnTouch(Value *vec, size_t len)
+Debug_SetValueRangeToCrashOnTouch(Value* vec, size_t len)
 {
 #ifdef DEBUG
     Debug_SetValueRangeToCrashOnTouch(vec, vec + len);
@@ -54,26 +54,26 @@ Debug_SetValueRangeToCrashOnTouch(Value *vec, size_t len)
 }
 
 static MOZ_ALWAYS_INLINE void
-Debug_SetValueRangeToCrashOnTouch(HeapValue *vec, size_t len)
+Debug_SetValueRangeToCrashOnTouch(HeapValue* vec, size_t len)
 {
 #ifdef DEBUG
-    Debug_SetValueRangeToCrashOnTouch((Value *) vec, len);
+    Debug_SetValueRangeToCrashOnTouch((Value*) vec, len);
 #endif
 }
 
 static MOZ_ALWAYS_INLINE void
-Debug_SetSlotRangeToCrashOnTouch(HeapSlot *vec, uint32_t len)
+Debug_SetSlotRangeToCrashOnTouch(HeapSlot* vec, uint32_t len)
 {
 #ifdef DEBUG
-    Debug_SetValueRangeToCrashOnTouch((Value *) vec, len);
+    Debug_SetValueRangeToCrashOnTouch((Value*) vec, len);
 #endif
 }
 
 static MOZ_ALWAYS_INLINE void
-Debug_SetSlotRangeToCrashOnTouch(HeapSlot *begin, HeapSlot *end)
+Debug_SetSlotRangeToCrashOnTouch(HeapSlot* begin, HeapSlot* end)
 {
 #ifdef DEBUG
-    Debug_SetValueRangeToCrashOnTouch((Value *) begin, end - begin);
+    Debug_SetValueRangeToCrashOnTouch((Value*) begin, end - begin);
 #endif
 }
 
@@ -227,10 +227,10 @@ class ObjectElements
       : flags(0), initializedLength(0), capacity(capacity), length(length)
     {}
 
-    HeapSlot *elements() {
+    HeapSlot* elements() {
         return reinterpret_cast<HeapSlot*>(uintptr_t(this) + sizeof(ObjectElements));
     }
-    static ObjectElements * fromElements(HeapSlot *elems) {
+    static ObjectElements * fromElements(HeapSlot* elems) {
         return reinterpret_cast<ObjectElements*>(uintptr_t(elems) - sizeof(ObjectElements));
     }
 
@@ -247,13 +247,13 @@ class ObjectElements
         return int(offsetof(ObjectElements, length)) - int(sizeof(ObjectElements));
     }
 
-    static bool ConvertElementsToDoubles(JSContext *cx, uintptr_t elements);
+    static bool ConvertElementsToDoubles(JSContext* cx, uintptr_t elements);
 
     static const size_t VALUES_PER_HEADER = 2;
 };
 
 /* Shared singleton for objects with no elements. */
-extern HeapSlot *const emptyObjectElements;
+extern HeapSlot* const emptyObjectElements;
 
 struct Class;
 struct GCMarker;
@@ -264,11 +264,11 @@ class NewObjectCache;
 class TaggedProto;
 
 inline Value
-ObjectValue(ObjectImpl &obj);
+ObjectValue(ObjectImpl& obj);
 
 #ifdef DEBUG
 static inline bool
-IsObjectValueInCompartment(js::Value v, JSCompartment *comp);
+IsObjectValueInCompartment(js::Value v, JSCompartment* comp);
 #endif
 
 /*
@@ -317,8 +317,8 @@ IsObjectValueInCompartment(js::Value v, JSCompartment *comp);
  */
 class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 {
-    friend Zone *js::gc::BarrieredCell<ObjectImpl>::zone() const;
-    friend Zone *js::gc::BarrieredCell<ObjectImpl>::zoneFromAnyThread() const;
+    friend Zone* js::gc::BarrieredCell<ObjectImpl>::zone() const;
+    friend Zone* js::gc::BarrieredCell<ObjectImpl>::zoneFromAnyThread() const;
 
   protected:
     /*
@@ -334,11 +334,11 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
      */
     HeapPtrTypeObject type_;
 
-    HeapSlot *slots;     /* Slots for object properties. */
-    HeapSlot *elements;  /* Slots for object elements. */
+    HeapSlot* slots;     /* Slots for object properties. */
+    HeapSlot* elements;  /* Slots for object elements. */
 
     friend bool
-    ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
+    ArraySetLength(JSContext* cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
                    HandleValue value, bool setterIsStrict);
 
   private:
@@ -358,10 +358,10 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
                       "shadow placeholder must match actual elements");
     }
 
-    JSObject * asObjectPtr() { return reinterpret_cast<JSObject *>(this); }
-    const JSObject * asObjectPtr() const { return reinterpret_cast<const JSObject *>(this); }
+    JSObject * asObjectPtr() { return reinterpret_cast<JSObject*>(this); }
+    const JSObject * asObjectPtr() const { return reinterpret_cast<const JSObject*>(this); }
 
-    friend inline Value ObjectValue(ObjectImpl &obj);
+    friend inline Value ObjectValue(ObjectImpl& obj);
 
     /* These functions are public, and they should remain public. */
 
@@ -372,12 +372,12 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
     bool hasTenuredProto() const;
 
-    const Class *getClass() const {
+    const Class* getClass() const {
         return type_->clasp();
     }
 
     static inline bool
-    isExtensible(ExclusiveContext *cx, Handle<ObjectImpl*> obj, bool *extensible);
+    isExtensible(ExclusiveContext* cx, Handle<ObjectImpl*> obj, bool* extensible);
 
     // Indicates whether a non-proxy is extensible.  Don't call on proxies!
     // This method really shouldn't exist -- but there are a few internal
@@ -397,13 +397,13 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     // Attempt to change the [[Extensible]] bit on |obj| to false.  Callers
     // must ensure that |obj| is currently extensible before calling this!
     static bool
-    preventExtensions(JSContext *cx, Handle<ObjectImpl*> obj);
+    preventExtensions(JSContext* cx, Handle<ObjectImpl*> obj);
 
     HeapSlotArray getDenseElements() {
         JS_ASSERT(isNative());
         return HeapSlotArray(elements);
     }
-    const Value &getDenseElement(uint32_t idx) {
+    const Value& getDenseElement(uint32_t idx) {
         JS_ASSERT(isNative());
         MOZ_ASSERT(idx < getDenseInitializedLength());
         return elements[idx];
@@ -428,20 +428,20 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     void checkShapeConsistency() { }
 #endif
 
-    Shape *
-    replaceWithNewEquivalentShape(ThreadSafeContext *cx,
-                                  Shape *existingShape, Shape *newShape = nullptr);
+    Shape*
+    replaceWithNewEquivalentShape(ThreadSafeContext* cx,
+                                  Shape* existingShape, Shape* newShape = nullptr);
 
     enum GenerateShape {
         GENERATE_NONE,
         GENERATE_SHAPE
     };
 
-    bool setFlag(ExclusiveContext *cx, /*BaseShape::Flag*/ uint32_t flag,
+    bool setFlag(ExclusiveContext* cx, /*BaseShape::Flag*/ uint32_t flag,
                  GenerateShape generateShape = GENERATE_NONE);
-    bool clearFlag(ExclusiveContext *cx, /*BaseShape::Flag*/ uint32_t flag);
+    bool clearFlag(ExclusiveContext* cx, /*BaseShape::Flag*/ uint32_t flag);
 
-    bool toDictionaryMode(ThreadSafeContext *cx);
+    bool toDictionaryMode(ThreadSafeContext* cx);
 
   private:
     friend class Nursery;
@@ -451,8 +451,8 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
      * running for length.
      */
     void getSlotRangeUnchecked(uint32_t start, uint32_t length,
-                               HeapSlot **fixedStart, HeapSlot **fixedEnd,
-                               HeapSlot **slotsStart, HeapSlot **slotsEnd)
+                               HeapSlot** fixedStart, HeapSlot** fixedEnd,
+                               HeapSlot** slotsStart, HeapSlot** slotsEnd)
     {
         MOZ_ASSERT(start + length >= start);
 
@@ -477,8 +477,8 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     }
 
     void getSlotRange(uint32_t start, uint32_t length,
-                      HeapSlot **fixedStart, HeapSlot **fixedEnd,
-                      HeapSlot **slotsStart, HeapSlot **slotsEnd)
+                      HeapSlot** fixedStart, HeapSlot** fixedEnd,
+                      HeapSlot** slotsStart, HeapSlot** slotsEnd)
     {
         MOZ_ASSERT(slotInRange(start + length, SENTINEL_ALLOWED));
         getSlotRangeUnchecked(start, length, fixedStart, fixedEnd, slotsStart, slotsEnd);
@@ -491,7 +491,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
     void invalidateSlotRange(uint32_t start, uint32_t length) {
 #ifdef DEBUG
-        HeapSlot *fixedStart, *fixedEnd, *slotsStart, *slotsEnd;
+        HeapSlot* fixedStart, *fixedEnd, *slotsStart, *slotsEnd;
         getSlotRange(start, length, &fixedStart, &fixedEnd, &slotsStart, &slotsEnd);
         Debug_SetSlotRangeToCrashOnTouch(fixedStart, fixedEnd);
         Debug_SetSlotRangeToCrashOnTouch(slotsStart, slotsEnd);
@@ -504,13 +504,13 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
      * Initialize a flat array of slots to this object at a start slot.  The
      * caller must ensure that are enough slots.
      */
-    void initSlotRange(uint32_t start, const Value *vector, uint32_t length);
+    void initSlotRange(uint32_t start, const Value* vector, uint32_t length);
 
     /*
      * Copy a flat array of slots to this object at a start slot. Caller must
      * ensure there are enough slots in this object.
      */
-    void copySlotRange(uint32_t start, const Value *vector, uint32_t length);
+    void copySlotRange(uint32_t start, const Value* vector, uint32_t length);
 
 #ifdef DEBUG
     enum SentinelAllowed {
@@ -532,8 +532,8 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
      */
     static const uint32_t SLOT_CAPACITY_MIN = 8;
 
-    HeapSlot *fixedSlots() const {
-        return reinterpret_cast<HeapSlot *>(uintptr_t(this) + sizeof(ObjectImpl));
+    HeapSlot* fixedSlots() const {
+        return reinterpret_cast<HeapSlot*>(uintptr_t(this) + sizeof(ObjectImpl));
     }
 
     /*
@@ -547,11 +547,11 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return shape_;
     }
 
-    bool generateOwnShape(ThreadSafeContext *cx, js::Shape *newShape = nullptr) {
+    bool generateOwnShape(ThreadSafeContext* cx, js::Shape* newShape = nullptr) {
         return replaceWithNewEquivalentShape(cx, lastProperty(), newShape);
     }
 
-    JSCompartment *compartment() const {
+    JSCompartment* compartment() const {
         return lastProperty()->base()->compartment();
     }
 
@@ -559,17 +559,17 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return lastProperty()->isNative();
     }
 
-    types::TypeObject *type() const {
+    types::TypeObject* type() const {
         MOZ_ASSERT(!hasLazyType());
         return typeRaw();
     }
 
-    types::TypeObject *typeRaw() const {
+    types::TypeObject* typeRaw() const {
         return type_;
     }
 
     uint32_t numFixedSlots() const {
-        return reinterpret_cast<const shadow::Object *>(this)->numFixedSlots();
+        return reinterpret_cast<const shadow::Object*>(this)->numFixedSlots();
     }
 
     /*
@@ -600,24 +600,24 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     }
 
 
-    Shape *nativeLookup(ExclusiveContext *cx, jsid id);
-    Shape *nativeLookup(ExclusiveContext *cx, PropertyName *name) {
+    Shape* nativeLookup(ExclusiveContext* cx, jsid id);
+    Shape* nativeLookup(ExclusiveContext* cx, PropertyName* name) {
         return nativeLookup(cx, NameToId(name));
     }
 
-    bool nativeContains(ExclusiveContext *cx, jsid id) {
+    bool nativeContains(ExclusiveContext* cx, jsid id) {
         return nativeLookup(cx, id) != nullptr;
     }
-    bool nativeContains(ExclusiveContext *cx, PropertyName* name) {
+    bool nativeContains(ExclusiveContext* cx, PropertyName* name) {
         return nativeLookup(cx, name) != nullptr;
     }
-    bool nativeContains(ExclusiveContext *cx, Shape* shape) {
+    bool nativeContains(ExclusiveContext* cx, Shape* shape) {
         return nativeLookup(cx, shape->propid()) == shape;
     }
 
     /* Contextless; can be called from parallel code. */
-    Shape *nativeLookupPure(jsid id);
-    Shape *nativeLookupPure(PropertyName *name) {
+    Shape* nativeLookupPure(jsid id);
+    Shape* nativeLookupPure(PropertyName* name) {
         return nativeLookupPure(NameToId(name));
     }
 
@@ -631,13 +631,13 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return nativeLookupPure(shape->propid()) == shape;
     }
 
-    const JSClass *getJSClass() const {
+    const JSClass* getJSClass() const {
         return Jsvalify(getClass());
     }
-    bool hasClass(const Class *c) const {
+    bool hasClass(const Class* c) const {
         return getClass() == c;
     }
-    const ObjectOps *getOps() const {
+    const ObjectOps* getOps() const {
         return &getClass()->ops;
     }
 
@@ -663,7 +663,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return lastProperty()->inDictionary();
     }
 
-    const Value &getSlot(uint32_t slot) const {
+    const Value& getSlot(uint32_t slot) const {
         MOZ_ASSERT(slotInRange(slot));
         uint32_t fixed = numFixedSlots();
         if (slot < fixed)
@@ -671,19 +671,19 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return slots[slot - fixed];
     }
 
-    const HeapSlot *getSlotAddressUnchecked(uint32_t slot) const {
+    const HeapSlot* getSlotAddressUnchecked(uint32_t slot) const {
         uint32_t fixed = numFixedSlots();
         if (slot < fixed)
             return fixedSlots() + slot;
         return slots + (slot - fixed);
     }
 
-    HeapSlot *getSlotAddressUnchecked(uint32_t slot) {
-        const ObjectImpl *obj = static_cast<const ObjectImpl*>(this);
+    HeapSlot* getSlotAddressUnchecked(uint32_t slot) {
+        const ObjectImpl* obj = static_cast<const ObjectImpl*>(this);
         return const_cast<HeapSlot*>(obj->getSlotAddressUnchecked(slot));
     }
 
-    HeapSlot *getSlotAddress(uint32_t slot) {
+    HeapSlot* getSlotAddress(uint32_t slot) {
         /*
          * This can be used to get the address of the end of the slots for the
          * object, which may be necessary when fetching zero-length arrays of
@@ -693,7 +693,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return getSlotAddressUnchecked(slot);
     }
 
-    const HeapSlot *getSlotAddress(uint32_t slot) const {
+    const HeapSlot* getSlotAddress(uint32_t slot) const {
         /*
          * This can be used to get the address of the end of the slots for the
          * object, which may be necessary when fetching zero-length arrays of
@@ -703,71 +703,71 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return getSlotAddressUnchecked(slot);
     }
 
-    HeapSlot &getSlotRef(uint32_t slot) {
+    HeapSlot& getSlotRef(uint32_t slot) {
         MOZ_ASSERT(slotInRange(slot));
         return *getSlotAddress(slot);
     }
 
-    const HeapSlot &getSlotRef(uint32_t slot) const {
+    const HeapSlot& getSlotRef(uint32_t slot) const {
         MOZ_ASSERT(slotInRange(slot));
         return *getSlotAddress(slot);
     }
 
-    HeapSlot &nativeGetSlotRef(uint32_t slot) {
+    HeapSlot& nativeGetSlotRef(uint32_t slot) {
         JS_ASSERT(isNative() && slot < slotSpan());
         return getSlotRef(slot);
     }
-    const Value &nativeGetSlot(uint32_t slot) const {
+    const Value& nativeGetSlot(uint32_t slot) const {
         JS_ASSERT(isNative() && slot < slotSpan());
         return getSlot(slot);
     }
 
-    void setSlot(uint32_t slot, const Value &value) {
+    void setSlot(uint32_t slot, const Value& value) {
         MOZ_ASSERT(slotInRange(slot));
         MOZ_ASSERT(IsObjectValueInCompartment(value, compartment()));
         getSlotRef(slot).set(this->asObjectPtr(), HeapSlot::Slot, slot, value);
     }
 
-    inline void setCrossCompartmentSlot(uint32_t slot, const Value &value) {
+    inline void setCrossCompartmentSlot(uint32_t slot, const Value& value) {
         MOZ_ASSERT(slotInRange(slot));
         getSlotRef(slot).set(this->asObjectPtr(), HeapSlot::Slot, slot, value);
     }
 
-    void initSlot(uint32_t slot, const Value &value) {
+    void initSlot(uint32_t slot, const Value& value) {
         MOZ_ASSERT(getSlot(slot).isUndefined());
         MOZ_ASSERT(slotInRange(slot));
         MOZ_ASSERT(IsObjectValueInCompartment(value, compartment()));
         initSlotUnchecked(slot, value);
     }
 
-    void initCrossCompartmentSlot(uint32_t slot, const Value &value) {
+    void initCrossCompartmentSlot(uint32_t slot, const Value& value) {
         MOZ_ASSERT(getSlot(slot).isUndefined());
         MOZ_ASSERT(slotInRange(slot));
         initSlotUnchecked(slot, value);
     }
 
-    void initSlotUnchecked(uint32_t slot, const Value &value) {
+    void initSlotUnchecked(uint32_t slot, const Value& value) {
         getSlotAddressUnchecked(slot)->init(this->asObjectPtr(), HeapSlot::Slot, slot, value);
     }
 
     /* For slots which are known to always be fixed, due to the way they are allocated. */
 
-    HeapSlot &getFixedSlotRef(uint32_t slot) {
+    HeapSlot& getFixedSlotRef(uint32_t slot) {
         MOZ_ASSERT(slot < numFixedSlots());
         return fixedSlots()[slot];
     }
 
-    const Value &getFixedSlot(uint32_t slot) const {
+    const Value& getFixedSlot(uint32_t slot) const {
         MOZ_ASSERT(slot < numFixedSlots());
         return fixedSlots()[slot];
     }
 
-    void setFixedSlot(uint32_t slot, const Value &value) {
+    void setFixedSlot(uint32_t slot, const Value& value) {
         MOZ_ASSERT(slot < numFixedSlots());
         fixedSlots()[slot].set(this->asObjectPtr(), HeapSlot::Slot, slot, value);
     }
 
-    void initFixedSlot(uint32_t slot, const Value &value) {
+    void initFixedSlot(uint32_t slot, const Value& value) {
         MOZ_ASSERT(slot < numFixedSlots());
         fixedSlots()[slot].init(this->asObjectPtr(), HeapSlot::Slot, slot, value);
     }
@@ -778,7 +778,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
      * capacity is not stored explicitly, and the allocated size of the slot
      * array is kept in sync with this count.
      */
-    static uint32_t dynamicSlotsCount(uint32_t nfixed, uint32_t span, const Class *clasp);
+    static uint32_t dynamicSlotsCount(uint32_t nfixed, uint32_t span, const Class* clasp);
 
     /* Memory usage functions. */
     size_t tenuredSizeOfThis() const {
@@ -791,7 +791,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return ObjectElements::fromElements(elements);
     }
 
-    inline HeapSlot *fixedElements() const {
+    inline HeapSlot* fixedElements() const {
         static_assert(2 * sizeof(Value) == sizeof(ObjectElements),
                       "when elements are stored inline, the first two "
                       "slots will hold the ObjectElements header");
@@ -831,24 +831,24 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
      * following this object, for use with objects which allocate a larger size
      * class than they need and store non-elements data inline.
      */
-    inline void *fixedData(size_t nslots) const;
+    inline void* fixedData(size_t nslots) const;
 
     /* GC support. */
     static ThingRootKind rootKind() { return THING_ROOT_OBJECT; }
 
-    inline void privateWriteBarrierPre(void **oldval);
+    inline void privateWriteBarrierPre(void** oldval);
 
-    void privateWriteBarrierPost(void **pprivate) {
+    void privateWriteBarrierPost(void** pprivate) {
 #ifdef JSGC_GENERATIONAL
-        shadowRuntimeFromAnyThread()->gcStoreBufferPtr()->putCell(reinterpret_cast<js::gc::Cell **>(pprivate));
+        shadowRuntimeFromAnyThread()->gcStoreBufferPtr()->putCell(reinterpret_cast<js::gc::Cell**>(pprivate));
 #endif
     }
 
-    void markChildren(JSTracer *trc);
+    void markChildren(JSTracer* trc);
 
     /* Private data accessors. */
 
-    inline void *&privateRef(uint32_t nfixed) const { /* XXX should be private, not protected! */
+    inline void*& privateRef(uint32_t nfixed) const { /* XXX should be private, not protected! */
         /*
          * The private pointer of an object can hold any word sized value.
          * Private pointers are stored immediately after the last fixed slot of
@@ -856,51 +856,51 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
          */
         MOZ_ASSERT(nfixed == numFixedSlots());
         MOZ_ASSERT(hasPrivate());
-        HeapSlot *end = &fixedSlots()[nfixed];
+        HeapSlot* end = &fixedSlots()[nfixed];
         return *reinterpret_cast<void**>(end);
     }
 
     bool hasPrivate() const {
         return getClass()->hasPrivate();
     }
-    void *getPrivate() const {
+    void* getPrivate() const {
         return privateRef(numFixedSlots());
     }
-    void setPrivate(void *data) {
-        void **pprivate = &privateRef(numFixedSlots());
+    void setPrivate(void* data) {
+        void** pprivate = &privateRef(numFixedSlots());
         privateWriteBarrierPre(pprivate);
         *pprivate = data;
     }
 
-    void setPrivateGCThing(gc::Cell *cell) {
-        void **pprivate = &privateRef(numFixedSlots());
+    void setPrivateGCThing(gc::Cell* cell) {
+        void** pprivate = &privateRef(numFixedSlots());
         privateWriteBarrierPre(pprivate);
-        *pprivate = reinterpret_cast<void *>(cell);
+        *pprivate = reinterpret_cast<void*>(cell);
         privateWriteBarrierPost(pprivate);
     }
 
-    void setPrivateUnbarriered(void *data) {
-        void **pprivate = &privateRef(numFixedSlots());
+    void setPrivateUnbarriered(void* data) {
+        void** pprivate = &privateRef(numFixedSlots());
         *pprivate = data;
     }
-    void initPrivate(void *data) {
+    void initPrivate(void* data) {
         privateRef(numFixedSlots()) = data;
     }
 
     /* Access private data for an object with a known number of fixed slots. */
-    inline void *getPrivate(uint32_t nfixed) const {
+    inline void* getPrivate(uint32_t nfixed) const {
         return privateRef(nfixed);
     }
 
     /* GC Accessors */
-    void setInitialSlots(HeapSlot *newSlots) { slots = newSlots; }
+    void setInitialSlots(HeapSlot* newSlots) { slots = newSlots; }
 
     /* JIT Accessors */
     static size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
-    HeapPtrShape *addressOfShape() { return &shape_; }
+    HeapPtrShape* addressOfShape() { return &shape_; }
 
     static size_t offsetOfType() { return offsetof(ObjectImpl, type_); }
-    HeapPtrTypeObject *addressOfType() { return &type_; }
+    HeapPtrTypeObject* addressOfType() { return &type_; }
 
     static size_t offsetOfElements() { return offsetof(ObjectImpl, elements); }
     static size_t offsetOfFixedElements() {
@@ -917,17 +917,17 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 namespace gc {
 
 template <>
-MOZ_ALWAYS_INLINE Zone *
+MOZ_ALWAYS_INLINE Zone*
 BarrieredCell<ObjectImpl>::zone() const
 {
     const ObjectImpl* obj = static_cast<const ObjectImpl*>(this);
-    JS::Zone *zone = obj->shape_->zone();
+    JS::Zone* zone = obj->shape_->zone();
     JS_ASSERT(CurrentThreadCanAccessZone(zone));
     return zone;
 }
 
 template <>
-MOZ_ALWAYS_INLINE Zone *
+MOZ_ALWAYS_INLINE Zone*
 BarrieredCell<ObjectImpl>::zoneFromAnyThread() const
 {
     const ObjectImpl* obj = static_cast<const ObjectImpl*>(this);
@@ -937,47 +937,47 @@ BarrieredCell<ObjectImpl>::zoneFromAnyThread() const
 // TypeScript::global uses 0x1 as a special value.
 template<>
 /* static */ inline bool
-BarrieredCell<ObjectImpl>::isNullLike(ObjectImpl *obj)
+BarrieredCell<ObjectImpl>::isNullLike(ObjectImpl* obj)
 {
     return IsNullTaggedPointer(obj);
 }
 
 template<>
 /* static */ inline void
-BarrieredCell<ObjectImpl>::writeBarrierPost(ObjectImpl *obj, void *addr)
+BarrieredCell<ObjectImpl>::writeBarrierPost(ObjectImpl* obj, void* addr)
 {
 #ifdef JSGC_GENERATIONAL
     if (IsNullTaggedPointer(obj))
         return;
-    obj->shadowRuntimeFromAnyThread()->gcStoreBufferPtr()->putCell((Cell **)addr);
+    obj->shadowRuntimeFromAnyThread()->gcStoreBufferPtr()->putCell((Cell**)addr);
 #endif
 }
 
 template<>
 /* static */ inline void
-BarrieredCell<ObjectImpl>::writeBarrierPostRelocate(ObjectImpl *obj, void *addr)
+BarrieredCell<ObjectImpl>::writeBarrierPostRelocate(ObjectImpl* obj, void* addr)
 {
 #ifdef JSGC_GENERATIONAL
-    obj->shadowRuntimeFromAnyThread()->gcStoreBufferPtr()->putRelocatableCell((Cell **)addr);
+    obj->shadowRuntimeFromAnyThread()->gcStoreBufferPtr()->putRelocatableCell((Cell**)addr);
 #endif
 }
 
 template<>
 /* static */ inline void
-BarrieredCell<ObjectImpl>::writeBarrierPostRemove(ObjectImpl *obj, void *addr)
+BarrieredCell<ObjectImpl>::writeBarrierPostRemove(ObjectImpl* obj, void* addr)
 {
 #ifdef JSGC_GENERATIONAL
-    obj->shadowRuntimeFromAnyThread()->gcStoreBufferPtr()->removeRelocatableCell((Cell **)addr);
+    obj->shadowRuntimeFromAnyThread()->gcStoreBufferPtr()->removeRelocatableCell((Cell**)addr);
 #endif
 }
 
 } // namespace gc
 
 inline void
-ObjectImpl::privateWriteBarrierPre(void **oldval)
+ObjectImpl::privateWriteBarrierPre(void** oldval)
 {
 #ifdef JSGC_INCREMENTAL
-    JS::shadow::Zone *shadowZone = this->shadowZoneFromAnyThread();
+    JS::shadow::Zone* shadowZone = this->shadowZoneFromAnyThread();
     if (shadowZone->needsBarrier()) {
         if (*oldval && getClass()->trace)
             getClass()->trace(shadowZone->barrierTracer(), this->asObjectPtr());
@@ -986,7 +986,7 @@ ObjectImpl::privateWriteBarrierPre(void **oldval)
 }
 
 inline Value
-ObjectValue(ObjectImpl &obj)
+ObjectValue(ObjectImpl& obj)
 {
     Value v;
     v.setObject(*obj.asObjectPtr());
@@ -1001,7 +1001,7 @@ Downcast(Handle<ObjectImpl*> obj)
 
 #ifdef DEBUG
 static inline bool
-IsObjectValueInCompartment(js::Value v, JSCompartment *comp)
+IsObjectValueInCompartment(js::Value v, JSCompartment* comp)
 {
     if (!v.isObject())
         return true;

@@ -11,7 +11,7 @@ BEGIN_TEST(testBug795104)
     JS::CompileOptions opts(cx);
     JS::CompartmentOptionsRef(cx->compartment()).setDiscardSource(true);
     const size_t strLen = 60002;
-    char *s = static_cast<char *>(JS_malloc(cx, strLen));
+    char* s = static_cast<char*>(JS_malloc(cx, strLen));
     CHECK(s);
     s[0] = '"';
     memset(s + 1, 'x', strLen - 2);
@@ -24,7 +24,7 @@ BEGIN_TEST(testBug795104)
 }
 END_TEST(testBug795104)
 
-static const char *const simpleSource = "var x = 4;";
+static const char* const simpleSource = "var x = 4;";
 
 BEGIN_TEST(testScriptSourceReentrant)
 {
@@ -39,10 +39,10 @@ BEGIN_TEST(testScriptSourceReentrant)
 }
 
 static void
-NewScriptHook(JSContext *cx, const char *fn, unsigned lineno,
-              JSScript *script, JSFunction *fun, void *data)
+NewScriptHook(JSContext* cx, const char* fn, unsigned lineno,
+              JSScript* script, JSFunction* fun, void* data)
 {
-    if (!JS_StringEqualsAscii(cx, script->sourceData(cx), simpleSource, (bool *)data))
-        *((bool *)data) = false;
+    if (!JS_StringEqualsAscii(cx, script->sourceData(cx), simpleSource, (bool*)data))
+        *((bool*)data) = false;
 }
 END_TEST(testScriptSourceReentrant)

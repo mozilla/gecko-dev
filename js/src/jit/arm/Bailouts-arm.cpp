@@ -55,10 +55,10 @@ class BailoutStack
         JS_ASSERT(frameClass() == FrameSizeClass::None());
         return snapshotOffset_;
     }
-    uint8_t *parentStackPointer() const {
+    uint8_t* parentStackPointer() const {
         if (frameClass() == FrameSizeClass::None())
-            return (uint8_t *)this + sizeof(BailoutStack);
-        return (uint8_t *)this + offsetof(BailoutStack, snapshotOffset_);
+            return (uint8_t*)this + sizeof(BailoutStack);
+        return (uint8_t*)this + offsetof(BailoutStack, snapshotOffset_);
     }
 };
 
@@ -68,13 +68,13 @@ static_assert((sizeof(BailoutStack) % 8) == 0, "BailoutStack should be 8-byte al
 } // namespace jit
 } // namespace js
 
-IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
-                                       BailoutStack *bailout)
+IonBailoutIterator::IonBailoutIterator(const JitActivationIterator& activations,
+                                       BailoutStack* bailout)
   : JitFrameIterator(activations),
     machine_(bailout->machine())
 {
-    uint8_t *sp = bailout->parentStackPointer();
-    uint8_t *fp = sp + bailout->frameSize();
+    uint8_t* sp = bailout->parentStackPointer();
+    uint8_t* fp = sp + bailout->frameSize();
 
     current_ = fp;
     type_ = JitFrame_IonJS;
@@ -87,9 +87,9 @@ IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
     }
 
     // Compute the snapshot offset from the bailout ID.
-    JitActivation *activation = activations.activation()->asJit();
-    JSRuntime *rt = activation->compartment()->runtimeFromMainThread();
-    JitCode *code = rt->jitRuntime()->getBailoutTable(bailout->frameClass());
+    JitActivation* activation = activations.activation()->asJit();
+    JSRuntime* rt = activation->compartment()->runtimeFromMainThread();
+    JitCode* code = rt->jitRuntime()->getBailoutTable(bailout->frameClass());
     uintptr_t tableOffset = bailout->tableOffset();
     uintptr_t tableStart = reinterpret_cast<uintptr_t>(code->raw());
 
@@ -103,14 +103,14 @@ IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
     snapshotOffset_ = topIonScript_->bailoutToSnapshot(bailoutId);
 }
 
-IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
-                                       InvalidationBailoutStack *bailout)
+IonBailoutIterator::IonBailoutIterator(const JitActivationIterator& activations,
+                                       InvalidationBailoutStack* bailout)
   : JitFrameIterator(activations),
     machine_(bailout->machine())
 {
     returnAddressToFp_ = bailout->osiPointReturnAddress();
     topIonScript_ = bailout->ionScript();
-    const OsiIndex *osiIndex = topIonScript_->getOsiIndex(returnAddressToFp_);
+    const OsiIndex* osiIndex = topIonScript_->getOsiIndex(returnAddressToFp_);
 
     current_ = (uint8_t*) bailout->fp();
     type_ = JitFrame_IonJS;

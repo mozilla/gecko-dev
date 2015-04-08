@@ -16,7 +16,7 @@ using mozilla::dom::EventTarget;
 using mozilla::DebugOnly;
 
 bool
-nsCxPusher::Push(EventTarget *aCurrentTarget)
+nsCxPusher::Push(EventTarget* aCurrentTarget)
 {
   MOZ_ASSERT(mPusher.empty());
   NS_ENSURE_TRUE(aCurrentTarget, false);
@@ -48,7 +48,7 @@ nsCxPusher::Push(EventTarget *aCurrentTarget)
 }
 
 bool
-nsCxPusher::RePush(EventTarget *aCurrentTarget)
+nsCxPusher::RePush(EventTarget* aCurrentTarget)
 {
   if (mPusher.empty()) {
     return Push(aCurrentTarget);
@@ -76,7 +76,7 @@ nsCxPusher::RePush(EventTarget *aCurrentTarget)
 }
 
 void
-nsCxPusher::Push(JSContext *cx)
+nsCxPusher::Push(JSContext* cx)
 {
   mPusher.construct(cx);
 }
@@ -108,7 +108,7 @@ AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull)
   if (cx)
     mScx = GetScriptContextFromJSContext(cx);
 
-  XPCJSContextStack *stack = XPCJSRuntime::Get()->GetJSContextStack();
+  XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
   if (!stack->Push(cx)) {
     MOZ_CRASH();
   }
@@ -125,7 +125,7 @@ AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull)
     mAutoRequest.construct(cx);
 
     // DOM JSContexts don't store their default compartment object on the cx.
-    JSObject *compartmentObject = mScx ? mScx->GetWindowProxy()
+    JSObject* compartmentObject = mScx ? mScx->GetWindowProxy()
                                        : js::DefaultObjectForContextOrNull(cx);
     if (compartmentObject)
       mAutoCompartment.construct(cx, compartmentObject);
@@ -188,7 +188,7 @@ AutoJSContext::Init(bool aSafe MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
 
   MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 
-  nsXPConnect *xpc = nsXPConnect::XPConnect();
+  nsXPConnect* xpc = nsXPConnect::XPConnect();
   if (!aSafe) {
     mCx = xpc->GetCurrentJSContext();
   }
@@ -254,7 +254,7 @@ ThreadsafeAutoSafeJSContext::operator JSContext*() const
   }
 }
 
-AutoPushJSContext::AutoPushJSContext(JSContext *aCx) : mCx(aCx)
+AutoPushJSContext::AutoPushJSContext(JSContext* aCx) : mCx(aCx)
 {
   if (mCx && mCx != nsXPConnect::XPConnect()->GetCurrentJSContext()) {
     mPusher.construct(mCx);
