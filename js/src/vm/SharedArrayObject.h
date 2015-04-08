@@ -38,17 +38,17 @@ class SharedArrayRawBuffer
     uint32_t length;
 
   protected:
-    SharedArrayRawBuffer(uint8_t *buffer, uint32_t length)
+    SharedArrayRawBuffer(uint8_t* buffer, uint32_t length)
       : refcount(1), length(length)
     {
         JS_ASSERT(buffer == dataPointer());
     }
 
   public:
-    static SharedArrayRawBuffer *New(uint32_t length);
+    static SharedArrayRawBuffer* New(uint32_t length);
 
-    inline uint8_t *dataPointer() const {
-        return ((uint8_t *)this) + sizeof(SharedArrayRawBuffer);
+    inline uint8_t* dataPointer() const {
+        return ((uint8_t*)this) + sizeof(SharedArrayRawBuffer);
     }
 
     inline uint32_t byteLength() const {
@@ -67,7 +67,7 @@ class SharedArrayRawBuffer
  */
 class SharedArrayBufferObject : public ArrayBufferObject
 {
-    static bool byteLengthGetterImpl(JSContext *cx, CallArgs args);
+    static bool byteLengthGetterImpl(JSContext* cx, CallArgs args);
 
   public:
     static const Class class_;
@@ -78,23 +78,23 @@ class SharedArrayBufferObject : public ArrayBufferObject
 
     static const uint8_t RESERVED_SLOTS = ArrayBufferObject::RESERVED_SLOTS + 1;
 
-    static bool class_constructor(JSContext *cx, unsigned argc, Value *vp);
+    static bool class_constructor(JSContext* cx, unsigned argc, Value* vp);
 
     // Create a SharedArrayBufferObject with a new SharedArrayRawBuffer.
-    static JSObject *New(JSContext *cx, uint32_t length);
+    static JSObject* New(JSContext* cx, uint32_t length);
 
     // Create a SharedArrayBufferObject using an existing SharedArrayRawBuffer.
-    static JSObject *New(JSContext *cx, SharedArrayRawBuffer *buffer);
+    static JSObject* New(JSContext* cx, SharedArrayRawBuffer* buffer);
 
-    static bool byteLengthGetter(JSContext *cx, unsigned argc, Value *vp);
+    static bool byteLengthGetter(JSContext* cx, unsigned argc, Value* vp);
 
-    static void Finalize(FreeOp *fop, JSObject *obj);
+    static void Finalize(FreeOp* fop, JSObject* obj);
 
-    void acceptRawBuffer(SharedArrayRawBuffer *buffer);
+    void acceptRawBuffer(SharedArrayRawBuffer* buffer);
     void dropRawBuffer();
 
-    SharedArrayRawBuffer *rawBufferObject() const;
-    uint8_t *dataPointer() const;
+    SharedArrayRawBuffer* rawBufferObject() const;
+    uint8_t* dataPointer() const;
     uint32_t byteLength() const;
 };
 

@@ -143,7 +143,7 @@
 namespace js {
 namespace gc {
 
-ForkJoinNursery::ForkJoinNursery(ForkJoinContext *cx, ForkJoinGCShared *shared, Allocator *tenured)
+ForkJoinNursery::ForkJoinNursery(ForkJoinContext* cx, ForkJoinGCShared* shared, Allocator* tenured)
   : cx_(cx)
   , tenured_(tenured)
   , shared_(shared)
@@ -220,9 +220,9 @@ ForkJoinNursery::pjsCollection(int op)
     JS_ASSERT(!head_);
     JS_ASSERT(tail_ == &head_);
 
-    JSRuntime *const rt = shared_->runtime();
+    JSRuntime* const rt = shared_->runtime();
     const unsigned currentNumActiveChunks_ = numActiveChunks_;
-    const char *msg = "";
+    const char* msg = "";
 
     JS_ASSERT(!rt->needsIncrementalBarrier());
 
@@ -279,7 +279,7 @@ ForkJoinNursery::pjsCollection(int op)
 #undef TIME_TOTAL
 
 void
-ForkJoinNursery::computeNurserySizeAfterGC(size_t live, const char **msg)
+ForkJoinNursery::computeNurserySizeAfterGC(size_t live, const char** msg)
 {
     // Grow the nursery if it is too full.  Do not bother to shrink it - lazy
     // chunk allocation means that a too-large nursery will not really be a problem,
@@ -349,7 +349,7 @@ ForkJoinNursery::initNewspace()
 }
 
 MOZ_ALWAYS_INLINE bool
-ForkJoinNursery::shouldMoveObject(void **thingp)
+ForkJoinNursery::shouldMoveObject(void** thingp)
 {
     // Note that thingp must really be a T** where T is some GCThing,
     // ie, something that lives in a chunk (or nullptr).  This should
@@ -361,25 +361,25 @@ ForkJoinNursery::shouldMoveObject(void **thingp)
     // The main reason for that restriction is so that we can call a
     // method here that can check the chunk trailer for the cell (a
     // future optimization).
-    Cell *cell = static_cast<Cell *>(*thingp);
+    Cell* cell = static_cast<Cell*>(*thingp);
     return isInsideFromspace(cell) && !getForwardedPointer(thingp);
 }
 
 /* static */ void
-ForkJoinNursery::MinorGCCallback(JSTracer *trcArg, void **thingp, JSGCTraceKind traceKind)
+ForkJoinNursery::MinorGCCallback(JSTracer* trcArg, void** thingp, JSGCTraceKind traceKind)
 {
     // traceKind can be all sorts of things, when we're marking from stack roots
-    ForkJoinNursery *nursery = static_cast<ForkJoinNurseryCollectionTracer *>(trcArg)->nursery_;
+    ForkJoinNursery* nursery = static_cast<ForkJoinNurseryCollectionTracer*>(trcArg)->nursery_;
     if (nursery->shouldMoveObject(thingp)) {
         // When other types of objects become nursery-allocable then the static_cast
         // to JSObject * will no longer be valid.
         JS_ASSERT(traceKind == JSTRACE_OBJECT);
-        *thingp = nursery->moveObjectToTospace(static_cast<JSObject *>(*thingp));
+        *thingp = nursery->moveObjectToTospace(static_cast<JSObject*>(*thingp));
     }
 }
 
 void
-ForkJoinNursery::forwardFromRoots(ForkJoinNurseryCollectionTracer *trc)
+ForkJoinNursery::forwardFromRoots(ForkJoinNurseryCollectionTracer* trc)
 {
     // There should be no other roots as a result of effect-freedom.
     forwardFromUpdatable(trc);
@@ -389,24 +389,24 @@ ForkJoinNursery::forwardFromRoots(ForkJoinNurseryCollectionTracer *trc)
 }
 
 void
-ForkJoinNursery::forwardFromUpdatable(ForkJoinNurseryCollectionTracer *trc)
+ForkJoinNursery::forwardFromUpdatable(ForkJoinNurseryCollectionTracer* trc)
 {
-    JSObject *obj = shared_->updatable();
+    JSObject* obj = shared_->updatable();
     if (obj)
         traceObject(trc, obj);
 }
 
 void
-ForkJoinNursery::forwardFromStack(ForkJoinNurseryCollectionTracer *trc)
+ForkJoinNursery::forwardFromStack(ForkJoinNurseryCollectionTracer* trc)
 {
     MarkForkJoinStack(trc);
 }
 
 void
-ForkJoinNursery::forwardFromTenured(ForkJoinNurseryCollectionTracer *trc)
+ForkJoinNursery::forwardFromTenured(ForkJoinNurseryCollectionTracer* trc)
 {
-    JSObject *objs[ArenaCellCount];
-    ArenaLists &lists = tenured_->arenas;
+    JSObject* objs[ArenaCellCount];
+    ArenaLists& lists = tenured_->arenas;
     for (size_t k=0; k < FINALIZE_LIMIT; k++) {
         AllocKind kind = (AllocKind)k;
         if (!IsFJNurseryAllocable(kind))
@@ -425,7 +425,7 @@ ForkJoinNursery::forwardFromTenured(ForkJoinNurseryCollectionTracer *trc)
         JS_ASSERT(!lists.getArenaAfterCursor(kind));
 
         ArenaIter ai;
-        ai.init(const_cast<Allocator *>(tenured_), kind);
+        ai.init(const_cast<Allocator*>(tenured_), kind);
         for (; !ai.done(); ai.next()) {
             if (isEvacuating_ && lists.arenaIsInUse(ai.get(), kind))
                 break;
@@ -441,17 +441,17 @@ ForkJoinNursery::forwardFromTenured(ForkJoinNurseryCollectionTracer *trc)
 }
 
 void
-ForkJoinNursery::forwardFromRematerializedFrames(ForkJoinNurseryCollectionTracer *trc)
+ForkJoinNursery::forwardFromRematerializedFrames(ForkJoinNurseryCollectionTracer* trc)
 {
     if (cx_->bailoutRecord->hasFrames())
         jit::RematerializedFrame::MarkInVector(trc, cx_->bailoutRecord->frames());
 }
 
 /*static*/ void
-ForkJoinNursery::forwardBufferPointer(JSTracer *trc, HeapSlot **pSlotsElems)
+ForkJoinNursery::forwardBufferPointer(JSTracer* trc, HeapSlot** pSlotsElems)
 {
-    ForkJoinNursery *nursery = static_cast<ForkJoinNurseryCollectionTracer *>(trc)->nursery_;
-    HeapSlot *old = *pSlotsElems;
+    ForkJoinNursery* nursery = static_cast<ForkJoinNurseryCollectionTracer*>(trc)->nursery_;
+    HeapSlot* old = *pSlotsElems;
 
     if (!nursery->isInsideFromspace(old))
         return;
@@ -462,15 +462,15 @@ ForkJoinNursery::forwardBufferPointer(JSTracer *trc, HeapSlot **pSlotsElems)
     // isInsideFromspace will still be true, even if this zero-size allocation
     // abuts the end of the allocable area. Thus, it is always safe to read the
     // first word of |old| here.
-    *pSlotsElems = *reinterpret_cast<HeapSlot **>(old);
+    *pSlotsElems = *reinterpret_cast<HeapSlot**>(old);
     JS_ASSERT(!nursery->isInsideFromspace(*pSlotsElems));
 }
 
 void
-ForkJoinNursery::collectToFixedPoint(ForkJoinNurseryCollectionTracer *trc)
+ForkJoinNursery::collectToFixedPoint(ForkJoinNurseryCollectionTracer* trc)
 {
-    for (RelocationOverlay *p = head_; p; p = p->next())
-        traceObject(trc, static_cast<JSObject *>(p->forwardingAddress()));
+    for (RelocationOverlay* p = head_; p; p = p->next())
+        traceObject(trc, static_cast<JSObject*>(p->forwardingAddress()));
 }
 
 inline bool
@@ -480,7 +480,7 @@ ForkJoinNursery::setCurrentChunk(int index)
     JS_ASSERT(!newspace[index]);
 
     currentChunk_ = index;
-    ForkJoinNurseryChunk *c = shared_->allocateNurseryChunk();
+    ForkJoinNurseryChunk* c = shared_->allocateNurseryChunk();
     if (!c)
         return false;
     c->trailer.runtime = shared_->runtime();
@@ -493,7 +493,7 @@ ForkJoinNursery::setCurrentChunk(int index)
     return true;
 }
 
-void *
+void*
 ForkJoinNursery::allocate(size_t size)
 {
     JS_ASSERT(position_ >= currentStart_);
@@ -512,14 +512,14 @@ ForkJoinNursery::allocate(size_t size)
             return nullptr;
     }
 
-    void *thing = reinterpret_cast<void *>(position_);
+    void* thing = reinterpret_cast<void*>(position_);
     position_ += size;
 
     JS_POISON(thing, JS_ALLOCATED_NURSERY_PATTERN, size);
     return thing;
 }
 
-JSObject *
+JSObject*
 ForkJoinNursery::allocateObject(size_t baseSize, size_t numDynamic, bool& tooLarge)
 {
     // Ensure there's enough space to replace the contents with a RelocationOverlay.
@@ -533,19 +533,19 @@ ForkJoinNursery::allocateObject(size_t baseSize, size_t numDynamic, bool& tooLar
 
     // Allocate slots contiguously after the object.
     size_t totalSize = baseSize + sizeof(HeapSlot) * numDynamic;
-    JSObject *obj = static_cast<JSObject *>(allocate(totalSize));
+    JSObject* obj = static_cast<JSObject*>(allocate(totalSize));
     if (!obj) {
         tooLarge = false;
         return nullptr;
     }
     obj->setInitialSlots(numDynamic
-                         ? reinterpret_cast<HeapSlot *>(size_t(obj) + baseSize)
+                         ? reinterpret_cast<HeapSlot*>(size_t(obj) + baseSize)
                          : nullptr);
     return obj;
 }
 
-HeapSlot *
-ForkJoinNursery::allocateSlots(JSObject *obj, uint32_t nslots)
+HeapSlot*
+ForkJoinNursery::allocateSlots(JSObject* obj, uint32_t nslots)
 {
     JS_ASSERT(obj);
     JS_ASSERT(nslots > 0);
@@ -560,15 +560,15 @@ ForkJoinNursery::allocateSlots(JSObject *obj, uint32_t nslots)
         return allocateHugeSlots(obj, nslots);
 
     size_t size = nslots * sizeof(HeapSlot);
-    HeapSlot *slots = static_cast<HeapSlot *>(allocate(size));
+    HeapSlot* slots = static_cast<HeapSlot*>(allocate(size));
     if (slots)
         return slots;
 
     return allocateHugeSlots(obj, nslots);
 }
 
-HeapSlot *
-ForkJoinNursery::reallocateSlots(JSObject *obj, HeapSlot *oldSlots,
+HeapSlot*
+ForkJoinNursery::reallocateSlots(JSObject* obj, HeapSlot* oldSlots,
                                  uint32_t oldCount, uint32_t newCount)
 {
     if (newCount & mozilla::tl::MulOverflowMask<sizeof(HeapSlot)>::value)
@@ -586,7 +586,7 @@ ForkJoinNursery::reallocateSlots(JSObject *obj, HeapSlot *oldSlots,
     if (newCount < oldCount)
         return oldSlots;
 
-    HeapSlot *newSlots = allocateSlots(obj, newCount);
+    HeapSlot* newSlots = allocateSlots(obj, newCount);
     if (!newSlots)
         return nullptr;
 
@@ -595,24 +595,24 @@ ForkJoinNursery::reallocateSlots(JSObject *obj, HeapSlot *oldSlots,
     return newSlots;
 }
 
-ObjectElements *
-ForkJoinNursery::allocateElements(JSObject *obj, uint32_t nelems)
+ObjectElements*
+ForkJoinNursery::allocateElements(JSObject* obj, uint32_t nelems)
 {
     JS_ASSERT(nelems >= ObjectElements::VALUES_PER_HEADER);
-    return reinterpret_cast<ObjectElements *>(allocateSlots(obj, nelems));
+    return reinterpret_cast<ObjectElements*>(allocateSlots(obj, nelems));
 }
 
-ObjectElements *
-ForkJoinNursery::reallocateElements(JSObject *obj, ObjectElements *oldHeader,
+ObjectElements*
+ForkJoinNursery::reallocateElements(JSObject* obj, ObjectElements* oldHeader,
                                     uint32_t oldCount, uint32_t newCount)
 {
-    HeapSlot *slots = reallocateSlots(obj, reinterpret_cast<HeapSlot *>(oldHeader),
+    HeapSlot* slots = reallocateSlots(obj, reinterpret_cast<HeapSlot*>(oldHeader),
                                       oldCount, newCount);
-    return reinterpret_cast<ObjectElements *>(slots);
+    return reinterpret_cast<ObjectElements*>(slots);
 }
 
 void
-ForkJoinNursery::freeSlots(HeapSlot *slots)
+ForkJoinNursery::freeSlots(HeapSlot* slots)
 {
     if (!isInsideNewspace(slots)) {
         hugeSlots[hugeSlotsNew].remove(slots);
@@ -620,13 +620,13 @@ ForkJoinNursery::freeSlots(HeapSlot *slots)
     }
 }
 
-HeapSlot *
-ForkJoinNursery::allocateHugeSlots(JSObject *obj, size_t nslots)
+HeapSlot*
+ForkJoinNursery::allocateHugeSlots(JSObject* obj, size_t nslots)
 {
     if (nslots & mozilla::tl::MulOverflowMask<sizeof(HeapSlot)>::value)
         return nullptr;
 
-    HeapSlot *slots = obj->pod_malloc<HeapSlot>(nslots);
+    HeapSlot* slots = obj->pod_malloc<HeapSlot>(nslots);
     if (!slots)
         return slots;
 
@@ -635,11 +635,11 @@ ForkJoinNursery::allocateHugeSlots(JSObject *obj, size_t nslots)
     return slots;
 }
 
-HeapSlot *
-ForkJoinNursery::reallocateHugeSlots(JSObject *obj, HeapSlot *oldSlots,
+HeapSlot*
+ForkJoinNursery::reallocateHugeSlots(JSObject* obj, HeapSlot* oldSlots,
                                      uint32_t oldCount, uint32_t newCount)
 {
-    HeapSlot *newSlots = obj->pod_realloc<HeapSlot>(oldSlots, oldCount, newCount);
+    HeapSlot* newSlots = obj->pod_realloc<HeapSlot>(oldSlots, oldCount, newCount);
     if (!newSlots)
         return newSlots;
 
@@ -660,9 +660,9 @@ ForkJoinNursery::sweepHugeSlots()
 }
 
 MOZ_ALWAYS_INLINE void
-ForkJoinNursery::traceObject(ForkJoinNurseryCollectionTracer *trc, JSObject *obj)
+ForkJoinNursery::traceObject(ForkJoinNurseryCollectionTracer* trc, JSObject* obj)
 {
-    const Class *clasp = obj->getClass();
+    const Class* clasp = obj->getClass();
     if (clasp->trace)
         clasp->trace(trc, obj);
 
@@ -672,32 +672,32 @@ ForkJoinNursery::traceObject(ForkJoinNurseryCollectionTracer *trc, JSObject *obj
     if (!obj->hasEmptyElements())
         markSlots(obj->getDenseElements(), obj->getDenseInitializedLength());
 
-    HeapSlot *fixedStart, *fixedEnd, *dynStart, *dynEnd;
+    HeapSlot* fixedStart, *fixedEnd, *dynStart, *dynEnd;
     obj->getSlotRange(0, obj->slotSpan(), &fixedStart, &fixedEnd, &dynStart, &dynEnd);
     markSlots(fixedStart, fixedEnd);
     markSlots(dynStart, dynEnd);
 }
 
 MOZ_ALWAYS_INLINE void
-ForkJoinNursery::markSlots(HeapSlot *vp, uint32_t nslots)
+ForkJoinNursery::markSlots(HeapSlot* vp, uint32_t nslots)
 {
     markSlots(vp, vp + nslots);
 }
 
 MOZ_ALWAYS_INLINE void
-ForkJoinNursery::markSlots(HeapSlot *vp, HeapSlot *end)
+ForkJoinNursery::markSlots(HeapSlot* vp, HeapSlot* end)
 {
     for (; vp != end; ++vp)
         markSlot(vp);
 }
 
 MOZ_ALWAYS_INLINE void
-ForkJoinNursery::markSlot(HeapSlot *slotp)
+ForkJoinNursery::markSlot(HeapSlot* slotp)
 {
     if (!slotp->isObject())
         return;
 
-    JSObject *obj = &slotp->toObject();
+    JSObject* obj = &slotp->toObject();
     if (!isInsideFromspace(obj))
         return;
 
@@ -706,18 +706,18 @@ ForkJoinNursery::markSlot(HeapSlot *slotp)
         return;
     }
 
-    JSObject *moved = static_cast<JSObject *>(moveObjectToTospace(obj));
+    JSObject* moved = static_cast<JSObject*>(moveObjectToTospace(obj));
     slotp->unsafeGet()->setObject(*moved);
 }
 
 AllocKind
-ForkJoinNursery::getObjectAllocKind(JSObject *obj)
+ForkJoinNursery::getObjectAllocKind(JSObject* obj)
 {
     if (obj->is<ArrayObject>()) {
         JS_ASSERT(obj->numFixedSlots() == 0);
 
         // Use minimal size object if we are just going to copy the pointer.
-        if (!isInsideFromspace((void *)obj->getElementsHeader()))
+        if (!isInsideFromspace((void*)obj->getElementsHeader()))
             return FINALIZE_OBJECT0_BACKGROUND;
 
         size_t nelements = obj->getDenseCapacity();
@@ -736,21 +736,21 @@ ForkJoinNursery::getObjectAllocKind(JSObject *obj)
 // Nursery allocation will never fail during GC - apart from true OOM - since
 // newspace is at least as large as fromspace, ergo a nullptr return from the
 // allocator means true OOM, which we catch and signal here.
-void *
+void*
 ForkJoinNursery::allocateInTospaceInfallible(size_t thingSize)
 {
-    void *p = allocate(thingSize);
+    void* p = allocate(thingSize);
     if (!p)
         CrashAtUnhandlableOOM("Cannot expand PJS nursery during GC");
     return p;
 }
 
-void *
+void*
 ForkJoinNursery::allocateInTospace(gc::AllocKind thingKind)
 {
     size_t thingSize = Arena::thingSize(thingKind);
     if (isEvacuating_) {
-        void *t = tenured_->arenas.allocateFromFreeList(thingKind, thingSize);
+        void* t = tenured_->arenas.allocateFromFreeList(thingKind, thingSize);
         if (t)
             return t;
         tenured_->arenas.checkEmptyFreeList(thingKind);
@@ -765,41 +765,41 @@ ForkJoinNursery::allocateInTospace(gc::AllocKind thingKind)
 }
 
 template <typename T>
-T *
+T*
 ForkJoinNursery::allocateInTospace(size_t nelem)
 {
     if (isEvacuating_)
         return evacuationZone_->pod_malloc<T>(nelem);
-    return static_cast<T *>(allocateInTospaceInfallible(nelem * sizeof(T)));
+    return static_cast<T*>(allocateInTospaceInfallible(nelem * sizeof(T)));
 }
 
 MOZ_ALWAYS_INLINE void
-ForkJoinNursery::insertIntoFixupList(RelocationOverlay *entry)
+ForkJoinNursery::insertIntoFixupList(RelocationOverlay* entry)
 {
     *tail_ = entry;
     tail_ = &entry->next_;
     *tail_ = nullptr;
 }
 
-void *
-ForkJoinNursery::moveObjectToTospace(JSObject *src)
+void*
+ForkJoinNursery::moveObjectToTospace(JSObject* src)
 {
     AllocKind dstKind = getObjectAllocKind(src);
-    JSObject *dst = static_cast<JSObject *>(allocateInTospace(dstKind));
+    JSObject* dst = static_cast<JSObject*>(allocateInTospace(dstKind));
     if (!dst)
         CrashAtUnhandlableOOM("Failed to allocate object while moving object.");
 
     movedSize_ += copyObjectToTospace(dst, src, dstKind);
 
-    RelocationOverlay *overlay = reinterpret_cast<RelocationOverlay *>(src);
+    RelocationOverlay* overlay = reinterpret_cast<RelocationOverlay*>(src);
     overlay->forwardTo(dst);
     insertIntoFixupList(overlay);
 
-    return static_cast<void *>(dst);
+    return static_cast<void*>(dst);
 }
 
 size_t
-ForkJoinNursery::copyObjectToTospace(JSObject *dst, JSObject *src, AllocKind dstKind)
+ForkJoinNursery::copyObjectToTospace(JSObject* dst, JSObject* src, AllocKind dstKind)
 {
     size_t srcSize = Arena::thingSize(dstKind);
     size_t movedSize = srcSize;
@@ -824,7 +824,7 @@ ForkJoinNursery::copyObjectToTospace(JSObject *dst, JSObject *src, AllocKind dst
 }
 
 size_t
-ForkJoinNursery::copySlotsToTospace(JSObject *dst, JSObject *src, AllocKind dstKind)
+ForkJoinNursery::copySlotsToTospace(JSObject* dst, JSObject* src, AllocKind dstKind)
 {
     // Fixed slots have already been copied over.
     if (!src->hasDynamicSlots())
@@ -847,13 +847,13 @@ ForkJoinNursery::copySlotsToTospace(JSObject *dst, JSObject *src, AllocKind dstK
 }
 
 size_t
-ForkJoinNursery::copyElementsToTospace(JSObject *dst, JSObject *src, AllocKind dstKind)
+ForkJoinNursery::copyElementsToTospace(JSObject* dst, JSObject* src, AllocKind dstKind)
 {
     if (src->hasEmptyElements() || src->denseElementsAreCopyOnWrite())
         return 0;
 
-    ObjectElements *srcHeader = src->getElementsHeader();
-    ObjectElements *dstHeader;
+    ObjectElements* srcHeader = src->getElementsHeader();
+    ObjectElements* dstHeader;
 
     // TODO Bug 874151: Prefer to put element data inline if we have space.
     // (Note, not a correctness issue.)
@@ -877,7 +877,7 @@ ForkJoinNursery::copyElementsToTospace(JSObject *dst, JSObject *src, AllocKind d
     }
 
     JS_ASSERT(nslots >= 2);
-    dstHeader = reinterpret_cast<ObjectElements *>(allocateInTospace<HeapSlot>(nslots));
+    dstHeader = reinterpret_cast<ObjectElements*>(allocateInTospace<HeapSlot>(nslots));
     if (!dstHeader)
         CrashAtUnhandlableOOM("Failed to allocate elements while moving object.");
     js_memcpy(dstHeader, srcHeader, nslots * sizeof(HeapSlot));
@@ -887,16 +887,16 @@ ForkJoinNursery::copyElementsToTospace(JSObject *dst, JSObject *src, AllocKind d
 }
 
 void
-ForkJoinNursery::setSlotsForwardingPointer(HeapSlot *oldSlots, HeapSlot *newSlots, uint32_t nslots)
+ForkJoinNursery::setSlotsForwardingPointer(HeapSlot* oldSlots, HeapSlot* newSlots, uint32_t nslots)
 {
     JS_ASSERT(nslots > 0);
     JS_ASSERT(isInsideFromspace(oldSlots));
     JS_ASSERT(!isInsideFromspace(newSlots));
-    *reinterpret_cast<HeapSlot **>(oldSlots) = newSlots;
+    *reinterpret_cast<HeapSlot**>(oldSlots) = newSlots;
 }
 
 void
-ForkJoinNursery::setElementsForwardingPointer(ObjectElements *oldHeader, ObjectElements *newHeader,
+ForkJoinNursery::setElementsForwardingPointer(ObjectElements* oldHeader, ObjectElements* newHeader,
                                              uint32_t nelems)
 {
     // If the JIT has hoisted a zero length pointer, then we do not need to
@@ -905,11 +905,11 @@ ForkJoinNursery::setElementsForwardingPointer(ObjectElements *oldHeader, ObjectE
         return;
     JS_ASSERT(isInsideFromspace(oldHeader));
     JS_ASSERT(!isInsideFromspace(newHeader));
-    *reinterpret_cast<HeapSlot **>(oldHeader->elements()) = newHeader->elements();
+    *reinterpret_cast<HeapSlot**>(oldHeader->elements()) = newHeader->elements();
 }
 
-ForkJoinNurseryCollectionTracer::ForkJoinNurseryCollectionTracer(JSRuntime *rt,
-                                                                 ForkJoinNursery *nursery)
+ForkJoinNurseryCollectionTracer::ForkJoinNurseryCollectionTracer(JSRuntime* rt,
+                                                                 ForkJoinNursery* nursery)
   : JSTracer(rt, ForkJoinNursery::MinorGCCallback, TraceWeakMapKeysValues)
   , nursery_(nursery)
 {

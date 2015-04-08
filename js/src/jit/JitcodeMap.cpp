@@ -16,13 +16,13 @@ namespace js {
 namespace jit {
  
 bool
-JitcodeGlobalEntry::IonEntry::callStackAtAddr(JSRuntime *rt, void *ptr,
-                                              BytecodeLocationVector &results,
-                                              uint32_t *depth) const
+JitcodeGlobalEntry::IonEntry::callStackAtAddr(JSRuntime* rt, void* ptr,
+                                              BytecodeLocationVector& results,
+                                              uint32_t* depth) const
 {
     JS_ASSERT(containsPointer(ptr));
-    uint32_t ptrOffset = reinterpret_cast<uint8_t *>(ptr) -
-                         reinterpret_cast<uint8_t *>(nativeStartAddr());
+    uint32_t ptrOffset = reinterpret_cast<uint8_t*>(ptr) -
+                         reinterpret_cast<uint8_t*>(nativeStartAddr());
 
     uint32_t regionIdx = regionTable()->findRegionEntry(ptrOffset);
     JS_ASSERT(regionIdx < regionTable()->numRegions());
@@ -42,8 +42,8 @@ JitcodeGlobalEntry::IonEntry::callStackAtAddr(JSRuntime *rt, void *ptr,
             pcOffset = region.findPcOffset(ptrOffset, pcOffset);
             first = false;
         }
-        JSScript *script = getScript(scriptIdx);
-        jsbytecode *pc = script->offsetToPC(pcOffset);
+        JSScript* script = getScript(scriptIdx);
+        jsbytecode* pc = script->offsetToPC(pcOffset);
         if (!results.append(BytecodeLocation(script, pc)))
             return false;
     }
@@ -71,14 +71,14 @@ JitcodeGlobalEntry::IonEntry::destroy()
 }
 
 bool
-JitcodeGlobalEntry::BaselineEntry::callStackAtAddr(JSRuntime *rt, void *ptr,
-                                                   BytecodeLocationVector &results,
-                                                   uint32_t *depth) const
+JitcodeGlobalEntry::BaselineEntry::callStackAtAddr(JSRuntime* rt, void* ptr,
+                                                   BytecodeLocationVector& results,
+                                                   uint32_t* depth) const
 {
     JS_ASSERT(containsPointer(ptr));
     JS_ASSERT(script_->hasBaselineScript());
 
-    jsbytecode *pc = script_->baselineScript()->pcForNativeAddress(script_, (uint8_t*) ptr);
+    jsbytecode* pc = script_->baselineScript()->pcForNativeAddress(script_, (uint8_t*) ptr);
     if (!results.append(BytecodeLocation(script_, pc)))
         return false;
 
@@ -88,14 +88,14 @@ JitcodeGlobalEntry::BaselineEntry::callStackAtAddr(JSRuntime *rt, void *ptr,
 }
 
 bool
-JitcodeGlobalEntry::IonCacheEntry::callStackAtAddr(JSRuntime *rt, void *ptr,
-                                                   BytecodeLocationVector &results,
-                                                   uint32_t *depth) const
+JitcodeGlobalEntry::IonCacheEntry::callStackAtAddr(JSRuntime* rt, void* ptr,
+                                                   BytecodeLocationVector& results,
+                                                   uint32_t* depth) const
 {
     JS_ASSERT(containsPointer(ptr));
 
     // There must exist an entry for the rejoin addr if this entry exists.
-    JitRuntime *jitrt = rt->jitRuntime();
+    JitRuntime* jitrt = rt->jitRuntime();
     JitcodeGlobalEntry entry;
     jitrt->getJitcodeGlobalTable()->lookupInfallible(rejoinAddr(), &entry);
     JS_ASSERT(entry.isIon());
@@ -104,9 +104,9 @@ JitcodeGlobalEntry::IonCacheEntry::callStackAtAddr(JSRuntime *rt, void *ptr,
 }
 
 
-static int ComparePointers(const void *a, const void *b) {
-    const uint8_t *a_ptr = reinterpret_cast<const uint8_t *>(a);
-    const uint8_t *b_ptr = reinterpret_cast<const uint8_t *>(b);
+static int ComparePointers(const void* a, const void* b) {
+    const uint8_t* a_ptr = reinterpret_cast<const uint8_t*>(a);
+    const uint8_t* b_ptr = reinterpret_cast<const uint8_t*>(b);
     if (a_ptr < b_ptr)
         return -1;
     if (a_ptr > b_ptr)
@@ -115,7 +115,7 @@ static int ComparePointers(const void *a, const void *b) {
 }
 
 /* static */ int
-JitcodeGlobalEntry::compare(const JitcodeGlobalEntry &ent1, const JitcodeGlobalEntry &ent2)
+JitcodeGlobalEntry::compare(const JitcodeGlobalEntry& ent1, const JitcodeGlobalEntry& ent2)
 {
     // Both parts of compare cannot be a query.
     JS_ASSERT(!(ent1.isQuery() && ent2.isQuery()));
@@ -127,7 +127,7 @@ JitcodeGlobalEntry::compare(const JitcodeGlobalEntry &ent1, const JitcodeGlobalE
 }
 
 bool
-JitcodeGlobalTable::lookup(void *ptr, JitcodeGlobalEntry *result)
+JitcodeGlobalTable::lookup(void* ptr, JitcodeGlobalEntry* result)
 {
     JS_ASSERT(result);
 
@@ -137,14 +137,14 @@ JitcodeGlobalTable::lookup(void *ptr, JitcodeGlobalEntry *result)
 }
 
 void
-JitcodeGlobalTable::lookupInfallible(void *ptr, JitcodeGlobalEntry *result)
+JitcodeGlobalTable::lookupInfallible(void* ptr, JitcodeGlobalEntry* result)
 {
     mozilla::DebugOnly<bool> success = lookup(ptr, result);
     JS_ASSERT(success);
 }
 
 bool
-JitcodeGlobalTable::addEntry(const JitcodeGlobalEntry &entry)
+JitcodeGlobalTable::addEntry(const JitcodeGlobalEntry& entry)
 {
     // Should only add Main entries for now.
     JS_ASSERT(entry.isIon() || entry.isBaseline() || entry.isIonCache());
@@ -152,14 +152,14 @@ JitcodeGlobalTable::addEntry(const JitcodeGlobalEntry &entry)
 }
 
 void
-JitcodeGlobalTable::removeEntry(void *startAddr)
+JitcodeGlobalTable::removeEntry(void* startAddr)
 {
     JitcodeGlobalEntry query = JitcodeGlobalEntry::MakeQuery(startAddr);
     tree_.remove(query);
 }
 
 /* static */ void
-JitcodeRegionEntry::WriteHead(CompactBufferWriter &writer,
+JitcodeRegionEntry::WriteHead(CompactBufferWriter& writer,
                               uint32_t nativeOffset, uint8_t scriptDepth)
 {
     writer.writeUnsigned(nativeOffset);
@@ -167,15 +167,15 @@ JitcodeRegionEntry::WriteHead(CompactBufferWriter &writer,
 }
 
 /* static */ void
-JitcodeRegionEntry::ReadHead(CompactBufferReader &reader,
-                             uint32_t *nativeOffset, uint8_t *scriptDepth)
+JitcodeRegionEntry::ReadHead(CompactBufferReader& reader,
+                             uint32_t* nativeOffset, uint8_t* scriptDepth)
 {
     *nativeOffset = reader.readUnsigned();
     *scriptDepth = reader.readByte();
 }
 
 /* static */ void
-JitcodeRegionEntry::WriteScriptPc(CompactBufferWriter &writer,
+JitcodeRegionEntry::WriteScriptPc(CompactBufferWriter& writer,
                                   uint32_t scriptIdx, uint32_t pcOffset)
 {
     writer.writeUnsigned(scriptIdx);
@@ -183,15 +183,15 @@ JitcodeRegionEntry::WriteScriptPc(CompactBufferWriter &writer,
 }
 
 /* static */ void
-JitcodeRegionEntry::ReadScriptPc(CompactBufferReader &reader,
-                                 uint32_t *scriptIdx, uint32_t *pcOffset)
+JitcodeRegionEntry::ReadScriptPc(CompactBufferReader& reader,
+                                 uint32_t* scriptIdx, uint32_t* pcOffset)
 {
     *scriptIdx = reader.readUnsigned();
     *pcOffset = reader.readUnsigned();
 }
 
 /* static */ void
-JitcodeRegionEntry::WriteDelta(CompactBufferWriter &writer,
+JitcodeRegionEntry::WriteDelta(CompactBufferWriter& writer,
                                uint32_t nativeDelta, int32_t pcDelta)
 {
     if (pcDelta >= 0) {
@@ -247,8 +247,8 @@ JitcodeRegionEntry::WriteDelta(CompactBufferWriter &writer,
 }
 
 /* static */ void
-JitcodeRegionEntry::ReadDelta(CompactBufferReader &reader,
-                              uint32_t *nativeDelta, int32_t *pcDelta)
+JitcodeRegionEntry::ReadDelta(CompactBufferReader& reader,
+                              uint32_t* nativeDelta, int32_t* pcDelta)
 {
     // NB:
     // It's possible to get nativeDeltas with value 0 in two cases:
@@ -315,8 +315,8 @@ JitcodeRegionEntry::ReadDelta(CompactBufferReader &reader,
 }
 
 /* static */ uint32_t
-JitcodeRegionEntry::ExpectedRunLength(const CodeGeneratorShared::NativeToBytecode *entry,
-                                      const CodeGeneratorShared::NativeToBytecode *end)
+JitcodeRegionEntry::ExpectedRunLength(const CodeGeneratorShared::NativeToBytecode* entry,
+                                      const CodeGeneratorShared::NativeToBytecode* end)
 {
     JS_ASSERT(entry < end);
 
@@ -358,20 +358,20 @@ JitcodeRegionEntry::ExpectedRunLength(const CodeGeneratorShared::NativeToBytecod
 struct JitcodeMapBufferWriteSpewer
 {
 #ifdef DEBUG
-    CompactBufferWriter *writer;
+    CompactBufferWriter* writer;
     uint32_t startPos;
 
     static const uint32_t DumpMaxBytes = 50;
 
-    JitcodeMapBufferWriteSpewer(CompactBufferWriter &w)
+    JitcodeMapBufferWriteSpewer(CompactBufferWriter& w)
       : writer(&w), startPos(writer->length())
     {}
 
-    void spewAndAdvance(const char *name) {
+    void spewAndAdvance(const char* name) {
         uint32_t curPos = writer->length();
-        const uint8_t *start = writer->buffer() + startPos;
-        const uint8_t *end = writer->buffer() + curPos;
-        const char *MAP = "0123456789ABCDEF";
+        const uint8_t* start = writer->buffer() + startPos;
+        const uint8_t* end = writer->buffer() + curPos;
+        const char* MAP = "0123456789ABCDEF";
         uint32_t bytes = end - start;
 
         char buffer[DumpMaxBytes * 3];
@@ -391,16 +391,16 @@ struct JitcodeMapBufferWriteSpewer
         startPos = writer->length();
     }
 #else // !DEBUG
-    JitcodeMapBufferWriteSpewer(CompactBufferWriter &w) {}
-    void spewAndAdvance(const char *name) {}
+    JitcodeMapBufferWriteSpewer(CompactBufferWriter& w) {}
+    void spewAndAdvance(const char* name) {}
 #endif // DEBUG
 };
 
 // Write a run, starting at the given NativeToBytecode entry, into the given buffer writer.
 /* static */ bool
-JitcodeRegionEntry::WriteRun(CompactBufferWriter &writer,
-                             JSScript **scriptList, uint32_t scriptListSize,
-                             uint32_t runLength, const CodeGeneratorShared::NativeToBytecode *entry)
+JitcodeRegionEntry::WriteRun(CompactBufferWriter& writer,
+                             JSScript** scriptList, uint32_t scriptListSize,
+                             uint32_t runLength, const CodeGeneratorShared::NativeToBytecode* entry)
 {
     JS_ASSERT(runLength > 0);
     JS_ASSERT(runLength <= MAX_RUN_LENGTH);
@@ -420,8 +420,8 @@ JitcodeRegionEntry::WriteRun(CompactBufferWriter &writer,
 
     // Write each script/pc pair.
     {
-        InlineScriptTree *curTree = entry->tree;
-        jsbytecode *curPc = entry->pc;
+        InlineScriptTree* curTree = entry->tree;
+        jsbytecode* curPc = entry->pc;
         for (uint8_t i = 0; i < scriptDepth; i++) {
             // Find the index of the script within the list.
             // NB: scriptList is guaranteed to contain curTree->script()
@@ -474,7 +474,7 @@ JitcodeRegionEntry::WriteRun(CompactBufferWriter &writer,
             IonSpewStart(IonSpew_Profiling, "      OPS: ");
             uint32_t curBc = curBytecodeOffset;
             while (curBc < nextBytecodeOffset) {
-                jsbytecode *pc = entry[i].tree->script()->offsetToPC(curBc);
+                jsbytecode* pc = entry[i].tree->script()->offsetToPC(curBc);
                 JSOp op = JSOp(*pc);
                 IonSpewCont(IonSpew_Profiling, "%s ", js_CodeName[op]);
                 curBc += GetBytecodeLength(pc);
@@ -533,9 +533,9 @@ JitcodeRegionEntry::findPcOffset(uint32_t queryNativeOffset, uint32_t startPcOff
 }
 
 bool
-JitcodeIonTable::makeIonEntry(JSContext *cx, JitCode *code,
-                              uint32_t numScripts, JSScript **scripts,
-                              JitcodeGlobalEntry::IonEntry &out)
+JitcodeIonTable::makeIonEntry(JSContext* cx, JitCode* code,
+                              uint32_t numScripts, JSScript** scripts,
+                              JitcodeGlobalEntry::IonEntry& out)
 {
     typedef JitcodeGlobalEntry::IonEntry::SizedScriptList SizedScriptList;
 
@@ -552,10 +552,10 @@ JitcodeIonTable::makeIonEntry(JSContext *cx, JitCode *code,
     }
 
     // Create SizedScriptList
-    void *mem = (void *)cx->pod_malloc<uint8_t>(SizedScriptList::AllocSizeFor(numScripts));
+    void* mem = (void*)cx->pod_malloc<uint8_t>(SizedScriptList::AllocSizeFor(numScripts));
     if (!mem)
         return false;
-    SizedScriptList *scriptList = new (mem) SizedScriptList(numScripts, scripts);
+    SizedScriptList* scriptList = new (mem) SizedScriptList(numScripts, scripts);
     out.init(code->raw(), code->raw() + code->instructionsSize(), scriptList, this);
     return true;
 }
@@ -615,11 +615,11 @@ JitcodeIonTable::findRegionEntry(uint32_t nativeOffset) const
 }
 
 /* static */ bool
-JitcodeIonTable::WriteIonTable(CompactBufferWriter &writer,
-                               JSScript **scriptList, uint32_t scriptListSize,
-                               const CodeGeneratorShared::NativeToBytecode *start,
-                               const CodeGeneratorShared::NativeToBytecode *end,
-                               uint32_t *tableOffsetOut, uint32_t *numRegionsOut)
+JitcodeIonTable::WriteIonTable(CompactBufferWriter& writer,
+                               JSScript** scriptList, uint32_t scriptListSize,
+                               const CodeGeneratorShared::NativeToBytecode* start,
+                               const CodeGeneratorShared::NativeToBytecode* end,
+                               uint32_t* tableOffsetOut, uint32_t* numRegionsOut)
 {
     JS_ASSERT(tableOffsetOut != nullptr);
     JS_ASSERT(numRegionsOut != nullptr);
@@ -638,7 +638,7 @@ JitcodeIonTable::WriteIonTable(CompactBufferWriter &writer,
 
     // Write out runs first.  Keep a vector tracking the positive offsets from payload
     // start to the run.
-    const CodeGeneratorShared::NativeToBytecode *curEntry = start;
+    const CodeGeneratorShared::NativeToBytecode* curEntry = start;
     js::Vector<uint32_t, 32, SystemAllocPolicy> runOffsets;
 
     while (curEntry != end) {

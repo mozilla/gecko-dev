@@ -51,10 +51,10 @@ class ForkJoinNurseryCollectionTracer : public JSTracer
     friend class ForkJoinNursery;
 
   public:
-    ForkJoinNurseryCollectionTracer(JSRuntime *rt, ForkJoinNursery *nursery);
+    ForkJoinNurseryCollectionTracer(JSRuntime* rt, ForkJoinNursery* nursery);
 
   private:
-    ForkJoinNursery *const nursery_;
+    ForkJoinNursery* const nursery_;
 };
 
 // The layout for a chunk used by the ForkJoinNursery.
@@ -76,25 +76,25 @@ struct ForkJoinNurseryChunk
 class ForkJoinGCShared
 {
   public:
-    explicit ForkJoinGCShared(ForkJoinShared *shared) : shared_(shared) {}
+    explicit ForkJoinGCShared(ForkJoinShared* shared) : shared_(shared) {}
 
-    JSRuntime *runtime();
-    JS::Zone *zone();
+    JSRuntime* runtime();
+    JS::Zone* zone();
 
     // The updatable object (the ForkJoin result array), or nullptr.
-    JSObject *updatable();
+    JSObject* updatable();
 
     // allocateNurseryChunk() returns nullptr on oom.
-    ForkJoinNurseryChunk *allocateNurseryChunk();
+    ForkJoinNurseryChunk* allocateNurseryChunk();
 
     // p must have been obtained through allocateNurseryChunk.
-    void freeNurseryChunk(ForkJoinNurseryChunk *p);
+    void freeNurseryChunk(ForkJoinNurseryChunk* p);
 
     // GC statistics output.
-    void spewGC(const char *fmt, ...);
+    void spewGC(const char* fmt, ...);
 
   private:
-    ForkJoinShared *const shared_;
+    ForkJoinShared* const shared_;
 };
 
 // There is one ForkJoinNursery per ForkJoin worker.
@@ -109,7 +109,7 @@ class ForkJoinNursery
     static_assert(sizeof(ForkJoinNurseryChunk) == ChunkSize,
                   "ForkJoinNursery chunk size must match Chunk size.");
   public:
-    ForkJoinNursery(ForkJoinContext *cx, ForkJoinGCShared *shared, Allocator *tenured);
+    ForkJoinNursery(ForkJoinContext* cx, ForkJoinGCShared* shared, Allocator* tenured);
     ~ForkJoinNursery();
 
     // Attempt to allocate initial storage, returns false on failure
@@ -133,7 +133,7 @@ class ForkJoinNursery
     //    tooLarge is set to 'true'.
     //
     // This method will never run the garbage collector.
-    JSObject *allocateObject(size_t size, size_t numDynamic, bool& tooLarge);
+    JSObject* allocateObject(size_t size, size_t numDynamic, bool& tooLarge);
 
     // Allocate and reallocate slot and element arrays for existing
     // objects.  These will create or maintain the arrays within the
@@ -143,30 +143,30 @@ class ForkJoinNursery
     // return nullptr then the old array is still live.
     //
     // These methods will never run the garbage collector.
-    HeapSlot *allocateSlots(JSObject *obj, uint32_t nslots);
-    HeapSlot *reallocateSlots(JSObject *obj, HeapSlot *oldSlots,
+    HeapSlot* allocateSlots(JSObject* obj, uint32_t nslots);
+    HeapSlot* reallocateSlots(JSObject* obj, HeapSlot* oldSlots,
                               uint32_t oldCount, uint32_t newCount);
-    ObjectElements *allocateElements(JSObject *obj, uint32_t nelems);
-    ObjectElements *reallocateElements(JSObject *obj, ObjectElements *oldHeader,
+    ObjectElements* allocateElements(JSObject* obj, uint32_t nelems);
+    ObjectElements* reallocateElements(JSObject* obj, ObjectElements* oldHeader,
                                        uint32_t oldCount, uint32_t newCount);
 
     // Free a slots array.
-    void freeSlots(HeapSlot *slots);
+    void freeSlots(HeapSlot* slots);
 
     // The method embedded in a ForkJoinNurseryCollectionTracer
-    static void MinorGCCallback(JSTracer *trcArg, void **thingp, JSGCTraceKind kind);
+    static void MinorGCCallback(JSTracer* trcArg, void** thingp, JSGCTraceKind kind);
 
     // A method called from the JIT frame updater
-    static void forwardBufferPointer(JSTracer *trc, HeapSlot **pSlotsElems);
+    static void forwardBufferPointer(JSTracer* trc, HeapSlot** pSlotsElems);
 
     // Return true iff obj is inside the current newspace.
-    MOZ_ALWAYS_INLINE bool isInsideNewspace(const void *obj);
+    MOZ_ALWAYS_INLINE bool isInsideNewspace(const void* obj);
 
     // Return true iff collection is ongoing and obj is inside the current fromspace.
-    MOZ_ALWAYS_INLINE bool isInsideFromspace(const void *obj);
+    MOZ_ALWAYS_INLINE bool isInsideFromspace(const void* obj);
 
     template <typename T>
-    MOZ_ALWAYS_INLINE bool getForwardedPointer(T **ref);
+    MOZ_ALWAYS_INLINE bool getForwardedPointer(T** ref);
 
     static size_t offsetOfPosition() {
         return offsetof(ForkJoinNursery, position_);
@@ -202,15 +202,15 @@ class ForkJoinNursery
     // Allocate an object in the nursery's newspace.  Return nullptr
     // when allocation fails (ie the object can't fit in the current
     // chunk and the number of chunks it at its maximum).
-    void *allocate(size_t size);
+    void* allocate(size_t size);
 
     // Allocate an external slot array and register it with this nursery.
-    HeapSlot *allocateHugeSlots(JSObject *obj, size_t nslots);
+    HeapSlot* allocateHugeSlots(JSObject* obj, size_t nslots);
 
     // Reallocate an external slot array, unregister the old array and
     // register the new array.  If the allocation fails then leave
     // everything unchanged.
-    HeapSlot *reallocateHugeSlots(JSObject *obj, HeapSlot *oldSlots,
+    HeapSlot* reallocateHugeSlots(JSObject* obj, HeapSlot* oldSlots,
                                   uint32_t oldCount, uint32_t newCount);
 
     // Walk the list of registered slot arrays and free them all.
@@ -231,39 +231,39 @@ class ForkJoinNursery
     void pjsCollection(int op /* A combination of PJSCollectionOp bits */);
     bool initNewspace();
     void flip();
-    void forwardFromRoots(ForkJoinNurseryCollectionTracer *trc);
-    void forwardFromUpdatable(ForkJoinNurseryCollectionTracer *trc);
-    void forwardFromStack(ForkJoinNurseryCollectionTracer *trc);
-    void forwardFromTenured(ForkJoinNurseryCollectionTracer *trc);
-    void forwardFromRematerializedFrames(ForkJoinNurseryCollectionTracer *trc);
-    void collectToFixedPoint(ForkJoinNurseryCollectionTracer *trc);
+    void forwardFromRoots(ForkJoinNurseryCollectionTracer* trc);
+    void forwardFromUpdatable(ForkJoinNurseryCollectionTracer* trc);
+    void forwardFromStack(ForkJoinNurseryCollectionTracer* trc);
+    void forwardFromTenured(ForkJoinNurseryCollectionTracer* trc);
+    void forwardFromRematerializedFrames(ForkJoinNurseryCollectionTracer* trc);
+    void collectToFixedPoint(ForkJoinNurseryCollectionTracer* trc);
     void freeFromspace();
-    void computeNurserySizeAfterGC(size_t live, const char **msg);
+    void computeNurserySizeAfterGC(size_t live, const char** msg);
 
-    AllocKind getObjectAllocKind(JSObject *src);
-    void *allocateInTospaceInfallible(size_t thingSize);
-    void *allocateInTospace(AllocKind thingKind);
-    template <typename T> T *allocateInTospace(size_t nelem);
-    MOZ_ALWAYS_INLINE bool shouldMoveObject(void **thingp);
-    void *moveObjectToTospace(JSObject *src);
-    size_t copyObjectToTospace(JSObject *dst, JSObject *src, gc::AllocKind dstKind);
-    size_t copyElementsToTospace(JSObject *dst, JSObject *src, gc::AllocKind dstKind);
-    size_t copySlotsToTospace(JSObject *dst, JSObject *src, gc::AllocKind dstKind);
-    MOZ_ALWAYS_INLINE void insertIntoFixupList(RelocationOverlay *entry);
+    AllocKind getObjectAllocKind(JSObject* src);
+    void* allocateInTospaceInfallible(size_t thingSize);
+    void* allocateInTospace(AllocKind thingKind);
+    template <typename T> T* allocateInTospace(size_t nelem);
+    MOZ_ALWAYS_INLINE bool shouldMoveObject(void** thingp);
+    void* moveObjectToTospace(JSObject* src);
+    size_t copyObjectToTospace(JSObject* dst, JSObject* src, gc::AllocKind dstKind);
+    size_t copyElementsToTospace(JSObject* dst, JSObject* src, gc::AllocKind dstKind);
+    size_t copySlotsToTospace(JSObject* dst, JSObject* src, gc::AllocKind dstKind);
+    MOZ_ALWAYS_INLINE void insertIntoFixupList(RelocationOverlay* entry);
 
-    void setSlotsForwardingPointer(HeapSlot *oldSlots, HeapSlot *newSlots, uint32_t nslots);
-    void setElementsForwardingPointer(ObjectElements *oldHeader, ObjectElements *newHeader,
+    void setSlotsForwardingPointer(HeapSlot* oldSlots, HeapSlot* newSlots, uint32_t nslots);
+    void setElementsForwardingPointer(ObjectElements* oldHeader, ObjectElements* newHeader,
                                       uint32_t nelems);
 
-    MOZ_ALWAYS_INLINE void traceObject(ForkJoinNurseryCollectionTracer *trc, JSObject *obj);
-    MOZ_ALWAYS_INLINE void markSlots(HeapSlot *vp, uint32_t nslots);
-    MOZ_ALWAYS_INLINE void markSlots(HeapSlot *vp, HeapSlot *end);
-    MOZ_ALWAYS_INLINE void markSlot(HeapSlot *slotp);
+    MOZ_ALWAYS_INLINE void traceObject(ForkJoinNurseryCollectionTracer* trc, JSObject* obj);
+    MOZ_ALWAYS_INLINE void markSlots(HeapSlot* vp, uint32_t nslots);
+    MOZ_ALWAYS_INLINE void markSlots(HeapSlot* vp, HeapSlot* end);
+    MOZ_ALWAYS_INLINE void markSlot(HeapSlot* slotp);
 
-    ForkJoinContext *const cx_;      // The context that owns this nursery
-    Allocator *const tenured_;       // Private tenured area
-    ForkJoinGCShared *const shared_; // Common to all nurseries belonging to a ForkJoin instance
-    JS::Zone *evacuationZone_;       // During evacuating GC this is non-NULL: the Zone we
+    ForkJoinContext* const cx_;      // The context that owns this nursery
+    Allocator* const tenured_;       // Private tenured area
+    ForkJoinGCShared* const shared_; // Common to all nurseries belonging to a ForkJoin instance
+    JS::Zone* evacuationZone_;       // During evacuating GC this is non-NULL: the Zone we
                                      // allocate into
 
     uintptr_t currentStart_;         // Start of current area in newspace
@@ -276,18 +276,18 @@ class ForkJoinNursery
 
     bool isEvacuating_;              // Set to true when the current minor GC is evacuating
     size_t movedSize_;               // Bytes copied during the current minor GC
-    RelocationOverlay *head_;        // First node of relocation list
-    RelocationOverlay **tail_;       // Pointer to 'next_' field of last node of relocation list
+    RelocationOverlay* head_;        // First node of relocation list
+    RelocationOverlay** tail_;       // Pointer to 'next_' field of last node of relocation list
 
-    typedef HashSet<HeapSlot *, PointerHasher<HeapSlot *, 3>, SystemAllocPolicy> HugeSlotsSet;
+    typedef HashSet<HeapSlot*, PointerHasher<HeapSlot*, 3>, SystemAllocPolicy> HugeSlotsSet;
 
     HugeSlotsSet hugeSlots[2];       // Hash sets for huge slots
 
     int hugeSlotsNew;                // Huge slot arrays in the newspace (index in hugeSlots)
     int hugeSlotsFrom;               // Huge slot arrays in the fromspace (index in hugeSlots)
 
-    ForkJoinNurseryChunk *newspace[MaxNurseryChunks];  // All allocation happens here
-    ForkJoinNurseryChunk *fromspace[MaxNurseryChunks]; // Meaningful during GC: the previous newspace
+    ForkJoinNurseryChunk* newspace[MaxNurseryChunks];  // All allocation happens here
+    ForkJoinNurseryChunk* fromspace[MaxNurseryChunks]; // Meaningful during GC: the previous newspace
 };
 
 } // namespace gc

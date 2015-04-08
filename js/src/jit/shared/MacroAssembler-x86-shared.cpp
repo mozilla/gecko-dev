@@ -147,7 +147,7 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 // Builds an exit frame on the stack, with a return address to an internal
 // non-function. Returns offset to be passed to markSafepointAt().
 bool
-MacroAssemblerX86Shared::buildFakeExitFrame(Register scratch, uint32_t *offset)
+MacroAssemblerX86Shared::buildFakeExitFrame(Register scratch, uint32_t* offset)
 {
     mozilla::DebugOnly<uint32_t> initialDepth = framePushed();
 
@@ -166,7 +166,7 @@ MacroAssemblerX86Shared::buildFakeExitFrame(Register scratch, uint32_t *offset)
 }
 
 void
-MacroAssemblerX86Shared::callWithExitFrame(JitCode *target)
+MacroAssemblerX86Shared::callWithExitFrame(JitCode* target)
 {
     uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
     Push(Imm32(descriptor));
@@ -174,19 +174,19 @@ MacroAssemblerX86Shared::callWithExitFrame(JitCode *target)
 }
 
 void
-MacroAssembler::alignFrameForICArguments(AfterICSaveLive &aic)
+MacroAssembler::alignFrameForICArguments(AfterICSaveLive& aic)
 {
     // Exists for MIPS compatibility.
 }
 
 void
-MacroAssembler::restoreFrameAlignmentForICArguments(AfterICSaveLive &aic)
+MacroAssembler::restoreFrameAlignmentForICArguments(AfterICSaveLive& aic)
 {
     // Exists for MIPS compatibility.
 }
 
 bool
-MacroAssemblerX86Shared::buildOOLFakeExitFrame(void *fakeReturnAddr)
+MacroAssemblerX86Shared::buildOOLFakeExitFrame(void* fakeReturnAddr)
 {
     uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
     Push(Imm32(descriptor));
@@ -197,7 +197,7 @@ MacroAssemblerX86Shared::buildOOLFakeExitFrame(void *fakeReturnAddr)
 void
 MacroAssemblerX86Shared::branchNegativeZero(FloatRegister reg,
                                             Register scratch,
-                                            Label *label)
+                                            Label* label)
 {
     // Determines whether the low double contained in the XMM register reg
     // is equal to -0.0.
@@ -229,7 +229,7 @@ MacroAssemblerX86Shared::branchNegativeZero(FloatRegister reg,
 void
 MacroAssemblerX86Shared::branchNegativeZeroFloat32(FloatRegister reg,
                                                    Register scratch,
-                                                   Label *label)
+                                                   Label* label)
 {
     movd(reg, scratch);
     cmpl(scratch, Imm32(1));

@@ -42,7 +42,7 @@ namespace gc {
 // the roots.  Behavior will be workload-dependent however.
 
 MOZ_ALWAYS_INLINE bool
-ForkJoinNursery::isInsideNewspace(const void *addr)
+ForkJoinNursery::isInsideNewspace(const void* addr)
 {
     uintptr_t p = reinterpret_cast<uintptr_t>(addr);
     for (unsigned i = 0 ; i <= currentChunk_ ; i++) {
@@ -53,7 +53,7 @@ ForkJoinNursery::isInsideNewspace(const void *addr)
 }
 
 MOZ_ALWAYS_INLINE bool
-ForkJoinNursery::isInsideFromspace(const void *addr)
+ForkJoinNursery::isInsideFromspace(const void* addr)
 {
     uintptr_t p = reinterpret_cast<uintptr_t>(addr);
     for (unsigned i = 0 ; i < numFromspaceChunks_ ; i++) {
@@ -65,15 +65,15 @@ ForkJoinNursery::isInsideFromspace(const void *addr)
 
 template <typename T>
 MOZ_ALWAYS_INLINE bool
-ForkJoinNursery::getForwardedPointer(T **ref)
+ForkJoinNursery::getForwardedPointer(T** ref)
 {
     JS_ASSERT(ref);
     JS_ASSERT(isInsideFromspace(*ref));
-    const RelocationOverlay *overlay = reinterpret_cast<const RelocationOverlay *>(*ref);
+    const RelocationOverlay* overlay = reinterpret_cast<const RelocationOverlay*>(*ref);
     if (!overlay->isForwarded())
         return false;
     // This static_cast from Cell* restricts T to valid (GC thing) types.
-    *ref = static_cast<T *>(overlay->forwardingAddress());
+    *ref = static_cast<T*>(overlay->forwardingAddress());
     return true;
 }
 

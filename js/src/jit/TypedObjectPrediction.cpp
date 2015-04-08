@@ -27,8 +27,8 @@ static const size_t ALL_FIELDS = SIZE_MAX;
 // descrA and which struct is passed as descrB, as the operation is
 // symmetric.)
 void
-TypedObjectPrediction::markAsCommonPrefix(const StructTypeDescr &descrA,
-                                          const StructTypeDescr &descrB,
+TypedObjectPrediction::markAsCommonPrefix(const StructTypeDescr& descrA,
+                                          const StructTypeDescr& descrB,
                                           size_t max)
 {
     // count is the number of fields in common. It begins as the min
@@ -57,7 +57,7 @@ TypedObjectPrediction::markAsCommonPrefix(const StructTypeDescr &descrA,
 }
 
 void
-TypedObjectPrediction::addProto(const TypedProto &proto)
+TypedObjectPrediction::addProto(const TypedProto& proto)
 {
     switch (predictionKind()) {
       case Empty:
@@ -76,8 +76,8 @@ TypedObjectPrediction::addProto(const TypedProto &proto)
         if (proto.kind() != type::Struct)
             return markInconsistent();
 
-        const StructTypeDescr &structDescr = proto.typeDescr().as<StructTypeDescr>();
-        const StructTypeDescr &currentDescr = data_.proto->typeDescr().as<StructTypeDescr>();
+        const StructTypeDescr& structDescr = proto.typeDescr().as<StructTypeDescr>();
+        const StructTypeDescr& currentDescr = data_.proto->typeDescr().as<StructTypeDescr>();
         markAsCommonPrefix(structDescr, currentDescr, ALL_FIELDS);
         return;
       }
@@ -141,7 +141,7 @@ TypedObjectPrediction::ofArrayKind() const
 }
 
 static bool
-DescrHasKnownSize(const TypeDescr &descr, int32_t *out)
+DescrHasKnownSize(const TypeDescr& descr, int32_t* out)
 {
     if (!descr.is<SizedTypeDescr>())
         return false;
@@ -151,7 +151,7 @@ DescrHasKnownSize(const TypeDescr &descr, int32_t *out)
 }
 
 bool
-TypedObjectPrediction::hasKnownSize(int32_t *out) const
+TypedObjectPrediction::hasKnownSize(int32_t* out) const
 {
     switch (predictionKind()) {
       case TypedObjectPrediction::Empty:
@@ -186,7 +186,7 @@ TypedObjectPrediction::hasKnownSize(int32_t *out) const
     MOZ_ASSUME_UNREACHABLE("Bad prediction kind");
 }
 
-const TypedProto *
+const TypedProto*
 TypedObjectPrediction::getKnownPrototype() const
 {
     switch (predictionKind()) {
@@ -264,7 +264,7 @@ TypedObjectPrediction::x4Type() const
 }
 
 bool
-TypedObjectPrediction::hasKnownArrayLength(int32_t *length) const
+TypedObjectPrediction::hasKnownArrayLength(int32_t* length) const
 {
     JS_ASSERT(ofArrayKind());
     switch (predictionKind()) {
@@ -291,8 +291,8 @@ TypedObjectPrediction::hasKnownArrayLength(int32_t *length) const
     MOZ_ASSUME_UNREACHABLE("Bad prediction kind");
 }
 
-static TypeDescr &
-DescrArrayElementType(const TypeDescr &descr) {
+static TypeDescr&
+DescrArrayElementType(const TypeDescr& descr) {
     return (descr.is<SizedArrayTypeDescr>()
             ? descr.as<SizedArrayTypeDescr>().elementType()
             : descr.as<UnsizedArrayTypeDescr>().elementType());
@@ -320,12 +320,12 @@ TypedObjectPrediction::arrayElementType() const
 }
 
 bool
-TypedObjectPrediction::hasFieldNamedPrefix(const StructTypeDescr &descr,
+TypedObjectPrediction::hasFieldNamedPrefix(const StructTypeDescr& descr,
                                            size_t fieldCount,
                                            jsid id,
-                                           size_t *fieldOffset,
-                                           TypedObjectPrediction *out,
-                                           size_t *index) const
+                                           size_t* fieldOffset,
+                                           TypedObjectPrediction* out,
+                                           size_t* index) const
 {
     // Find the index of the field |id| if any.
     if (!descr.fieldIndex(id, index))
@@ -343,9 +343,9 @@ TypedObjectPrediction::hasFieldNamedPrefix(const StructTypeDescr &descr,
 
 bool
 TypedObjectPrediction::hasFieldNamed(jsid id,
-                                     size_t *fieldOffset,
-                                     TypedObjectPrediction *fieldType,
-                                     size_t *fieldIndex) const
+                                     size_t* fieldOffset,
+                                     TypedObjectPrediction* fieldType,
+                                     size_t* fieldIndex) const
 {
     JS_ASSERT(kind() == type::Struct);
 

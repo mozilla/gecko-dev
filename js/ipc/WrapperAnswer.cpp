@@ -20,7 +20,7 @@ using namespace mozilla::jsipc;
 using mozilla::AutoSafeJSContext;
 
 bool
-WrapperAnswer::fail(JSContext *cx, ReturnStatus *rs)
+WrapperAnswer::fail(JSContext* cx, ReturnStatus* rs)
 {
     // By default, we set |undefined| unless we can get a more meaningful
     // exception.
@@ -51,14 +51,14 @@ WrapperAnswer::fail(JSContext *cx, ReturnStatus *rs)
 }
 
 bool
-WrapperAnswer::ok(ReturnStatus *rs)
+WrapperAnswer::ok(ReturnStatus* rs)
 {
     *rs = ReturnStatus(ReturnSuccess());
     return true;
 }
 
 bool
-WrapperAnswer::AnswerPreventExtensions(const ObjectId &objId, ReturnStatus *rs)
+WrapperAnswer::AnswerPreventExtensions(const ObjectId& objId, ReturnStatus* rs)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -77,7 +77,7 @@ WrapperAnswer::AnswerPreventExtensions(const ObjectId &objId, ReturnStatus *rs)
 }
 
 static void
-EmptyDesc(PPropertyDescriptor *desc)
+EmptyDesc(PPropertyDescriptor* desc)
 {
     desc->obj() = LocalObject(0);
     desc->attrs() = 0;
@@ -87,8 +87,8 @@ EmptyDesc(PPropertyDescriptor *desc)
 }
 
 bool
-WrapperAnswer::AnswerGetPropertyDescriptor(const ObjectId &objId, const nsString &id,
-					   ReturnStatus *rs, PPropertyDescriptor *out)
+WrapperAnswer::AnswerGetPropertyDescriptor(const ObjectId& objId, const nsString& id,
+					   ReturnStatus* rs, PPropertyDescriptor* out)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -121,8 +121,8 @@ WrapperAnswer::AnswerGetPropertyDescriptor(const ObjectId &objId, const nsString
 }
 
 bool
-WrapperAnswer::AnswerGetOwnPropertyDescriptor(const ObjectId &objId, const nsString &id,
-					      ReturnStatus *rs, PPropertyDescriptor *out)
+WrapperAnswer::AnswerGetOwnPropertyDescriptor(const ObjectId& objId, const nsString& id,
+					      ReturnStatus* rs, PPropertyDescriptor* out)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -155,8 +155,8 @@ WrapperAnswer::AnswerGetOwnPropertyDescriptor(const ObjectId &objId, const nsStr
 }
 
 bool
-WrapperAnswer::AnswerDefineProperty(const ObjectId &objId, const nsString &id,
-				    const PPropertyDescriptor &descriptor, ReturnStatus *rs)
+WrapperAnswer::AnswerDefineProperty(const ObjectId& objId, const nsString& id,
+				    const PPropertyDescriptor& descriptor, ReturnStatus* rs)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -193,8 +193,8 @@ WrapperAnswer::AnswerDefineProperty(const ObjectId &objId, const nsString &id,
 }
 
 bool
-WrapperAnswer::AnswerDelete(const ObjectId &objId, const nsString &id, ReturnStatus *rs,
-			    bool *success)
+WrapperAnswer::AnswerDelete(const ObjectId& objId, const nsString& id, ReturnStatus* rs,
+			    bool* success)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -220,7 +220,7 @@ WrapperAnswer::AnswerDelete(const ObjectId &objId, const nsString &id, ReturnSta
 }
 
 bool
-WrapperAnswer::AnswerHas(const ObjectId &objId, const nsString &id, ReturnStatus *rs, bool *bp)
+WrapperAnswer::AnswerHas(const ObjectId& objId, const nsString& id, ReturnStatus* rs, bool* bp)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -248,7 +248,7 @@ WrapperAnswer::AnswerHas(const ObjectId &objId, const nsString &id, ReturnStatus
 }
 
 bool
-WrapperAnswer::AnswerHasOwn(const ObjectId &objId, const nsString &id, ReturnStatus *rs, bool *bp)
+WrapperAnswer::AnswerHasOwn(const ObjectId& objId, const nsString& id, ReturnStatus* rs, bool* bp)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -276,8 +276,8 @@ WrapperAnswer::AnswerHasOwn(const ObjectId &objId, const nsString &id, ReturnSta
 }
 
 bool
-WrapperAnswer::AnswerGet(const ObjectId &objId, const ObjectVariant &receiverVar, const nsString &id,
-			 ReturnStatus *rs, JSVariant *result)
+WrapperAnswer::AnswerGet(const ObjectId& objId, const ObjectVariant& receiverVar, const nsString& id,
+			 ReturnStatus* rs, JSVariant* result)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -313,9 +313,9 @@ WrapperAnswer::AnswerGet(const ObjectId &objId, const ObjectVariant &receiverVar
 }
 
 bool
-WrapperAnswer::AnswerSet(const ObjectId &objId, const ObjectVariant &receiverVar, const nsString &id,
-			 const bool &strict, const JSVariant &value, ReturnStatus *rs,
-			 JSVariant *result)
+WrapperAnswer::AnswerSet(const ObjectId& objId, const ObjectVariant& receiverVar, const nsString& id,
+			 const bool& strict, const JSVariant& value, ReturnStatus* rs,
+			 JSVariant* result)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -356,7 +356,7 @@ WrapperAnswer::AnswerSet(const ObjectId &objId, const ObjectVariant &receiverVar
 }
 
 bool
-WrapperAnswer::AnswerIsExtensible(const ObjectId &objId, ReturnStatus *rs, bool *result)
+WrapperAnswer::AnswerIsExtensible(const ObjectId& objId, ReturnStatus* rs, bool* result)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -380,12 +380,12 @@ WrapperAnswer::AnswerIsExtensible(const ObjectId &objId, ReturnStatus *rs, bool 
 }
 
 bool
-WrapperAnswer::AnswerCallOrConstruct(const ObjectId &objId,
-                                     const nsTArray<JSParam> &argv,
-                                     const bool &construct,
-                                     ReturnStatus *rs,
-                                     JSVariant *result,
-                                     nsTArray<JSParam> *outparams)
+WrapperAnswer::AnswerCallOrConstruct(const ObjectId& objId,
+                                     const nsTArray<JSParam>& argv,
+                                     const bool& construct,
+                                     ReturnStatus* rs,
+                                     JSVariant* result,
+                                     nsTArray<JSParam>* outparams)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -413,7 +413,7 @@ WrapperAnswer::AnswerCallOrConstruct(const ObjectId &objId,
     for (size_t i = 0; i < argv.Length(); i++) {
         if (argv[i].type() == JSParam::Tvoid_t) {
             // This is an outparam.
-            JSCompartment *compartment = js::GetContextCompartment(cx);
+            JSCompartment* compartment = js::GetContextCompartment(cx);
             RootedObject global(cx, JS_GetGlobalForCompartmentOrNull(cx, compartment));
             RootedObject obj(cx, xpc::NewOutObject(cx, global));
             if (!obj)
@@ -487,8 +487,8 @@ WrapperAnswer::AnswerCallOrConstruct(const ObjectId &objId,
 }
 
 bool
-WrapperAnswer::AnswerObjectClassIs(const ObjectId &objId, const uint32_t &classValue,
-				   bool *result)
+WrapperAnswer::AnswerObjectClassIs(const ObjectId& objId, const uint32_t& classValue,
+				   bool* result)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -509,7 +509,7 @@ WrapperAnswer::AnswerObjectClassIs(const ObjectId &objId, const uint32_t &classV
 }
 
 bool
-WrapperAnswer::AnswerClassName(const ObjectId &objId, nsString *name)
+WrapperAnswer::AnswerClassName(const ObjectId& objId, nsString* name)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -529,8 +529,8 @@ WrapperAnswer::AnswerClassName(const ObjectId &objId, nsString *name)
 }
 
 bool
-WrapperAnswer::AnswerGetPropertyNames(const ObjectId &objId, const uint32_t &flags,
-				      ReturnStatus *rs, nsTArray<nsString> *names)
+WrapperAnswer::AnswerGetPropertyNames(const ObjectId& objId, const uint32_t& flags,
+				      ReturnStatus* rs, nsTArray<nsString>* names)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -559,8 +559,8 @@ WrapperAnswer::AnswerGetPropertyNames(const ObjectId &objId, const uint32_t &fla
 }
 
 bool
-WrapperAnswer::AnswerInstanceOf(const ObjectId &objId, const JSIID &iid, ReturnStatus *rs,
-				bool *instanceof)
+WrapperAnswer::AnswerInstanceOf(const ObjectId& objId, const JSIID& iid, ReturnStatus* rs,
+				bool* instanceof)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -586,9 +586,9 @@ WrapperAnswer::AnswerInstanceOf(const ObjectId &objId, const JSIID &iid, ReturnS
 }
 
 bool
-WrapperAnswer::AnswerDOMInstanceOf(const ObjectId &objId, const int &prototypeID,
-				   const int &depth,
-				   ReturnStatus *rs, bool *instanceof)
+WrapperAnswer::AnswerDOMInstanceOf(const ObjectId& objId, const int& prototypeID,
+				   const int& depth,
+				   ReturnStatus* rs, bool* instanceof)
 {
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
@@ -612,9 +612,9 @@ WrapperAnswer::AnswerDOMInstanceOf(const ObjectId &objId, const int &prototypeID
 }
 
 bool
-WrapperAnswer::RecvDropObject(const ObjectId &objId)
+WrapperAnswer::RecvDropObject(const ObjectId& objId)
 {
-    JSObject *obj = findObjectById(objId);
+    JSObject* obj = findObjectById(objId);
     if (obj) {
         objectIds_.remove(obj);
         objects_.remove(objId);

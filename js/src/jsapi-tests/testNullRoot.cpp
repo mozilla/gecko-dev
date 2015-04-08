@@ -27,7 +27,7 @@ BEGIN_TEST(testNullRoot)
     return true;
 }
 
-JS::Heap<JSObject *> obj;
-JS::Heap<JSString *> str;
-JS::Heap<JSScript *> script;
+JS::Heap<JSObject*> obj;
+JS::Heap<JSString*> str;
+JS::Heap<JSScript*> script;
 END_TEST(testNullRoot)

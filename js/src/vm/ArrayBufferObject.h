@@ -36,7 +36,7 @@ class ArrayBufferViewObject;
 // Note that |TypedArrayObjectTemplate| is just an implementation
 // detail that makes implementing its various subclasses easier.
 
-typedef Vector<ArrayBufferObject *, 0, SystemAllocPolicy> ArrayBufferVector;
+typedef Vector<ArrayBufferObject*, 0, SystemAllocPolicy> ArrayBufferVector;
 
 /*
  * ArrayBufferObject
@@ -49,8 +49,8 @@ typedef Vector<ArrayBufferObject *, 0, SystemAllocPolicy> ArrayBufferVector;
  */
 class ArrayBufferObject : public JSObject
 {
-    static bool byteLengthGetterImpl(JSContext *cx, CallArgs args);
-    static bool fun_slice_impl(JSContext *cx, CallArgs args);
+    static bool byteLengthGetterImpl(JSContext* cx, CallArgs args);
+    static bool fun_slice_impl(JSContext* cx, CallArgs args);
 
   public:
     static const uint8_t DATA_SLOT = 0;
@@ -93,7 +93,7 @@ class ArrayBufferObject : public JSObject
   public:
 
     class BufferContents {
-        uint8_t *data_;
+        uint8_t* data_;
         BufferKind kind_;
 
         friend class ArrayBufferObject;
@@ -101,24 +101,24 @@ class ArrayBufferObject : public JSObject
         typedef void (BufferContents::* ConvertibleToBool)();
         void nonNull() {}
 
-        BufferContents(uint8_t *data, BufferKind kind) : data_(data), kind_(kind) {
+        BufferContents(uint8_t* data, BufferKind kind) : data_(data), kind_(kind) {
             MOZ_ASSERT((kind_ & ~KIND_MASK) == 0);
         }
 
       public:
 
         template<BufferKind Kind>
-        static BufferContents create(void *data)
+        static BufferContents create(void* data)
         {
             return BufferContents(static_cast<uint8_t*>(data), Kind);
         }
 
-        static BufferContents createUnowned(void *data)
+        static BufferContents createUnowned(void* data)
         {
             return BufferContents(static_cast<uint8_t*>(data), PLAIN_BUFFER);
         }
 
-        uint8_t *data() const { return data_; }
+        uint8_t* data() const { return data_; }
         BufferKind kind() const { return kind_; }
 
         operator ConvertibleToBool() const { return data_ ? &BufferContents::nonNull : nullptr; }
@@ -130,43 +130,43 @@ class ArrayBufferObject : public JSObject
     static const JSFunctionSpec jsfuncs[];
     static const JSFunctionSpec jsstaticfuncs[];
 
-    static bool byteLengthGetter(JSContext *cx, unsigned argc, Value *vp);
+    static bool byteLengthGetter(JSContext* cx, unsigned argc, Value* vp);
 
-    static bool fun_slice(JSContext *cx, unsigned argc, Value *vp);
+    static bool fun_slice(JSContext* cx, unsigned argc, Value* vp);
 
-    static bool fun_isView(JSContext *cx, unsigned argc, Value *vp);
+    static bool fun_isView(JSContext* cx, unsigned argc, Value* vp);
 
-    static bool class_constructor(JSContext *cx, unsigned argc, Value *vp);
+    static bool class_constructor(JSContext* cx, unsigned argc, Value* vp);
 
-    static ArrayBufferObject *create(JSContext *cx, uint32_t nbytes,
+    static ArrayBufferObject* create(JSContext* cx, uint32_t nbytes,
                                      BufferContents contents,
                                      NewObjectKind newKind = GenericObject);
-    static ArrayBufferObject *create(JSContext *cx, uint32_t nbytes,
+    static ArrayBufferObject* create(JSContext* cx, uint32_t nbytes,
                                      NewObjectKind newKind = GenericObject);
 
-    static JSObject *createSlice(JSContext *cx, Handle<ArrayBufferObject*> arrayBuffer,
+    static JSObject* createSlice(JSContext* cx, Handle<ArrayBufferObject*> arrayBuffer,
                                  uint32_t begin, uint32_t end);
 
-    static bool createDataViewForThisImpl(JSContext *cx, CallArgs args);
-    static bool createDataViewForThis(JSContext *cx, unsigned argc, Value *vp);
+    static bool createDataViewForThisImpl(JSContext* cx, CallArgs args);
+    static bool createDataViewForThis(JSContext* cx, unsigned argc, Value* vp);
 
     template<typename T>
-    static bool createTypedArrayFromBufferImpl(JSContext *cx, CallArgs args);
+    static bool createTypedArrayFromBufferImpl(JSContext* cx, CallArgs args);
 
     template<typename T>
-    static bool createTypedArrayFromBuffer(JSContext *cx, unsigned argc, Value *vp);
+    static bool createTypedArrayFromBuffer(JSContext* cx, unsigned argc, Value* vp);
 
-    static void obj_trace(JSTracer *trc, JSObject *obj);
+    static void obj_trace(JSTracer* trc, JSObject* obj);
 
-    static void sweep(JSCompartment *rt);
+    static void sweep(JSCompartment* rt);
 
-    static void fixupDataPointerAfterMovingGC(const ArrayBufferObject &src, ArrayBufferObject &dst);
+    static void fixupDataPointerAfterMovingGC(const ArrayBufferObject& src, ArrayBufferObject& dst);
 
-    static void resetArrayBufferList(JSCompartment *rt);
-    static bool saveArrayBufferList(JSCompartment *c, ArrayBufferVector &vector);
-    static void restoreArrayBufferLists(ArrayBufferVector &vector);
+    static void resetArrayBufferList(JSCompartment* rt);
+    static bool saveArrayBufferList(JSCompartment* c, ArrayBufferVector& vector);
+    static void restoreArrayBufferLists(ArrayBufferVector& vector);
 
-    static BufferContents stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffer);
+    static BufferContents stealContents(JSContext* cx, Handle<ArrayBufferObject*> buffer);
 
     bool hasStealableContents() const {
         // Inline elements strictly adhere to the corresponding buffer.
@@ -186,32 +186,32 @@ class ArrayBufferObject : public JSObject
         return !isNeutered();
     }
 
-    static void addSizeOfExcludingThis(JSObject *obj, mozilla::MallocSizeOf mallocSizeOf,
-                                       JS::ClassInfo *info);
+    static void addSizeOfExcludingThis(JSObject* obj, mozilla::MallocSizeOf mallocSizeOf,
+                                       JS::ClassInfo* info);
 
-    void addView(ArrayBufferViewObject *view);
+    void addView(ArrayBufferViewObject* view);
 
     void setNewOwnedData(FreeOp* fop, BufferContents newContents);
-    void changeContents(JSContext *cx, BufferContents newContents);
+    void changeContents(JSContext* cx, BufferContents newContents);
 
     /*
      * Ensure data is not stored inline in the object. Used when handing back a
      * GC-safe pointer.
      */
-    static bool ensureNonInline(JSContext *cx, Handle<ArrayBufferObject*> buffer);
+    static bool ensureNonInline(JSContext* cx, Handle<ArrayBufferObject*> buffer);
 
-    bool canNeuter(JSContext *cx);
+    bool canNeuter(JSContext* cx);
 
     /* Neuter this buffer and all its views. */
-    static void neuter(JSContext *cx, Handle<ArrayBufferObject*> buffer, BufferContents newContents);
+    static void neuter(JSContext* cx, Handle<ArrayBufferObject*> buffer, BufferContents newContents);
 
-    uint8_t *dataPointer() const;
+    uint8_t* dataPointer() const;
     size_t byteLength() const;
     BufferContents contents() const {
         return BufferContents(dataPointer(), bufferKind());
     }
 
-    void releaseData(FreeOp *fop);
+    void releaseData(FreeOp* fop);
 
     /*
      * Check if the arrayBuffer contains any data. This will return false for
@@ -227,12 +227,12 @@ class ArrayBufferObject : public JSObject
     bool isMappedArrayBuffer() const { return flags() & MAPPED_BUFFER; }
     bool isNeutered() const { return flags() & NEUTERED_BUFFER; }
 
-    static bool prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer,
+    static bool prepareForAsmJS(JSContext* cx, Handle<ArrayBufferObject*> buffer,
                                 bool usesSignalHandlers);
-    static bool prepareForAsmJSNoSignals(JSContext *cx, Handle<ArrayBufferObject*> buffer);
-    static bool canNeuterAsmJSArrayBuffer(JSContext *cx, ArrayBufferObject &buffer);
+    static bool prepareForAsmJSNoSignals(JSContext* cx, Handle<ArrayBufferObject*> buffer);
+    static bool canNeuterAsmJSArrayBuffer(JSContext* cx, ArrayBufferObject& buffer);
 
-    static void finalize(FreeOp *fop, JSObject *obj);
+    static void finalize(FreeOp* fop, JSObject* obj);
 
     static BufferContents createMappedContents(int fd, size_t offset, size_t length);
 
@@ -251,9 +251,9 @@ class ArrayBufferObject : public JSObject
     void setDataPointer(BufferContents contents, OwnsState ownsState);
     void setByteLength(size_t length);
 
-    ArrayBufferViewObject *viewList() const;
-    void setViewList(ArrayBufferViewObject *viewsHead);
-    void setViewListNoBarrier(ArrayBufferViewObject *viewsHead);
+    ArrayBufferViewObject* viewList() const;
+    void setViewList(ArrayBufferViewObject* viewsHead);
+    void setViewListNoBarrier(ArrayBufferViewObject* viewsHead);
 
     uint32_t flags() const;
     void setFlags(uint32_t flags);
@@ -280,8 +280,8 @@ class ArrayBufferObject : public JSObject
         setDataPointer(contents, ownsState);
     }
 
-    void releaseAsmJSArray(FreeOp *fop);
-    void releaseAsmJSArrayNoSignals(FreeOp *fop);
+    void releaseAsmJSArray(FreeOp* fop);
+    void releaseAsmJSArrayNoSignals(FreeOp* fop);
     void releaseMappedArray();
 };
 
@@ -307,39 +307,39 @@ class ArrayBufferViewObject : public JSObject
     static const size_t NEXT_VIEW_SLOT   = JS_BUFVIEW_SLOT_NEXT_VIEW;
 
   public:
-    static ArrayBufferObject *bufferObject(JSContext *cx, Handle<ArrayBufferViewObject *> obj);
+    static ArrayBufferObject* bufferObject(JSContext* cx, Handle<ArrayBufferViewObject*> obj);
 
-    ArrayBufferViewObject *nextView() const {
+    ArrayBufferViewObject* nextView() const {
         return static_cast<ArrayBufferViewObject*>(getFixedSlot(NEXT_VIEW_SLOT).toPrivate());
     }
 
-    inline void setNextView(ArrayBufferViewObject *view);
+    inline void setNextView(ArrayBufferViewObject* view);
 
-    void neuter(void *newData);
+    void neuter(void* newData);
 
-    static void trace(JSTracer *trc, JSObject *obj);
+    static void trace(JSTracer* trc, JSObject* obj);
 
-    uint8_t *dataPointer() {
-        return static_cast<uint8_t *>(getPrivate());
+    uint8_t* dataPointer() {
+        return static_cast<uint8_t*>(getPrivate());
     }
 };
 
 bool
-ToClampedIndex(JSContext *cx, HandleValue v, uint32_t length, uint32_t *out);
+ToClampedIndex(JSContext* cx, HandleValue v, uint32_t length, uint32_t* out);
 
 inline void
-PostBarrierTypedArrayObject(JSObject *obj)
+PostBarrierTypedArrayObject(JSObject* obj)
 {
 #ifdef JSGC_GENERATIONAL
     JS_ASSERT(obj);
-    JSRuntime *rt = obj->runtimeFromMainThread();
+    JSRuntime* rt = obj->runtimeFromMainThread();
     if (!rt->isHeapBusy() && !IsInsideNursery(JS::AsCell(obj)))
         rt->gc.storeBuffer.putWholeCellFromMainThread(obj);
 #endif
 }
 
 inline void
-InitArrayBufferViewDataPointer(ArrayBufferViewObject *obj, ArrayBufferObject *buffer, size_t byteOffset)
+InitArrayBufferViewDataPointer(ArrayBufferViewObject* obj, ArrayBufferObject* buffer, size_t byteOffset)
 {
     /*
      * N.B. The base of the array's data is stored in the object's
@@ -358,12 +358,12 @@ InitArrayBufferViewDataPointer(ArrayBufferViewObject *obj, ArrayBufferObject *bu
  */
 bool IsArrayBuffer(HandleValue v);
 bool IsArrayBuffer(HandleObject obj);
-bool IsArrayBuffer(JSObject *obj);
-ArrayBufferObject &AsArrayBuffer(HandleObject obj);
-ArrayBufferObject &AsArrayBuffer(JSObject *obj);
+bool IsArrayBuffer(JSObject* obj);
+ArrayBufferObject& AsArrayBuffer(HandleObject obj);
+ArrayBufferObject& AsArrayBuffer(JSObject* obj);
 
 inline void
-ArrayBufferViewObject::setNextView(ArrayBufferViewObject *view)
+ArrayBufferViewObject::setNextView(ArrayBufferViewObject* view)
 {
     setFixedSlot(NEXT_VIEW_SLOT, PrivateValue(view));
     PostBarrierTypedArrayObject(this);

@@ -16,25 +16,25 @@
 using namespace js;
 using namespace js::jit;
 
-CodeGeneratorX64::CodeGeneratorX64(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
+CodeGeneratorX64::CodeGeneratorX64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm)
   : CodeGeneratorX86Shared(gen, graph, masm)
 {
 }
 
 ValueOperand
-CodeGeneratorX64::ToValue(LInstruction *ins, size_t pos)
+CodeGeneratorX64::ToValue(LInstruction* ins, size_t pos)
 {
     return ValueOperand(ToRegister(ins->getOperand(pos)));
 }
 
 ValueOperand
-CodeGeneratorX64::ToOutValue(LInstruction *ins)
+CodeGeneratorX64::ToOutValue(LInstruction* ins)
 {
     return ValueOperand(ToRegister(ins->getDef(0)));
 }
 
 ValueOperand
-CodeGeneratorX64::ToTempValue(LInstruction *ins, size_t pos)
+CodeGeneratorX64::ToTempValue(LInstruction* ins, size_t pos)
 {
     return ValueOperand(ToRegister(ins->getTemp(pos)));
 }
@@ -58,18 +58,18 @@ FrameSizeClass::frameSize() const
 }
 
 bool
-CodeGeneratorX64::visitValue(LValue *value)
+CodeGeneratorX64::visitValue(LValue* value)
 {
-    LDefinition *reg = value->getDef(0);
+    LDefinition* reg = value->getDef(0);
     masm.moveValue(value->value(), ToRegister(reg));
     return true;
 }
 
 bool
-CodeGeneratorX64::visitBox(LBox *box)
+CodeGeneratorX64::visitBox(LBox* box)
 {
-    const LAllocation *in = box->getOperand(0);
-    const LDefinition *result = box->getDef(0);
+    const LAllocation* in = box->getOperand(0);
+    const LDefinition* result = box->getDef(0);
 
     if (IsFloatingPointType(box->type())) {
         FloatRegister reg = ToFloatRegister(in);
@@ -85,11 +85,11 @@ CodeGeneratorX64::visitBox(LBox *box)
 }
 
 bool
-CodeGeneratorX64::visitUnbox(LUnbox *unbox)
+CodeGeneratorX64::visitUnbox(LUnbox* unbox)
 {
     const ValueOperand value = ToValue(unbox, LUnbox::Input);
-    const LDefinition *result = unbox->output();
-    MUnbox *mir = unbox->mir();
+    const LDefinition* result = unbox->output();
+    MUnbox* mir = unbox->mir();
 
     if (mir->fallible()) {
         Assembler::Condition cond;
@@ -140,12 +140,12 @@ CodeGeneratorX64::visitUnbox(LUnbox *unbox)
 }
 
 bool
-CodeGeneratorX64::visitCompareB(LCompareB *lir)
+CodeGeneratorX64::visitCompareB(LCompareB* lir)
 {
-    MCompare *mir = lir->mir();
+    MCompare* mir = lir->mir();
 
     const ValueOperand lhs = ToValue(lir, LCompareB::Lhs);
-    const LAllocation *rhs = lir->rhs();
+    const LAllocation* rhs = lir->rhs();
     const Register output = ToRegister(lir->output());
 
     JS_ASSERT(mir->jsop() == JSOP_STRICTEQ || mir->jsop() == JSOP_STRICTNE);
@@ -163,12 +163,12 @@ CodeGeneratorX64::visitCompareB(LCompareB *lir)
 }
 
 bool
-CodeGeneratorX64::visitCompareBAndBranch(LCompareBAndBranch *lir)
+CodeGeneratorX64::visitCompareBAndBranch(LCompareBAndBranch* lir)
 {
-    MCompare *mir = lir->cmpMir();
+    MCompare* mir = lir->cmpMir();
 
     const ValueOperand lhs = ToValue(lir, LCompareBAndBranch::Lhs);
-    const LAllocation *rhs = lir->rhs();
+    const LAllocation* rhs = lir->rhs();
 
     JS_ASSERT(mir->jsop() == JSOP_STRICTEQ || mir->jsop() == JSOP_STRICTNE);
 
@@ -184,9 +184,9 @@ CodeGeneratorX64::visitCompareBAndBranch(LCompareBAndBranch *lir)
     return true;
 }
 bool
-CodeGeneratorX64::visitCompareV(LCompareV *lir)
+CodeGeneratorX64::visitCompareV(LCompareV* lir)
 {
-    MCompare *mir = lir->mir();
+    MCompare* mir = lir->mir();
     const ValueOperand lhs = ToValue(lir, LCompareV::LhsInput);
     const ValueOperand rhs = ToValue(lir, LCompareV::RhsInput);
     const Register output = ToRegister(lir->output());
@@ -199,9 +199,9 @@ CodeGeneratorX64::visitCompareV(LCompareV *lir)
 }
 
 bool
-CodeGeneratorX64::visitCompareVAndBranch(LCompareVAndBranch *lir)
+CodeGeneratorX64::visitCompareVAndBranch(LCompareVAndBranch* lir)
 {
-    MCompare *mir = lir->cmpMir();
+    MCompare* mir = lir->cmpMir();
 
     const ValueOperand lhs = ToValue(lir, LCompareVAndBranch::LhsInput);
     const ValueOperand rhs = ToValue(lir, LCompareVAndBranch::RhsInput);
@@ -215,38 +215,38 @@ CodeGeneratorX64::visitCompareVAndBranch(LCompareVAndBranch *lir)
 }
 
 bool
-CodeGeneratorX64::visitAsmJSUInt32ToDouble(LAsmJSUInt32ToDouble *lir)
+CodeGeneratorX64::visitAsmJSUInt32ToDouble(LAsmJSUInt32ToDouble* lir)
 {
     masm.convertUInt32ToDouble(ToRegister(lir->input()), ToFloatRegister(lir->output()));
     return true;
 }
 
 bool
-CodeGeneratorX64::visitAsmJSUInt32ToFloat32(LAsmJSUInt32ToFloat32 *lir)
+CodeGeneratorX64::visitAsmJSUInt32ToFloat32(LAsmJSUInt32ToFloat32* lir)
 {
     masm.convertUInt32ToFloat32(ToRegister(lir->input()), ToFloatRegister(lir->output()));
     return true;
 }
 
 bool
-CodeGeneratorX64::visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic *ins)
+CodeGeneratorX64::visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic* ins)
 {
     MOZ_CRASH("NYI");
 }
 
 bool
-CodeGeneratorX64::visitStoreTypedArrayElementStatic(LStoreTypedArrayElementStatic *ins)
+CodeGeneratorX64::visitStoreTypedArrayElementStatic(LStoreTypedArrayElementStatic* ins)
 {
     MOZ_CRASH("NYI");
 }
 
 bool
-CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
+CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins)
 {
-    MAsmJSLoadHeap *mir = ins->mir();
+    MAsmJSLoadHeap* mir = ins->mir();
     Scalar::Type vt = mir->viewType();
-    const LAllocation *ptr = ins->ptr();
-    const LDefinition *out = ins->output();
+    const LAllocation* ptr = ins->ptr();
+    const LDefinition* out = ins->output();
     Operand srcAddr(HeapReg);
 
     if (ptr->isConstant()) {
@@ -257,7 +257,7 @@ CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
         srcAddr = Operand(HeapReg, ToRegister(ptr), TimesOne);
     }
 
-    OutOfLineLoadTypedArrayOutOfBounds *ool = nullptr;
+    OutOfLineLoadTypedArrayOutOfBounds* ool = nullptr;
     uint32_t maybeCmpOffset = AsmJSHeapAccess::NoLengthCheck;
     if (!mir->skipBoundsCheck()) {
         bool isFloat32Load = vt == Scalar::Float32;
@@ -290,11 +290,11 @@ CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
 }
 
 bool
-CodeGeneratorX64::visitAsmJSStoreHeap(LAsmJSStoreHeap *ins)
+CodeGeneratorX64::visitAsmJSStoreHeap(LAsmJSStoreHeap* ins)
 {
-    MAsmJSStoreHeap *mir = ins->mir();
+    MAsmJSStoreHeap* mir = ins->mir();
     Scalar::Type vt = mir->viewType();
-    const LAllocation *ptr = ins->ptr();
+    const LAllocation* ptr = ins->ptr();
     Operand dstAddr(HeapReg);
 
     if (ptr->isConstant()) {
@@ -345,9 +345,9 @@ CodeGeneratorX64::visitAsmJSStoreHeap(LAsmJSStoreHeap *ins)
 }
 
 bool
-CodeGeneratorX64::visitAsmJSLoadGlobalVar(LAsmJSLoadGlobalVar *ins)
+CodeGeneratorX64::visitAsmJSLoadGlobalVar(LAsmJSLoadGlobalVar* ins)
 {
-    MAsmJSLoadGlobalVar *mir = ins->mir();
+    MAsmJSLoadGlobalVar* mir = ins->mir();
 
     MIRType type = mir->type();
     JS_ASSERT(IsNumberType(type) || IsSimdType(type));
@@ -380,9 +380,9 @@ CodeGeneratorX64::visitAsmJSLoadGlobalVar(LAsmJSLoadGlobalVar *ins)
 }
 
 bool
-CodeGeneratorX64::visitAsmJSStoreGlobalVar(LAsmJSStoreGlobalVar *ins)
+CodeGeneratorX64::visitAsmJSStoreGlobalVar(LAsmJSStoreGlobalVar* ins)
 {
-    MAsmJSStoreGlobalVar *mir = ins->mir();
+    MAsmJSStoreGlobalVar* mir = ins->mir();
 
     MIRType type = mir->value()->type();
     JS_ASSERT(IsNumberType(type) || IsSimdType(type));
@@ -415,9 +415,9 @@ CodeGeneratorX64::visitAsmJSStoreGlobalVar(LAsmJSStoreGlobalVar *ins)
 }
 
 bool
-CodeGeneratorX64::visitAsmJSLoadFuncPtr(LAsmJSLoadFuncPtr *ins)
+CodeGeneratorX64::visitAsmJSLoadFuncPtr(LAsmJSLoadFuncPtr* ins)
 {
-    MAsmJSLoadFuncPtr *mir = ins->mir();
+    MAsmJSLoadFuncPtr* mir = ins->mir();
 
     Register index = ToRegister(ins->index());
     Register tmp = ToRegister(ins->temp());
@@ -430,9 +430,9 @@ CodeGeneratorX64::visitAsmJSLoadFuncPtr(LAsmJSLoadFuncPtr *ins)
 }
 
 bool
-CodeGeneratorX64::visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc *ins)
+CodeGeneratorX64::visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc* ins)
 {
-    MAsmJSLoadFFIFunc *mir = ins->mir();
+    MAsmJSLoadFFIFunc* mir = ins->mir();
 
     CodeOffsetLabel label = masm.loadRipRelativeInt64(ToRegister(ins->output()));
     masm.append(AsmJSGlobalAccess(label, mir->globalDataOffset()));
@@ -440,14 +440,14 @@ CodeGeneratorX64::visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc *ins)
 }
 
 void
-DispatchIonCache::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
+DispatchIonCache::initializeAddCacheState(LInstruction* ins, AddCacheState* addState)
 {
     // Can always use the scratch register on x64.
     addState->dispatchScratch = ScratchReg;
 }
 
 bool
-CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32 *ins)
+CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     Register output = ToRegister(ins->output());
@@ -459,7 +459,7 @@ CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32 *ins)
 }
 
 bool
-CodeGeneratorX64::visitTruncateFToInt32(LTruncateFToInt32 *ins)
+CodeGeneratorX64::visitTruncateFToInt32(LTruncateFToInt32* ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
     Register output = ToRegister(ins->output());

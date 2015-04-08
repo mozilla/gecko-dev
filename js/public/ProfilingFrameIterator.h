@@ -29,15 +29,15 @@ namespace JS {
 // unwound.
 class JS_PUBLIC_API(ProfilingFrameIterator)
 {
-    js::Activation *activation_;
+    js::Activation* activation_;
 
     static const unsigned StorageSpace = 6 * sizeof(void*);
     mozilla::AlignedStorage<StorageSpace> storage_;
-    js::AsmJSProfilingFrameIterator &asmJSIter() {
+    js::AsmJSProfilingFrameIterator& asmJSIter() {
         JS_ASSERT(!done());
         return *reinterpret_cast<js::AsmJSProfilingFrameIterator*>(storage_.addr());
     }
-    const js::AsmJSProfilingFrameIterator &asmJSIter() const {
+    const js::AsmJSProfilingFrameIterator& asmJSIter() const {
         JS_ASSERT(!done());
         return *reinterpret_cast<const js::AsmJSProfilingFrameIterator*>(storage_.addr());
     }
@@ -48,12 +48,12 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
     struct RegisterState
     {
         RegisterState() : pc(nullptr), sp(nullptr), lr(nullptr) {}
-        void *pc;
-        void *sp;
-        void *lr;
+        void* pc;
+        void* sp;
+        void* lr;
     };
 
-    ProfilingFrameIterator(JSRuntime *rt, const RegisterState &state);
+    ProfilingFrameIterator(JSRuntime* rt, const RegisterState& state);
     ~ProfilingFrameIterator();
     void operator++();
     bool done() const { return !activation_; }
@@ -63,14 +63,14 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
     //  - is weakly monotonically increasing (may be equal for successive frames)
     //  - will compare greater than newer native and psuedo-stack frame addresses
     //    and less than older native and psuedo-stack frame addresses
-    void *stackAddress() const;
+    void* stackAddress() const;
 
     // Return a label suitable for regexp-matching as performed by
     // browser/devtools/profiler/cleopatra/js/parserWorker.js
-    const char *label() const;
+    const char* label() const;
 
   private:
-    void iteratorConstruct(const RegisterState &state);
+    void iteratorConstruct(const RegisterState& state);
     void iteratorConstruct();
     void iteratorDestroy();
     bool iteratorDone();

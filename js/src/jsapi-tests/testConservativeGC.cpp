@@ -47,16 +47,16 @@ BEGIN_TEST(testConservativeGC)
 
     JS_GC(rt);
 
-    checkObjectFields((JSObject *)objCopy, v2.toObjectOrNull());
+    checkObjectFields((JSObject*)objCopy, v2.toObjectOrNull());
     CHECK(!memcmp(strCopy, v3.toString(), sizeof(strCopy)));
 
-    checkObjectFields((JSObject *)obj2Copy, obj2);
+    checkObjectFields((JSObject*)obj2Copy, obj2);
     CHECK(!memcmp(str2Copy, str2, sizeof(str2Copy)));
 
     return true;
 }
 
-bool checkObjectFields(JSObject *savedCopy, JSObject *obj)
+bool checkObjectFields(JSObject* savedCopy, JSObject* obj)
 {
     /* Ignore fields which are unstable across GCs. */
     CHECK(savedCopy->lastProperty() == obj->lastProperty());

@@ -12,7 +12,7 @@
 #include "vm/Stack-inl.h"
 
 inline bool
-js::Debugger::onLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool ok)
+js::Debugger::onLeaveFrame(JSContext* cx, AbstractFramePtr frame, bool ok)
 {
     /* Traps must be cleared from eval frames, see slowPathOnLeaveFrame. */
     bool evalTraps = frame.isEvalFrame() &&
@@ -22,11 +22,11 @@ js::Debugger::onLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool ok)
     return ok;
 }
 
-/* static */ inline js::Debugger *
-js::Debugger::fromJSObject(JSObject *obj)
+/* static */ inline js::Debugger*
+js::Debugger::fromJSObject(JSObject* obj)
 {
     JS_ASSERT(js::GetObjectClass(obj) == &jsclass);
-    return (Debugger *) obj->getPrivate();
+    return (Debugger*) obj->getPrivate();
 }
 
 #endif /* vm_Debugger_inl_h */

@@ -17,19 +17,19 @@ using namespace jit;
 
 struct CopyValueToRematerializedFrame
 {
-    Value *slots;
+    Value* slots;
 
-    explicit CopyValueToRematerializedFrame(Value *slots)
+    explicit CopyValueToRematerializedFrame(Value* slots)
       : slots(slots)
     { }
 
-    void operator()(const Value &v) {
+    void operator()(const Value& v) {
         *slots++ = v;
     }
 };
 
-RematerializedFrame::RematerializedFrame(ThreadSafeContext *cx, uint8_t *top,
-                                         unsigned numActualArgs, InlineFrameIterator &iter)
+RematerializedFrame::RematerializedFrame(ThreadSafeContext* cx, uint8_t* top,
+                                         unsigned numActualArgs, InlineFrameIterator& iter)
   : prevUpToDate_(false),
     top_(top),
     pc_(iter.pc()),
@@ -43,8 +43,8 @@ RematerializedFrame::RematerializedFrame(ThreadSafeContext *cx, uint8_t *top,
                                 MagicValue(JS_OPTIMIZED_OUT), /* silentFailure = */ true);
 }
 
-/* static */ RematerializedFrame *
-RematerializedFrame::New(ThreadSafeContext *cx, uint8_t *top, InlineFrameIterator &iter)
+/* static */ RematerializedFrame*
+RematerializedFrame::New(ThreadSafeContext* cx, uint8_t* top, InlineFrameIterator& iter)
 {
     unsigned numFormals = iter.isFunctionFrame() ? iter.callee()->nargs() : 0;
     unsigned numActualArgs = Max(numFormals, iter.numActualArgs());
@@ -52,7 +52,7 @@ RematerializedFrame::New(ThreadSafeContext *cx, uint8_t *top, InlineFrameIterato
         (numActualArgs + iter.script()->nfixed()) * sizeof(Value) -
         sizeof(Value); // 1 Value included in sizeof(RematerializedFrame)
 
-    void *buf = cx->pod_calloc<uint8_t>(numBytes);
+    void* buf = cx->pod_calloc<uint8_t>(numBytes);
     if (!buf)
         return nullptr;
 
@@ -60,9 +60,9 @@ RematerializedFrame::New(ThreadSafeContext *cx, uint8_t *top, InlineFrameIterato
 }
 
 /* static */ bool
-RematerializedFrame::RematerializeInlineFrames(ThreadSafeContext *cx, uint8_t *top,
-                                               InlineFrameIterator &iter,
-                                               Vector<RematerializedFrame *> &frames)
+RematerializedFrame::RematerializeInlineFrames(ThreadSafeContext* cx, uint8_t* top,
+                                               InlineFrameIterator& iter,
+                                               Vector<RematerializedFrame*>& frames)
 {
     if (!frames.resize(iter.frameCount()))
         return false;
@@ -82,10 +82,10 @@ RematerializedFrame::RematerializeInlineFrames(ThreadSafeContext *cx, uint8_t *t
 }
 
 /* static */ void
-RematerializedFrame::FreeInVector(Vector<RematerializedFrame *> &frames)
+RematerializedFrame::FreeInVector(Vector<RematerializedFrame*>& frames)
 {
     for (size_t i = 0; i < frames.length(); i++) {
-        RematerializedFrame *f = frames[i];
+        RematerializedFrame* f = frames[i];
         f->RematerializedFrame::~RematerializedFrame();
         js_free(f);
     }
@@ -93,25 +93,25 @@ RematerializedFrame::FreeInVector(Vector<RematerializedFrame *> &frames)
 }
 
 /* static */ void
-RematerializedFrame::MarkInVector(JSTracer *trc, Vector<RematerializedFrame *> &frames)
+RematerializedFrame::MarkInVector(JSTracer* trc, Vector<RematerializedFrame*>& frames)
 {
     for (size_t i = 0; i < frames.length(); i++)
         frames[i]->mark(trc);
 }
 
-CallObject &
+CallObject&
 RematerializedFrame::callObj() const
 {
     JS_ASSERT(hasCallObj());
 
-    JSObject *scope = scopeChain();
+    JSObject* scope = scopeChain();
     while (!scope->is<CallObject>())
         scope = scope->enclosingScope();
     return scope->as<CallObject>();
 }
 
 void
-RematerializedFrame::mark(JSTracer *trc)
+RematerializedFrame::mark(JSTracer* trc)
 {
     gc::MarkScriptRoot(trc, &script_, "remat ion frame script");
     gc::MarkObjectRoot(trc, &scopeChain_, "remat ion frame scope chain");

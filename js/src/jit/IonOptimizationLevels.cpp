@@ -63,7 +63,7 @@ OptimizationInfo::initAsmjsOptimizationInfo()
 }
 
 uint32_t
-OptimizationInfo::usesBeforeCompile(JSScript *script, jsbytecode *pc) const
+OptimizationInfo::usesBeforeCompile(JSScript* script, jsbytecode* pc) const
 {
     JS_ASSERT(pc == nullptr || pc == script->code() || JSOp(*pc) == JSOP_LOOPENTRY);
 
@@ -137,13 +137,13 @@ OptimizationInfos::isLastLevel(OptimizationLevel level) const
 }
 
 OptimizationLevel
-OptimizationInfos::levelForScript(JSScript *script, jsbytecode *pc) const
+OptimizationInfos::levelForScript(JSScript* script, jsbytecode* pc) const
 {
     OptimizationLevel prev = Optimization_DontCompile;
 
     while (!isLastLevel(prev)) {
         OptimizationLevel level = nextLevel(prev);
-        const OptimizationInfo *info = get(level);
+        const OptimizationInfo* info = get(level);
         if (script->getUseCount() < info->usesBeforeCompile(script, pc))
             return prev;
 

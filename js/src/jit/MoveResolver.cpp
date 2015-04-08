@@ -23,11 +23,11 @@ MoveResolver::resetState()
 }
 
 bool
-MoveResolver::addMove(const MoveOperand &from, const MoveOperand &to, MoveOp::Type type)
+MoveResolver::addMove(const MoveOperand& from, const MoveOperand& to, MoveOp::Type type)
 {
     // Assert that we're not doing no-op moves.
     JS_ASSERT(!(from == to));
-    PendingMove *pm = movePool_.allocate();
+    PendingMove* pm = movePool_.allocate();
     if (!pm)
         return false;
     new (pm) PendingMove(from, to, type);
@@ -37,11 +37,11 @@ MoveResolver::addMove(const MoveOperand &from, const MoveOperand &to, MoveOp::Ty
 
 // Given move (A -> B), this function attempts to find any move (B -> *) in the
 // pending move list, and returns the first one.
-MoveResolver::PendingMove *
-MoveResolver::findBlockingMove(const PendingMove *last)
+MoveResolver::PendingMove*
+MoveResolver::findBlockingMove(const PendingMove* last)
 {
     for (PendingMoveIterator iter = pending_.begin(); iter != pending_.end(); iter++) {
-        PendingMove *other = *iter;
+        PendingMove* other = *iter;
 
         if (other->from().aliases(last->to())) {
             // We now have pairs in the form (A -> X) (X -> y). The second pair
@@ -59,11 +59,11 @@ MoveResolver::findBlockingMove(const PendingMove *last)
 // N.B. It is unclear if a single move can complete more than one cycle, so to be
 // conservative, this function operates on iterators, so the caller can process all
 // instructions that start a cycle.
-MoveResolver::PendingMove *
-MoveResolver::findCycledMove(PendingMoveIterator *iter, PendingMoveIterator end, const PendingMove *last)
+MoveResolver::PendingMove*
+MoveResolver::findCycledMove(PendingMoveIterator* iter, PendingMoveIterator end, const PendingMove* last)
 {
     for (; *iter != end; (*iter)++) {
-        PendingMove *other = **iter;
+        PendingMove* other = **iter;
         if (other->from().aliases(last->to())) {
             // We now have pairs in the form (A -> X) (X -> y). The second pair
             // blocks the move in the first pair, so return it.
@@ -122,17 +122,17 @@ MoveResolver::resolve()
     //              Add L to O.
     //
     while (!pending_.empty()) {
-        PendingMove *pm = pending_.popBack();
+        PendingMove* pm = pending_.popBack();
 
         // Add this pending move to the cycle detection stack.
         stack.pushBack(pm);
 
         while (!stack.empty()) {
-            PendingMove *blocking = findBlockingMove(stack.peekBack());
+            PendingMove* blocking = findBlockingMove(stack.peekBack());
 
             if (blocking) {
                 PendingMoveIterator stackiter = stack.begin();
-                PendingMove *cycled = findCycledMove(&stackiter, stack.end(), blocking);
+                PendingMove* cycled = findCycledMove(&stackiter, stack.end(), blocking);
                 if (cycled) {
                     // Find the cycle's start.
                     // We annotate cycles at each move in the cycle, and
@@ -159,7 +159,7 @@ MoveResolver::resolve()
                 // Otherwise, pop the last move on the search stack because it's
                 // complete and not participating in a cycle. The resulting
                 // move can safely be added to the ordered move list.
-                PendingMove *done = stack.popBack();
+                PendingMove* done = stack.popBack();
                 if (!orderedMoves_.append(*done))
                     return false;
                 movePool_.free(done);

@@ -22,12 +22,12 @@ using namespace mozilla::jsipc;
 using namespace mozilla::dom;
 
 static void
-TraceParent(JSTracer *trc, void *data)
+TraceParent(JSTracer* trc, void* data)
 {
-    static_cast<JavaScriptParent *>(data)->trace(trc);
+    static_cast<JavaScriptParent*>(data)->trace(trc);
 }
 
-JavaScriptParent::JavaScriptParent(JSRuntime *rt)
+JavaScriptParent::JavaScriptParent(JSRuntime* rt)
   : JavaScriptShared(rt),
     JavaScriptBase<PJavaScriptParent>(rt)
 {
@@ -49,13 +49,13 @@ JavaScriptParent::init()
 }
 
 void
-JavaScriptParent::trace(JSTracer *trc)
+JavaScriptParent::trace(JSTracer* trc)
 {
     if (active())
         objects_.trace(trc);
 }
 
-JSObject *
+JSObject*
 JavaScriptParent::defaultScope()
 {
     return xpc::UnprivilegedJunkScope();
@@ -64,7 +64,7 @@ JavaScriptParent::defaultScope()
 mozilla::ipc::IProtocol*
 JavaScriptParent::CloneProtocol(Channel* aChannel, ProtocolCloneContext* aCtx)
 {
-    ContentParent *contentParent = aCtx->GetContentParent();
+    ContentParent* contentParent = aCtx->GetContentParent();
     nsAutoPtr<PJavaScriptParent> actor(contentParent->AllocPJavaScriptParent());
     if (!actor || !contentParent->RecvPJavaScriptConstructor(actor)) {
         return nullptr;

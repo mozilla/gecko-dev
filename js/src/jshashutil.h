@@ -23,7 +23,7 @@ struct DependentAddPtr
     typedef typename T::Entry Entry;
 
     template <class Lookup>
-    DependentAddPtr(const ExclusiveContext *cx, const T &table, const Lookup &lookup)
+    DependentAddPtr(const ExclusiveContext* cx, const T& table, const Lookup& lookup)
       : addPtr(table.lookupForAdd(lookup))
 #ifdef JSGC_GENERATIONAL
       , originalGcNumber(cx->zone()->gcNumber())
@@ -31,7 +31,7 @@ struct DependentAddPtr
         {}
 
     template <class KeyInput, class ValueInput>
-    bool add(const ExclusiveContext *cx, T &table, const KeyInput &key, const ValueInput &value) {
+    bool add(const ExclusiveContext* cx, T& table, const KeyInput& key, const ValueInput& value) {
 #ifdef JSGC_GENERATIONAL
         bool gcHappened = originalGcNumber != cx->zone()->gcNumber();
         if (gcHappened)
@@ -45,8 +45,8 @@ struct DependentAddPtr
 
     bool found() const                 { return addPtr.found(); }
     operator ConvertibleToBool() const { return found() ? &DependentAddPtr::nonNull : 0; }
-    const Entry &operator*() const     { return *addPtr; }
-    const Entry *operator->() const    { return &*addPtr; }
+    const Entry& operator*() const     { return *addPtr; }
+    const Entry* operator->() const    { return &*addPtr; }
 
   private:
     AddPtr addPtr ;

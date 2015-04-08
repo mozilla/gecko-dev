@@ -24,7 +24,7 @@ using namespace js;
 namespace xpc {
 
 bool
-IsReflector(JSObject *obj)
+IsReflector(JSObject* obj)
 {
     obj = CheckedUnwrap(obj, /* stopAtOuter = */ false);
     if (!obj)
@@ -40,23 +40,23 @@ enum StackScopedCloneTags {
 
 class MOZ_STACK_CLASS StackScopedCloneData {
 public:
-    StackScopedCloneData(JSContext *aCx, StackScopedCloneOptions *aOptions)
+    StackScopedCloneData(JSContext* aCx, StackScopedCloneOptions* aOptions)
         : mOptions(aOptions)
         , mReflectors(aCx)
         , mFunctions(aCx)
     {}
 
-    StackScopedCloneOptions *mOptions;
+    StackScopedCloneOptions* mOptions;
     AutoObjectVector mReflectors;
     AutoObjectVector mFunctions;
 };
 
-static JSObject *
-StackScopedCloneRead(JSContext *cx, JSStructuredCloneReader *reader, uint32_t tag,
-                     uint32_t data, void *closure)
+static JSObject*
+StackScopedCloneRead(JSContext* cx, JSStructuredCloneReader* reader, uint32_t tag,
+                     uint32_t data, void* closure)
 {
     MOZ_ASSERT(closure, "Null pointer!");
-    StackScopedCloneData *cloneData = static_cast<StackScopedCloneData *>(closure);
+    StackScopedCloneData* cloneData = static_cast<StackScopedCloneData*>(closure);
     if (tag == SCTAG_REFLECTOR) {
         MOZ_ASSERT(!data);
 
@@ -108,9 +108,9 @@ StackScopedCloneRead(JSContext *cx, JSStructuredCloneReader *reader, uint32_t ta
 // fact that these objects are implemented with XPConnect and have one reflector
 // per scope. This will need to be fixed when Blob and File move to WebIDL. See
 // bug 827823 comment 6.
-bool IsBlobOrFileList(JSObject *obj)
+bool IsBlobOrFileList(JSObject* obj)
 {
-    nsISupports *supports = UnwrapReflectorToISupports(obj);
+    nsISupports* supports = UnwrapReflectorToISupports(obj);
     if (!supports)
         return false;
     nsCOMPtr<nsIDOMBlob> blob = do_QueryInterface(supports);
@@ -123,11 +123,11 @@ bool IsBlobOrFileList(JSObject *obj)
 }
 
 static bool
-StackScopedCloneWrite(JSContext *cx, JSStructuredCloneWriter *writer,
-                      Handle<JSObject *> obj, void *closure)
+StackScopedCloneWrite(JSContext* cx, JSStructuredCloneWriter* writer,
+                      Handle<JSObject*> obj, void* closure)
 {
     MOZ_ASSERT(closure, "Null pointer!");
-    StackScopedCloneData *cloneData = static_cast<StackScopedCloneData *>(closure);
+    StackScopedCloneData* cloneData = static_cast<StackScopedCloneData*>(closure);
 
     if ((cloneData->mOptions->wrapReflectors && IsReflector(obj)) ||
         IsBlobOrFileList(obj))
@@ -178,7 +178,7 @@ static const JSStructuredCloneCallbacks gStackScopedCloneCallbacks = {
  * function returns, |val| is set to the result of the clone.
  */
 bool
-StackScopedClone(JSContext *cx, StackScopedCloneOptions &options,
+StackScopedClone(JSContext* cx, StackScopedCloneOptions& options,
                  MutableHandleValue val)
 {
     JSAutoStructuredCloneBuffer buffer;
@@ -204,7 +204,7 @@ StackScopedClone(JSContext *cx, StackScopedCloneOptions &options,
 // Note - This function mirrors the logic of CheckPassToChrome in
 // ChromeObjectWrapper.cpp.
 static bool
-CheckSameOriginArg(JSContext *cx, FunctionForwarderOptions &options, HandleValue v)
+CheckSameOriginArg(JSContext* cx, FunctionForwarderOptions& options, HandleValue v)
 {
     // Consumers can explicitly opt out of this security check. This is used in
     // the web console to allow the utility functions to accept cross-origin Windows.
@@ -237,7 +237,7 @@ CheckSameOriginArg(JSContext *cx, FunctionForwarderOptions &options, HandleValue
 }
 
 static bool
-FunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
+FunctionForwarder(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -281,14 +281,14 @@ FunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-NewFunctionForwarder(JSContext *cx, HandleId idArg, HandleObject callable,
-                     FunctionForwarderOptions &options, MutableHandleValue vp)
+NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
+                     FunctionForwarderOptions& options, MutableHandleValue vp)
 {
     RootedId id(cx, idArg);
     if (id == JSID_VOIDHANDLE)
         id = GetRTIdByIndex(cx, XPCJSRuntime::IDX_EMPTYSTRING);
 
-    JSFunction *fun = js::NewFunctionByIdWithReserved(cx, FunctionForwarder,
+    JSFunction* fun = js::NewFunctionByIdWithReserved(cx, FunctionForwarder,
                                                       0,0, JS::CurrentGlobalOrNull(cx), id);
     if (!fun)
         return false;
@@ -309,7 +309,7 @@ NewFunctionForwarder(JSContext *cx, HandleId idArg, HandleObject callable,
 }
 
 bool
-ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleValue voptions,
+ExportFunction(JSContext* cx, HandleValue vfunction, HandleValue vscope, HandleValue voptions,
                MutableHandleValue rval)
 {
     bool hasOptions = !voptions.isUndefined();
@@ -356,7 +356,7 @@ ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleV
         if (JSID_IS_VOID(id)) {
             // If there wasn't any function name specified,
             // copy the name from the function being imported.
-            JSFunction *fun = JS_GetObjectFunction(funObj);
+            JSFunction* fun = JS_GetObjectFunction(funObj);
             RootedString funName(cx, JS_GetFunctionId(fun));
             if (!funName)
                 funName = JS_InternString(cx, "");
@@ -400,7 +400,7 @@ ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleV
 }
 
 bool
-CreateObjectIn(JSContext *cx, HandleValue vobj, CreateObjectInOptions &options,
+CreateObjectIn(JSContext* cx, HandleValue vobj, CreateObjectInOptions& options,
                MutableHandleValue rval)
 {
     if (!vobj.isObject()) {

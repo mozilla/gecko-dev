@@ -43,8 +43,8 @@ const JSFunctionSpec WeakSetObject::methods[] = {
     JS_FS_END
 };
 
-JSObject *
-WeakSetObject::initClass(JSContext *cx, JSObject *obj)
+JSObject*
+WeakSetObject::initClass(JSContext* cx, JSObject* obj)
 {
     Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
     // Todo: WeakSet.prototype should not be a WeakSet!
@@ -65,7 +65,7 @@ WeakSetObject::initClass(JSContext *cx, JSObject *obj)
 }
 
 WeakSetObject*
-WeakSetObject::create(JSContext *cx)
+WeakSetObject::create(JSContext* cx)
 {
     RootedObject obj(cx, NewBuiltinClassInstance(cx, &class_));
     if (!obj)
@@ -80,7 +80,7 @@ WeakSetObject::create(JSContext *cx)
 }
 
 bool
-WeakSetObject::construct(JSContext *cx, unsigned argc, Value *vp)
+WeakSetObject::construct(JSContext* cx, unsigned argc, Value* vp)
 {
     Rooted<WeakSetObject*> obj(cx, WeakSetObject::create(cx));
     if (!obj)
@@ -127,8 +127,8 @@ WeakSetObject::construct(JSContext *cx, unsigned argc, Value *vp)
 }
 
 
-JSObject *
-js_InitWeakSetClass(JSContext *cx, HandleObject obj)
+JSObject*
+js_InitWeakSetClass(JSContext* cx, HandleObject obj)
 {
     return WeakSetObject::initClass(cx, obj);
 }

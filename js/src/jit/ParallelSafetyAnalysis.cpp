@@ -25,14 +25,14 @@ using parallel::SpewMIR;
 using parallel::SpewCompile;
 
 #define SAFE_OP(op)                             \
-    virtual bool visit##op(M##op *prop) { return true; }
+    virtual bool visit##op(M##op* prop) { return true; }
 
 #define CUSTOM_OP(op)                        \
-    virtual bool visit##op(M##op *prop);
+    virtual bool visit##op(M##op* prop);
 
 #define DROP_OP(op)                             \
-    virtual bool visit##op(M##op *ins) {        \
-        MBasicBlock *block = ins->block();      \
+    virtual bool visit##op(M##op* ins) {        \
+        MBasicBlock* block = ins->block();      \
         block->discard(ins);                    \
         return true;                            \
     }
@@ -43,23 +43,23 @@ using parallel::SpewCompile;
 #define PERMIT_NUMERIC (PERMIT(MIRType_Int32) | PERMIT(MIRType_Double))
 
 #define SPECIALIZED_OP(op, flags)                                               \
-    virtual bool visit##op(M##op *ins) {                                        \
+    virtual bool visit##op(M##op* ins) {                                        \
         return visitSpecializedInstruction(ins, ins->specialization(), flags);  \
     }
 
 #define UNSAFE_OP(op)                                                         \
-    virtual bool visit##op(M##op *ins) {                                      \
+    virtual bool visit##op(M##op* ins) {                                      \
         SpewMIR(ins, "Unsafe");                                               \
         return markUnsafe();                                                  \
     }
 
 #define WRITE_GUARDED_OP(op, obj)                                             \
-    virtual bool visit##op(M##op *prop) {                                     \
+    virtual bool visit##op(M##op* prop) {                                     \
         return insertWriteGuard(prop, prop->obj());                           \
     }
 
 #define MAYBE_WRITE_GUARDED_OP(op, obj)                                       \
-    virtual bool visit##op(M##op *prop) {                                     \
+    virtual bool visit##op(M##op* prop) {                                     \
         if (prop->racy())                                                     \
             return true;                                                      \
         return insertWriteGuard(prop, prop->obj());                           \
@@ -67,16 +67,16 @@ using parallel::SpewCompile;
 
 class ParallelSafetyVisitor : public MDefinitionVisitor
 {
-    MIRGraph &graph_;
+    MIRGraph& graph_;
     bool unsafe_;
-    MDefinition *cx_;
+    MDefinition* cx_;
 
-    bool insertWriteGuard(MInstruction *writeInstruction, MDefinition *valueBeingWritten);
+    bool insertWriteGuard(MInstruction* writeInstruction, MDefinition* valueBeingWritten);
 
-    bool replaceWithNewPar(MInstruction *newInstruction, JSObject *templateObject);
-    bool replace(MInstruction *oldInstruction, MInstruction *replacementInstruction);
+    bool replaceWithNewPar(MInstruction* newInstruction, JSObject* templateObject);
+    bool replace(MInstruction* oldInstruction, MInstruction* replacementInstruction);
 
-    bool visitSpecializedInstruction(MInstruction *ins, MIRType spec, uint32_t flags);
+    bool visitSpecializedInstruction(MInstruction* ins, MIRType spec, uint32_t flags);
 
     // Intended for use in a visitXyz() instruction like "return
     // markUnsafe()".  Sets the unsafe flag and returns true (since
@@ -87,12 +87,12 @@ class ParallelSafetyVisitor : public MDefinitionVisitor
         return true;
     }
 
-    TempAllocator &alloc() const {
+    TempAllocator& alloc() const {
         return graph_.alloc();
     }
 
   public:
-    explicit ParallelSafetyVisitor(MIRGraph &graph)
+    explicit ParallelSafetyVisitor(MIRGraph& graph)
       : graph_(graph),
         unsafe_(false),
         cx_(nullptr)
@@ -100,13 +100,13 @@ class ParallelSafetyVisitor : public MDefinitionVisitor
 
     void clearUnsafe() { unsafe_ = false; }
     bool unsafe() { return unsafe_; }
-    MDefinition *ForkJoinContext() {
+    MDefinition* ForkJoinContext() {
         if (!cx_)
             cx_ = graph_.forkJoinContext();
         return cx_;
     }
 
-    bool convertToBailout(MInstructionIterator &iter);
+    bool convertToBailout(MInstructionIterator& iter);
 
     // I am taking the policy of blacklisting everything that's not
     // obviously safe for now.  We can loosen as we need.
@@ -346,7 +346,7 @@ class ParallelSafetyVisitor : public MDefinitionVisitor
 };
 
 static void
-TransplantResumePoint(MInstruction *oldInstruction, MInstruction *replacementInstruction)
+TransplantResumePoint(MInstruction* oldInstruction, MInstruction* replacementInstruction)
 {
     MOZ_ASSERT(!oldInstruction->isDiscarded());
     if (oldInstruction->resumePoint())
@@ -378,7 +378,7 @@ ParallelSafetyAnalysis::analyze()
             // if we encounter an inherently unsafe operation, in
             // which case we will transform this block into a bailout
             // block.
-            MInstruction *ins = nullptr;
+            MInstruction* ins = nullptr;
             MInstructionIterator iter(block->begin());
             while (iter != block->end() && !visitor.unsafe()) {
                 if (mir_->shouldCancel("ParallelSafetyAnalysis"))
@@ -436,18 +436,18 @@ ParallelSafetyAnalysis::analyze()
 }
 
 bool
-ParallelSafetyVisitor::convertToBailout(MInstructionIterator &iter)
+ParallelSafetyVisitor::convertToBailout(MInstructionIterator& iter)
 {
     // We expect iter to be settled on the unsafe instruction.
-    MInstruction *ins = *iter;
-    MBasicBlock *block = ins->block();
+    MInstruction* ins = *iter;
+    MBasicBlock* block = ins->block();
     JS_ASSERT(unsafe()); // `block` must have contained unsafe items
     JS_ASSERT(block->isMarked()); // `block` must have been reachable to get here
 
     clearUnsafe();
 
     // Allocate a new bailout instruction and transplant the resume point.
-    MBail *bail = MBail::New(graph_.alloc(), Bailout_ParallelUnsafe);
+    MBail* bail = MBail::New(graph_.alloc(), Bailout_ParallelUnsafe);
     TransplantResumePoint(ins, bail);
 
     // Discard the rest of the block and sever its link to its successors in
@@ -471,13 +471,13 @@ ParallelSafetyVisitor::convertToBailout(MInstructionIterator &iter)
 // These allocations will take place using per-helper-thread arenas.
 
 bool
-ParallelSafetyVisitor::visitCreateThisWithTemplate(MCreateThisWithTemplate *ins)
+ParallelSafetyVisitor::visitCreateThisWithTemplate(MCreateThisWithTemplate* ins)
 {
     return replaceWithNewPar(ins, ins->templateObject());
 }
 
 bool
-ParallelSafetyVisitor::visitNewCallObject(MNewCallObject *ins)
+ParallelSafetyVisitor::visitNewCallObject(MNewCallObject* ins)
 {
     if (ins->templateObject()->hasDynamicSlots()) {
         SpewMIR(ins, "call with dynamic slots");
@@ -488,7 +488,7 @@ ParallelSafetyVisitor::visitNewCallObject(MNewCallObject *ins)
 }
 
 bool
-ParallelSafetyVisitor::visitNewRunOnceCallObject(MNewRunOnceCallObject *ins)
+ParallelSafetyVisitor::visitNewRunOnceCallObject(MNewRunOnceCallObject* ins)
 {
     if (ins->templateObject()->hasDynamicSlots()) {
         SpewMIR(ins, "call with dynamic slots");
@@ -499,7 +499,7 @@ ParallelSafetyVisitor::visitNewRunOnceCallObject(MNewRunOnceCallObject *ins)
 }
 
 bool
-ParallelSafetyVisitor::visitLambda(MLambda *ins)
+ParallelSafetyVisitor::visitLambda(MLambda* ins)
 {
     if (ins->info().singletonType || ins->info().useNewTypeForClone) {
         // slow path: bail on parallel execution.
@@ -511,7 +511,7 @@ ParallelSafetyVisitor::visitLambda(MLambda *ins)
 }
 
 bool
-ParallelSafetyVisitor::visitNewObject(MNewObject *newInstruction)
+ParallelSafetyVisitor::visitNewObject(MNewObject* newInstruction)
 {
     if (newInstruction->shouldUseVM()) {
         SpewMIR(newInstruction, "should use VM");
@@ -522,7 +522,7 @@ ParallelSafetyVisitor::visitNewObject(MNewObject *newInstruction)
 }
 
 bool
-ParallelSafetyVisitor::visitNewArray(MNewArray *newInstruction)
+ParallelSafetyVisitor::visitNewArray(MNewArray* newInstruction)
 {
     if (newInstruction->shouldUseVM()) {
         SpewMIR(newInstruction, "should use VM");
@@ -533,7 +533,7 @@ ParallelSafetyVisitor::visitNewArray(MNewArray *newInstruction)
 }
 
 bool
-ParallelSafetyVisitor::visitNewDerivedTypedObject(MNewDerivedTypedObject *ins)
+ParallelSafetyVisitor::visitNewDerivedTypedObject(MNewDerivedTypedObject* ins)
 {
     // FIXME(Bug 984090) -- There should really be a parallel-safe
     // version of NewDerivedTypedObject. However, until that is
@@ -547,25 +547,25 @@ ParallelSafetyVisitor::visitNewDerivedTypedObject(MNewDerivedTypedObject *ins)
 }
 
 bool
-ParallelSafetyVisitor::visitRest(MRest *ins)
+ParallelSafetyVisitor::visitRest(MRest* ins)
 {
     return replace(ins, MRestPar::New(alloc(), ForkJoinContext(), ins));
 }
 
 bool
-ParallelSafetyVisitor::visitMathFunction(MMathFunction *ins)
+ParallelSafetyVisitor::visitMathFunction(MMathFunction* ins)
 {
     return replace(ins, MMathFunction::New(alloc(), ins->input(), ins->function(), nullptr));
 }
 
 bool
-ParallelSafetyVisitor::visitConcat(MConcat *ins)
+ParallelSafetyVisitor::visitConcat(MConcat* ins)
 {
     return replace(ins, MConcatPar::New(alloc(), ForkJoinContext(), ins));
 }
 
 bool
-ParallelSafetyVisitor::visitToString(MToString *ins)
+ParallelSafetyVisitor::visitToString(MToString* ins)
 {
     MIRType inputType = ins->input()->type();
     if (inputType != MIRType_Int32 && inputType != MIRType_Double)
@@ -574,19 +574,19 @@ ParallelSafetyVisitor::visitToString(MToString *ins)
 }
 
 bool
-ParallelSafetyVisitor::replaceWithNewPar(MInstruction *newInstruction,
-                                         JSObject *templateObject)
+ParallelSafetyVisitor::replaceWithNewPar(MInstruction* newInstruction,
+                                         JSObject* templateObject)
 {
     return replace(newInstruction, MNewPar::New(alloc(), ForkJoinContext(), templateObject));
 }
 
 bool
-ParallelSafetyVisitor::replace(MInstruction *oldInstruction,
-                               MInstruction *replacementInstruction)
+ParallelSafetyVisitor::replace(MInstruction* oldInstruction,
+                               MInstruction* replacementInstruction)
 {
     TransplantResumePoint(oldInstruction, replacementInstruction);
 
-    MBasicBlock *block = oldInstruction->block();
+    MBasicBlock* block = oldInstruction->block();
     block->insertBefore(oldInstruction, replacementInstruction);
     oldInstruction->replaceAllUsesWith(replacementInstruction);
     block->discard(oldInstruction);
@@ -617,13 +617,13 @@ ParallelSafetyVisitor::replace(MInstruction *oldInstruction,
 // per-thread-arena or not.
 
 bool
-ParallelSafetyVisitor::insertWriteGuard(MInstruction *writeInstruction,
-                                        MDefinition *valueBeingWritten)
+ParallelSafetyVisitor::insertWriteGuard(MInstruction* writeInstruction,
+                                        MDefinition* valueBeingWritten)
 {
     // Many of the write operations do not take the JS object
     // but rather something derived from it, such as the elements.
     // So we need to identify the JS object:
-    MDefinition *object;
+    MDefinition* object;
     switch (valueBeingWritten->type()) {
       case MIRType_Object:
         object = valueBeingWritten;
@@ -681,8 +681,8 @@ ParallelSafetyVisitor::insertWriteGuard(MInstruction *writeInstruction,
         break;
     }
 
-    MBasicBlock *block = writeInstruction->block();
-    MGuardThreadExclusive *writeGuard =
+    MBasicBlock* block = writeInstruction->block();
+    MGuardThreadExclusive* writeGuard =
         MGuardThreadExclusive::New(alloc(), ForkJoinContext(), object);
     block->insertBefore(writeInstruction, writeGuard);
     writeGuard->adjustInputs(alloc(), writeGuard);
@@ -696,7 +696,7 @@ ParallelSafetyVisitor::insertWriteGuard(MInstruction *writeInstruction,
 // Ion compiled. If a function has no IonScript, we bail out.
 
 bool
-ParallelSafetyVisitor::visitCall(MCall *ins)
+ParallelSafetyVisitor::visitCall(MCall* ins)
 {
     // DOM? Scary.
     if (ins->isCallDOMNative()) {
@@ -704,7 +704,7 @@ ParallelSafetyVisitor::visitCall(MCall *ins)
         return markUnsafe();
     }
 
-    JSFunction *target = ins->getSingleTarget();
+    JSFunction* target = ins->getSingleTarget();
     if (target) {
         // Non-parallel native? Scary
         if (target->isNative() && !target->hasParallelNative()) {
@@ -731,13 +731,13 @@ ParallelSafetyVisitor::visitCall(MCall *ins)
 // Similar considerations apply to checking for interrupts.
 
 bool
-ParallelSafetyVisitor::visitCheckOverRecursed(MCheckOverRecursed *ins)
+ParallelSafetyVisitor::visitCheckOverRecursed(MCheckOverRecursed* ins)
 {
     return replace(ins, MCheckOverRecursedPar::New(alloc(), ForkJoinContext()));
 }
 
 bool
-ParallelSafetyVisitor::visitInterruptCheck(MInterruptCheck *ins)
+ParallelSafetyVisitor::visitInterruptCheck(MInterruptCheck* ins)
 {
     return replace(ins, MInterruptCheckPar::New(alloc(), ForkJoinContext()));
 }
@@ -752,7 +752,7 @@ ParallelSafetyVisitor::visitInterruptCheck(MInterruptCheck *ins)
 // if the operands are not both integers/floats.
 
 bool
-ParallelSafetyVisitor::visitSpecializedInstruction(MInstruction *ins, MIRType spec,
+ParallelSafetyVisitor::visitSpecializedInstruction(MInstruction* ins, MIRType spec,
                                                    uint32_t flags)
 {
     uint32_t flag = 1 << spec;
@@ -767,11 +767,11 @@ ParallelSafetyVisitor::visitSpecializedInstruction(MInstruction *ins, MIRType sp
 // Throw
 
 bool
-ParallelSafetyVisitor::visitThrow(MThrow *thr)
+ParallelSafetyVisitor::visitThrow(MThrow* thr)
 {
-    MBasicBlock *block = thr->block();
+    MBasicBlock* block = thr->block();
     JS_ASSERT(block->lastIns() == thr);
-    MBail *bail = MBail::New(alloc(), Bailout_ParallelUnsafe);
+    MBail* bail = MBail::New(alloc(), Bailout_ParallelUnsafe);
     TransplantResumePoint(thr, bail);
     block->discardLastIns();
     block->add(bail);
@@ -785,14 +785,14 @@ ParallelSafetyVisitor::visitThrow(MThrow *thr)
 // See comments in header file.
 
 static bool
-GetPossibleCallees(JSContext *cx, HandleScript script, jsbytecode *pc,
-                   types::TemporaryTypeSet *calleeTypes, CallTargetVector &targets);
+GetPossibleCallees(JSContext* cx, HandleScript script, jsbytecode* pc,
+                   types::TemporaryTypeSet* calleeTypes, CallTargetVector& targets);
 
 static bool
-AddCallTarget(HandleScript script, CallTargetVector &targets);
+AddCallTarget(HandleScript script, CallTargetVector& targets);
 
 bool
-jit::AddPossibleCallees(JSContext *cx, MIRGraph &graph, CallTargetVector &targets)
+jit::AddPossibleCallees(JSContext* cx, MIRGraph& graph, CallTargetVector& targets)
 {
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
         for (MInstructionIterator ins(block->begin()); ins != block->end(); ins++)
@@ -800,7 +800,7 @@ jit::AddPossibleCallees(JSContext *cx, MIRGraph &graph, CallTargetVector &target
             if (!ins->isCall())
                 continue;
 
-            MCall *callIns = ins->toCall();
+            MCall* callIns = ins->toCall();
 
             RootedFunction target(cx, callIns->getSingleTarget());
             if (target) {
@@ -815,7 +815,7 @@ jit::AddPossibleCallees(JSContext *cx, MIRGraph &graph, CallTargetVector &target
                 continue;
             }
 
-            types::TemporaryTypeSet *calleeTypes = callIns->getFunction()->resultTypeSet();
+            types::TemporaryTypeSet* calleeTypes = callIns->getFunction()->resultTypeSet();
             RootedScript script(cx, callIns->block()->info().script());
             if (!GetPossibleCallees(cx,
                                     script,
@@ -830,11 +830,11 @@ jit::AddPossibleCallees(JSContext *cx, MIRGraph &graph, CallTargetVector &target
 }
 
 static bool
-GetPossibleCallees(JSContext *cx,
+GetPossibleCallees(JSContext* cx,
                    HandleScript script,
-                   jsbytecode *pc,
-                   types::TemporaryTypeSet *calleeTypes,
-                   CallTargetVector &targets)
+                   jsbytecode* pc,
+                   types::TemporaryTypeSet* calleeTypes,
+                   CallTargetVector& targets)
 {
     if (!calleeTypes || calleeTypes->baseFlags() != 0)
         return true;
@@ -847,11 +847,11 @@ GetPossibleCallees(JSContext *cx,
     RootedFunction rootedFun(cx);
     RootedScript rootedScript(cx);
     for (unsigned i = 0; i < objCount; i++) {
-        JSObject *obj = calleeTypes->getSingleObject(i);
+        JSObject* obj = calleeTypes->getSingleObject(i);
         if (obj && obj->is<JSFunction>()) {
             rootedFun = &obj->as<JSFunction>();
         } else {
-            types::TypeObject *typeObj = calleeTypes->getTypeObject(i);
+            types::TypeObject* typeObj = calleeTypes->getTypeObject(i);
             if (!typeObj)
                 continue;
             rootedFun = typeObj->interpretedFunction;
@@ -882,7 +882,7 @@ GetPossibleCallees(JSContext *cx,
 }
 
 static bool
-AddCallTarget(HandleScript script, CallTargetVector &targets)
+AddCallTarget(HandleScript script, CallTargetVector& targets)
 {
     for (size_t i = 0; i < targets.length(); i++) {
         if (targets[i] == script)

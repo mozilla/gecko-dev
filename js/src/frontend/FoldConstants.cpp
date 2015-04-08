@@ -29,7 +29,7 @@ using mozilla::PositiveInfinity;
 using JS::GenericNaN;
 
 static bool
-ContainsVarOrConst(ExclusiveContext *cx, ParseNode *pn, ParseNode **resultp)
+ContainsVarOrConst(ExclusiveContext* cx, ParseNode* pn, ParseNode** resultp)
 {
     JS_CHECK_RECURSION(cx, return false);
 
@@ -43,7 +43,7 @@ ContainsVarOrConst(ExclusiveContext *cx, ParseNode *pn, ParseNode **resultp)
     }
     switch (pn->getArity()) {
       case PN_LIST:
-        for (ParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
+        for (ParseNode* pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
             if (!ContainsVarOrConst(cx, pn2, resultp))
                 return false;
             if (*resultp)
@@ -97,7 +97,7 @@ ContainsVarOrConst(ExclusiveContext *cx, ParseNode *pn, ParseNode **resultp)
  * XXX handles only strings and numbers for now
  */
 static bool
-FoldType(ExclusiveContext *cx, ParseNode *pn, ParseNodeKind kind)
+FoldType(ExclusiveContext* cx, ParseNode* pn, ParseNodeKind kind)
 {
     if (!pn->isKind(kind)) {
         switch (kind) {
@@ -134,8 +134,8 @@ FoldType(ExclusiveContext *cx, ParseNode *pn, ParseNodeKind kind)
  * a successful call to this function.
  */
 static bool
-FoldBinaryNumeric(ExclusiveContext *cx, JSOp op, ParseNode *pn1, ParseNode *pn2,
-                  ParseNode *pn)
+FoldBinaryNumeric(ExclusiveContext* cx, JSOp op, ParseNode* pn1, ParseNode* pn2,
+                  ParseNode* pn)
 {
     double d, d2;
     int32_t i, j;
@@ -216,7 +216,7 @@ FoldBinaryNumeric(ExclusiveContext *cx, JSOp op, ParseNode *pn1, ParseNode *pn2,
 // for its pn_next pointer; updating that is necessary if *pn's new parent is a
 // list node.
 static void
-ReplaceNode(ParseNode **pnp, ParseNode *pn)
+ReplaceNode(ParseNode** pnp, ParseNode* pn)
 {
     pn->pn_next = (*pnp)->pn_next;
     *pnp = pn;
@@ -225,7 +225,7 @@ ReplaceNode(ParseNode **pnp, ParseNode *pn)
 enum Truthiness { Truthy, Falsy, Unknown };
 
 static Truthiness
-Boolish(ParseNode *pn)
+Boolish(ParseNode* pn)
 {
     switch (pn->getKind()) {
       case PNK_NUMBER:
@@ -265,18 +265,18 @@ MOZ_BEGIN_ENUM_CLASS(SyntacticContext, int)
 MOZ_END_ENUM_CLASS(SyntacticContext)
 
 static SyntacticContext
-condIf(const ParseNode *pn, ParseNodeKind kind)
+condIf(const ParseNode* pn, ParseNodeKind kind)
 {
     return pn->isKind(kind) ? SyntacticContext::Condition : SyntacticContext::Other;
 }
 
 static bool
-Fold(ExclusiveContext *cx, ParseNode **pnp,
-     FullParseHandler &handler, const ReadOnlyCompileOptions &options,
+Fold(ExclusiveContext* cx, ParseNode** pnp,
+     FullParseHandler& handler, const ReadOnlyCompileOptions& options,
      bool inGenexpLambda, SyntacticContext sc)
 {
-    ParseNode *pn = *pnp;
-    ParseNode *pn1 = nullptr, *pn2 = nullptr, *pn3 = nullptr;
+    ParseNode* pn = *pnp;
+    ParseNode* pn1 = nullptr, *pn2 = nullptr, *pn3 = nullptr;
 
     JS_CHECK_RECURSION(cx, return false);
 
@@ -306,7 +306,7 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
             kidsc = sc;
 
         // Don't fold a parenthesized call expression. See bug 537673.
-        ParseNode **listp = &pn->pn_head;
+        ParseNode** listp = &pn->pn_head;
         if ((pn->isKind(PNK_CALL) || pn->isKind(PNK_NEW)) && (*listp)->isInParens())
             listp = &(*listp)->pn_next;
 
@@ -407,7 +407,7 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
          * dot in the chain.
          */
         if (!pn->isUsed()) {
-            ParseNode **lhsp = &pn->pn_expr;
+            ParseNode** lhsp = &pn->pn_expr;
             while (*lhsp && (*lhsp)->isArity(PN_NAME) && !(*lhsp)->isUsed())
                 lhsp = &(*lhsp)->pn_expr;
             if (*lhsp && !Fold(cx, lhsp, handler, options, inGenexpLambda, SyntacticContext::Other))
@@ -432,7 +432,7 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
     switch (pn->getKind()) {
       case PNK_IF:
         {
-            ParseNode *decl;
+            ParseNode* decl;
             if (!ContainsVarOrConst(cx, pn2, &decl))
                 return false;
             if (decl)
@@ -496,7 +496,7 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
       case PNK_AND:
         if (sc == SyntacticContext::Condition) {
             if (pn->isArity(PN_LIST)) {
-                ParseNode **listp = &pn->pn_head;
+                ParseNode** listp = &pn->pn_head;
                 JS_ASSERT(*listp == pn1);
                 uint32_t orig = pn->pn_count;
                 do {
@@ -806,9 +806,9 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
 
       case PNK_ELEM: {
         // An indexed expression, pn1[pn2]. A few cases can be improved.
-        PropertyName *name = nullptr;
+        PropertyName* name = nullptr;
         if (pn2->isKind(PNK_STRING)) {
-            JSAtom *atom = pn2->pn_atom;
+            JSAtom* atom = pn2->pn_atom;
             uint32_t index;
 
             if (atom->isIndex(&index)) {
@@ -826,7 +826,7 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
                 // Optimization 2: We have something like pn1[3.14]. The number
                 // is not an array index. This is equivalent to pn1["3.14"]
                 // which enables optimization 3 below.
-                JSAtom *atom = ToAtom<NoGC>(cx, DoubleValue(number));
+                JSAtom* atom = ToAtom<NoGC>(cx, DoubleValue(number));
                 if (!atom)
                     return false;
                 name = atom->asPropertyName();
@@ -838,7 +838,7 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
             // Convert to a property access (like pn1.foo) which we optimize
             // better downstream. Don't bother with this for names which TI
             // considers to be indexes, to simplify downstream analysis.
-            ParseNode *expr = handler.newPropertyAccess(pn->pn_left, name, pn->pn_pos.end);
+            ParseNode* expr = handler.newPropertyAccess(pn->pn_left, name, pn->pn_pos.end);
             if (!expr)
                 return false;
             ReplaceNode(pnp, expr);
@@ -879,7 +879,7 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
 }
 
 bool
-frontend::FoldConstants(ExclusiveContext *cx, ParseNode **pnp, Parser<FullParseHandler> *parser)
+frontend::FoldConstants(ExclusiveContext* cx, ParseNode** pnp, Parser<FullParseHandler>* parser)
 {
     // Don't fold constants if the code has requested "use asm" as
     // constant-folding will misrepresent the source text for the purpose

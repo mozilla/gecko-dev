@@ -28,7 +28,7 @@ using namespace js;
 using namespace js::jit;
 
 /* static */ PCMappingSlotInfo::SlotLocation
-PCMappingSlotInfo::ToSlotLocation(const StackValue *stackVal)
+PCMappingSlotInfo::ToSlotLocation(const StackValue* stackVal)
 {
     if (stackVal->kind() == StackValue::Register) {
         if (stackVal->reg() == R0)
@@ -59,7 +59,7 @@ static const size_t BASELINE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 4096;
 static const unsigned BASELINE_MAX_ARGS_LENGTH = 20000;
 
 static bool
-CheckFrame(InterpreterFrame *fp)
+CheckFrame(InterpreterFrame* fp)
 {
     if (fp->isGeneratorFrame()) {
         IonSpew(IonSpew_BaselineAbort, "generator frame");
@@ -83,13 +83,13 @@ CheckFrame(InterpreterFrame *fp)
 }
 
 static IonExecStatus
-EnterBaseline(JSContext *cx, EnterJitData &data)
+EnterBaseline(JSContext* cx, EnterJitData& data)
 {
     if (data.osrFrame) {
         // Check for potential stack overflow before OSR-ing.
         uint8_t spDummy;
         uint32_t extra = BaselineFrame::Size() + (data.osrNumStackValues * sizeof(Value));
-        uint8_t *checkSp = (&spDummy) - extra;
+        uint8_t* checkSp = (&spDummy) - extra;
         JS_CHECK_RECURSION_WITH_SP(cx, checkSp, return IonExec_Aborted);
     } else {
         JS_CHECK_RECURSION(cx, return IonExec_Aborted);
@@ -133,9 +133,9 @@ EnterBaseline(JSContext *cx, EnterJitData &data)
 }
 
 IonExecStatus
-jit::EnterBaselineMethod(JSContext *cx, RunState &state)
+jit::EnterBaselineMethod(JSContext* cx, RunState& state)
 {
-    BaselineScript *baseline = state.script()->baselineScript();
+    BaselineScript* baseline = state.script()->baselineScript();
 
     EnterJitData data(cx);
     data.jitcode = baseline->method()->raw();
@@ -153,11 +153,11 @@ jit::EnterBaselineMethod(JSContext *cx, RunState &state)
 }
 
 IonExecStatus
-jit::EnterBaselineAtBranch(JSContext *cx, InterpreterFrame *fp, jsbytecode *pc)
+jit::EnterBaselineAtBranch(JSContext* cx, InterpreterFrame* fp, jsbytecode* pc)
 {
     JS_ASSERT(JSOp(*pc) == JSOP_LOOPENTRY);
 
-    BaselineScript *baseline = fp->script()->baselineScript();
+    BaselineScript* baseline = fp->script()->baselineScript();
 
     EnterJitData data(cx);
     data.jitcode = baseline->nativeCodeForPC(fp->script(), pc);
@@ -194,7 +194,7 @@ jit::EnterBaselineAtBranch(JSContext *cx, InterpreterFrame *fp, jsbytecode *pc)
             data.calleeToken = CalleeToToken(fp->script());
     }
 
-    TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+    TraceLogger* logger = TraceLoggerForMainThread(cx->runtime());
     TraceLogStopEvent(logger, TraceLogger::Interpreter);
     TraceLogStartEvent(logger, TraceLogger::Baseline);
 
@@ -207,7 +207,7 @@ jit::EnterBaselineAtBranch(JSContext *cx, InterpreterFrame *fp, jsbytecode *pc)
 }
 
 MethodStatus
-jit::BaselineCompile(JSContext *cx, JSScript *script)
+jit::BaselineCompile(JSContext* cx, JSScript* script)
 {
     JS_ASSERT(!script->hasBaselineScript());
     JS_ASSERT(script->canBaselineCompile());
@@ -216,7 +216,7 @@ jit::BaselineCompile(JSContext *cx, JSScript *script)
 
     script->ensureNonLazyCanonicalFunction(cx);
 
-    TempAllocator *temp = alloc.new_<TempAllocator>(&alloc);
+    TempAllocator* temp = alloc.new_<TempAllocator>(&alloc);
     if (!temp)
         return Method_Error;
 
@@ -238,7 +238,7 @@ jit::BaselineCompile(JSContext *cx, JSScript *script)
 }
 
 static MethodStatus
-CanEnterBaselineJIT(JSContext *cx, HandleScript script, bool osr)
+CanEnterBaselineJIT(JSContext* cx, HandleScript script, bool osr)
 {
     JS_ASSERT(jit::IsBaselineEnabled(cx));
 
@@ -292,7 +292,7 @@ CanEnterBaselineJIT(JSContext *cx, HandleScript script, bool osr)
 }
 
 MethodStatus
-jit::CanEnterBaselineAtBranch(JSContext *cx, InterpreterFrame *fp, bool newType)
+jit::CanEnterBaselineAtBranch(JSContext* cx, InterpreterFrame* fp, bool newType)
 {
    // If constructing, allocate a new |this| object.
    if (fp->isConstructing() && fp->functionThis().isPrimitive()) {
@@ -311,10 +311,10 @@ jit::CanEnterBaselineAtBranch(JSContext *cx, InterpreterFrame *fp, bool newType)
 }
 
 MethodStatus
-jit::CanEnterBaselineMethod(JSContext *cx, RunState &state)
+jit::CanEnterBaselineMethod(JSContext* cx, RunState& state)
 {
     if (state.isInvoke()) {
-        InvokeState &invoke = *state.asInvoke();
+        InvokeState& invoke = *state.asInvoke();
 
         if (invoke.args().length() > BASELINE_MAX_ARGS_LENGTH) {
             IonSpew(IonSpew_BaselineAbort, "Too many arguments (%u)", invoke.args().length());
@@ -339,8 +339,8 @@ jit::CanEnterBaselineMethod(JSContext *cx, RunState &state)
     return CanEnterBaselineJIT(cx, script, /* osr = */false);
 };
 
-BaselineScript *
-BaselineScript::New(JSScript *jsscript, uint32_t prologueOffset, uint32_t epilogueOffset,
+BaselineScript*
+BaselineScript::New(JSScript* jsscript, uint32_t prologueOffset, uint32_t epilogueOffset,
                     uint32_t spsPushToggleOffset, uint32_t postDebugPrologueOffset,
                     size_t icEntries, size_t pcMappingIndexEntries, size_t pcMappingSize,
                     size_t bytecodeTypeMapEntries)
@@ -361,7 +361,7 @@ BaselineScript::New(JSScript *jsscript, uint32_t prologueOffset, uint32_t epilog
                         paddedPCMappingSize +
                         paddedBytecodeTypesMapSize;
 
-    BaselineScript *script = jsscript->pod_malloc_with_extra<BaselineScript, uint8_t>(allocBytes);
+    BaselineScript* script = jsscript->pod_malloc_with_extra<BaselineScript, uint8_t>(allocBytes);
     if (!script)
         return nullptr;
     new (script) BaselineScript(prologueOffset, epilogueOffset,
@@ -388,7 +388,7 @@ BaselineScript::New(JSScript *jsscript, uint32_t prologueOffset, uint32_t epilog
 }
 
 void
-BaselineScript::trace(JSTracer *trc)
+BaselineScript::trace(JSTracer* trc)
 {
     MarkJitCode(trc, &method_, "baseline-method");
     if (templateScope_)
@@ -396,17 +396,17 @@ BaselineScript::trace(JSTracer *trc)
 
     // Mark all IC stub codes hanging off the IC stub entries.
     for (size_t i = 0; i < numICEntries(); i++) {
-        ICEntry &ent = icEntry(i);
+        ICEntry& ent = icEntry(i);
         if (!ent.hasStub())
             continue;
-        for (ICStub *stub = ent.firstStub(); stub; stub = stub->next())
+        for (ICStub* stub = ent.firstStub(); stub; stub = stub->next())
             stub->trace(trc);
     }
 }
 
 /* static */
 void
-BaselineScript::writeBarrierPre(Zone *zone, BaselineScript *script)
+BaselineScript::writeBarrierPre(Zone* zone, BaselineScript* script)
 {
 #ifdef JSGC_INCREMENTAL
     if (zone->needsIncrementalBarrier())
@@ -415,13 +415,13 @@ BaselineScript::writeBarrierPre(Zone *zone, BaselineScript *script)
 }
 
 void
-BaselineScript::Trace(JSTracer *trc, BaselineScript *script)
+BaselineScript::Trace(JSTracer* trc, BaselineScript* script)
 {
     script->trace(trc);
 }
 
 void
-BaselineScript::Destroy(FreeOp *fop, BaselineScript *script)
+BaselineScript::Destroy(FreeOp* fop, BaselineScript* script)
 {
 #ifdef JSGC_GENERATIONAL
     /*
@@ -437,14 +437,14 @@ BaselineScript::Destroy(FreeOp *fop, BaselineScript *script)
     fop->delete_(script);
 }
 
-ICEntry &
+ICEntry&
 BaselineScript::icEntry(size_t index)
 {
     JS_ASSERT(index < numICEntries());
     return icEntryList()[index];
 }
 
-PCMappingIndexEntry &
+PCMappingIndexEntry&
 BaselineScript::pcMappingIndexEntry(size_t index)
 {
     JS_ASSERT(index < numPCMappingIndexEntries());
@@ -454,24 +454,24 @@ BaselineScript::pcMappingIndexEntry(size_t index)
 CompactBufferReader
 BaselineScript::pcMappingReader(size_t indexEntry)
 {
-    PCMappingIndexEntry &entry = pcMappingIndexEntry(indexEntry);
+    PCMappingIndexEntry& entry = pcMappingIndexEntry(indexEntry);
 
-    uint8_t *dataStart = pcMappingData() + entry.bufferOffset;
-    uint8_t *dataEnd = (indexEntry == numPCMappingIndexEntries() - 1)
+    uint8_t* dataStart = pcMappingData() + entry.bufferOffset;
+    uint8_t* dataEnd = (indexEntry == numPCMappingIndexEntries() - 1)
         ? pcMappingData() + pcMappingSize_
         : pcMappingData() + pcMappingIndexEntry(indexEntry + 1).bufferOffset;
 
     return CompactBufferReader(dataStart, dataEnd);
 }
 
-ICEntry *
+ICEntry*
 BaselineScript::maybeICEntryFromReturnOffset(CodeOffsetLabel returnOffset)
 {
     size_t bottom = 0;
     size_t top = numICEntries();
     size_t mid = bottom + (top - bottom) / 2;
     while (mid < top) {
-        ICEntry &midEntry = icEntry(mid);
+        ICEntry& midEntry = icEntry(mid);
         if (midEntry.returnOffset().offset() < returnOffset.offset())
             bottom = mid + 1;
         else // if (midEntry.returnOffset().offset() >= returnOffset.offset())
@@ -487,21 +487,21 @@ BaselineScript::maybeICEntryFromReturnOffset(CodeOffsetLabel returnOffset)
     return &icEntry(mid);
 }
 
-ICEntry &
+ICEntry&
 BaselineScript::icEntryFromReturnOffset(CodeOffsetLabel returnOffset)
 {
-    ICEntry *result = maybeICEntryFromReturnOffset(returnOffset);
+    ICEntry* result = maybeICEntryFromReturnOffset(returnOffset);
     JS_ASSERT(result);
     return *result;
 }
 
-uint8_t *
-BaselineScript::returnAddressForIC(const ICEntry &ent)
+uint8_t*
+BaselineScript::returnAddressForIC(const ICEntry& ent)
 {
     return method()->raw() + ent.returnOffset().offset();
 }
 
-ICEntry &
+ICEntry&
 BaselineScript::icEntryFromPCOffset(uint32_t pcOffset)
 {
     // Multiple IC entries can have the same PC offset, but this method only looks for
@@ -510,7 +510,7 @@ BaselineScript::icEntryFromPCOffset(uint32_t pcOffset)
     size_t top = numICEntries();
     size_t mid = bottom + (top - bottom) / 2;
     while (mid < top) {
-        ICEntry &midEntry = icEntry(mid);
+        ICEntry& midEntry = icEntry(mid);
         if (midEntry.pcOffset() < pcOffset)
             bottom = mid + 1;
         else if (midEntry.pcOffset() > pcOffset)
@@ -533,17 +533,17 @@ BaselineScript::icEntryFromPCOffset(uint32_t pcOffset)
     MOZ_CRASH("Invalid PC offset for IC entry.");
 }
 
-ICEntry &
-BaselineScript::icEntryFromPCOffset(uint32_t pcOffset, ICEntry *prevLookedUpEntry)
+ICEntry&
+BaselineScript::icEntryFromPCOffset(uint32_t pcOffset, ICEntry* prevLookedUpEntry)
 {
     // Do a linear forward search from the last queried PC offset, or fallback to a
     // binary search if the last offset is too far away.
     if (prevLookedUpEntry && pcOffset >= prevLookedUpEntry->pcOffset() &&
         (pcOffset - prevLookedUpEntry->pcOffset()) <= 10)
     {
-        ICEntry *firstEntry = &icEntry(0);
-        ICEntry *lastEntry = &icEntry(numICEntries() - 1);
-        ICEntry *curEntry = prevLookedUpEntry;
+        ICEntry* firstEntry = &icEntry(0);
+        ICEntry* lastEntry = &icEntry(numICEntries() - 1);
+        ICEntry* curEntry = prevLookedUpEntry;
         while (curEntry >= firstEntry && curEntry <= lastEntry) {
             if (curEntry->pcOffset() == pcOffset && curEntry->isForOp())
                 break;
@@ -556,8 +556,8 @@ BaselineScript::icEntryFromPCOffset(uint32_t pcOffset, ICEntry *prevLookedUpEntr
     return icEntryFromPCOffset(pcOffset);
 }
 
-ICEntry *
-BaselineScript::maybeICEntryFromReturnAddress(uint8_t *returnAddr)
+ICEntry*
+BaselineScript::maybeICEntryFromReturnAddress(uint8_t* returnAddr)
 {
     JS_ASSERT(returnAddr > method_->raw());
     JS_ASSERT(returnAddr < method_->raw() + method_->instructionsSize());
@@ -565,8 +565,8 @@ BaselineScript::maybeICEntryFromReturnAddress(uint8_t *returnAddr)
     return maybeICEntryFromReturnOffset(offset);
 }
 
-ICEntry &
-BaselineScript::icEntryFromReturnAddress(uint8_t *returnAddr)
+ICEntry&
+BaselineScript::icEntryFromReturnAddress(uint8_t* returnAddr)
 {
     JS_ASSERT(returnAddr > method_->raw());
     JS_ASSERT(returnAddr < method_->raw() + method_->instructionsSize());
@@ -575,12 +575,12 @@ BaselineScript::icEntryFromReturnAddress(uint8_t *returnAddr)
 }
 
 void
-BaselineScript::copyICEntries(JSScript *script, const ICEntry *entries, MacroAssembler &masm)
+BaselineScript::copyICEntries(JSScript* script, const ICEntry* entries, MacroAssembler& masm)
 {
     // Fix up the return offset in the IC entries and copy them in.
     // Also write out the IC entry ptrs in any fallback stubs that were added.
     for (uint32_t i = 0; i < numICEntries(); i++) {
-        ICEntry &realEntry = icEntry(i);
+        ICEntry& realEntry = icEntry(i);
         realEntry = entries[i];
         realEntry.fixupReturnOffset(masm);
 
@@ -595,25 +595,25 @@ BaselineScript::copyICEntries(JSScript *script, const ICEntry *entries, MacroAss
             realEntry.firstStub()->toFallbackStub()->fixupICEntry(&realEntry);
 
         if (realEntry.firstStub()->isTypeMonitor_Fallback()) {
-            ICTypeMonitor_Fallback *stub = realEntry.firstStub()->toTypeMonitor_Fallback();
+            ICTypeMonitor_Fallback* stub = realEntry.firstStub()->toTypeMonitor_Fallback();
             stub->fixupICEntry(&realEntry);
         }
 
         if (realEntry.firstStub()->isTableSwitch()) {
-            ICTableSwitch *stub = realEntry.firstStub()->toTableSwitch();
+            ICTableSwitch* stub = realEntry.firstStub()->toTableSwitch();
             stub->fixupJumpTable(script, this);
         }
     }
 }
 
 void
-BaselineScript::adoptFallbackStubs(FallbackICStubSpace *stubSpace)
+BaselineScript::adoptFallbackStubs(FallbackICStubSpace* stubSpace)
 {
     fallbackStubSpace_.adoptFrom(stubSpace);
 }
 
 void
-BaselineScript::copyPCMappingEntries(const CompactBufferWriter &entries)
+BaselineScript::copyPCMappingEntries(const CompactBufferWriter& entries)
 {
     JS_ASSERT(entries.length() > 0);
     JS_ASSERT(entries.length() == pcMappingSize_);
@@ -622,14 +622,14 @@ BaselineScript::copyPCMappingEntries(const CompactBufferWriter &entries)
 }
 
 void
-BaselineScript::copyPCMappingIndexEntries(const PCMappingIndexEntry *entries)
+BaselineScript::copyPCMappingIndexEntries(const PCMappingIndexEntry* entries)
 {
     for (uint32_t i = 0; i < numPCMappingIndexEntries(); i++)
         pcMappingIndexEntry(i) = entries[i];
 }
 
-uint8_t *
-BaselineScript::nativeCodeForPC(JSScript *script, jsbytecode *pc, PCMappingSlotInfo *slotInfo)
+uint8_t*
+BaselineScript::nativeCodeForPC(JSScript* script, jsbytecode* pc, PCMappingSlotInfo* slotInfo)
 {
     JS_ASSERT_IF(script->hasBaselineScript(), script->baselineScript() == this);
 
@@ -647,11 +647,11 @@ BaselineScript::nativeCodeForPC(JSScript *script, jsbytecode *pc, PCMappingSlotI
     JS_ASSERT(i > 0);
     i--;
 
-    PCMappingIndexEntry &entry = pcMappingIndexEntry(i);
+    PCMappingIndexEntry& entry = pcMappingIndexEntry(i);
     JS_ASSERT(pcOffset >= entry.pcOffset);
 
     CompactBufferReader reader(pcMappingReader(i));
-    jsbytecode *curPC = script->offsetToPC(entry.pcOffset);
+    jsbytecode* curPC = script->offsetToPC(entry.pcOffset);
     uint32_t nativeOffset = entry.nativeOffset;
 
     JS_ASSERT(script->containsPC(curPC));
@@ -674,14 +674,14 @@ BaselineScript::nativeCodeForPC(JSScript *script, jsbytecode *pc, PCMappingSlotI
     }
 }
 
-jsbytecode *
-BaselineScript::pcForReturnOffset(JSScript *script, uint32_t nativeOffset)
+jsbytecode*
+BaselineScript::pcForReturnOffset(JSScript* script, uint32_t nativeOffset)
 {
     return pcForNativeOffset(script, nativeOffset, true);
 }
 
-jsbytecode *
-BaselineScript::pcForReturnAddress(JSScript *script, uint8_t *nativeAddress)
+jsbytecode*
+BaselineScript::pcForReturnAddress(JSScript* script, uint8_t* nativeAddress)
 {
     JS_ASSERT(script->baselineScript() == this);
     JS_ASSERT(nativeAddress >= method_->raw());
@@ -689,14 +689,14 @@ BaselineScript::pcForReturnAddress(JSScript *script, uint8_t *nativeAddress)
     return pcForReturnOffset(script, uint32_t(nativeAddress - method_->raw()));
 }
 
-jsbytecode *
-BaselineScript::pcForNativeOffset(JSScript *script, uint32_t nativeOffset)
+jsbytecode*
+BaselineScript::pcForNativeOffset(JSScript* script, uint32_t nativeOffset)
 {
     return pcForNativeOffset(script, nativeOffset, false);
 }
 
-jsbytecode *
-BaselineScript::pcForNativeOffset(JSScript *script, uint32_t nativeOffset, bool isReturn)
+jsbytecode*
+BaselineScript::pcForNativeOffset(JSScript* script, uint32_t nativeOffset, bool isReturn)
 {
     JS_ASSERT(script->baselineScript() == this);
     JS_ASSERT(nativeOffset < method_->instructionsSize());
@@ -713,11 +713,11 @@ BaselineScript::pcForNativeOffset(JSScript *script, uint32_t nativeOffset, bool 
     JS_ASSERT(i > 0);
     i--;
 
-    PCMappingIndexEntry &entry = pcMappingIndexEntry(i);
+    PCMappingIndexEntry& entry = pcMappingIndexEntry(i);
     JS_ASSERT_IF(isReturn, nativeOffset >= entry.nativeOffset);
 
     CompactBufferReader reader(pcMappingReader(i));
-    jsbytecode *curPC = script->offsetToPC(entry.pcOffset);
+    jsbytecode* curPC = script->offsetToPC(entry.pcOffset);
     uint32_t curNativeOffset = entry.nativeOffset;
 
     JS_ASSERT(script->containsPC(curPC));
@@ -748,8 +748,8 @@ BaselineScript::pcForNativeOffset(JSScript *script, uint32_t nativeOffset, bool 
     }
 }
 
-jsbytecode *
-BaselineScript::pcForNativeAddress(JSScript *script, uint8_t *nativeAddress)
+jsbytecode*
+BaselineScript::pcForNativeAddress(JSScript* script, uint8_t* nativeAddress)
 {
     JS_ASSERT(script->baselineScript() == this);
     JS_ASSERT(nativeAddress >= method_->raw());
@@ -758,7 +758,7 @@ BaselineScript::pcForNativeAddress(JSScript *script, uint8_t *nativeAddress)
 }
 
 void
-BaselineScript::toggleDebugTraps(JSScript *script, jsbytecode *pc)
+BaselineScript::toggleDebugTraps(JSScript* script, jsbytecode* pc)
 {
     JS_ASSERT(script->baselineScript() == this);
 
@@ -769,10 +769,10 @@ BaselineScript::toggleDebugTraps(JSScript *script, jsbytecode *pc)
     SrcNoteLineScanner scanner(script->notes(), script->lineno());
 
     for (uint32_t i = 0; i < numPCMappingIndexEntries(); i++) {
-        PCMappingIndexEntry &entry = pcMappingIndexEntry(i);
+        PCMappingIndexEntry& entry = pcMappingIndexEntry(i);
 
         CompactBufferReader reader(pcMappingReader(i));
-        jsbytecode *curPC = script->offsetToPC(entry.pcOffset);
+        jsbytecode* curPC = script->offsetToPC(entry.pcOffset);
         uint32_t nativeOffset = entry.nativeOffset;
 
         JS_ASSERT(script->containsPC(curPC));
@@ -818,23 +818,23 @@ BaselineScript::toggleSPS(bool enable)
 }
 
 void
-BaselineScript::purgeOptimizedStubs(Zone *zone)
+BaselineScript::purgeOptimizedStubs(Zone* zone)
 {
     IonSpew(IonSpew_BaselineIC, "Purging optimized stubs");
 
     for (size_t i = 0; i < numICEntries(); i++) {
-        ICEntry &entry = icEntry(i);
+        ICEntry& entry = icEntry(i);
         if (!entry.hasStub())
             continue;
 
-        ICStub *lastStub = entry.firstStub();
+        ICStub* lastStub = entry.firstStub();
         while (lastStub->next())
             lastStub = lastStub->next();
 
         if (lastStub->isFallback()) {
             // Unlink all stubs allocated in the optimized space.
-            ICStub *stub = entry.firstStub();
-            ICStub *prev = nullptr;
+            ICStub* stub = entry.firstStub();
+            ICStub* prev = nullptr;
 
             while (stub->next()) {
                 if (!stub->allocatedInFallbackSpace()) {
@@ -850,7 +850,7 @@ BaselineScript::purgeOptimizedStubs(Zone *zone)
             if (lastStub->isMonitoredFallback()) {
                 // Monitor stubs can't make calls, so are always in the
                 // optimized stub space.
-                ICTypeMonitor_Fallback *lastMonStub =
+                ICTypeMonitor_Fallback* lastMonStub =
                     lastStub->toMonitoredFallbackStub()->fallbackMonitorStub();
                 lastMonStub->resetMonitorStubChain(zone);
             }
@@ -864,11 +864,11 @@ BaselineScript::purgeOptimizedStubs(Zone *zone)
 #ifdef DEBUG
     // All remaining stubs must be allocated in the fallback space.
     for (size_t i = 0; i < numICEntries(); i++) {
-        ICEntry &entry = icEntry(i);
+        ICEntry& entry = icEntry(i);
         if (!entry.hasStub())
             continue;
 
-        ICStub *stub = entry.firstStub();
+        ICStub* stub = entry.firstStub();
         while (stub->next()) {
             JS_ASSERT(stub->allocatedInFallbackSpace());
             stub = stub->next();
@@ -878,7 +878,7 @@ BaselineScript::purgeOptimizedStubs(Zone *zone)
 }
 
 void
-jit::FinishDiscardBaselineScript(FreeOp *fop, JSScript *script)
+jit::FinishDiscardBaselineScript(FreeOp* fop, JSScript* script)
 {
     if (!script->hasBaselineScript())
         return;
@@ -894,7 +894,7 @@ jit::FinishDiscardBaselineScript(FreeOp *fop, JSScript *script)
         return;
     }
 
-    BaselineScript *baseline = script->baselineScript();
+    BaselineScript* baseline = script->baselineScript();
     script->setBaselineScript(nullptr, nullptr);
     BaselineScript::Destroy(fop, baseline);
 }
@@ -903,25 +903,25 @@ void
 jit::JitCompartment::toggleBaselineStubBarriers(bool enabled)
 {
     for (ICStubCodeMap::Enum e(*stubCodes_); !e.empty(); e.popFront()) {
-        JitCode *code = *e.front().value().unsafeGet();
+        JitCode* code = *e.front().value().unsafeGet();
         code->togglePreBarriers(enabled);
     }
 }
 
 void
-jit::AddSizeOfBaselineData(JSScript *script, mozilla::MallocSizeOf mallocSizeOf, size_t *data,
-                           size_t *fallbackStubs)
+jit::AddSizeOfBaselineData(JSScript* script, mozilla::MallocSizeOf mallocSizeOf, size_t* data,
+                           size_t* fallbackStubs)
 {
     if (script->hasBaselineScript())
         script->baselineScript()->addSizeOfIncludingThis(mallocSizeOf, data, fallbackStubs);
 }
 
 void
-jit::ToggleBaselineSPS(JSRuntime *runtime, bool enable)
+jit::ToggleBaselineSPS(JSRuntime* runtime, bool enable)
 {
     for (ZonesIter zone(runtime, SkipAtoms); !zone.done(); zone.next()) {
         for (gc::ZoneCellIter i(zone, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
+            JSScript* script = i.get<JSScript>();
             if (!script->hasBaselineScript())
                 continue;
             script->baselineScript()->toggleSPS(enable);
@@ -930,7 +930,7 @@ jit::ToggleBaselineSPS(JSRuntime *runtime, bool enable)
 }
 
 static void
-MarkActiveBaselineScripts(JSRuntime *rt, const JitActivationIterator &activation)
+MarkActiveBaselineScripts(JSRuntime* rt, const JitActivationIterator& activation)
 {
     for (jit::JitFrameIterator iter(activation); !iter.done(); ++iter) {
         switch (iter.type()) {
@@ -951,9 +951,9 @@ MarkActiveBaselineScripts(JSRuntime *rt, const JitActivationIterator &activation
 }
 
 void
-jit::MarkActiveBaselineScripts(Zone *zone)
+jit::MarkActiveBaselineScripts(Zone* zone)
 {
-    JSRuntime *rt = zone->runtimeFromMainThread();
+    JSRuntime* rt = zone->runtimeFromMainThread();
     for (JitActivationIterator iter(rt); !iter.done(); ++iter) {
         if (iter->compartment()->zone() == zone)
             MarkActiveBaselineScripts(rt, iter);

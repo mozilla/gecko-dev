@@ -23,14 +23,14 @@ extern const JSFunctionSpec object_static_selfhosted_methods[];
 
 // Object constructor native. Exposed only so the JIT can know its address.
 bool
-obj_construct(JSContext *cx, unsigned argc, JS::Value *vp);
+obj_construct(JSContext* cx, unsigned argc, JS::Value* vp);
 
 bool
-obj_valueOf(JSContext *cx, unsigned argc, JS::Value *vp);
+obj_valueOf(JSContext* cx, unsigned argc, JS::Value* vp);
 
 // Exposed so SelfHosting.cpp can use it in the OwnPropertyKeys intrinsic
 bool
-GetOwnPropertyKeys(JSContext *cx, const JS::CallArgs &args, unsigned flags);
+GetOwnPropertyKeys(JSContext* cx, const JS::CallArgs& args, unsigned flags);
 
 /*
  * Like IdToValue, but convert int jsids to strings. This is used when
@@ -38,17 +38,17 @@ GetOwnPropertyKeys(JSContext *cx, const JS::CallArgs &args, unsigned flags);
  * or scriptable proxy traps.
  */
 bool
-IdToStringOrSymbol(JSContext *cx, JS::HandleId id, JS::MutableHandleValue result);
+IdToStringOrSymbol(JSContext* cx, JS::HandleId id, JS::MutableHandleValue result);
 
 #if JS_HAS_TOSOURCE
 // Object.prototype.toSource. Function.prototype.toSource and uneval use this.
-JSString *
-ObjectToSource(JSContext *cx, JS::HandleObject obj);
+JSString*
+ObjectToSource(JSContext* cx, JS::HandleObject obj);
 #endif // JS_HAS_TOSOURCE
 
 extern bool
-WatchHandler(JSContext *cx, JSObject *obj, jsid id, JS::Value old,
-             JS::Value *nvp, void *closure);
+WatchHandler(JSContext* cx, JSObject* obj, jsid id, JS::Value old,
+             JS::Value* nvp, void* closure);
 
 } /* namespace js */
 

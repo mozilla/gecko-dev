@@ -15,7 +15,7 @@ namespace js {
 namespace jit {
 
 static inline bool
-HasIonScript(JSScript *script, ExecutionMode cmode)
+HasIonScript(JSScript* script, ExecutionMode cmode)
 {
     switch (cmode) {
       case SequentialExecution: return script->hasIonScript();
@@ -25,8 +25,8 @@ HasIonScript(JSScript *script, ExecutionMode cmode)
     MOZ_ASSUME_UNREACHABLE("No such execution mode");
 }
 
-static inline IonScript *
-GetIonScript(JSScript *script, ExecutionMode cmode)
+static inline IonScript*
+GetIonScript(JSScript* script, ExecutionMode cmode)
 {
     switch (cmode) {
       case SequentialExecution: return script->maybeIonScript();
@@ -37,7 +37,7 @@ GetIonScript(JSScript *script, ExecutionMode cmode)
 }
 
 static inline void
-SetIonScript(JSScript *script, ExecutionMode cmode, IonScript *ionScript)
+SetIonScript(JSScript* script, ExecutionMode cmode, IonScript* ionScript)
 {
     switch (cmode) {
       case SequentialExecution: script->setIonScript(ionScript); return;
@@ -59,7 +59,7 @@ OffsetOfIonInJSScript(ExecutionMode cmode)
 }
 
 static inline bool
-CanIonCompile(JSScript *script, ExecutionMode cmode)
+CanIonCompile(JSScript* script, ExecutionMode cmode)
 {
     switch (cmode) {
       case SequentialExecution: return script->canIonCompile();
@@ -73,7 +73,7 @@ CanIonCompile(JSScript *script, ExecutionMode cmode)
 }
 
 static inline bool
-CompilingOffThread(JSScript *script, ExecutionMode cmode)
+CompilingOffThread(JSScript* script, ExecutionMode cmode)
 {
     switch (cmode) {
       case SequentialExecution: return script->isIonCompilingOffThread();
