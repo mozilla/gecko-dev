@@ -603,6 +603,11 @@ class PerThreadData : public PerThreadDataFriendFields
      */
     int32_t suppressGC;
 
+#ifdef DEBUG
+    // Whether this thread is currently sweeping GC things.
+    bool gcSweeping;
+#endif
+
     // Number of active bytecode compilation on this thread.
     unsigned activeCompilations;
 
