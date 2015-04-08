@@ -22,7 +22,7 @@ static const int stack_snapshot_max_size = 32768;
 #include <windows.h>
 
 static bool
-GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffer, size_t size)
+GetStack(uint64_t* stack, uint64_t* stack_len, CrashRegisters* regs, char* buffer, size_t size)
 {
     /* Try to figure out how big the stack is. */
     char dummy;
@@ -75,7 +75,7 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 #endif
 #endif
 
-    js_memcpy(buffer, (void *)p, len);
+    js_memcpy(buffer, (void*)p, len);
 
     return true;
 }
@@ -87,7 +87,7 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 #include <unistd.h>
 
 static bool
-GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffer, size_t size)
+GetStack(uint64_t* stack, uint64_t* stack_len, CrashRegisters* regs, char* buffer, size_t size)
 {
     /* 256 is a fudge factor to account for the rest of GetStack's frame. */
     char dummy;
@@ -98,8 +98,8 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 
     /* Try to figure out how big the stack is. */
     while (len > 0) {
-	if (mlock((const void *)p, len) == 0) {
-	    munlock((const void *)p, len);
+	if (mlock((const void*)p, len) == 0) {
+	    munlock((const void*)p, len);
 	    break;
 	}
 	len -= pgsz;
@@ -128,7 +128,7 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 #error unknown cpu architecture
 #endif
 
-    js_memcpy(buffer, (void *)p, len);
+    js_memcpy(buffer, (void*)p, len);
 
     return true;
 }
@@ -136,7 +136,7 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 #else
 
 static bool
-GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffer, size_t size)
+GetStack(uint64_t* stack, uint64_t* stack_len, CrashRegisters* regs, char* buffer, size_t size)
 {
     return false;
 }
@@ -171,11 +171,11 @@ class Ring : private CrashRing
 public:
     Ring(uint64_t id);
 
-    void push(uint64_t tag, void *data, size_t size);
+    void push(uint64_t tag, void* data, size_t size);
 
 private:
     size_t bufferSize() { return crash_buffer_size; }
-    void copyBytes(void *data, size_t size);
+    void copyBytes(void* data, size_t size);
 };
 
 Ring::Ring(uint64_t id)
@@ -184,7 +184,7 @@ Ring::Ring(uint64_t id)
 }
 
 void
-Ring::push(uint64_t tag, void *data, size_t size)
+Ring::push(uint64_t tag, void* data, size_t size)
 {
     uint64_t t = time(nullptr);
 
@@ -196,7 +196,7 @@ Ring::push(uint64_t tag, void *data, size_t size)
 }
 
 void
-Ring::copyBytes(void *data, size_t size)
+Ring::copyBytes(void* data, size_t size)
 {
     if (size >= bufferSize())
         size = bufferSize();
@@ -205,7 +205,7 @@ Ring::copyBytes(void *data, size_t size)
         size_t first = bufferSize() - offset;
         size_t second = size - first;
         js_memcpy(&buffer[offset], data, first);
-        js_memcpy(buffer, (char *)data + first, second);
+        js_memcpy(buffer, (char*)data + first, second);
         offset = second;
     } else {
         js_memcpy(&buffer[offset], data, size);
@@ -243,7 +243,7 @@ js::crash::SnapshotErrorStack()
 }
 
 void
-js::crash::SaveCrashData(uint64_t tag, void *ptr, size_t size)
+js::crash::SaveCrashData(uint64_t tag, void* ptr, size_t size)
 {
 #ifdef JS_CRASH_DIAGNOSTICS
     if (gInitialized)

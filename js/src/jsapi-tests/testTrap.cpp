@@ -11,7 +11,7 @@
 static int emptyTrapCallCount = 0;
 
 static JSTrapStatus
-EmptyTrapHandler(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval,
+EmptyTrapHandler(JSContext* cx, JSScript* script, jsbytecode* pc, jsval* rval,
                  jsval closureArg)
 {
     JS::RootedValue closure(cx, closureArg);
@@ -55,10 +55,10 @@ BEGIN_TEST(testTrap_gc)
     // JS_ExecuteScript. This way we avoid using Anchor.
     JS::RootedString trapClosure(cx);
     {
-        jsbytecode *line2 = JS_LineNumberToPC(cx, script, 1);
+        jsbytecode* line2 = JS_LineNumberToPC(cx, script, 1);
         CHECK(line2);
 
-        jsbytecode *line6 = JS_LineNumberToPC(cx, script, 5);
+        jsbytecode* line6 = JS_LineNumberToPC(cx, script, 5);
         CHECK(line2);
 
         trapClosure = JS_NewStringCopyZ(cx, trapClosureText);

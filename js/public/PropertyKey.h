@@ -19,7 +19,7 @@ class PropertyKey;
 namespace detail {
 
 extern JS_PUBLIC_API(bool)
-ToPropertyKeySlow(JSContext *cx, HandleValue v, PropertyKey *key);
+ToPropertyKeySlow(JSContext* cx, HandleValue v, PropertyKey* key);
 
 } // namespace detail
 
@@ -34,7 +34,7 @@ ToPropertyKeySlow(JSContext *cx, HandleValue v, PropertyKey *key);
 class PropertyKey
 {
     Value v;
-    friend JS_PUBLIC_API(bool) detail::ToPropertyKeySlow(JSContext *cx, HandleValue v, PropertyKey *key);
+    friend JS_PUBLIC_API(bool) detail::ToPropertyKeySlow(JSContext* cx, HandleValue v, PropertyKey* key);
 
   public:
     explicit PropertyKey(uint32_t index) : v(PrivateUint32Value(index)) {}
@@ -44,7 +44,7 @@ class PropertyKey
      * unsigned 32-bit integer in decimal: "0", "1", "2", ...., "4294967294",
      * "4294967295".
      */
-    bool isIndex(uint32_t *index) {
+    bool isIndex(uint32_t* index) {
         // The implementation here assumes that private uint32_t are stored
         // using the int32_t representation.  This is purely an implementation
         // detail: embedders must not rely upon this!
@@ -59,7 +59,7 @@ class PropertyKey
      * the ECMAScript language grammar, any dotted property access |obj.prop|
      * will access a named property.
      */
-    bool isName(JSString **str) {
+    bool isName(JSString** str) {
         uint32_t dummy;
         if (isIndex(&dummy))
             return false;
@@ -80,7 +80,7 @@ class PropertyKey
 };
 
 inline bool
-ToPropertyKey(JSContext *cx, HandleValue v, PropertyKey *key)
+ToPropertyKey(JSContext* cx, HandleValue v, PropertyKey* key)
 {
     if (v.isInt32() && v.toInt32() >= 0) {
         *key = PropertyKey(uint32_t(v.toInt32()));

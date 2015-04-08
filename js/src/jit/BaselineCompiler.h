@@ -180,7 +180,7 @@ class BaselineCompiler : public BaselineCompilerSpecific
     // Whether any on stack arguments are modified.
     bool modifiesArguments_;
 
-    Label *labelOf(jsbytecode *pc) {
+    Label* labelOf(jsbytecode* pc) {
         return &labels_[script->pcToOffset(pc)];
     }
 
@@ -192,7 +192,7 @@ class BaselineCompiler : public BaselineCompilerSpecific
     }
 
   public:
-    BaselineCompiler(JSContext *cx, TempAllocator &alloc, HandleScript script);
+    BaselineCompiler(JSContext* cx, TempAllocator& alloc, HandleScript script);
     bool init();
 
     MethodStatus compile();
@@ -205,11 +205,11 @@ class BaselineCompiler : public BaselineCompilerSpecific
 #ifdef JSGC_GENERATIONAL
     bool emitOutOfLinePostBarrierSlot();
 #endif
-    bool emitIC(ICStub *stub, bool isForOp);
-    bool emitOpIC(ICStub *stub) {
+    bool emitIC(ICStub* stub, bool isForOp);
+    bool emitOpIC(ICStub* stub) {
         return emitIC(stub, true);
     }
-    bool emitNonOpIC(ICStub *stub) {
+    bool emitNonOpIC(ICStub* stub) {
         return emitIC(stub, false);
     }
 
@@ -224,8 +224,8 @@ class BaselineCompiler : public BaselineCompilerSpecific
 
     bool initScopeChain();
 
-    void storeValue(const StackValue *source, const Address &dest,
-                    const ValueOperand &scratch);
+    void storeValue(const StackValue* source, const Address& dest,
+                    const ValueOperand& scratch);
 
 #define EMIT_OP(op) bool emit_##op();
     OPCODE_LIST(EMIT_OP)

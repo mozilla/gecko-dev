@@ -15,7 +15,7 @@
 #include "vm/ProxyObject.h"
 
 /* static */ inline bool
-js::ObjectImpl::isExtensible(ExclusiveContext *cx, js::Handle<ObjectImpl*> obj, bool *extensible)
+js::ObjectImpl::isExtensible(ExclusiveContext* cx, js::Handle<ObjectImpl*> obj, bool* extensible)
 {
     if (obj->asObjectPtr()->is<ProxyObject>()) {
         if (!cx->shouldBeJSContext())

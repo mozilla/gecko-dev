@@ -29,7 +29,7 @@ using mozilla::PodCopy;
  * SharedArrayRawBuffer
  */
 
-static inline void *
+static inline void*
 MapMemory(size_t length, bool commit)
 {
 #ifdef XP_WIN
@@ -38,7 +38,7 @@ MapMemory(size_t length, bool commit)
     return VirtualAlloc(nullptr, length, prot, flags);
 #else
     int prot = (commit ? (PROT_READ | PROT_WRITE) : PROT_NONE);
-    void *p = mmap(nullptr, length, prot, MAP_PRIVATE | MAP_ANON, -1, 0);
+    void* p = mmap(nullptr, length, prot, MAP_PRIVATE | MAP_ANON, -1, 0);
     if (p == MAP_FAILED)
         return nullptr;
     return p;
@@ -46,7 +46,7 @@ MapMemory(size_t length, bool commit)
 }
 
 static inline void
-UnmapMemory(void *addr, size_t len)
+UnmapMemory(void* addr, size_t len)
 {
 #ifdef XP_WIN
     VirtualFree(addr, 0, MEM_RELEASE);
@@ -56,7 +56,7 @@ UnmapMemory(void *addr, size_t len)
 }
 
 static inline bool
-MarkValidRegion(void *addr, size_t len)
+MarkValidRegion(void* addr, size_t len)
 {
 #ifdef XP_WIN
     if (!VirtualAlloc(addr, len, MEM_COMMIT, PAGE_READWRITE))
@@ -69,7 +69,7 @@ MarkValidRegion(void *addr, size_t len)
 #endif
 }
 
-SharedArrayRawBuffer *
+SharedArrayRawBuffer*
 SharedArrayRawBuffer::New(uint32_t length)
 {
     // Enforced by SharedArrayBufferObject constructor.
@@ -77,7 +77,7 @@ SharedArrayRawBuffer::New(uint32_t length)
 
 #ifdef JS_CPU_X64
     // Get the entire reserved region (with all pages inaccessible)
-    void *p = MapMemory(AsmJSMappedSize, false);
+    void* p = MapMemory(AsmJSMappedSize, false);
     if (!p)
         return nullptr;
 
@@ -90,12 +90,12 @@ SharedArrayRawBuffer::New(uint32_t length)
     if (allocSize <= length)
         return nullptr;
 
-    void *p = MapMemory(allocSize, true);
+    void* p = MapMemory(allocSize, true);
     if (!p)
         return nullptr;
 #endif
-    uint8_t *buffer = reinterpret_cast<uint8_t*>(p) + AsmJSPageSize;
-    uint8_t *base = buffer - sizeof(SharedArrayRawBuffer);
+    uint8_t* buffer = reinterpret_cast<uint8_t*>(p) + AsmJSPageSize;
+    uint8_t* base = buffer - sizeof(SharedArrayRawBuffer);
     return new (base) SharedArrayRawBuffer(buffer, length);
 }
 
@@ -114,7 +114,7 @@ SharedArrayRawBuffer::dropReference()
 
     // If this was the final reference, release the buffer.
     if (refcount == 0) {
-        uint8_t *p = this->dataPointer() - AsmJSPageSize;
+        uint8_t* p = this->dataPointer() - AsmJSPageSize;
         JS_ASSERT(uintptr_t(p) % AsmJSPageSize == 0);
 #ifdef JS_CPU_X64
         UnmapMemory(p, AsmJSMappedSize);
@@ -134,7 +134,7 @@ js::IsSharedArrayBuffer(HandleValue v)
 }
 
 MOZ_ALWAYS_INLINE bool
-SharedArrayBufferObject::byteLengthGetterImpl(JSContext *cx, CallArgs args)
+SharedArrayBufferObject::byteLengthGetterImpl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(IsSharedArrayBuffer(args.thisv()));
     args.rval().setInt32(args.thisv().toObject().as<SharedArrayBufferObject>().byteLength());
@@ -142,14 +142,14 @@ SharedArrayBufferObject::byteLengthGetterImpl(JSContext *cx, CallArgs args)
 }
 
 bool
-SharedArrayBufferObject::byteLengthGetter(JSContext *cx, unsigned argc, Value *vp)
+SharedArrayBufferObject::byteLengthGetter(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<IsSharedArrayBuffer, byteLengthGetterImpl>(cx, args);
 }
 
 bool
-SharedArrayBufferObject::class_constructor(JSContext *cx, unsigned argc, Value *vp)
+SharedArrayBufferObject::class_constructor(JSContext* cx, unsigned argc, Value* vp)
 {
     int32_t length = 0;
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -161,15 +161,15 @@ SharedArrayBufferObject::class_constructor(JSContext *cx, unsigned argc, Value *
         return false;
     }
 
-    JSObject *bufobj = New(cx, uint32_t(length));
+    JSObject* bufobj = New(cx, uint32_t(length));
     if (!bufobj)
         return false;
     args.rval().setObject(*bufobj);
     return true;
 }
 
-JSObject *
-SharedArrayBufferObject::New(JSContext *cx, uint32_t length)
+JSObject*
+SharedArrayBufferObject::New(JSContext* cx, uint32_t length)
 {
     if (!IsValidAsmJSHeapLength(length)) {
         ScopedJSFreePtr<char> msg(
@@ -196,7 +196,7 @@ SharedArrayBufferObject::New(JSContext *cx, uint32_t length)
     obj->as<SharedArrayBufferObject>().initElementsHeader(obj->getElementsHeader(), length);
     obj->getElementsHeader()->setIsSharedArrayBuffer();
 
-    SharedArrayRawBuffer *buffer = SharedArrayRawBuffer::New(length);
+    SharedArrayRawBuffer* buffer = SharedArrayRawBuffer::New(length);
     if (!buffer)
         return nullptr;
     obj->as<SharedArrayBufferObject>().acceptRawBuffer(buffer);
@@ -204,8 +204,8 @@ SharedArrayBufferObject::New(JSContext *cx, uint32_t length)
     return obj;
 }
 
-JSObject *
-SharedArrayBufferObject::New(JSContext *cx, SharedArrayRawBuffer *buffer)
+JSObject*
+SharedArrayBufferObject::New(JSContext* cx, SharedArrayRawBuffer* buffer)
 {
     RootedObject obj(cx, NewBuiltinClassInstance(cx, &class_));
     if (!obj)
@@ -231,7 +231,7 @@ SharedArrayBufferObject::New(JSContext *cx, SharedArrayRawBuffer *buffer)
 }
 
 void
-SharedArrayBufferObject::acceptRawBuffer(SharedArrayRawBuffer *buffer)
+SharedArrayBufferObject::acceptRawBuffer(SharedArrayRawBuffer* buffer)
 {
     setReservedSlot(SharedArrayBufferObject::RAWBUF_SLOT, PrivateValue(buffer));
 }
@@ -242,16 +242,16 @@ SharedArrayBufferObject::dropRawBuffer()
     setReservedSlot(SharedArrayBufferObject::RAWBUF_SLOT, UndefinedValue());
 }
 
-SharedArrayRawBuffer *
+SharedArrayRawBuffer*
 SharedArrayBufferObject::rawBufferObject() const
 {
     // RAWBUF_SLOT must be populated via acceptRawBuffer(),
     // and the raw buffer must not have been dropped.
     Value v = getReservedSlot(SharedArrayBufferObject::RAWBUF_SLOT);
-    return (SharedArrayRawBuffer *)v.toPrivate();
+    return (SharedArrayRawBuffer*)v.toPrivate();
 }
 
-uint8_t *
+uint8_t*
 SharedArrayBufferObject::dataPointer() const
 {
     return rawBufferObject()->dataPointer();
@@ -264,9 +264,9 @@ SharedArrayBufferObject::byteLength() const
 }
 
 void
-SharedArrayBufferObject::Finalize(FreeOp *fop, JSObject *obj)
+SharedArrayBufferObject::Finalize(FreeOp* fop, JSObject* obj)
 {
-    SharedArrayBufferObject &buf = obj->as<SharedArrayBufferObject>();
+    SharedArrayBufferObject& buf = obj->as<SharedArrayBufferObject>();
 
     // Detect the case of failure during SharedArrayBufferObject creation,
     // which causes a SharedArrayRawBuffer to never be attached.
@@ -340,8 +340,8 @@ const Class SharedArrayBufferObject::class_ = {
     }
 };
 
-JSObject *
-js_InitSharedArrayBufferClass(JSContext *cx, HandleObject obj)
+JSObject*
+js_InitSharedArrayBufferClass(JSContext* cx, HandleObject obj)
 {
     JS_ASSERT(obj->isNative());
     Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
@@ -359,7 +359,7 @@ js_InitSharedArrayBufferClass(JSContext *cx, HandleObject obj)
 
     RootedId byteLengthId(cx, NameToId(cx->names().byteLength));
     unsigned flags = JSPROP_SHARED | JSPROP_GETTER | JSPROP_PERMANENT;
-    JSObject *getter = NewFunction(cx, NullPtr(), SharedArrayBufferObject::byteLengthGetter, 0,
+    JSObject* getter = NewFunction(cx, NullPtr(), SharedArrayBufferObject::byteLengthGetter, 0,
                                    JSFunction::NATIVE_FUN, global, NullPtr());
     if (!getter)
         return nullptr;

@@ -74,24 +74,24 @@ class TraceLogging
               type_((uint8_t)type) {}
 
         uint64_t tick() const { return tick_; }
-        char *text() const { return text_; }
+        char* text() const { return text_; }
         uint32_t textId() const { return textId_; }
         uint32_t lineno() const { return lineno_; }
         Type type() const { return (Type) type_; }
     };
 
-    typedef HashMap<const char *,
+    typedef HashMap<const char*,
                         uint32_t,
-                        PointerHasher<const char *, 3>,
+                        PointerHasher<const char*, 3>,
                         SystemAllocPolicy> TextHashMap;
 
     TextHashMap textMap;
     uint32_t nextTextId;
-    Entry *entries;
+    Entry* entries;
     unsigned int curEntry;
     unsigned int numEntries;
     int fileno;
-    FILE *out;
+    FILE* out;
     Logger id;
 
     static bool atexitSet;
@@ -103,7 +103,7 @@ class TraceLogging
     ~TraceLogging();
 
     void log(Type type, const char* text = nullptr, unsigned int number = 0);
-    void log(Type type, const JS::ReadOnlyCompileOptions &options);
+    void log(Type type, const JS::ReadOnlyCompileOptions& options);
     void log(Type type, JSScript* script);
     void log(const char* log);
     void flush();
@@ -130,7 +130,7 @@ class AutoTraceLog {
 
   public:
     AutoTraceLog(TraceLogging* logger, TraceLogging::Type start, TraceLogging::Type stop,
-                 const JS::ReadOnlyCompileOptions &options)
+                 const JS::ReadOnlyCompileOptions& options)
       : logger(logger),
         stop(stop)
     {

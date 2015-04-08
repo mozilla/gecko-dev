@@ -16,7 +16,7 @@ namespace jit {
 class LinearScanVirtualRegister : public VirtualRegister
 {
   private:
-    LAllocation *canonicalSpill_;
+    LAllocation* canonicalSpill_;
     CodePosition spillPosition_ ;
 
     bool spillAtDefinition_ : 1;
@@ -26,13 +26,13 @@ class LinearScanVirtualRegister : public VirtualRegister
     bool finished_ : 1;
 
   public:
-    LinearScanVirtualRegister(TempAllocator &alloc)
+    LinearScanVirtualRegister(TempAllocator& alloc)
       : VirtualRegister(alloc)
     {}
-    void setCanonicalSpill(LAllocation *alloc) {
+    void setCanonicalSpill(LAllocation* alloc) {
         canonicalSpill_ = alloc;
     }
-    LAllocation *canonicalSpill() const {
+    LAllocation* canonicalSpill() const {
         return canonicalSpill_;
     }
     unsigned canonicalSpillSlot() const {
@@ -70,15 +70,15 @@ class LinearScanAllocator
     class UnhandledQueue : public InlineList<LiveInterval>
     {
       public:
-        void enqueueForward(LiveInterval *after, LiveInterval *interval);
-        void enqueueBackward(LiveInterval *interval);
+        void enqueueForward(LiveInterval* after, LiveInterval* interval);
+        void enqueueBackward(LiveInterval* interval);
 
         void assertSorted();
 
-        LiveInterval *dequeue();
+        LiveInterval* dequeue();
     };
 
-    typedef Vector<LiveInterval *, 0, SystemAllocPolicy> SlotList;
+    typedef Vector<LiveInterval*, 0, SystemAllocPolicy> SlotList;
     SlotList finishedSlots_;
     SlotList finishedDoubleSlots_;
 #ifdef JS_NUNBOX32
@@ -91,7 +91,7 @@ class LinearScanAllocator
     InlineList<LiveInterval> inactive;
     InlineList<LiveInterval> fixed;
     InlineList<LiveInterval> handled;
-    LiveInterval *current;
+    LiveInterval* current;
 
     bool allocateRegisters();
     bool resolveControlFlow();
@@ -101,19 +101,19 @@ class LinearScanAllocator
     // Optimization for the UnsortedQueue.
     void enqueueVirtualRegisterIntervals();
 
-    uint32_t allocateSlotFor(const LiveInterval *interval);
-    bool splitInterval(LiveInterval *interval, CodePosition pos);
+    uint32_t allocateSlotFor(const LiveInterval* interval);
+    bool splitInterval(LiveInterval* interval, CodePosition pos);
     bool splitBlockingIntervals(LAllocation allocation);
     bool assign(LAllocation allocation);
     bool spill();
-    void freeAllocation(LiveInterval *interval, LAllocation *alloc);
-    void finishInterval(LiveInterval *interval);
-    AnyRegister::Code findBestFreeRegister(CodePosition *freeUntil);
-    AnyRegister::Code findBestBlockedRegister(CodePosition *nextUsed);
-    bool canCoexist(LiveInterval *a, LiveInterval *b);
-    bool moveInputAlloc(CodePosition pos, LAllocation *from, LAllocation *to, LDefinition::Type type);
-    void setIntervalRequirement(LiveInterval *interval);
-    bool isSpilledAt(LiveInterval *interval, CodePosition pos);
+    void freeAllocation(LiveInterval* interval, LAllocation* alloc);
+    void finishInterval(LiveInterval* interval);
+    AnyRegister::Code findBestFreeRegister(CodePosition* freeUntil);
+    AnyRegister::Code findBestBlockedRegister(CodePosition* nextUsed);
+    bool canCoexist(LiveInterval* a, LiveInterval* b);
+    bool moveInputAlloc(CodePosition pos, LAllocation* from, LAllocation* to, LDefinition::Type type);
+    void setIntervalRequirement(LiveInterval* interval);
+    bool isSpilledAt(LiveInterval* interval, CodePosition pos);
 
 #ifdef DEBUG
     void validateIntervals();
@@ -124,7 +124,7 @@ class LinearScanAllocator
 #endif
 
   public:
-    LinearScanAllocator(MIRGenerator *mir, LIRGenerator *lir, LIRGraph &graph)
+    LinearScanAllocator(MIRGenerator* mir, LIRGenerator* lir, LIRGraph& graph)
       : LiveRangeAllocator<LinearScanVirtualRegister, /* forLSRA = */ true>(mir, lir, graph)
     {
     }

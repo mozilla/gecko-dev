@@ -19,7 +19,7 @@ namespace jit {
 template <typename T>
 class FixedList
 {
-    T *list_;
+    T* list_;
     size_t length_;
 
   private:
@@ -32,14 +32,14 @@ class FixedList
     { }
 
     // Dynamic memory allocation requires the ability to report failure.
-    bool init(TempAllocator &alloc, size_t length) {
+    bool init(TempAllocator& alloc, size_t length) {
         length_ = length;
         if (length == 0)
             return true;
 
         if (length & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
             return false;
-        list_ = (T *)alloc.allocate(length * sizeof(T));
+        list_ = (T*)alloc.allocate(length * sizeof(T));
         return list_ != nullptr;
     }
 
@@ -52,13 +52,13 @@ class FixedList
         length_ -= num;
     }
 
-    bool growBy(TempAllocator &alloc, size_t num) {
+    bool growBy(TempAllocator& alloc, size_t num) {
         size_t newlength = length_ + num;
         if (newlength < length_)
             return false;
         if (newlength & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
             return false;
-        T *list = (T *)alloc.allocate((length_ + num) * sizeof(T));
+        T* list = (T*)alloc.allocate((length_ + num) * sizeof(T));
         if (!list)
             return false;
 
@@ -70,11 +70,11 @@ class FixedList
         return true;
     }
 
-    T &operator[](size_t index) {
+    T& operator[](size_t index) {
         JS_ASSERT(index < length_);
         return list_[index];
     }
-    const T &operator [](size_t index) const {
+    const T& operator [](size_t index) const {
         JS_ASSERT(index < length_);
         return list_[index];
     }

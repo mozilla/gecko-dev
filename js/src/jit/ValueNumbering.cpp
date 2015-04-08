@@ -13,7 +13,7 @@
 using namespace js;
 using namespace js::jit;
 
-ValueNumberer::ValueNumberer(MIRGenerator *mir, MIRGraph &graph, bool optimistic)
+ValueNumberer::ValueNumberer(MIRGenerator* mir, MIRGraph& graph, bool optimistic)
   : mir(mir),
     graph_(graph),
     values(graph.alloc()),
@@ -21,14 +21,14 @@ ValueNumberer::ValueNumberer(MIRGenerator *mir, MIRGraph &graph, bool optimistic
     count_(0)
 { }
 
-TempAllocator &
+TempAllocator&
 ValueNumberer::alloc() const
 {
     return graph_.alloc();
 }
 
 uint32_t
-ValueNumberer::lookupValue(MDefinition *ins)
+ValueNumberer::lookupValue(MDefinition* ins)
 {
     ValueMap::AddPtr p = values.lookupForAdd(ins);
     if (p) {
@@ -44,13 +44,13 @@ ValueNumberer::lookupValue(MDefinition *ins)
     return ins->id();
 }
 
-MDefinition *
-ValueNumberer::simplify(MDefinition *def, bool useValueNumbers)
+MDefinition*
+ValueNumberer::simplify(MDefinition* def, bool useValueNumbers)
 {
     if (def->isEffectful())
         return def;
 
-    MDefinition *ins = def->foldsTo(alloc(), useValueNumbers);
+    MDefinition* ins = def->foldsTo(alloc(), useValueNumbers);
     if (ins == def)
         return def;
 
@@ -77,13 +77,13 @@ ValueNumberer::simplify(MDefinition *def, bool useValueNumbers)
     return ins;
 }
 
-MControlInstruction *
-ValueNumberer::simplifyControlInstruction(MControlInstruction *def)
+MControlInstruction*
+ValueNumberer::simplifyControlInstruction(MControlInstruction* def)
 {
     if (def->isEffectful())
         return def;
 
-    MDefinition *repl = def->foldsTo(alloc(), false);
+    MDefinition* repl = def->foldsTo(alloc(), false);
     if (repl == def)
         return def;
 
@@ -91,7 +91,7 @@ ValueNumberer::simplifyControlInstruction(MControlInstruction *def)
     if (!repl->valueNumberData())
         repl->setValueNumberData(new(alloc()) ValueNumberData);
 
-    MBasicBlock *block = def->block();
+    MBasicBlock* block = def->block();
 
     // MControlInstructions should not have consumers.
     JS_ASSERT(repl->isControlInstruction());
@@ -101,12 +101,12 @@ ValueNumberer::simplifyControlInstruction(MControlInstruction *def)
         repl->setInWorklist();
 
     block->discardLastIns();
-    block->end((MControlInstruction *)repl);
-    return (MControlInstruction *)repl;
+    block->end((MControlInstruction*)repl);
+    return (MControlInstruction*)repl;
 }
 
 void
-ValueNumberer::markDefinition(MDefinition *def)
+ValueNumberer::markDefinition(MDefinition* def)
 {
     if (isMarked(def))
         return;
@@ -117,7 +117,7 @@ ValueNumberer::markDefinition(MDefinition *def)
 }
 
 void
-ValueNumberer::unmarkDefinition(MDefinition *def)
+ValueNumberer::unmarkDefinition(MDefinition* def)
 {
     if (pessimisticPass_)
         return;
@@ -129,7 +129,7 @@ ValueNumberer::unmarkDefinition(MDefinition *def)
 }
 
 void
-ValueNumberer::markBlock(MBasicBlock *block)
+ValueNumberer::markBlock(MBasicBlock* block)
 {
     for (MDefinitionIterator iter(block); iter; iter++)
         markDefinition(*iter);
@@ -137,7 +137,7 @@ ValueNumberer::markBlock(MBasicBlock *block)
 }
 
 void
-ValueNumberer::markConsumers(MDefinition *def)
+ValueNumberer::markConsumers(MDefinition* def)
 {
     if (pessimisticPass_)
         return;
@@ -184,7 +184,7 @@ ValueNumberer::computeValueNumbers()
             return false;
         for (MDefinitionIterator iter(*block); iter; iter++)
             iter->setValueNumberData(new(alloc()) ValueNumberData);
-        MControlInstruction *jump = block->lastIns();
+        MControlInstruction* jump = block->lastIns();
         jump->setValueNumberData(new(alloc()) ValueNumberData);
     }
 
@@ -238,7 +238,7 @@ ValueNumberer::computeValueNumbers()
                 JS_ASSERT_IF(!pessimisticPass_, count_ > 0);
                 unmarkDefinition(*iter);
 
-                MDefinition *ins = simplify(*iter, false);
+                MDefinition* ins = simplify(*iter, false);
 
                 if (ins != *iter) {
                     iter = block->discardDefAt(iter);
@@ -262,7 +262,7 @@ ValueNumberer::computeValueNumbers()
                 if (ins->valueNumber() != value) {
                     IonSpew(IonSpew_GVN,
                             "Broke congruence for instruction %d (%p) with VN %d (now using %d)",
-                            ins->id(), (void *) ins, ins->valueNumber(), value);
+                            ins->id(), (void*) ins, ins->valueNumber(), value);
                     ins->setValueNumber(value);
                     markConsumers(ins);
                 }
@@ -270,7 +270,7 @@ ValueNumberer::computeValueNumbers()
                 iter++;
             }
             // Process control flow instruction:
-            MControlInstruction *jump = block->lastIns();
+            MControlInstruction* jump = block->lastIns();
             jump = simplifyControlInstruction(jump);
 
             // If we are pessimistic, then this will never get set.
@@ -302,12 +302,12 @@ ValueNumberer::computeValueNumbers()
     return true;
 }
 
-MDefinition *
-ValueNumberer::findDominatingDef(InstructionMap &defs, MDefinition *ins, size_t index)
+MDefinition*
+ValueNumberer::findDominatingDef(InstructionMap& defs, MDefinition* ins, size_t index)
 {
     JS_ASSERT(ins->valueNumber() != 0);
     InstructionMap::Ptr p = defs.lookup(ins->valueNumber());
-    MDefinition *dom;
+    MDefinition* dom;
     if (!p || index > p->value().validUntil) {
         DominatingValue value;
         value.def = ins;
@@ -358,7 +358,7 @@ ValueNumberer::eliminateRedundancies()
     IonSpew(IonSpew_GVN, "Eliminating redundant instructions");
 
     // Stack for pre-order CFG traversal.
-    Vector<MBasicBlock *, 1, IonAllocPolicy> worklist(alloc());
+    Vector<MBasicBlock*, 1, IonAllocPolicy> worklist(alloc());
 
     // The index of the current block in the CFG traversal.
     size_t index = 0;
@@ -366,7 +366,7 @@ ValueNumberer::eliminateRedundancies()
     // Add all self-dominating blocks to the worklist.
     // This includes all roots. Order does not matter.
     for (MBasicBlockIterator i(graph_.begin()); i != graph_.end(); i++) {
-        MBasicBlock *block = *i;
+        MBasicBlock* block = *i;
         if (block->immediateDominator() == block) {
             if (!worklist.append(block))
                 return false;
@@ -377,7 +377,7 @@ ValueNumberer::eliminateRedundancies()
     while (!worklist.empty()) {
         if (mir->shouldCancel("Value Numbering (eliminate loop)"))
             return false;
-        MBasicBlock *block = worklist.popCopy();
+        MBasicBlock* block = worklist.popCopy();
 
         IonSpew(IonSpew_GVN, "Looking at block %d", block->id());
 
@@ -389,7 +389,7 @@ ValueNumberer::eliminateRedundancies()
 
         // For each instruction, attempt to look up a dominating definition.
         for (MDefinitionIterator iter(block); iter; ) {
-            MDefinition *ins = simplify(*iter, true);
+            MDefinition* ins = simplify(*iter, true);
 
             // Instruction was replaced, and all uses have already been fixed.
             if (ins != *iter) {
@@ -403,7 +403,7 @@ ValueNumberer::eliminateRedundancies()
                 continue;
             }
 
-            MDefinition *dom = findDominatingDef(defs, ins, index);
+            MDefinition* dom = findDominatingDef(defs, ins, index);
             if (!dom)
                 return false; // Insertion failed.
 
@@ -471,15 +471,15 @@ MDefinition::setValueNumber(uint32_t vn)
 }
 // Set the class of this to the given representative value.
 void
-ValueNumberer::setClass(MDefinition *def, MDefinition *rep)
+ValueNumberer::setClass(MDefinition* def, MDefinition* rep)
 {
     def->valueNumberData()->setClass(def, rep);
 }
 
-MDefinition *
-ValueNumberer::findSplit(MDefinition *def)
+MDefinition*
+ValueNumberer::findSplit(MDefinition* def)
 {
-    for (MDefinition *vncheck = def->valueNumberData()->classNext;
+    for (MDefinition* vncheck = def->valueNumberData()->classNext;
          vncheck != nullptr;
          vncheck = vncheck->valueNumberData()->classNext) {
         if (!def->congruentTo(vncheck)) {
@@ -492,22 +492,22 @@ ValueNumberer::findSplit(MDefinition *def)
 }
 
 void
-ValueNumberer::breakClass(MDefinition *def)
+ValueNumberer::breakClass(MDefinition* def)
 {
     if (def->valueNumber() == def->id()) {
         IonSpew(IonSpew_GVN, "Breaking congruence with itself: %d", def->id());
-        ValueNumberData *defdata = def->valueNumberData();
+        ValueNumberData* defdata = def->valueNumberData();
         JS_ASSERT(defdata->classPrev == nullptr);
         // If the def was the only member of the class, then there is nothing to do.
         if (defdata->classNext == nullptr)
             return;
         // If upon closer inspection, we are still equivalent to this class
         // then there isn't anything for us to do.
-        MDefinition *newRep = findSplit(def);
+        MDefinition* newRep = findSplit(def);
         if (!newRep)
             return;
         markConsumers(def);
-        ValueNumberData *newdata = newRep->valueNumberData();
+        ValueNumberData* newdata = newRep->valueNumberData();
 
         // Right now, |defdata| is at the front of the list, and |newdata| is
         // somewhere in the middle.
@@ -520,7 +520,7 @@ ValueNumberer::breakClass(MDefinition *def)
         // mark them for processing (since |newdata| is now a new canonical
         // element).
         //
-        MDefinition *lastOld = newdata->classPrev;
+        MDefinition* lastOld = newdata->classPrev;
 
         JS_ASSERT(lastOld); // newRep is NOT the first element of the list.
         JS_ASSERT(lastOld->valueNumberData()->classNext == newRep);
@@ -530,7 +530,7 @@ ValueNumberer::breakClass(MDefinition *def)
         lastOld->valueNumberData()->classNext = nullptr;
 
 #ifdef DEBUG
-        for (MDefinition *tmp = def; tmp != nullptr; tmp = tmp->valueNumberData()->classNext) {
+        for (MDefinition* tmp = def; tmp != nullptr; tmp = tmp->valueNumberData()->classNext) {
             JS_ASSERT(tmp->valueNumber() == def->valueNumber());
             JS_ASSERT(tmp->congruentTo(def));
             JS_ASSERT(tmp != newRep);
@@ -543,7 +543,7 @@ ValueNumberer::breakClass(MDefinition *def)
         IonSpew(IonSpew_GVN, "Choosing a new representative: %d", newRep->id());
 
         // make the VN of every member in the class the VN of the new representative number.
-        for (MDefinition *tmp = newRep; tmp != nullptr; tmp = tmp->valueNumberData()->classNext) {
+        for (MDefinition* tmp = newRep; tmp != nullptr; tmp = tmp->valueNumberData()->classNext) {
             // if this instruction is already scheduled to be processed, don't do anything.
             if (tmp->isInWorklist()) {
                 IonSpew(IonSpew_GVN, "Defer  to a new congruence class: %d", tmp->id());
@@ -563,7 +563,7 @@ ValueNumberer::breakClass(MDefinition *def)
     } else {
         // The element that is breaking from the list isn't the representative element
         // just strip it from the list
-        ValueNumberData *defdata = def->valueNumberData();
+        ValueNumberData* defdata = def->valueNumberData();
         if (defdata->classPrev)
             defdata->classPrev->valueNumberData()->classNext = defdata->classNext;
         if (defdata->classNext)

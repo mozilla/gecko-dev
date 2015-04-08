@@ -5,7 +5,7 @@
 #include "jsapi-tests/tests.h"
 
 static bool
-InterruptCallback(JSContext *cx)
+InterruptCallback(JSContext* cx)
 {
     return false;
 }
@@ -13,7 +13,7 @@ InterruptCallback(JSContext *cx)
 static unsigned sRemain;
 
 static bool
-RequestInterruptCallback(JSContext *cx, unsigned argc, jsval *vp)
+RequestInterruptCallback(JSContext* cx, unsigned argc, jsval* vp)
 {
     if (!sRemain--)
         JS_RequestInterruptCallback(JS_GetRuntime(cx));
@@ -57,7 +57,7 @@ BEGIN_TEST(testSlowScript)
 }
 
 bool
-test(const char *bytes)
+test(const char* bytes)
 {
     jsval v;
 

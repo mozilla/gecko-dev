@@ -25,26 +25,26 @@ class LInstruction;
 
 class C1Spewer
 {
-    MIRGraph *graph;
+    MIRGraph* graph;
     HandleScript script;
-    FILE *spewout_;
+    FILE* spewout_;
 
   public:
     C1Spewer()
       : graph(nullptr), script(NullPtr()), spewout_(nullptr)
     { }
 
-    bool init(const char *path);
-    void beginFunction(MIRGraph *graph, HandleScript script);
-    void spewPass(const char *pass);
-    void spewIntervals(const char *pass, LinearScanAllocator *regalloc);
+    bool init(const char* path);
+    void beginFunction(MIRGraph* graph, HandleScript script);
+    void spewPass(const char* pass);
+    void spewIntervals(const char* pass, LinearScanAllocator* regalloc);
     void endFunction();
     void finish();
 
   private:
-    void spewPass(FILE *fp, MBasicBlock *block);
-    void spewIntervals(FILE *fp, LinearScanAllocator *regalloc, LInstruction *ins, size_t &nextId);
-    void spewIntervals(FILE *fp, MBasicBlock *block, LinearScanAllocator *regalloc, size_t &nextId);
+    void spewPass(FILE* fp, MBasicBlock* block);
+    void spewIntervals(FILE* fp, LinearScanAllocator* regalloc, LInstruction* ins, size_t& nextId);
+    void spewIntervals(FILE* fp, MBasicBlock* block, LinearScanAllocator* regalloc, size_t& nextId);
 };
 
 } // namespace jit

@@ -14,10 +14,10 @@
 
 using namespace js;
 
-static JSScript *foundScript = nullptr;
+static JSScript* foundScript = nullptr;
 
 static bool
-CheckEnclosing(JSContext *cx, unsigned argc, Value *vp)
+CheckEnclosing(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 

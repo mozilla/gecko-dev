@@ -36,7 +36,7 @@ using namespace js::jit;
 // should not cause any issue since the only potential issue is to read the
 // bailed out frame.
 
-SnapshotIterator::SnapshotIterator(const IonBailoutIterator &iter)
+SnapshotIterator::SnapshotIterator(const IonBailoutIterator& iter)
   : SnapshotReader(iter.ionScript()->snapshots() + iter.snapshotOffset(),
                    iter.ionScript()->snapshots() + iter.ionScript()->snapshotsSize()),
     fp_(iter.jsFrame()),
@@ -62,16 +62,16 @@ IonBailoutIterator::dump() const
 }
 
 uint32_t
-jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
+jit::Bailout(BailoutStack* sp, BaselineBailoutInfo** bailoutInfo)
 {
-    JSContext *cx = GetJSContextFromJitCode();
+    JSContext* cx = GetJSContextFromJitCode();
     JS_ASSERT(bailoutInfo);
 
     // We don't have an exit frame.
     cx->mainThread().ionTop = nullptr;
     JitActivationIterator jitActivations(cx->runtime());
     IonBailoutIterator iter(jitActivations, sp);
-    JitActivation *activation = jitActivations.activation()->asJit();
+    JitActivation* activation = jitActivations.activation()->asJit();
 
     IonSpew(IonSpew_Bailouts, "Took bailout! Snapshot offset: %d", iter.snapshotOffset());
 
@@ -91,18 +91,18 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
 }
 
 uint32_t
-jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
-                         BaselineBailoutInfo **bailoutInfo)
+jit::InvalidationBailout(InvalidationBailoutStack* sp, size_t* frameSizeOut,
+                         BaselineBailoutInfo** bailoutInfo)
 {
     sp->checkInvariants();
 
-    JSContext *cx = GetJSContextFromJitCode();
+    JSContext* cx = GetJSContextFromJitCode();
 
     // We don't have an exit frame.
     cx->mainThread().ionTop = nullptr;
     JitActivationIterator jitActivations(cx->runtime());
     IonBailoutIterator iter(jitActivations, sp);
-    JitActivation *activation = jitActivations.activation()->asJit();
+    JitActivation* activation = jitActivations.activation()->asJit();
 
     IonSpew(IonSpew_Bailouts, "Took invalidation bailout! Snapshot offset: %d", iter.snapshotOffset());
 
@@ -119,18 +119,18 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
     JS_ASSERT_IF(retval == BAILOUT_RETURN_OK, *bailoutInfo != nullptr);
 
     if (retval != BAILOUT_RETURN_OK) {
-        IonJSFrameLayout *frame = iter.jsFrame();
+        IonJSFrameLayout* frame = iter.jsFrame();
         IonSpew(IonSpew_Invalidate, "converting to exit frame");
-        IonSpew(IonSpew_Invalidate, "   orig calleeToken %p", (void *) frame->calleeToken());
+        IonSpew(IonSpew_Invalidate, "   orig calleeToken %p", (void*) frame->calleeToken());
         IonSpew(IonSpew_Invalidate, "   orig frameSize %u", unsigned(frame->prevFrameLocalSize()));
-        IonSpew(IonSpew_Invalidate, "   orig ra %p", (void *) frame->returnAddress());
+        IonSpew(IonSpew_Invalidate, "   orig ra %p", (void*) frame->returnAddress());
 
         frame->replaceCalleeToken(nullptr);
         EnsureExitFrame(frame);
 
-        IonSpew(IonSpew_Invalidate, "   new  calleeToken %p", (void *) frame->calleeToken());
+        IonSpew(IonSpew_Invalidate, "   new  calleeToken %p", (void*) frame->calleeToken());
         IonSpew(IonSpew_Invalidate, "   new  frameSize %u", unsigned(frame->prevFrameLocalSize()));
-        IonSpew(IonSpew_Invalidate, "   new  ra %p", (void *) frame->returnAddress());
+        IonSpew(IonSpew_Invalidate, "   new  ra %p", (void*) frame->returnAddress());
     }
 
     iter.ionScript()->decref(cx->runtime()->defaultFreeOp());
@@ -138,32 +138,32 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
     return retval;
 }
 
-IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
-                                       const IonFrameIterator &frame)
+IonBailoutIterator::IonBailoutIterator(const JitActivationIterator& activations,
+                                       const IonFrameIterator& frame)
   : IonFrameIterator(activations),
     machine_(frame.machineState())
 {
     returnAddressToFp_ = frame.returnAddressToFp();
     topIonScript_ = frame.ionScript();
-    const OsiIndex *osiIndex = frame.osiIndex();
+    const OsiIndex* osiIndex = frame.osiIndex();
 
-    current_ = (uint8_t *) frame.fp();
+    current_ = (uint8_t*) frame.fp();
     type_ = IonFrame_OptimizedJS;
     topFrameSize_ = frame.frameSize();
     snapshotOffset_ = osiIndex->snapshotOffset();
 }
 
 uint32_t
-jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
-                             const ExceptionBailoutInfo &excInfo,
-                             BaselineBailoutInfo **bailoutInfo)
+jit::ExceptionHandlerBailout(JSContext* cx, const InlineFrameIterator& frame,
+                             const ExceptionBailoutInfo& excInfo,
+                             BaselineBailoutInfo** bailoutInfo)
 {
     JS_ASSERT(cx->isExceptionPending());
 
     cx->mainThread().ionTop = nullptr;
     JitActivationIterator jitActivations(cx->runtime());
     IonBailoutIterator iter(jitActivations, frame.frame());
-    JitActivation *activation = jitActivations.activation()->asJit();
+    JitActivation* activation = jitActivations.activation()->asJit();
 
     *bailoutInfo = nullptr;
     uint32_t retval = BailoutIonToBaseline(cx, activation, iter, true, bailoutInfo, &excInfo);
@@ -178,7 +178,7 @@ jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
 
 // Initialize the decl env Object, call object, and any arguments obj of the current frame.
 bool
-jit::EnsureHasScopeObjects(JSContext *cx, AbstractFramePtr fp)
+jit::EnsureHasScopeObjects(JSContext* cx, AbstractFramePtr fp)
 {
     if (fp.isFunctionFrame() &&
         fp.fun()->isHeavyweight() &&
@@ -190,12 +190,12 @@ jit::EnsureHasScopeObjects(JSContext *cx, AbstractFramePtr fp)
 }
 
 bool
-jit::CheckFrequentBailouts(JSContext *cx, JSScript *script)
+jit::CheckFrequentBailouts(JSContext* cx, JSScript* script)
 {
     if (script->hasIonScript()) {
         // Invalidate if this script keeps bailing out without invalidation. Next time
         // we compile this script LICM will be disabled.
-        IonScript *ionScript = script->ionScript();
+        IonScript* ionScript = script->ionScript();
 
         if (ionScript->numBailouts() >= js_JitOptions.frequentBailoutThreshold &&
             !script->hadFrequentBailouts())

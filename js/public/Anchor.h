@@ -16,7 +16,7 @@
 namespace JS {
 
 /*
- * Protecting non-Value, non-JSObject *, non-JSString * values from collection
+ * Protecting non-Value, non-JSObject*, non-JSString * values from collection
  *
  * Most of the time, the garbage collector's conservative stack scanner works
  * behind the scenes, finding all live values and protecting them from being
@@ -31,8 +31,8 @@ namespace JS {
  *
  * So suppose we have:
  *
- *   void f(JSString *str) {
- *     const jschar *ch = JS_GetStringCharsZ(str);
+ *   void f(JSString* str) {
+ *     const jschar* ch = JS_GetStringCharsZ(str);
  *     ... do stuff with ch, but no uses of str ...;
  *   }
  *
@@ -48,7 +48,7 @@ namespace JS {
  * doesn't recognize from 2) a thing Y the scanner does recognize, and 3) if Y
  * gets garbage-collected, then X gets freed. If we have code like this:
  *
- *   void g(JSObject *obj) {
+ *   void g(JSObject* obj) {
  *     JS::Value x;
  *     JS_GetProperty(obj, "x", &x);
  *     ... do stuff with x ...
@@ -65,9 +65,9 @@ namespace JS {
  * derived values like |ch| alive throughout the Anchor's lifetime. We could
  * fix the above code as follows:
  *
- *   void f(JSString *str) {
- *     JS::Anchor<JSString *> a_str(str);
- *     const jschar *ch = JS_GetStringCharsZ(str);
+ *   void f(JSString* str) {
+ *     JS::Anchor<JSString*> a_str(str);
+ *     const jschar* ch = JS_GetStringCharsZ(str);
  *     ... do stuff with ch, but no uses of str ...;
  *   }
  *
@@ -76,15 +76,15 @@ namespace JS {
  * than that, we have avoided all garbage collection hazards.
  */
 template<typename T> class AnchorPermitted;
-template<> class AnchorPermitted<JSObject *> { };
-template<> class AnchorPermitted<const JSObject *> { };
-template<> class AnchorPermitted<JSFunction *> { };
-template<> class AnchorPermitted<const JSFunction *> { };
-template<> class AnchorPermitted<JSString *> { };
-template<> class AnchorPermitted<const JSString *> { };
+template<> class AnchorPermitted<JSObject*> { };
+template<> class AnchorPermitted<const JSObject*> { };
+template<> class AnchorPermitted<JSFunction*> { };
+template<> class AnchorPermitted<const JSFunction*> { };
+template<> class AnchorPermitted<JSString*> { };
+template<> class AnchorPermitted<const JSString*> { };
 template<> class AnchorPermitted<Value> { };
-template<> class AnchorPermitted<const JSScript *> { };
-template<> class AnchorPermitted<JSScript *> { };
+template<> class AnchorPermitted<const JSScript*> { };
+template<> class AnchorPermitted<JSScript*> { };
 
 template<typename T>
 class Anchor : AnchorPermitted<T>
@@ -102,7 +102,7 @@ class Anchor : AnchorPermitted<T>
      * For simplicity, Anchor is treated as if it contained a GC thing, from
      * construction. Thus if we had
      *
-     *   void operator=(const T &t) { hold = t; }
+     *   void operator=(const T& t) { hold = t; }
      *
      * and this code
      *
@@ -116,10 +116,10 @@ class Anchor : AnchorPermitted<T>
      * always constructed, living for however long the corresponding value must
      * live.
      */
-    void operator=(const T &t) MOZ_DELETE;
+    void operator=(const T& t) MOZ_DELETE;
 
-    Anchor(const Anchor &other) MOZ_DELETE;
-    void operator=(const Anchor &other) MOZ_DELETE;
+    Anchor(const Anchor& other) MOZ_DELETE;
+    void operator=(const Anchor& other) MOZ_DELETE;
 };
 
 template<typename T>

@@ -75,7 +75,7 @@ enum Stat {
 class StatisticsSerializer;
 
 struct Statistics {
-    Statistics(JSRuntime *rt);
+    Statistics(JSRuntime* rt);
     ~Statistics();
 
     void beginPhase(Phase phase);
@@ -84,8 +84,8 @@ struct Statistics {
     void beginSlice(int collectedCount, int zoneCount, int compartmentCount, JS::gcreason::Reason reason);
     void endSlice();
 
-    void reset(const char *reason) { slices.back().resetReason = reason; }
-    void nonincremental(const char *reason) { nonincrementalReason = reason; }
+    void reset(const char* reason) { slices.back().resetReason = reason; }
+    void nonincremental(const char* reason) { nonincrementalReason = reason; }
 
     void count(Stat s) {
         JS_ASSERT(s < STAT_LIMIT);
@@ -95,15 +95,15 @@ struct Statistics {
     int64_t beginSCC();
     void endSCC(unsigned scc, int64_t start);
 
-    jschar *formatMessage();
-    jschar *formatJSON(uint64_t timestamp);
+    jschar* formatMessage();
+    jschar* formatJSON(uint64_t timestamp);
 
   private:
-    JSRuntime *runtime;
+    JSRuntime* runtime;
 
     int64_t startupTime;
 
-    FILE *fp;
+    FILE* fp;
     bool fullFormat;
 
     /*
@@ -115,7 +115,7 @@ struct Statistics {
     int collectedCount;
     int zoneCount;
     int compartmentCount;
-    const char *nonincrementalReason;
+    const char* nonincrementalReason;
 
     struct SliceData {
         SliceData(JS::gcreason::Reason reason, int64_t start, size_t startFaults)
@@ -125,7 +125,7 @@ struct Statistics {
         }
 
         JS::gcreason::Reason reason;
-        const char *resetReason;
+        const char* resetReason;
         int64_t start, end;
         size_t startFaults, endFaults;
         int64_t phaseTimes[PHASE_LIMIT];
@@ -163,17 +163,17 @@ struct Statistics {
     void beginGC();
     void endGC();
 
-    void gcDuration(int64_t *total, int64_t *maxPause);
-    void sccDurations(int64_t *total, int64_t *maxPause);
+    void gcDuration(int64_t* total, int64_t* maxPause);
+    void sccDurations(int64_t* total, int64_t* maxPause);
     void printStats();
-    bool formatData(StatisticsSerializer &ss, uint64_t timestamp);
+    bool formatData(StatisticsSerializer& ss, uint64_t timestamp);
 
     double computeMMU(int64_t resolution);
 };
 
 struct AutoGCSlice
 {
-    AutoGCSlice(Statistics &stats, int collectedCount, int zoneCount, int compartmentCount,
+    AutoGCSlice(Statistics& stats, int collectedCount, int zoneCount, int compartmentCount,
                 JS::gcreason::Reason reason
                 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : stats(stats)
@@ -183,13 +183,13 @@ struct AutoGCSlice
     }
     ~AutoGCSlice() { stats.endSlice(); }
 
-    Statistics &stats;
+    Statistics& stats;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 struct AutoPhase
 {
-    AutoPhase(Statistics &stats, Phase phase
+    AutoPhase(Statistics& stats, Phase phase
               MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : stats(stats), phase(phase)
     {
@@ -200,7 +200,7 @@ struct AutoPhase
         stats.endPhase(phase);
     }
 
-    Statistics &stats;
+    Statistics& stats;
     Phase phase;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
@@ -212,7 +212,7 @@ struct MaybeAutoPhase
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
-    void construct(Statistics &statsArg, Phase phaseArg)
+    void construct(Statistics& statsArg, Phase phaseArg)
     {
         JS_ASSERT(!stats);
         stats = &statsArg;
@@ -224,14 +224,14 @@ struct MaybeAutoPhase
             stats->endPhase(phase);
     }
 
-    Statistics *stats;
+    Statistics* stats;
     Phase phase;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 struct AutoSCC
 {
-    AutoSCC(Statistics &stats, unsigned scc
+    AutoSCC(Statistics& stats, unsigned scc
             MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : stats(stats), scc(scc)
     {
@@ -242,13 +242,13 @@ struct AutoSCC
         stats.endSCC(scc, start);
     }
 
-    Statistics &stats;
+    Statistics& stats;
     unsigned scc;
     int64_t start;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-const char *ExplainReason(JS::gcreason::Reason reason);
+const char* ExplainReason(JS::gcreason::Reason reason);
 
 } /* namespace gcstats */
 } /* namespace js */

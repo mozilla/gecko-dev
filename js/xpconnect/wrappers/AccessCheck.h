@@ -17,18 +17,18 @@ namespace xpc {
 
 class AccessCheck {
   public:
-    static bool subsumes(JSCompartment *a, JSCompartment *b);
-    static bool subsumes(JSObject *a, JSObject *b);
-    static bool wrapperSubsumes(JSObject *wrapper);
-    static bool subsumesConsideringDomain(JSCompartment *a, JSCompartment *b);
-    static bool isChrome(JSCompartment *compartment);
-    static bool isChrome(JSObject *obj);
+    static bool subsumes(JSCompartment* a, JSCompartment* b);
+    static bool subsumes(JSObject* a, JSObject* b);
+    static bool wrapperSubsumes(JSObject* wrapper);
+    static bool subsumesConsideringDomain(JSCompartment* a, JSCompartment* b);
+    static bool isChrome(JSCompartment* compartment);
+    static bool isChrome(JSObject* obj);
     static bool callerIsChrome();
-    static nsIPrincipal *getPrincipal(JSCompartment *compartment);
-    static bool isCrossOriginAccessPermitted(JSContext *cx, JSObject *obj, jsid id,
+    static nsIPrincipal* getPrincipal(JSCompartment* compartment);
+    static bool isCrossOriginAccessPermitted(JSContext* cx, JSObject* obj, jsid id,
                                              js::Wrapper::Action act);
 
-    static bool needsSystemOnlyWrapper(JSObject *obj);
+    static bool needsSystemOnlyWrapper(JSObject* obj);
 };
 
 struct Policy {
@@ -36,13 +36,13 @@ struct Policy {
 
 // This policy only allows calling the underlying callable. All other operations throw.
 struct Opaque : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
+    static bool check(JSContext* cx, JSObject* wrapper, jsid id, js::Wrapper::Action act) {
         return act == js::Wrapper::CALL;
     }
     static bool deny(js::Wrapper::Action act, JS::HandleId id) {
         return false;
     }
-    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
+    static bool allowNativeCall(JSContext* cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
     {
         return false;
     }
@@ -51,13 +51,13 @@ struct Opaque : public Policy {
 // This policy is designed to protect privileged callers from untrusted non-
 // Xrayable objects. Nothing is allowed, and nothing throws.
 struct GentlyOpaque : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
+    static bool check(JSContext* cx, JSObject* wrapper, jsid id, js::Wrapper::Action act) {
         return false;
     }
     static bool deny(js::Wrapper::Action act, JS::HandleId id) {
         return true;
     }
-    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
+    static bool allowNativeCall(JSContext* cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
     {
         // We allow nativeCall here because the alternative is throwing (which
         // happens in SecurityWrapper::nativeCall), which we don't want. There's
@@ -71,7 +71,7 @@ struct GentlyOpaque : public Policy {
 // This policy only permits access to properties that are safe to be used
 // across origins.
 struct CrossOriginAccessiblePropertiesOnly : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
+    static bool check(JSContext* cx, JSObject* wrapper, jsid id, js::Wrapper::Action act) {
         return AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act);
     }
     static bool deny(js::Wrapper::Action act, JS::HandleId id) {
@@ -80,7 +80,7 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
             return true;
         return false;
     }
-    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
+    static bool allowNativeCall(JSContext* cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
     {
         return false;
     }
@@ -89,13 +89,13 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
 // This policy only permits access to properties if they appear in the
 // objects exposed properties list.
 struct ExposedPropertiesOnly : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act);
+    static bool check(JSContext* cx, JSObject* wrapper, jsid id, js::Wrapper::Action act);
 
     static bool deny(js::Wrapper::Action act, JS::HandleId id) {
         // Fail silently for GETs and ENUMERATEs.
         return act == js::Wrapper::GET || act == js::Wrapper::ENUMERATE;
     }
-    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl);
+    static bool allowNativeCall(JSContext* cx, JS::IsAcceptableThis test, JS::NativeImpl impl);
 };
 
 }

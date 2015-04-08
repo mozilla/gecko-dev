@@ -16,7 +16,7 @@ using namespace js;
 using namespace js::jit;
 
 void
-MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister &dest)
+MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister& dest)
 {
     if (maybeInlineDouble(d, dest))
         return;
@@ -36,7 +36,7 @@ MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister &dest)
         if (!enoughMemory_)
             return;
     }
-    Double &dbl = doubles_[doubleIndex];
+    Double& dbl = doubles_[doubleIndex];
     JS_ASSERT(!dbl.uses.bound());
 
     // The constants will be stored in a pool appended to the text (see
@@ -50,7 +50,7 @@ MacroAssemblerX64::loadConstantDouble(double d, const FloatRegister &dest)
 }
 
 void
-MacroAssemblerX64::loadConstantFloat32(float f, const FloatRegister &dest)
+MacroAssemblerX64::loadConstantFloat32(float f, const FloatRegister& dest)
 {
     if (maybeInlineFloat(f, dest))
         return;
@@ -70,7 +70,7 @@ MacroAssemblerX64::loadConstantFloat32(float f, const FloatRegister &dest)
         if (!enoughMemory_)
             return;
     }
-    Float &flt = floats_[floatIndex];
+    Float& flt = floats_[floatIndex];
     JS_ASSERT(!flt.uses.bound());
 
     // See comment in loadConstantDouble
@@ -88,14 +88,14 @@ MacroAssemblerX64::finish()
         masm.align(sizeof(double));
 
     for (size_t i = 0; i < doubles_.length(); i++) {
-        Double &dbl = doubles_[i];
+        Double& dbl = doubles_[i];
         bind(&dbl.uses);
         masm.doubleConstant(dbl.value);
     }
 
     // No need to align on sizeof(float) as we are aligned on sizeof(double);
     for (size_t i = 0; i < floats_.length(); i++) {
-        Float &flt = floats_[i];
+        Float& flt = floats_[i];
         bind(&flt.uses);
         masm.floatConstant(flt.value);
     }
@@ -123,7 +123,7 @@ MacroAssemblerX64::setupAlignedABICall(uint32_t args)
 }
 
 void
-MacroAssemblerX64::setupUnalignedABICall(uint32_t args, const Register &scratch)
+MacroAssemblerX64::setupUnalignedABICall(uint32_t args, const Register& scratch)
 {
     setupABICall(args);
     dynamicAlignment_ = true;
@@ -134,7 +134,7 @@ MacroAssemblerX64::setupUnalignedABICall(uint32_t args, const Register &scratch)
 }
 
 void
-MacroAssemblerX64::passABIArg(const MoveOperand &from, MoveOp::Type type)
+MacroAssemblerX64::passABIArg(const MoveOperand& from, MoveOp::Type type)
 {
     MoveOperand to;
     switch (type) {
@@ -179,19 +179,19 @@ MacroAssemblerX64::passABIArg(const MoveOperand &from, MoveOp::Type type)
 }
 
 void
-MacroAssemblerX64::passABIArg(const Register &reg)
+MacroAssemblerX64::passABIArg(const Register& reg)
 {
     passABIArg(MoveOperand(reg), MoveOp::GENERAL);
 }
 
 void
-MacroAssemblerX64::passABIArg(const FloatRegister &reg, MoveOp::Type type)
+MacroAssemblerX64::passABIArg(const FloatRegister& reg, MoveOp::Type type)
 {
     passABIArg(MoveOperand(reg), type);
 }
 
 void
-MacroAssemblerX64::callWithABIPre(uint32_t *stackAdjust)
+MacroAssemblerX64::callWithABIPre(uint32_t* stackAdjust)
 {
     JS_ASSERT(inCall_);
     JS_ASSERT(args_ == passedIntArgs_ + passedFloatArgs_);
@@ -242,7 +242,7 @@ MacroAssemblerX64::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX64::callWithABI(void *fun, MoveOp::Type result)
+MacroAssemblerX64::callWithABI(void* fun, MoveOp::Type result)
 {
     uint32_t stackAdjust;
     callWithABIPre(&stackAdjust);
@@ -289,7 +289,7 @@ MacroAssemblerX64::callWithABI(Address fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX64::handleFailureWithHandlerTail(void *handler)
+MacroAssemblerX64::handleFailureWithHandlerTail(void* handler)
 {
     // Reserve space for exception information.
     subq(Imm32(sizeof(ResumeFromException)), rsp);
@@ -363,7 +363,7 @@ MacroAssemblerX64::handleFailureWithHandlerTail(void *handler)
 }
 
 Assembler::Condition
-MacroAssemblerX64::testNegativeZero(const FloatRegister &reg, const Register &scratch)
+MacroAssemblerX64::testNegativeZero(const FloatRegister& reg, const Register& scratch)
 {
     movq(reg, scratch);
     cmpq(scratch, Imm32(1));
@@ -371,7 +371,7 @@ MacroAssemblerX64::testNegativeZero(const FloatRegister &reg, const Register &sc
 }
 
 Assembler::Condition
-MacroAssemblerX64::testNegativeZeroFloat32(const FloatRegister &reg, const Register &scratch)
+MacroAssemblerX64::testNegativeZeroFloat32(const FloatRegister& reg, const Register& scratch)
 {
     movd(reg, scratch);
     cmpl(scratch, Imm32(1));

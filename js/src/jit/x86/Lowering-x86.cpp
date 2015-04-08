@@ -38,7 +38,7 @@ LIRGeneratorX86::tempForDispatchCache(MIRType outputType)
 }
 
 bool
-LIRGeneratorX86::useBox(LInstruction *lir, size_t n, MDefinition *mir,
+LIRGeneratorX86::useBox(LInstruction* lir, size_t n, MDefinition* mir,
                         LUse::Policy policy, bool useAtStart)
 {
     JS_ASSERT(mir->type() == MIRType_Value);
@@ -51,7 +51,7 @@ LIRGeneratorX86::useBox(LInstruction *lir, size_t n, MDefinition *mir,
 }
 
 bool
-LIRGeneratorX86::useBoxFixed(LInstruction *lir, size_t n, MDefinition *mir, Register reg1,
+LIRGeneratorX86::useBoxFixed(LInstruction* lir, size_t n, MDefinition* mir, Register reg1,
                              Register reg2)
 {
     JS_ASSERT(mir->type() == MIRType_Value);
@@ -65,21 +65,21 @@ LIRGeneratorX86::useBoxFixed(LInstruction *lir, size_t n, MDefinition *mir, Regi
 }
 
 LAllocation
-LIRGeneratorX86::useByteOpRegister(MDefinition *mir)
+LIRGeneratorX86::useByteOpRegister(MDefinition* mir)
 {
     return useFixed(mir, eax);
 }
 
 LAllocation
-LIRGeneratorX86::useByteOpRegisterOrNonDoubleConstant(MDefinition *mir)
+LIRGeneratorX86::useByteOpRegisterOrNonDoubleConstant(MDefinition* mir)
 {
     return useFixed(mir, eax);
 }
 
 bool
-LIRGeneratorX86::visitBox(MBox *box)
+LIRGeneratorX86::visitBox(MBox* box)
 {
-    MDefinition *inner = box->getOperand(0);
+    MDefinition* inner = box->getOperand(0);
 
     // If the box wrapped a double, it needs a new register.
     if (IsFloatingPointType(inner->type()))
@@ -92,7 +92,7 @@ LIRGeneratorX86::visitBox(MBox *box)
     if (inner->isConstant())
         return defineBox(new(alloc()) LValue(inner->toConstant()->value()), box);
 
-    LBox *lir = new(alloc()) LBox(use(inner), inner->type());
+    LBox* lir = new(alloc()) LBox(use(inner), inner->type());
 
     // Otherwise, we should not define a new register for the payload portion
     // of the output, so bypass defineBox().
@@ -114,18 +114,18 @@ LIRGeneratorX86::visitBox(MBox *box)
 }
 
 bool
-LIRGeneratorX86::visitUnbox(MUnbox *unbox)
+LIRGeneratorX86::visitUnbox(MUnbox* unbox)
 {
     // An unbox on x86 reads in a type tag (either in memory or a register) and
     // a payload. Unlike most instructions conusming a box, we ask for the type
     // second, so that the result can re-use the first input.
-    MDefinition *inner = unbox->getOperand(0);
+    MDefinition* inner = unbox->getOperand(0);
 
     if (!ensureDefined(inner))
         return false;
 
     if (IsFloatingPointType(unbox->type())) {
-        LUnboxFloatingPoint *lir = new(alloc()) LUnboxFloatingPoint(unbox->type());
+        LUnboxFloatingPoint* lir = new(alloc()) LUnboxFloatingPoint(unbox->type());
         if (unbox->fallible() && !assignSnapshot(lir, unbox->bailoutKind()))
             return false;
         if (!useBox(lir, LUnboxFloatingPoint::Input, inner))
@@ -134,7 +134,7 @@ LIRGeneratorX86::visitUnbox(MUnbox *unbox)
     }
 
     // Swap the order we use the box pieces so we can re-use the payload register.
-    LUnbox *lir = new(alloc()) LUnbox;
+    LUnbox* lir = new(alloc()) LUnbox;
     lir->setOperand(0, usePayloadInRegisterAtStart(inner));
     lir->setOperand(1, useType(inner, LUse::ANY));
 
@@ -151,22 +151,22 @@ LIRGeneratorX86::visitUnbox(MUnbox *unbox)
 }
 
 bool
-LIRGeneratorX86::visitReturn(MReturn *ret)
+LIRGeneratorX86::visitReturn(MReturn* ret)
 {
-    MDefinition *opd = ret->getOperand(0);
+    MDefinition* opd = ret->getOperand(0);
     JS_ASSERT(opd->type() == MIRType_Value);
 
-    LReturn *ins = new(alloc()) LReturn;
+    LReturn* ins = new(alloc()) LReturn;
     ins->setOperand(0, LUse(JSReturnReg_Type));
     ins->setOperand(1, LUse(JSReturnReg_Data));
     return fillBoxUses(ins, 0, opd) && add(ins);
 }
 
 bool
-LIRGeneratorX86::defineUntypedPhi(MPhi *phi, size_t lirIndex)
+LIRGeneratorX86::defineUntypedPhi(MPhi* phi, size_t lirIndex)
 {
-    LPhi *type = current->getPhi(lirIndex + VREG_TYPE_OFFSET);
-    LPhi *payload = current->getPhi(lirIndex + VREG_DATA_OFFSET);
+    LPhi* type = current->getPhi(lirIndex + VREG_TYPE_OFFSET);
+    LPhi* payload = current->getPhi(lirIndex + VREG_DATA_OFFSET);
 
     uint32_t typeVreg = getVirtualRegister();
     if (typeVreg >= MAX_VIRTUAL_REGISTERS)
@@ -187,35 +187,35 @@ LIRGeneratorX86::defineUntypedPhi(MPhi *phi, size_t lirIndex)
 }
 
 void
-LIRGeneratorX86::lowerUntypedPhiInput(MPhi *phi, uint32_t inputPosition, LBlock *block, size_t lirIndex)
+LIRGeneratorX86::lowerUntypedPhiInput(MPhi* phi, uint32_t inputPosition, LBlock* block, size_t lirIndex)
 {
-    MDefinition *operand = phi->getOperand(inputPosition);
-    LPhi *type = block->getPhi(lirIndex + VREG_TYPE_OFFSET);
-    LPhi *payload = block->getPhi(lirIndex + VREG_DATA_OFFSET);
+    MDefinition* operand = phi->getOperand(inputPosition);
+    LPhi* type = block->getPhi(lirIndex + VREG_TYPE_OFFSET);
+    LPhi* payload = block->getPhi(lirIndex + VREG_DATA_OFFSET);
     type->setOperand(inputPosition, LUse(operand->virtualRegister() + VREG_TYPE_OFFSET, LUse::ANY));
     payload->setOperand(inputPosition, LUse(VirtualRegisterOfPayload(operand), LUse::ANY));
 }
 
 bool
-LIRGeneratorX86::visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble *ins)
+LIRGeneratorX86::visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble* ins)
 {
     JS_ASSERT(ins->input()->type() == MIRType_Int32);
-    LAsmJSUInt32ToDouble *lir = new(alloc()) LAsmJSUInt32ToDouble(useRegisterAtStart(ins->input()), temp());
+    LAsmJSUInt32ToDouble* lir = new(alloc()) LAsmJSUInt32ToDouble(useRegisterAtStart(ins->input()), temp());
     return define(lir, ins);
 }
 
 bool
-LIRGeneratorX86::visitAsmJSUnsignedToFloat32(MAsmJSUnsignedToFloat32 *ins)
+LIRGeneratorX86::visitAsmJSUnsignedToFloat32(MAsmJSUnsignedToFloat32* ins)
 {
     JS_ASSERT(ins->input()->type() == MIRType_Int32);
-    LAsmJSUInt32ToFloat32 *lir = new(alloc()) LAsmJSUInt32ToFloat32(useRegisterAtStart(ins->input()), temp());
+    LAsmJSUInt32ToFloat32* lir = new(alloc()) LAsmJSUInt32ToFloat32(useRegisterAtStart(ins->input()), temp());
     return define(lir, ins);
 }
 
 bool
-LIRGeneratorX86::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
+LIRGeneratorX86::visitAsmJSLoadHeap(MAsmJSLoadHeap* ins)
 {
-    MDefinition *ptr = ins->ptr();
+    MDefinition* ptr = ins->ptr();
     LAllocation ptrAlloc;
     JS_ASSERT(ptr->type() == MIRType_Int32);
 
@@ -228,15 +228,15 @@ LIRGeneratorX86::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
     } else {
         ptrAlloc = useRegisterAtStart(ptr);
     }
-    LAsmJSLoadHeap *lir = new(alloc()) LAsmJSLoadHeap(ptrAlloc);
+    LAsmJSLoadHeap* lir = new(alloc()) LAsmJSLoadHeap(ptrAlloc);
     return define(lir, ins);
 }
 
 bool
-LIRGeneratorX86::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
+LIRGeneratorX86::visitAsmJSStoreHeap(MAsmJSStoreHeap* ins)
 {
-    MDefinition *ptr = ins->ptr();
-    LAsmJSStoreHeap *lir;
+    MDefinition* ptr = ins->ptr();
+    LAsmJSStoreHeap* lir;
     JS_ASSERT(ptr->type() == MIRType_Int32);
 
     if (ptr->isConstant() && ins->skipBoundsCheck()) {
@@ -278,11 +278,11 @@ LIRGeneratorX86::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
 }
 
 bool
-LIRGeneratorX86::visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic *ins)
+LIRGeneratorX86::visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic* ins)
 {
     // The code generated for StoreTypedArrayElementStatic is identical to that
     // for AsmJSStoreHeap, and the same concerns apply.
-    LStoreTypedArrayElementStatic *lir;
+    LStoreTypedArrayElementStatic* lir;
     switch (ins->viewType()) {
       case ArrayBufferView::TYPE_INT8: case ArrayBufferView::TYPE_UINT8:
       case ArrayBufferView::TYPE_UINT8_CLAMPED:
@@ -302,7 +302,7 @@ LIRGeneratorX86::visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic
 }
 
 bool
-LIRGeneratorX86::visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr *ins)
+LIRGeneratorX86::visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr* ins)
 {
     return define(new(alloc()) LAsmJSLoadFuncPtr(useRegisterAtStart(ins->index())), ins);
 }

@@ -71,7 +71,7 @@ typedef Vector<char,   64, SystemAllocPolicy> AutoCString;
 // Convenience functions to append, insert, and compare Strings.
 template <class T, size_t N, class AP, size_t ArrayLength>
 void
-AppendString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
+AppendString(Vector<T, N, AP>& v, const char (&array)[ArrayLength])
 {
   // Don't include the trailing '\0'.
   size_t alen = ArrayLength - 1;
@@ -85,17 +85,17 @@ AppendString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
 
 template <class T, size_t N, size_t M, class AP>
 void
-AppendString(Vector<T, N, AP> &v, Vector<T, M, AP> &w)
+AppendString(Vector<T, N, AP>& v, Vector<T, M, AP>& w)
 {
   v.append(w.begin(), w.length());
 }
 
 template <size_t N, class AP>
 void
-AppendString(Vector<jschar, N, AP> &v, JSString* str)
+AppendString(Vector<jschar, N, AP>& v, JSString* str)
 {
   JS_ASSERT(str);
-  const jschar *chars = str->getChars(nullptr);
+  const jschar* chars = str->getChars(nullptr);
   if (!chars)
     return;
   v.append(chars, str->length());
@@ -103,7 +103,7 @@ AppendString(Vector<jschar, N, AP> &v, JSString* str)
 
 template <size_t N, class AP>
 void
-AppendString(Vector<char, N, AP> &v, JSString* str)
+AppendString(Vector<char, N, AP>& v, JSString* str)
 {
   JS_ASSERT(str);
   size_t vlen = v.length();
@@ -111,7 +111,7 @@ AppendString(Vector<char, N, AP> &v, JSString* str)
   if (!v.resize(vlen + alen))
     return;
 
-  const jschar *chars = str->getChars(nullptr);
+  const jschar* chars = str->getChars(nullptr);
   if (!chars)
     return;
 
@@ -121,7 +121,7 @@ AppendString(Vector<char, N, AP> &v, JSString* str)
 
 template <class T, size_t N, class AP, size_t ArrayLength>
 void
-PrependString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
+PrependString(Vector<T, N, AP>& v, const char (&array)[ArrayLength])
 {
   // Don't include the trailing '\0'.
   size_t alen = ArrayLength - 1;
@@ -139,7 +139,7 @@ PrependString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
 
 template <size_t N, class AP>
 void
-PrependString(Vector<jschar, N, AP> &v, JSString* str)
+PrependString(Vector<jschar, N, AP>& v, JSString* str)
 {
   JS_ASSERT(str);
   size_t vlen = v.length();
@@ -147,7 +147,7 @@ PrependString(Vector<jschar, N, AP> &v, JSString* str)
   if (!v.resize(vlen + alen))
     return;
 
-  const jschar *chars = str->getChars(nullptr);
+  const jschar* chars = str->getChars(nullptr);
   if (!chars)
     return;
 
@@ -159,12 +159,12 @@ PrependString(Vector<jschar, N, AP> &v, JSString* str)
 }
 
 extern size_t
-GetDeflatedUTF8StringLength(JSContext *maybecx, const jschar *chars,
+GetDeflatedUTF8StringLength(JSContext* maybecx, const jschar* chars,
                             size_t charsLength);
 
 bool
-DeflateStringToUTF8Buffer(JSContext *maybecx, const jschar *src, size_t srclen,
-                          char *dst, size_t *dstlenp);
+DeflateStringToUTF8Buffer(JSContext* maybecx, const jschar* src, size_t srclen,
+                          char* dst, size_t* dstlenp);
 
 
 /*******************************************************************************
@@ -234,7 +234,7 @@ struct FieldHashPolicy : DefaultHasher<JSFlatString*>
   typedef JSFlatString* Key;
   typedef Key Lookup;
 
-  static uint32_t hash(const Lookup &l) {
+  static uint32_t hash(const Lookup& l) {
     const jschar* s = l->chars();
     size_t n = l->length();
     uint32_t hash = 0;
@@ -243,7 +243,7 @@ struct FieldHashPolicy : DefaultHasher<JSFlatString*>
     return hash;
   }
 
-  static bool match(const Key &k, const Lookup &l) {
+  static bool match(const Key& k, const Lookup& l) {
     if (k == l)
       return true;
 
@@ -457,7 +457,7 @@ namespace StructType {
   bool DefineInternal(JSContext* cx, JSObject* typeObj, JSObject* fieldsObj);
 
   const FieldInfoHash* GetFieldInfo(JSObject* obj);
-  const FieldInfo* LookupField(JSContext* cx, JSObject* obj, JSFlatString *name);
+  const FieldInfo* LookupField(JSContext* cx, JSObject* obj, JSFlatString* name);
   JSObject* BuildFieldsArray(JSContext* cx, JSObject* obj);
   ffi_type* BuildFFIType(JSContext* cx, JSObject* obj);
 }

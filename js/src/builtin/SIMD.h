@@ -108,8 +108,8 @@ class SIMDObject : public JSObject
 {
   public:
     static const Class class_;
-    static JSObject* initClass(JSContext *cx, Handle<GlobalObject *> global);
-    static bool toString(JSContext *cx, unsigned int argc, jsval *vp);
+    static JSObject* initClass(JSContext* cx, Handle<GlobalObject*> global);
+    static bool toString(JSContext* cx, unsigned int argc, jsval* vp);
 };
 
 // These classes exist for use with templates below.
@@ -120,16 +120,16 @@ struct Float32x4 {
     static const X4TypeDescr::Type type =
         X4TypeDescr::TYPE_FLOAT32;
 
-    static TypeDescr &GetTypeDescr(GlobalObject &global) {
+    static TypeDescr& GetTypeDescr(GlobalObject& global) {
         return global.float32x4TypeDescr().as<TypeDescr>();
     }
     static Elem toType(Elem a) {
         return a;
     }
-    static void toType2(JSContext *cx, JS::Handle<JS::Value> v, Elem *out) {
+    static void toType2(JSContext* cx, JS::Handle<JS::Value> v, Elem* out) {
         *out = v.toNumber();
     }
-    static void setReturn(CallArgs &args, float value) {
+    static void setReturn(CallArgs& args, float value) {
         args.rval().setDouble(JS::CanonicalizeNaN(value));
     }
 };
@@ -140,38 +140,38 @@ struct Int32x4 {
     static const X4TypeDescr::Type type =
         X4TypeDescr::TYPE_INT32;
 
-    static TypeDescr &GetTypeDescr(GlobalObject &global) {
+    static TypeDescr& GetTypeDescr(GlobalObject& global) {
         return global.int32x4TypeDescr().as<TypeDescr>();
     }
     static Elem toType(Elem a) {
         return ToInt32(a);
     }
-    static void toType2(JSContext *cx, JS::Handle<JS::Value> v, Elem *out) {
+    static void toType2(JSContext* cx, JS::Handle<JS::Value> v, Elem* out) {
         ToInt32(cx,v,out);
     }
-    static void setReturn(CallArgs &args, int32_t value) {
+    static void setReturn(CallArgs& args, int32_t value) {
         args.rval().setInt32(value);
     }
 };
 
 template<typename V>
-JSObject *Create(JSContext *cx, typename V::Elem *data);
+JSObject* Create(JSContext* cx, typename V::Elem* data);
 
 #define DECLARE_SIMD_FLOAT32X4_FUNCTION(Name, Func, Operands, Flags, MIRId)                                       \
 extern bool                                                                                                       \
-simd_float32x4_##Name(JSContext *cx, unsigned argc, Value *vp);
+simd_float32x4_##Name(JSContext* cx, unsigned argc, Value* vp);
 FLOAT32X4_FUNCTION_LIST(DECLARE_SIMD_FLOAT32X4_FUNCTION)
 #undef DECLARE_SIMD_FLOAT32X4_FUNCTION
 
 #define DECLARE_SIMD_INT32x4_FUNCTION(Name, Func, Operands, Flags, MIRId)                                         \
 extern bool                                                                                                       \
-simd_int32x4_##Name(JSContext *cx, unsigned argc, Value *vp);
+simd_int32x4_##Name(JSContext* cx, unsigned argc, Value* vp);
 INT32X4_FUNCTION_LIST(DECLARE_SIMD_INT32x4_FUNCTION)
 #undef DECLARE_SIMD_INT32x4_FUNCTION
 
 }  /* namespace js */
 
-JSObject *
-js_InitSIMDClass(JSContext *cx, js::HandleObject obj);
+JSObject*
+js_InitSIMDClass(JSContext* cx, js::HandleObject obj);
 
 #endif /* builtin_SIMD_h */

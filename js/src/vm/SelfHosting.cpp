@@ -33,7 +33,7 @@ using namespace js;
 using namespace js::selfhosted;
 
 static void
-selfHosting_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
+selfHosting_ErrorReporter(JSContext* cx, const char* message, JSErrorReport* report)
 {
     PrintError(cx, stderr, message, report, true);
 }
@@ -47,7 +47,7 @@ static const JSClass self_hosting_global_class = {
 };
 
 bool
-js::intrinsic_ToObject(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_ToObject(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     RootedValue val(cx, args[0]);
@@ -59,7 +59,7 @@ js::intrinsic_ToObject(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-intrinsic_ToInteger(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_ToInteger(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     double result;
@@ -70,7 +70,7 @@ intrinsic_ToInteger(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-js::intrinsic_IsCallable(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_IsCallable(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     Value val = args[0];
@@ -80,14 +80,14 @@ js::intrinsic_IsCallable(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-js::intrinsic_ThrowError(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_ThrowError(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() >= 1);
     uint32_t errorNumber = args[0].toInt32();
 
 #ifdef DEBUG
-    const JSErrorFormatString *efs =
+    const JSErrorFormatString* efs =
         js_GetLocalizedErrorMessage(cx, nullptr, nullptr, errorNumber);
     JS_ASSERT(efs->argCount == args.length() - 1);
 #endif
@@ -96,7 +96,7 @@ js::intrinsic_ThrowError(JSContext *cx, unsigned argc, Value *vp)
     for (unsigned i = 1; i < 4 && i < args.length(); i++) {
         RootedValue val(cx, args[i]);
         if (val.isInt32()) {
-            JSString *str = ToString<CanGC>(cx, val);
+            JSString* str = ToString<CanGC>(cx, val);
             if (!str)
                 return false;
             errorArgs[i - 1].encodeLatin1(cx, str);
@@ -119,15 +119,15 @@ js::intrinsic_ThrowError(JSContext *cx, unsigned argc, Value *vp)
  * failure in C++ code. Information about the failure can be provided in args[0].
  */
 static bool
-intrinsic_AssertionFailed(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_AssertionFailed(JSContext* cx, unsigned argc, Value* vp)
 {
 #ifdef DEBUG
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() > 0) {
         // try to dump the informative string
-        JSString *str = ToString<CanGC>(cx, args[0]);
+        JSString* str = ToString<CanGC>(cx, args[0]);
         if (str) {
-            const jschar *chars = str->getChars(cx);
+            const jschar* chars = str->getChars(cx);
             if (chars) {
                 fprintf(stderr, "Self-hosted JavaScript assertion info: ");
                 JSString::dumpChars(chars, str->length());
@@ -141,7 +141,7 @@ intrinsic_AssertionFailed(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-intrinsic_MakeConstructible(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_MakeConstructible(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 2);
@@ -173,7 +173,7 @@ intrinsic_MakeConstructible(JSContext *cx, unsigned argc, Value *vp)
  * _cannot_ be automatically determined.
  */
 static bool
-intrinsic_DecompileArg(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_DecompileArg(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 2);
@@ -205,7 +205,7 @@ intrinsic_DecompileArg(JSContext *cx, unsigned argc, Value *vp)
  *   JIT heuristics.
  */
 static bool
-intrinsic_SetScriptHints(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_SetScriptHints(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() >= 2);
@@ -242,7 +242,7 @@ intrinsic_SetScriptHints(JSContext *cx, unsigned argc, Value *vp)
  * Dump(val): Dumps a value for debugging, even in parallel mode.
  */
 bool
-intrinsic_Dump(ThreadSafeContext *cx, unsigned argc, Value *vp)
+intrinsic_Dump(ThreadSafeContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     js_DumpValue(args[0]);
@@ -258,7 +258,7 @@ JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(intrinsic_Dump_jitInfo, intrinsic_Dump_jit
                                       intrinsic_Dump);
 
 bool
-intrinsic_ParallelSpew(ThreadSafeContext *cx, unsigned argc, Value *vp)
+intrinsic_ParallelSpew(ThreadSafeContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 1);
@@ -285,7 +285,7 @@ JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(intrinsic_ParallelSpew_jitInfo, intrinsic_
  * See ForkJoin.cpp for details and ParallelArray.js for examples.
  */
 static bool
-intrinsic_ForkJoin(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_ForkJoin(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return ForkJoin(cx, args);
@@ -296,7 +296,7 @@ intrinsic_ForkJoin(JSContext *cx, unsigned argc, Value *vp)
  * thread pool, including the main thread.
  */
 static bool
-intrinsic_ForkJoinNumWorkers(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_ForkJoinNumWorkers(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     args.rval().setInt32(cx->runtime()->threadPool.numWorkers());
@@ -315,7 +315,7 @@ intrinsic_ForkJoinNumWorkers(JSContext *cx, unsigned argc, Value *vp)
  * next sequential slice id and passing it in itself.
  */
 bool
-js::intrinsic_ForkJoinGetSlice(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_ForkJoinGetSlice(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     MOZ_ASSERT(args.length() == 1);
@@ -325,7 +325,7 @@ js::intrinsic_ForkJoinGetSlice(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-intrinsic_ForkJoinGetSlicePar(ForkJoinContext *cx, unsigned argc, Value *vp)
+intrinsic_ForkJoinGetSlicePar(ForkJoinContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     MOZ_ASSERT(args.length() == 1);
@@ -348,7 +348,7 @@ JS_JITINFO_NATIVE_PARALLEL(intrinsic_ForkJoinGetSlice_jitInfo,
  * the given length where all values are initialized to holes.
  */
 bool
-js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_NewDenseArray(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -364,7 +364,7 @@ js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
     if (!buffer)
         return false;
 
-    types::TypeObject *newtype = types::GetTypeCallerInitObject(cx, JSProto_Array);
+    types::TypeObject* newtype = types::GetTypeCallerInitObject(cx, JSProto_Array);
     if (!newtype)
         return false;
     buffer->setType(newtype);
@@ -399,7 +399,7 @@ js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
  * length of |arr|.
  */
 bool
-js::intrinsic_UnsafePutElements(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_UnsafePutElements(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -438,7 +438,7 @@ js::intrinsic_UnsafePutElements(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-js::intrinsic_UnsafeSetReservedSlot(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_UnsafeSetReservedSlot(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 3);
@@ -451,7 +451,7 @@ js::intrinsic_UnsafeSetReservedSlot(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-js::intrinsic_UnsafeGetReservedSlot(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_UnsafeGetReservedSlot(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 2);
@@ -463,7 +463,7 @@ js::intrinsic_UnsafeGetReservedSlot(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-js::intrinsic_HaveSameClass(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_HaveSameClass(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 2);
@@ -475,13 +475,13 @@ js::intrinsic_HaveSameClass(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-js::intrinsic_IsPackedArray(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_IsPackedArray(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 1);
     JS_ASSERT(args[0].isObject());
 
-    JSObject *obj = &args[0].toObject();
+    JSObject* obj = &args[0].toObject();
     bool isPacked = obj->is<ArrayObject>() && !obj->hasLazyType() &&
                     !obj->type()->hasAllFlags(types::OBJECT_FLAG_NON_PACKED) &&
                     obj->getDenseInitializedLength() == obj->as<ArrayObject>().length();
@@ -491,12 +491,12 @@ js::intrinsic_IsPackedArray(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-intrinsic_GetIteratorPrototype(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_GetIteratorPrototype(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 0);
 
-    JSObject *obj = GlobalObject::getOrCreateIteratorPrototype(cx, cx->global());
+    JSObject* obj = GlobalObject::getOrCreateIteratorPrototype(cx, cx->global());
     if (!obj)
         return false;
 
@@ -505,7 +505,7 @@ intrinsic_GetIteratorPrototype(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-intrinsic_NewArrayIterator(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_NewArrayIterator(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 0);
@@ -514,7 +514,7 @@ intrinsic_NewArrayIterator(JSContext *cx, unsigned argc, Value *vp)
     if (!proto)
         return false;
 
-    JSObject *obj = NewObjectWithGivenProto(cx, proto->getClass(), proto, cx->global());
+    JSObject* obj = NewObjectWithGivenProto(cx, proto->getClass(), proto, cx->global());
     if (!obj)
         return false;
 
@@ -523,7 +523,7 @@ intrinsic_NewArrayIterator(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-intrinsic_IsArrayIterator(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_IsArrayIterator(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 1);
@@ -534,7 +534,7 @@ intrinsic_IsArrayIterator(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-intrinsic_NewStringIterator(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_NewStringIterator(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 0);
@@ -543,7 +543,7 @@ intrinsic_NewStringIterator(JSContext *cx, unsigned argc, Value *vp)
     if (!proto)
         return false;
 
-    JSObject *obj = NewObjectWithGivenProto(cx, &StringIteratorObject::class_, proto, cx->global());
+    JSObject* obj = NewObjectWithGivenProto(cx, &StringIteratorObject::class_, proto, cx->global());
     if (!obj)
         return false;
 
@@ -552,7 +552,7 @@ intrinsic_NewStringIterator(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-intrinsic_IsStringIterator(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_IsStringIterator(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 1);
@@ -576,7 +576,7 @@ intrinsic_IsStringIterator(JSContext *cx, unsigned argc, Value *vp)
  * that state that no bailouts etc should occur.
  */
 static bool
-intrinsic_ParallelTestsShouldPass(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_ParallelTestsShouldPass(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     args.rval().setBoolean(ParallelTestsShouldPass(cx));
@@ -588,7 +588,7 @@ intrinsic_ParallelTestsShouldPass(JSContext *cx, unsigned argc, Value *vp)
  * the sequential fallback path.
  */
 bool
-js::intrinsic_ShouldForceSequential(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_ShouldForceSequential(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 #ifdef JS_THREADSAFE
@@ -601,7 +601,7 @@ js::intrinsic_ShouldForceSequential(JSContext *cx, unsigned argc, Value *vp)
 }
 
 bool
-js::intrinsic_InParallelSection(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_InParallelSection(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     args.rval().setBoolean(false);
@@ -609,7 +609,7 @@ js::intrinsic_InParallelSection(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-intrinsic_InParallelSectionPar(ForkJoinContext *cx, unsigned argc, Value *vp)
+intrinsic_InParallelSectionPar(ForkJoinContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     args.rval().setBoolean(true);
@@ -624,19 +624,19 @@ JS_JITINFO_NATIVE_PARALLEL(intrinsic_InParallelSection_jitInfo,
  * directly because they take a ThreadSafeContext* argument.
  */
 bool
-js::intrinsic_ObjectIsTransparentTypedObject(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_ObjectIsTransparentTypedObject(JSContext* cx, unsigned argc, Value* vp)
 {
     return js::ObjectIsTransparentTypedObject(cx, argc, vp);
 }
 
 bool
-js::intrinsic_ObjectIsOpaqueTypedObject(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_ObjectIsOpaqueTypedObject(JSContext* cx, unsigned argc, Value* vp)
 {
     return js::ObjectIsOpaqueTypedObject(cx, argc, vp);
 }
 
 bool
-js::intrinsic_ObjectIsTypeDescr(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_ObjectIsTypeDescr(JSContext* cx, unsigned argc, Value* vp)
 {
     return js::ObjectIsTypeDescr(cx, argc, vp);
 }
@@ -646,11 +646,11 @@ js::intrinsic_ObjectIsTypeDescr(JSContext *cx, unsigned argc, Value *vp)
  * BCP-47 language tag.
  */
 static bool
-intrinsic_RuntimeDefaultLocale(JSContext *cx, unsigned argc, Value *vp)
+intrinsic_RuntimeDefaultLocale(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    const char *locale = cx->runtime()->getDefaultLocale();
+    const char* locale = cx->runtime()->getDefaultLocale();
     if (!locale) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_DEFAULT_LOCALE_ERROR);
         return false;
@@ -790,7 +790,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
 };
 
 void
-js::FillSelfHostingCompileOptions(CompileOptions &options)
+js::FillSelfHostingCompileOptions(CompileOptions& options)
 {
     /*
      * In self-hosting mode, scripts emit JSOP_CALLINTRINSIC instead of
@@ -821,7 +821,7 @@ js::FillSelfHostingCompileOptions(CompileOptions &options)
 }
 
 bool
-JSRuntime::initSelfHosting(JSContext *cx)
+JSRuntime::initSelfHosting(JSContext* cx)
 {
     JS_ASSERT(!selfHostingGlobal_);
 
@@ -874,7 +874,7 @@ JSRuntime::initSelfHosting(JSContext *cx)
     RootedValue rv(cx);
     bool ok = false;
 
-    char *filename = getenv("MOZ_SELFHOSTEDJS");
+    char* filename = getenv("MOZ_SELFHOSTEDJS");
     if (filename) {
         RootedScript script(cx, Compile(cx, shg, options, filename));
         if (script)
@@ -883,16 +883,16 @@ JSRuntime::initSelfHosting(JSContext *cx)
         uint32_t srcLen = GetRawScriptsSize();
 
 #ifdef USE_ZLIB
-        const unsigned char *compressed = compressedSources;
+        const unsigned char* compressed = compressedSources;
         uint32_t compressedLen = GetCompressedSize();
-        ScopedJSFreePtr<char> src(reinterpret_cast<char *>(cx->malloc_(srcLen)));
+        ScopedJSFreePtr<char> src(reinterpret_cast<char*>(cx->malloc_(srcLen)));
         if (!src || !DecompressString(compressed, compressedLen,
-                                      reinterpret_cast<unsigned char *>(src.get()), srcLen))
+                                      reinterpret_cast<unsigned char*>(src.get()), srcLen))
         {
             return false;
         }
 #else
-        const char *src = rawSources;
+        const char* src = rawSources;
 #endif
 
         ok = Evaluate(cx, shg, options, src, srcLen, rv.address());
@@ -910,14 +910,14 @@ JSRuntime::finishSelfHosting()
 }
 
 void
-JSRuntime::markSelfHostingGlobal(JSTracer *trc)
+JSRuntime::markSelfHostingGlobal(JSTracer* trc)
 {
     if (selfHostingGlobal_ && !parentRuntime)
         MarkObjectRoot(trc, &selfHostingGlobal_, "self-hosting global");
 }
 
 bool
-JSRuntime::isSelfHostingCompartment(JSCompartment *comp)
+JSRuntime::isSelfHostingCompartment(JSCompartment* comp)
 {
     return selfHostingGlobal_->compartment() == comp;
 }
@@ -925,13 +925,13 @@ JSRuntime::isSelfHostingCompartment(JSCompartment *comp)
 // CloneMemory maps objects to each other which may be in different
 // runtimes. This class should only be used within an AutoSuppressGC,
 // so that issues of managing which objects should be traced can be ignored.
-typedef HashMap<JSObject *, JSObject *> CloneMemory;
+typedef HashMap<JSObject*, JSObject*> CloneMemory;
 
 static bool
-CloneValue(JSContext *cx, const Value &selfHostedValue, MutableHandleValue vp, CloneMemory &clonedObjects);
+CloneValue(JSContext* cx, const Value& selfHostedValue, MutableHandleValue vp, CloneMemory& clonedObjects);
 
 static bool
-GetUnclonedValue(JSContext *cx, JSObject *selfHostedObject, jsid id, Value *vp)
+GetUnclonedValue(JSContext* cx, JSObject* selfHostedObject, jsid id, Value* vp)
 {
     *vp = UndefinedValue();
 
@@ -956,7 +956,7 @@ GetUnclonedValue(JSContext *cx, JSObject *selfHostedObject, jsid id, Value *vp)
         return false;
     }
 
-    Shape *shape = selfHostedObject->nativeLookupPure(id);
+    Shape* shape = selfHostedObject->nativeLookupPure(id);
     if (!shape) {
         gc::AutoSuppressGC suppress(cx);
         JS_ReportError(cx, "No such property on self hosted object");
@@ -969,8 +969,8 @@ GetUnclonedValue(JSContext *cx, JSObject *selfHostedObject, jsid id, Value *vp)
 }
 
 static bool
-CloneProperties(JSContext *cx, JSObject *selfHostedObject,
-                HandleObject clone, CloneMemory &clonedObjects)
+CloneProperties(JSContext* cx, JSObject* selfHostedObject,
+                HandleObject clone, CloneMemory& clonedObjects)
 {
     Vector<jsid> ids(cx);
 
@@ -982,7 +982,7 @@ CloneProperties(JSContext *cx, JSObject *selfHostedObject,
     }
 
     for (Shape::Range<NoGC> range(selfHostedObject->lastProperty()); !range.empty(); range.popFront()) {
-        Shape &shape = range.front();
+        Shape& shape = range.front();
         if (shape.enumerable() && !ids.append(shape.propid()))
             return false;
     }
@@ -1004,15 +1004,15 @@ CloneProperties(JSContext *cx, JSObject *selfHostedObject,
     return true;
 }
 
-static JSObject *
-CloneObject(JSContext *cx, JSObject *selfHostedObject, CloneMemory &clonedObjects)
+static JSObject*
+CloneObject(JSContext* cx, JSObject* selfHostedObject, CloneMemory& clonedObjects)
 {
     DependentAddPtr<CloneMemory> p(cx, clonedObjects, selfHostedObject);
     if (p)
         return p->value();
     RootedObject clone(cx);
     if (selfHostedObject->is<JSFunction>()) {
-        JSFunction *selfHostedFunction = &selfHostedObject->as<JSFunction>();
+        JSFunction* selfHostedFunction = &selfHostedObject->as<JSFunction>();
         bool hasName = selfHostedFunction->atom() != nullptr;
         js::gc::AllocKind kind = hasName
                                  ? JSFunction::ExtendedFinalizeKind
@@ -1024,7 +1024,7 @@ CloneObject(JSContext *cx, JSObject *selfHostedObject, CloneMemory &clonedObject
         if (clone && hasName)
             clone->as<JSFunction>().setExtendedSlot(0, StringValue(selfHostedFunction->atom()));
     } else if (selfHostedObject->is<RegExpObject>()) {
-        RegExpObject &reobj = selfHostedObject->as<RegExpObject>();
+        RegExpObject& reobj = selfHostedObject->as<RegExpObject>();
         RootedAtom source(cx, reobj.getSource());
         JS_ASSERT(source->isPermanentAtom());
         clone = RegExpObject::createNoStatics(cx, source, reobj.getFlags(), nullptr);
@@ -1035,7 +1035,7 @@ CloneObject(JSContext *cx, JSObject *selfHostedObject, CloneMemory &clonedObject
     } else if (selfHostedObject->is<NumberObject>()) {
         clone = NumberObject::create(cx, selfHostedObject->as<NumberObject>().unbox());
     } else if (selfHostedObject->is<StringObject>()) {
-        JSString *selfHostedString = selfHostedObject->as<StringObject>().unbox();
+        JSString* selfHostedString = selfHostedObject->as<StringObject>().unbox();
         if (!selfHostedString->isFlat())
             MOZ_CRASH();
         RootedString str(cx, js_NewStringCopyN<CanGC>(cx,
@@ -1064,10 +1064,10 @@ CloneObject(JSContext *cx, JSObject *selfHostedObject, CloneMemory &clonedObject
 }
 
 static bool
-CloneValue(JSContext *cx, const Value &selfHostedValue, MutableHandleValue vp, CloneMemory &clonedObjects)
+CloneValue(JSContext* cx, const Value& selfHostedValue, MutableHandleValue vp, CloneMemory& clonedObjects)
 {
     if (selfHostedValue.isObject()) {
-        JSObject *selfHostedObject = &selfHostedValue.toObject();
+        JSObject* selfHostedObject = &selfHostedValue.toObject();
         RootedObject clone(cx, CloneObject(cx, selfHostedObject, clonedObjects));
         if (!clone)
             return false;
@@ -1078,7 +1078,7 @@ CloneValue(JSContext *cx, const Value &selfHostedValue, MutableHandleValue vp, C
     } else if (selfHostedValue.isString()) {
         if (!selfHostedValue.toString()->isFlat())
             MOZ_CRASH();
-        JSFlatString *selfHostedString = &selfHostedValue.toString()->asFlat();
+        JSFlatString* selfHostedString = &selfHostedValue.toString()->asFlat();
         RootedString clone(cx, js_NewStringCopyN<CanGC>(cx,
                                                         selfHostedString->chars(),
                                                         selfHostedString->length()));
@@ -1092,7 +1092,7 @@ CloneValue(JSContext *cx, const Value &selfHostedValue, MutableHandleValue vp, C
 }
 
 bool
-JSRuntime::cloneSelfHostedFunctionScript(JSContext *cx, Handle<PropertyName*> name,
+JSRuntime::cloneSelfHostedFunctionScript(JSContext* cx, Handle<PropertyName*> name,
                                          Handle<JSFunction*> targetFun)
 {
     RootedId id(cx, NameToId(name));
@@ -1108,7 +1108,7 @@ JSRuntime::cloneSelfHostedFunctionScript(JSContext *cx, Handle<PropertyName*> na
     if (!sourceScript)
         return false;
     JS_ASSERT(!sourceScript->enclosingStaticScope());
-    JSScript *cscript = CloneScript(cx, NullPtr(), targetFun, sourceScript);
+    JSScript* cscript = CloneScript(cx, NullPtr(), targetFun, sourceScript);
     if (!cscript)
         return false;
     cscript->setFunction(targetFun);
@@ -1123,7 +1123,7 @@ JSRuntime::cloneSelfHostedFunctionScript(JSContext *cx, Handle<PropertyName*> na
 }
 
 bool
-JSRuntime::cloneSelfHostedValue(JSContext *cx, Handle<PropertyName*> name, MutableHandleValue vp)
+JSRuntime::cloneSelfHostedValue(JSContext* cx, Handle<PropertyName*> name, MutableHandleValue vp)
 {
     RootedId id(cx, NameToId(name));
     Value selfHostedValue;
@@ -1146,8 +1146,8 @@ JSRuntime::cloneSelfHostedValue(JSContext *cx, Handle<PropertyName*> name, Mutab
     return true;
 }
 
-JSFunction *
-js::SelfHostedFunction(JSContext *cx, HandlePropertyName propName)
+JSFunction*
+js::SelfHostedFunction(JSContext* cx, HandlePropertyName propName)
 {
     RootedValue func(cx);
     if (!GlobalObject::getIntrinsicValue(cx, cx->global(), propName, &func))
@@ -1159,7 +1159,7 @@ js::SelfHostedFunction(JSContext *cx, HandlePropertyName propName)
 }
 
 bool
-js::IsSelfHostedFunctionWithName(JSFunction *fun, JSAtom *name)
+js::IsSelfHostedFunctionWithName(JSFunction* fun, JSAtom* name)
 {
     return fun->isSelfHostedBuiltin() && fun->getExtendedSlot(0).toString() == name;
 }

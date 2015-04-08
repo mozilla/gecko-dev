@@ -9,7 +9,7 @@
 using namespace js;
 using namespace js::jit;
 
-MoveEmitterMIPS::MoveEmitterMIPS(MacroAssemblerMIPSCompat &masm)
+MoveEmitterMIPS::MoveEmitterMIPS(MacroAssemblerMIPSCompat& masm)
   : inCycle_(false),
     masm(masm),
     pushedAtCycle_(-1),
@@ -21,7 +21,7 @@ MoveEmitterMIPS::MoveEmitterMIPS(MacroAssemblerMIPSCompat &masm)
 }
 
 void
-MoveEmitterMIPS::emit(const MoveResolver &moves)
+MoveEmitterMIPS::emit(const MoveResolver& moves)
 {
     if (moves.hasCycles()) {
         // Reserve stack for cycle resolution
@@ -47,7 +47,7 @@ MoveEmitterMIPS::cycleSlot() const
 }
 
 int32_t
-MoveEmitterMIPS::getAdjustedOffset(const MoveOperand &operand)
+MoveEmitterMIPS::getAdjustedOffset(const MoveOperand& operand)
 {
     MOZ_ASSERT(operand.isMemoryOrEffectiveAddress());
     if (operand.base() != StackPointer)
@@ -58,7 +58,7 @@ MoveEmitterMIPS::getAdjustedOffset(const MoveOperand &operand)
 }
 
 Address
-MoveEmitterMIPS::getAdjustedAddress(const MoveOperand &operand)
+MoveEmitterMIPS::getAdjustedAddress(const MoveOperand& operand)
 {
     return Address(operand.base(), getAdjustedOffset(operand));
 }
@@ -72,7 +72,7 @@ MoveEmitterMIPS::tempReg()
 }
 
 void
-MoveEmitterMIPS::breakCycle(const MoveOperand &from, const MoveOperand &to, MoveOp::Type type)
+MoveEmitterMIPS::breakCycle(const MoveOperand& from, const MoveOperand& to, MoveOp::Type type)
 {
     // There is some pattern:
     //   (A -> B)
@@ -118,7 +118,7 @@ MoveEmitterMIPS::breakCycle(const MoveOperand &from, const MoveOperand &to, Move
 }
 
 void
-MoveEmitterMIPS::completeCycle(const MoveOperand &from, const MoveOperand &to, MoveOp::Type type)
+MoveEmitterMIPS::completeCycle(const MoveOperand& from, const MoveOperand& to, MoveOp::Type type)
 {
     // There is some pattern:
     //   (A -> B)
@@ -164,7 +164,7 @@ MoveEmitterMIPS::completeCycle(const MoveOperand &from, const MoveOperand &to, M
 }
 
 void
-MoveEmitterMIPS::emitMove(const MoveOperand &from, const MoveOperand &to)
+MoveEmitterMIPS::emitMove(const MoveOperand& from, const MoveOperand& to)
 {
     if (from.isGeneralReg()) {
         // Second scratch register should not be moved by MoveEmitter.
@@ -200,7 +200,7 @@ MoveEmitterMIPS::emitMove(const MoveOperand &from, const MoveOperand &to)
 }
 
 void
-MoveEmitterMIPS::emitFloat32Move(const MoveOperand &from, const MoveOperand &to)
+MoveEmitterMIPS::emitFloat32Move(const MoveOperand& from, const MoveOperand& to)
 {
     // Ensure that we can use ScratchFloatReg in memory move.
     MOZ_ASSERT_IF(from.isFloatReg(), from.floatReg() != ScratchFloatReg);
@@ -234,7 +234,7 @@ MoveEmitterMIPS::emitFloat32Move(const MoveOperand &from, const MoveOperand &to)
 }
 
 void
-MoveEmitterMIPS::emitDoubleMove(const MoveOperand &from, const MoveOperand &to)
+MoveEmitterMIPS::emitDoubleMove(const MoveOperand& from, const MoveOperand& to)
 {
     // Ensure that we can use ScratchFloatReg in memory move.
     MOZ_ASSERT_IF(from.isFloatReg(), from.floatReg() != ScratchFloatReg);
@@ -280,10 +280,10 @@ MoveEmitterMIPS::emitDoubleMove(const MoveOperand &from, const MoveOperand &to)
 }
 
 void
-MoveEmitterMIPS::emit(const MoveOp &move)
+MoveEmitterMIPS::emit(const MoveOp& move)
 {
-    const MoveOperand &from = move.from();
-    const MoveOperand &to = move.to();
+    const MoveOperand& from = move.from();
+    const MoveOperand& to = move.to();
 
     if (move.isCycleEnd()) {
         MOZ_ASSERT(inCycle_);

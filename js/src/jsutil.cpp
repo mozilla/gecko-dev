@@ -37,10 +37,10 @@ JS_PUBLIC_DATA(uint32_t) OOM_counter = 0;
  * Checks the assumption that JS_FUNC_TO_DATA_PTR and JS_DATA_TO_FUNC_PTR
  * macros uses to implement casts between function and data pointers.
  */
-JS_STATIC_ASSERT(sizeof(void *) == sizeof(void (*)()));
+JS_STATIC_ASSERT(sizeof(void*) == sizeof(void (*)()));
 
 JS_PUBLIC_API(void)
-JS_Assert(const char *s, const char *file, int ln)
+JS_Assert(const char* s, const char* file, int ln)
 {
     MOZ_ReportAssertionFailure(s, file, ln);
     MOZ_CRASH();
@@ -61,7 +61,7 @@ AllTheNonBasicVanillaNewAllocations()
 {
     // posix_memalign and aligned_alloc aren't available on all Linux
     // configurations.
-    //char *q;
+    //char* q;
     //posix_memalign((void**)&q, 16, 16);
 
     intptr_t p =
@@ -131,7 +131,7 @@ ValToBin(unsigned logscale, uint32_t val)
 }
 
 void
-JS_BasicStatsAccum(JSBasicStats *bs, uint32_t val)
+JS_BasicStatsAccum(JSBasicStats* bs, uint32_t val)
 {
     unsigned oldscale, newscale, bin;
     double mean;
@@ -166,7 +166,7 @@ JS_BasicStatsAccum(JSBasicStats *bs, uint32_t val)
 }
 
 double
-JS_MeanAndStdDev(uint32_t num, double sum, double sqsum, double *sigma)
+JS_MeanAndStdDev(uint32_t num, double sum, double sqsum, double* sigma)
 {
     double var;
 
@@ -187,7 +187,7 @@ JS_MeanAndStdDev(uint32_t num, double sum, double sqsum, double *sigma)
 }
 
 void
-JS_DumpBasicStats(JSBasicStats *bs, const char *title, FILE *fp)
+JS_DumpBasicStats(JSBasicStats* bs, const char* title, FILE* fp)
 {
     double mean, sigma;
 
@@ -198,7 +198,7 @@ JS_DumpBasicStats(JSBasicStats *bs, const char *title, FILE *fp)
 }
 
 void
-JS_DumpHistogram(JSBasicStats *bs, FILE *fp)
+JS_DumpHistogram(JSBasicStats* bs, FILE* fp)
 {
     unsigned bin;
     uint32_t cnt, max;

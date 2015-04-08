@@ -8,7 +8,7 @@
 static int iterCount = 0;
 
 static bool
-IterNext(JSContext *cx, unsigned argc, jsval *vp)
+IterNext(JSContext* cx, unsigned argc, jsval* vp)
 {
     if (iterCount++ == 100)
         return JS_ThrowStopIteration(cx);
@@ -16,8 +16,8 @@ IterNext(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
-static JSObject *
-IterHook(JSContext *cx, JS::HandleObject obj, bool keysonly)
+static JSObject*
+IterHook(JSContext* cx, JS::HandleObject obj, bool keysonly)
 {
     JS::RootedObject iterObj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
     if (!iterObj)
@@ -52,9 +52,9 @@ const js::Class HasCustomIterClass = {
 };
 
 static bool
-IterClassConstructor(JSContext *cx, unsigned argc, jsval *vp)
+IterClassConstructor(JSContext* cx, unsigned argc, jsval* vp)
 {
-    JSObject *obj = JS_NewObjectForConstructor(cx, Jsvalify(&HasCustomIterClass), vp);
+    JSObject* obj = JS_NewObjectForConstructor(cx, Jsvalify(&HasCustomIterClass), vp);
     if (!obj)
         return false;
     JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(obj));

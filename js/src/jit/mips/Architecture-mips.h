@@ -31,7 +31,7 @@ static const int32_t NUNBOX32_PAYLOAD_OFFSET = 0;
 
 // Size of each bailout table entry.
 // For MIPS this is 2 instructions relative call.
-static const uint32_t BAILOUT_TABLE_ENTRY_SIZE = 2 * sizeof(void *);
+static const uint32_t BAILOUT_TABLE_ENTRY_SIZE = 2 * sizeof(void*);
 
 class Registers
 {
@@ -105,19 +105,19 @@ class Registers
     };
     typedef RegisterID Code;
 
-    static const char *GetName(Code code) {
+    static const char* GetName(Code code) {
         static const char * const Names[] = { "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
                                               "t0",   "t1", "t2", "t3", "t4", "t5", "t6", "t7",
                                               "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7",
                                               "t8",   "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
         return Names[code];
     }
-    static const char *GetName(uint32_t i) {
+    static const char* GetName(uint32_t i) {
         MOZ_ASSERT(i < Total);
         return GetName(Code(i));
     }
 
-    static Code FromName(const char *name);
+    static Code FromName(const char* name);
 
     static const Code StackPointer = sp;
     static const Code Invalid = invalid_reg;
@@ -218,19 +218,19 @@ class FloatRegisters
     };
     typedef FPRegisterID Code;
 
-    static const char *GetName(Code code) {
+    static const char* GetName(Code code) {
         static const char * const Names[] = { "f0",  "f2",  "f4",  "f6",
                                               "f8",  "f10", "f12", "f14",
                                               "f16", "f18", "f20", "f22",
                                               "f24", "f26", "f28", "f30"};
         return Names[code];
     }
-    static const char *GetName(uint32_t i) {
+    static const char* GetName(uint32_t i) {
         JS_ASSERT(i < Total);
         return GetName(Code(i));
     }
 
-    static Code FromName(const char *name);
+    static Code FromName(const char* name);
 
     static const Code Invalid = invalid_freg;
 

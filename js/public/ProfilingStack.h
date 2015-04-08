@@ -56,18 +56,18 @@ class ProfileEntry
     }
 
     uint32_t line() const volatile { MOZ_ASSERT(!js()); return idx; }
-    JSScript *script() const volatile { MOZ_ASSERT(js()); return script_; }
-    void *stackAddress() const volatile { return sp; }
-    const char *label() const volatile { return string; }
+    JSScript* script() const volatile { MOZ_ASSERT(js()); return script_; }
+    void* stackAddress() const volatile { return sp; }
+    const char* label() const volatile { return string; }
 
     void setLine(uint32_t aLine) volatile { MOZ_ASSERT(!js()); idx = aLine; }
-    void setLabel(const char *aString) volatile { string = aString; }
-    void setStackAddress(void *aSp) volatile { sp = aSp; }
-    void setScript(JSScript *aScript) volatile { script_ = aScript; }
+    void setLabel(const char* aString) volatile { string = aString; }
+    void setStackAddress(void* aSp) volatile { sp = aSp; }
+    void setScript(JSScript* aScript) volatile { script_ = aScript; }
 
     // We can't know the layout of JSScript, so look in vm/SPSProfiler.cpp.
-    JS_FRIEND_API(jsbytecode *) pc() const volatile;
-    JS_FRIEND_API(void) setPC(jsbytecode *pc) volatile;
+    JS_FRIEND_API(jsbytecode*) pc() const volatile;
+    JS_FRIEND_API(void) setPC(jsbytecode* pc) volatile;
 
     static size_t offsetOfString() { return offsetof(ProfileEntry, string); }
     static size_t offsetOfStackAddress() { return offsetof(ProfileEntry, sp); }
@@ -85,17 +85,17 @@ class ProfileEntry
 };
 
 JS_FRIEND_API(void)
-SetRuntimeProfilingStack(JSRuntime *rt, ProfileEntry *stack, uint32_t *size,
+SetRuntimeProfilingStack(JSRuntime* rt, ProfileEntry* stack, uint32_t* size,
                          uint32_t max);
 
 JS_FRIEND_API(void)
-EnableRuntimeProfilingStack(JSRuntime *rt, bool enabled);
+EnableRuntimeProfilingStack(JSRuntime* rt, bool enabled);
 
 JS_FRIEND_API(void)
-RegisterRuntimeProfilingEventMarker(JSRuntime *rt, void (*fn)(const char *));
+RegisterRuntimeProfilingEventMarker(JSRuntime* rt, void (*fn)(const char*));
 
 JS_FRIEND_API(jsbytecode*)
-ProfilingGetPC(JSRuntime *rt, JSScript *script, void *ip);
+ProfilingGetPC(JSRuntime* rt, JSScript* script, void* ip);
 
 } // namespace js
 

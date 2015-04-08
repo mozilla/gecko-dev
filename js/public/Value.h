@@ -250,9 +250,9 @@ typedef union jsval_layout
             int32_t        i32;
             uint32_t       u32;
             uint32_t       boo;     // Don't use |bool| -- it must be four bytes.
-            JSString       *str;
-            JSObject       *obj;
-            void           *ptr;
+            JSString*      str;
+            JSObject*      obj;
+            void*          ptr;
             JSWhyMagic     why;
             size_t         word;
             uintptr_t      uintptr;
@@ -260,7 +260,7 @@ typedef union jsval_layout
         JSValueTag tag;
     } s;
     double asDouble;
-    void *asPtr;
+    void* asPtr;
 } JSVAL_ALIGNMENT jsval_layout;
 # elif JS_BITS_PER_WORD == 64
 typedef union jsval_layout
@@ -281,7 +281,7 @@ typedef union jsval_layout
         } payload;
     } s;
     double asDouble;
-    void *asPtr;
+    void* asPtr;
     size_t asWord;
     uintptr_t asUIntPtr;
 } JSVAL_ALIGNMENT jsval_layout;
@@ -297,16 +297,16 @@ typedef union jsval_layout
             int32_t        i32;
             uint32_t       u32;
             uint32_t       boo;     // Don't use |bool| -- it must be four bytes.
-            JSString       *str;
-            JSObject       *obj;
-            void           *ptr;
+            JSString*      str;
+            JSObject*      obj;
+            void*          ptr;
             JSWhyMagic     why;
             size_t         word;
             uintptr_t      uintptr;
         } payload;
     } s;
     double asDouble;
-    void *asPtr;
+    void* asPtr;
 } JSVAL_ALIGNMENT jsval_layout;
 # elif JS_BITS_PER_WORD == 64
 typedef union jsval_layout
@@ -325,7 +325,7 @@ typedef union jsval_layout
         } payload;
     } s;
     double asDouble;
-    void *asPtr;
+    void* asPtr;
     size_t asWord;
     uintptr_t asUIntPtr;
 } JSVAL_ALIGNMENT jsval_layout;
@@ -452,7 +452,7 @@ JSVAL_IS_STRING_IMPL(jsval_layout l)
 }
 
 static inline jsval_layout
-STRING_TO_JSVAL_IMPL(JSString *str)
+STRING_TO_JSVAL_IMPL(JSString* str)
 {
     jsval_layout l;
     MOZ_ASSERT(uintptr_t(str) > 0x1000);
@@ -461,7 +461,7 @@ STRING_TO_JSVAL_IMPL(JSString *str)
     return l;
 }
 
-static inline JSString *
+static inline JSString*
 JSVAL_TO_STRING_IMPL(jsval_layout l)
 {
     return l.s.payload.str;
@@ -513,14 +513,14 @@ JSVAL_IS_OBJECT_OR_NULL_IMPL(jsval_layout l)
     return (uint32_t)l.s.tag >= (uint32_t)JSVAL_LOWER_INCL_TAG_OF_OBJ_OR_NULL_SET;
 }
 
-static inline JSObject *
+static inline JSObject*
 JSVAL_TO_OBJECT_IMPL(jsval_layout l)
 {
     return l.s.payload.obj;
 }
 
 static inline jsval_layout
-OBJECT_TO_JSVAL_IMPL(JSObject *obj)
+OBJECT_TO_JSVAL_IMPL(JSObject* obj)
 {
     jsval_layout l;
     MOZ_ASSERT(uintptr_t(obj) > 0x1000 || uintptr_t(obj) == 0x42);
@@ -536,7 +536,7 @@ JSVAL_IS_NULL_IMPL(jsval_layout l)
 }
 
 static inline jsval_layout
-PRIVATE_PTR_TO_JSVAL_IMPL(void *ptr)
+PRIVATE_PTR_TO_JSVAL_IMPL(void* ptr)
 {
     jsval_layout l;
     MOZ_ASSERT(((uint32_t)ptr & 1) == 0);
@@ -546,7 +546,7 @@ PRIVATE_PTR_TO_JSVAL_IMPL(void *ptr)
     return l;
 }
 
-static inline void *
+static inline void*
 JSVAL_TO_PRIVATE_PTR_IMPL(jsval_layout l)
 {
     return l.s.payload.ptr;
@@ -559,7 +559,7 @@ JSVAL_IS_GCTHING_IMPL(jsval_layout l)
     return (uint32_t)l.s.tag >= (uint32_t)JSVAL_LOWER_INCL_TAG_OF_GCTHING_SET;
 }
 
-static inline void *
+static inline void*
 JSVAL_TO_GCTHING_IMPL(jsval_layout l)
 {
     return l.s.payload.ptr;
@@ -682,7 +682,7 @@ JSVAL_IS_STRING_IMPL(jsval_layout l)
 }
 
 static inline jsval_layout
-STRING_TO_JSVAL_IMPL(JSString *str)
+STRING_TO_JSVAL_IMPL(JSString* str)
 {
     jsval_layout l;
     uint64_t strBits = (uint64_t)str;
@@ -692,10 +692,10 @@ STRING_TO_JSVAL_IMPL(JSString *str)
     return l;
 }
 
-static inline JSString *
+static inline JSString*
 JSVAL_TO_STRING_IMPL(jsval_layout l)
 {
-    return (JSString *)(l.asBits & JSVAL_PAYLOAD_MASK);
+    return (JSString*)(l.asBits & JSVAL_PAYLOAD_MASK);
 }
 
 static inline bool
@@ -744,16 +744,16 @@ JSVAL_IS_OBJECT_OR_NULL_IMPL(jsval_layout l)
     return l.asBits >= JSVAL_LOWER_INCL_SHIFTED_TAG_OF_OBJ_OR_NULL_SET;
 }
 
-static inline JSObject *
+static inline JSObject*
 JSVAL_TO_OBJECT_IMPL(jsval_layout l)
 {
     uint64_t ptrBits = l.asBits & JSVAL_PAYLOAD_MASK;
     MOZ_ASSERT((ptrBits & 0x7) == 0);
-    return (JSObject *)ptrBits;
+    return (JSObject*)ptrBits;
 }
 
 static inline jsval_layout
-OBJECT_TO_JSVAL_IMPL(JSObject *obj)
+OBJECT_TO_JSVAL_IMPL(JSObject* obj)
 {
     jsval_layout l;
     uint64_t objBits = (uint64_t)obj;
@@ -775,12 +775,12 @@ JSVAL_IS_GCTHING_IMPL(jsval_layout l)
     return l.asBits >= JSVAL_LOWER_INCL_SHIFTED_TAG_OF_GCTHING_SET;
 }
 
-static inline void *
+static inline void*
 JSVAL_TO_GCTHING_IMPL(jsval_layout l)
 {
     uint64_t ptrBits = l.asBits & JSVAL_PAYLOAD_MASK;
     MOZ_ASSERT((ptrBits & 0x7) == 0);
-    return (void *)ptrBits;
+    return (void*)ptrBits;
 }
 
 static inline bool
@@ -796,7 +796,7 @@ JSVAL_TRACE_KIND_IMPL(jsval_layout l)
 }
 
 static inline jsval_layout
-PRIVATE_PTR_TO_JSVAL_IMPL(void *ptr)
+PRIVATE_PTR_TO_JSVAL_IMPL(void* ptr)
 {
     jsval_layout l;
     uint64_t ptrBits = (uint64_t)ptr;
@@ -806,11 +806,11 @@ PRIVATE_PTR_TO_JSVAL_IMPL(void *ptr)
     return l;
 }
 
-static inline void *
+static inline void*
 JSVAL_TO_PRIVATE_PTR_IMPL(jsval_layout l)
 {
     MOZ_ASSERT((l.asBits & 0x8000000000000000LL) == 0);
-    return (void *)(l.asBits << 1);
+    return (void*)(l.asBits << 1);
 }
 
 static inline bool
@@ -926,7 +926,7 @@ CanonicalizeNaN(double d)
  *
  * - Note that JS::Value is 8 bytes on 32 and 64-bit architectures. Thus, on
  *   32-bit user code should avoid copying jsval/JS::Value as much as possible,
- *   preferring to pass by const Value &.
+ *   preferring to pass by const Value&.
  */
 class Value
 {
@@ -954,7 +954,7 @@ class Value
         data = INT32_TO_JSVAL_IMPL(i);
     }
 
-    int32_t &getInt32Ref() {
+    int32_t& getInt32Ref() {
         MOZ_ASSERT(isInt32());
         return data.s.payload.i32;
     }
@@ -967,17 +967,17 @@ class Value
         setDouble(GenericNaN());
     }
 
-    double &getDoubleRef() {
+    double& getDoubleRef() {
         MOZ_ASSERT(isDouble());
         return data.asDouble;
     }
 
-    void setString(JSString *str) {
+    void setString(JSString* str) {
         MOZ_ASSERT(!IsPoisonedPtr(str));
         data = STRING_TO_JSVAL_IMPL(str);
     }
 
-    void setObject(JSObject &obj) {
+    void setObject(JSObject& obj) {
         MOZ_ASSERT(!IsPoisonedPtr(&obj));
         data = OBJECT_TO_JSVAL_IMPL(&obj);
     }
@@ -1015,14 +1015,14 @@ class Value
         return false;
     }
 
-    void setObjectOrNull(JSObject *arg) {
+    void setObjectOrNull(JSObject* arg) {
         if (arg)
             setObject(*arg);
         else
             setNull();
     }
 
-    void swap(Value &rhs) {
+    void swap(Value& rhs) {
         uint64_t tmp = rhs.data.asBits;
         rhs.data.asBits = data.asBits;
         data.asBits = tmp;
@@ -1120,15 +1120,15 @@ class Value
 
     /*** Comparison ***/
 
-    bool operator==(const Value &rhs) const {
+    bool operator==(const Value& rhs) const {
         return data.asBits == rhs.data.asBits;
     }
 
-    bool operator!=(const Value &rhs) const {
+    bool operator!=(const Value& rhs) const {
         return data.asBits != rhs.data.asBits;
     }
 
-    friend inline bool SameType(const Value &lhs, const Value &rhs);
+    friend inline bool SameType(const Value& lhs, const Value& rhs);
 
     /*** Extract the value's typed payload ***/
 
@@ -1147,22 +1147,22 @@ class Value
         return isDouble() ? toDouble() : double(toInt32());
     }
 
-    JSString *toString() const {
+    JSString* toString() const {
         MOZ_ASSERT(isString());
         return JSVAL_TO_STRING_IMPL(data);
     }
 
-    JSObject &toObject() const {
+    JSObject& toObject() const {
         MOZ_ASSERT(isObject());
         return *JSVAL_TO_OBJECT_IMPL(data);
     }
 
-    JSObject *toObjectOrNull() const {
+    JSObject* toObjectOrNull() const {
         MOZ_ASSERT(isObjectOrNull());
         return JSVAL_TO_OBJECT_IMPL(data);
     }
 
-    void *toGCThing() const {
+    void* toGCThing() const {
         MOZ_ASSERT(isGCThing());
         return JSVAL_TO_GCTHING_IMPL(data);
     }
@@ -1194,11 +1194,11 @@ class Value
      * Privates values are given a type which ensures they are not marked.
      */
 
-    void setPrivate(void *ptr) {
+    void setPrivate(void* ptr) {
         data = PRIVATE_PTR_TO_JSVAL_IMPL(ptr);
     }
 
-    void *toPrivate() const {
+    void* toPrivate() const {
         MOZ_ASSERT(JSVAL_IS_DOUBLE_IMPL(data));
         return JSVAL_TO_PRIVATE_PTR_IMPL(data);
     }
@@ -1218,15 +1218,15 @@ class Value
      * and the ensuing strict-aliasing warnings.
      */
 
-    void setUnmarkedPtr(void *ptr) {
+    void setUnmarkedPtr(void* ptr) {
         data.asPtr = ptr;
     }
 
-    void *toUnmarkedPtr() const {
+    void* toUnmarkedPtr() const {
         return data.asPtr;
     }
 
-    const size_t *payloadWord() const {
+    const size_t* payloadWord() const {
 #if JS_BITS_PER_WORD == 32
         return &data.s.payload.word;
 #elif JS_BITS_PER_WORD == 64
@@ -1234,7 +1234,7 @@ class Value
 #endif
     }
 
-    const uintptr_t *payloadUIntPtr() const {
+    const uintptr_t* payloadUIntPtr() const {
 #if JS_BITS_PER_WORD == 32
         return &data.s.payload.uintptr;
 #elif JS_BITS_PER_WORD == 64
@@ -1269,7 +1269,7 @@ class Value
 };
 
 inline bool
-IsPoisonedValue(const Value &v)
+IsPoisonedValue(const Value& v)
 {
     if (v.isString())
         return IsPoisonedPtr(v.toString());
@@ -1333,7 +1333,7 @@ Float32Value(float f)
 }
 
 static inline Value
-StringValue(JSString *str)
+StringValue(JSString* str)
 {
     Value v;
     v.setString(str);
@@ -1365,7 +1365,7 @@ FalseValue()
 }
 
 static inline Value
-ObjectValue(JSObject &obj)
+ObjectValue(JSObject& obj)
 {
     Value v;
     v.setObject(obj);
@@ -1376,7 +1376,7 @@ static inline Value
 ObjectValueCrashOnTouch()
 {
     Value v;
-    v.setObject(*reinterpret_cast<JSObject *>(0x42));
+    v.setObject(*reinterpret_cast<JSObject*>(0x42));
     return v;
 }
 
@@ -1495,7 +1495,7 @@ NumberValue(const T t)
 }
 
 static inline Value
-ObjectOrNullValue(JSObject *obj)
+ObjectOrNullValue(JSObject* obj)
 {
     Value v;
     v.setObjectOrNull(obj);
@@ -1503,7 +1503,7 @@ ObjectOrNullValue(JSObject *obj)
 }
 
 static inline Value
-PrivateValue(void *ptr)
+PrivateValue(void* ptr)
 {
     Value v;
     v.setPrivate(ptr);
@@ -1519,7 +1519,7 @@ PrivateUint32Value(uint32_t ui)
 }
 
 inline bool
-SameType(const Value &lhs, const Value &rhs)
+SameType(const Value& lhs, const Value& rhs)
 {
     return JSVAL_SAME_TYPE_IMPL(lhs.data, rhs.data);
 }
@@ -1530,8 +1530,8 @@ SameType(const Value &lhs, const Value &rhs)
 
 #ifdef JSGC_GENERATIONAL
 namespace JS {
-JS_PUBLIC_API(void) HeapValuePostBarrier(Value *valuep);
-JS_PUBLIC_API(void) HeapValueRelocate(Value *valuep);
+JS_PUBLIC_API(void) HeapValuePostBarrier(Value* valuep);
+JS_PUBLIC_API(void) HeapValueRelocate(Value* valuep);
 }
 #endif
 
@@ -1541,18 +1541,18 @@ template <> struct GCMethods<const JS::Value>
 {
     static JS::Value initial() { return JS::UndefinedValue(); }
     static ThingRootKind kind() { return THING_ROOT_VALUE; }
-    static bool poisoned(const JS::Value &v) { return JS::IsPoisonedValue(v); }
+    static bool poisoned(const JS::Value& v) { return JS::IsPoisonedValue(v); }
 };
 
 template <> struct GCMethods<JS::Value>
 {
     static JS::Value initial() { return JS::UndefinedValue(); }
     static ThingRootKind kind() { return THING_ROOT_VALUE; }
-    static bool poisoned(const JS::Value &v) { return JS::IsPoisonedValue(v); }
-    static bool needsPostBarrier(const JS::Value &v) { return v.isMarkable(); }
+    static bool poisoned(const JS::Value& v) { return JS::IsPoisonedValue(v); }
+    static bool needsPostBarrier(const JS::Value& v) { return v.isMarkable(); }
 #ifdef JSGC_GENERATIONAL
-    static void postBarrier(JS::Value *v) { JS::HeapValuePostBarrier(v); }
-    static void relocate(JS::Value *v) { JS::HeapValueRelocate(v); }
+    static void postBarrier(JS::Value* v) { JS::HeapValuePostBarrier(v); }
+    static void relocate(JS::Value* v) { JS::HeapValueRelocate(v); }
 #endif
 };
 
@@ -1595,10 +1595,10 @@ class ValueOperations
     double toNumber() const { return value()->toNumber(); }
     int32_t toInt32() const { return value()->toInt32(); }
     double toDouble() const { return value()->toDouble(); }
-    JSString *toString() const { return value()->toString(); }
-    JSObject &toObject() const { return value()->toObject(); }
-    JSObject *toObjectOrNull() const { return value()->toObjectOrNull(); }
-    void *toGCThing() const { return value()->toGCThing(); }
+    JSString* toString() const { return value()->toString(); }
+    JSObject& toObject() const { return value()->toObject(); }
+    JSObject* toObjectOrNull() const { return value()->toObjectOrNull(); }
+    void* toGCThing() const { return value()->toGCThing(); }
 
     JSValueType extractNonDoubleType() const { return value()->extractNonDoubleType(); }
     uint32_t toPrivateUint32() const { return value()->toPrivateUint32(); }
@@ -1628,9 +1628,9 @@ class MutableValueOperations : public ValueOperations<Outer>
     void setMagic(JSWhyMagic why) { value()->setMagic(why); }
     bool setNumber(uint32_t ui) { return value()->setNumber(ui); }
     bool setNumber(double d) { return value()->setNumber(d); }
-    void setString(JSString *str) { this->value()->setString(str); }
-    void setObject(JSObject &obj) { this->value()->setObject(obj); }
-    void setObjectOrNull(JSObject *arg) { this->value()->setObjectOrNull(arg); }
+    void setString(JSString* str) { this->value()->setString(str); }
+    void setObject(JSObject& obj) { this->value()->setObject(obj); }
+    void setObjectOrNull(JSObject* arg) { this->value()->setObjectOrNull(arg); }
 };
 
 /*
@@ -1646,8 +1646,8 @@ class HeapBase<JS::Value> : public ValueOperations<JS::Heap<JS::Value> >
 
     const JS::Value * extract() const { return static_cast<const Outer*>(this)->address(); }
 
-    void setBarriered(const JS::Value &v) {
-        static_cast<JS::Heap<JS::Value> *>(this)->set(v);
+    void setBarriered(const JS::Value& v) {
+        static_cast<JS::Heap<JS::Value>*>(this)->set(v);
     }
 
   public:
@@ -1658,8 +1658,8 @@ class HeapBase<JS::Value> : public ValueOperations<JS::Heap<JS::Value> >
     void setNaN() { setDouble(JS::GenericNaN()); }
     void setBoolean(bool b) { setBarriered(JS::BooleanValue(b)); }
     void setMagic(JSWhyMagic why) { setBarriered(JS::MagicValue(why)); }
-    void setString(JSString *str) { setBarriered(JS::StringValue(str)); }
-    void setObject(JSObject &obj) { setBarriered(JS::ObjectValue(obj)); }
+    void setString(JSString* str) { setBarriered(JS::StringValue(str)); }
+    void setObject(JSObject& obj) { setBarriered(JS::ObjectValue(obj)); }
 
     bool setNumber(uint32_t ui) {
         if (ui > JSVAL_INT_MAX) {
@@ -1682,7 +1682,7 @@ class HeapBase<JS::Value> : public ValueOperations<JS::Heap<JS::Value> >
         return false;
     }
 
-    void setObjectOrNull(JSObject *arg) {
+    void setObjectOrNull(JSObject* arg) {
         if (arg)
             setObject(*arg);
         else
@@ -1898,7 +1898,7 @@ JSVAL_IS_STRING(jsval v)
     return JSVAL_IS_STRING_IMPL(JSVAL_TO_IMPL(v));
 }
 
-static inline JSString *
+static inline JSString*
 JSVAL_TO_STRING(jsval v)
 {
     MOZ_ASSERT(JSVAL_IS_STRING(v));
@@ -1906,12 +1906,12 @@ JSVAL_TO_STRING(jsval v)
 }
 
 static inline jsval
-STRING_TO_JSVAL(JSString *str)
+STRING_TO_JSVAL(JSString* str)
 {
     return IMPL_TO_JSVAL(STRING_TO_JSVAL_IMPL(str));
 }
 
-static inline JSObject *
+static inline JSObject*
 JSVAL_TO_OBJECT(jsval v)
 {
     MOZ_ASSERT(JSVAL_IS_OBJECT_OR_NULL_IMPL(JSVAL_TO_IMPL(v)));
@@ -1919,7 +1919,7 @@ JSVAL_TO_OBJECT(jsval v)
 }
 
 static inline jsval
-OBJECT_TO_JSVAL(JSObject *obj)
+OBJECT_TO_JSVAL(JSObject* obj)
 {
     if (obj)
         return IMPL_TO_JSVAL(OBJECT_TO_JSVAL_IMPL(obj));
@@ -1957,7 +1957,7 @@ JSVAL_IS_GCTHING(jsval v)
     return JSVAL_IS_GCTHING_IMPL(JSVAL_TO_IMPL(v));
 }
 
-static inline void *
+static inline void*
 JSVAL_TO_GCTHING(jsval v)
 {
     MOZ_ASSERT(JSVAL_IS_GCTHING(v));
@@ -1967,12 +1967,12 @@ JSVAL_TO_GCTHING(jsval v)
 /* To be GC-safe, privates are tagged as doubles. */
 
 static inline jsval
-PRIVATE_TO_JSVAL(void *ptr)
+PRIVATE_TO_JSVAL(void* ptr)
 {
     return IMPL_TO_JSVAL(PRIVATE_PTR_TO_JSVAL_IMPL(ptr));
 }
 
-static inline void *
+static inline void*
 JSVAL_TO_PRIVATE(jsval v)
 {
     MOZ_ASSERT(JSVAL_IS_DOUBLE(v));

@@ -19,10 +19,10 @@ namespace js {
 // Whether the current thread is permitted access to any part of the specified
 // runtime or zone.
 JS_FRIEND_API(bool)
-CurrentThreadCanAccessRuntime(JSRuntime *rt);
+CurrentThreadCanAccessRuntime(JSRuntime* rt);
 
 JS_FRIEND_API(bool)
-CurrentThreadCanAccessZone(JS::Zone *zone);
+CurrentThreadCanAccessZone(JS::Zone* zone);
 
 namespace gc {
 
@@ -63,19 +63,19 @@ namespace shadow {
 
 struct ArenaHeader
 {
-    JS::Zone *zone;
+    JS::Zone* zone;
 };
 
 struct Zone
 {
   protected:
-    JSRuntime *const runtime_;
-    JSTracer *const barrierTracer_;     // A pointer to the JSRuntime's |gcMarker|.
+    JSRuntime* const runtime_;
+    JSTracer* const barrierTracer_;     // A pointer to the JSRuntime's |gcMarker|.
 
   public:
     bool needsBarrier_;
 
-    Zone(JSRuntime *runtime, JSTracer *barrierTracerArg)
+    Zone(JSRuntime* runtime, JSTracer* barrierTracerArg)
       : runtime_(runtime),
         barrierTracer_(barrierTracerArg),
         needsBarrier_(false)
@@ -85,24 +85,24 @@ struct Zone
         return needsBarrier_;
     }
 
-    JSTracer *barrierTracer() {
+    JSTracer* barrierTracer() {
         MOZ_ASSERT(needsBarrier_);
         MOZ_ASSERT(js::CurrentThreadCanAccessRuntime(runtime_));
         return barrierTracer_;
     }
 
-    JSRuntime *runtimeFromMainThread() const {
+    JSRuntime* runtimeFromMainThread() const {
         MOZ_ASSERT(js::CurrentThreadCanAccessRuntime(runtime_));
         return runtime_;
     }
 
     // Note: Unrestricted access to the zone's runtime from an arbitrary
     // thread can easily lead to races. Use this method very carefully.
-    JSRuntime *runtimeFromAnyThread() const {
+    JSRuntime* runtimeFromAnyThread() const {
         return runtime_;
     }
 
-    static JS::shadow::Zone *asShadowZone(JS::Zone *zone) {
+    static JS::shadow::Zone* asShadowZone(JS::Zone* zone) {
         return reinterpret_cast<JS::shadow::Zone*>(zone);
     }
 };
@@ -113,49 +113,49 @@ struct Zone
 namespace js {
 namespace gc {
 
-static MOZ_ALWAYS_INLINE uintptr_t *
-GetGCThingMarkBitmap(const void *thing)
+static MOZ_ALWAYS_INLINE uintptr_t*
+GetGCThingMarkBitmap(const void* thing)
 {
     MOZ_ASSERT(thing);
     uintptr_t addr = uintptr_t(thing);
     addr &= ~js::gc::ChunkMask;
     addr |= js::gc::ChunkMarkBitmapOffset;
-    return reinterpret_cast<uintptr_t *>(addr);
+    return reinterpret_cast<uintptr_t*>(addr);
 }
 
-static MOZ_ALWAYS_INLINE JS::shadow::Runtime *
-GetGCThingRuntime(const void *thing)
+static MOZ_ALWAYS_INLINE JS::shadow::Runtime*
+GetGCThingRuntime(const void* thing)
 {
     MOZ_ASSERT(thing);
     uintptr_t addr = uintptr_t(thing);
     addr &= ~js::gc::ChunkMask;
     addr |= js::gc::ChunkRuntimeOffset;
-    return *reinterpret_cast<JS::shadow::Runtime **>(addr);
+    return *reinterpret_cast<JS::shadow::Runtime**>(addr);
 }
 
 static MOZ_ALWAYS_INLINE void
-GetGCThingMarkWordAndMask(const void *thing, uint32_t color,
-                          uintptr_t **wordp, uintptr_t *maskp)
+GetGCThingMarkWordAndMask(const void* thing, uint32_t color,
+                          uintptr_t** wordp, uintptr_t* maskp)
 {
     uintptr_t addr = uintptr_t(thing);
     size_t bit = (addr & js::gc::ChunkMask) / js::gc::CellSize + color;
     MOZ_ASSERT(bit < js::gc::ChunkMarkBitmapBits);
-    uintptr_t *bitmap = GetGCThingMarkBitmap(thing);
+    uintptr_t* bitmap = GetGCThingMarkBitmap(thing);
     const uintptr_t nbits = sizeof(*bitmap) * CHAR_BIT;
     *maskp = uintptr_t(1) << (bit % nbits);
     *wordp = &bitmap[bit / nbits];
 }
 
-static MOZ_ALWAYS_INLINE JS::shadow::ArenaHeader *
-GetGCThingArena(void *thing)
+static MOZ_ALWAYS_INLINE JS::shadow::ArenaHeader*
+GetGCThingArena(void* thing)
 {
     uintptr_t addr = uintptr_t(thing);
     addr &= ~js::gc::ArenaMask;
-    return reinterpret_cast<JS::shadow::ArenaHeader *>(addr);
+    return reinterpret_cast<JS::shadow::ArenaHeader*>(addr);
 }
 
 MOZ_ALWAYS_INLINE bool
-IsInsideNursery(const JS::shadow::Runtime *runtime, const void *p)
+IsInsideNursery(const JS::shadow::Runtime* runtime, const void* p)
 {
 #ifdef JSGC_GENERATIONAL
     return uintptr_t(p) >= runtime->gcNurseryStart_ && uintptr_t(p) < runtime->gcNurseryEnd_;
@@ -170,21 +170,21 @@ IsInsideNursery(const JS::shadow::Runtime *runtime, const void *p)
 
 namespace JS {
 
-static MOZ_ALWAYS_INLINE Zone *
-GetGCThingZone(void *thing)
+static MOZ_ALWAYS_INLINE Zone*
+GetGCThingZone(void* thing)
 {
     MOZ_ASSERT(thing);
     return js::gc::GetGCThingArena(thing)->zone;
 }
 
-static MOZ_ALWAYS_INLINE Zone *
-GetObjectZone(JSObject *obj)
+static MOZ_ALWAYS_INLINE Zone*
+GetObjectZone(JSObject* obj)
 {
     return GetGCThingZone(obj);
 }
 
 static MOZ_ALWAYS_INLINE bool
-GCThingIsMarkedGray(void *thing)
+GCThingIsMarkedGray(void* thing)
 {
 #ifdef JSGC_GENERATIONAL
     /*
@@ -192,22 +192,22 @@ GCThingIsMarkedGray(void *thing)
      * All live objects in the nursery are moved to tenured at the beginning of
      * each GC slice, so the gray marker never sees nursery things.
      */
-    JS::shadow::Runtime *rt = js::gc::GetGCThingRuntime(thing);
+    JS::shadow::Runtime* rt = js::gc::GetGCThingRuntime(thing);
     if (js::gc::IsInsideNursery(rt, thing))
         return false;
 #endif
-    uintptr_t *word, mask;
+    uintptr_t* word, mask;
     js::gc::GetGCThingMarkWordAndMask(thing, js::gc::GRAY, &word, &mask);
     return *word & mask;
 }
 
 static MOZ_ALWAYS_INLINE bool
-IsIncrementalBarrierNeededOnGCThing(shadow::Runtime *rt, void *thing, JSGCTraceKind kind)
+IsIncrementalBarrierNeededOnGCThing(shadow::Runtime* rt, void* thing, JSGCTraceKind kind)
 {
     if (!rt->needsBarrier_)
         return false;
-    JS::Zone *zone = GetGCThingZone(thing);
-    return reinterpret_cast<shadow::Zone *>(zone)->needsBarrier_;
+    JS::Zone* zone = GetGCThingZone(thing);
+    return reinterpret_cast<shadow::Zone*>(zone)->needsBarrier_;
 }
 
 } /* namespace JS */

@@ -162,11 +162,11 @@ public:
         return !m_value;
     }
 
-    ptrdiff_t operator -(const MacroAssemblerCodePtr &other) const
+    ptrdiff_t operator -(const MacroAssemblerCodePtr& other) const
     {
         JS_ASSERT(m_value);
-        return reinterpret_cast<uint8_t *>(m_value) -
-               reinterpret_cast<uint8_t *>(other.m_value);
+        return reinterpret_cast<uint8_t*>(m_value) -
+               reinterpret_cast<uint8_t*>(other.m_value);
     }
 
 private:
@@ -200,7 +200,7 @@ public:
             return;
 
 #if defined DEBUG && (defined WTF_CPU_X86 || defined WTF_CPU_X86_64) 
-        void *addr = m_code.executableAddress();
+        void* addr = m_code.executableAddress();
         memset(addr, 0xcc, m_allocSize);
 #endif
         // MacroAssemblerCodeRef is only used by Yarr.

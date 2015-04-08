@@ -20,7 +20,7 @@ class SandboxPrivate : public nsIGlobalObject,
                        public nsSupportsWeakReference
 {
 public:
-    SandboxPrivate(nsIPrincipal *principal, JSObject *global)
+    SandboxPrivate(nsIPrincipal* principal, JSObject* global)
         : mPrincipal(principal)
         , mGlobalJSObject(global)
     {
@@ -29,12 +29,12 @@ public:
 
     NS_DECL_ISUPPORTS
 
-    nsIPrincipal *GetPrincipal()
+    nsIPrincipal* GetPrincipal()
     {
         return mPrincipal;
     }
 
-    JSObject *GetGlobalJSObject()
+    JSObject* GetGlobalJSObject()
     {
         return mGlobalJSObject;
     }

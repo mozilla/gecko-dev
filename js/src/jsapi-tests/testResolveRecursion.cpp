@@ -56,14 +56,14 @@ BEGIN_TEST(testResolveRecursion)
     return true;
 }
 
-JSObject *obj1;
-JSObject *obj2;
+JSObject* obj1;
+JSObject* obj2;
 unsigned resolveEntryCount;
 unsigned resolveExitCount;
 
 struct AutoIncrCounters {
 
-    AutoIncrCounters(cls_testResolveRecursion *t) : t(t) {
+    AutoIncrCounters(cls_testResolveRecursion* t) : t(t) {
         t->resolveEntryCount++;
     }
 
@@ -71,7 +71,7 @@ struct AutoIncrCounters {
         t->resolveExitCount++;
     }
 
-    cls_testResolveRecursion *t;
+    cls_testResolveRecursion* t;
 };
 
 bool
@@ -83,7 +83,7 @@ doResolve(JS::HandleObject obj, JS::HandleId id, unsigned flags, JS::MutableHand
 
     CHECK(JSID_IS_STRING(id));
 
-    JSFlatString *str = JS_FlattenString(cx, JSID_TO_STRING(id));
+    JSFlatString* str = JS_FlattenString(cx, JSID_TO_STRING(id));
     CHECK(str);
     JS::RootedValue v(cx);
     if (JS_FlatStringEqualsAscii(str, "x")) {
@@ -133,10 +133,10 @@ doResolve(JS::HandleObject obj, JS::HandleId id, unsigned flags, JS::MutableHand
 }
 
 static bool
-my_resolve(JSContext *cx, JS::HandleObject obj, JS::HandleId id, unsigned flags,
+my_resolve(JSContext* cx, JS::HandleObject obj, JS::HandleId id, unsigned flags,
            JS::MutableHandleObject objp)
 {
-    return static_cast<cls_testResolveRecursion *>(JS_GetPrivate(obj))->
+    return static_cast<cls_testResolveRecursion*>(JS_GetPrivate(obj))->
            doResolve(obj, id, flags, objp);
 }
 

@@ -28,8 +28,8 @@ class CompactBufferWriter;
 
 class CompactBufferReader
 {
-    const uint8_t *buffer_;
-    const uint8_t *end_;
+    const uint8_t* buffer_;
+    const uint8_t* end_;
 
     uint32_t readVariableLength() {
         uint32_t val = 0;
@@ -47,11 +47,11 @@ class CompactBufferReader
     }
 
   public:
-    CompactBufferReader(const uint8_t *start, const uint8_t *end)
+    CompactBufferReader(const uint8_t* start, const uint8_t* end)
       : buffer_(start),
         end_(end)
     { }
-    inline CompactBufferReader(const CompactBufferWriter &writer);
+    inline CompactBufferReader(const CompactBufferWriter& writer);
     uint8_t readByte() {
         JS_ASSERT(buffer_ < end_);
         return *buffer_++;
@@ -137,10 +137,10 @@ class CompactBufferWriter
     size_t length() const {
         return buffer_.length();
     }
-    uint8_t *buffer() {
+    uint8_t* buffer() {
         return &buffer_[0];
     }
-    const uint8_t *buffer() const {
+    const uint8_t* buffer() const {
         return &buffer_[0];
     }
     bool oom() const {
@@ -148,7 +148,7 @@ class CompactBufferWriter
     }
 };
 
-CompactBufferReader::CompactBufferReader(const CompactBufferWriter &writer)
+CompactBufferReader::CompactBufferReader(const CompactBufferWriter& writer)
   : buffer_(writer.buffer()),
     end_(writer.buffer() + writer.length())
 {

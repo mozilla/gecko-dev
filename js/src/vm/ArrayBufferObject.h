@@ -36,7 +36,7 @@ class ArrayBufferViewObject;
 // Note that |TypedArrayObjectTemplate| is just an implementation
 // detail that makes implementing its various subclasses easier.
 
-typedef Vector<ArrayBufferObject *, 0, SystemAllocPolicy> ArrayBufferVector;
+typedef Vector<ArrayBufferObject*, 0, SystemAllocPolicy> ArrayBufferVector;
 
 /*
  * ArrayBufferObject
@@ -49,8 +49,8 @@ typedef Vector<ArrayBufferObject *, 0, SystemAllocPolicy> ArrayBufferVector;
  */
 class ArrayBufferObject : public JSObject
 {
-    static bool byteLengthGetterImpl(JSContext *cx, CallArgs args);
-    static bool fun_slice_impl(JSContext *cx, CallArgs args);
+    static bool byteLengthGetterImpl(JSContext* cx, CallArgs args);
+    static bool fun_slice_impl(JSContext* cx, CallArgs args);
 
   public:
     static const Class class_;
@@ -59,78 +59,78 @@ class ArrayBufferObject : public JSObject
     static const JSFunctionSpec jsfuncs[];
     static const JSFunctionSpec jsstaticfuncs[];
 
-    static bool byteLengthGetter(JSContext *cx, unsigned argc, Value *vp);
+    static bool byteLengthGetter(JSContext* cx, unsigned argc, Value* vp);
 
-    static bool fun_slice(JSContext *cx, unsigned argc, Value *vp);
+    static bool fun_slice(JSContext* cx, unsigned argc, Value* vp);
 
-    static bool fun_isView(JSContext *cx, unsigned argc, Value *vp);
+    static bool fun_isView(JSContext* cx, unsigned argc, Value* vp);
 
-    static bool class_constructor(JSContext *cx, unsigned argc, Value *vp);
+    static bool class_constructor(JSContext* cx, unsigned argc, Value* vp);
 
-    static ArrayBufferObject *create(JSContext *cx, uint32_t nbytes, bool clear = true,
+    static ArrayBufferObject* create(JSContext* cx, uint32_t nbytes, bool clear = true,
                                      NewObjectKind newKind = GenericObject);
 
-    static JSObject *createSlice(JSContext *cx, Handle<ArrayBufferObject*> arrayBuffer,
+    static JSObject* createSlice(JSContext* cx, Handle<ArrayBufferObject*> arrayBuffer,
                                  uint32_t begin, uint32_t end);
 
-    static bool createDataViewForThisImpl(JSContext *cx, CallArgs args);
-    static bool createDataViewForThis(JSContext *cx, unsigned argc, Value *vp);
+    static bool createDataViewForThisImpl(JSContext* cx, CallArgs args);
+    static bool createDataViewForThis(JSContext* cx, unsigned argc, Value* vp);
 
     template<typename T>
-    static bool createTypedArrayFromBufferImpl(JSContext *cx, CallArgs args);
+    static bool createTypedArrayFromBufferImpl(JSContext* cx, CallArgs args);
 
     template<typename T>
-    static bool createTypedArrayFromBuffer(JSContext *cx, unsigned argc, Value *vp);
+    static bool createTypedArrayFromBuffer(JSContext* cx, unsigned argc, Value* vp);
 
-    static void obj_trace(JSTracer *trc, JSObject *obj);
+    static void obj_trace(JSTracer* trc, JSObject* obj);
 
-    static bool obj_lookupGeneric(JSContext *cx, HandleObject obj, HandleId id,
+    static bool obj_lookupGeneric(JSContext* cx, HandleObject obj, HandleId id,
                                   MutableHandleObject objp, MutableHandleShape propp);
-    static bool obj_lookupProperty(JSContext *cx, HandleObject obj, HandlePropertyName name,
+    static bool obj_lookupProperty(JSContext* cx, HandleObject obj, HandlePropertyName name,
                                    MutableHandleObject objp, MutableHandleShape propp);
-    static bool obj_lookupElement(JSContext *cx, HandleObject obj, uint32_t index,
+    static bool obj_lookupElement(JSContext* cx, HandleObject obj, uint32_t index,
                                   MutableHandleObject objp, MutableHandleShape propp);
 
-    static bool obj_defineGeneric(JSContext *cx, HandleObject obj, HandleId id, HandleValue v,
+    static bool obj_defineGeneric(JSContext* cx, HandleObject obj, HandleId id, HandleValue v,
                                   PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
-    static bool obj_defineProperty(JSContext *cx, HandleObject obj,
+    static bool obj_defineProperty(JSContext* cx, HandleObject obj,
                                    HandlePropertyName name, HandleValue v,
                                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
-    static bool obj_defineElement(JSContext *cx, HandleObject obj, uint32_t index, HandleValue v,
+    static bool obj_defineElement(JSContext* cx, HandleObject obj, uint32_t index, HandleValue v,
                                   PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
 
-    static bool obj_getGeneric(JSContext *cx, HandleObject obj, HandleObject receiver,
+    static bool obj_getGeneric(JSContext* cx, HandleObject obj, HandleObject receiver,
                                HandleId id, MutableHandleValue vp);
-    static bool obj_getProperty(JSContext *cx, HandleObject obj, HandleObject receiver,
+    static bool obj_getProperty(JSContext* cx, HandleObject obj, HandleObject receiver,
                                 HandlePropertyName name, MutableHandleValue vp);
-    static bool obj_getElement(JSContext *cx, HandleObject obj, HandleObject receiver,
+    static bool obj_getElement(JSContext* cx, HandleObject obj, HandleObject receiver,
                                uint32_t index, MutableHandleValue vp);
 
-    static bool obj_setGeneric(JSContext *cx, HandleObject obj, HandleId id,
+    static bool obj_setGeneric(JSContext* cx, HandleObject obj, HandleId id,
                                MutableHandleValue vp, bool strict);
-    static bool obj_setProperty(JSContext *cx, HandleObject obj, HandlePropertyName name,
+    static bool obj_setProperty(JSContext* cx, HandleObject obj, HandlePropertyName name,
                                 MutableHandleValue vp, bool strict);
-    static bool obj_setElement(JSContext *cx, HandleObject obj, uint32_t index,
+    static bool obj_setElement(JSContext* cx, HandleObject obj, uint32_t index,
                                MutableHandleValue vp, bool strict);
 
-    static bool obj_getGenericAttributes(JSContext *cx, HandleObject obj,
-                                         HandleId id, unsigned *attrsp);
-    static bool obj_setGenericAttributes(JSContext *cx, HandleObject obj,
-                                         HandleId id, unsigned *attrsp);
+    static bool obj_getGenericAttributes(JSContext* cx, HandleObject obj,
+                                         HandleId id, unsigned* attrsp);
+    static bool obj_setGenericAttributes(JSContext* cx, HandleObject obj,
+                                         HandleId id, unsigned* attrsp);
 
-    static bool obj_deleteProperty(JSContext *cx, HandleObject obj, HandlePropertyName name,
-                                   bool *succeeded);
-    static bool obj_deleteElement(JSContext *cx, HandleObject obj, uint32_t index,
-                                  bool *succeeded);
+    static bool obj_deleteProperty(JSContext* cx, HandleObject obj, HandlePropertyName name,
+                                   bool* succeeded);
+    static bool obj_deleteElement(JSContext* cx, HandleObject obj, uint32_t index,
+                                  bool* succeeded);
 
-    static bool obj_enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
+    static bool obj_enumerate(JSContext* cx, HandleObject obj, JSIterateOp enum_op,
                               MutableHandleValue statep, MutableHandleId idp);
 
-    static void sweep(JSCompartment *rt);
+    static void sweep(JSCompartment* rt);
 
-    static void resetArrayBufferList(JSCompartment *rt);
-    static bool saveArrayBufferList(JSCompartment *c, ArrayBufferVector &vector);
-    static void restoreArrayBufferLists(ArrayBufferVector &vector);
+    static void resetArrayBufferList(JSCompartment* rt);
+    static bool saveArrayBufferList(JSCompartment* c, ArrayBufferVector& vector);
+    static void restoreArrayBufferLists(ArrayBufferVector& vector);
 
     bool hasStealableContents() const {
         // Inline elements strictly adhere to the corresponding buffer.
@@ -150,10 +150,10 @@ class ArrayBufferObject : public JSObject
         return !isNeutered();
     }
 
-    static bool stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffer, void **contents,
-                              uint8_t **data);
+    static bool stealContents(JSContext* cx, Handle<ArrayBufferObject*> buffer, void** contents,
+                              uint8_t** data);
 
-    static void updateElementsHeader(js::ObjectElements *header, uint32_t bytes) {
+    static void updateElementsHeader(js::ObjectElements* header, uint32_t bytes) {
         header->initializedLength = bytes;
 
         // NB: one or both of these fields is clobbered by GetViewList to store
@@ -163,25 +163,25 @@ class ArrayBufferObject : public JSObject
         header->capacity = 0;
     }
 
-    static void initElementsHeader(js::ObjectElements *header, uint32_t bytes) {
+    static void initElementsHeader(js::ObjectElements* header, uint32_t bytes) {
         header->flags = 0;
         updateElementsHeader(header, bytes);
     }
 
-    static uint32_t headerInitializedLength(const js::ObjectElements *header) {
+    static uint32_t headerInitializedLength(const js::ObjectElements* header) {
         return header->initializedLength;
     }
 
-    void addView(ArrayBufferViewObject *view);
+    void addView(ArrayBufferViewObject* view);
 
-    void setNewData(ObjectElements *newHeader, uint32_t byteLength);
-    void changeContents(JSContext *cx, ObjectElements *newHeader);
+    void setNewData(ObjectElements* newHeader, uint32_t byteLength);
+    void changeContents(JSContext* cx, ObjectElements* newHeader);
 
     /*
      * Ensure data is not stored inline in the object. Used when handing back a
      * GC-safe pointer.
      */
-    static bool ensureNonInline(JSContext *cx, Handle<ArrayBufferObject*> buffer);
+    static bool ensureNonInline(JSContext* cx, Handle<ArrayBufferObject*> buffer);
 
     uint32_t byteLength() const {
         return getElementsHeader()->initializedLength;
@@ -190,7 +190,7 @@ class ArrayBufferObject : public JSObject
     /*
      * Neuter all views of an ArrayBuffer.
      */
-    static bool neuterViews(JSContext *cx, Handle<ArrayBufferObject*> buffer, void *newData);
+    static bool neuterViews(JSContext* cx, Handle<ArrayBufferObject*> buffer, void* newData);
 
     uint8_t * dataPointer() const;
 
@@ -204,7 +204,7 @@ class ArrayBufferObject : public JSObject
      * indexing no longer happens.)  For asm.js buffers, at least, should
      * be called after neuterViews().
      */
-    void neuter(ObjectElements *newHeader, JSContext *cx);
+    void neuter(ObjectElements* newHeader, JSContext* cx);
 
     /*
      * Check if the arrayBuffer contains any data. This will return false for
@@ -224,9 +224,9 @@ class ArrayBufferObject : public JSObject
     bool isNeutered() const {
         return getElementsHeader()->isNeuteredBuffer();
     }
-    static bool prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer);
-    static bool neuterAsmJSArrayBuffer(JSContext *cx, ArrayBufferObject &buffer);
-    static void releaseAsmJSArrayBuffer(FreeOp *fop, JSObject *obj);
+    static bool prepareForAsmJS(JSContext* cx, Handle<ArrayBufferObject*> buffer);
+    static bool neuterAsmJSArrayBuffer(JSContext* cx, ArrayBufferObject& buffer);
+    static void releaseAsmJSArrayBuffer(FreeOp* fop, JSObject* obj);
 };
 
 /*
@@ -258,27 +258,27 @@ class ArrayBufferViewObject : public JSObject
     static const size_t NEXT_BUFFER_SLOT = JS_TYPEDOBJ_SLOT_NEXT_BUFFER;
 
   public:
-    JSObject *bufferObject() const {
+    JSObject* bufferObject() const {
         return &getFixedSlot(BUFFER_SLOT).toObject();
     }
 
-    ArrayBufferObject *bufferLink() {
+    ArrayBufferObject* bufferLink() {
         return static_cast<ArrayBufferObject*>(getFixedSlot(NEXT_BUFFER_SLOT).toPrivate());
     }
 
-    inline void setBufferLink(ArrayBufferObject *buffer);
+    inline void setBufferLink(ArrayBufferObject* buffer);
 
-    ArrayBufferViewObject *nextView() const {
+    ArrayBufferViewObject* nextView() const {
         return static_cast<ArrayBufferViewObject*>(getFixedSlot(NEXT_VIEW_SLOT).toPrivate());
     }
 
-    inline void setNextView(ArrayBufferViewObject *view);
+    inline void setNextView(ArrayBufferViewObject* view);
 
-    void prependToViews(ArrayBufferViewObject *viewsHead);
+    void prependToViews(ArrayBufferViewObject* viewsHead);
 
-    void neuter(void *newData);
+    void neuter(void* newData);
 
-    static void trace(JSTracer *trc, JSObject *obj);
+    static void trace(JSTracer* trc, JSObject* obj);
 
     uint8_t * dataPointer() {
         return static_cast<uint8_t*>(getPrivate());
@@ -286,21 +286,21 @@ class ArrayBufferViewObject : public JSObject
 };
 
 bool
-ToClampedIndex(JSContext *cx, HandleValue v, uint32_t length, uint32_t *out);
+ToClampedIndex(JSContext* cx, HandleValue v, uint32_t length, uint32_t* out);
 
 inline void
-PostBarrierTypedArrayObject(JSObject *obj)
+PostBarrierTypedArrayObject(JSObject* obj)
 {
 #ifdef JSGC_GENERATIONAL
     JS_ASSERT(obj);
-    JSRuntime *rt = obj->runtimeFromMainThread();
+    JSRuntime* rt = obj->runtimeFromMainThread();
     if (!rt->isHeapBusy() && !IsInsideNursery(rt, obj))
         rt->gcStoreBuffer.putWholeCell(obj);
 #endif
 }
 
 inline void
-InitArrayBufferViewDataPointer(ArrayBufferViewObject *obj, ArrayBufferObject *buffer, size_t byteOffset)
+InitArrayBufferViewDataPointer(ArrayBufferViewObject* obj, ArrayBufferObject* buffer, size_t byteOffset)
 {
     /*
      * N.B. The base of the array's data is stored in the object's
@@ -319,19 +319,19 @@ InitArrayBufferViewDataPointer(ArrayBufferViewObject *obj, ArrayBufferObject *bu
  */
 bool IsArrayBuffer(HandleValue v);
 bool IsArrayBuffer(HandleObject obj);
-bool IsArrayBuffer(JSObject *obj);
-ArrayBufferObject &AsArrayBuffer(HandleObject obj);
-ArrayBufferObject &AsArrayBuffer(JSObject *obj);
+bool IsArrayBuffer(JSObject* obj);
+ArrayBufferObject& AsArrayBuffer(HandleObject obj);
+ArrayBufferObject& AsArrayBuffer(JSObject* obj);
 
 inline void
-ArrayBufferViewObject::setBufferLink(ArrayBufferObject *buffer)
+ArrayBufferViewObject::setBufferLink(ArrayBufferObject* buffer)
 {
     setFixedSlot(NEXT_BUFFER_SLOT, PrivateValue(buffer));
     PostBarrierTypedArrayObject(this);
 }
 
 inline void
-ArrayBufferViewObject::setNextView(ArrayBufferViewObject *view)
+ArrayBufferViewObject::setNextView(ArrayBufferViewObject* view)
 {
     setFixedSlot(NEXT_VIEW_SLOT, PrivateValue(view));
     PostBarrierTypedArrayObject(this);

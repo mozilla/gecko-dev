@@ -360,7 +360,7 @@ CheckJSCharInCharRange(jschar c)
 #endif
 
 template<typename T>
-bool ConvertToPrimitive(JSContext *cx, HandleValue v, T *retval)
+bool ConvertToPrimitive(JSContext* cx, HandleValue v, T* retval)
 {
     return ValueToPrimitive<T, eDefault>(cx, v, retval);
 }
@@ -519,7 +519,7 @@ XPCConvert::JSData2Native(void* d, HandleValue s,
         } else if (XPCStringConvert::IsDOMString(str)) {
             // The characters represent an existing nsStringBuffer that
             // was shared by XPCStringConvert::ReadableToJSVal.
-            nsStringBuffer::FromData((void *)chars)->ToString(length, *ws);
+            nsStringBuffer::FromData((void*)chars)->ToString(length, *ws);
         } else if (XPCStringConvert::IsLiteral(str)) {
             // The characters represent a literal char16_t string constant
             // compiled into libxul, such as the string "undefined" above.
@@ -562,7 +562,7 @@ XPCConvert::JSData2Native(void* d, HandleValue s,
         if (length == size_t(-1)) {
             return false;
         }
-        char *buffer = static_cast<char *>(nsMemory::Alloc(length + 1));
+        char* buffer = static_cast<char*>(nsMemory::Alloc(length + 1));
         if (!buffer) {
             return false;
         }
@@ -634,7 +634,7 @@ XPCConvert::JSData2Native(void* d, HandleValue s,
             return true;
         }
 
-        nsCString *rs;
+        nsCString* rs;
         if (useAllocator) {
             // Use nsCString to enable sharing
             rs = new nsCString();
@@ -653,7 +653,7 @@ XPCConvert::JSData2Native(void* d, HandleValue s,
     {
         if (JSVAL_IS_NULL(s) || JSVAL_IS_VOID(s)) {
             if (useAllocator) {
-                nsACString *rs = new nsCString();
+                nsACString* rs = new nsCString();
                 if (!rs)
                     return false;
 
@@ -688,7 +688,7 @@ XPCConvert::JSData2Native(void* d, HandleValue s,
             return true;
         }
 
-        nsACString *rs;
+        nsACString* rs;
         if (useAllocator) {
             rs = new nsCString();
             if (!rs)
@@ -817,7 +817,7 @@ XPCConvert::NativeInterface2JSObject(MutableHandleValue d,
     // instead it provides its own proxy object. In that case, the object
     // to use is found as cache->GetWrapper(). If that is null, then the
     // object will create (and fill the cache) from its WrapObject call.
-    nsWrapperCache *cache = aHelper.GetWrapperCache();
+    nsWrapperCache* cache = aHelper.GetWrapperCache();
 
     RootedObject flat(cx);
     if (cache) {
@@ -1096,7 +1096,7 @@ XPCConvert::ConstructException(nsresult rv, const char* message,
 class MOZ_STACK_CLASS AutoExceptionRestorer
 {
 public:
-    AutoExceptionRestorer(JSContext *cx, Value v)
+    AutoExceptionRestorer(JSContext* cx, Value v)
         : mContext(cx), tvr(cx, v)
     {
         JS_ClearPendingException(mContext);
@@ -1132,7 +1132,7 @@ XPCConvert::JSValToXPCException(MutableHandleValue s,
         }
 
         // is this really a native xpcom object with a wrapper?
-        JSObject *unwrapped = js::CheckedUnwrap(obj, /* stopAtOuter = */ false);
+        JSObject* unwrapped = js::CheckedUnwrap(obj, /* stopAtOuter = */ false);
         if (!unwrapped)
             return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
         XPCWrappedNative* wrapper = IS_WN_REFLECTOR(unwrapped) ? XPCWrappedNative::Get(unwrapped)
@@ -1184,7 +1184,7 @@ XPCConvert::JSValToXPCException(MutableHandleValue s,
                 if (NS_FAILED(rv))
                     return rv;
 
-                *exceptn = static_cast<nsIException *>(jswrapper->GetXPTCStub());
+                *exceptn = static_cast<nsIException*>(jswrapper->GetXPTCStub());
                 return NS_OK;
             }
 
@@ -1646,7 +1646,7 @@ XPCConvert::JSArray2Native(void** d, HandleValue s,
 
     CleanupMode cleanupMode;
 
-    void *array = nullptr;
+    void* array = nullptr;
     uint32_t initedCount;
     RootedValue current(cx);
 
@@ -1808,7 +1808,7 @@ XPCConvert::JSStringWithSize2Native(void* d, HandleValue s,
                 len = count;
 
             uint32_t alloc_len = (len + 1) * sizeof(char);
-            char *buffer = static_cast<char *>(nsMemory::Alloc(alloc_len));
+            char* buffer = static_cast<char*>(nsMemory::Alloc(alloc_len));
             if (!buffer) {
                 return false;
             }

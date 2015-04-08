@@ -47,7 +47,7 @@ namespace js {}
 #define JS_STATIC_ASSERT_IF(cond, expr)  MOZ_STATIC_ASSERT_IF(cond, expr, "JS_STATIC_ASSERT_IF")
 
 extern MOZ_NORETURN JS_PUBLIC_API(void)
-JS_Assert(const char *s, const char *file, int ln);
+JS_Assert(const char* s, const char* file, int ln);
 
 /*
  * Abort the process in a non-graceful manner. This will cause a core file,
@@ -203,7 +203,7 @@ static inline void js_free(void* p)
  */
 
 #define JS_NEW_BODY(allocator, t, parms)                                       \
-    void *memory = allocator(sizeof(t));                                       \
+    void* memory = allocator(sizeof(t));                                       \
     return memory ? new(memory) t parms : nullptr;
 
 /*
@@ -217,25 +217,25 @@ static inline void js_free(void* p)
  */
 #define JS_DECLARE_NEW_METHODS(NEWNAME, ALLOCATOR, QUALIFIERS)\
     template <class T>\
-    QUALIFIERS T *NEWNAME() MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME() MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T, ())\
     }\
 \
     template <class T, class P1>\
-    QUALIFIERS T *NEWNAME(P1 &&p1) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1)))\
     }\
 \
     template <class T, class P1, class P2>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2)))\
     }\
 \
     template <class T, class P1, class P2, class P3>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -243,7 +243,7 @@ static inline void js_free(void* p)
     }\
 \
     template <class T, class P1, class P2, class P3, class P4>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3, P4 &&p4) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3, P4&& p4) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -252,7 +252,7 @@ static inline void js_free(void* p)
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3, P4 &&p4, P5 &&p5) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -262,7 +262,7 @@ static inline void js_free(void* p)
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3, P4 &&p4, P5 &&p5, P6 &&p6) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5, P6&& p6) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -273,7 +273,7 @@ static inline void js_free(void* p)
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3, P4 &&p4, P5 &&p5, P6 &&p6, P7 &&p7) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5, P6&& p6, P7&& p7) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -285,7 +285,7 @@ static inline void js_free(void* p)
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3, P4 &&p4, P5 &&p5, P6 &&p6, P7 &&p7, P8 &&p8) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5, P6&& p6, P7&& p7, P8&& p8) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -298,7 +298,7 @@ static inline void js_free(void* p)
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3, P4 &&p4, P5 &&p5, P6 &&p6, P7 &&p7, P8 &&p8, P9 &&p9) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5, P6&& p6, P7&& p7, P8&& p8, P9&& p9) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -312,7 +312,7 @@ static inline void js_free(void* p)
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3, P4 &&p4, P5 &&p5, P6 &&p6, P7 &&p7, P8 &&p8, P9 &&p9, P10 &&p10) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5, P6&& p6, P7&& p7, P8&& p8, P9&& p9, P10&& p10) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -327,7 +327,7 @@ static inline void js_free(void* p)
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10, class P11>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3, P4 &&p4, P5 &&p5, P6 &&p6, P7 &&p7, P8 &&p8, P9 &&p9, P10 &&p10, P11 &&p11) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5, P6&& p6, P7&& p7, P8&& p8, P9&& p9, P10&& p10, P11&& p11) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -343,7 +343,7 @@ static inline void js_free(void* p)
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10, class P11, class P12>\
-    QUALIFIERS T *NEWNAME(P1 &&p1, P2 &&p2, P3 &&p3, P4 &&p4, P5 &&p5, P6 &&p6, P7 &&p7, P8 &&p8, P9 &&p9, P10 &&p10, P11 &&p11, P12 &&p12) MOZ_HEAP_ALLOCATOR {\
+    QUALIFIERS T* NEWNAME(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5, P6&& p6, P7&& p7, P8&& p8, P9&& p9, P10&& p10, P11&& p11, P12&& p12) MOZ_HEAP_ALLOCATOR {\
         JS_NEW_BODY(ALLOCATOR, T,\
                     (mozilla::Forward<P1>(p1),\
                      mozilla::Forward<P2>(p2),\
@@ -363,7 +363,7 @@ JS_DECLARE_NEW_METHODS(js_new, js_malloc, static MOZ_ALWAYS_INLINE)
 
 template <class T>
 static MOZ_ALWAYS_INLINE void
-js_delete(T *p)
+js_delete(T* p)
 {
     if (p) {
         p->~T();
@@ -373,7 +373,7 @@ js_delete(T *p)
 
 template<class T>
 static MOZ_ALWAYS_INLINE void
-js_delete_poison(T *p)
+js_delete_poison(T* p)
 {
     if (p) {
         p->~T();
@@ -383,35 +383,35 @@ js_delete_poison(T *p)
 }
 
 template <class T>
-static MOZ_ALWAYS_INLINE T *
+static MOZ_ALWAYS_INLINE T*
 js_pod_malloc()
 {
-    return (T *)js_malloc(sizeof(T));
+    return (T*)js_malloc(sizeof(T));
 }
 
 template <class T>
-static MOZ_ALWAYS_INLINE T *
+static MOZ_ALWAYS_INLINE T*
 js_pod_calloc()
 {
-    return (T *)js_calloc(sizeof(T));
+    return (T*)js_calloc(sizeof(T));
 }
 
 template <class T>
-static MOZ_ALWAYS_INLINE T *
+static MOZ_ALWAYS_INLINE T*
 js_pod_malloc(size_t numElems)
 {
     if (numElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
         return nullptr;
-    return (T *)js_malloc(numElems * sizeof(T));
+    return (T*)js_malloc(numElems * sizeof(T));
 }
 
 template <class T>
-static MOZ_ALWAYS_INLINE T *
+static MOZ_ALWAYS_INLINE T*
 js_pod_calloc(size_t numElems)
 {
     if (numElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
         return nullptr;
-    return (T *)js_calloc(numElems * sizeof(T));
+    return (T*)js_calloc(numElems * sizeof(T));
 }
 
 namespace js {
@@ -428,14 +428,14 @@ SCOPED_TEMPLATE(ScopedJSFreePtr, ScopedFreePtrTraits)
 template <typename T>
 struct ScopedDeletePtrTraits : public ScopedFreePtrTraits<T>
 {
-    static void release(T *ptr) { js_delete(ptr); }
+    static void release(T* ptr) { js_delete(ptr); }
 };
 SCOPED_TEMPLATE(ScopedJSDeletePtr, ScopedDeletePtrTraits)
 
 template <typename T>
 struct ScopedReleasePtrTraits : public ScopedFreePtrTraits<T>
 {
-    static void release(T *ptr) { if (ptr) ptr->release(); }
+    static void release(T* ptr) { if (ptr) ptr->release(); }
 };
 SCOPED_TEMPLATE(ScopedReleasePtr, ScopedReleasePtrTraits)
 
@@ -503,16 +503,16 @@ namespace JS {
  * a live integer value.
  */
 
-inline void PoisonPtr(void *v)
+inline void PoisonPtr(void* v)
 {
 #if defined(JSGC_ROOT_ANALYSIS) && defined(JS_DEBUG)
-    uint8_t *ptr = (uint8_t *) v + 3;
+    uint8_t* ptr = (uint8_t*) v + 3;
     *ptr = JS_FREE_PATTERN;
 #endif
 }
 
 template <typename T>
-inline bool IsPoisonedPtr(T *v)
+inline bool IsPoisonedPtr(T* v)
 {
 #if defined(JSGC_ROOT_ANALYSIS) && defined(JS_DEBUG)
     uint32_t mask = uintptr_t(v) & 0xff000000;

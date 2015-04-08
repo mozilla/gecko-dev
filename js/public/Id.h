@@ -53,11 +53,11 @@ JSID_IS_STRING(jsid id)
     return (JSID_BITS(id) & JSID_TYPE_MASK) == 0;
 }
 
-static MOZ_ALWAYS_INLINE JSString *
+static MOZ_ALWAYS_INLINE JSString*
 JSID_TO_STRING(jsid id)
 {
     MOZ_ASSERT(JSID_IS_STRING(id));
-    return (JSString *)JSID_BITS(id);
+    return (JSString*)JSID_BITS(id);
 }
 
 static MOZ_ALWAYS_INLINE bool
@@ -104,15 +104,15 @@ JSID_IS_OBJECT(jsid id)
            (size_t)JSID_BITS(id) != JSID_TYPE_OBJECT;
 }
 
-static MOZ_ALWAYS_INLINE JSObject *
+static MOZ_ALWAYS_INLINE JSObject*
 JSID_TO_OBJECT(jsid id)
 {
     MOZ_ASSERT(JSID_IS_OBJECT(id));
-    return (JSObject *)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
+    return (JSObject*)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
 }
 
 static MOZ_ALWAYS_INLINE jsid
-OBJECT_TO_JSID(JSObject *obj)
+OBJECT_TO_JSID(JSObject* obj)
 {
     jsid id;
     MOZ_ASSERT(obj != nullptr);
@@ -128,10 +128,10 @@ JSID_IS_GCTHING(jsid id)
     return JSID_IS_STRING(id) || JSID_IS_OBJECT(id);
 }
 
-static MOZ_ALWAYS_INLINE void *
+static MOZ_ALWAYS_INLINE void*
 JSID_TO_GCTHING(jsid id)
 {
-    return (void *)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
+    return (void*)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
 }
 
 static MOZ_ALWAYS_INLINE bool
@@ -175,8 +175,8 @@ template <> struct GCMethods<jsid>
     static bool poisoned(jsid id) { return IsPoisonedId(id); }
     static bool needsPostBarrier(jsid id) { return false; }
 #ifdef JSGC_GENERATIONAL
-    static void postBarrier(jsid *idp) {}
-    static void relocate(jsid *idp) {}
+    static void postBarrier(jsid* idp) {}
+    static void relocate(jsid* idp) {}
 #endif
 };
 

@@ -32,7 +32,7 @@ class BitSet : private TempObject
         bits_(nullptr),
         numBits_(numBits) {}
 
-    uint32_t *bits_;
+    uint32_t* bits_;
     const unsigned int numBits_;
 
     static inline uint32_t bitForValue(unsigned int value) {
@@ -47,12 +47,12 @@ class BitSet : private TempObject
         return RawLengthForBits(numBits_);
     }
 
-    bool init(TempAllocator &alloc);
+    bool init(TempAllocator& alloc);
 
   public:
     class Iterator;
 
-    static BitSet *New(TempAllocator &alloc, unsigned int numBits);
+    static BitSet* New(TempAllocator& alloc, unsigned int numBits);
 
     unsigned int getNumBits() const {
         return numBits_;
@@ -78,7 +78,7 @@ class BitSet : private TempObject
     }
 
     // O(numBits): Insert every element of the given set into this set.
-    void insertAll(const BitSet *other);
+    void insertAll(const BitSet* other);
 
     // O(1): Remove the given value from this set.
     void remove(unsigned int value) {
@@ -89,14 +89,14 @@ class BitSet : private TempObject
     }
 
     // O(numBits): Remove the every element of the given set from this set.
-    void removeAll(const BitSet *other);
+    void removeAll(const BitSet* other);
 
     // O(numBits): Intersect this set with the given set.
-    void intersect(const BitSet *other);
+    void intersect(const BitSet* other);
 
     // O(numBits): Intersect this set with the given set; return whether the
     // intersection caused the set to change.
-    bool fixedPointIntersect(const BitSet *other);
+    bool fixedPointIntersect(const BitSet* other);
 
     // O(numBits): Does inplace complement of the set.
     void complement();
@@ -104,7 +104,7 @@ class BitSet : private TempObject
     // O(numBits): Clear this set.
     void clear();
 
-    uint32_t *raw() const {
+    uint32_t* raw() const {
         return bits_;
     }
     size_t rawLength() const {
@@ -115,7 +115,7 @@ class BitSet : private TempObject
 class BitSet::Iterator
 {
   private:
-    BitSet &set_;
+    BitSet& set_;
     unsigned index_;
     unsigned word_;
     uint32_t value_;
@@ -123,7 +123,7 @@ class BitSet::Iterator
     void skipEmpty() {
         // Skip words containing only zeros.
         unsigned numWords = set_.numWords();
-        const uint32_t *bits = set_.bits_;
+        const uint32_t* bits = set_.bits_;
         while (value_ == 0) {
             word_++;
             if (word_ == numWords)
@@ -144,7 +144,7 @@ class BitSet::Iterator
     }
 
   public:
-    Iterator(BitSet &set) :
+    Iterator(BitSet& set) :
       set_(set),
       index_(0),
       word_(0),
@@ -171,7 +171,7 @@ class BitSet::Iterator
         return *this;
     }
 
-    unsigned int operator *() {
+    unsigned int operator*() {
         JS_ASSERT(index_ < set_.numBits_);
         return index_;
     }

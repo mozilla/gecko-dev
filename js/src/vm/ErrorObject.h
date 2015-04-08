@@ -16,24 +16,24 @@ struct JSExnPrivate;
 /*
  * Initialize the exception constructor/prototype hierarchy.
  */
-extern JSObject *
-js_InitExceptionClasses(JSContext *cx, JS::HandleObject obj);
+extern JSObject*
+js_InitExceptionClasses(JSContext* cx, JS::HandleObject obj);
 
 namespace js {
 
 class ErrorObject : public JSObject
 {
-    static ErrorObject *
-    createProto(JSContext *cx, JS::Handle<GlobalObject*> global, JSExnType type,
+    static ErrorObject*
+    createProto(JSContext* cx, JS::Handle<GlobalObject*> global, JSExnType type,
                 JS::HandleObject proto);
 
     /* For access to createProto. */
-    friend JSObject *
-    ::js_InitExceptionClasses(JSContext *cx, JS::HandleObject global);
+    friend JSObject*
+    ::js_InitExceptionClasses(JSContext* cx, JS::HandleObject global);
 
     /* For access to assignInitialShape. */
     friend bool
-    EmptyShape::ensureInitialCustomShape<ErrorObject>(ExclusiveContext *cx,
+    EmptyShape::ensureInitialCustomShape<ErrorObject>(ExclusiveContext* cx,
                                                       Handle<ErrorObject*> obj);
 
     /*
@@ -41,12 +41,12 @@ class ErrorObject : public JSObject
      * *not* include .message, which must be added separately if needed; see
      * ErrorObject::init.)
      */
-    static Shape *
-    assignInitialShape(ExclusiveContext *cx, Handle<ErrorObject*> obj);
+    static Shape*
+    assignInitialShape(ExclusiveContext* cx, Handle<ErrorObject*> obj);
 
     static bool
-    init(JSContext *cx, Handle<ErrorObject*> obj, JSExnType type,
-         ScopedJSFreePtr<JSErrorReport> *errorReport, HandleString fileName, HandleString stack,
+    init(JSContext* cx, Handle<ErrorObject*> obj, JSExnType type,
+         ScopedJSFreePtr<JSErrorReport>* errorReport, HandleString fileName, HandleString stack,
          uint32_t lineNumber, uint32_t columnNumber, HandleString message);
 
   protected:
@@ -67,9 +67,9 @@ class ErrorObject : public JSObject
     // info.  If |message| is non-null, then the error will have a .message
     // property with that value; otherwise the error will have no .message
     // property.
-    static ErrorObject *
-    create(JSContext *cx, JSExnType type, HandleString stack, HandleString fileName,
-           uint32_t lineNumber, uint32_t columnNumber, ScopedJSFreePtr<JSErrorReport> *report,
+    static ErrorObject*
+    create(JSContext* cx, JSExnType type, HandleString stack, HandleString fileName,
+           uint32_t lineNumber, uint32_t columnNumber, ScopedJSFreePtr<JSErrorReport>* report,
            HandleString message);
 
     JSExnType type() const {
@@ -77,21 +77,21 @@ class ErrorObject : public JSObject
     }
 
     JSErrorReport * getErrorReport() const {
-        const Value &slot = getReservedSlot(ERROR_REPORT_SLOT);
+        const Value& slot = getReservedSlot(ERROR_REPORT_SLOT);
         if (slot.isUndefined())
             return nullptr;
         return static_cast<JSErrorReport*>(slot.toPrivate());
     }
 
-    JSErrorReport * getOrCreateErrorReport(JSContext *cx);
+    JSErrorReport * getOrCreateErrorReport(JSContext* cx);
 
-    inline JSString * fileName(JSContext *cx) const;
+    inline JSString * fileName(JSContext* cx) const;
     inline uint32_t lineNumber() const;
     inline uint32_t columnNumber() const;
-    inline JSString * stack(JSContext *cx) const;
+    inline JSString * stack(JSContext* cx) const;
 
     JSString * getMessage() const {
-        const HeapSlot &slot = getReservedSlotRef(MESSAGE_SLOT);
+        const HeapSlot& slot = getReservedSlotRef(MESSAGE_SLOT);
         return slot.isString() ? slot.toString() : nullptr;
     }
 };

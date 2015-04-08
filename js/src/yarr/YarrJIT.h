@@ -151,7 +151,7 @@ public:
     }
 
 #if ENABLE_REGEXP_TRACING
-    void *getAddr() { return m_ref.code().executableAddress(); }
+    void* getAddr() { return m_ref.code().executableAddress(); }
 #endif
 
     void clear()

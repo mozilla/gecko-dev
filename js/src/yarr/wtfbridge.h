@@ -49,34 +49,34 @@ class RefCounted {
 
 template<typename T>
 class RefPtr {
-    T *ptr;
+    T* ptr;
   public:
-    RefPtr(T *p) { ptr = p; }
+    RefPtr(T* p) { ptr = p; }
     operator bool() const { return ptr != NULL; }
-    const T *operator ->() const { return ptr; }
-    T *get() { return ptr; }
+    const T* operator ->() const { return ptr; }
+    T* get() { return ptr; }
 };
 
 template<typename T>
 class PassRefPtr {
-    T *ptr;
+    T* ptr;
   public:
-    PassRefPtr(T *p) { ptr = p; }
+    PassRefPtr(T* p) { ptr = p; }
     operator T*() { return ptr; }
 };
 
 template<typename T>
 class PassOwnPtr {
-    T *ptr;
+    T* ptr;
   public:
-    PassOwnPtr(T *p) { ptr = p; }
+    PassOwnPtr(T* p) { ptr = p; }
 
-    T *get() { return ptr; }
+    T* get() { return ptr; }
 };
 
 template<typename T>
 class OwnPtr {
-    T *ptr;
+    T* ptr;
   public:
     OwnPtr() : ptr(NULL) { }
     OwnPtr(PassOwnPtr<T> p) : ptr(p.get()) { }
@@ -85,36 +85,36 @@ class OwnPtr {
         js_delete(ptr);
     }
 
-    OwnPtr<T> &operator=(PassOwnPtr<T> p) {
+    OwnPtr<T>& operator=(PassOwnPtr<T> p) {
         ptr = p.get();
         return *this;
     }
 
-    T *operator ->() { return ptr; }
+    T* operator ->() { return ptr; }
 
-    T *get() { return ptr; }
+    T* get() { return ptr; }
 
-    T *release() {
-        T *result = ptr;
+    T* release() {
+        T* result = ptr;
         ptr = NULL;
         return result;
     }
 };
 
 template<typename T>
-PassRefPtr<T> adoptRef(T *p) { return PassRefPtr<T>(p); }
+PassRefPtr<T> adoptRef(T* p) { return PassRefPtr<T>(p); }
 
 template<typename T>
-PassOwnPtr<T> adoptPtr(T *p) { return PassOwnPtr<T>(p); }
+PassOwnPtr<T> adoptPtr(T* p) { return PassOwnPtr<T>(p); }
 
 // Dummy wrapper.
 #define WTF_MAKE_FAST_ALLOCATED void make_fast_allocated_()
 
 template<typename T>
 class Ref {
-    T &val;
+    T& val;
   public:
-    Ref(T &val) : val(val) { }
+    Ref(T& val) : val(val) { }
     operator T&() const { return val; }
 };
 
@@ -129,7 +129,7 @@ class Vector {
   public:
     Vector() {}
 
-    Vector(const Vector &v) {
+    Vector(const Vector& v) {
         append(v);
     }
 
@@ -137,23 +137,23 @@ class Vector {
         return impl.length();
     }
 
-    T &operator[](size_t i) {
+    T& operator[](size_t i) {
         return impl[i];
     }
 
-    const T &operator[](size_t i) const {
+    const T& operator[](size_t i) const {
         return impl[i];
     }
 
-    T &at(size_t i) {
+    T& at(size_t i) {
         return impl[i];
     }
 
-    const T *begin() const {
+    const T* begin() const {
         return impl.begin();
     }
 
-    T &last() {
+    T& last() {
         return impl.back();
     }
 
@@ -162,13 +162,13 @@ class Vector {
     }
 
     template <typename U>
-    void append(const U &u) {
+    void append(const U& u) {
         if (!impl.append(static_cast<T>(u)))
             MOZ_CRASH();
     }
 
     template <size_t M>
-    void append(const Vector<T,M> &v) {
+    void append(const Vector<T,M>& v) {
         if (!impl.appendAll(v.impl))
             MOZ_CRASH();
     }
@@ -192,12 +192,12 @@ class Vector {
             MOZ_CRASH();
     }
 
-    void swap(Vector &other) {
+    void swap(Vector& other) {
         impl.swap(other.impl);
     }
 
     void deleteAllValues() {
-        for (T *p = impl.begin(); p != impl.end(); ++p)
+        for (T* p = impl.begin(); p != impl.end(); ++p)
             js_delete(*p);
     }
 
@@ -209,7 +209,7 @@ class Vector {
 template<typename T>
 class Vector<OwnPtr<T> > {
   public:
-    js::Vector<T *, 0, js::SystemAllocPolicy> impl;
+    js::Vector<T*, 0, js::SystemAllocPolicy> impl;
   public:
     Vector() {}
 
@@ -217,7 +217,7 @@ class Vector<OwnPtr<T> > {
         return impl.length();
     }
 
-    void append(T *t) {
+    void append(T* t) {
         if (!impl.append(t))
             MOZ_CRASH();
     }
@@ -227,7 +227,7 @@ class Vector<OwnPtr<T> > {
     }
 
     void clear() {
-        for (T **p = impl.begin(); p != impl.end(); ++p)
+        for (T** p = impl.begin(); p != impl.end(); ++p)
             delete_(*p);
         return impl.clear();
     }
@@ -240,12 +240,12 @@ class Vector<OwnPtr<T> > {
 
 template <typename T, size_t N>
 inline void
-deleteAllValues(Vector<T, N> &v) {
+deleteAllValues(Vector<T, N>& v) {
     v.deleteAllValues();
 }
 
 static inline void
-dataLogF(const char *fmt, ...)
+dataLogF(const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -260,9 +260,9 @@ dataLogF(const char *fmt, ...)
  */
 class JSGlobalData {
   public:
-    ExecutableAllocator *regexAllocator;
+    ExecutableAllocator* regexAllocator;
 
-    JSGlobalData(ExecutableAllocator *regexAllocator)
+    JSGlobalData(ExecutableAllocator* regexAllocator)
      : regexAllocator(regexAllocator) { }
 };
 
@@ -310,7 +310,7 @@ max(T t1, T t2)
 
 template<typename T>
 inline void
-swap(T &t1, T &t2)
+swap(T& t1, T& t2)
 {
     T tmp = t1;
     t1 = t2;

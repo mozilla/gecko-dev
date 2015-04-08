@@ -14,7 +14,7 @@
 namespace js {
 
 inline void
-ScopeObject::setAliasedVar(JSContext *cx, ScopeCoordinate sc, PropertyName *name, const Value &v)
+ScopeObject::setAliasedVar(JSContext* cx, ScopeCoordinate sc, PropertyName* name, const Value& v)
 {
     JS_ASSERT(is<CallObject>() || is<ClonedBlockObject>());
     JS_STATIC_ASSERT(CallObject::RESERVED_SLOTS == BlockObject::RESERVED_SLOTS);
@@ -29,7 +29,7 @@ ScopeObject::setAliasedVar(JSContext *cx, ScopeCoordinate sc, PropertyName *name
 }
 
 inline void
-CallObject::setAliasedVar(JSContext *cx, AliasedFormalIter fi, PropertyName *name, const Value &v)
+CallObject::setAliasedVar(JSContext* cx, AliasedFormalIter fi, PropertyName* name, const Value& v)
 {
     JS_ASSERT(name == fi->name());
     setSlot(fi.scopeSlot(), v);
@@ -38,7 +38,7 @@ CallObject::setAliasedVar(JSContext *cx, AliasedFormalIter fi, PropertyName *nam
 }
 
 inline void
-CallObject::setAliasedVarFromArguments(JSContext *cx, const Value &argsValue, jsid id, const Value &v)
+CallObject::setAliasedVarFromArguments(JSContext* cx, const Value& argsValue, jsid id, const Value& v)
 {
     setSlot(argsValue.magicUint32(), v);
     if (hasSingletonType())
@@ -79,7 +79,7 @@ StaticScopeIter<allowGC>::hasDynamicScopeObject() const
 }
 
 template <AllowGC allowGC>
-inline Shape *
+inline Shape*
 StaticScopeIter<allowGC>::scopeShape() const
 {
     JS_ASSERT(hasDynamicScopeObject());
@@ -101,7 +101,7 @@ StaticScopeIter<allowGC>::type() const
 }
 
 template <AllowGC allowGC>
-inline StaticBlockObject &
+inline StaticBlockObject&
 StaticScopeIter<allowGC>::block() const
 {
     JS_ASSERT(type() == BLOCK);
@@ -109,7 +109,7 @@ StaticScopeIter<allowGC>::block() const
 }
 
 template <AllowGC allowGC>
-inline StaticWithObject &
+inline StaticWithObject&
 StaticScopeIter<allowGC>::staticWith() const
 {
     JS_ASSERT(type() == WITH);
@@ -117,7 +117,7 @@ StaticScopeIter<allowGC>::staticWith() const
 }
 
 template <AllowGC allowGC>
-inline JSScript *
+inline JSScript*
 StaticScopeIter<allowGC>::funScript() const
 {
     JS_ASSERT(type() == FUNCTION);

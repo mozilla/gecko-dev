@@ -85,17 +85,17 @@ class AsmJSModule
                 } constant;
             } u;
         } pod;
-        PropertyName *name_;
+        PropertyName* name_;
 
         friend class AsmJSModule;
 
-        Global(Which which, PropertyName *name) {
+        Global(Which which, PropertyName* name) {
             pod.which_ = which;
             name_ = name;
             JS_ASSERT_IF(name_, name_->isTenured());
         }
 
-        void trace(JSTracer *trc) {
+        void trace(JSTracer* trc) {
             if (name_)
                 MarkStringUnbarriered(trc, &name_, "asm.js global name");
             JS_ASSERT_IF(pod.which_ == Variable && pod.u.var.initKind_ == InitConstant,
@@ -115,7 +115,7 @@ class AsmJSModule
             JS_ASSERT(pod.which_ == Variable);
             return pod.u.var.initKind_;
         }
-        const Value &varInitConstant() const {
+        const Value& varInitConstant() const {
             JS_ASSERT(pod.which_ == Variable);
             JS_ASSERT(pod.u.var.initKind_ == InitConstant);
             return pod.u.var.init.constant_;
@@ -124,12 +124,12 @@ class AsmJSModule
             JS_ASSERT(pod.which_ == Variable);
             return pod.u.var.coercion_;
         }
-        PropertyName *varImportField() const {
+        PropertyName* varImportField() const {
             JS_ASSERT(pod.which_ == Variable);
             JS_ASSERT(pod.u.var.initKind_ == InitImport);
             return name_;
         }
-        PropertyName *ffiField() const {
+        PropertyName* ffiField() const {
             JS_ASSERT(pod.which_ == FFI);
             return name_;
         }
@@ -137,7 +137,7 @@ class AsmJSModule
             JS_ASSERT(pod.which_ == FFI);
             return pod.u.ffiIndex_;
         }
-        PropertyName *viewName() const {
+        PropertyName* viewName() const {
             JS_ASSERT(pod.which_ == ArrayView);
             return name_;
         }
@@ -145,7 +145,7 @@ class AsmJSModule
             JS_ASSERT(pod.which_ == ArrayView);
             return pod.u.viewType_;
         }
-        PropertyName *mathName() const {
+        PropertyName* mathName() const {
             JS_ASSERT(pod.which_ == MathBuiltinFunction);
             return name_;
         }
@@ -153,7 +153,7 @@ class AsmJSModule
             JS_ASSERT(pod.which_ == MathBuiltinFunction);
             return pod.u.mathBuiltinFunc_;
         }
-        PropertyName *constantName() const {
+        PropertyName* constantName() const {
             JS_ASSERT(pod.which_ == Constant);
             return name_;
         }
@@ -167,9 +167,9 @@ class AsmJSModule
         }
 
         size_t serializedSize() const;
-        uint8_t *serialize(uint8_t *cursor) const;
-        const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
-        bool clone(ExclusiveContext *cx, Global *out) const;
+        uint8_t* serialize(uint8_t* cursor) const;
+        const uint8_t* deserialize(ExclusiveContext* cx, const uint8_t* cursor);
+        bool clone(ExclusiveContext* cx, Global* out) const;
     };
 
     class Exit
@@ -203,11 +203,11 @@ class AsmJSModule
         }
 
         size_t serializedSize() const;
-        uint8_t *serialize(uint8_t *cursor) const;
-        const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
-        bool clone(ExclusiveContext *cx, Exit *out) const;
+        uint8_t* serialize(uint8_t* cursor) const;
+        const uint8_t* deserialize(ExclusiveContext* cx, const uint8_t* cursor);
+        bool clone(ExclusiveContext* cx, Exit* out) const;
     };
-    typedef int32_t (*CodePtr)(uint64_t *args, uint8_t *global);
+    typedef int32_t (*CodePtr)(uint64_t* args, uint8_t* global);
 
     typedef Vector<AsmJSCoercion, 0, SystemAllocPolicy> ArgCoercionVector;
 
@@ -215,8 +215,8 @@ class AsmJSModule
 
     class ExportedFunction
     {
-        PropertyName *name_;
-        PropertyName *maybeFieldName_;
+        PropertyName* name_;
+        PropertyName* maybeFieldName_;
         ArgCoercionVector argCoercions_;
         struct Pod {
             ReturnType returnType_;
@@ -227,10 +227,10 @@ class AsmJSModule
 
         friend class AsmJSModule;
 
-        ExportedFunction(PropertyName *name,
+        ExportedFunction(PropertyName* name,
                          uint32_t line, uint32_t column,
-                         PropertyName *maybeFieldName,
-                         ArgCoercionVector &&argCoercions,
+                         PropertyName* maybeFieldName,
+                         ArgCoercionVector&& argCoercions,
                          ReturnType returnType)
         {
             name_ = name;
@@ -243,7 +243,7 @@ class AsmJSModule
             JS_ASSERT_IF(maybeFieldName_, name_->isTenured());
         }
 
-        void trace(JSTracer *trc) {
+        void trace(JSTracer* trc) {
             MarkStringUnbarriered(trc, &name_, "asm.js export name");
             if (maybeFieldName_)
                 MarkStringUnbarriered(trc, &maybeFieldName_, "asm.js export field");
@@ -251,7 +251,7 @@ class AsmJSModule
 
       public:
         ExportedFunction() {}
-        ExportedFunction(ExportedFunction &&rhs) {
+        ExportedFunction(ExportedFunction&& rhs) {
             name_ = rhs.name_;
             maybeFieldName_ = rhs.maybeFieldName_;
             argCoercions_ = mozilla::Move(rhs.argCoercions_);
@@ -263,7 +263,7 @@ class AsmJSModule
             pod.codeOffset_ = off;
         }
 
-        PropertyName *name() const {
+        PropertyName* name() const {
             return name_;
         }
         uint32_t line() const {
@@ -272,7 +272,7 @@ class AsmJSModule
         uint32_t column() const {
             return pod.column_;
         }
-        PropertyName *maybeFieldName() const {
+        PropertyName* maybeFieldName() const {
             return maybeFieldName_;
         }
         unsigned numArgs() const {
@@ -286,22 +286,22 @@ class AsmJSModule
         }
 
         size_t serializedSize() const;
-        uint8_t *serialize(uint8_t *cursor) const;
-        const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
-        bool clone(ExclusiveContext *cx, ExportedFunction *out) const;
+        uint8_t* serialize(uint8_t* cursor) const;
+        const uint8_t* deserialize(ExclusiveContext* cx, const uint8_t* cursor);
+        bool clone(ExclusiveContext* cx, ExportedFunction* out) const;
     };
 
 #if defined(MOZ_VTUNE) || defined(JS_ION_PERF)
     // Function information to add to the VTune JIT profiler following linking.
     struct ProfiledFunction
     {
-        JSAtom *name;
+        JSAtom* name;
         unsigned startCodeOffset;
         unsigned endCodeOffset;
         unsigned lineno;
         unsigned columnIndex;
 
-        ProfiledFunction(JSAtom *name, unsigned start, unsigned end,
+        ProfiledFunction(JSAtom* name, unsigned start, unsigned end,
                          unsigned line = 0U, unsigned column = 0U)
           : name(name),
             startCodeOffset(start),
@@ -312,7 +312,7 @@ class AsmJSModule
             JS_ASSERT(name->isTenured());
         }
 
-        void trace(JSTracer *trc) {
+        void trace(JSTracer* trc) {
             MarkStringUnbarriered(trc, &name, "asm.js profiled function name");
         }
     };
@@ -324,15 +324,15 @@ class AsmJSModule
         unsigned endInlineCodeOffset;
         jit::BasicBlocksVector blocks;
 
-        ProfiledBlocksFunction(JSAtom *name, unsigned start, unsigned endInline, unsigned end,
-                               jit::BasicBlocksVector &blocksVector)
+        ProfiledBlocksFunction(JSAtom* name, unsigned start, unsigned endInline, unsigned end,
+                               jit::BasicBlocksVector& blocksVector)
           : ProfiledFunction(name, start, end), endInlineCodeOffset(endInline),
             blocks(mozilla::Move(blocksVector))
         {
             JS_ASSERT(name->isTenured());
         }
 
-        ProfiledBlocksFunction(ProfiledBlocksFunction &&copy)
+        ProfiledBlocksFunction(ProfiledBlocksFunction&& copy)
           : ProfiledFunction(copy.name, copy.startCodeOffset, copy.endCodeOffset),
             endInlineCodeOffset(copy.endInlineCodeOffset), blocks(mozilla::Move(copy.blocks))
         { }
@@ -366,9 +366,9 @@ class AsmJSModule
         AbsoluteLinkVector absoluteLinks;
 
         size_t serializedSize() const;
-        uint8_t *serialize(uint8_t *cursor) const;
-        const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
-        bool clone(ExclusiveContext *cx, StaticLinkData *out) const;
+        uint8_t* serialize(uint8_t* cursor) const;
+        const uint8_t* deserialize(ExclusiveContext* cx, const uint8_t* cursor);
+        bool clone(ExclusiveContext* cx, StaticLinkData* out) const;
 
         size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
     };
@@ -378,7 +378,7 @@ class AsmJSModule
     typedef Vector<Global, 0, SystemAllocPolicy> GlobalVector;
     typedef Vector<Exit, 0, SystemAllocPolicy> ExitVector;
     typedef Vector<jit::AsmJSHeapAccess, 0, SystemAllocPolicy> HeapAccessVector;
-    typedef Vector<jit::IonScriptCounts *, 0, SystemAllocPolicy> FunctionCountsVector;
+    typedef Vector<jit::IonScriptCounts*, 0, SystemAllocPolicy> FunctionCountsVector;
 #if defined(MOZ_VTUNE) || defined(JS_ION_PERF)
     typedef Vector<ProfiledFunction, 0, SystemAllocPolicy> ProfiledFunctionVector;
 #endif
@@ -432,10 +432,10 @@ class AsmJSModule
     mutable bool                          codeIsProtected_;
 
   public:
-    explicit AsmJSModule(ScriptSource *scriptSource, uint32_t charsBegin);
+    explicit AsmJSModule(ScriptSource* scriptSource, uint32_t charsBegin);
     ~AsmJSModule();
 
-    void trace(JSTracer *trc) {
+    void trace(JSTracer* trc) {
         for (unsigned i = 0; i < globals_.length(); i++)
             globals_[i].trace(trc);
         for (unsigned i = 0; i < exports_.length(); i++)
@@ -465,7 +465,7 @@ class AsmJSModule
             MarkStringUnbarriered(trc, &bufferArgumentName_, "asm.js buffer argument name");
     }
 
-    ScriptSource *scriptSource() const {
+    ScriptSource* scriptSource() const {
         JS_ASSERT(scriptSource_ != nullptr);
         return scriptSource_;
     }
@@ -480,7 +480,7 @@ class AsmJSModule
         return charsBegin_ + pod.charsLength_;
     }
 
-    bool addGlobalVarInit(const Value &v, AsmJSCoercion coercion, uint32_t *globalIndex) {
+    bool addGlobalVarInit(const Value& v, AsmJSCoercion coercion, uint32_t* globalIndex) {
         JS_ASSERT(pod.funcPtrTableAndExitBytes_ == 0);
         if (pod.numGlobalVars_ == UINT32_MAX)
             return false;
@@ -491,7 +491,7 @@ class AsmJSModule
         g.pod.u.var.index_ = *globalIndex = pod.numGlobalVars_++;
         return globals_.append(g);
     }
-    bool addGlobalVarImport(PropertyName *name, AsmJSCoercion coercion, uint32_t *globalIndex) {
+    bool addGlobalVarImport(PropertyName* name, AsmJSCoercion coercion, uint32_t* globalIndex) {
         JS_ASSERT(pod.funcPtrTableAndExitBytes_ == 0);
         Global g(Global::Variable, name);
         g.pod.u.var.initKind_ = Global::InitImport;
@@ -499,37 +499,37 @@ class AsmJSModule
         g.pod.u.var.index_ = *globalIndex = pod.numGlobalVars_++;
         return globals_.append(g);
     }
-    bool addFFI(PropertyName *field, uint32_t *ffiIndex) {
+    bool addFFI(PropertyName* field, uint32_t* ffiIndex) {
         if (pod.numFFIs_ == UINT32_MAX)
             return false;
         Global g(Global::FFI, field);
         g.pod.u.ffiIndex_ = *ffiIndex = pod.numFFIs_++;
         return globals_.append(g);
     }
-    bool addArrayView(ArrayBufferView::ViewType vt, PropertyName *field) {
+    bool addArrayView(ArrayBufferView::ViewType vt, PropertyName* field) {
         pod.hasArrayView_ = true;
         Global g(Global::ArrayView, field);
         g.pod.u.viewType_ = vt;
         return globals_.append(g);
     }
-    bool addMathBuiltinFunction(AsmJSMathBuiltinFunction func, PropertyName *field) {
+    bool addMathBuiltinFunction(AsmJSMathBuiltinFunction func, PropertyName* field) {
         Global g(Global::MathBuiltinFunction, field);
         g.pod.u.mathBuiltinFunc_ = func;
         return globals_.append(g);
     }
-    bool addMathBuiltinConstant(double value, PropertyName *field) {
+    bool addMathBuiltinConstant(double value, PropertyName* field) {
         Global g(Global::Constant, field);
         g.pod.u.constant.value_ = value;
         g.pod.u.constant.kind_ = Global::MathConstant;
         return globals_.append(g);
     }
-    bool addGlobalConstant(double value, PropertyName *name) {
+    bool addGlobalConstant(double value, PropertyName* name) {
         Global g(Global::Constant, name);
         g.pod.u.constant.value_ = value;
         g.pod.u.constant.kind_ = Global::GlobalConstant;
         return globals_.append(g);
     }
-    bool addFuncPtrTable(unsigned numElems, uint32_t *globalDataOffset) {
+    bool addFuncPtrTable(unsigned numElems, uint32_t* globalDataOffset) {
         JS_ASSERT(IsPowerOfTwo(numElems));
         if (SIZE_MAX - pod.funcPtrTableAndExitBytes_ < numElems * sizeof(void*))
             return false;
@@ -537,7 +537,7 @@ class AsmJSModule
         pod.funcPtrTableAndExitBytes_ += numElems * sizeof(void*);
         return true;
     }
-    bool addExit(unsigned ffiIndex, unsigned *exitIndex) {
+    bool addExit(unsigned ffiIndex, unsigned* exitIndex) {
         if (SIZE_MAX - pod.funcPtrTableAndExitBytes_ < sizeof(ExitDatum))
             return false;
         uint32_t globalDataOffset = globalDataBytes();
@@ -546,13 +546,13 @@ class AsmJSModule
         *exitIndex = unsigned(exits_.length());
         return exits_.append(Exit(ffiIndex, globalDataOffset));
     }
-    bool addFunctionCounts(jit::IonScriptCounts *counts) {
+    bool addFunctionCounts(jit::IonScriptCounts* counts) {
         return functionCounts_.append(counts);
     }
 
-    bool addExportedFunction(PropertyName *name, uint32_t line, uint32_t column,
-                             PropertyName *maybeFieldName,
-                             ArgCoercionVector &&argCoercions,
+    bool addExportedFunction(PropertyName* name, uint32_t line, uint32_t column,
+                             PropertyName* maybeFieldName,
+                             ArgCoercionVector&& argCoercions,
                              ReturnType returnType)
     {
         ExportedFunction func(name, line, column, maybeFieldName, mozilla::Move(argCoercions), returnType);
@@ -561,30 +561,30 @@ class AsmJSModule
     unsigned numExportedFunctions() const {
         return exports_.length();
     }
-    const ExportedFunction &exportedFunction(unsigned i) const {
+    const ExportedFunction& exportedFunction(unsigned i) const {
         return exports_[i];
     }
-    ExportedFunction &exportedFunction(unsigned i) {
+    ExportedFunction& exportedFunction(unsigned i) {
         return exports_[i];
     }
-    CodePtr entryTrampoline(const ExportedFunction &func) const {
+    CodePtr entryTrampoline(const ExportedFunction& func) const {
         JS_ASSERT(func.pod.codeOffset_ != UINT32_MAX);
         return JS_DATA_TO_FUNC_PTR(CodePtr, code_ + func.pod.codeOffset_);
     }
 #ifdef MOZ_VTUNE
-    bool trackProfiledFunction(JSAtom *name, unsigned startCodeOffset, unsigned endCodeOffset) {
+    bool trackProfiledFunction(JSAtom* name, unsigned startCodeOffset, unsigned endCodeOffset) {
         ProfiledFunction func(name, startCodeOffset, endCodeOffset);
         return profiledFunctions_.append(func);
     }
     unsigned numProfiledFunctions() const {
         return profiledFunctions_.length();
     }
-    ProfiledFunction &profiledFunction(unsigned i) {
+    ProfiledFunction& profiledFunction(unsigned i) {
         return profiledFunctions_[i];
     }
 #endif
 #ifdef JS_ION_PERF
-    bool trackPerfProfiledFunction(JSAtom *name, unsigned startCodeOffset, unsigned endCodeOffset,
+    bool trackPerfProfiledFunction(JSAtom* name, unsigned startCodeOffset, unsigned endCodeOffset,
                                    unsigned line, unsigned column)
     {
         ProfiledFunction func(name, startCodeOffset, endCodeOffset, line, column);
@@ -593,19 +593,19 @@ class AsmJSModule
     unsigned numPerfFunctions() const {
         return profiledFunctions_.length();
     }
-    ProfiledFunction &perfProfiledFunction(unsigned i) {
+    ProfiledFunction& perfProfiledFunction(unsigned i) {
         return profiledFunctions_[i];
     }
 
-    bool trackPerfProfiledBlocks(JSAtom *name, unsigned startCodeOffset, unsigned endInlineCodeOffset,
-                                 unsigned endCodeOffset, jit::BasicBlocksVector &basicBlocks) {
+    bool trackPerfProfiledBlocks(JSAtom* name, unsigned startCodeOffset, unsigned endInlineCodeOffset,
+                                 unsigned endCodeOffset, jit::BasicBlocksVector& basicBlocks) {
         ProfiledBlocksFunction func(name, startCodeOffset, endInlineCodeOffset, endCodeOffset, basicBlocks);
         return perfProfiledBlocksFunctions_.append(mozilla::Move(func));
     }
     unsigned numPerfBlocksFunctions() const {
         return perfProfiledBlocksFunctions_.length();
     }
-    ProfiledBlocksFunction &perfProfiledBlocksFunction(unsigned i) {
+    ProfiledBlocksFunction& perfProfiledBlocksFunction(unsigned i) {
         return perfProfiledBlocksFunctions_[i];
     }
 #endif
@@ -621,30 +621,30 @@ class AsmJSModule
     unsigned numGlobals() const {
         return globals_.length();
     }
-    Global &global(unsigned i) {
+    Global& global(unsigned i) {
         return globals_[i];
     }
     unsigned numExits() const {
         return exits_.length();
     }
-    Exit &exit(unsigned i) {
+    Exit& exit(unsigned i) {
         return exits_[i];
     }
-    const Exit &exit(unsigned i) const {
+    const Exit& exit(unsigned i) const {
         return exits_[i];
     }
-    uint8_t *interpExitTrampoline(const Exit &exit) const {
+    uint8_t* interpExitTrampoline(const Exit& exit) const {
         JS_ASSERT(exit.interpCodeOffset_);
         return code_ + exit.interpCodeOffset_;
     }
-    uint8_t *ionExitTrampoline(const Exit &exit) const {
+    uint8_t* ionExitTrampoline(const Exit& exit) const {
         JS_ASSERT(exit.ionCodeOffset_);
         return code_ + exit.ionCodeOffset_;
     }
     unsigned numFunctionCounts() const {
         return functionCounts_.length();
     }
-    jit::IonScriptCounts *functionCounts(unsigned i) {
+    jit::IonScriptCounts* functionCounts(unsigned i) {
         return functionCounts_[i];
     }
 
@@ -653,7 +653,7 @@ class AsmJSModule
     // section.
     struct ExitDatum
     {
-        uint8_t *exit;
+        uint8_t* exit;
         HeapPtrFunction fun;
     };
 
@@ -671,7 +671,7 @@ class AsmJSModule
         JS_ASSERT(code_);
         return pod.codeBytes_;
     }
-    uint8_t *globalData() const {
+    uint8_t* globalData() const {
         return code_ + offsetOfGlobalData();
     }
     size_t globalDataBytes() const {
@@ -682,7 +682,7 @@ class AsmJSModule
     unsigned heapOffset() const {
         return 0;
     }
-    uint8_t *&heapDatum() const {
+    uint8_t*& heapDatum() const {
         return *(uint8_t**)(globalData() + heapOffset());
     }
     unsigned globalVarIndexToGlobalDataOffset(unsigned i) const {
@@ -690,18 +690,18 @@ class AsmJSModule
         return sizeof(void*) +
                i * sizeof(uint64_t);
     }
-    void *globalVarIndexToGlobalDatum(unsigned i) const {
-        return (void *)(globalData() + globalVarIndexToGlobalDataOffset(i));
+    void* globalVarIndexToGlobalDatum(unsigned i) const {
+        return (void*)(globalData() + globalVarIndexToGlobalDataOffset(i));
     }
-    uint8_t **globalDataOffsetToFuncPtrTable(unsigned globalDataOffset) const {
+    uint8_t** globalDataOffsetToFuncPtrTable(unsigned globalDataOffset) const {
         JS_ASSERT(globalDataOffset < globalDataBytes());
-        return (uint8_t **)(globalData() + globalDataOffset);
+        return (uint8_t**)(globalData() + globalDataOffset);
     }
     unsigned exitIndexToGlobalDataOffset(unsigned exitIndex) const {
         return exits_[exitIndex].globalDataOffset();
     }
-    ExitDatum &exitIndexToGlobalDatum(unsigned exitIndex) const {
-        return *(ExitDatum *)(globalData() + exitIndexToGlobalDataOffset(exitIndex));
+    ExitDatum& exitIndexToGlobalDatum(unsigned exitIndex) const {
+        return *(ExitDatum*)(globalData() + exitIndexToGlobalDataOffset(exitIndex));
     }
 
     void initFunctionBytes(size_t functionBytes) {
@@ -714,23 +714,23 @@ class AsmJSModule
         JS_ASSERT(pod.functionBytes_ % AsmJSPageSize == 0);
         return pod.functionBytes_;
     }
-    bool containsPC(void *pc) const {
+    bool containsPC(void* pc) const {
         return pc >= code_ && pc < (code_ + functionBytes());
     }
 
-    bool addHeapAccesses(const jit::AsmJSHeapAccessVector &accesses) {
+    bool addHeapAccesses(const jit::AsmJSHeapAccessVector& accesses) {
         return heapAccesses_.appendAll(accesses);
     }
     unsigned numHeapAccesses() const {
         return heapAccesses_.length();
     }
-    jit::AsmJSHeapAccess &heapAccess(unsigned i) {
+    jit::AsmJSHeapAccess& heapAccess(unsigned i) {
         return heapAccesses_[i];
     }
-    const jit::AsmJSHeapAccess &heapAccess(unsigned i) const {
+    const jit::AsmJSHeapAccess& heapAccess(unsigned i) const {
         return heapAccesses_[i];
     }
-    void initHeap(Handle<ArrayBufferObject*> heap, JSContext *cx);
+    void initHeap(Handle<ArrayBufferObject*> heap, JSContext* cx);
 
     void requireHeapLengthToBeAtLeast(uint32_t len) {
         if (len > pod.minHeapLength_)
@@ -740,7 +740,7 @@ class AsmJSModule
         return pod.minHeapLength_;
     }
 
-    bool allocateAndCopyCode(ExclusiveContext *cx, jit::MacroAssembler &masm);
+    bool allocateAndCopyCode(ExclusiveContext* cx, jit::MacroAssembler& masm);
 
     // StaticLinkData setters (called after finishing compilation, before
     // staticLink).
@@ -754,17 +754,17 @@ class AsmJSModule
         staticLinkData_.interruptExitOffset = offset;
     }
 
-    void restoreToInitialState(ArrayBufferObject *maybePrevBuffer, ExclusiveContext *cx);
+    void restoreToInitialState(ArrayBufferObject* maybePrevBuffer, ExclusiveContext* cx);
     void setAutoFlushICacheRange();
-    void staticallyLink(ExclusiveContext *cx);
+    void staticallyLink(ExclusiveContext* cx);
 
-    uint8_t *codeBase() const {
+    uint8_t* codeBase() const {
         JS_ASSERT(code_);
         JS_ASSERT(uintptr_t(code_) % AsmJSPageSize == 0);
         return code_;
     }
 
-    uint8_t *interruptExit() const {
+    uint8_t* interruptExit() const {
         return interruptExit_;
     }
 
@@ -775,11 +775,11 @@ class AsmJSModule
     bool isDynamicallyLinked() const {
         return dynamicallyLinked_;
     }
-    uint8_t *maybeHeap() const {
+    uint8_t* maybeHeap() const {
         JS_ASSERT(dynamicallyLinked_);
         return heapDatum();
     }
-    ArrayBufferObject *maybeHeapBufferObject() const {
+    ArrayBufferObject* maybeHeapBufferObject() const {
         JS_ASSERT(dynamicallyLinked_);
         return maybeHeap_;
     }
@@ -788,26 +788,26 @@ class AsmJSModule
         return maybeHeap_ ? maybeHeap_->byteLength() : 0;
     }
 
-    void initGlobalArgumentName(PropertyName *n) {
+    void initGlobalArgumentName(PropertyName* n) {
         JS_ASSERT_IF(n, n->isTenured());
         globalArgumentName_ = n;
     }
-    void initImportArgumentName(PropertyName *n) {
+    void initImportArgumentName(PropertyName* n) {
         JS_ASSERT_IF(n, n->isTenured());
         importArgumentName_ = n;
     }
-    void initBufferArgumentName(PropertyName *n) {
+    void initBufferArgumentName(PropertyName* n) {
         JS_ASSERT_IF(n, n->isTenured());
         bufferArgumentName_ = n;
     }
 
-    PropertyName *globalArgumentName() const {
+    PropertyName* globalArgumentName() const {
         return globalArgumentName_;
     }
-    PropertyName *importArgumentName() const {
+    PropertyName* importArgumentName() const {
         return importArgumentName_;
     }
-    PropertyName *bufferArgumentName() const {
+    PropertyName* bufferArgumentName() const {
         return bufferArgumentName_;
     }
 
@@ -815,38 +815,38 @@ class AsmJSModule
         exitIndexToGlobalDatum(exitIndex).exit = interpExitTrampoline(exit(exitIndex));
     }
 
-    void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
-                       size_t *asmJSModuleData);
+    void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t* asmJSModuleCode,
+                       size_t* asmJSModuleData);
 
     size_t serializedSize() const;
-    uint8_t *serialize(uint8_t *cursor) const;
-    const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
+    uint8_t* serialize(uint8_t* cursor) const;
+    const uint8_t* deserialize(ExclusiveContext* cx, const uint8_t* cursor);
     bool loadedFromCache() const { return loadedFromCache_; }
 
-    bool clone(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *moduleOut) const;
+    bool clone(JSContext* cx, ScopedJSDeletePtr<AsmJSModule>* moduleOut) const;
 
     // These methods may only be called while holding the Runtime's interrupt
     // lock.
-    void protectCode(JSRuntime *rt) const;
-    void unprotectCode(JSRuntime *rt) const;
-    bool codeIsProtected(JSRuntime *rt) const;
+    void protectCode(JSRuntime* rt) const;
+    void unprotectCode(JSRuntime* rt) const;
+    bool codeIsProtected(JSRuntime* rt) const;
 };
 
 // Store the just-parsed module in the cache using AsmJSCacheOps.
 extern bool
-StoreAsmJSModuleInCache(AsmJSParser &parser,
-                        const AsmJSModule &module,
-                        ExclusiveContext *cx);
+StoreAsmJSModuleInCache(AsmJSParser& parser,
+                        const AsmJSModule& module,
+                        ExclusiveContext* cx);
 
 // Attempt to load the asm.js module that is about to be parsed from the cache
 // using AsmJSCacheOps. On cache hit, *module will be non-null. Note: the
 // return value indicates whether or not an error was encountered, not whether
 // there was a cache hit.
 extern bool
-LookupAsmJSModuleInCache(ExclusiveContext *cx,
-                         AsmJSParser &parser,
-                         ScopedJSDeletePtr<AsmJSModule> *module,
-                         ScopedJSFreePtr<char> *compilationTimeReport);
+LookupAsmJSModuleInCache(ExclusiveContext* cx,
+                         AsmJSParser& parser,
+                         ScopedJSDeletePtr<AsmJSModule>* module,
+                         ScopedJSFreePtr<char>* compilationTimeReport);
 
 // An AsmJSModuleObject is an internal implementation object (i.e., not exposed
 // directly to user script) which manages the lifetime of an AsmJSModule. A
@@ -861,12 +861,12 @@ class AsmJSModuleObject : public JSObject
 
     // On success, return an AsmJSModuleClass JSObject that has taken ownership
     // (and release()ed) the given module.
-    static AsmJSModuleObject *create(ExclusiveContext *cx, ScopedJSDeletePtr<AsmJSModule> *module);
+    static AsmJSModuleObject* create(ExclusiveContext* cx, ScopedJSDeletePtr<AsmJSModule>* module);
 
-    AsmJSModule &module() const;
+    AsmJSModule& module() const;
 
-    void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
-                       size_t *asmJSModuleData) {
+    void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t* asmJSModuleCode,
+                       size_t* asmJSModuleData) {
         module().addSizeOfMisc(mallocSizeOf, asmJSModuleCode, asmJSModuleData);
     }
 

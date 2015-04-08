@@ -37,7 +37,7 @@ class CompilerRoot : public CompilerRootNode
   public:
     // Sets the pointer and inserts into root list. The pointer becomes read-only.
     void setRoot(T root) {
-        CompilerRootNode *&rootList = GetIonContext()->temp->rootList();
+        CompilerRootNode*& rootList = GetIonContext()->temp->rootList();
 
         JS_ASSERT(!ptr_);
         ptr_ = root;
@@ -51,8 +51,8 @@ class CompilerRoot : public CompilerRootNode
 
   private:
     CompilerRoot() MOZ_DELETE;
-    CompilerRoot(const CompilerRoot<T> &) MOZ_DELETE;
-    CompilerRoot<T> &operator =(const CompilerRoot<T> &) MOZ_DELETE;
+    CompilerRoot(const CompilerRoot<T>&) MOZ_DELETE;
+    CompilerRoot<T>& operator =(const CompilerRoot<T>&) MOZ_DELETE;
 };
 
 typedef CompilerRoot<JSObject*> CompilerRootObject;

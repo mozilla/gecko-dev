@@ -57,7 +57,7 @@ using JS::CanonicalizeNaN;
 using JS::GenericNaN;
 
 static bool
-ValueIsLength(const Value &v, uint32_t *len)
+ValueIsLength(const Value& v, uint32_t* len)
 {
     if (v.isInt32()) {
         int32_t i = v.toInt32();
@@ -92,7 +92,7 @@ ValueIsLength(const Value &v, uint32_t *len)
  */
 
 inline bool
-TypedArrayObject::isArrayIndex(jsid id, uint32_t *ip)
+TypedArrayObject::isArrayIndex(jsid id, uint32_t* ip)
 {
     uint32_t index;
     if (js_IdIsIndex(id, &index) && index < length()) {
@@ -105,7 +105,7 @@ TypedArrayObject::isArrayIndex(jsid id, uint32_t *ip)
 }
 
 void
-TypedArrayObject::neuter(void *newData)
+TypedArrayObject::neuter(void* newData)
 {
     setSlot(LENGTH_SLOT, Int32Value(0));
     setSlot(BYTELENGTH_SLOT, Int32Value(0));
@@ -113,7 +113,7 @@ TypedArrayObject::neuter(void *newData)
     setPrivate(newData);
 }
 
-ArrayBufferObject *
+ArrayBufferObject*
 TypedArrayObject::sharedBuffer() const
 {
     return &bufferValue(const_cast<TypedArrayObject*>(this)).toObject().as<SharedArrayBufferObject>();
@@ -167,7 +167,7 @@ js::ClampDoubleToUint8(const double x)
 }
 
 static bool
-ToDoubleForTypedArray(ThreadSafeContext *cx, const Value &vp, double *d)
+ToDoubleForTypedArray(ThreadSafeContext* cx, const Value& vp, double* d)
 {
     if (vp.isDouble()) {
         *d = vp.toDouble();
@@ -211,8 +211,8 @@ template<> inline const int TypeIDOfType<double>() { return ScalarTypeDescr::TYP
 template<> inline const int TypeIDOfType<uint8_clamped>() { return ScalarTypeDescr::TYPE_UINT8_CLAMPED; }
 
 template<typename ElementType>
-static inline JSObject *
-NewArray(JSContext *cx, uint32_t nelements);
+static inline JSObject*
+NewArray(JSContext* cx, uint32_t nelements);
 
 namespace {
 
@@ -228,12 +228,12 @@ class TypedArrayObjectTemplate : public TypedArrayObject
 
     static const size_t BYTES_PER_ELEMENT = sizeof(ThisType);
 
-    static inline const Class *protoClass()
+    static inline const Class* protoClass()
     {
         return &TypedArrayObject::protoClasses[ArrayTypeID()];
     }
 
-    static inline const Class *fastClass()
+    static inline const Class* fastClass()
     {
         return &TypedArrayObject::classes[ArrayTypeID()];
     }
@@ -243,7 +243,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static bool
-    setIndexValue(ThreadSafeContext *cx, JSObject *tarray, uint32_t index, const Value &value)
+    setIndexValue(ThreadSafeContext* cx, JSObject* tarray, uint32_t index, const Value& value)
     {
         JS_ASSERT(tarray);
         JS_ASSERT(index < tarray->as<TypedArrayObject>().length());
@@ -281,8 +281,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         return true;
     }
 
-    static TypedArrayObject *
-    makeProtoInstance(JSContext *cx, HandleObject proto)
+    static TypedArrayObject*
+    makeProtoInstance(JSContext* cx, HandleObject proto)
     {
         JS_ASSERT(proto);
 
@@ -290,7 +290,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         if (!obj)
             return nullptr;
 
-        types::TypeObject *type = cx->getNewType(obj->getClass(), proto.get());
+        types::TypeObject* type = cx->getNewType(obj->getClass(), proto.get());
         if (!type)
             return nullptr;
         obj->setType(type);
@@ -298,15 +298,15 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         return &obj->as<TypedArrayObject>();
     }
 
-    static TypedArrayObject *
-    makeTypedInstance(JSContext *cx, uint32_t len)
+    static TypedArrayObject*
+    makeTypedInstance(JSContext* cx, uint32_t len)
     {
         if (len * sizeof(NativeType) >= TypedArrayObject::SINGLETON_TYPE_BYTE_LENGTH) {
             return &NewBuiltinClassInstance(cx, fastClass(),
                                             SingletonObject)->as<TypedArrayObject>();
         }
 
-        jsbytecode *pc;
+        jsbytecode* pc;
         RootedScript script(cx, cx->currentScript(&pc));
         NewObjectKind newKind = script
                                 ? UseNewTypeForInitializer(script, pc, fastClass())
@@ -323,8 +323,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         return &obj->as<TypedArrayObject>();
     }
 
-    static JSObject *
-    makeInstance(JSContext *cx, HandleObject bufobj, uint32_t byteOffset, uint32_t len,
+    static JSObject*
+    makeInstance(JSContext* cx, HandleObject bufobj, uint32_t byteOffset, uint32_t len,
                  HandleObject proto)
     {
         Rooted<TypedArrayObject*> obj(cx);
@@ -342,7 +342,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         obj->setSlot(TYPE_SLOT, Int32Value(ArrayTypeID()));
         obj->setSlot(BUFFER_SLOT, ObjectValue(*bufobj));
 
-        Rooted<ArrayBufferObject *> buffer(cx, &AsArrayBuffer(bufobj));
+        Rooted<ArrayBufferObject*> buffer(cx, &AsArrayBuffer(bufobj));
 
         InitArrayBufferViewDataPointer(obj, buffer, byteOffset);
         obj->setSlot(LENGTH_SLOT, Int32Value(len));
@@ -351,7 +351,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         obj->setSlot(NEXT_VIEW_SLOT, PrivateValue(nullptr));
         obj->setSlot(NEXT_BUFFER_SLOT, PrivateValue(UNSET_BUFFER_LINK));
 
-        js::Shape *empty = EmptyShape::getInitialShape(cx, fastClass(),
+        js::Shape* empty = EmptyShape::getInitialShape(cx, fastClass(),
                                                        obj->getProto(), obj->getParent(), obj->getMetadata(),
                                                        gc::FINALIZE_OBJECT8_BACKGROUND);
         if (!empty)
@@ -375,8 +375,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         return obj;
     }
 
-    static JSObject *
-    makeInstance(JSContext *cx, HandleObject bufobj, uint32_t byteOffset, uint32_t len)
+    static JSObject*
+    makeInstance(JSContext* cx, HandleObject bufobj, uint32_t byteOffset, uint32_t len)
     {
         RootedObject nullproto(cx, nullptr);
         return makeInstance(cx, bufobj, byteOffset, len, nullproto);
@@ -389,19 +389,19 @@ class TypedArrayObjectTemplate : public TypedArrayObject
      * new [Type]Array(ArrayBuffer, [optional] byteOffset, [optional] length)
      */
     static bool
-    class_constructor(JSContext *cx, unsigned argc, Value *vp)
+    class_constructor(JSContext* cx, unsigned argc, Value* vp)
     {
         /* N.B. this is a constructor for protoClass, not fastClass! */
         CallArgs args = CallArgsFromVp(argc, vp);
-        JSObject *obj = create(cx, args);
+        JSObject* obj = create(cx, args);
         if (!obj)
             return false;
         args.rval().setObject(*obj);
         return true;
     }
 
-    static JSObject *
-    create(JSContext *cx, const CallArgs& args)
+    static JSObject*
+    create(JSContext* cx, const CallArgs& args)
     {
         /* () or (number) */
         uint32_t len = 0;
@@ -462,9 +462,9 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         return v.isObject() && v.toObject().hasClass(fastClass());
     }
 
-    template<Value ValueGetter(TypedArrayObject *tarr)>
+    template<Value ValueGetter(TypedArrayObject* tarr)>
     static bool
-    GetterImpl(JSContext *cx, CallArgs args)
+    GetterImpl(JSContext* cx, CallArgs args)
     {
         JS_ASSERT(IsThisClass(args.thisv()));
         args.rval().set(ValueGetter(&args.thisv().toObject().as<TypedArrayObject>()));
@@ -474,9 +474,9 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     // ValueGetter is a function that takes an unwrapped typed array object and
     // returns a Value. Given such a function, Getter<> is a native that
     // retrieves a given Value, probably from a slot on the object.
-    template<Value ValueGetter(TypedArrayObject *tarr)>
+    template<Value ValueGetter(TypedArrayObject* tarr)>
     static bool
-    Getter(JSContext *cx, unsigned argc, Value *vp)
+    Getter(JSContext* cx, unsigned argc, Value* vp)
     {
         CallArgs args = CallArgsFromVp(argc, vp);
         return CallNonGenericMethod<ThisTypedArrayObject::IsThisClass,
@@ -484,15 +484,15 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     // Define an accessor for a read-only property that invokes a native getter
-    template<Value ValueGetter(TypedArrayObject *tarr)>
+    template<Value ValueGetter(TypedArrayObject* tarr)>
     static bool
-    DefineGetter(JSContext *cx, PropertyName *name, HandleObject proto)
+    DefineGetter(JSContext* cx, PropertyName* name, HandleObject proto)
     {
         RootedId id(cx, NameToId(name));
         unsigned flags = JSPROP_SHARED | JSPROP_GETTER | JSPROP_PERMANENT;
 
         Rooted<GlobalObject*> global(cx, cx->compartment()->maybeGlobal());
-        JSObject *getter = NewFunction(cx, NullPtr(), Getter<ValueGetter>, 0,
+        JSObject* getter = NewFunction(cx, NullPtr(), Getter<ValueGetter>, 0,
                                        JSFunction::NATIVE_FUN, global, NullPtr());
         if (!getter)
             return false;
@@ -503,7 +503,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static
-    bool defineGetters(JSContext *cx, HandleObject proto)
+    bool defineGetters(JSContext* cx, HandleObject proto)
     {
         if (!DefineGetter<lengthValue>(cx, cx->names().length, proto))
             return false;
@@ -522,7 +522,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
 
     /* subarray(start[, end]) */
     static bool
-    fun_subarray_impl(JSContext *cx, CallArgs args)
+    fun_subarray_impl(JSContext* cx, CallArgs args)
     {
         JS_ASSERT(IsThisClass(args.thisv()));
         Rooted<TypedArrayObject*> tarray(cx, &args.thisv().toObject().as<TypedArrayObject>());
@@ -544,7 +544,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         if (begin > end)
             begin = end;
 
-        JSObject *nobj = createSubarray(cx, tarray, begin, end);
+        JSObject* nobj = createSubarray(cx, tarray, begin, end);
         if (!nobj)
             return false;
         args.rval().setObject(*nobj);
@@ -552,7 +552,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static bool
-    fun_subarray(JSContext *cx, unsigned argc, Value *vp)
+    fun_subarray(JSContext* cx, unsigned argc, Value* vp)
     {
         CallArgs args = CallArgsFromVp(argc, vp);
         return CallNonGenericMethod<ThisTypedArrayObject::IsThisClass,
@@ -561,7 +561,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
 
     /* move(begin, end, dest) */
     static bool
-    fun_move_impl(JSContext *cx, CallArgs args)
+    fun_move_impl(JSContext* cx, CallArgs args)
     {
         JS_ASSERT(IsThisClass(args.thisv()));
         Rooted<TypedArrayObject*> tarray(cx, &args.thisv().toObject().as<TypedArrayObject>());
@@ -614,14 +614,14 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         JS_ASSERT(byteSrc + byteSize >= byteSrc);
 #endif
 
-        uint8_t *data = static_cast<uint8_t*>(tarray->viewData());
+        uint8_t* data = static_cast<uint8_t*>(tarray->viewData());
         memmove(&data[byteDest], &data[byteSrc], byteSize);
         args.rval().setUndefined();
         return true;
     }
 
     static bool
-    fun_move(JSContext *cx, unsigned argc, Value *vp)
+    fun_move(JSContext* cx, unsigned argc, Value* vp)
     {
         CallArgs args = CallArgsFromVp(argc, vp);
         return CallNonGenericMethod<ThisTypedArrayObject::IsThisClass,
@@ -630,7 +630,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
 
     /* set(array[, offset]) */
     static bool
-    fun_set_impl(JSContext *cx, CallArgs args)
+    fun_set_impl(JSContext* cx, CallArgs args)
     {
         JS_ASSERT(IsThisClass(args.thisv()));
         Rooted<TypedArrayObject*> tarray(cx, &args.thisv().toObject().as<TypedArrayObject>());
@@ -687,7 +687,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static bool
-    fun_set(JSContext *cx, unsigned argc, Value *vp)
+    fun_set(JSContext* cx, unsigned argc, Value* vp)
     {
         CallArgs args = CallArgsFromVp(argc, vp);
         return CallNonGenericMethod<ThisTypedArrayObject::IsThisClass,
@@ -695,8 +695,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
   public:
-    static JSObject *
-    fromBuffer(JSContext *cx, HandleObject bufobj, uint32_t byteOffset, int32_t lengthInt,
+    static JSObject*
+    fromBuffer(JSContext* cx, HandleObject bufobj, uint32_t byteOffset, int32_t lengthInt,
                HandleObject proto)
     {
         if (!ObjectClassIs(bufobj, ESClass_ArrayBuffer, cx)) {
@@ -717,7 +717,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
              * compartment for a view in the target compartment referencing the
              * ArrayBufferObject in that same compartment.
              */
-            JSObject *wrapped = CheckedUnwrap(bufobj);
+            JSObject* wrapped = CheckedUnwrap(bufobj);
             if (!wrapped) {
                 JS_ReportError(cx, "Permission denied to access object");
                 return nullptr;
@@ -762,7 +762,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
             return nullptr; // must be arrayBuffer
         }
 
-        ArrayBufferObject &buffer = AsArrayBuffer(bufobj);
+        ArrayBufferObject& buffer = AsArrayBuffer(bufobj);
 
         if (byteOffset > buffer.byteLength() || byteOffset % sizeof(NativeType) != 0) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
@@ -796,8 +796,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         return makeInstance(cx, bufobj, byteOffset, len, proto);
     }
 
-    static JSObject *
-    fromLength(JSContext *cx, uint32_t nelements)
+    static JSObject*
+    fromLength(JSContext* cx, uint32_t nelements)
     {
         RootedObject buffer(cx, createBufferWithSizeAndCount(cx, nelements));
         if (!buffer)
@@ -805,8 +805,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         return makeInstance(cx, buffer, 0, nelements);
     }
 
-    static JSObject *
-    fromArray(JSContext *cx, HandleObject other)
+    static JSObject*
+    fromArray(JSContext* cx, HandleObject other)
     {
         uint32_t len;
         if (other->is<TypedArrayObject>()) {
@@ -826,23 +826,23 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static const NativeType
-    getIndex(JSObject *obj, uint32_t index)
+    getIndex(JSObject* obj, uint32_t index)
     {
-        TypedArrayObject &tarray = obj->as<TypedArrayObject>();
+        TypedArrayObject& tarray = obj->as<TypedArrayObject>();
         MOZ_ASSERT(index < tarray.length());
         return static_cast<const NativeType*>(tarray.viewData())[index];
     }
 
     static void
-    setIndex(JSObject *obj, uint32_t index, NativeType val)
+    setIndex(JSObject* obj, uint32_t index, NativeType val)
     {
         *(static_cast<NativeType*>(obj->as<TypedArrayObject>().viewData()) + index) = val;
     }
 
-    static Value getIndexValue(JSObject *tarray, uint32_t index);
+    static Value getIndexValue(JSObject* tarray, uint32_t index);
 
-    static JSObject *
-    createSubarray(JSContext *cx, HandleObject tarrayArg, uint32_t begin, uint32_t end)
+    static JSObject*
+    createSubarray(JSContext* cx, HandleObject tarrayArg, uint32_t begin, uint32_t end)
     {
         Rooted<TypedArrayObject*> tarray(cx, &tarrayArg->as<TypedArrayObject>());
 
@@ -878,7 +878,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static bool
-    nativeFromValue(JSContext *cx, const Value &v, NativeType *result)
+    nativeFromValue(JSContext* cx, const Value& v, NativeType* result)
     {
         if (v.isInt32()) {
             *result = v.toInt32();
@@ -911,7 +911,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static bool
-    copyFromArray(JSContext *cx, HandleObject thisTypedArrayObj,
+    copyFromArray(JSContext* cx, HandleObject thisTypedArrayObj,
                   HandleObject ar, uint32_t len, uint32_t offset = 0)
     {
         // Exit early if nothing to copy, to simplify loop conditions below.
@@ -925,11 +925,11 @@ class TypedArrayObjectTemplate : public TypedArrayObject
             return copyFromTypedArray(cx, thisTypedArray, ar, offset);
 
 #ifdef DEBUG
-        JSRuntime *runtime = cx->runtime();
+        JSRuntime* runtime = cx->runtime();
         uint64_t gcNumber = runtime->gcNumber;
 #endif
 
-        NativeType *dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
+        NativeType* dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
         SkipRoot skipDest(cx, &dest);
 
         if (ar->is<ArrayObject>() && !ar->isIndexed() && ar->getDenseInitializedLength() >= len) {
@@ -940,7 +940,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
              * but in that case we return false immediately, so we do not need
              * to root |src| and |dest|.
              */
-            const Value *src = ar->getDenseElements();
+            const Value* src = ar->getDenseElements();
             SkipRoot skipSrc(cx, &src);
             uint32_t i = 0;
             do {
@@ -975,17 +975,17 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static bool
-    copyFromTypedArray(JSContext *cx, JSObject *thisTypedArrayObj, JSObject *tarrayObj,
+    copyFromTypedArray(JSContext* cx, JSObject* thisTypedArrayObj, JSObject* tarrayObj,
                        uint32_t offset)
     {
-        TypedArrayObject *thisTypedArray = &thisTypedArrayObj->as<TypedArrayObject>();
-        TypedArrayObject *tarray = &tarrayObj->as<TypedArrayObject>();
+        TypedArrayObject* thisTypedArray = &thisTypedArrayObj->as<TypedArrayObject>();
+        TypedArrayObject* tarray = &tarrayObj->as<TypedArrayObject>();
         JS_ASSERT(offset <= thisTypedArray->length());
         JS_ASSERT(tarray->length() <= thisTypedArray->length() - offset);
         if (tarray->buffer() == thisTypedArray->buffer())
             return copyFromWithOverlap(cx, thisTypedArray, tarray, offset);
 
-        NativeType *dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
+        NativeType* dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
 
         if (tarray->type() == thisTypedArray->type()) {
             js_memcpy(dest, tarray->viewData(), tarray->byteLength());
@@ -995,50 +995,50 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         unsigned srclen = tarray->length();
         switch (tarray->type()) {
           case ScalarTypeDescr::TYPE_INT8: {
-            int8_t *src = static_cast<int8_t*>(tarray->viewData());
+            int8_t* src = static_cast<int8_t*>(tarray->viewData());
             for (unsigned i = 0; i < srclen; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_UINT8:
           case ScalarTypeDescr::TYPE_UINT8_CLAMPED: {
-            uint8_t *src = static_cast<uint8_t*>(tarray->viewData());
+            uint8_t* src = static_cast<uint8_t*>(tarray->viewData());
             for (unsigned i = 0; i < srclen; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_INT16: {
-            int16_t *src = static_cast<int16_t*>(tarray->viewData());
+            int16_t* src = static_cast<int16_t*>(tarray->viewData());
             for (unsigned i = 0; i < srclen; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_UINT16: {
-            uint16_t *src = static_cast<uint16_t*>(tarray->viewData());
+            uint16_t* src = static_cast<uint16_t*>(tarray->viewData());
             for (unsigned i = 0; i < srclen; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_INT32: {
-            int32_t *src = static_cast<int32_t*>(tarray->viewData());
+            int32_t* src = static_cast<int32_t*>(tarray->viewData());
             for (unsigned i = 0; i < srclen; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_UINT32: {
-            uint32_t *src = static_cast<uint32_t*>(tarray->viewData());
+            uint32_t* src = static_cast<uint32_t*>(tarray->viewData());
             for (unsigned i = 0; i < srclen; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_FLOAT32: {
-            float *src = static_cast<float*>(tarray->viewData());
+            float* src = static_cast<float*>(tarray->viewData());
             for (unsigned i = 0; i < srclen; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_FLOAT64: {
-            double *src = static_cast<double*>(tarray->viewData());
+            double* src = static_cast<double*>(tarray->viewData());
             for (unsigned i = 0; i < srclen; ++i)
                 *dest++ = NativeType(*src++);
             break;
@@ -1051,14 +1051,14 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static bool
-    copyFromWithOverlap(JSContext *cx, JSObject *selfObj, JSObject *tarrayObj, uint32_t offset)
+    copyFromWithOverlap(JSContext* cx, JSObject* selfObj, JSObject* tarrayObj, uint32_t offset)
     {
-        TypedArrayObject *self = &selfObj->as<TypedArrayObject>();
-        TypedArrayObject *tarray = &tarrayObj->as<TypedArrayObject>();
+        TypedArrayObject* self = &selfObj->as<TypedArrayObject>();
+        TypedArrayObject* tarray = &tarrayObj->as<TypedArrayObject>();
 
         JS_ASSERT(offset <= self->length());
 
-        NativeType *dest = static_cast<NativeType*>(self->viewData()) + offset;
+        NativeType* dest = static_cast<NativeType*>(self->viewData()) + offset;
         uint32_t byteLength = tarray->byteLength();
 
         if (tarray->type() == self->type()) {
@@ -1068,7 +1068,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
 
         // We have to make a copy of the source array here, since
         // there's overlap, and we have to convert types.
-        void *srcbuf = cx->malloc_(byteLength);
+        void* srcbuf = cx->malloc_(byteLength);
         if (!srcbuf)
             return false;
         js_memcpy(srcbuf, tarray->viewData(), byteLength);
@@ -1076,50 +1076,50 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         uint32_t len = tarray->length();
         switch (tarray->type()) {
           case ScalarTypeDescr::TYPE_INT8: {
-            int8_t *src = (int8_t*) srcbuf;
+            int8_t* src = (int8_t*) srcbuf;
             for (unsigned i = 0; i < len; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_UINT8:
           case ScalarTypeDescr::TYPE_UINT8_CLAMPED: {
-            uint8_t *src = (uint8_t*) srcbuf;
+            uint8_t* src = (uint8_t*) srcbuf;
             for (unsigned i = 0; i < len; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_INT16: {
-            int16_t *src = (int16_t*) srcbuf;
+            int16_t* src = (int16_t*) srcbuf;
             for (unsigned i = 0; i < len; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_UINT16: {
-            uint16_t *src = (uint16_t*) srcbuf;
+            uint16_t* src = (uint16_t*) srcbuf;
             for (unsigned i = 0; i < len; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_INT32: {
-            int32_t *src = (int32_t*) srcbuf;
+            int32_t* src = (int32_t*) srcbuf;
             for (unsigned i = 0; i < len; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_UINT32: {
-            uint32_t *src = (uint32_t*) srcbuf;
+            uint32_t* src = (uint32_t*) srcbuf;
             for (unsigned i = 0; i < len; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_FLOAT32: {
-            float *src = (float*) srcbuf;
+            float* src = (float*) srcbuf;
             for (unsigned i = 0; i < len; ++i)
                 *dest++ = NativeType(*src++);
             break;
           }
           case ScalarTypeDescr::TYPE_FLOAT64: {
-            double *src = (double*) srcbuf;
+            double* src = (double*) srcbuf;
             for (unsigned i = 0; i < len; ++i)
                 *dest++ = NativeType(*src++);
             break;
@@ -1132,8 +1132,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         return true;
     }
 
-    static JSObject *
-    createBufferWithSizeAndCount(JSContext *cx, uint32_t count)
+    static JSObject*
+    createBufferWithSizeAndCount(JSContext* cx, uint32_t count)
     {
         size_t size = sizeof(NativeType);
         if (size != 0 && count >= INT32_MAX / size) {
@@ -1206,7 +1206,7 @@ class Uint8ClampedArrayObject : public TypedArrayObjectTemplate<uint8_clamped> {
 
 template<typename T>
 bool
-ArrayBufferObject::createTypedArrayFromBufferImpl(JSContext *cx, CallArgs args)
+ArrayBufferObject::createTypedArrayFromBufferImpl(JSContext* cx, CallArgs args)
 {
     typedef TypedArrayObjectTemplate<T> ArrayType;
     JS_ASSERT(IsArrayBuffer(args.thisv()));
@@ -1229,7 +1229,7 @@ ArrayBufferObject::createTypedArrayFromBufferImpl(JSContext *cx, CallArgs args)
 
 template<typename T>
 bool
-ArrayBufferObject::createTypedArrayFromBuffer(JSContext *cx, unsigned argc, Value *vp)
+ArrayBufferObject::createTypedArrayFromBuffer(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<IsArrayBuffer, createTypedArrayFromBufferImpl<T> >(cx, args);
@@ -1239,7 +1239,7 @@ ArrayBufferObject::createTypedArrayFromBuffer(JSContext *cx, unsigned argc, Valu
 // less than 32-bits in size.
 template<typename NativeType>
 Value
-TypedArrayObjectTemplate<NativeType>::getIndexValue(JSObject *tarray, uint32_t index)
+TypedArrayObjectTemplate<NativeType>::getIndexValue(JSObject* tarray, uint32_t index)
 {
     JS_STATIC_ASSERT(sizeof(NativeType) < 4);
 
@@ -1251,14 +1251,14 @@ namespace {
 // and we need to specialize for 32-bit integers and floats
 template<>
 Value
-TypedArrayObjectTemplate<int32_t>::getIndexValue(JSObject *tarray, uint32_t index)
+TypedArrayObjectTemplate<int32_t>::getIndexValue(JSObject* tarray, uint32_t index)
 {
     return Int32Value(getIndex(tarray, index));
 }
 
 template<>
 Value
-TypedArrayObjectTemplate<uint32_t>::getIndexValue(JSObject *tarray, uint32_t index)
+TypedArrayObjectTemplate<uint32_t>::getIndexValue(JSObject* tarray, uint32_t index)
 {
     uint32_t val = getIndex(tarray, index);
     return NumberValue(val);
@@ -1266,7 +1266,7 @@ TypedArrayObjectTemplate<uint32_t>::getIndexValue(JSObject *tarray, uint32_t ind
 
 template<>
 Value
-TypedArrayObjectTemplate<float>::getIndexValue(JSObject *tarray, uint32_t index)
+TypedArrayObjectTemplate<float>::getIndexValue(JSObject* tarray, uint32_t index)
 {
     float val = getIndex(tarray, index);
     double dval = val;
@@ -1286,7 +1286,7 @@ TypedArrayObjectTemplate<float>::getIndexValue(JSObject *tarray, uint32_t index)
 
 template<>
 Value
-TypedArrayObjectTemplate<double>::getIndexValue(JSObject *tarray, uint32_t index)
+TypedArrayObjectTemplate<double>::getIndexValue(JSObject* tarray, uint32_t index)
 {
     double val = getIndex(tarray, index);
 
@@ -1303,20 +1303,20 @@ TypedArrayObjectTemplate<double>::getIndexValue(JSObject *tarray, uint32_t index
 } /* anonymous namespace */
 
 static NewObjectKind
-DataViewNewObjectKind(JSContext *cx, uint32_t byteLength, JSObject *proto)
+DataViewNewObjectKind(JSContext* cx, uint32_t byteLength, JSObject* proto)
 {
     if (!proto && byteLength >= TypedArrayObject::SINGLETON_TYPE_BYTE_LENGTH)
         return SingletonObject;
-    jsbytecode *pc;
-    JSScript *script = cx->currentScript(&pc);
+    jsbytecode* pc;
+    JSScript* script = cx->currentScript(&pc);
     if (!script)
         return GenericObject;
     return types::UseNewTypeForInitializer(script, pc, &DataViewObject::class_);
 }
 
-inline DataViewObject *
-DataViewObject::create(JSContext *cx, uint32_t byteOffset, uint32_t byteLength,
-                       Handle<ArrayBufferObject*> arrayBuffer, JSObject *protoArg)
+inline DataViewObject*
+DataViewObject::create(JSContext* cx, uint32_t byteOffset, uint32_t byteLength,
+                       Handle<ArrayBufferObject*> arrayBuffer, JSObject* protoArg)
 {
     JS_ASSERT(byteOffset <= INT32_MAX);
     JS_ASSERT(byteLength <= INT32_MAX);
@@ -1337,7 +1337,7 @@ DataViewObject::create(JSContext *cx, uint32_t byteOffset, uint32_t byteLength,
         return nullptr;
 
     if (proto) {
-        types::TypeObject *type = cx->getNewType(&class_, TaggedProto(proto));
+        types::TypeObject* type = cx->getNewType(&class_, TaggedProto(proto));
         if (!type)
             return nullptr;
         obj->setType(type);
@@ -1345,7 +1345,7 @@ DataViewObject::create(JSContext *cx, uint32_t byteOffset, uint32_t byteLength,
         if (byteLength >= TypedArrayObject::SINGLETON_TYPE_BYTE_LENGTH) {
             JS_ASSERT(obj->hasSingletonType());
         } else {
-            jsbytecode *pc;
+            jsbytecode* pc;
             RootedScript script(cx, cx->currentScript(&pc));
             if (script) {
                 if (!types::SetInitializerObjectType(cx, script, pc, obj, newKind))
@@ -1354,7 +1354,7 @@ DataViewObject::create(JSContext *cx, uint32_t byteOffset, uint32_t byteLength,
         }
     }
 
-    DataViewObject &dvobj = obj->as<DataViewObject>();
+    DataViewObject& dvobj = obj->as<DataViewObject>();
     dvobj.setFixedSlot(BYTEOFFSET_SLOT, Int32Value(byteOffset));
     dvobj.setFixedSlot(BYTELENGTH_SLOT, Int32Value(byteLength));
     dvobj.setFixedSlot(BUFFER_SLOT, ObjectValue(*arrayBuffer));
@@ -1372,7 +1372,7 @@ DataViewObject::create(JSContext *cx, uint32_t byteOffset, uint32_t byteLength,
 }
 
 bool
-DataViewObject::construct(JSContext *cx, JSObject *bufobj, const CallArgs &args, HandleObject proto)
+DataViewObject::construct(JSContext* cx, JSObject* bufobj, const CallArgs& args, HandleObject proto)
 {
     if (!IsArrayBuffer(bufobj)) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_EXPECTED_TYPE,
@@ -1422,7 +1422,7 @@ DataViewObject::construct(JSContext *cx, JSObject *bufobj, const CallArgs &args,
         return false;
     }
 
-    JSObject *obj = DataViewObject::create(cx, byteOffset, byteLength, buffer, proto);
+    JSObject* obj = DataViewObject::create(cx, byteOffset, byteLength, buffer, proto);
     if (!obj)
         return false;
     args.rval().setObject(*obj);
@@ -1430,7 +1430,7 @@ DataViewObject::construct(JSContext *cx, JSObject *bufobj, const CallArgs &args,
 }
 
 bool
-DataViewObject::class_constructor(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::class_constructor(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -1461,8 +1461,8 @@ DataViewObject::class_constructor(JSContext *cx, unsigned argc, Value *vp)
 }
 
 template <typename NativeType>
-/* static */ uint8_t *
-DataViewObject::getDataPointer(JSContext *cx, Handle<DataViewObject*> obj, uint32_t offset)
+/* static */ uint8_t*
+DataViewObject::getDataPointer(JSContext* cx, Handle<DataViewObject*> obj, uint32_t offset)
 {
     const size_t TypeSize = sizeof(NativeType);
     if (offset > UINT32_MAX - TypeSize || offset + TypeSize > obj->byteLength()) {
@@ -1527,30 +1527,30 @@ struct DataViewIO
 {
     typedef typename DataToRepType<DataType>::result ReadWriteType;
 
-    static void fromBuffer(DataType *dest, const uint8_t *unalignedBuffer, bool wantSwap)
+    static void fromBuffer(DataType* dest, const uint8_t* unalignedBuffer, bool wantSwap)
     {
         JS_ASSERT((reinterpret_cast<uintptr_t>(dest) & (Min<size_t>(MOZ_ALIGNOF(void*), sizeof(DataType)) - 1)) == 0);
-        memcpy((void *) dest, unalignedBuffer, sizeof(ReadWriteType));
+        memcpy((void*) dest, unalignedBuffer, sizeof(ReadWriteType));
         if (wantSwap) {
-            ReadWriteType *rwDest = reinterpret_cast<ReadWriteType *>(dest);
+            ReadWriteType* rwDest = reinterpret_cast<ReadWriteType*>(dest);
             *rwDest = swapBytes(*rwDest);
         }
     }
 
-    static void toBuffer(uint8_t *unalignedBuffer, const DataType *src, bool wantSwap)
+    static void toBuffer(uint8_t* unalignedBuffer, const DataType* src, bool wantSwap)
     {
         JS_ASSERT((reinterpret_cast<uintptr_t>(src) & (Min<size_t>(MOZ_ALIGNOF(void*), sizeof(DataType)) - 1)) == 0);
-        ReadWriteType temp = *reinterpret_cast<const ReadWriteType *>(src);
+        ReadWriteType temp = *reinterpret_cast<const ReadWriteType*>(src);
         if (wantSwap)
             temp = swapBytes(temp);
-        memcpy(unalignedBuffer, (void *) &temp, sizeof(ReadWriteType));
+        memcpy(unalignedBuffer, (void*) &temp, sizeof(ReadWriteType));
     }
 };
 
 template<typename NativeType>
 /* static */ bool
-DataViewObject::read(JSContext *cx, Handle<DataViewObject*> obj,
-                     CallArgs &args, NativeType *val, const char *method)
+DataViewObject::read(JSContext* cx, Handle<DataViewObject*> obj,
+                     CallArgs& args, NativeType* val, const char* method)
 {
     if (args.length() < 1) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
@@ -1564,7 +1564,7 @@ DataViewObject::read(JSContext *cx, Handle<DataViewObject*> obj,
 
     bool fromLittleEndian = args.length() >= 2 && ToBoolean(args[1]);
 
-    uint8_t *data = DataViewObject::getDataPointer<NativeType>(cx, obj, offset);
+    uint8_t* data = DataViewObject::getDataPointer<NativeType>(cx, obj, offset);
     if (!data)
         return false;
 
@@ -1574,7 +1574,7 @@ DataViewObject::read(JSContext *cx, Handle<DataViewObject*> obj,
 
 template <typename NativeType>
 static inline bool
-WebIDLCast(JSContext *cx, HandleValue value, NativeType *out)
+WebIDLCast(JSContext* cx, HandleValue value, NativeType* out)
 {
     int32_t temp;
     if (!ToInt32(cx, value, &temp))
@@ -1588,7 +1588,7 @@ WebIDLCast(JSContext *cx, HandleValue value, NativeType *out)
 
 template <>
 inline bool
-WebIDLCast<float>(JSContext *cx, HandleValue value, float *out)
+WebIDLCast<float>(JSContext* cx, HandleValue value, float* out)
 {
     double temp;
     if (!ToNumber(cx, value, &temp))
@@ -1599,15 +1599,15 @@ WebIDLCast<float>(JSContext *cx, HandleValue value, float *out)
 
 template <>
 inline bool
-WebIDLCast<double>(JSContext *cx, HandleValue value, double *out)
+WebIDLCast<double>(JSContext* cx, HandleValue value, double* out)
 {
     return ToNumber(cx, value, out);
 }
 
 template<typename NativeType>
 /* static */ bool
-DataViewObject::write(JSContext *cx, Handle<DataViewObject*> obj,
-                      CallArgs &args, const char *method)
+DataViewObject::write(JSContext* cx, Handle<DataViewObject*> obj,
+                      CallArgs& args, const char* method)
 {
     if (args.length() < 2) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
@@ -1625,7 +1625,7 @@ DataViewObject::write(JSContext *cx, Handle<DataViewObject*> obj,
 
     bool toLittleEndian = args.length() >= 3 && ToBoolean(args[2]);
 
-    uint8_t *data = DataViewObject::getDataPointer<NativeType>(cx, obj, offset);
+    uint8_t* data = DataViewObject::getDataPointer<NativeType>(cx, obj, offset);
     SkipRoot skipData(cx, &data);
     if (!data)
         return false;
@@ -1635,7 +1635,7 @@ DataViewObject::write(JSContext *cx, Handle<DataViewObject*> obj,
 }
 
 bool
-DataViewObject::getInt8Impl(JSContext *cx, CallArgs args)
+DataViewObject::getInt8Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1649,14 +1649,14 @@ DataViewObject::getInt8Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_getInt8(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_getInt8(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, getInt8Impl>(cx, args);
 }
 
 bool
-DataViewObject::getUint8Impl(JSContext *cx, CallArgs args)
+DataViewObject::getUint8Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1670,14 +1670,14 @@ DataViewObject::getUint8Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_getUint8(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_getUint8(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, getUint8Impl>(cx, args);
 }
 
 bool
-DataViewObject::getInt16Impl(JSContext *cx, CallArgs args)
+DataViewObject::getInt16Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1691,14 +1691,14 @@ DataViewObject::getInt16Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_getInt16(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_getInt16(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, getInt16Impl>(cx, args);
 }
 
 bool
-DataViewObject::getUint16Impl(JSContext *cx, CallArgs args)
+DataViewObject::getUint16Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1712,14 +1712,14 @@ DataViewObject::getUint16Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_getUint16(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_getUint16(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, getUint16Impl>(cx, args);
 }
 
 bool
-DataViewObject::getInt32Impl(JSContext *cx, CallArgs args)
+DataViewObject::getInt32Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1733,14 +1733,14 @@ DataViewObject::getInt32Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_getInt32(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_getInt32(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, getInt32Impl>(cx, args);
 }
 
 bool
-DataViewObject::getUint32Impl(JSContext *cx, CallArgs args)
+DataViewObject::getUint32Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1754,14 +1754,14 @@ DataViewObject::getUint32Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_getUint32(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_getUint32(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, getUint32Impl>(cx, args);
 }
 
 bool
-DataViewObject::getFloat32Impl(JSContext *cx, CallArgs args)
+DataViewObject::getFloat32Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1776,14 +1776,14 @@ DataViewObject::getFloat32Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_getFloat32(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_getFloat32(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, getFloat32Impl>(cx, args);
 }
 
 bool
-DataViewObject::getFloat64Impl(JSContext *cx, CallArgs args)
+DataViewObject::getFloat64Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1798,14 +1798,14 @@ DataViewObject::getFloat64Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_getFloat64(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_getFloat64(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, getFloat64Impl>(cx, args);
 }
 
 bool
-DataViewObject::setInt8Impl(JSContext *cx, CallArgs args)
+DataViewObject::setInt8Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1818,14 +1818,14 @@ DataViewObject::setInt8Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_setInt8(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_setInt8(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, setInt8Impl>(cx, args);
 }
 
 bool
-DataViewObject::setUint8Impl(JSContext *cx, CallArgs args)
+DataViewObject::setUint8Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1838,14 +1838,14 @@ DataViewObject::setUint8Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_setUint8(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_setUint8(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, setUint8Impl>(cx, args);
 }
 
 bool
-DataViewObject::setInt16Impl(JSContext *cx, CallArgs args)
+DataViewObject::setInt16Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1858,14 +1858,14 @@ DataViewObject::setInt16Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_setInt16(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_setInt16(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, setInt16Impl>(cx, args);
 }
 
 bool
-DataViewObject::setUint16Impl(JSContext *cx, CallArgs args)
+DataViewObject::setUint16Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1878,14 +1878,14 @@ DataViewObject::setUint16Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_setUint16(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_setUint16(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, setUint16Impl>(cx, args);
 }
 
 bool
-DataViewObject::setInt32Impl(JSContext *cx, CallArgs args)
+DataViewObject::setInt32Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1898,14 +1898,14 @@ DataViewObject::setInt32Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_setInt32(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_setInt32(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, setInt32Impl>(cx, args);
 }
 
 bool
-DataViewObject::setUint32Impl(JSContext *cx, CallArgs args)
+DataViewObject::setUint32Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1918,14 +1918,14 @@ DataViewObject::setUint32Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_setUint32(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_setUint32(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, setUint32Impl>(cx, args);
 }
 
 bool
-DataViewObject::setFloat32Impl(JSContext *cx, CallArgs args)
+DataViewObject::setFloat32Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1938,14 +1938,14 @@ DataViewObject::setFloat32Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_setFloat32(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_setFloat32(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, setFloat32Impl>(cx, args);
 }
 
 bool
-DataViewObject::setFloat64Impl(JSContext *cx, CallArgs args)
+DataViewObject::setFloat64Impl(JSContext* cx, CallArgs args)
 {
     JS_ASSERT(is(args.thisv()));
 
@@ -1958,7 +1958,7 @@ DataViewObject::setFloat64Impl(JSContext *cx, CallArgs args)
 }
 
 bool
-DataViewObject::fun_setFloat64(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::fun_setFloat64(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, setFloat64Impl>(cx, args);
@@ -2002,7 +2002,7 @@ TypedArrayObject::getElement(uint32_t index)
 }
 
 bool
-TypedArrayObject::setElement(ThreadSafeContext *cx, uint32_t index, const Value &value)
+TypedArrayObject::setElement(ThreadSafeContext* cx, uint32_t index, const Value& value)
 {
     JS_ASSERT(index < length());
 
@@ -2068,33 +2068,33 @@ const JSFunctionSpec _typedArray##Object::jsfuncs[] = {                         
 #endif
 
 #define IMPL_TYPED_ARRAY_JSAPI_CONSTRUCTORS(Name,NativeType)                                    \
-  JS_FRIEND_API(JSObject *) JS_New ## Name ## Array(JSContext *cx, uint32_t nelements)          \
+  JS_FRIEND_API(JSObject*) JS_New ## Name ## Array(JSContext* cx, uint32_t nelements)          \
   {                                                                                             \
       return TypedArrayObjectTemplate<NativeType>::fromLength(cx, nelements);                   \
   }                                                                                             \
-  JS_FRIEND_API(JSObject *) JS_New ## Name ## ArrayFromArray(JSContext *cx, HandleObject other) \
+  JS_FRIEND_API(JSObject*) JS_New ## Name ## ArrayFromArray(JSContext* cx, HandleObject other) \
   {                                                                                             \
       return TypedArrayObjectTemplate<NativeType>::fromArray(cx, other);                        \
   }                                                                                             \
-  JS_FRIEND_API(JSObject *) JS_New ## Name ## ArrayWithBuffer(JSContext *cx,                    \
+  JS_FRIEND_API(JSObject*) JS_New ## Name ## ArrayWithBuffer(JSContext* cx,                    \
                                HandleObject arrayBuffer, uint32_t byteOffset, int32_t length)   \
   {                                                                                             \
       return TypedArrayObjectTemplate<NativeType>::fromBuffer(cx, arrayBuffer, byteOffset,      \
                                                               length, js::NullPtr());           \
   }                                                                                             \
-  JS_FRIEND_API(bool) JS_Is ## Name ## Array(JSObject *obj)                                     \
+  JS_FRIEND_API(bool) JS_Is ## Name ## Array(JSObject* obj)                                     \
   {                                                                                             \
       if (!(obj = CheckedUnwrap(obj)))                                                          \
           return false;                                                                         \
-      const Class *clasp = obj->getClass();                                                     \
+      const Class* clasp = obj->getClass();                                                     \
       return (clasp == &TypedArrayObject::classes[TypedArrayObjectTemplate<NativeType>::ArrayTypeID()]); \
   } \
-  JS_FRIEND_API(JSObject *) js::Unwrap ## Name ## Array(JSObject *obj)                          \
+  JS_FRIEND_API(JSObject*) js::Unwrap ## Name ## Array(JSObject* obj)                          \
   {                                                                                             \
       obj = CheckedUnwrap(obj);                                                                 \
       if (!obj)                                                                                 \
           return nullptr;                                                                       \
-      const Class *clasp = obj->getClass();                                                     \
+      const Class* clasp = obj->getClass();                                                     \
       if (clasp == &TypedArrayObject::classes[TypedArrayObjectTemplate<NativeType>::ArrayTypeID()]) \
           return obj;                                                                           \
       return nullptr;                                                                           \
@@ -2113,20 +2113,20 @@ IMPL_TYPED_ARRAY_JSAPI_CONSTRUCTORS(Float32, float)
 IMPL_TYPED_ARRAY_JSAPI_CONSTRUCTORS(Float64, double)
 
 #define IMPL_TYPED_ARRAY_COMBINED_UNWRAPPERS(Name, ExternalType, InternalType)              \
-  JS_FRIEND_API(JSObject *) JS_GetObjectAs ## Name ## Array(JSObject *obj,                  \
-                                                            uint32_t *length,               \
-                                                            ExternalType **data)            \
+  JS_FRIEND_API(JSObject*) JS_GetObjectAs ## Name ## Array(JSObject* obj,                  \
+                                                            uint32_t* length,               \
+                                                            ExternalType** data)            \
   {                                                                                         \
       if (!(obj = CheckedUnwrap(obj)))                                                      \
           return nullptr;                                                                   \
                                                                                             \
-      const Class *clasp = obj->getClass();                                                 \
+      const Class* clasp = obj->getClass();                                                 \
       if (clasp != &TypedArrayObject::classes[TypedArrayObjectTemplate<InternalType>::ArrayTypeID()]) \
           return nullptr;                                                                   \
                                                                                             \
-      TypedArrayObject *tarr = &obj->as<TypedArrayObject>();                                \
+      TypedArrayObject* tarr = &obj->as<TypedArrayObject>();                                \
       *length = tarr->length();                                                             \
-      *data = static_cast<ExternalType *>(tarr->viewData());                                \
+      *data = static_cast<ExternalType*>(tarr->viewData());                                \
                                                                                             \
       return obj;                                                                           \
   }
@@ -2178,7 +2178,7 @@ IMPL_TYPED_ARRAY_COMBINED_UNWRAPPERS(Float64, double, double)
 
 template<class ArrayType>
 static inline bool
-InitTypedArrayClass(JSContext *cx)
+InitTypedArrayClass(JSContext* cx)
 {
     Rooted<GlobalObject*> global(cx, cx->compartment()->maybeGlobal());
     if (global->isStandardClassResolved(ArrayType::key))
@@ -2284,8 +2284,8 @@ js::IsTypedArrayThisCheck(JS::IsAcceptableThis test)
 }
 #undef CHECK
 
-static JSObject *
-InitArrayBufferClass(JSContext *cx)
+static JSObject*
+InitArrayBufferClass(JSContext* cx)
 {
     Rooted<GlobalObject*> global(cx, cx->compartment()->maybeGlobal());
     if (global->isStandardClassResolved(JSProto_ArrayBuffer))
@@ -2305,7 +2305,7 @@ InitArrayBufferClass(JSContext *cx)
 
     RootedId byteLengthId(cx, NameToId(cx->names().byteLength));
     unsigned flags = JSPROP_SHARED | JSPROP_GETTER | JSPROP_PERMANENT;
-    JSObject *getter = NewFunction(cx, NullPtr(), ArrayBufferObject::byteLengthGetter, 0,
+    JSObject* getter = NewFunction(cx, NullPtr(), ArrayBufferObject::byteLengthGetter, 0,
                                    JSFunction::NATIVE_FUN, global, NullPtr());
     if (!getter)
         return nullptr;
@@ -2383,31 +2383,31 @@ const JSFunctionSpec DataViewObject::jsfuncs[] = {
     JS_FS_END
 };
 
-template<Value ValueGetter(DataViewObject *view)>
+template<Value ValueGetter(DataViewObject* view)>
 bool
-DataViewObject::getterImpl(JSContext *cx, CallArgs args)
+DataViewObject::getterImpl(JSContext* cx, CallArgs args)
 {
     args.rval().set(ValueGetter(&args.thisv().toObject().as<DataViewObject>()));
     return true;
 }
 
-template<Value ValueGetter(DataViewObject *view)>
+template<Value ValueGetter(DataViewObject* view)>
 bool
-DataViewObject::getter(JSContext *cx, unsigned argc, Value *vp)
+DataViewObject::getter(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, getterImpl<ValueGetter> >(cx, args);
 }
 
-template<Value ValueGetter(DataViewObject *view)>
+template<Value ValueGetter(DataViewObject* view)>
 bool
-DataViewObject::defineGetter(JSContext *cx, PropertyName *name, HandleObject proto)
+DataViewObject::defineGetter(JSContext* cx, PropertyName* name, HandleObject proto)
 {
     RootedId id(cx, NameToId(name));
     unsigned flags = JSPROP_SHARED | JSPROP_GETTER | JSPROP_PERMANENT;
 
     Rooted<GlobalObject*> global(cx, cx->compartment()->maybeGlobal());
-    JSObject *getter = NewFunction(cx, NullPtr(), DataViewObject::getter<ValueGetter>, 0,
+    JSObject* getter = NewFunction(cx, NullPtr(), DataViewObject::getter<ValueGetter>, 0,
                                    JSFunction::NATIVE_FUN, global, NullPtr());
     if (!getter)
         return false;
@@ -2418,7 +2418,7 @@ DataViewObject::defineGetter(JSContext *cx, PropertyName *name, HandleObject pro
 }
 
 /* static */ bool
-DataViewObject::initClass(JSContext *cx)
+DataViewObject::initClass(JSContext* cx)
 {
     Rooted<GlobalObject*> global(cx, cx->compartment()->maybeGlobal());
     if (global->isStandardClassResolved(JSProto_DataView))
@@ -2467,15 +2467,15 @@ DataViewObject::initClass(JSContext *cx)
 }
 
 void
-DataViewObject::neuter(void *newData)
+DataViewObject::neuter(void* newData)
 {
     setSlot(BYTELENGTH_SLOT, Int32Value(0));
     setSlot(BYTEOFFSET_SLOT, Int32Value(0));
     setPrivate(newData);
 }
 
-JSObject *
-js_InitTypedArrayClasses(JSContext *cx, HandleObject obj)
+JSObject*
+js_InitTypedArrayClasses(JSContext* cx, HandleObject obj)
 {
     if (!InitTypedArrayClass<Int8ArrayObject>(cx) ||
         !InitTypedArrayClass<Uint8ArrayObject>(cx) ||
@@ -2528,7 +2528,7 @@ js::IsTypedArrayBuffer(HandleValue v)
             v.toObject().is<SharedArrayBufferObject>());
 }
 
-ArrayBufferObject &
+ArrayBufferObject&
 js::AsTypedArrayBuffer(HandleValue v)
 {
     JS_ASSERT(IsTypedArrayBuffer(v));
@@ -2538,10 +2538,10 @@ js::AsTypedArrayBuffer(HandleValue v)
 }
 
 bool
-js::StringIsTypedArrayIndex(JSLinearString *str, uint64_t *indexp)
+js::StringIsTypedArrayIndex(JSLinearString* str, uint64_t* indexp)
 {
-    const jschar *s = str->chars();
-    const jschar *end = s + str->length();
+    const jschar* s = str->chars();
+    const jschar* end = s + str->length();
 
     if (s == end)
         return false;
@@ -2588,14 +2588,14 @@ js::StringIsTypedArrayIndex(JSLinearString *str, uint64_t *indexp)
 /* JS Friend API */
 
 JS_FRIEND_API(bool)
-JS_IsTypedArrayObject(JSObject *obj)
+JS_IsTypedArrayObject(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     return obj ? obj->is<TypedArrayObject>() : false;
 }
 
 JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayLength(JSObject *obj)
+JS_GetTypedArrayLength(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
@@ -2604,7 +2604,7 @@ JS_GetTypedArrayLength(JSObject *obj)
 }
 
 JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayByteOffset(JSObject *obj)
+JS_GetTypedArrayByteOffset(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
@@ -2613,7 +2613,7 @@ JS_GetTypedArrayByteOffset(JSObject *obj)
 }
 
 JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayByteLength(JSObject *obj)
+JS_GetTypedArrayByteLength(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
@@ -2622,7 +2622,7 @@ JS_GetTypedArrayByteLength(JSObject *obj)
 }
 
 JS_FRIEND_API(JSArrayBufferViewType)
-JS_GetArrayBufferViewType(JSObject *obj)
+JS_GetArrayBufferViewType(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
@@ -2635,114 +2635,114 @@ JS_GetArrayBufferViewType(JSObject *obj)
     MOZ_ASSUME_UNREACHABLE("invalid ArrayBufferView type");
 }
 
-JS_FRIEND_API(int8_t *)
-JS_GetInt8ArrayData(JSObject *obj)
+JS_FRIEND_API(int8_t*)
+JS_GetInt8ArrayData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
         return nullptr;
-    TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+    TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
     JS_ASSERT(tarr->type() == ArrayBufferView::TYPE_INT8);
-    return static_cast<int8_t *>(tarr->viewData());
+    return static_cast<int8_t*>(tarr->viewData());
 }
 
-JS_FRIEND_API(uint8_t *)
-JS_GetUint8ArrayData(JSObject *obj)
+JS_FRIEND_API(uint8_t*)
+JS_GetUint8ArrayData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
         return nullptr;
-    TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+    TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
     JS_ASSERT(tarr->type() == ArrayBufferView::TYPE_UINT8);
-    return static_cast<uint8_t *>(tarr->viewData());
+    return static_cast<uint8_t*>(tarr->viewData());
 }
 
-JS_FRIEND_API(uint8_t *)
-JS_GetUint8ClampedArrayData(JSObject *obj)
+JS_FRIEND_API(uint8_t*)
+JS_GetUint8ClampedArrayData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
         return nullptr;
-    TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+    TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
     JS_ASSERT(tarr->type() == ArrayBufferView::TYPE_UINT8_CLAMPED);
-    return static_cast<uint8_t *>(tarr->viewData());
+    return static_cast<uint8_t*>(tarr->viewData());
 }
 
-JS_FRIEND_API(int16_t *)
-JS_GetInt16ArrayData(JSObject *obj)
+JS_FRIEND_API(int16_t*)
+JS_GetInt16ArrayData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
         return nullptr;
-    TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+    TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
     JS_ASSERT(tarr->type() == ArrayBufferView::TYPE_INT16);
-    return static_cast<int16_t *>(tarr->viewData());
+    return static_cast<int16_t*>(tarr->viewData());
 }
 
-JS_FRIEND_API(uint16_t *)
-JS_GetUint16ArrayData(JSObject *obj)
+JS_FRIEND_API(uint16_t*)
+JS_GetUint16ArrayData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
         return nullptr;
-    TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+    TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
     JS_ASSERT(tarr->type() == ArrayBufferView::TYPE_UINT16);
-    return static_cast<uint16_t *>(tarr->viewData());
+    return static_cast<uint16_t*>(tarr->viewData());
 }
 
-JS_FRIEND_API(int32_t *)
-JS_GetInt32ArrayData(JSObject *obj)
+JS_FRIEND_API(int32_t*)
+JS_GetInt32ArrayData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
         return nullptr;
-    TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+    TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
     JS_ASSERT(tarr->type() == ArrayBufferView::TYPE_INT32);
-    return static_cast<int32_t *>(tarr->viewData());
+    return static_cast<int32_t*>(tarr->viewData());
 }
 
-JS_FRIEND_API(uint32_t *)
-JS_GetUint32ArrayData(JSObject *obj)
+JS_FRIEND_API(uint32_t*)
+JS_GetUint32ArrayData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
         return nullptr;
-    TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+    TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
     JS_ASSERT(tarr->type() == ArrayBufferView::TYPE_UINT32);
-    return static_cast<uint32_t *>(tarr->viewData());
+    return static_cast<uint32_t*>(tarr->viewData());
 }
 
-JS_FRIEND_API(float *)
-JS_GetFloat32ArrayData(JSObject *obj)
+JS_FRIEND_API(float*)
+JS_GetFloat32ArrayData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
         return nullptr;
-    TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+    TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
     JS_ASSERT(tarr->type() == ArrayBufferView::TYPE_FLOAT32);
-    return static_cast<float *>(tarr->viewData());
+    return static_cast<float*>(tarr->viewData());
 }
 
-JS_FRIEND_API(double *)
-JS_GetFloat64ArrayData(JSObject *obj)
+JS_FRIEND_API(double*)
+JS_GetFloat64ArrayData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
         return nullptr;
-    TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+    TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
     JS_ASSERT(tarr->type() == ArrayBufferView::TYPE_FLOAT64);
-    return static_cast<double *>(tarr->viewData());
+    return static_cast<double*>(tarr->viewData());
 }
 
 JS_FRIEND_API(bool)
-JS_IsDataViewObject(JSObject *obj)
+JS_IsDataViewObject(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     return obj ? obj->is<DataViewObject>() : false;
 }
 
 JS_FRIEND_API(uint32_t)
-JS_GetDataViewByteOffset(JSObject *obj)
+JS_GetDataViewByteOffset(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
@@ -2750,8 +2750,8 @@ JS_GetDataViewByteOffset(JSObject *obj)
     return obj->as<DataViewObject>().byteOffset();
 }
 
-JS_FRIEND_API(void *)
-JS_GetDataViewData(JSObject *obj)
+JS_FRIEND_API(void*)
+JS_GetDataViewData(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
@@ -2760,7 +2760,7 @@ JS_GetDataViewData(JSObject *obj)
 }
 
 JS_FRIEND_API(uint32_t)
-JS_GetDataViewByteLength(JSObject *obj)
+JS_GetDataViewByteLength(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)

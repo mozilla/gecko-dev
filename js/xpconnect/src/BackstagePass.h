@@ -41,7 +41,7 @@ public:
     mGlobal = global;
   }
 
-  BackstagePass(nsIPrincipal *prin) :
+  BackstagePass(nsIPrincipal* prin) :
     mPrincipal(prin)
   {
   }

@@ -24,67 +24,67 @@ using namespace js;
 
 namespace xpc {
 
-nsIPrincipal *
-GetCompartmentPrincipal(JSCompartment *compartment)
+nsIPrincipal*
+GetCompartmentPrincipal(JSCompartment* compartment)
 {
     return nsJSPrincipals::get(JS_GetCompartmentPrincipals(compartment));
 }
 
-nsIPrincipal *
-GetObjectPrincipal(JSObject *obj)
+nsIPrincipal*
+GetObjectPrincipal(JSObject* obj)
 {
     return GetCompartmentPrincipal(js::GetObjectCompartment(obj));
 }
 
 // Does the principal of compartment a subsume the principal of compartment b?
 bool
-AccessCheck::subsumes(JSCompartment *a, JSCompartment *b)
+AccessCheck::subsumes(JSCompartment* a, JSCompartment* b)
 {
-    nsIPrincipal *aprin = GetCompartmentPrincipal(a);
-    nsIPrincipal *bprin = GetCompartmentPrincipal(b);
+    nsIPrincipal* aprin = GetCompartmentPrincipal(a);
+    nsIPrincipal* bprin = GetCompartmentPrincipal(b);
     return aprin->Subsumes(bprin);
 }
 
 bool
-AccessCheck::subsumes(JSObject *a, JSObject *b)
+AccessCheck::subsumes(JSObject* a, JSObject* b)
 {
     return subsumes(js::GetObjectCompartment(a), js::GetObjectCompartment(b));
 }
 
 // Same as above, but considering document.domain.
 bool
-AccessCheck::subsumesConsideringDomain(JSCompartment *a, JSCompartment *b)
+AccessCheck::subsumesConsideringDomain(JSCompartment* a, JSCompartment* b)
 {
-    nsIPrincipal *aprin = GetCompartmentPrincipal(a);
-    nsIPrincipal *bprin = GetCompartmentPrincipal(b);
+    nsIPrincipal* aprin = GetCompartmentPrincipal(a);
+    nsIPrincipal* bprin = GetCompartmentPrincipal(b);
     return aprin->SubsumesConsideringDomain(bprin);
 }
 
 // Does the compartment of the wrapper subsumes the compartment of the wrappee?
 bool
-AccessCheck::wrapperSubsumes(JSObject *wrapper)
+AccessCheck::wrapperSubsumes(JSObject* wrapper)
 {
     MOZ_ASSERT(js::IsWrapper(wrapper));
-    JSObject *wrapped = js::UncheckedUnwrap(wrapper);
+    JSObject* wrapped = js::UncheckedUnwrap(wrapper);
     return AccessCheck::subsumes(js::GetObjectCompartment(wrapper),
                                  js::GetObjectCompartment(wrapped));
 }
 
 bool
-AccessCheck::isChrome(JSCompartment *compartment)
+AccessCheck::isChrome(JSCompartment* compartment)
 {
-    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+    nsIScriptSecurityManager* ssm = XPCWrapper::GetSecurityManager();
     if (!ssm) {
         return false;
     }
 
     bool privileged;
-    nsIPrincipal *principal = GetCompartmentPrincipal(compartment);
+    nsIPrincipal* principal = GetCompartmentPrincipal(compartment);
     return NS_SUCCEEDED(ssm->IsSystemPrincipal(principal, &privileged)) && privileged;
 }
 
 bool
-AccessCheck::isChrome(JSObject *obj)
+AccessCheck::isChrome(JSObject* obj)
 {
     return isChrome(js::GetObjectCompartment(obj));
 }
@@ -92,7 +92,7 @@ AccessCheck::isChrome(JSObject *obj)
 bool
 AccessCheck::callerIsChrome()
 {
-    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+    nsIScriptSecurityManager* ssm = XPCWrapper::GetSecurityManager();
     if (!ssm)
         return false;
     bool subjectIsSystem;
@@ -100,8 +100,8 @@ AccessCheck::callerIsChrome()
     return NS_SUCCEEDED(rv) && subjectIsSystem;
 }
 
-nsIPrincipal *
-AccessCheck::getPrincipal(JSCompartment *compartment)
+nsIPrincipal*
+AccessCheck::getPrincipal(JSCompartment* compartment)
 {
     return GetCompartmentPrincipal(compartment);
 }
@@ -117,10 +117,10 @@ AccessCheck::getPrincipal(JSCompartment *compartment)
 // preferences file (all.js). We don't want users to overwrite highly sensitive
 // security policies.
 static bool
-IsPermitted(const char *name, JSFlatString *prop, bool set)
+IsPermitted(const char* name, JSFlatString* prop, bool set)
 {
     size_t propLength;
-    const jschar *propChars =
+    const jschar* propChars =
         JS_GetInternedStringCharsAndLength(JS_FORGET_STRING_FLATNESS(prop), &propLength);
     if (!propLength)
         return false;
@@ -142,14 +142,14 @@ IsPermitted(const char *name, JSFlatString *prop, bool set)
 #undef W
 
 static bool
-IsFrameId(JSContext *cx, JSObject *objArg, jsid idArg)
+IsFrameId(JSContext* cx, JSObject* objArg, jsid idArg)
 {
     RootedObject obj(cx, objArg);
     RootedId id(cx, idArg);
 
     obj = JS_ObjectToInnerObject(cx, obj);
     MOZ_ASSERT(!js::IsWrapper(obj));
-    XPCWrappedNative *wn = IS_WN_REFLECTOR(obj) ? XPCWrappedNative::Get(obj)
+    XPCWrappedNative* wn = IS_WN_REFLECTOR(obj) ? XPCWrappedNative::Get(obj)
                                                 : nullptr;
     if (!wn) {
         return false;
@@ -179,13 +179,13 @@ IsFrameId(JSContext *cx, JSObject *objArg, jsid idArg)
 }
 
 static bool
-IsWindow(const char *name)
+IsWindow(const char* name)
 {
     return name[0] == 'W' && !strcmp(name, "Window");
 }
 
 bool
-AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, jsid idArg,
+AccessCheck::isCrossOriginAccessPermitted(JSContext* cx, JSObject* wrapperArg, jsid idArg,
                                           Wrapper::Action act)
 {
     if (!XPCWrapper::GetSecurityManager())
@@ -203,8 +203,8 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
     if (act == Wrapper::ENUMERATE)
         return false;
 
-    const char *name;
-    const js::Class *clasp = js::GetObjectClass(obj);
+    const char* name;
+    const js::Class* clasp = js::GetObjectClass(obj);
     MOZ_ASSERT(!XrayUtils::IsXPCWNHolderClass(Jsvalify(clasp)), "shouldn't have a holder here");
     if (clasp->ext.innerObject)
         name = "Window";
@@ -236,7 +236,7 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
 }
 
 bool
-AccessCheck::needsSystemOnlyWrapper(JSObject *obj)
+AccessCheck::needsSystemOnlyWrapper(JSObject* obj)
 {
     JSObject* wrapper = obj;
     if (dom::GetSameCompartmentWrapperForDOMBinding(wrapper))
@@ -247,14 +247,14 @@ AccessCheck::needsSystemOnlyWrapper(JSObject *obj)
 enum Access { READ = (1<<0), WRITE = (1<<1), NO_ACCESS = 0 };
 
 static void
-EnterAndThrow(JSContext *cx, JSObject *wrapper, const char *msg)
+EnterAndThrow(JSContext* cx, JSObject* wrapper, const char* msg)
 {
     JSAutoCompartment ac(cx, wrapper);
     JS_ReportError(cx, msg);
 }
 
 bool
-ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapperArg, jsid idArg, Wrapper::Action act)
+ExposedPropertiesOnly::check(JSContext* cx, JSObject* wrapperArg, jsid idArg, Wrapper::Action act)
 {
     RootedObject wrapper(cx, wrapperArg);
     RootedId id(cx, idArg);
@@ -324,9 +324,9 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapperArg, jsid idArg, Wr
         return false;
     }
 
-    JSString *str = desc.value().toString();
+    JSString* str = desc.value().toString();
     size_t length;
-    const jschar *chars = JS_GetStringCharsAndLength(cx, str, &length);
+    const jschar* chars = JS_GetStringCharsAndLength(cx, str, &length);
     if (!chars)
         return false;
 
@@ -368,7 +368,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapperArg, jsid idArg, Wr
 }
 
 bool
-ExposedPropertiesOnly::allowNativeCall(JSContext *cx, JS::IsAcceptableThis test,
+ExposedPropertiesOnly::allowNativeCall(JSContext* cx, JS::IsAcceptableThis test,
                                        JS::NativeImpl impl)
 {
     return js::IsReadOnlyDateMethod(test, impl) || js::IsTypedArrayThisCheck(test);

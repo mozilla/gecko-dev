@@ -39,8 +39,8 @@ using namespace mozilla;
 
 class MOZ_STACK_CLASS LoadSubScriptOptions : public OptionsBase {
 public:
-    LoadSubScriptOptions(JSContext *cx = xpc_GetSafeJSContext(),
-                         JSObject *options = nullptr)
+    LoadSubScriptOptions(JSContext* cx = xpc_GetSafeJSContext(),
+                         JSObject* options = nullptr)
         : OptionsBase(cx, options)
         , target(cx)
         , charset(NullString())
@@ -88,7 +88,7 @@ mozJSSubScriptLoader::~mozJSSubScriptLoader()
 NS_IMPL_ISUPPORTS1(mozJSSubScriptLoader, mozIJSSubScriptLoader)
 
 static nsresult
-ReportError(JSContext *cx, const char *msg)
+ReportError(JSContext* cx, const char* msg)
 {
     RootedValue exn(cx, JS::StringValue(JS_NewStringCopyZ(cx, msg)));
     JS_SetPendingException(cx, exn);
@@ -96,11 +96,11 @@ ReportError(JSContext *cx, const char *msg)
 }
 
 nsresult
-mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObjArg,
-                                 const nsAString &charset, const char *uriStr,
-                                 nsIIOService *serv, nsIPrincipal *principal,
-                                 bool reuseGlobal, JSScript **scriptp,
-                                 JSFunction **functionp)
+mozJSSubScriptLoader::ReadScript(nsIURI* uri, JSContext* cx, JSObject* targetObjArg,
+                                 const nsAString& charset, const char* uriStr,
+                                 nsIIOService* serv, nsIPrincipal* principal,
+                                 bool reuseGlobal, JSScript** scriptp,
+                                 JSFunction** functionp)
 {
     RootedObject target_obj(cx, targetObjArg);
 
@@ -183,10 +183,10 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
 }
 
 NS_IMETHODIMP
-mozJSSubScriptLoader::LoadSubScript(const nsAString &url,
+mozJSSubScriptLoader::LoadSubScript(const nsAString& url,
                                     HandleValue target,
-                                    const nsAString &charset,
-                                    JSContext *cx,
+                                    const nsAString& charset,
+                                    JSContext* cx,
                                     MutableHandleValue retval)
 {
     /*
@@ -208,9 +208,9 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString &url,
 
 
 NS_IMETHODIMP
-mozJSSubScriptLoader::LoadSubScriptWithOptions(const nsAString &url,
+mozJSSubScriptLoader::LoadSubScriptWithOptions(const nsAString& url,
                                                HandleValue optionsVal,
-                                               JSContext *cx,
+                                               JSContext* cx,
                                                MutableHandleValue retval)
 {
     if (!optionsVal.isObject())
@@ -222,9 +222,9 @@ mozJSSubScriptLoader::LoadSubScriptWithOptions(const nsAString &url,
 }
 
 nsresult
-mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
-                                                 LoadSubScriptOptions &options,
-                                                 JSContext *cx,
+mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString& url,
+                                                 LoadSubScriptOptions& options,
+                                                 JSContext* cx,
                                                  MutableHandleValue retval)
 {
     nsresult rv = NS_OK;
@@ -242,7 +242,7 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
     }
 
     RootedObject targetObj(cx);
-    mozJSComponentLoader *loader = mozJSComponentLoader::Get();
+    mozJSComponentLoader* loader = mozJSComponentLoader::Get();
     rv = loader->FindTargetObject(cx, &targetObj);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -391,7 +391,7 @@ public:
     virtual ~ScriptPrecompiler()
     {}
 
-    static void OffThreadCallback(void *aToken, void *aData);
+    static void OffThreadCallback(void* aToken, void* aData);
 
     /* Sends the "done" notification back. Main thread only. */
     void SendObserverNotification();
@@ -455,7 +455,7 @@ NotifyPrecompilationCompleteRunnable::Run(void)
     AutoSendObserverNotification notifier(mPrecompiler);
 
     if (mToken) {
-        JSRuntime *rt = XPCJSRuntime::Get()->Runtime();
+        JSRuntime* rt = XPCJSRuntime::Get()->Runtime();
         NS_ENSURE_TRUE(rt, NS_ERROR_FAILURE);
         JS::FinishOffThreadScript(nullptr, rt, mToken);
     }
@@ -557,7 +557,7 @@ ScriptPrecompiler::SendObserverNotification()
 NS_IMETHODIMP
 mozJSSubScriptLoader::PrecompileScript(nsIURI* aURI,
                                        nsIPrincipal* aPrincipal,
-                                       nsIObserver *aObserver)
+                                       nsIObserver* aObserver)
 {
     nsCOMPtr<nsIChannel> channel;
     nsresult rv = NS_NewChannel(getter_AddRefs(channel),

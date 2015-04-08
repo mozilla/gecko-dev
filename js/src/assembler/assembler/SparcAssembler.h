@@ -957,7 +957,7 @@ namespace JSC {
         // General helpers
 
         size_t size() const { return m_buffer.size(); }
-        unsigned char *buffer() const { return m_buffer.buffer(); }
+        unsigned char* buffer() const { return m_buffer.buffer(); }
 
         static int getDifferenceBetweenLabels(JmpDst src, JmpDst dst)
         {
@@ -993,7 +993,7 @@ namespace JSC {
             return reinterpret_cast<void*>(reinterpret_cast<ptrdiff_t>(code) + destination.m_offset);
         }
 
-        void* executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool **poolp, CodeKind kind)
+        void* executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool** poolp, CodeKind kind)
         {
             return m_buffer.executableAllocAndCopy(allocator, poolp, kind);
         }
@@ -1006,7 +1006,7 @@ namespace JSC {
         static void patchPointerInternal(void* where, int value)
         {
             // Patch move_nocheck.
-            uint32_t *branch = (uint32_t*) where;
+            uint32_t* branch = (uint32_t*) where;
             branch[0] &= 0xFFC00000;
             branch[0] |= (value >> 10) & 0x3FFFFF;
             branch[1] &= 0xFFFFFC00;
@@ -1016,7 +1016,7 @@ namespace JSC {
 
         static void patchbranch(void* where, int value)
         {
-            uint32_t *branch = (uint32_t*) where;
+            uint32_t* branch = (uint32_t*) where;
             branch[0] &= 0xFFC00000;
             branch[0] |= value & 0x3FFFFF;
             ExecutableAllocator::cacheFlush(where, 4);
@@ -1029,7 +1029,7 @@ namespace JSC {
 
         static void relinkJump(void* from, void* to)
         {
-            from = (void *)((int)from - 36);
+            from = (void*)((int)from - 36);
             js::JaegerSpew(js::JSpew_Insns,
                            ISPFX "##link     ((%p)) jumps to ((%p))\n",
                            from, to);
@@ -1039,7 +1039,7 @@ namespace JSC {
                 patchbranch(from, value);
             else {
                 patchbranch(from, 4);
-                from = (void *)((intptr_t)from + 16);
+                from = (void*)((intptr_t)from + 16);
                 patchPointerInternal(from, (int)(value * 4 - 24));
             }
         }
@@ -1049,15 +1049,15 @@ namespace JSC {
             ASSERT(from.m_offset != -1);
             ASSERT(to.m_offset != -1);
             intptr_t code = (intptr_t)(m_buffer.data());
-            void *where = (void *)((intptr_t)code + from.m_offset);
-            void *target = (void *)((intptr_t)code + to.m_offset);
+            void* where = (void*)((intptr_t)code + from.m_offset);
+            void* target = (void*)((intptr_t)code + to.m_offset);
             relinkJump(where, target);
         }
 
         static void linkJump(void* code, JmpSrc from, void* to)
         {
             ASSERT(from.m_offset != -1);
-            void *where = (void *)((intptr_t)code + from.m_offset);
+            void* where = (void*)((intptr_t)code + from.m_offset);
             relinkJump(where, to);
         }
 
@@ -1067,20 +1067,20 @@ namespace JSC {
                            ISPFX "##relinkCall ((from=%p)) ((to=%p))\n",
                            from, to);
 
-            void * where= (void *)((intptr_t)from - 20);
+            void * where= (void*)((intptr_t)from - 20);
             patchPointerInternal(where, (int)to);
             ExecutableAllocator::cacheFlush(where, 8);
         }
 
         static void linkCall(void* code, JmpSrc where, void* to)
         {
-            void *from = (void *)((intptr_t)code + where.m_offset);
+            void* from = (void*)((intptr_t)code + where.m_offset);
             js::JaegerSpew(js::JSpew_Insns,
                            ISPFX "##linkCall ((from=%p)) ((to=%p))\n",
                            from, to);
             int disp = ((int)to - (int)from)/4;
-            *(uint32_t *)((int)from) &= 0x40000000;
-            *(uint32_t *)((int)from) |= disp & 0x3fffffff;
+            *(uint32_t*)((int)from) &= 0x40000000;
+            *(uint32_t*)((int)from) |= disp & 0x3fffffff;
             ExecutableAllocator::cacheFlush(from, 4);
         }
 
@@ -1090,7 +1090,7 @@ namespace JSC {
                            ISPFX "##linkPointer     ((%p + %#x)) points to ((%p))\n",
                            code, where.m_offset, value);
 
-            void *from = (void *)((intptr_t)code + where.m_offset);
+            void* from = (void*)((intptr_t)code + where.m_offset);
             patchPointerInternal(from, (int)value);
         }
 
@@ -1115,22 +1115,22 @@ namespace JSC {
         static void repatchLoadPtrToLEA(void* where)
         {
             // sethi is used. The offset is in a register
-            if (*(uint32_t *)((int)where) & 0x01000000)
-                where = (void *)((intptr_t)where + 8);
+            if (*(uint32_t*)((int)where) & 0x01000000)
+                where = (void*)((intptr_t)where + 8);
 
-            *(uint32_t *)((int)where) &= 0x3fffffff;
-            *(uint32_t *)((int)where) |= 0x80000000;
+            *(uint32_t*)((int)where) &= 0x3fffffff;
+            *(uint32_t*)((int)where) |= 0x80000000;
             ExecutableAllocator::cacheFlush(where, 4);
         }
 
         static void repatchLEAToLoadPtr(void* where)
         {
             // sethi is used. The offset is in a register
-            if (*(uint32_t *)((int)where) & 0x01000000)
-                where = (void *)((intptr_t)where + 8);
+            if (*(uint32_t*)((int)where) & 0x01000000)
+                where = (void*)((intptr_t)where + 8);
 
-            *(uint32_t *)((int)where) &= 0x3fffffff;
-            *(uint32_t *)((int)where) |= 0xc0000000;
+            *(uint32_t*)((int)where) &= 0x3fffffff;
+            *(uint32_t*)((int)where) |= 0xc0000000;
             ExecutableAllocator::cacheFlush(where, 4);
         }
 

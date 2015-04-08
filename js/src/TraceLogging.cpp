@@ -148,7 +148,7 @@ TraceLogging::log(Type type, const char* text /* = nullptr */, unsigned int numb
     }
 
     uint32_t textId = 0;
-    char *text_ = nullptr;
+    char* text_ = nullptr;
 
     if (text) {
         TextHashMap::AddPtr p = textMap.lookupForAdd(text);
@@ -173,7 +173,7 @@ TraceLogging::log(Type type, const char* text /* = nullptr */, unsigned int numb
 }
 
 void
-TraceLogging::log(Type type, const JS::ReadOnlyCompileOptions &options)
+TraceLogging::log(Type type, const JS::ReadOnlyCompileOptions& options)
 {
     this->log(type, options.filename(), options.lineno);
 }

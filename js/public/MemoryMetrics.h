@@ -72,16 +72,16 @@ JS_FRIEND_API(size_t) MemoryReportingSundriesThreshold();
 // on every hash and match! Beware.
 struct InefficientNonFlatteningStringHashPolicy
 {
-    typedef JSString *Lookup;
-    static HashNumber hash(const Lookup &l);
-    static bool match(const JSString *const &k, const Lookup &l);
+    typedef JSString* Lookup;
+    static HashNumber hash(const Lookup& l);
+    static bool match(const JSString* const& k, const Lookup& l);
 };
 
 struct CStringHashPolicy
 {
-    typedef const char *Lookup;
-    static HashNumber hash(const Lookup &l);
-    static bool match(const char *const &k, const Lookup &l);
+    typedef const char* Lookup;
+    static HashNumber hash(const Lookup& l);
+    static bool match(const char* const& k, const Lookup& l);
 };
 
 // This file features many classes with numerous size_t fields, and each such
@@ -135,7 +135,7 @@ struct ObjectsExtraSizes
         dummy()
     {}
 
-    void add(const ObjectsExtraSizes &other) {
+    void add(const ObjectsExtraSizes& other) {
         FOR_EACH_SIZE(ADD_OTHER_SIZE)
     }
 
@@ -145,7 +145,7 @@ struct ObjectsExtraSizes
         return n;
     }
 
-    void addToTabSizes(TabSizes *sizes) const {
+    void addToTabSizes(TabSizes* sizes) const {
         FOR_EACH_SIZE(ADD_TO_TAB_SIZES)
     }
 
@@ -217,12 +217,12 @@ struct StringInfo
         numCopies(0)
     {}
 
-    void add(const StringInfo &other) {
+    void add(const StringInfo& other) {
         FOR_EACH_SIZE(ADD_OTHER_SIZE);
         numCopies++;
     }
 
-    void subtract(const StringInfo &other) {
+    void subtract(const StringInfo& other) {
         FOR_EACH_SIZE(SUB_OTHER_SIZE);
         numCopies--;
     }
@@ -240,7 +240,7 @@ struct StringInfo
         return n;
     }
 
-    void addToTabSizes(TabSizes *sizes) const {
+    void addToTabSizes(TabSizes* sizes) const {
         FOR_EACH_SIZE(ADD_TO_TAB_SIZES)
     }
 
@@ -260,15 +260,15 @@ struct NotableStringInfo : public StringInfo
     static const size_t MAX_SAVED_CHARS = 1024;
 
     NotableStringInfo();
-    NotableStringInfo(JSString *str, const StringInfo &info);
-    NotableStringInfo(NotableStringInfo &&info);
-    NotableStringInfo &operator=(NotableStringInfo &&info);
+    NotableStringInfo(JSString* str, const StringInfo& info);
+    NotableStringInfo(NotableStringInfo&& info);
+    NotableStringInfo& operator=(NotableStringInfo&& info);
 
     ~NotableStringInfo() {
         js_free(buffer);
     }
 
-    char *buffer;
+    char* buffer;
     size_t length;
 
   private:
@@ -289,12 +289,12 @@ struct ScriptSourceInfo
         numScripts(0)
     {}
 
-    void add(const ScriptSourceInfo &other) {
+    void add(const ScriptSourceInfo& other) {
         FOR_EACH_SIZE(ADD_OTHER_SIZE)
         numScripts++;
     }
 
-    void subtract(const ScriptSourceInfo &other) {
+    void subtract(const ScriptSourceInfo& other) {
         FOR_EACH_SIZE(SUB_OTHER_SIZE)
         numScripts--;
     }
@@ -322,15 +322,15 @@ struct ScriptSourceInfo
 struct NotableScriptSourceInfo : public ScriptSourceInfo
 {
     NotableScriptSourceInfo();
-    NotableScriptSourceInfo(const char *filename, const ScriptSourceInfo &info);
-    NotableScriptSourceInfo(NotableScriptSourceInfo &&info);
-    NotableScriptSourceInfo &operator=(NotableScriptSourceInfo &&info);
+    NotableScriptSourceInfo(const char* filename, const ScriptSourceInfo& info);
+    NotableScriptSourceInfo(NotableScriptSourceInfo&& info);
+    NotableScriptSourceInfo& operator=(NotableScriptSourceInfo&& info);
 
     ~NotableScriptSourceInfo() {
         js_free(filename_);
     }
 
-    char *filename_;
+    char* filename_;
 
   private:
     NotableScriptSourceInfo(const NotableScriptSourceInfo& info) MOZ_DELETE;
@@ -388,7 +388,7 @@ struct RuntimeSizes
     // it is filled with info about every script source in the runtime.  It's
     // then used to fill in |notableScriptSources| (which actually gets
     // reported), and immediately discarded afterwards.
-    ScriptSourcesHashMap *allScriptSources;
+    ScriptSourcesHashMap* allScriptSources;
     js::Vector<NotableScriptSourceInfo, 0, js::SystemAllocPolicy> notableScriptSources;
 
 #undef FOR_EACH_SIZE
@@ -416,7 +416,7 @@ struct ZoneStats
         isTotals(true)
     {}
 
-    ZoneStats(ZoneStats &&other)
+    ZoneStats(ZoneStats&& other)
       : FOR_EACH_SIZE(COPY_OTHER_SIZE)
         stringInfo(mozilla::Move(other.stringInfo)),
         extra(other.extra),
@@ -435,9 +435,9 @@ struct ZoneStats
         js_delete(allStrings);
     }
 
-    bool initStrings(JSRuntime *rt);
+    bool initStrings(JSRuntime* rt);
 
-    void addSizes(const ZoneStats &other) {
+    void addSizes(const ZoneStats& other) {
         MOZ_ASSERT(isTotals);
         FOR_EACH_SIZE(ADD_OTHER_SIZE)
         stringInfo.add(other.stringInfo);
@@ -451,7 +451,7 @@ struct ZoneStats
         return n;
     }
 
-    void addToTabSizes(JS::TabSizes *sizes) const {
+    void addToTabSizes(JS::TabSizes* sizes) const {
         MOZ_ASSERT(isTotals);
         FOR_EACH_SIZE(ADD_TO_TAB_SIZES)
         stringInfo.addToTabSizes(sizes);
@@ -463,7 +463,7 @@ struct ZoneStats
     // |notableStrings|.
     FOR_EACH_SIZE(DECL_SIZE)
     StringInfo stringInfo;
-    void *extra;    // This field can be used by embedders.
+    void* extra;    // This field can be used by embedders.
 
     typedef js::HashMap<JSString*, StringInfo,
                         js::InefficientNonFlatteningStringHashPolicy,
@@ -473,7 +473,7 @@ struct ZoneStats
     // filled with info about every string in the zone.  It's then used to fill
     // in |notableStrings| (which actually gets reported), and immediately
     // discarded afterwards.
-    StringsHashMap *allStrings;
+    StringsHashMap* allStrings;
     js::Vector<NotableStringInfo, 0, js::SystemAllocPolicy> notableStrings;
     bool isTotals;
 
@@ -517,13 +517,13 @@ struct CompartmentStats
         extra()
     {}
 
-    CompartmentStats(const CompartmentStats &other)
+    CompartmentStats(const CompartmentStats& other)
       : FOR_EACH_SIZE(COPY_OTHER_SIZE)
         objectsExtra(other.objectsExtra),
         extra(other.extra)
     {}
 
-    void add(const CompartmentStats &other) {
+    void add(const CompartmentStats& other) {
         FOR_EACH_SIZE(ADD_OTHER_SIZE)
         objectsExtra.add(other.objectsExtra);
         // Do nothing with |extra|.
@@ -537,7 +537,7 @@ struct CompartmentStats
         return n;
     }
 
-    void addToTabSizes(TabSizes *sizes) const {
+    void addToTabSizes(TabSizes* sizes) const {
         FOR_EACH_SIZE(ADD_TO_TAB_SIZES);
         objectsExtra.addToTabSizes(sizes);
         // Do nothing with |extra|.
@@ -545,7 +545,7 @@ struct CompartmentStats
 
     FOR_EACH_SIZE(DECL_SIZE)
     ObjectsExtraSizes  objectsExtra;
-    void               *extra;  // This field can be used by embedders.
+    void*              extra;  // This field can be used by embedders.
 
 #undef FOR_EACH_SIZE
 };
@@ -604,12 +604,12 @@ struct RuntimeStats
     CompartmentStatsVector compartmentStatsVector;
     ZoneStatsVector zoneStatsVector;
 
-    ZoneStats *currZoneStats;
+    ZoneStats* currZoneStats;
 
     mozilla::MallocSizeOf mallocSizeOf_;
 
-    virtual void initExtraCompartmentStats(JSCompartment *c, CompartmentStats *cstats) = 0;
-    virtual void initExtraZoneStats(JS::Zone *zone, ZoneStats *zstats) = 0;
+    virtual void initExtraCompartmentStats(JSCompartment* c, CompartmentStats* cstats) = 0;
+    virtual void initExtraZoneStats(JS::Zone* zone, ZoneStats* zstats) = 0;
 
 #undef FOR_EACH_SIZE
 };
@@ -619,11 +619,11 @@ class ObjectPrivateVisitor
   public:
     // Within CollectRuntimeStats, this method is called for each JS object
     // that has an nsISupports pointer.
-    virtual size_t sizeOfIncludingThis(nsISupports *aSupports) = 0;
+    virtual size_t sizeOfIncludingThis(nsISupports* aSupports) = 0;
 
     // A callback that gets a JSObject's nsISupports pointer, if it has one.
     // Note: this function does *not* addref |iface|.
-    typedef bool(*GetISupportsFun)(JSObject *obj, nsISupports **iface);
+    typedef bool(*GetISupportsFun)(JSObject* obj, nsISupports** iface);
     GetISupportsFun getISupports_;
 
     ObjectPrivateVisitor(GetISupportsFun getISupports)
@@ -632,20 +632,20 @@ class ObjectPrivateVisitor
 };
 
 extern JS_PUBLIC_API(bool)
-CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisitor *opv);
+CollectRuntimeStats(JSRuntime* rt, RuntimeStats* rtStats, ObjectPrivateVisitor* opv);
 
 extern JS_PUBLIC_API(size_t)
-SystemCompartmentCount(JSRuntime *rt);
+SystemCompartmentCount(JSRuntime* rt);
 
 extern JS_PUBLIC_API(size_t)
-UserCompartmentCount(JSRuntime *rt);
+UserCompartmentCount(JSRuntime* rt);
 
 extern JS_PUBLIC_API(size_t)
-PeakSizeOfTemporary(const JSRuntime *rt);
+PeakSizeOfTemporary(const JSRuntime* rt);
 
 extern JS_PUBLIC_API(bool)
-AddSizeOfTab(JSRuntime *rt, JS::HandleObject obj, mozilla::MallocSizeOf mallocSizeOf,
-             ObjectPrivateVisitor *opv, TabSizes *sizes);
+AddSizeOfTab(JSRuntime* rt, JS::HandleObject obj, mozilla::MallocSizeOf mallocSizeOf,
+             ObjectPrivateVisitor* opv, TabSizes* sizes);
 
 } // namespace JS
 

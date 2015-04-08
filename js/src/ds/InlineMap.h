@@ -18,7 +18,7 @@ namespace js {
  * (and thus may be used as a tombstone value by InlineMap).
  */
 template <typename T> struct ZeroIsReserved         { static const bool result = false; };
-template <typename T> struct ZeroIsReserved<T *>    { static const bool result = true; };
+template <typename T> struct ZeroIsReserved<T*>    { static const bool result = true; };
 
 template <typename K, typename V, size_t InlineElems>
 class InlineMap
@@ -61,7 +61,7 @@ class InlineMap
             JS_ASSERT(map.initialized());
         }
 
-        for (InlineElem *it = inl, *end = inl + inlNext; it != end; ++it) {
+        for (InlineElem* it = inl, *end = inl + inlNext; it != end; ++it) {
             if (it->key && !map.putNew(it->key, it->value))
                 return false;
         }
@@ -73,7 +73,7 @@ class InlineMap
     }
 
     MOZ_NEVER_INLINE
-    bool switchAndAdd(const K &key, const V &value) {
+    bool switchAndAdd(const K& key, const V& value) {
         if (!switchToMap())
             return false;
 
@@ -89,14 +89,14 @@ class InlineMap
     class Entry
     {
         friend class InlineMap;
-        const K &key_;
-        V &value_;
+        const K& key_;
+        V& value_;
 
-        Entry(const K &key, V &value) : key_(key), value_(value) {}
+        Entry(const K& key, V& value) : key_(key), value_(value) {}
 
       public:
-        const K &key() { return key_; }
-        V &value() { return value_; }
+        const K& key() { return key_; }
+        V& value() { return value_; }
     }; /* class Entry */
 
     class Ptr
@@ -104,20 +104,20 @@ class InlineMap
         friend class InlineMap;
 
         WordMapPtr  mapPtr;
-        InlineElem  *inlPtr;
+        InlineElem* inlPtr;
         bool        isInlinePtr;
 
         typedef Ptr ******* ConvertibleToBool;
 
         explicit Ptr(WordMapPtr p) : mapPtr(p), isInlinePtr(false) {}
-        explicit Ptr(InlineElem *ie) : inlPtr(ie), isInlinePtr(true) {}
-        void operator==(const Ptr &other);
+        explicit Ptr(InlineElem* ie) : inlPtr(ie), isInlinePtr(true) {}
+        void operator==(const Ptr& other);
 
       public:
         /* Leaves Ptr uninitialized. */
         Ptr() {
 #ifdef DEBUG
-            inlPtr = (InlineElem *) 0xbad;
+            inlPtr = (InlineElem*) 0xbad;
             isInlinePtr = true;
 #endif
         }
@@ -132,12 +132,12 @@ class InlineMap
             return ConvertibleToBool(found());
         }
 
-        K &key() {
+        K& key() {
             JS_ASSERT(found());
             return isInlinePtr ? inlPtr->key : mapPtr->key();
         }
 
-        V &value() {
+        V& value() {
             JS_ASSERT(found());
             return isInlinePtr ? inlPtr->value : mapPtr->value();
         }
@@ -148,18 +148,18 @@ class InlineMap
         friend class InlineMap;
 
         WordMapAddPtr   mapAddPtr;
-        InlineElem      *inlAddPtr;
+        InlineElem*     inlAddPtr;
         bool            isInlinePtr;
         /* Indicates whether inlAddPtr is a found result or an add pointer. */
         bool            inlPtrFound;
 
-        AddPtr(InlineElem *ptr, bool found)
+        AddPtr(InlineElem* ptr, bool found)
           : inlAddPtr(ptr), isInlinePtr(true), inlPtrFound(found)
         {}
 
-        AddPtr(const WordMapAddPtr &p) : mapAddPtr(p), isInlinePtr(false) {}
+        AddPtr(const WordMapAddPtr& p) : mapAddPtr(p), isInlinePtr(false) {}
 
-        void operator==(const AddPtr &other);
+        void operator==(const AddPtr& other);
 
         typedef AddPtr ******* ConvertibleToBool;
 
@@ -174,7 +174,7 @@ class InlineMap
             return found() ? ConvertibleToBool(1) : ConvertibleToBool(0);
         }
 
-        V &value() {
+        V& value() {
             JS_ASSERT(found());
             if (isInlinePtr)
                 return inlAddPtr->value;
@@ -199,27 +199,27 @@ class InlineMap
         return usingMap();
     }
 
-    const WordMap &asMap() const {
+    const WordMap& asMap() const {
         JS_ASSERT(isMap());
         return map;
     }
 
-    const InlineElem *asInline() const {
+    const InlineElem* asInline() const {
         JS_ASSERT(!isMap());
         return inl;
     }
 
-    const InlineElem *inlineEnd() const {
+    const InlineElem* inlineEnd() const {
         JS_ASSERT(!isMap());
         return inl + inlNext;
     }
 
     MOZ_ALWAYS_INLINE
-    Ptr lookup(const K &key) {
+    Ptr lookup(const K& key) {
         if (usingMap())
             return Ptr(map.lookup(key));
 
-        for (InlineElem *it = inl, *end = inl + inlNext; it != end; ++it) {
+        for (InlineElem* it = inl, *end = inl + inlNext; it != end; ++it) {
             if (it->key == key)
                 return Ptr(it);
         }
@@ -228,11 +228,11 @@ class InlineMap
     }
 
     MOZ_ALWAYS_INLINE
-    AddPtr lookupForAdd(const K &key) {
+    AddPtr lookupForAdd(const K& key) {
         if (usingMap())
             return AddPtr(map.lookupForAdd(key));
 
-        for (InlineElem *it = inl, *end = inl + inlNext; it != end; ++it) {
+        for (InlineElem* it = inl, *end = inl + inlNext; it != end; ++it) {
             if (it->key == key)
                 return AddPtr(it, true);
         }
@@ -246,11 +246,11 @@ class InlineMap
     }
 
     MOZ_ALWAYS_INLINE
-    bool add(AddPtr &p, const K &key, const V &value) {
+    bool add(AddPtr& p, const K& key, const V& value) {
         JS_ASSERT(!p);
 
         if (p.isInlinePtr) {
-            InlineElem *addPtr = p.inlAddPtr;
+            InlineElem* addPtr = p.inlAddPtr;
             JS_ASSERT(addPtr == inl + inlNext);
 
             /* Switching to map mode before we add this pointer. */
@@ -270,7 +270,7 @@ class InlineMap
     }
 
     MOZ_ALWAYS_INLINE
-    bool put(const K &key, const V &value) {
+    bool put(const K& key, const V& value) {
         AddPtr p = lookupForAdd(key);
         if (p) {
             p.value() = value;
@@ -292,7 +292,7 @@ class InlineMap
         map.remove(p.mapPtr);
     }
 
-    void remove(const K &key) {
+    void remove(const K& key) {
         if (Ptr p = lookup(key))
             remove(p);
     }
@@ -302,8 +302,8 @@ class InlineMap
         friend class InlineMap;
 
         WordMapRange    mapRange;
-        InlineElem      *cur;
-        InlineElem      *end;
+        InlineElem*     cur;
+        InlineElem*     end;
         bool            isInline;
 
         explicit Range(WordMapRange r)
@@ -313,9 +313,9 @@ class InlineMap
             JS_ASSERT(!isInlineRange());
         }
 
-        Range(const InlineElem *begin, const InlineElem *end_)
-          : cur(const_cast<InlineElem *>(begin)),
-            end(const_cast<InlineElem *>(end_)),
+        Range(const InlineElem* begin, const InlineElem* end_)
+          : cur(const_cast<InlineElem*>(begin)),
+            end(const_cast<InlineElem*>(end_)),
             isInline(true) {
             advancePastNulls(cur);
             JS_ASSERT(isInlineRange());
@@ -332,8 +332,8 @@ class InlineMap
             return isInline;
         }
 
-        void advancePastNulls(InlineElem *begin) {
-            InlineElem *newCur = begin;
+        void advancePastNulls(InlineElem* begin) {
+            InlineElem* newCur = begin;
             while (newCur < end && nullptr == newCur->key)
                 ++newCur;
             JS_ASSERT(uintptr_t(newCur) <= uintptr_t(end));
@@ -345,7 +345,7 @@ class InlineMap
             advancePastNulls(cur + 1);
         }
 
-        void operator==(const Range &other);
+        void operator==(const Range& other);
 
       public:
         bool empty() const {

@@ -2688,7 +2688,7 @@ public:
         backtrack();
 
         // Link & finalize the code.
-        ExecutablePool *pool;
+        ExecutablePool* pool;
         bool ok;
         LinkBuffer linkBuffer(this, globalData->regexAllocator, &pool, &ok, REGEXP_CODE);
 

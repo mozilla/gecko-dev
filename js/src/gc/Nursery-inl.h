@@ -32,34 +32,34 @@ class RelocationOverlay
     uintptr_t magic_;
 
     /* The location |this| was moved to. */
-    Cell *newLocation_;
+    Cell* newLocation_;
 
     /* A list entry to track all relocated things. */
-    RelocationOverlay *next_;
+    RelocationOverlay* next_;
 
   public:
-    static RelocationOverlay *fromCell(Cell *cell) {
+    static RelocationOverlay* fromCell(Cell* cell) {
         JS_ASSERT(!cell->isTenured());
-        return reinterpret_cast<RelocationOverlay *>(cell);
+        return reinterpret_cast<RelocationOverlay*>(cell);
     }
 
     bool isForwarded() const {
         return magic_ == Relocated;
     }
 
-    Cell *forwardingAddress() const {
+    Cell* forwardingAddress() const {
         JS_ASSERT(isForwarded());
         return newLocation_;
     }
 
-    void forwardTo(Cell *cell) {
+    void forwardTo(Cell* cell) {
         JS_ASSERT(!isForwarded());
         magic_ = Relocated;
         newLocation_ = cell;
         next_ = nullptr;
     }
 
-    RelocationOverlay *next() const {
+    RelocationOverlay* next() const {
         return next_;
     }
 };
@@ -69,15 +69,15 @@ class RelocationOverlay
 
 template <typename T>
 MOZ_ALWAYS_INLINE bool
-js::Nursery::getForwardedPointer(T **ref)
+js::Nursery::getForwardedPointer(T** ref)
 {
     JS_ASSERT(ref);
     JS_ASSERT(isInside(*ref));
-    const gc::RelocationOverlay *overlay = reinterpret_cast<const gc::RelocationOverlay *>(*ref);
+    const gc::RelocationOverlay* overlay = reinterpret_cast<const gc::RelocationOverlay*>(*ref);
     if (!overlay->isForwarded())
         return false;
     /* This static cast from Cell* restricts T to valid (GC thing) types. */
-    *ref = static_cast<T *>(overlay->forwardingAddress());
+    *ref = static_cast<T*>(overlay->forwardingAddress());
     return true;
 }
 

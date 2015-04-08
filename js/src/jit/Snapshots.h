@@ -28,7 +28,7 @@ class Location
     Register::Code reg_;
     int32_t stackOffset_;
 
-    static Location From(const Register &reg) {
+    static Location From(const Register& reg) {
         Location loc;
         loc.reg_ = reg.code();
         loc.stackOffset_ = InvalidStackOffset;
@@ -55,10 +55,10 @@ class Location
         return stackOffset_ != InvalidStackOffset;
     }
 
-    void dump(FILE *fp) const;
+    void dump(FILE* fp) const;
 
   public:
-    bool operator==(const Location &l) const {
+    bool operator==(const Location& l) const {
         return reg_ == l.reg_ && stackOffset_ == l.stackOffset_;
     }
 };
@@ -138,20 +138,20 @@ class RValueAllocation
         int32_t value_;
     };
 
-    RValueAllocation(Mode mode, JSValueType type, const Location &loc)
+    RValueAllocation(Mode mode, JSValueType type, const Location& loc)
       : mode_(mode)
     {
         JS_ASSERT(mode == TYPED_REG || mode == TYPED_STACK);
         known_type_.type = type;
         known_type_.payload = loc;
     }
-    RValueAllocation(Mode mode, const FloatRegister &reg)
+    RValueAllocation(Mode mode, const FloatRegister& reg)
       : mode_(mode)
     {
         JS_ASSERT(mode == FLOAT32_REG || mode == DOUBLE_REG);
         fpu_ = reg.code();
     }
-    RValueAllocation(Mode mode, const Location &loc)
+    RValueAllocation(Mode mode, const Location& loc)
       : mode_(mode)
     {
         JS_ASSERT(mode == FLOAT32_STACK);
@@ -176,12 +176,12 @@ class RValueAllocation
     { }
 
     // DOUBLE_REG
-    static RValueAllocation Double(const FloatRegister &reg) {
+    static RValueAllocation Double(const FloatRegister& reg) {
         return RValueAllocation(DOUBLE_REG, reg);
     }
 
     // FLOAT32_REG or FLOAT32_STACK
-    static RValueAllocation Float32(const FloatRegister &reg) {
+    static RValueAllocation Float32(const FloatRegister& reg) {
         return RValueAllocation(FLOAT32_REG, reg);
     }
     static RValueAllocation Float32(int32_t stackIndex) {
@@ -189,7 +189,7 @@ class RValueAllocation
     }
 
     // TYPED_REG or TYPED_STACK
-    static RValueAllocation Typed(JSValueType type, const Register &reg) {
+    static RValueAllocation Typed(JSValueType type, const Register& reg) {
         JS_ASSERT(type != JSVAL_TYPE_DOUBLE &&
                   type != JSVAL_TYPE_MAGIC &&
                   type != JSVAL_TYPE_NULL &&
@@ -205,21 +205,21 @@ class RValueAllocation
 
     // UNTYPED
 #if defined(JS_NUNBOX32)
-    static RValueAllocation Untyped(const Register &type, const Register &payload) {
+    static RValueAllocation Untyped(const Register& type, const Register& payload) {
         RValueAllocation slot(UNTYPED_REG_REG);
         slot.unknown_type_.type = Location::From(type);
         slot.unknown_type_.payload = Location::From(payload);
         return slot;
     }
 
-    static RValueAllocation Untyped(const Register &type, int32_t payloadStackIndex) {
+    static RValueAllocation Untyped(const Register& type, int32_t payloadStackIndex) {
         RValueAllocation slot(UNTYPED_REG_STACK);
         slot.unknown_type_.type = Location::From(type);
         slot.unknown_type_.payload = Location::From(payloadStackIndex);
         return slot;
     }
 
-    static RValueAllocation Untyped(int32_t typeStackIndex, const Register &payload) {
+    static RValueAllocation Untyped(int32_t typeStackIndex, const Register& payload) {
         RValueAllocation slot(UNTYPED_STACK_REG);
         slot.unknown_type_.type = Location::From(typeStackIndex);
         slot.unknown_type_.payload = Location::From(payload);
@@ -234,7 +234,7 @@ class RValueAllocation
     }
 
 #elif defined(JS_PUNBOX64)
-    static RValueAllocation Untyped(const Register &value) {
+    static RValueAllocation Untyped(const Register& value) {
         RValueAllocation slot(UNTYPED_REG);
         slot.unknown_type_.value = Location::From(value);
         return slot;
@@ -265,10 +265,10 @@ class RValueAllocation
         return RValueAllocation(CONSTANT, int32_t(index));
     }
 
-    void writeHeader(CompactBufferWriter &writer, JSValueType type, uint32_t regCode) const;
+    void writeHeader(CompactBufferWriter& writer, JSValueType type, uint32_t regCode) const;
   public:
-    static RValueAllocation read(CompactBufferReader &reader);
-    void write(CompactBufferWriter &writer) const;
+    static RValueAllocation read(CompactBufferReader& reader);
+    void write(CompactBufferWriter& writer) const;
 
   public:
     Mode mode() const {
@@ -315,12 +315,12 @@ class RValueAllocation
 #endif
 
   public:
-    const char *modeToString() const;
-    void dump(FILE *fp) const;
+    const char* modeToString() const;
+    void dump(FILE* fp) const;
     void dump() const;
 
   public:
-    bool operator==(const RValueAllocation &s) const {
+    bool operator==(const RValueAllocation& s) const {
         if (mode_ != s.mode_)
             return false;
 
@@ -369,14 +369,14 @@ class SnapshotWriter
 
   public:
     SnapshotOffset startSnapshot(uint32_t frameCount, BailoutKind kind, bool resumeAfter);
-    void startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, uint32_t exprStack);
+    void startFrame(JSFunction* fun, JSScript* script, jsbytecode* pc, uint32_t exprStack);
 #ifdef TRACK_SNAPSHOTS
     void trackFrame(uint32_t pcOpcode, uint32_t mirOpcode, uint32_t mirId,
                     uint32_t lirOpcode, uint32_t lirId);
 #endif
     void endFrame();
 
-    void add(const RValueAllocation &slot);
+    void add(const RValueAllocation& slot);
 
     void endSnapshot();
 
@@ -387,7 +387,7 @@ class SnapshotWriter
     size_t size() const {
         return writer_.length();
     }
-    const uint8_t *buffer() const {
+    const uint8_t* buffer() const {
         return writer_.buffer();
     }
 };
@@ -425,7 +425,7 @@ class SnapshotReader
     void readFrameHeader();
 
   public:
-    SnapshotReader(const uint8_t *buffer, const uint8_t *end);
+    SnapshotReader(const uint8_t* buffer, const uint8_t* end);
 
     uint32_t pcOffset() const {
         return pcOffset_;

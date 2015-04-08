@@ -726,7 +726,7 @@ private:
         return consume() - '0';
     }
 
-    bool consumeNumber(unsigned &accum)
+    bool consumeNumber(unsigned& accum)
     {
         accum = consumeDigit();
         while (peekIsDigit()) {

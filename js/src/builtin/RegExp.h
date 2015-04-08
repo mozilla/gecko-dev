@@ -9,8 +9,8 @@
 
 #include "vm/RegExpObject.h"
 
-JSObject *
-js_InitRegExpClass(JSContext *cx, js::HandleObject obj);
+JSObject*
+js_InitRegExpClass(JSContext* cx, js::HandleObject obj);
 
 /*
  * The following builtin natives are extern'd for pointer comparison in
@@ -24,8 +24,8 @@ namespace js {
 enum RegExpStaticsUpdate { UpdateRegExpStatics, DontUpdateRegExpStatics };
 
 RegExpRunStatus
-ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string,
-              MatchConduit &matches, RegExpStaticsUpdate staticsUpdate);
+ExecuteRegExp(JSContext* cx, HandleObject regexp, HandleString string,
+              MatchConduit& matches, RegExpStaticsUpdate staticsUpdate);
 
 /*
  * Legacy behavior of ExecuteRegExp(), which is baked into the JSAPI.
@@ -35,26 +35,26 @@ ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string,
  * |chars| and |length|.
  */
 bool
-ExecuteRegExpLegacy(JSContext *cx, RegExpStatics *res, RegExpObject &reobj,
-                    Handle<JSLinearString*> input, const jschar *chars, size_t length,
-                    size_t *lastIndex, bool test, MutableHandleValue rval);
+ExecuteRegExpLegacy(JSContext* cx, RegExpStatics* res, RegExpObject& reobj,
+                    Handle<JSLinearString*> input, const jschar* chars, size_t length,
+                    size_t* lastIndex, bool test, MutableHandleValue rval);
 
 /* Translation from MatchPairs to a JS array in regexp_exec()'s output format. */
 bool
-CreateRegExpMatchResult(JSContext *cx, HandleString input, const MatchPairs &matches,
+CreateRegExpMatchResult(JSContext* cx, HandleString input, const MatchPairs& matches,
                         MutableHandleValue rval);
 
 extern bool
-regexp_exec_raw(JSContext *cx, HandleObject regexp, HandleString input, MutableHandleValue output);
+regexp_exec_raw(JSContext* cx, HandleObject regexp, HandleString input, MutableHandleValue output);
 
 extern bool
-regexp_exec(JSContext *cx, unsigned argc, Value *vp);
+regexp_exec(JSContext* cx, unsigned argc, Value* vp);
 
 bool
-regexp_test_raw(JSContext *cx, HandleObject regexp, HandleString input, bool *result);
+regexp_test_raw(JSContext* cx, HandleObject regexp, HandleString input, bool* result);
 
 extern bool
-regexp_test(JSContext *cx, unsigned argc, Value *vp);
+regexp_test(JSContext* cx, unsigned argc, Value* vp);
 
 /*
  * The following functions are for use by self-hosted code.
@@ -66,7 +66,7 @@ regexp_test(JSContext *cx, unsigned argc, Value *vp);
  * Usage: match = regexp_exec_no_statics(regexp, string)
  */
 extern bool
-regexp_exec_no_statics(JSContext *cx, unsigned argc, Value *vp);
+regexp_exec_no_statics(JSContext* cx, unsigned argc, Value* vp);
 
 /*
  * Behaves like regexp.test(string), but doesn't set RegExp statics.
@@ -74,7 +74,7 @@ regexp_exec_no_statics(JSContext *cx, unsigned argc, Value *vp);
  * Usage: does_match = regexp_test_no_statics(regexp, string)
  */
 extern bool
-regexp_test_no_statics(JSContext *cx, unsigned argc, Value *vp);
+regexp_test_no_statics(JSContext* cx, unsigned argc, Value* vp);
 
 } /* namespace js */
 

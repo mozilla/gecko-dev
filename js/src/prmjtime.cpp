@@ -43,7 +43,7 @@
 #ifdef XP_UNIX
 
 #ifdef _SVID_GETTOD   /* Defined only on Solaris, see Solaris <sys/types.h> */
-extern int gettimeofday(struct timeval *tv);
+extern int gettimeofday(struct timeval* tv);
 #endif
 
 #include <sys/time.h>
@@ -388,9 +388,9 @@ PRMJ_Now(void)
 
 #ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
 static void
-PRMJ_InvalidParameterHandler(const wchar_t *expression,
-                             const wchar_t *function,
-                             const wchar_t *file,
+PRMJ_InvalidParameterHandler(const wchar_t* expression,
+                             const wchar_t* function,
+                             const wchar_t* file,
                              unsigned int   line,
                              uintptr_t      pReserved)
 {
@@ -400,7 +400,7 @@ PRMJ_InvalidParameterHandler(const wchar_t *expression,
 
 /* Format a time value into a buffer. Same semantics as strftime() */
 size_t
-PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
+PRMJ_FormatTime(char* buf, int buflen, const char* fmt, PRMJTime* prtm)
 {
     size_t result = 0;
 #if defined(XP_UNIX) || defined(XP_WIN)

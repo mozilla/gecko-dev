@@ -28,8 +28,8 @@ const js::Class OuterWrapperClass =
             false   /* isWrappedNative */
         ));
 
-static JSObject *
-wrap(JSContext *cx, JS::HandleObject toWrap, JS::HandleObject target)
+static JSObject*
+wrap(JSContext* cx, JS::HandleObject toWrap, JS::HandleObject target)
 {
     JSAutoCompartment ac(cx, target);
     JS::RootedObject wrapper(cx, toWrap);
@@ -38,22 +38,22 @@ wrap(JSContext *cx, JS::HandleObject toWrap, JS::HandleObject target)
     return wrapper;
 }
 
-static JSObject *
-SameCompartmentWrap(JSContext *cx, JS::HandleObject obj)
+static JSObject*
+SameCompartmentWrap(JSContext* cx, JS::HandleObject obj)
 {
     JS_GC(JS_GetRuntime(cx));
     return obj;
 }
 
-static JSObject *
-PreWrap(JSContext *cx, JS::HandleObject scope, JS::HandleObject obj, unsigned flags)
+static JSObject*
+PreWrap(JSContext* cx, JS::HandleObject scope, JS::HandleObject obj, unsigned flags)
 {
     JS_GC(JS_GetRuntime(cx));
     return obj;
 }
 
-static JSObject *
-Wrap(JSContext *cx, JS::HandleObject existing, JS::HandleObject obj,
+static JSObject*
+Wrap(JSContext* cx, JS::HandleObject existing, JS::HandleObject obj,
      JS::HandleObject proto, JS::HandleObject parent, unsigned flags)
 {
     return js::Wrapper::New(cx, obj, parent, &js::CrossCompartmentWrapper::singleton);

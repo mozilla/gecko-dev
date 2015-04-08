@@ -26,7 +26,7 @@ using namespace js::jit;
 // Snapshot body, repeated "frame count" times, from oldest frame to newest frame.
 // Note that the first frame doesn't have the "parent PC" field.
 //
-//   [ptr] Debug only: JSScript *
+//   [ptr] Debug only: JSScript*
 //   [vwu] pc offset
 //   [vwu] # of slots, including nargs
 //  [rva*] N recover value allocations entries,
@@ -111,7 +111,7 @@ static const uint32_t ESC_REG_FIELD_FLOAT32_REG   = 28;
 static const uint32_t MIN_REG_FIELD_ESC           = 28;
 
 RValueAllocation
-RValueAllocation::read(CompactBufferReader &reader)
+RValueAllocation::read(CompactBufferReader& reader)
 {
     uint8_t b = reader.readByte();
 
@@ -202,7 +202,7 @@ RValueAllocation::read(CompactBufferReader &reader)
 }
 
 void
-RValueAllocation::writeHeader(CompactBufferWriter &writer,
+RValueAllocation::writeHeader(CompactBufferWriter& writer,
                               JSValueType type,
                               uint32_t regCode) const
 {
@@ -215,7 +215,7 @@ RValueAllocation::writeHeader(CompactBufferWriter &writer,
 }
 
 void
-RValueAllocation::write(CompactBufferWriter &writer) const
+RValueAllocation::write(CompactBufferWriter& writer) const
 {
     switch (mode()) {
       case CONSTANT: {
@@ -315,7 +315,7 @@ RValueAllocation::write(CompactBufferWriter &writer) const
 }
 
 void
-Location::dump(FILE *fp) const
+Location::dump(FILE* fp) const
 {
     if (isStackOffset())
         fprintf(fp, "stack %d", stackOffset());
@@ -323,7 +323,7 @@ Location::dump(FILE *fp) const
         fprintf(fp, "reg %s", reg().name());
 }
 
-static const char *
+static const char*
 ValTypeToString(JSValueType type)
 {
     switch (type) {
@@ -345,7 +345,7 @@ ValTypeToString(JSValueType type)
 }
 
 void
-RValueAllocation::dump(FILE *fp) const
+RValueAllocation::dump(FILE* fp) const
 {
     switch (mode()) {
       case CONSTANT:
@@ -411,7 +411,7 @@ RValueAllocation::dump(FILE *fp) const
     }
 }
 
-SnapshotReader::SnapshotReader(const uint8_t *buffer, const uint8_t *end)
+SnapshotReader::SnapshotReader(const uint8_t* buffer, const uint8_t* end)
   : reader_(buffer, end),
     allocCount_(0),
     frameCount_(0),
@@ -514,7 +514,7 @@ SnapshotWriter::startSnapshot(uint32_t frameCount, BailoutKind kind, bool resume
 }
 
 void
-SnapshotWriter::startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, uint32_t exprStack)
+SnapshotWriter::startFrame(JSFunction* fun, JSScript* script, jsbytecode* pc, uint32_t exprStack)
 {
     // Test if we honor the maximum of arguments at all times.
     // This is a sanity check and not an algorithm limit. So check might be a bit too loose.
@@ -550,7 +550,7 @@ SnapshotWriter::trackFrame(uint32_t pcOpcode, uint32_t mirOpcode, uint32_t mirId
 #endif
 
 void
-SnapshotWriter::add(const RValueAllocation &alloc)
+SnapshotWriter::add(const RValueAllocation& alloc)
 {
     if (IonSpewEnabled(IonSpew_Snapshots)) {
         IonSpewHeader(IonSpew_Snapshots);

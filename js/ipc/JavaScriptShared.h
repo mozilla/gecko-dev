@@ -23,17 +23,17 @@ class JavaScriptShared;
 class CpowIdHolder : public CpowHolder
 {
   public:
-    CpowIdHolder(JavaScriptShared *js, const InfallibleTArray<CpowEntry> &cpows)
+    CpowIdHolder(JavaScriptShared* js, const InfallibleTArray<CpowEntry>& cpows)
       : js_(js),
         cpows_(cpows)
     {
     }
 
-    bool ToObject(JSContext *cx, JS::MutableHandleObject objp);
+    bool ToObject(JSContext* cx, JS::MutableHandleObject objp);
 
   private:
-    JavaScriptShared *js_;
-    const InfallibleTArray<CpowEntry> &cpows_;
+    JavaScriptShared* js_;
+    const InfallibleTArray<CpowEntry>& cpows_;
 };
 
 // Map ids -> JSObjects
@@ -41,16 +41,16 @@ class ObjectStore
 {
     typedef js::DefaultHasher<ObjectId> TableKeyHasher;
 
-    typedef js::HashMap<ObjectId, JS::Heap<JSObject *>, TableKeyHasher, js::SystemAllocPolicy> ObjectTable;
+    typedef js::HashMap<ObjectId, JS::Heap<JSObject*>, TableKeyHasher, js::SystemAllocPolicy> ObjectTable;
 
   public:
     ObjectStore();
 
     bool init();
-    void trace(JSTracer *trc);
+    void trace(JSTracer* trc);
 
-    bool add(ObjectId id, JSObject *obj);
-    JSObject *find(ObjectId id);
+    bool add(ObjectId id, JSObject* obj);
+    JSObject* find(ObjectId id);
     void remove(ObjectId id);
 
   private:
@@ -60,24 +60,24 @@ class ObjectStore
 // Map JSObjects -> ids
 class ObjectIdCache
 {
-    typedef js::PointerHasher<JSObject *, 3> Hasher;
-    typedef js::HashMap<JSObject *, ObjectId, Hasher, js::SystemAllocPolicy> ObjectIdTable;
+    typedef js::PointerHasher<JSObject*, 3> Hasher;
+    typedef js::HashMap<JSObject*, ObjectId, Hasher, js::SystemAllocPolicy> ObjectIdTable;
 
   public:
     ObjectIdCache();
     ~ObjectIdCache();
 
     bool init();
-    void trace(JSTracer *trc);
+    void trace(JSTracer* trc);
 
-    bool add(JSContext *cx, JSObject *obj, ObjectId id);
-    ObjectId find(JSObject *obj);
-    void remove(JSObject *obj);
+    bool add(JSContext* cx, JSObject* obj, ObjectId id);
+    ObjectId find(JSObject* obj);
+    void remove(JSObject* obj);
 
   private:
-    static void keyMarkCallback(JSTracer *trc, JSObject *key, void *data);
+    static void keyMarkCallback(JSTracer* trc, JSObject* key, void* data);
 
-    ObjectIdTable *table_;
+    ObjectIdTable* table_;
 };
 
 class JavaScriptShared
@@ -88,19 +88,19 @@ class JavaScriptShared
     static const uint32_t OBJECT_EXTRA_BITS  = 1;
     static const uint32_t OBJECT_IS_CALLABLE = (1 << 0);
 
-    bool Unwrap(JSContext *cx, const InfallibleTArray<CpowEntry> &aCpows, JS::MutableHandleObject objp);
-    bool Wrap(JSContext *cx, JS::HandleObject aObj, InfallibleTArray<CpowEntry> *outCpows);
+    bool Unwrap(JSContext* cx, const InfallibleTArray<CpowEntry>& aCpows, JS::MutableHandleObject objp);
+    bool Wrap(JSContext* cx, JS::HandleObject aObj, InfallibleTArray<CpowEntry>* outCpows);
 
   protected:
-    bool toVariant(JSContext *cx, JS::HandleValue from, JSVariant *to);
-    bool toValue(JSContext *cx, const JSVariant &from, JS::MutableHandleValue to);
-    bool fromDescriptor(JSContext *cx, JS::Handle<JSPropertyDescriptor> desc, PPropertyDescriptor *out);
-    bool toDescriptor(JSContext *cx, const PPropertyDescriptor &in,
+    bool toVariant(JSContext* cx, JS::HandleValue from, JSVariant* to);
+    bool toValue(JSContext* cx, const JSVariant& from, JS::MutableHandleValue to);
+    bool fromDescriptor(JSContext* cx, JS::Handle<JSPropertyDescriptor> desc, PPropertyDescriptor* out);
+    bool toDescriptor(JSContext* cx, const PPropertyDescriptor& in,
                       JS::MutableHandle<JSPropertyDescriptor> out);
-    bool convertIdToGeckoString(JSContext *cx, JS::HandleId id, nsString *to);
-    bool convertGeckoStringToId(JSContext *cx, const nsString &from, JS::MutableHandleId id);
+    bool convertIdToGeckoString(JSContext* cx, JS::HandleId id, nsString* to);
+    bool convertGeckoStringToId(JSContext* cx, const nsString& from, JS::MutableHandleId id);
 
-    bool toValue(JSContext *cx, const JSVariant &from, jsval *to) {
+    bool toValue(JSContext* cx, const JSVariant& from, jsval* to) {
         JS::RootedValue v(cx);
         if (!toValue(cx, from, &v))
             return false;
@@ -108,10 +108,10 @@ class JavaScriptShared
         return true;
     }
 
-    virtual bool makeId(JSContext *cx, JSObject *obj, ObjectId *idp) = 0;
-    virtual JSObject *unwrap(JSContext *cx, ObjectId id) = 0;
+    virtual bool makeId(JSContext* cx, JSObject* obj, ObjectId* idp) = 0;
+    virtual JSObject* unwrap(JSContext* cx, ObjectId id) = 0;
 
-    bool unwrap(JSContext *cx, ObjectId id, JS::MutableHandle<JSObject*> objp) {
+    bool unwrap(JSContext* cx, ObjectId id, JS::MutableHandle<JSObject*> objp) {
         if (!id) {
             objp.set(nullptr);
             return true;
@@ -121,10 +121,10 @@ class JavaScriptShared
         return bool(objp.get());
     }
 
-    static void ConvertID(const nsID &from, JSIID *to);
-    static void ConvertID(const JSIID &from, nsID *to);
+    static void ConvertID(const nsID& from, JSIID* to);
+    static void ConvertID(const JSIID& from, nsID* to);
 
-    JSObject *findObject(uint32_t objId) {
+    JSObject* findObject(uint32_t objId) {
         return objects_.find(objId);
     }
 

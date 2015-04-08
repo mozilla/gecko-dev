@@ -24,7 +24,7 @@
 class xpcObjectHelper
 {
 public:
-    xpcObjectHelper(nsISupports *aObject, nsWrapperCache *aCache = nullptr)
+    xpcObjectHelper(nsISupports* aObject, nsWrapperCache* aCache = nullptr)
       : mCanonical(nullptr)
       , mObject(aObject)
       , mCache(aCache)
@@ -37,12 +37,12 @@ public:
         }
     }
 
-    nsISupports *Object()
+    nsISupports* Object()
     {
         return mObject;
     }
 
-    nsISupports *GetCanonical()
+    nsISupports* GetCanonical()
     {
         if (!mCanonical) {
             mCanonicalStrong = do_QueryInterface(mObject);
@@ -61,7 +61,7 @@ public:
         return mCanonicalStrong.forget();
     }
 
-    nsIClassInfo *GetClassInfo()
+    nsIClassInfo* GetClassInfo()
     {
         if (mXPCClassInfo)
           return mXPCClassInfo;
@@ -69,7 +69,7 @@ public:
             mClassInfo = do_QueryInterface(mObject);
         return mClassInfo;
     }
-    nsXPCClassInfo *GetXPCClassInfo()
+    nsXPCClassInfo* GetXPCClassInfo()
     {
         if (!mXPCClassInfo) {
             CallQueryInterface(mObject, getter_AddRefs(mXPCClassInfo));
@@ -101,14 +101,14 @@ public:
         return sinfo->GetScriptableFlags();
     }
 
-    nsWrapperCache *GetWrapperCache()
+    nsWrapperCache* GetWrapperCache()
     {
         return mCache;
     }
 
 protected:
-    xpcObjectHelper(nsISupports *aObject, nsISupports *aCanonical,
-                    nsWrapperCache *aCache)
+    xpcObjectHelper(nsISupports* aObject, nsISupports* aCanonical,
+                    nsWrapperCache* aCache)
       : mCanonical(aCanonical)
       , mObject(aObject)
       , mCache(aCache)

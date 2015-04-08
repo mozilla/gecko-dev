@@ -36,8 +36,8 @@ extern const JSFunctionSpec Int32x4Methods[];
 // X4
 
 #define LANE_ACCESSOR(Type32x4, lane) \
-    bool Type32x4##Lane##lane(JSContext *cx, unsigned argc, Value *vp) { \
-        static const char *laneNames[] = {"lane 0", "lane 1", "lane 2", "lane3"}; \
+    bool Type32x4##Lane##lane(JSContext* cx, unsigned argc, Value* vp) { \
+        static const char* laneNames[] = {"lane 0", "lane 1", "lane 2", "lane3"}; \
         CallArgs args = CallArgsFromVp(argc, vp); \
         if(!args.thisv().isObject() || !args.thisv().toObject().is<TypedObject>()) {        \
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO, \
@@ -45,8 +45,8 @@ extern const JSFunctionSpec Int32x4Methods[];
                                  InformalValueTypeName(args.thisv())); \
             return false; \
         } \
-        TypedObject &typedObj = args.thisv().toObject().as<TypedObject>(); \
-        TypeDescr &descr = typedObj.typeDescr(); \
+        TypedObject& typedObj = args.thisv().toObject().as<TypedObject>(); \
+        TypeDescr& descr = typedObj.typeDescr(); \
         if (descr.kind() != TypeDescr::X4 || \
             descr.as<X4TypeDescr>().type() != Type32x4::type) \
         {  \
@@ -55,7 +55,7 @@ extern const JSFunctionSpec Int32x4Methods[];
                                  InformalValueTypeName(args.thisv())); \
             return false; \
         } \
-        Type32x4::Elem *data = reinterpret_cast<Type32x4::Elem *>(typedObj.typedMem()); \
+        Type32x4::Elem* data = reinterpret_cast<Type32x4::Elem*>(typedObj.typedMem()); \
         Type32x4::setReturn(args, data[lane]); \
         return true; \
     }
@@ -70,7 +70,7 @@ extern const JSFunctionSpec Int32x4Methods[];
 #undef LANE_ACCESSOR
 
 #define SIGN_MASK(Type32x4) \
-    bool Type32x4##SignMask(JSContext *cx, unsigned argc, Value *vp) { \
+    bool Type32x4##SignMask(JSContext* cx, unsigned argc, Value* vp) { \
         CallArgs args = CallArgsFromVp(argc, vp); \
         if(!args.thisv().isObject() || !args.thisv().toObject().is<TypedObject>()) {        \
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO, \
@@ -78,8 +78,8 @@ extern const JSFunctionSpec Int32x4Methods[];
                                  InformalValueTypeName(args.thisv())); \
             return false; \
         } \
-        TypedObject &typedObj = args.thisv().toObject().as<TypedObject>(); \
-        TypeDescr &descr = typedObj.typeDescr(); \
+        TypedObject& typedObj = args.thisv().toObject().as<TypedObject>(); \
+        TypeDescr& descr = typedObj.typeDescr(); \
         if (descr.kind() != TypeDescr::X4 || \
             descr.as<X4TypeDescr>().type() != Type32x4::type) \
         { \
@@ -88,7 +88,7 @@ extern const JSFunctionSpec Int32x4Methods[];
                                  InformalValueTypeName(args.thisv())); \
             return false; \
         } \
-        Type32x4::Elem *data = reinterpret_cast<Type32x4::Elem *>(typedObj.typedMem()); \
+        Type32x4::Elem* data = reinterpret_cast<Type32x4::Elem*>(typedObj.typedMem()); \
         int32_t mx = data[0] < 0.0 ? 1 : 0; \
         int32_t my = data[1] < 0.0 ? 1 : 0; \
         int32_t mz = data[2] < 0.0 ? 1 : 0; \
@@ -179,8 +179,8 @@ const JSFunctionSpec js::Int32x4Defn::TypedObjectMethods[] = {
 };
 
 template<typename T>
-static JSObject *
-CreateX4Class(JSContext *cx, Handle<GlobalObject*> global)
+static JSObject*
+CreateX4Class(JSContext* cx, Handle<GlobalObject*> global)
 {
     RootedObject funcProto(cx, global->getOrCreateFunctionPrototype(cx));
     if (!funcProto)
@@ -228,7 +228,7 @@ CreateX4Class(JSContext *cx, Handle<GlobalObject*> global)
 }
 
 bool
-X4TypeDescr::call(JSContext *cx, unsigned argc, Value *vp)
+X4TypeDescr::call(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     const uint32_t LANES = 4;
@@ -254,7 +254,7 @@ X4TypeDescr::call(JSContext *cx, unsigned argc, Value *vp)
 #define STORE_LANES(_constant, _type, _name)                                  \
       case _constant:                                                         \
       {                                                                       \
-        _type *mem = reinterpret_cast<_type*>(result->typedMem());            \
+        _type* mem = reinterpret_cast<_type*>(result->typedMem());            \
         for (uint32_t i = 0; i < LANES; i++) {                                \
             mem[i] = ConvertScalar<_type>(values[i]);                         \
         }                                                                     \
@@ -287,8 +287,8 @@ const Class SIMDObject::class_ = {
         nullptr
 };
 
-JSObject *
-SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
+JSObject*
+SIMDObject::initClass(JSContext* cx, Handle<GlobalObject*> global)
 {
     // SIMD relies on having the TypedObject module initialized.
     // In particular, the self-hosted code for array() wants
@@ -355,43 +355,43 @@ SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
     return SIMD;
 }
 
-JSObject *
-js_InitSIMDClass(JSContext *cx, HandleObject obj)
+JSObject*
+js_InitSIMDClass(JSContext* cx, HandleObject obj)
 {
     JS_ASSERT(obj->is<GlobalObject>());
-    Rooted<GlobalObject *> global(cx, &obj->as<GlobalObject>());
+    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
     return SIMDObject::initClass(cx, global);
 }
 
 template<typename V>
 static bool
-ObjectIsVector(JSObject &obj) {
+ObjectIsVector(JSObject& obj) {
     if (!obj.is<TypedObject>())
         return false;
-    TypeDescr &typeRepr = obj.as<TypedObject>().typeDescr();
+    TypeDescr& typeRepr = obj.as<TypedObject>().typeDescr();
     if (typeRepr.kind() != TypeDescr::X4)
         return false;
     return typeRepr.as<X4TypeDescr>().type() == V::type;
 }
 
 template<typename V>
-JSObject *
-js::Create(JSContext *cx, typename V::Elem *data)
+JSObject*
+js::Create(JSContext* cx, typename V::Elem* data)
 {
     Rooted<TypeDescr*> typeDescr(cx, &V::GetTypeDescr(*cx->global()));
     JS_ASSERT(typeDescr);
 
-    Rooted<TypedObject *> result(cx, TypedObject::createZeroed(cx, typeDescr, 0));
+    Rooted<TypedObject*> result(cx, TypedObject::createZeroed(cx, typeDescr, 0));
     if (!result)
         return nullptr;
 
-    typename V::Elem *resultMem = reinterpret_cast<typename V::Elem *>(result->typedMem());
+    typename V::Elem* resultMem = reinterpret_cast<typename V::Elem*>(result->typedMem());
     memcpy(resultMem, data, sizeof(typename V::Elem) * V::lanes);
     return result;
 }
 
-template JSObject *js::Create<Float32x4>(JSContext *cx, Float32x4::Elem *data);
-template JSObject *js::Create<Int32x4>(JSContext *cx, Int32x4::Elem *data);
+template JSObject* js::Create<Float32x4>(JSContext* cx, Float32x4::Elem* data);
+template JSObject* js::Create<Int32x4>(JSContext* cx, Int32x4::Elem* data);
 
 namespace js {
 template<typename T, typename V>
@@ -522,7 +522,7 @@ struct Shuffle {
 
 template<typename V, typename Op, typename Vret>
 static bool
-Func(JSContext *cx, unsigned argc, Value *vp)
+Func(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -531,8 +531,8 @@ Func(JSContext *cx, unsigned argc, Value *vp)
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
             return false;
         }
-        typename V::Elem *val =
-            reinterpret_cast<typename V::Elem *>(
+        typename V::Elem* val =
+            reinterpret_cast<typename V::Elem*>(
                 args[0].toObject().as<TypedObject>().typedMem());
         typename Vret::Elem result[Vret::lanes];
         for (int32_t i = 0; i < Vret::lanes; i++)
@@ -553,11 +553,11 @@ Func(JSContext *cx, unsigned argc, Value *vp)
             return false;
         }
 
-        typename V::Elem *left =
-            reinterpret_cast<typename V::Elem *>(
+        typename V::Elem* left =
+            reinterpret_cast<typename V::Elem*>(
                 args[0].toObject().as<TypedObject>().typedMem());
-        typename V::Elem *right =
-            reinterpret_cast<typename V::Elem *>(
+        typename V::Elem* right =
+            reinterpret_cast<typename V::Elem*>(
                 args[1].toObject().as<TypedObject>().typedMem());
 
         typename Vret::Elem result[Vret::lanes];
@@ -578,7 +578,7 @@ Func(JSContext *cx, unsigned argc, Value *vp)
 
 template<typename V, typename OpWith, typename Vret>
 static bool
-FuncWith(JSContext *cx, unsigned argc, Value *vp)
+FuncWith(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -590,8 +590,8 @@ FuncWith(JSContext *cx, unsigned argc, Value *vp)
         return false;
     }
 
-    typename V::Elem *val =
-        reinterpret_cast<typename V::Elem *>(
+    typename V::Elem* val =
+        reinterpret_cast<typename V::Elem*>(
             args[0].toObject().as<TypedObject>().typedMem());
 
     typename Vret::Elem result[Vret::lanes];
@@ -614,7 +614,7 @@ FuncWith(JSContext *cx, unsigned argc, Value *vp)
 
 template<typename V, typename OpShuffle, typename Vret>
 static bool
-FuncShuffle(JSContext *cx, unsigned argc, Value *vp)
+FuncShuffle(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -626,8 +626,8 @@ FuncShuffle(JSContext *cx, unsigned argc, Value *vp)
             return false;
         }
 
-        typename V::Elem *val =
-            reinterpret_cast<typename V::Elem *>(
+        typename V::Elem* val =
+            reinterpret_cast<typename V::Elem*>(
                 args[0].toObject().as<TypedObject>().typedMem());
         typename Vret::Elem result[Vret::lanes];
         for (int32_t i = 0; i < Vret::lanes; i++) {
@@ -649,11 +649,11 @@ FuncShuffle(JSContext *cx, unsigned argc, Value *vp)
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
             return false;
         }
-        typename V::Elem *val1 =
-            reinterpret_cast<typename V::Elem *>(
+        typename V::Elem* val1 =
+            reinterpret_cast<typename V::Elem*>(
                 args[0].toObject().as<TypedObject>().typedMem());
-        typename V::Elem *val2 =
-            reinterpret_cast<typename V::Elem *>(
+        typename V::Elem* val2 =
+            reinterpret_cast<typename V::Elem*>(
                 args[1].toObject().as<TypedObject>().typedMem());
         typename Vret::Elem result[Vret::lanes];
         for (int32_t i = 0; i < Vret::lanes; i++) {
@@ -679,7 +679,7 @@ FuncShuffle(JSContext *cx, unsigned argc, Value *vp)
 
 template<typename V, typename Vret>
 static bool
-FuncConvert(JSContext *cx, unsigned argc, Value *vp)
+FuncConvert(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -689,8 +689,8 @@ FuncConvert(JSContext *cx, unsigned argc, Value *vp)
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
         return false;
     }
-    typename V::Elem *val =
-        reinterpret_cast<typename V::Elem *>(
+    typename V::Elem* val =
+        reinterpret_cast<typename V::Elem*>(
             args[0].toObject().as<TypedObject>().typedMem());
     typename Vret::Elem result[Vret::lanes];
     for (int32_t i = 0; i < Vret::lanes; i++)
@@ -706,7 +706,7 @@ FuncConvert(JSContext *cx, unsigned argc, Value *vp)
 
 template<typename V, typename Vret>
 static bool
-FuncConvertBits(JSContext *cx, unsigned argc, Value *vp)
+FuncConvertBits(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -716,8 +716,8 @@ FuncConvertBits(JSContext *cx, unsigned argc, Value *vp)
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
         return false;
     }
-    typename Vret::Elem *val =
-        reinterpret_cast<typename Vret::Elem *>(
+    typename Vret::Elem* val =
+        reinterpret_cast<typename Vret::Elem*>(
             args[0].toObject().as<TypedObject>().typedMem());
 
     RootedObject obj(cx, Create<Vret>(cx, val));
@@ -730,7 +730,7 @@ FuncConvertBits(JSContext *cx, unsigned argc, Value *vp)
 
 template<typename Vret>
 static bool
-FuncZero(JSContext *cx, unsigned argc, Value *vp)
+FuncZero(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -752,7 +752,7 @@ FuncZero(JSContext *cx, unsigned argc, Value *vp)
 
 template<typename Vret>
 static bool
-FuncSplat(JSContext *cx, unsigned argc, Value *vp)
+FuncSplat(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -776,7 +776,7 @@ FuncSplat(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-Int32x4Bool(JSContext *cx, unsigned argc, Value *vp)
+Int32x4Bool(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -800,7 +800,7 @@ Int32x4Bool(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-Float32x4Clamp(JSContext *cx, unsigned argc, Value *vp)
+Float32x4Clamp(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -812,11 +812,11 @@ Float32x4Clamp(JSContext *cx, unsigned argc, Value *vp)
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
         return false;
     }
-    float *val = reinterpret_cast<float *>(
+    float* val = reinterpret_cast<float*>(
         args[0].toObject().as<TypedObject>().typedMem());
-    float *lowerLimit = reinterpret_cast<float *>(
+    float* lowerLimit = reinterpret_cast<float*>(
         args[1].toObject().as<TypedObject>().typedMem());
-    float *upperLimit = reinterpret_cast<float *>(
+    float* upperLimit = reinterpret_cast<float*>(
         args[2].toObject().as<TypedObject>().typedMem());
 
     float result[Float32x4::lanes];
@@ -837,7 +837,7 @@ Float32x4Clamp(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-Int32x4Select(JSContext *cx, unsigned argc, Value *vp)
+Int32x4Select(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -849,11 +849,11 @@ Int32x4Select(JSContext *cx, unsigned argc, Value *vp)
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
         return false;
     }
-    int32_t *val = reinterpret_cast<int32_t *>(
+    int32_t* val = reinterpret_cast<int32_t*>(
         args[0].toObject().as<TypedObject>().typedMem());
-    int32_t *tv = reinterpret_cast<int32_t *>(
+    int32_t* tv = reinterpret_cast<int32_t*>(
         args[1].toObject().as<TypedObject>().typedMem());
-    int32_t *fv = reinterpret_cast<int32_t *>(
+    int32_t* fv = reinterpret_cast<int32_t*>(
         args[2].toObject().as<TypedObject>().typedMem());
     int32_t tr[Int32x4::lanes];
     for (int32_t i = 0; i < Int32x4::lanes; i++)
@@ -864,8 +864,8 @@ Int32x4Select(JSContext *cx, unsigned argc, Value *vp)
     int32_t orInt[Int32x4::lanes];
     for (int32_t i = 0; i < Int32x4::lanes; i++)
         orInt[i] = Or<int32_t, Int32x4>::apply(tr[i], fr[i]);
-    float *result[Float32x4::lanes];
-    *result = reinterpret_cast<float *>(&orInt);
+    float* result[Float32x4::lanes];
+    *result = reinterpret_cast<float*>(&orInt);
     RootedObject obj(cx, Create<Float32x4>(cx, *result));
     if (!obj)
         return false;
@@ -876,7 +876,7 @@ Int32x4Select(JSContext *cx, unsigned argc, Value *vp)
 
 #define DEFINE_SIMD_FLOAT32X4_FUNCTION(Name, Func, Operands, Flags, MIRId)     \
 bool                                                                           \
-js::simd_float32x4_##Name(JSContext *cx, unsigned argc, Value *vp)             \
+js::simd_float32x4_##Name(JSContext* cx, unsigned argc, Value* vp)             \
 {                                                                              \
     return Func(cx, argc, vp);                                                 \
 }
@@ -885,7 +885,7 @@ FLOAT32X4_FUNCTION_LIST(DEFINE_SIMD_FLOAT32X4_FUNCTION)
 
 #define DEFINE_SIMD_INT32X4_FUNCTION(Name, Func, Operands, Flags, MIRId)       \
 bool                                                                           \
-js::simd_int32x4_##Name(JSContext *cx, unsigned argc, Value *vp)               \
+js::simd_int32x4_##Name(JSContext* cx, unsigned argc, Value* vp)               \
 {                                                                              \
     return Func(cx, argc, vp);                                                 \
 }

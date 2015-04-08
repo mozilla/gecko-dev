@@ -33,12 +33,12 @@ template <typename T> class TenuredHeap;
 // of its mappings. This should be used in cases where the tracer
 // wants to use the existing liveness of entries.
 typedef void
-(* JSTraceCallback)(JSTracer *trc, void **thingp, JSGCTraceKind kind);
+(* JSTraceCallback)(JSTracer* trc, void** thingp, JSGCTraceKind kind);
 
 // Callback that JSTraceOp implementation can provide to return a string
 // describing the reference traced with JS_CallTracer.
 typedef void
-(* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
+(* JSTraceNamePrinter)(JSTracer* trc, char* buf, size_t bufsize);
 
 enum WeakMapTraceKind {
     DoNotTraceWeakMaps = 0,
@@ -47,14 +47,14 @@ enum WeakMapTraceKind {
 };
 
 struct JSTracer {
-    JSRuntime           *runtime;
+    JSRuntime*          runtime;
     JSTraceCallback     callback;
     JSTraceNamePrinter  debugPrinter;
-    const void          *debugPrintArg;
+    const void*         debugPrintArg;
     size_t              debugPrintIndex;
     WeakMapTraceKind    eagerlyTraceWeakMaps;
 #ifdef JS_GC_ZEAL
-    void                *realLocation;
+    void*               realLocation;
 #endif
 };
 
@@ -128,44 +128,44 @@ struct JSTracer {
 // and re-inserted with the correct hash.
 //
 extern JS_PUBLIC_API(void)
-JS_CallValueTracer(JSTracer *trc, JS::Value *valuep, const char *name);
+JS_CallValueTracer(JSTracer* trc, JS::Value* valuep, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallIdTracer(JSTracer *trc, jsid *idp, const char *name);
+JS_CallIdTracer(JSTracer* trc, jsid* idp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallObjectTracer(JSTracer *trc, JSObject **objp, const char *name);
+JS_CallObjectTracer(JSTracer* trc, JSObject** objp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallStringTracer(JSTracer *trc, JSString **strp, const char *name);
+JS_CallStringTracer(JSTracer* trc, JSString** strp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallScriptTracer(JSTracer *trc, JSScript **scriptp, const char *name);
+JS_CallScriptTracer(JSTracer* trc, JSScript** scriptp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapValueTracer(JSTracer *trc, JS::Heap<JS::Value> *valuep, const char *name);
+JS_CallHeapValueTracer(JSTracer* trc, JS::Heap<JS::Value>* valuep, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapIdTracer(JSTracer *trc, JS::Heap<jsid> *idp, const char *name);
+JS_CallHeapIdTracer(JSTracer* trc, JS::Heap<jsid>* idp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapObjectTracer(JSTracer *trc, JS::Heap<JSObject *> *objp, const char *name);
+JS_CallHeapObjectTracer(JSTracer* trc, JS::Heap<JSObject*>* objp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapStringTracer(JSTracer *trc, JS::Heap<JSString *> *strp, const char *name);
+JS_CallHeapStringTracer(JSTracer* trc, JS::Heap<JSString*>* strp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapScriptTracer(JSTracer *trc, JS::Heap<JSScript *> *scriptp, const char *name);
+JS_CallHeapScriptTracer(JSTracer* trc, JS::Heap<JSScript*>* scriptp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapFunctionTracer(JSTracer *trc, JS::Heap<JSFunction *> *funp, const char *name);
+JS_CallHeapFunctionTracer(JSTracer* trc, JS::Heap<JSFunction*>* funp, const char* name);
 
 template <typename HashSetEnum>
 inline void
-JS_CallHashSetObjectTracer(JSTracer *trc, HashSetEnum &e, JSObject *const &key, const char *name)
+JS_CallHashSetObjectTracer(JSTracer* trc, HashSetEnum& e, JSObject* const& key, const char* name)
 {
-    JSObject *updated = key;
-    JS_SET_TRACING_LOCATION(trc, reinterpret_cast<void *>(&const_cast<JSObject *&>(key)));
+    JSObject* updated = key;
+    JS_SET_TRACING_LOCATION(trc, reinterpret_cast<void*>(&const_cast<JSObject*&>(key)));
     JS_CallObjectTracer(trc, &updated, name);
     if (updated != key)
         e.rekeyFront(key, updated);
@@ -174,23 +174,23 @@ JS_CallHashSetObjectTracer(JSTracer *trc, HashSetEnum &e, JSObject *const &key, 
 // Trace an object that is known to always be tenured.  No post barriers are
 // required in this case.
 extern JS_PUBLIC_API(void)
-JS_CallTenuredObjectTracer(JSTracer *trc, JS::TenuredHeap<JSObject *> *objp, const char *name);
+JS_CallTenuredObjectTracer(JSTracer* trc, JS::TenuredHeap<JSObject*>* objp, const char* name);
 
 // API for JSTraceCallback implementations.
 extern JS_PUBLIC_API(void)
-JS_TracerInit(JSTracer *trc, JSRuntime *rt, JSTraceCallback callback);
+JS_TracerInit(JSTracer* trc, JSRuntime* rt, JSTraceCallback callback);
 
 extern JS_PUBLIC_API(void)
-JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
+JS_TraceChildren(JSTracer* trc, void* thing, JSGCTraceKind kind);
 
 extern JS_PUBLIC_API(void)
-JS_TraceRuntime(JSTracer *trc);
+JS_TraceRuntime(JSTracer* trc);
 
 extern JS_PUBLIC_API(void)
-JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
-                     void *thing, JSGCTraceKind kind, bool includeDetails);
+JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc,
+                     void* thing, JSGCTraceKind kind, bool includeDetails);
 
-extern JS_PUBLIC_API(const char *)
-JS_GetTraceEdgeName(JSTracer *trc, char *buffer, int bufferSize);
+extern JS_PUBLIC_API(const char*)
+JS_GetTraceEdgeName(JSTracer* trc, char* buffer, int bufferSize);
 
 #endif /* js_Tracer_h */

@@ -24,7 +24,7 @@ uint32_t GetMIPSFlags()
     if (isSet)
         return flags;
 #if WTF_OS_LINUX
-    FILE *fp = fopen("/proc/cpuinfo", "r");
+    FILE* fp = fopen("/proc/cpuinfo", "r");
     if (!fp)
         return false;
 
@@ -48,7 +48,7 @@ bool hasFPU()
 }
 
 Registers::Code
-Registers::FromName(const char *name)
+Registers::FromName(const char* name)
 {
     for (size_t i = 0; i < Total; i++) {
         if (strcmp(GetName(i), name) == 0)
@@ -59,7 +59,7 @@ Registers::FromName(const char *name)
 }
 
 FloatRegisters::Code
-FloatRegisters::FromName(const char *name)
+FloatRegisters::FromName(const char* name)
 {
     for (size_t i = 0; i < Total; i++) {
         if (strcmp(GetName(i), name) == 0)

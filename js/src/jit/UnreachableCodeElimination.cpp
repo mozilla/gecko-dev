@@ -97,7 +97,7 @@ UnreachableCodeElimination::removeUnmarkedBlocksAndCleanup()
 }
 
 bool
-UnreachableCodeElimination::enqueue(MBasicBlock *block, BlockList &list)
+UnreachableCodeElimination::enqueue(MBasicBlock* block, BlockList& list)
 {
     if (block->isMarked())
         return true;
@@ -107,19 +107,19 @@ UnreachableCodeElimination::enqueue(MBasicBlock *block, BlockList &list)
     return list.append(block);
 }
 
-MBasicBlock *
-UnreachableCodeElimination::optimizableSuccessor(MBasicBlock *block)
+MBasicBlock*
+UnreachableCodeElimination::optimizableSuccessor(MBasicBlock* block)
 {
     // If the last instruction in `block` is a test instruction of a
     // constant value, returns the successor that the branch will
     // always branch to at runtime. Otherwise, returns nullptr.
 
-    MControlInstruction *ins = block->lastIns();
+    MControlInstruction* ins = block->lastIns();
     if (!ins->isTest())
         return nullptr;
 
-    MTest *testIns = ins->toTest();
-    MDefinition *v = testIns->getOperand(0);
+    MTest* testIns = ins->toTest();
+    MDefinition* v = testIns->getOperand(0);
     if (!v->isConstant())
         return nullptr;
 
@@ -140,11 +140,11 @@ UnreachableCodeElimination::prunePointlessBranchesAndMarkReachableBlocks()
         if (mir_->shouldCancel("Eliminate Unreachable Code"))
             return false;
 
-        MBasicBlock *block = worklist.popCopy();
+        MBasicBlock* block = worklist.popCopy();
 
         // If this block is a test on a constant operand, only enqueue
         // the relevant successor. Also, remember the block for later.
-        if (MBasicBlock *succ = optimizableSuccessor(block)) {
+        if (MBasicBlock* succ = optimizableSuccessor(block)) {
             if (!optimizableBlocks.append(block))
                 return false;
             if (!enqueue(succ, worklist))
@@ -152,7 +152,7 @@ UnreachableCodeElimination::prunePointlessBranchesAndMarkReachableBlocks()
         } else {
             // Otherwise just visit all successors.
             for (size_t i = 0; i < block->numSuccessors(); i++) {
-                MBasicBlock *succ = block->getSuccessor(i);
+                MBasicBlock* succ = block->getSuccessor(i);
                 if (!enqueue(succ, worklist))
                     return false;
             }
@@ -166,7 +166,7 @@ UnreachableCodeElimination::prunePointlessBranchesAndMarkReachableBlocks()
     // stack types is incorrect or incomplete, due to operations that
     // have not yet executed in baseline.
     if (graph_.osrBlock()) {
-        MBasicBlock *osrBlock = graph_.osrBlock();
+        MBasicBlock* osrBlock = graph_.osrBlock();
         JS_ASSERT(!osrBlock->isMarked());
         if (!enqueue(osrBlock, worklist))
             return false;
@@ -184,14 +184,14 @@ UnreachableCodeElimination::prunePointlessBranchesAndMarkReachableBlocks()
     // Now that we know we will not abort due to OSR, go back and
     // transform any tests on constant operands into gotos.
     for (uint32_t i = 0; i < optimizableBlocks.length(); i++) {
-        MBasicBlock *block = optimizableBlocks[i];
-        MBasicBlock *succ = optimizableSuccessor(block);
+        MBasicBlock* block = optimizableBlocks[i];
+        MBasicBlock* succ = optimizableSuccessor(block);
         JS_ASSERT(succ);
 
-        MGoto *gotoIns = MGoto::New(graph_.alloc(), succ);
+        MGoto* gotoIns = MGoto::New(graph_.alloc(), succ);
         block->discardLastIns();
         block->end(gotoIns);
-        MBasicBlock *successorWithPhis = block->successorWithPhis();
+        MBasicBlock* successorWithPhis = block->successorWithPhis();
         if (successorWithPhis && successorWithPhis != succ)
             block->setSuccessorWithPhis(nullptr, 0);
     }
@@ -200,7 +200,7 @@ UnreachableCodeElimination::prunePointlessBranchesAndMarkReachableBlocks()
 }
 
 void
-UnreachableCodeElimination::checkDependencyAndRemoveUsesFromUnmarkedBlocks(MDefinition *instr)
+UnreachableCodeElimination::checkDependencyAndRemoveUsesFromUnmarkedBlocks(MDefinition* instr)
 {
     // When the instruction depends on removed block,
     // alias analysis needs to get rerun to have the right dependency.
@@ -230,7 +230,7 @@ UnreachableCodeElimination::removeUnmarkedBlocksAndClearDominators()
         if (mir_->shouldCancel("Eliminate Unreachable Code"))
             return false;
 
-        MBasicBlock *block = *iter;
+        MBasicBlock* block = *iter;
         iter++;
 
         // Unconditionally clear the dominators.  It's somewhat complex to
@@ -272,7 +272,7 @@ UnreachableCodeElimination::removeUnmarkedBlocksAndClearDominators()
             }
 
             for (size_t i = 0, c = block->numSuccessors(); i < c; i++) {
-                MBasicBlock *succ = block->getSuccessor(i);
+                MBasicBlock* succ = block->getSuccessor(i);
                 if (succ->isMarked()) {
                     // succ is on the frontier of blocks to be removed:
                     succ->removePredecessor(block);

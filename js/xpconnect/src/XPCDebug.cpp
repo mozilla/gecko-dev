@@ -48,7 +48,7 @@ xpc_PrintJSStack(JSContext* cx, bool showArgs, bool showLocals,
 {
     JS::AutoSaveExceptionState state(cx);
 
-    char *buf = JS::FormatStackDump(cx, nullptr, showArgs, showLocals, showThisProps);
+    char* buf = JS::FormatStackDump(cx, nullptr, showArgs, showLocals, showThisProps);
     if (!buf)
         DebugDump("%s", "Failed to format JavaScript stack for dump\n");
 
@@ -59,8 +59,8 @@ xpc_PrintJSStack(JSContext* cx, bool showArgs, bool showLocals,
 /***************************************************************************/
 
 static void
-xpcDumpEvalErrorReporter(JSContext *cx, const char *message,
-                         JSErrorReport *report)
+xpcDumpEvalErrorReporter(JSContext* cx, const char* message,
+                         JSErrorReport* report)
 {
     DebugDump("Error: %s\n", message);
 }
@@ -116,8 +116,8 @@ xpc_DumpEvalInJSStackFrame(JSContext* cx, uint32_t frameno, const char* text)
 /***************************************************************************/
 
 JSTrapStatus
-xpc_DebuggerKeywordHandler(JSContext *cx, JSScript *script, jsbytecode *pc,
-                           jsval *rval, void *closure)
+xpc_DebuggerKeywordHandler(JSContext* cx, JSScript* script, jsbytecode* pc,
+                           jsval* rval, void* closure)
 {
     static const char line[] =
     "------------------------------------------------------------------------\n";

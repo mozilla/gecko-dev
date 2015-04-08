@@ -1465,7 +1465,7 @@ public:
         return output[0];
     }
 
-    Interpreter(JSContext *cx, BytecodePattern* pattern, unsigned* output, const CharType* input, unsigned length, unsigned start)
+    Interpreter(JSContext* cx, BytecodePattern* pattern, unsigned* output, const CharType* input, unsigned length, unsigned start)
         : cx(cx)
         , pattern(pattern)
         , output(output)
@@ -1476,7 +1476,7 @@ public:
     }
 
 private:
-    JSContext *cx;
+    JSContext* cx;
     BytecodePattern* pattern;
     unsigned* output;
     InputStream input;
@@ -1677,7 +1677,7 @@ public:
 #ifndef NDEBUG
     void dumpDisjunction(ByteDisjunction* disjunction)
     {
-        dataLogF("ByteDisjunction(%p):\n\t", (void *)disjunction);
+        dataLogF("ByteDisjunction(%p):\n\t", (void*)disjunction);
         for (unsigned i = 0; i < disjunction->terms.size(); ++i)
             dataLogF("{ %d } ", disjunction->terms[i].type);
         dataLogF("\n");
@@ -1962,7 +1962,7 @@ PassOwnPtr<BytecodePattern> byteCompile(YarrPattern& pattern, BumpPointerAllocat
     return ByteCompiler(pattern).compile(allocator);
 }
 
-unsigned interpret(JSContext *cx, BytecodePattern* bytecode, const String& input, unsigned start, unsigned* output)
+unsigned interpret(JSContext* cx, BytecodePattern* bytecode, const String& input, unsigned start, unsigned* output)
 {
 #if YARR_8BIT_CHAR_SUPPORT
     if (input.is8Bit())
@@ -1971,12 +1971,12 @@ unsigned interpret(JSContext *cx, BytecodePattern* bytecode, const String& input
     return Interpreter<UChar>(cx, bytecode, output, input.chars(), input.length(), start).interpret();
 }
 
-unsigned interpret(JSContext *cx, BytecodePattern* bytecode, const LChar* input, unsigned length, unsigned start, unsigned* output)
+unsigned interpret(JSContext* cx, BytecodePattern* bytecode, const LChar* input, unsigned length, unsigned start, unsigned* output)
 {
     return Interpreter<LChar>(cx, bytecode, output, input, length, start).interpret();
 }
 
-unsigned interpret(JSContext *cx, BytecodePattern* bytecode, const UChar* input, unsigned length, unsigned start, unsigned* output)
+unsigned interpret(JSContext* cx, BytecodePattern* bytecode, const UChar* input, unsigned length, unsigned start, unsigned* output)
 {
     return Interpreter<UChar>(cx, bytecode, output, input, length, start).interpret();
 }

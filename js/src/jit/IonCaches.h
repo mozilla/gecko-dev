@@ -42,7 +42,7 @@ class IonCacheVisitor
 {
   public:
 #define VISIT_INS(op)                                               \
-    virtual bool visit##op##IC(CodeGenerator *codegen) {            \
+    virtual bool visit##op##IC(CodeGenerator* codegen) {            \
         MOZ_ASSUME_UNREACHABLE("NYI: " #op "IC");                   \
     }
 
@@ -141,18 +141,18 @@ class IonCache
     bool is##ickind() const {                                           \
         return kind() == Cache_##ickind;                                \
     }                                                                   \
-    inline ickind##IC &to##ickind();                                    \
-    inline const ickind##IC &to##ickind() const;
+    inline ickind##IC& to##ickind();                                    \
+    inline const ickind##IC& to##ickind() const;
     IONCACHE_KIND_LIST(CACHEKIND_CASTS)
 #   undef CACHEKIND_CASTS
 
     virtual Kind kind() const = 0;
 
-    virtual bool accept(CodeGenerator *codegen, IonCacheVisitor *visitor) = 0;
+    virtual bool accept(CodeGenerator* codegen, IonCacheVisitor* visitor) = 0;
 
   public:
 
-    static const char *CacheName(Kind kind);
+    static const char* CacheName(Kind kind);
 
   protected:
     bool pure_ : 1;
@@ -163,8 +163,8 @@ class IonCache
     CodeLocationLabel fallbackLabel_;
 
     // Location of this operation, nullptr for idempotent caches.
-    JSScript *script_;
-    jsbytecode *pc_;
+    JSScript* script_;
+    jsbytecode* pc_;
 
   private:
     static const size_t MAX_STUBS;
@@ -199,13 +199,13 @@ class IonCache
         fallbackLabel_ = fallbackLabel;
     }
 
-    virtual void emitInitialJump(MacroAssembler &masm, AddCacheState &addState) = 0;
-    virtual void bindInitialJump(MacroAssembler &masm, AddCacheState &addState) = 0;
-    virtual void updateBaseAddress(JitCode *code, MacroAssembler &masm);
+    virtual void emitInitialJump(MacroAssembler& masm, AddCacheState& addState) = 0;
+    virtual void bindInitialJump(MacroAssembler& masm, AddCacheState& addState) = 0;
+    virtual void updateBaseAddress(JitCode* code, MacroAssembler& masm);
 
     // Initialize the AddCacheState depending on the kind of cache, like
     // setting a scratch register. Defaults to doing nothing.
-    virtual void initializeAddCacheState(LInstruction *ins, AddCacheState *addState);
+    virtual void initializeAddCacheState(LInstruction* ins, AddCacheState* addState);
 
     // Reset the cache around garbage collection.
     virtual void reset();
@@ -230,15 +230,15 @@ class IonCache
     // monitoring/allocation caused an invalidation of the running ion script,
     // this function returns CACHE_FLUSHED. In case of allocation issue this
     // function returns LINK_ERROR.
-    LinkStatus linkCode(JSContext *cx, MacroAssembler &masm, IonScript *ion, JitCode **code);
+    LinkStatus linkCode(JSContext* cx, MacroAssembler& masm, IonScript* ion, JitCode** code);
     // Fixup variables and update jumps in the list of stubs.  Increment the
     // number of attached stubs accordingly.
-    void attachStub(MacroAssembler &masm, StubAttacher &attacher, Handle<JitCode *> code);
+    void attachStub(MacroAssembler& masm, StubAttacher& attacher, Handle<JitCode*> code);
 
     // Combine both linkStub and attachStub into one function. In addition, it
     // produces a spew augmented with the attachKind string.
-    bool linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &attacher,
-                           IonScript *ion, const char *attachKind);
+    bool linkAndAttachStub(JSContext* cx, MacroAssembler& masm, StubAttacher& attacher,
+                           IonScript* ion, const char* attachKind);
 
 #ifdef DEBUG
     bool isAllocated() {
@@ -259,18 +259,18 @@ class IonCache
         idempotent_ = true;
     }
 
-    void setScriptedLocation(JSScript *script, jsbytecode *pc) {
+    void setScriptedLocation(JSScript* script, jsbytecode* pc) {
         JS_ASSERT(!idempotent_);
         script_ = script;
         pc_ = pc;
     }
 
-    void getScriptedLocation(MutableHandleScript pscript, jsbytecode **ppc) const {
+    void getScriptedLocation(MutableHandleScript pscript, jsbytecode** ppc) const {
         pscript.set(script_);
         *ppc = pc_;
     }
 
-    jsbytecode *pc() const {
+    jsbytecode* pc() const {
         JS_ASSERT(pc_);
         return pc_;
     }
@@ -354,7 +354,7 @@ class RepatchIonCache : public IonCache
 #endif
 
     CodeLocationLabel rejoinLabel() const {
-        uint8_t *ptr = initialJump_.raw();
+        uint8_t* ptr = initialJump_.raw();
 #ifdef JS_CODEGEN_ARM
         uint32_t i = 0;
         while (i < REJOIN_LABEL_OFFSET)
@@ -376,11 +376,11 @@ class RepatchIonCache : public IonCache
     // jump that will point to out-of-line code (such as the slow path, or
     // stubs), and the rejoinLabel is the position that all out-of-line paths
     // will rejoin to.
-    void emitInitialJump(MacroAssembler &masm, AddCacheState &addState);
-    void bindInitialJump(MacroAssembler &masm, AddCacheState &addState);
+    void emitInitialJump(MacroAssembler& masm, AddCacheState& addState);
+    void bindInitialJump(MacroAssembler& masm, AddCacheState& addState);
 
     // Update the labels once the code is finalized.
-    void updateBaseAddress(JitCode *code, MacroAssembler &masm);
+    void updateBaseAddress(JitCode* code, MacroAssembler& masm);
 };
 
 //
@@ -459,7 +459,7 @@ class DispatchIonCache : public IonCache
   protected:
     class DispatchStubPrepender;
 
-    uint8_t *firstStub_;
+    uint8_t* firstStub_;
     CodeLocationLabel rejoinLabel_;
     CodeOffsetLabel dispatchLabel_;
 
@@ -472,13 +472,13 @@ class DispatchIonCache : public IonCache
     }
 
     virtual void reset();
-    virtual void initializeAddCacheState(LInstruction *ins, AddCacheState *addState);
+    virtual void initializeAddCacheState(LInstruction* ins, AddCacheState* addState);
 
-    void emitInitialJump(MacroAssembler &masm, AddCacheState &addState);
-    void bindInitialJump(MacroAssembler &masm, AddCacheState &addState);
+    void emitInitialJump(MacroAssembler& masm, AddCacheState& addState);
+    void bindInitialJump(MacroAssembler& masm, AddCacheState& addState);
 
     // Fix up the first stub pointer once the code is finalized.
-    void updateBaseAddress(JitCode *code, MacroAssembler &masm);
+    void updateBaseAddress(JitCode* code, MacroAssembler& masm);
 };
 
 // Define the cache kind and pre-declare data structures used for calling inline
@@ -488,7 +488,7 @@ class DispatchIonCache : public IonCache
         return IonCache::Cache_##ickind;                            \
     }                                                               \
                                                                     \
-    bool accept(CodeGenerator *codegen, IonCacheVisitor *visitor) { \
+    bool accept(CodeGenerator* codegen, IonCacheVisitor* visitor) { \
         return visitor->visit##ickind##IC(codegen);                 \
     }                                                               \
                                                                     \
@@ -507,10 +507,10 @@ class DispatchIonCache : public IonCache
 // tenured, and never moved, we can keep raw pointers, and there is no need
 // for HeapPtrScripts here.
 struct CacheLocation {
-    jsbytecode *pc;
-    JSScript *script;
+    jsbytecode* pc;
+    JSScript* script;
 
-    CacheLocation(jsbytecode *pcin, JSScript *scriptin)
+    CacheLocation(jsbytecode* pcin, JSScript* scriptin)
         : pc(pcin), script(scriptin)
     { }
 };
@@ -523,7 +523,7 @@ class GetPropertyIC : public RepatchIonCache
     RegisterSet liveRegs_;
 
     Register object_;
-    PropertyName *name_;
+    PropertyName* name_;
     TypedOrValueRegister output_;
 
     // Only valid if idempotent
@@ -538,7 +538,7 @@ class GetPropertyIC : public RepatchIonCache
 
   public:
     GetPropertyIC(RegisterSet liveRegs,
-                  Register object, PropertyName *name,
+                  Register object, PropertyName* name,
                   TypedOrValueRegister output,
                   bool monitoredResult)
       : liveRegs_(liveRegs),
@@ -562,7 +562,7 @@ class GetPropertyIC : public RepatchIonCache
     Register object() const {
         return object_;
     }
-    PropertyName *name() const {
+    PropertyName* name() const {
         return name_;
     }
     TypedOrValueRegister output() const {
@@ -588,7 +588,7 @@ class GetPropertyIC : public RepatchIonCache
         locationsIndex_ = locationsIndex;
         numLocations_ = numLocations;
     }
-    void getLocationInfo(uint32_t *index, uint32_t *num) const {
+    void getLocationInfo(uint32_t* index, uint32_t* num) const {
         JS_ASSERT(idempotent());
         *index = locationsIndex_;
         *num = numLocations_;
@@ -609,26 +609,26 @@ class GetPropertyIC : public RepatchIonCache
     }
 
     // Attach the proper stub, if possible
-    bool tryAttachStub(JSContext *cx, IonScript *ion, HandleObject obj,
-                       HandlePropertyName name, void *returnAddr, bool *emitted);
-    bool tryAttachProxy(JSContext *cx, IonScript *ion, HandleObject obj,
-                        HandlePropertyName name, void *returnAddr, bool *emitted);
-    bool tryAttachGenericProxy(JSContext *cx, IonScript *ion, HandleObject obj,
-                               HandlePropertyName name, void *returnAddr, bool *emitted);
-    bool tryAttachDOMProxyShadowed(JSContext *cx, IonScript *ion, HandleObject obj,
-                                   void *returnAddr, bool *emitted);
-    bool tryAttachDOMProxyUnshadowed(JSContext *cx, IonScript *ion, HandleObject obj,
+    bool tryAttachStub(JSContext* cx, IonScript* ion, HandleObject obj,
+                       HandlePropertyName name, void* returnAddr, bool* emitted);
+    bool tryAttachProxy(JSContext* cx, IonScript* ion, HandleObject obj,
+                        HandlePropertyName name, void* returnAddr, bool* emitted);
+    bool tryAttachGenericProxy(JSContext* cx, IonScript* ion, HandleObject obj,
+                               HandlePropertyName name, void* returnAddr, bool* emitted);
+    bool tryAttachDOMProxyShadowed(JSContext* cx, IonScript* ion, HandleObject obj,
+                                   void* returnAddr, bool* emitted);
+    bool tryAttachDOMProxyUnshadowed(JSContext* cx, IonScript* ion, HandleObject obj,
                                      HandlePropertyName name, bool resetNeeded,
-                                     void *returnAddr, bool *emitted);
-    bool tryAttachNative(JSContext *cx, IonScript *ion, HandleObject obj,
-                         HandlePropertyName name, void *returnAddr, bool *emitted);
-    bool tryAttachTypedArrayLength(JSContext *cx, IonScript *ion, HandleObject obj,
-                                   HandlePropertyName name, bool *emitted);
+                                     void* returnAddr, bool* emitted);
+    bool tryAttachNative(JSContext* cx, IonScript* ion, HandleObject obj,
+                         HandlePropertyName name, void* returnAddr, bool* emitted);
+    bool tryAttachTypedArrayLength(JSContext* cx, IonScript* ion, HandleObject obj,
+                                   HandlePropertyName name, bool* emitted);
 
-    bool tryAttachArgumentsLength(JSContext *cx, IonScript *ion, HandleObject obj,
-                                  HandlePropertyName name, bool *emitted);
+    bool tryAttachArgumentsLength(JSContext* cx, IonScript* ion, HandleObject obj,
+                                  HandlePropertyName name, bool* emitted);
 
-    static bool update(JSContext *cx, size_t cacheIndex, HandleObject obj, MutableHandleValue vp);
+    static bool update(JSContext* cx, size_t cacheIndex, HandleObject obj, MutableHandleValue vp);
 };
 
 class SetPropertyIC : public RepatchIonCache
@@ -639,7 +639,7 @@ class SetPropertyIC : public RepatchIonCache
     RegisterSet liveRegs_;
 
     Register object_;
-    PropertyName *name_;
+    PropertyName* name_;
     ConstantOrRegister value_;
     bool strict_;
     bool needsTypeBarrier_;
@@ -647,7 +647,7 @@ class SetPropertyIC : public RepatchIonCache
     bool hasGenericProxyStub_;
 
   public:
-    SetPropertyIC(RegisterSet liveRegs, Register object, PropertyName *name,
+    SetPropertyIC(RegisterSet liveRegs, Register object, PropertyName* name,
                   ConstantOrRegister value, bool strict, bool needsTypeBarrier)
       : liveRegs_(liveRegs),
         object_(object),
@@ -666,7 +666,7 @@ class SetPropertyIC : public RepatchIonCache
     Register object() const {
         return object_;
     }
-    PropertyName *name() const {
+    PropertyName* name() const {
         return name_;
     }
     ConstantOrRegister value() const {
@@ -689,20 +689,20 @@ class SetPropertyIC : public RepatchIonCache
         CanAttachCallSetter
     };
 
-    bool attachSetSlot(JSContext *cx, IonScript *ion, HandleObject obj, HandleShape shape,
+    bool attachSetSlot(JSContext* cx, IonScript* ion, HandleObject obj, HandleShape shape,
                        bool checkTypeset);
-    bool attachCallSetter(JSContext *cx, IonScript *ion, HandleObject obj,
-                          HandleObject holder, HandleShape shape, void *returnAddr);
-    bool attachAddSlot(JSContext *cx, IonScript *ion, JSObject *obj, HandleShape oldShape,
+    bool attachCallSetter(JSContext* cx, IonScript* ion, HandleObject obj,
+                          HandleObject holder, HandleShape shape, void* returnAddr);
+    bool attachAddSlot(JSContext* cx, IonScript* ion, JSObject* obj, HandleShape oldShape,
                        bool checkTypeset);
-    bool attachGenericProxy(JSContext *cx, IonScript *ion, void *returnAddr);
-    bool attachDOMProxyShadowed(JSContext *cx, IonScript *ion, HandleObject obj,
-                                void *returnAddr);
-    bool attachDOMProxyUnshadowed(JSContext *cx, IonScript *ion, HandleObject obj,
-                                  void *returnAddr);
+    bool attachGenericProxy(JSContext* cx, IonScript* ion, void* returnAddr);
+    bool attachDOMProxyShadowed(JSContext* cx, IonScript* ion, HandleObject obj,
+                                void* returnAddr);
+    bool attachDOMProxyUnshadowed(JSContext* cx, IonScript* ion, HandleObject obj,
+                                  void* returnAddr);
 
     static bool
-    update(JSContext *cx, size_t cacheIndex, HandleObject obj, HandleValue value);
+    update(JSContext* cx, size_t cacheIndex, HandleObject obj, HandleValue value);
 };
 
 class GetElementIC : public RepatchIonCache
@@ -778,20 +778,20 @@ class GetElementIC : public RepatchIonCache
         return monitoredResult();
     }
 
-    static bool canAttachGetProp(JSObject *obj, const Value &idval, jsid id);
-    static bool canAttachDenseElement(JSObject *obj, const Value &idval);
-    static bool canAttachTypedArrayElement(JSObject *obj, const Value &idval,
+    static bool canAttachGetProp(JSObject* obj, const Value& idval, jsid id);
+    static bool canAttachDenseElement(JSObject* obj, const Value& idval);
+    static bool canAttachTypedArrayElement(JSObject* obj, const Value& idval,
                                            TypedOrValueRegister output);
 
-    bool attachGetProp(JSContext *cx, IonScript *ion, HandleObject obj, const Value &idval,
-                       HandlePropertyName name, void *returnAddr);
-    bool attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, const Value &idval);
-    bool attachTypedArrayElement(JSContext *cx, IonScript *ion, TypedArrayObject *tarr,
-                                 const Value &idval);
-    bool attachArgumentsElement(JSContext *cx, IonScript *ion, JSObject *obj);
+    bool attachGetProp(JSContext* cx, IonScript* ion, HandleObject obj, const Value& idval,
+                       HandlePropertyName name, void* returnAddr);
+    bool attachDenseElement(JSContext* cx, IonScript* ion, JSObject* obj, const Value& idval);
+    bool attachTypedArrayElement(JSContext* cx, IonScript* ion, TypedArrayObject* tarr,
+                                 const Value& idval);
+    bool attachArgumentsElement(JSContext* cx, IonScript* ion, JSObject* obj);
 
     static bool
-    update(JSContext *cx, size_t cacheIndex, HandleObject obj, HandleValue idval,
+    update(JSContext* cx, size_t cacheIndex, HandleObject obj, HandleValue idval,
            MutableHandleValue vp);
 
     void incFailedUpdates() {
@@ -873,11 +873,11 @@ class SetElementIC : public RepatchIonCache
         hasDenseStub_ = true;
     }
 
-    bool attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, const Value &idval);
-    bool attachTypedArrayElement(JSContext *cx, IonScript *ion, TypedArrayObject *tarr);
+    bool attachDenseElement(JSContext* cx, IonScript* ion, JSObject* obj, const Value& idval);
+    bool attachTypedArrayElement(JSContext* cx, IonScript* ion, TypedArrayObject* tarr);
 
     static bool
-    update(JSContext *cx, size_t cacheIndex, HandleObject obj, HandleValue idval,
+    update(JSContext* cx, size_t cacheIndex, HandleObject obj, HandleValue idval,
            HandleValue value);
 };
 
@@ -885,11 +885,11 @@ class BindNameIC : public RepatchIonCache
 {
   protected:
     Register scopeChain_;
-    PropertyName *name_;
+    PropertyName* name_;
     Register output_;
 
   public:
-    BindNameIC(Register scopeChain, PropertyName *name, Register output)
+    BindNameIC(Register scopeChain, PropertyName* name, Register output)
       : scopeChain_(scopeChain),
         name_(name),
         output_(output)
@@ -908,11 +908,11 @@ class BindNameIC : public RepatchIonCache
         return output_;
     }
 
-    bool attachGlobal(JSContext *cx, IonScript *ion, JSObject *scopeChain);
-    bool attachNonGlobal(JSContext *cx, IonScript *ion, JSObject *scopeChain, JSObject *holder);
+    bool attachGlobal(JSContext* cx, IonScript* ion, JSObject* scopeChain);
+    bool attachNonGlobal(JSContext* cx, IonScript* ion, JSObject* scopeChain, JSObject* holder);
 
-    static JSObject *
-    update(JSContext *cx, size_t cacheIndex, HandleObject scopeChain);
+    static JSObject*
+    update(JSContext* cx, size_t cacheIndex, HandleObject scopeChain);
 };
 
 class NameIC : public RepatchIonCache
@@ -924,12 +924,12 @@ class NameIC : public RepatchIonCache
 
     bool typeOf_;
     Register scopeChain_;
-    PropertyName *name_;
+    PropertyName* name_;
     TypedOrValueRegister output_;
 
   public:
     NameIC(RegisterSet liveRegs, bool typeOf,
-           Register scopeChain, PropertyName *name,
+           Register scopeChain, PropertyName* name,
            TypedOrValueRegister output)
       : liveRegs_(liveRegs),
         typeOf_(typeOf),
@@ -954,13 +954,13 @@ class NameIC : public RepatchIonCache
         return typeOf_;
     }
 
-    bool attachReadSlot(JSContext *cx, IonScript *ion, HandleObject scopeChain,
+    bool attachReadSlot(JSContext* cx, IonScript* ion, HandleObject scopeChain,
                         HandleObject holderBase, HandleObject holder, HandleShape shape);
-    bool attachCallGetter(JSContext *cx, IonScript *ion, JSObject *obj, JSObject *holder,
-                          HandleShape shape, void *returnAddr);
+    bool attachCallGetter(JSContext* cx, IonScript* ion, JSObject* obj, JSObject* holder,
+                          HandleShape shape, void* returnAddr);
 
     static bool
-    update(JSContext *cx, size_t cacheIndex, HandleObject scopeChain, MutableHandleValue vp);
+    update(JSContext* cx, size_t cacheIndex, HandleObject scopeChain, MutableHandleValue vp);
 };
 
 class CallsiteCloneIC : public RepatchIonCache
@@ -968,11 +968,11 @@ class CallsiteCloneIC : public RepatchIonCache
   protected:
     Register callee_;
     Register output_;
-    JSScript *callScript_;
-    jsbytecode *callPc_;
+    JSScript* callScript_;
+    jsbytecode* callPc_;
 
   public:
-    CallsiteCloneIC(Register callee, JSScript *callScript, jsbytecode *callPc, Register output)
+    CallsiteCloneIC(Register callee, JSScript* callScript, jsbytecode* callPc, Register output)
       : callee_(callee),
         output_(output),
         callScript_(callScript),
@@ -988,16 +988,16 @@ class CallsiteCloneIC : public RepatchIonCache
     HandleScript callScript() const {
         return HandleScript::fromMarkedLocation(&callScript_);
     }
-    jsbytecode *callPc() const {
+    jsbytecode* callPc() const {
         return callPc_;
     }
     Register outputReg() const {
         return output_;
     }
 
-    bool attach(JSContext *cx, IonScript *ion, HandleFunction original, HandleFunction clone);
+    bool attach(JSContext* cx, IonScript* ion, HandleFunction original, HandleFunction clone);
 
-    static JSObject *update(JSContext *cx, size_t cacheIndex, HandleObject callee);
+    static JSObject* update(JSContext* cx, size_t cacheIndex, HandleObject callee);
 };
 
 class ParallelIonCache : public DispatchIonCache
@@ -1005,32 +1005,32 @@ class ParallelIonCache : public DispatchIonCache
   protected:
     // A set of all objects that are stubbed. Used to detect duplicates in
     // parallel execution.
-    ShapeSet *stubbedShapes_;
+    ShapeSet* stubbedShapes_;
 
     ParallelIonCache()
       : stubbedShapes_(nullptr)
     {
     }
 
-    bool initStubbedShapes(JSContext *cx);
+    bool initStubbedShapes(JSContext* cx);
 
   public:
     void reset();
     void destroy();
 
-    bool hasOrAddStubbedShape(LockedJSContext &cx, Shape *shape, bool *alreadyStubbed);
+    bool hasOrAddStubbedShape(LockedJSContext& cx, Shape* shape, bool* alreadyStubbed);
 };
 
 class GetPropertyParIC : public ParallelIonCache
 {
   protected:
     Register object_;
-    PropertyName *name_;
+    PropertyName* name_;
     TypedOrValueRegister output_;
     bool hasTypedArrayLengthStub_ : 1;
 
    public:
-    GetPropertyParIC(Register object, PropertyName *name, TypedOrValueRegister output)
+    GetPropertyParIC(Register object, PropertyName* name, TypedOrValueRegister output)
       : object_(object),
         name_(name),
         output_(output),
@@ -1043,7 +1043,7 @@ class GetPropertyParIC : public ParallelIonCache
 #ifdef JS_CODEGEN_X86
     // x86 lacks a general purpose scratch register for dispatch caches and
     // must be given one manually.
-    void initializeAddCacheState(LInstruction *ins, AddCacheState *addState);
+    void initializeAddCacheState(LInstruction* ins, AddCacheState* addState);
 #endif
 
     void reset();
@@ -1051,7 +1051,7 @@ class GetPropertyParIC : public ParallelIonCache
     Register object() const {
         return object_;
     }
-    PropertyName *name() const {
+    PropertyName* name() const {
         return name_;
     }
     TypedOrValueRegister output() const {
@@ -1067,12 +1067,12 @@ class GetPropertyParIC : public ParallelIonCache
     bool allowGetters() const { return false; }
     bool allowArrayLength(Context, HandleObject) const { return true; }
 
-    bool attachReadSlot(LockedJSContext &cx, IonScript *ion, JSObject *obj, JSObject *holder,
-                        Shape *shape);
-    bool attachArrayLength(LockedJSContext &cx, IonScript *ion, JSObject *obj);
-    bool attachTypedArrayLength(LockedJSContext &cx, IonScript *ion, JSObject *obj);
+    bool attachReadSlot(LockedJSContext& cx, IonScript* ion, JSObject* obj, JSObject* holder,
+                        Shape* shape);
+    bool attachArrayLength(LockedJSContext& cx, IonScript* ion, JSObject* obj);
+    bool attachTypedArrayLength(LockedJSContext& cx, IonScript* ion, JSObject* obj);
 
-    static bool update(ForkJoinContext *cx, size_t cacheIndex, HandleObject obj,
+    static bool update(ForkJoinContext* cx, size_t cacheIndex, HandleObject obj,
                        MutableHandleValue vp);
 };
 
@@ -1102,7 +1102,7 @@ class GetElementParIC : public ParallelIonCache
 #ifdef JS_CODEGEN_X86
     // x86 lacks a general purpose scratch register for dispatch caches and
     // must be given one manually.
-    void initializeAddCacheState(LInstruction *ins, AddCacheState *addState);
+    void initializeAddCacheState(LInstruction* ins, AddCacheState* addState);
 #endif
 
     Register object() const {
@@ -1127,13 +1127,13 @@ class GetElementParIC : public ParallelIonCache
     bool allowGetters() const { return false; }
     bool allowArrayLength(Context, HandleObject) const { return false; }
 
-    bool attachReadSlot(LockedJSContext &cx, IonScript *ion, JSObject *obj, const Value &idval,
-                        PropertyName *name, JSObject *holder, Shape *shape);
-    bool attachDenseElement(LockedJSContext &cx, IonScript *ion, JSObject *obj, const Value &idval);
-    bool attachTypedArrayElement(LockedJSContext &cx, IonScript *ion, TypedArrayObject *tarr,
-                                 const Value &idval);
+    bool attachReadSlot(LockedJSContext& cx, IonScript* ion, JSObject* obj, const Value& idval,
+                        PropertyName* name, JSObject* holder, Shape* shape);
+    bool attachDenseElement(LockedJSContext& cx, IonScript* ion, JSObject* obj, const Value& idval);
+    bool attachTypedArrayElement(LockedJSContext& cx, IonScript* ion, TypedArrayObject* tarr,
+                                 const Value& idval);
 
-    static bool update(ForkJoinContext *cx, size_t cacheIndex, HandleObject obj, HandleValue idval,
+    static bool update(ForkJoinContext* cx, size_t cacheIndex, HandleObject obj, HandleValue idval,
                        MutableHandleValue vp);
 
 };
@@ -1142,13 +1142,13 @@ class SetPropertyParIC : public ParallelIonCache
 {
   protected:
     Register object_;
-    PropertyName *name_;
+    PropertyName* name_;
     ConstantOrRegister value_;
     bool strict_;
     bool needsTypeBarrier_;
 
   public:
-    SetPropertyParIC(Register object, PropertyName *name, ConstantOrRegister value,
+    SetPropertyParIC(Register object, PropertyName* name, ConstantOrRegister value,
                      bool strict, bool needsTypeBarrier)
       : object_(object),
         name_(name),
@@ -1163,13 +1163,13 @@ class SetPropertyParIC : public ParallelIonCache
 #ifdef JS_CODEGEN_X86
     // x86 lacks a general purpose scratch register for dispatch caches and
     // must be given one manually.
-    void initializeAddCacheState(LInstruction *ins, AddCacheState *addState);
+    void initializeAddCacheState(LInstruction* ins, AddCacheState* addState);
 #endif
 
     Register object() const {
         return object_;
     }
-    PropertyName *name() const {
+    PropertyName* name() const {
         return name_;
     }
     ConstantOrRegister value() const {
@@ -1182,12 +1182,12 @@ class SetPropertyParIC : public ParallelIonCache
         return needsTypeBarrier_;
     }
 
-    bool attachSetSlot(LockedJSContext &cx, IonScript *ion, JSObject *obj, Shape *shape,
+    bool attachSetSlot(LockedJSContext& cx, IonScript* ion, JSObject* obj, Shape* shape,
                        bool checkTypeset);
-    bool attachAddSlot(LockedJSContext &cx, IonScript *ion, JSObject *obj, Shape *oldShape,
+    bool attachAddSlot(LockedJSContext& cx, IonScript* ion, JSObject* obj, Shape* oldShape,
                        bool checkTypeset);
 
-    static bool update(ForkJoinContext *cx, size_t cacheIndex, HandleObject obj,
+    static bool update(ForkJoinContext* cx, size_t cacheIndex, HandleObject obj,
                        HandleValue value);
 };
 
@@ -1223,7 +1223,7 @@ class SetElementParIC : public ParallelIonCache
 #ifdef JS_CODEGEN_X86
     // x86 lacks a general purpose scratch register for dispatch caches and
     // must be given one manually.
-    void initializeAddCacheState(LInstruction *ins, AddCacheState *addState);
+    void initializeAddCacheState(LInstruction* ins, AddCacheState* addState);
 #endif
 
     Register object() const {
@@ -1251,10 +1251,10 @@ class SetElementParIC : public ParallelIonCache
         return guardHoles_;
     }
 
-    bool attachDenseElement(LockedJSContext &cx, IonScript *ion, JSObject *obj, const Value &idval);
-    bool attachTypedArrayElement(LockedJSContext &cx, IonScript *ion, TypedArrayObject *tarr);
+    bool attachDenseElement(LockedJSContext& cx, IonScript* ion, JSObject* obj, const Value& idval);
+    bool attachTypedArrayElement(LockedJSContext& cx, IonScript* ion, TypedArrayObject* tarr);
 
-    static bool update(ForkJoinContext *cx, size_t cacheIndex, HandleObject obj,
+    static bool update(ForkJoinContext* cx, size_t cacheIndex, HandleObject obj,
                        HandleValue idval, HandleValue value);
 };
 
@@ -1262,15 +1262,15 @@ class SetElementParIC : public ParallelIonCache
 
 // Implement cache casts now that the compiler can see the inheritance.
 #define CACHE_CASTS(ickind)                                             \
-    ickind##IC &IonCache::to##ickind()                                  \
+    ickind##IC& IonCache::to##ickind()                                  \
     {                                                                   \
         JS_ASSERT(is##ickind());                                        \
-        return *static_cast<ickind##IC *>(this);                        \
+        return *static_cast<ickind##IC*>(this);                        \
     }                                                                   \
-    const ickind##IC &IonCache::to##ickind() const                      \
+    const ickind##IC& IonCache::to##ickind() const                      \
     {                                                                   \
         JS_ASSERT(is##ickind());                                        \
-        return *static_cast<const ickind##IC *>(this);                  \
+        return *static_cast<const ickind##IC*>(this);                  \
     }
 IONCACHE_KIND_LIST(CACHE_CASTS)
 #undef OPCODE_CASTS
