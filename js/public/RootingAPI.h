@@ -31,7 +31,7 @@
  * whose value may be held live across a call that can trigger GC. For a
  * code fragment such as:
  *
- * JSObject *obj = NewObject(cx);
+ * JSObject* obj = NewObject(cx);
  * DoSomething(cx);
  * ... = obj->lastProperty();
  *
@@ -73,7 +73,7 @@
  *   separate rooting analysis.
  *
  * - MutableHandle<T> is a non-const reference to Rooted<T>. It is used in the
- *   same way as Handle<T> and includes a |set(const T &v)| method to allow
+ *   same way as Handle<T> and includes a |set(const T& v)| method to allow
  *   updating the value of the referenced Rooted<T>. A MutableHandle<T> can be
  *   created from a Rooted<T> by using |Rooted<T>::operator&()|.
  *
@@ -203,32 +203,32 @@ class Heap : public js::HeapBase<T>
      * that will be used for both lvalue and rvalue copies, so we can simply
      * omit the rvalue variant.
      */
-    explicit Heap(const Heap<T> &p) { init(p.ptr); }
+    explicit Heap(const Heap<T>& p) { init(p.ptr); }
 
     ~Heap() {
         if (js::GCMethods<T>::needsPostBarrier(ptr))
             relocate();
     }
 
-    bool operator==(const Heap<T> &other) { return ptr == other.ptr; }
-    bool operator!=(const Heap<T> &other) { return ptr != other.ptr; }
+    bool operator==(const Heap<T>& other) { return ptr == other.ptr; }
+    bool operator!=(const Heap<T>& other) { return ptr != other.ptr; }
 
-    bool operator==(const T &other) const { return ptr == other; }
-    bool operator!=(const T &other) const { return ptr != other; }
+    bool operator==(const T& other) const { return ptr == other; }
+    bool operator!=(const T& other) const { return ptr != other; }
 
     operator T() const { return ptr; }
     T operator->() const { return ptr; }
-    const T *address() const { return &ptr; }
-    const T &get() const { return ptr; }
+    const T* address() const { return &ptr; }
+    const T& get() const { return ptr; }
 
-    T *unsafeGet() { return &ptr; }
+    T* unsafeGet() { return &ptr; }
 
-    Heap<T> &operator=(T p) {
+    Heap<T>& operator=(T p) {
         set(p);
         return *this;
     }
 
-    Heap<T> &operator=(const Heap<T>& other) {
+    Heap<T>& operator=(const Heap<T>& other) {
         set(other.get());
         return *this;
     }
@@ -295,7 +295,7 @@ extern JS_FRIEND_API(void)
 AssertGCThingMustBeTenured(JSObject* obj);
 #else
 inline void
-AssertGCThingMustBeTenured(JSObject *obj) {}
+AssertGCThingMustBeTenured(JSObject* obj) {}
 #endif
 
 /*
@@ -336,10 +336,10 @@ class TenuredHeap : public js::HeapBase<T>
                       "TenuredHeap<T> must be binary compatible with T.");
     }
     explicit TenuredHeap(T p) : bits(0) { setPtr(p); }
-    explicit TenuredHeap(const TenuredHeap<T> &p) : bits(0) { setPtr(p.getPtr()); }
+    explicit TenuredHeap(const TenuredHeap<T>& p) : bits(0) { setPtr(p.getPtr()); }
 
-    bool operator==(const TenuredHeap<T> &other) { return bits == other.bits; }
-    bool operator!=(const TenuredHeap<T> &other) { return bits != other.bits; }
+    bool operator==(const TenuredHeap<T>& other) { return bits == other.bits; }
+    bool operator!=(const TenuredHeap<T>& other) { return bits != other.bits; }
 
     void setPtr(T newPtr) {
         MOZ_ASSERT((reinterpret_cast<uintptr_t>(newPtr) & flagsMask) == 0);
@@ -370,12 +370,12 @@ class TenuredHeap : public js::HeapBase<T>
     operator T() const { return getPtr(); }
     T operator->() const { return getPtr(); }
 
-    TenuredHeap<T> &operator=(T p) {
+    TenuredHeap<T>& operator=(T p) {
         setPtr(p);
         return *this;
     }
 
-    TenuredHeap<T> &operator=(const TenuredHeap<T>& other) {
+    TenuredHeap<T>& operator=(const TenuredHeap<T>& other) {
         bits = other.bits;
         return *this;
     }
@@ -408,23 +408,23 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
     Handle(Handle<S> handle,
            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
     {
-        static_assert(sizeof(Handle<T>) == sizeof(T *),
+        static_assert(sizeof(Handle<T>) == sizeof(T*),
                       "Handle must be binary compatible with T*.");
-        ptr = reinterpret_cast<const T *>(handle.address());
+        ptr = reinterpret_cast<const T*>(handle.address());
     }
 
     /* Create a handle for a nullptr pointer. */
     MOZ_IMPLICIT Handle(js::NullPtr) {
         static_assert(mozilla::IsPointer<T>::value,
                       "js::NullPtr overload not valid for non-pointer types");
-        ptr = reinterpret_cast<const T *>(&js::NullPtr::constNullValue);
+        ptr = reinterpret_cast<const T*>(&js::NullPtr::constNullValue);
     }
 
     /* Create a handle for a nullptr pointer. */
     MOZ_IMPLICIT Handle(JS::NullPtr) {
         static_assert(mozilla::IsPointer<T>::value,
                       "JS::NullPtr overload not valid for non-pointer types");
-        ptr = reinterpret_cast<const T *>(&JS::NullPtr::constNullValue);
+        ptr = reinterpret_cast<const T*>(&JS::NullPtr::constNullValue);
     }
 
     MOZ_IMPLICIT Handle(MutableHandle<T> handle) {
@@ -446,7 +446,7 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
      *     for the lifetime of the handle, as its users may not expect its value
      *     to change underneath them.
      */
-    static MOZ_CONSTEXPR Handle fromMarkedLocation(const T *p) {
+    static MOZ_CONSTEXPR Handle fromMarkedLocation(const T* p) {
         return Handle(p, DeliberatelyChoosingThisOverload,
                       ImUsingThisOnlyInFromFromMarkedLocation);
     }
@@ -457,21 +457,21 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
      */
     template <typename S>
     inline
-    Handle(const Rooted<S> &root,
+    Handle(const Rooted<S>& root,
            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
 
     template <typename S>
     inline
-    Handle(const PersistentRooted<S> &root,
+    Handle(const PersistentRooted<S>& root,
            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
 
     /* Construct a read only handle from a mutable handle. */
     template <typename S>
     inline
-    Handle(MutableHandle<S> &root,
+    Handle(MutableHandle<S>& root,
            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
 
-    const T *address() const { return ptr; }
+    const T* address() const { return ptr; }
     const T& get() const { return *ptr; }
 
     /*
@@ -481,17 +481,17 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
     operator const T&() const { return get(); }
     T operator->() const { return get(); }
 
-    bool operator!=(const T &other) const { return *ptr != other; }
-    bool operator==(const T &other) const { return *ptr == other; }
+    bool operator!=(const T& other) const { return *ptr != other; }
+    bool operator==(const T& other) const { return *ptr == other; }
 
   private:
     Handle() {}
 
     enum Disambiguator { DeliberatelyChoosingThisOverload = 42 };
     enum CallerIdentity { ImUsingThisOnlyInFromFromMarkedLocation = 17 };
-    MOZ_CONSTEXPR Handle(const T *p, Disambiguator, CallerIdentity) : ptr(p) {}
+    MOZ_CONSTEXPR Handle(const T* p, Disambiguator, CallerIdentity) : ptr(p) {}
 
-    const T *ptr;
+    const T* ptr;
 
     template <typename S> void operator=(S) MOZ_DELETE;
     void operator=(Handle) MOZ_DELETE;
@@ -509,8 +509,8 @@ template <typename T>
 class MOZ_STACK_CLASS MutableHandle : public js::MutableHandleBase<T>
 {
   public:
-    inline MOZ_IMPLICIT MutableHandle(Rooted<T> *root);
-    inline MOZ_IMPLICIT MutableHandle(PersistentRooted<T> *root);
+    inline MOZ_IMPLICIT MutableHandle(Rooted<T>* root);
+    inline MOZ_IMPLICIT MutableHandle(PersistentRooted<T>* root);
 
   private:
     // Disallow true nullptr and emulated nullptr (gcc 4.4/4.5, __null, appears
@@ -536,13 +536,13 @@ class MOZ_STACK_CLASS MutableHandle : public js::MutableHandleBase<T>
      *
      * Create a MutableHandle from a raw location of a T.
      */
-    static MutableHandle fromMarkedLocation(T *p) {
+    static MutableHandle fromMarkedLocation(T* p) {
         MutableHandle h;
         h.ptr = p;
         return h;
     }
 
-    T *address() const { return ptr; }
+    T* address() const { return ptr; }
     const T& get() const { return *ptr; }
 
     /*
@@ -555,15 +555,15 @@ class MOZ_STACK_CLASS MutableHandle : public js::MutableHandleBase<T>
   private:
     MutableHandle() {}
 
-    T *ptr;
+    T* ptr;
 
     template <typename S> void operator=(S v) MOZ_DELETE;
     void operator=(MutableHandle other) MOZ_DELETE;
 };
 
 #ifdef JSGC_GENERATIONAL
-JS_FRIEND_API(void) HeapCellPostBarrier(js::gc::Cell **cellp);
-JS_FRIEND_API(void) HeapCellRelocate(js::gc::Cell **cellp);
+JS_FRIEND_API(void) HeapCellPostBarrier(js::gc::Cell** cellp);
+JS_FRIEND_API(void) HeapCellRelocate(js::gc::Cell** cellp);
 #endif
 
 } /* namespace JS */
@@ -582,7 +582,7 @@ class InternalHandle {};
 template <typename T>
 class InternalHandle<T*>
 {
-    void * const *holder;
+    void * const* holder;
     size_t offset;
 
   public:
@@ -591,7 +591,7 @@ class InternalHandle<T*>
      * field in question, and a pointer to the field.
      */
     template<typename H>
-    InternalHandle(const JS::Handle<H> &handle, T *field)
+    InternalHandle(const JS::Handle<H>& handle, T* field)
       : holder((void**)handle.address()), offset(uintptr_t(field) - uintptr_t(handle.get()))
     {}
 
@@ -599,19 +599,19 @@ class InternalHandle<T*>
      * Create an InternalHandle to a field within a Rooted<>.
      */
     template<typename R>
-    InternalHandle(const JS::Rooted<R> &root, T *field)
+    InternalHandle(const JS::Rooted<R>& root, T* field)
       : holder((void**)root.address()), offset(uintptr_t(field) - uintptr_t(root.get()))
     {}
 
     InternalHandle(const InternalHandle<T*>& other)
       : holder(other.holder), offset(other.offset) {}
 
-    T *get() const { return reinterpret_cast<T*>(uintptr_t(*holder) + offset); }
+    T* get() const { return reinterpret_cast<T*>(uintptr_t(*holder) + offset); }
 
-    const T &operator*() const { return *get(); }
-    T *operator->() const { return get(); }
+    const T& operator*() const { return *get(); }
+    T* operator->() const { return get(); }
 
-    static InternalHandle<T*> fromMarkedLocation(T *fieldPtr) {
+    static InternalHandle<T*> fromMarkedLocation(T* fieldPtr) {
         return InternalHandle(fieldPtr);
     }
 
@@ -625,8 +625,8 @@ class InternalHandle<T*>
      * Make this private to prevent accidental misuse; this is only for
      * fromMarkedLocation().
      */
-    explicit InternalHandle(T *field)
-      : holder(reinterpret_cast<void * const *>(&js::NullPtr::constNullValue)),
+    explicit InternalHandle(T* field)
+      : holder(reinterpret_cast<void * const*>(&js::NullPtr::constNullValue)),
         offset(uintptr_t(field))
     {}
 
@@ -645,55 +645,55 @@ struct RootKind
 };
 
 template <typename T>
-struct RootKind<T *>
+struct RootKind<T*>
 {
     static ThingRootKind rootKind() { return T::rootKind(); }
 };
 
 template <typename T>
-struct GCMethods<T *>
+struct GCMethods<T*>
 {
-    static T *initial() { return nullptr; }
-    static bool poisoned(T *v) { return JS::IsPoisonedPtr(v); }
-    static bool needsPostBarrier(T *v) { return false; }
+    static T* initial() { return nullptr; }
+    static bool poisoned(T* v) { return JS::IsPoisonedPtr(v); }
+    static bool needsPostBarrier(T* v) { return false; }
 #ifdef JSGC_GENERATIONAL
-    static void postBarrier(T **vp) {}
-    static void relocate(T **vp) {}
+    static void postBarrier(T** vp) {}
+    static void relocate(T** vp) {}
 #endif
 };
 
 template <>
-struct GCMethods<JSObject *>
+struct GCMethods<JSObject*>
 {
-    static JSObject *initial() { return nullptr; }
-    static bool poisoned(JSObject *v) { return JS::IsPoisonedPtr(v); }
-    static bool needsPostBarrier(JSObject *v) {
-        return v != nullptr && gc::IsInsideNursery(reinterpret_cast<gc::Cell *>(v));
+    static JSObject* initial() { return nullptr; }
+    static bool poisoned(JSObject* v) { return JS::IsPoisonedPtr(v); }
+    static bool needsPostBarrier(JSObject* v) {
+        return v != nullptr && gc::IsInsideNursery(reinterpret_cast<gc::Cell*>(v));
     }
 #ifdef JSGC_GENERATIONAL
-    static void postBarrier(JSObject **vp) {
-        JS::HeapCellPostBarrier(reinterpret_cast<js::gc::Cell **>(vp));
+    static void postBarrier(JSObject** vp) {
+        JS::HeapCellPostBarrier(reinterpret_cast<js::gc::Cell**>(vp));
     }
-    static void relocate(JSObject **vp) {
-        JS::HeapCellRelocate(reinterpret_cast<js::gc::Cell **>(vp));
+    static void relocate(JSObject** vp) {
+        JS::HeapCellRelocate(reinterpret_cast<js::gc::Cell**>(vp));
     }
 #endif
 };
 
 template <>
-struct GCMethods<JSFunction *>
+struct GCMethods<JSFunction*>
 {
-    static JSFunction *initial() { return nullptr; }
-    static bool poisoned(JSFunction *v) { return JS::IsPoisonedPtr(v); }
-    static bool needsPostBarrier(JSFunction *v) {
-        return v != nullptr && gc::IsInsideNursery(reinterpret_cast<gc::Cell *>(v));
+    static JSFunction* initial() { return nullptr; }
+    static bool poisoned(JSFunction* v) { return JS::IsPoisonedPtr(v); }
+    static bool needsPostBarrier(JSFunction* v) {
+        return v != nullptr && gc::IsInsideNursery(reinterpret_cast<gc::Cell*>(v));
     }
 #ifdef JSGC_GENERATIONAL
-    static void postBarrier(JSFunction **vp) {
-        JS::HeapCellPostBarrier(reinterpret_cast<js::gc::Cell **>(vp));
+    static void postBarrier(JSFunction** vp) {
+        JS::HeapCellPostBarrier(reinterpret_cast<js::gc::Cell**>(vp));
     }
-    static void relocate(JSFunction **vp) {
-        JS::HeapCellRelocate(reinterpret_cast<js::gc::Cell **>(vp));
+    static void relocate(JSFunction** vp) {
+        JS::HeapCellRelocate(reinterpret_cast<js::gc::Cell**>(vp));
     }
 #endif
 };
@@ -701,7 +701,7 @@ struct GCMethods<JSFunction *>
 #ifdef JS_DEBUG
 /* This helper allows us to assert that Rooted<T> is scoped within a request. */
 extern JS_PUBLIC_API(bool)
-IsInRequest(JSContext *cx);
+IsInRequest(JSContext* cx);
 #endif
 
 } /* namespace js */
@@ -721,7 +721,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
 {
     /* Note: CX is a subclass of either ContextFriendFields or PerThreadDataFriendFields. */
     template <typename CX>
-    void init(CX *cx) {
+    void init(CX* cx) {
 #ifdef JSGC_TRACK_EXACT_ROOTS
         js::ThingRootKind kind = js::RootKind<T>::rootKind();
         this->stack = &cx->thingGCRooters[kind];
@@ -733,7 +733,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
     }
 
   public:
-    explicit Rooted(JSContext *cx
+    explicit Rooted(JSContext* cx
                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(js::GCMethods<T>::initial())
     {
@@ -744,7 +744,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(js::ContextFriendFields::get(cx));
     }
 
-    Rooted(JSContext *cx, T initial
+    Rooted(JSContext* cx, T initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
     {
@@ -755,7 +755,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(js::ContextFriendFields::get(cx));
     }
 
-    explicit Rooted(js::ContextFriendFields *cx
+    explicit Rooted(js::ContextFriendFields* cx
                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(js::GCMethods<T>::initial())
     {
@@ -763,7 +763,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(cx);
     }
 
-    Rooted(js::ContextFriendFields *cx, T initial
+    Rooted(js::ContextFriendFields* cx, T initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
     {
@@ -771,7 +771,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(cx);
     }
 
-    explicit Rooted(js::PerThreadDataFriendFields *pt
+    explicit Rooted(js::PerThreadDataFriendFields* pt
                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(js::GCMethods<T>::initial())
     {
@@ -779,7 +779,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(pt);
     }
 
-    Rooted(js::PerThreadDataFriendFields *pt, T initial
+    Rooted(js::PerThreadDataFriendFields* pt, T initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
     {
@@ -787,7 +787,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(pt);
     }
 
-    explicit Rooted(JSRuntime *rt
+    explicit Rooted(JSRuntime* rt
                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(js::GCMethods<T>::initial())
     {
@@ -795,7 +795,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(js::PerThreadDataFriendFields::getMainThread(rt));
     }
 
-    Rooted(JSRuntime *rt, T initial
+    Rooted(JSRuntime* rt, T initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
     {
@@ -814,7 +814,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
 #endif
 
 #ifdef JSGC_TRACK_EXACT_ROOTS
-    Rooted<T> *previous() { return reinterpret_cast<Rooted<T>*>(prev); }
+    Rooted<T>* previous() { return reinterpret_cast<Rooted<T>*>(prev); }
 #endif
 
     /*
@@ -823,18 +823,18 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
      */
     operator const T&() const { return ptr; }
     T operator->() const { return ptr; }
-    T *address() { return &ptr; }
-    const T *address() const { return &ptr; }
-    T &get() { return ptr; }
-    const T &get() const { return ptr; }
+    T* address() { return &ptr; }
+    const T* address() const { return &ptr; }
+    T& get() { return ptr; }
+    const T& get() const { return ptr; }
 
-    T &operator=(T value) {
+    T& operator=(T value) {
         MOZ_ASSERT(!js::GCMethods<T>::poisoned(value));
         ptr = value;
         return ptr;
     }
 
-    T &operator=(const Rooted &value) {
+    T& operator=(const Rooted& value) {
         ptr = value;
         return ptr;
     }
@@ -844,8 +844,8 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         ptr = value;
     }
 
-    bool operator!=(const T &other) const { return ptr != other; }
-    bool operator==(const T &other) const { return ptr == other; }
+    bool operator!=(const T& other) const { return ptr != other; }
+    bool operator==(const T& other) const { return ptr == other; }
 
   private:
 #ifdef JSGC_TRACK_EXACT_ROOTS
@@ -854,7 +854,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
      * example, Rooted<JSObject> and Rooted<JSFunction>, which use the same
      * stack head pointer for different classes.
      */
-    Rooted<void *> **stack, *prev;
+    Rooted<void*>** stack, *prev;
 #endif
 
     /*
@@ -865,7 +865,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
-    Rooted(const Rooted &) MOZ_DELETE;
+    Rooted(const Rooted&) MOZ_DELETE;
 };
 
 } /* namespace JS */
@@ -896,7 +896,7 @@ class FakeRooted : public RootedBase<T>
 {
   public:
     template <typename CX>
-    FakeRooted(CX *cx
+    FakeRooted(CX* cx
                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(GCMethods<T>::initial())
     {
@@ -904,7 +904,7 @@ class FakeRooted : public RootedBase<T>
     }
 
     template <typename CX>
-    FakeRooted(CX *cx, T initial
+    FakeRooted(CX* cx, T initial
                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
     {
@@ -913,32 +913,32 @@ class FakeRooted : public RootedBase<T>
 
     operator T() const { return ptr; }
     T operator->() const { return ptr; }
-    T *address() { return &ptr; }
-    const T *address() const { return &ptr; }
-    T &get() { return ptr; }
-    const T &get() const { return ptr; }
+    T* address() { return &ptr; }
+    const T* address() const { return &ptr; }
+    T& get() { return ptr; }
+    const T& get() const { return ptr; }
 
-    FakeRooted<T> &operator=(T value) {
+    FakeRooted<T>& operator=(T value) {
         MOZ_ASSERT(!GCMethods<T>::poisoned(value));
         ptr = value;
         return *this;
     }
 
-    FakeRooted<T> &operator=(const FakeRooted<T> &other) {
+    FakeRooted<T>& operator=(const FakeRooted<T>& other) {
         MOZ_ASSERT(!GCMethods<T>::poisoned(other.ptr));
         ptr = other.ptr;
         return *this;
     }
 
-    bool operator!=(const T &other) const { return ptr != other; }
-    bool operator==(const T &other) const { return ptr == other; }
+    bool operator!=(const T& other) const { return ptr != other; }
+    bool operator==(const T& other) const { return ptr == other; }
 
   private:
     T ptr;
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
-    FakeRooted(const FakeRooted &) MOZ_DELETE;
+    FakeRooted(const FakeRooted&) MOZ_DELETE;
 };
 
 /* Interface substitute for MutableHandle<T> which is not required to point to rooted memory. */
@@ -946,11 +946,11 @@ template <typename T>
 class FakeMutableHandle : public js::MutableHandleBase<T>
 {
   public:
-    MOZ_IMPLICIT FakeMutableHandle(T *t) {
+    MOZ_IMPLICIT FakeMutableHandle(T* t) {
         ptr = t;
     }
 
-    MOZ_IMPLICIT FakeMutableHandle(FakeRooted<T> *root) {
+    MOZ_IMPLICIT FakeMutableHandle(FakeRooted<T>* root) {
         ptr = root->address();
     }
 
@@ -959,7 +959,7 @@ class FakeMutableHandle : public js::MutableHandleBase<T>
         *ptr = v;
     }
 
-    T *address() const { return ptr; }
+    T* address() const { return ptr; }
     T get() const { return *ptr; }
 
     operator T() const { return get(); }
@@ -968,7 +968,7 @@ class FakeMutableHandle : public js::MutableHandleBase<T>
   private:
     FakeMutableHandle() {}
 
-    T *ptr;
+    T* ptr;
 
     template <typename S>
     void operator=(S v) MOZ_DELETE;
@@ -1032,42 +1032,42 @@ namespace JS {
 
 template <typename T> template <typename S>
 inline
-Handle<T>::Handle(const Rooted<S> &root,
+Handle<T>::Handle(const Rooted<S>& root,
                   typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
 {
-    ptr = reinterpret_cast<const T *>(root.address());
+    ptr = reinterpret_cast<const T*>(root.address());
 }
 
 template <typename T> template <typename S>
 inline
-Handle<T>::Handle(const PersistentRooted<S> &root,
+Handle<T>::Handle(const PersistentRooted<S>& root,
                   typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
 {
-    ptr = reinterpret_cast<const T *>(root.address());
+    ptr = reinterpret_cast<const T*>(root.address());
 }
 
 template <typename T> template <typename S>
 inline
-Handle<T>::Handle(MutableHandle<S> &root,
+Handle<T>::Handle(MutableHandle<S>& root,
                   typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
 {
-    ptr = reinterpret_cast<const T *>(root.address());
+    ptr = reinterpret_cast<const T*>(root.address());
 }
 
 template <typename T>
 inline
-MutableHandle<T>::MutableHandle(Rooted<T> *root)
+MutableHandle<T>::MutableHandle(Rooted<T>* root)
 {
-    static_assert(sizeof(MutableHandle<T>) == sizeof(T *),
+    static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
                   "MutableHandle must be binary compatible with T*.");
     ptr = root->address();
 }
 
 template <typename T>
 inline
-MutableHandle<T>::MutableHandle(PersistentRooted<T> *root)
+MutableHandle<T>::MutableHandle(PersistentRooted<T>* root)
 {
-    static_assert(sizeof(MutableHandle<T>) == sizeof(T *),
+    static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
                   "MutableHandle must be binary compatible with T*.");
     ptr = root->address();
 }
@@ -1111,33 +1111,33 @@ class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> 
 
     friend class js::gc::PersistentRootedMarker<T>;
 
-    void registerWithRuntime(JSRuntime *rt) {
-        JS::shadow::Runtime *srt = JS::shadow::Runtime::asShadowRuntime(rt);
+    void registerWithRuntime(JSRuntime* rt) {
+        JS::shadow::Runtime* srt = JS::shadow::Runtime::asShadowRuntime(rt);
         srt->getPersistentRootedList<T>().insertBack(this);
     }
 
   public:
-    explicit PersistentRooted(JSContext *cx) : ptr(js::GCMethods<T>::initial())
+    explicit PersistentRooted(JSContext* cx) : ptr(js::GCMethods<T>::initial())
     {
         registerWithRuntime(js::GetRuntime(cx));
     }
 
-    PersistentRooted(JSContext *cx, T initial) : ptr(initial)
+    PersistentRooted(JSContext* cx, T initial) : ptr(initial)
     {
         registerWithRuntime(js::GetRuntime(cx));
     }
 
-    explicit PersistentRooted(JSRuntime *rt) : ptr(js::GCMethods<T>::initial())
+    explicit PersistentRooted(JSRuntime* rt) : ptr(js::GCMethods<T>::initial())
     {
         registerWithRuntime(rt);
     }
 
-    PersistentRooted(JSRuntime *rt, T initial) : ptr(initial)
+    PersistentRooted(JSRuntime* rt, T initial) : ptr(initial)
     {
         registerWithRuntime(rt);
     }
 
-    PersistentRooted(PersistentRooted &rhs)
+    PersistentRooted(PersistentRooted& rhs)
       : mozilla::LinkedListElement<PersistentRooted<T> >(),
         ptr(rhs.ptr)
     {
@@ -1155,18 +1155,18 @@ class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> 
      */
     operator const T&() const { return ptr; }
     T operator->() const { return ptr; }
-    T *address() { return &ptr; }
-    const T *address() const { return &ptr; }
-    T &get() { return ptr; }
-    const T &get() const { return ptr; }
+    T* address() { return &ptr; }
+    const T* address() const { return &ptr; }
+    T& get() { return ptr; }
+    const T& get() const { return ptr; }
 
-    T &operator=(T value) {
+    T& operator=(T value) {
         MOZ_ASSERT(!js::GCMethods<T>::poisoned(value));
         ptr = value;
         return ptr;
     }
 
-    T &operator=(const PersistentRooted &value) {
+    T& operator=(const PersistentRooted& value) {
         ptr = value;
         return ptr;
     }
@@ -1176,8 +1176,8 @@ class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> 
         ptr = value;
     }
 
-    bool operator!=(const T &other) const { return ptr != other; }
-    bool operator==(const T &other) const { return ptr == other; }
+    bool operator!=(const T& other) const { return ptr != other; }
+    bool operator==(const T& other) const { return ptr == other; }
 
   private:
     T ptr;
@@ -1191,16 +1191,16 @@ namespace js {
 class CompilerRootNode
 {
   protected:
-    explicit CompilerRootNode(js::gc::Cell *ptr) : next(nullptr), ptr_(ptr) {}
+    explicit CompilerRootNode(js::gc::Cell* ptr) : next(nullptr), ptr_(ptr) {}
 
   public:
-    void **address() { return (void **)&ptr_; }
+    void** address() { return (void**)&ptr_; }
 
   public:
-    CompilerRootNode *next;
+    CompilerRootNode* next;
 
   protected:
-    js::gc::Cell *ptr_;
+    js::gc::Cell* ptr_;
 };
 
 }  /* namespace js */

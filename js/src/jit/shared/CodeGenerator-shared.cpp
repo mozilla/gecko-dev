@@ -26,8 +26,8 @@ using mozilla::DebugOnly;
 namespace js {
 namespace jit {
 
-MacroAssembler &
-CodeGeneratorShared::ensureMasm(MacroAssembler *masmArg)
+MacroAssembler&
+CodeGeneratorShared::ensureMasm(MacroAssembler* masmArg)
 {
     if (masmArg)
         return *masmArg;
@@ -35,7 +35,7 @@ CodeGeneratorShared::ensureMasm(MacroAssembler *masmArg)
     return maybeMasm_.ref();
 }
 
-CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masmArg)
+CodeGeneratorShared::CodeGeneratorShared(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masmArg)
   : oolIns(nullptr),
     maybeMasm_(),
     masm(ensureMasm(masmArg)),
@@ -111,7 +111,7 @@ CodeGeneratorShared::generateOutOfLineCode()
 }
 
 bool
-CodeGeneratorShared::addOutOfLineCode(OutOfLineCode *code)
+CodeGeneratorShared::addOutOfLineCode(OutOfLineCode* code)
 {
     code->setFramePushed(masm.framePushed());
     // If an OOL instruction adds another OOL instruction, then use the original
@@ -127,7 +127,7 @@ CodeGeneratorShared::addOutOfLineCode(OutOfLineCode *code)
 
 // see OffsetOfFrameSlot
 static inline int32_t
-ToStackIndex(LAllocation *a)
+ToStackIndex(LAllocation* a)
 {
     if (a->isStackSlot()) {
         JS_ASSERT(a->toStackSlot()->slot() >= 1);
@@ -138,8 +138,8 @@ ToStackIndex(LAllocation *a)
 }
 
 bool
-CodeGeneratorShared::encodeAllocation(LSnapshot *snapshot, MDefinition *mir,
-                                      uint32_t *allocIndex)
+CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot, MDefinition* mir,
+                                      uint32_t* allocIndex)
 {
     if (mir->isBox())
         mir = mir->toBox()->getOperand(0);
@@ -156,8 +156,8 @@ CodeGeneratorShared::encodeAllocation(LSnapshot *snapshot, MDefinition *mir,
       {
         MOZ_ASSERT(mir->isRecoveredOnBailout());
         uint32_t index = 0;
-        LRecoverInfo *recoverInfo = snapshot->recoverInfo();
-        MNode **it = recoverInfo->begin(), **end = recoverInfo->end();
+        LRecoverInfo* recoverInfo = snapshot->recoverInfo();
+        MNode** it = recoverInfo->begin(), **end = recoverInfo->end();
         while (it != end && mir != *it) {
             ++it;
             ++index;
@@ -182,7 +182,7 @@ CodeGeneratorShared::encodeAllocation(LSnapshot *snapshot, MDefinition *mir,
       case MIRType_Double:
       case MIRType_Float32:
       {
-        LAllocation *payload = snapshot->payloadOfSlot(*allocIndex);
+        LAllocation* payload = snapshot->payloadOfSlot(*allocIndex);
         JSValueType valueType = ValueTypeFromMIRType(type);
         if (payload->isMemory()) {
             if (type == MIRType_Float32)
@@ -198,7 +198,7 @@ CodeGeneratorShared::encodeAllocation(LSnapshot *snapshot, MDefinition *mir,
             else
                 alloc = RValueAllocation::Double(reg);
         } else {
-            MConstant *constant = mir->toConstant();
+            MConstant* constant = mir->toConstant();
             uint32_t index;
             if (!graph.addConstantToPool(constant->value(), &index))
                 return false;
@@ -222,9 +222,9 @@ CodeGeneratorShared::encodeAllocation(LSnapshot *snapshot, MDefinition *mir,
       default:
       {
         JS_ASSERT(mir->type() == MIRType_Value);
-        LAllocation *payload = snapshot->payloadOfSlot(*allocIndex);
+        LAllocation* payload = snapshot->payloadOfSlot(*allocIndex);
 #ifdef JS_NUNBOX32
-        LAllocation *type = snapshot->typeOfSlot(*allocIndex);
+        LAllocation* type = snapshot->typeOfSlot(*allocIndex);
         if (type->isRegister()) {
             if (payload->isRegister())
                 alloc = RValueAllocation::Untyped(ToRegister(type), ToRegister(payload));
@@ -252,14 +252,14 @@ CodeGeneratorShared::encodeAllocation(LSnapshot *snapshot, MDefinition *mir,
 }
 
 bool
-CodeGeneratorShared::encode(LRecoverInfo *recover)
+CodeGeneratorShared::encode(LRecoverInfo* recover)
 {
     if (recover->recoverOffset() != INVALID_RECOVER_OFFSET)
         return true;
 
     uint32_t numInstructions = recover->numInstructions();
     IonSpew(IonSpew_Snapshots, "Encoding LRecoverInfo %p (frameCount %u, instructions %u)",
-            (void *)recover, recover->mir()->frameCount(), numInstructions);
+            (void*)recover, recover->mir()->frameCount(), numInstructions);
 
     MResumePoint::Mode mode = recover->mir()->mode();
     JS_ASSERT(mode != MResumePoint::Outer);
@@ -267,7 +267,7 @@ CodeGeneratorShared::encode(LRecoverInfo *recover)
 
     RecoverOffset offset = recovers_.startRecover(numInstructions, resumeAfter);
 
-    for (MNode **it = recover->begin(), **end = recover->end(); it != end; ++it) {
+    for (MNode** it = recover->begin(), **end = recover->end(); it != end; ++it) {
         if (!recovers_.writeInstruction(*it))
             return false;
     }
@@ -278,12 +278,12 @@ CodeGeneratorShared::encode(LRecoverInfo *recover)
 }
 
 bool
-CodeGeneratorShared::encode(LSnapshot *snapshot)
+CodeGeneratorShared::encode(LSnapshot* snapshot)
 {
     if (snapshot->snapshotOffset() != INVALID_SNAPSHOT_OFFSET)
         return true;
 
-    LRecoverInfo *recoverInfo = snapshot->recoverInfo();
+    LRecoverInfo* recoverInfo = snapshot->recoverInfo();
     if (!encode(recoverInfo))
         return false;
 
@@ -291,7 +291,7 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
     MOZ_ASSERT(recoverOffset != INVALID_RECOVER_OFFSET);
 
     IonSpew(IonSpew_Snapshots, "Encoding LSnapshot %p (LRecover %p)",
-            (void *)snapshot, (void*) recoverInfo);
+            (void*)snapshot, (void*) recoverInfo);
 
     SnapshotOffset offset = snapshots_.startSnapshot(recoverOffset, snapshot->bailoutKind());
 
@@ -302,7 +302,7 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
     uint32_t mirOpcode = 0;
     uint32_t mirId = 0;
 
-    if (LInstruction *ins = instruction()) {
+    if (LInstruction* ins = instruction()) {
         lirOpcode = ins->op();
         lirId = ins->id();
         if (ins->mirRaw()) {
@@ -332,7 +332,7 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
 }
 
 bool
-CodeGeneratorShared::assignBailoutId(LSnapshot *snapshot)
+CodeGeneratorShared::assignBailoutId(LSnapshot* snapshot)
 {
     JS_ASSERT(snapshot->snapshotOffset() != INVALID_SNAPSHOT_OFFSET);
 
@@ -358,11 +358,11 @@ CodeGeneratorShared::assignBailoutId(LSnapshot *snapshot)
 void
 CodeGeneratorShared::encodeSafepoints()
 {
-    for (SafepointIndex *it = safepointIndices_.begin(), *end = safepointIndices_.end();
+    for (SafepointIndex* it = safepointIndices_.begin(), *end = safepointIndices_.end();
          it != end;
          ++it)
     {
-        LSafepoint *safepoint = it->safepoint();
+        LSafepoint* safepoint = it->safepoint();
 
         if (!safepoint->encoded()) {
             safepoint->fixupOffset(&masm);
@@ -374,13 +374,13 @@ CodeGeneratorShared::encodeSafepoints()
 }
 
 bool
-CodeGeneratorShared::markSafepoint(LInstruction *ins)
+CodeGeneratorShared::markSafepoint(LInstruction* ins)
 {
     return markSafepointAt(masm.currentOffset(), ins);
 }
 
 bool
-CodeGeneratorShared::markSafepointAt(uint32_t offset, LInstruction *ins)
+CodeGeneratorShared::markSafepointAt(uint32_t offset, LInstruction* ins)
 {
     JS_ASSERT_IF(!safepointIndices_.empty(),
                  offset - safepointIndices_.back().displacement() >= sizeof(uint32_t));
@@ -416,7 +416,7 @@ CodeGeneratorShared::ensureOsiSpace()
 }
 
 bool
-CodeGeneratorShared::markOsiPoint(LOsiPoint *ins, uint32_t *callPointOffset)
+CodeGeneratorShared::markOsiPoint(LOsiPoint* ins, uint32_t* callPointOffset)
 {
     if (!encode(ins->snapshot()))
         return false;
@@ -431,7 +431,7 @@ CodeGeneratorShared::markOsiPoint(LOsiPoint *ins, uint32_t *callPointOffset)
 #ifdef CHECK_OSIPOINT_REGISTERS
 template <class Op>
 static void
-HandleRegisterDump(Op op, MacroAssembler &masm, RegisterSet liveRegs, Register activation,
+HandleRegisterDump(Op op, MacroAssembler& masm, RegisterSet liveRegs, Register activation,
                    Register scratch)
 {
     const size_t baseOffset = JitActivation::offsetOfRegs();
@@ -463,10 +463,10 @@ HandleRegisterDump(Op op, MacroAssembler &masm, RegisterSet liveRegs, Register a
 
 class StoreOp
 {
-    MacroAssembler &masm;
+    MacroAssembler& masm;
 
   public:
-    explicit StoreOp(MacroAssembler &masm)
+    explicit StoreOp(MacroAssembler& masm)
       : masm(masm)
     {}
 
@@ -479,7 +479,7 @@ class StoreOp
 };
 
 static void
-StoreAllLiveRegs(MacroAssembler &masm, RegisterSet liveRegs)
+StoreAllLiveRegs(MacroAssembler& masm, RegisterSet liveRegs)
 {
     // Store a copy of all live registers before performing the call.
     // When we reach the OsiPoint, we can use this to check nothing
@@ -502,11 +502,11 @@ StoreAllLiveRegs(MacroAssembler &masm, RegisterSet liveRegs)
 
 class VerifyOp
 {
-    MacroAssembler &masm;
-    Label *failure_;
+    MacroAssembler& masm;
+    Label* failure_;
 
   public:
-    VerifyOp(MacroAssembler &masm, Label *failure)
+    VerifyOp(MacroAssembler& masm, Label* failure)
       : masm(masm), failure_(failure)
     {}
 
@@ -520,7 +520,7 @@ class VerifyOp
 };
 
 void
-CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
+CodeGeneratorShared::verifyOsiPointRegs(LSafepoint* safepoint)
 {
     // Ensure the live registers stored by callVM did not change between
     // the call and this OsiPoint. Try-catch relies on this invariant.
@@ -583,7 +583,7 @@ CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
 }
 
 bool
-CodeGeneratorShared::shouldVerifyOsiPointRegs(LSafepoint *safepoint)
+CodeGeneratorShared::shouldVerifyOsiPointRegs(LSafepoint* safepoint)
 {
     if (!js_JitOptions.checkOsiPointRegisters)
         return false;
@@ -598,7 +598,7 @@ CodeGeneratorShared::shouldVerifyOsiPointRegs(LSafepoint *safepoint)
 }
 
 void
-CodeGeneratorShared::resetOsiPointRegs(LSafepoint *safepoint)
+CodeGeneratorShared::resetOsiPointRegs(LSafepoint* safepoint)
 {
     if (!shouldVerifyOsiPointRegs(safepoint))
         return;
@@ -618,7 +618,7 @@ CodeGeneratorShared::resetOsiPointRegs(LSafepoint *safepoint)
 // Before doing any call to Cpp, you should ensure that volatile
 // registers are evicted by the register allocator.
 bool
-CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Register *dynStack)
+CodeGeneratorShared::callVM(const VMFunction& fun, LInstruction* ins, const Register* dynStack)
 {
     // Different execution modes have different sets of VM functions.
     JS_ASSERT(fun.executionMode == gen->info().executionMode());
@@ -630,7 +630,7 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
 #ifdef DEBUG
     if (ins->mirRaw()) {
         JS_ASSERT(ins->mirRaw()->isInstruction());
-        MInstruction *mir = ins->mirRaw()->toInstruction();
+        MInstruction* mir = ins->mirRaw()->toInstruction();
         JS_ASSERT_IF(mir->isEffectful(), mir->resumePoint());
     }
 #endif
@@ -649,7 +649,7 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
 #endif
 
     // Get the wrapper of the VM function.
-    JitCode *wrapper = gen->jitRuntime()->getVMWrapper(fun);
+    JitCode* wrapper = gen->jitRuntime()->getVMWrapper(fun);
     if (!wrapper)
         return false;
 
@@ -676,7 +676,7 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
     int framePop = sizeof(IonExitFrameLayout) - sizeof(void*);
 
     // Pop arguments from framePushed.
-    masm.implicitPop(fun.explicitStackSlots() * sizeof(void *) + framePop);
+    masm.implicitPop(fun.explicitStackSlots() * sizeof(void*) + framePop);
     // Stack is:
     //    ... frame ...
 
@@ -699,7 +699,7 @@ class OutOfLineTruncateSlow : public OutOfLineCodeBase<CodeGeneratorShared>
       : src_(src), dest_(dest), needFloat32Conversion_(needFloat32Conversion)
     { }
 
-    bool accept(CodeGeneratorShared *codegen) {
+    bool accept(CodeGeneratorShared* codegen) {
         return codegen->visitOutOfLineTruncateSlow(this);
     }
     FloatRegister src() const {
@@ -714,10 +714,10 @@ class OutOfLineTruncateSlow : public OutOfLineCodeBase<CodeGeneratorShared>
 
 };
 
-OutOfLineCode *
+OutOfLineCode*
 CodeGeneratorShared::oolTruncateDouble(FloatRegister src, Register dest)
 {
-    OutOfLineTruncateSlow *ool = new(alloc()) OutOfLineTruncateSlow(src, dest);
+    OutOfLineTruncateSlow* ool = new(alloc()) OutOfLineTruncateSlow(src, dest);
     if (!addOutOfLineCode(ool))
         return nullptr;
     return ool;
@@ -726,7 +726,7 @@ CodeGeneratorShared::oolTruncateDouble(FloatRegister src, Register dest)
 bool
 CodeGeneratorShared::emitTruncateDouble(FloatRegister src, Register dest)
 {
-    OutOfLineCode *ool = oolTruncateDouble(src, dest);
+    OutOfLineCode* ool = oolTruncateDouble(src, dest);
     if (!ool)
         return false;
 
@@ -738,7 +738,7 @@ CodeGeneratorShared::emitTruncateDouble(FloatRegister src, Register dest)
 bool
 CodeGeneratorShared::emitTruncateFloat32(FloatRegister src, Register dest)
 {
-    OutOfLineTruncateSlow *ool = new(alloc()) OutOfLineTruncateSlow(src, dest, true);
+    OutOfLineTruncateSlow* ool = new(alloc()) OutOfLineTruncateSlow(src, dest, true);
     if (!addOutOfLineCode(ool))
         return false;
 
@@ -748,7 +748,7 @@ CodeGeneratorShared::emitTruncateFloat32(FloatRegister src, Register dest)
 }
 
 bool
-CodeGeneratorShared::visitOutOfLineTruncateSlow(OutOfLineTruncateSlow *ool)
+CodeGeneratorShared::visitOutOfLineTruncateSlow(OutOfLineTruncateSlow* ool)
 {
     FloatRegister src = ool->src();
     Register dest = ool->dest();
@@ -765,7 +765,7 @@ CodeGeneratorShared::visitOutOfLineTruncateSlow(OutOfLineTruncateSlow *ool)
     if (gen->compilingAsmJS())
         masm.callWithABI(AsmJSImm_ToInt32);
     else
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, js::ToInt32));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, js::ToInt32));
     masm.storeCallResult(dest);
 
     if (ool->needFloat32Conversion())
@@ -789,7 +789,7 @@ CodeGeneratorShared::omitOverRecursedCheck() const
 }
 
 void
-CodeGeneratorShared::emitPreBarrier(Register base, const LAllocation *index, MIRType type)
+CodeGeneratorShared::emitPreBarrier(Register base, const LAllocation* index, MIRType type)
 {
     if (index->isConstant()) {
         Address address(base, ToInt32(index) * sizeof(Value));
@@ -813,7 +813,7 @@ CodeGeneratorShared::dropArguments(unsigned argc)
 }
 
 bool
-CodeGeneratorShared::markArgumentSlots(LSafepoint *safepoint)
+CodeGeneratorShared::markArgumentSlots(LSafepoint* safepoint)
 {
     for (size_t i = 0; i < pushedArgumentSlots_.length(); i++) {
         if (!safepoint->addValueSlot(pushedArgumentSlots_[i]))
@@ -822,22 +822,22 @@ CodeGeneratorShared::markArgumentSlots(LSafepoint *safepoint)
     return true;
 }
 
-OutOfLineAbortPar *
-CodeGeneratorShared::oolAbortPar(ParallelBailoutCause cause, MBasicBlock *basicBlock,
-                                 jsbytecode *bytecode)
+OutOfLineAbortPar*
+CodeGeneratorShared::oolAbortPar(ParallelBailoutCause cause, MBasicBlock* basicBlock,
+                                 jsbytecode* bytecode)
 {
-    OutOfLineAbortPar *ool = new(alloc()) OutOfLineAbortPar(cause, basicBlock, bytecode);
+    OutOfLineAbortPar* ool = new(alloc()) OutOfLineAbortPar(cause, basicBlock, bytecode);
     if (!ool || !addOutOfLineCode(ool))
         return nullptr;
     return ool;
 }
 
-OutOfLineAbortPar *
-CodeGeneratorShared::oolAbortPar(ParallelBailoutCause cause, LInstruction *lir)
+OutOfLineAbortPar*
+CodeGeneratorShared::oolAbortPar(ParallelBailoutCause cause, LInstruction* lir)
 {
-    MDefinition *mir = lir->mirRaw();
-    MBasicBlock *block = mir->block();
-    jsbytecode *pc = mir->trackedPc();
+    MDefinition* mir = lir->mirRaw();
+    MBasicBlock* block = mir->block();
+    jsbytecode* pc = mir->trackedPc();
     if (!pc) {
         if (lir->snapshot())
             pc = lir->snapshot()->mir()->pc();
@@ -847,32 +847,32 @@ CodeGeneratorShared::oolAbortPar(ParallelBailoutCause cause, LInstruction *lir)
     return oolAbortPar(cause, block, pc);
 }
 
-OutOfLinePropagateAbortPar *
-CodeGeneratorShared::oolPropagateAbortPar(LInstruction *lir)
+OutOfLinePropagateAbortPar*
+CodeGeneratorShared::oolPropagateAbortPar(LInstruction* lir)
 {
-    OutOfLinePropagateAbortPar *ool = new(alloc()) OutOfLinePropagateAbortPar(lir);
+    OutOfLinePropagateAbortPar* ool = new(alloc()) OutOfLinePropagateAbortPar(lir);
     if (!ool || !addOutOfLineCode(ool))
         return nullptr;
     return ool;
 }
 
 bool
-OutOfLineAbortPar::generate(CodeGeneratorShared *codegen)
+OutOfLineAbortPar::generate(CodeGeneratorShared* codegen)
 {
     codegen->callTraceLIR(0xDEADBEEF, nullptr, "AbortPar");
     return codegen->visitOutOfLineAbortPar(this);
 }
 
 bool
-OutOfLinePropagateAbortPar::generate(CodeGeneratorShared *codegen)
+OutOfLinePropagateAbortPar::generate(CodeGeneratorShared* codegen)
 {
     codegen->callTraceLIR(0xDEADBEEF, nullptr, "AbortPar");
     return codegen->visitOutOfLinePropagateAbortPar(this);
 }
 
 bool
-CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction *lir,
-                                  const char *bailoutName)
+CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction* lir,
+                                  const char* bailoutName)
 {
     JS_ASSERT_IF(!lir, bailoutName);
 
@@ -881,10 +881,10 @@ CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction *lir,
 
     uint32_t execMode = (uint32_t) gen->info().executionMode();
     uint32_t lirIndex;
-    const char *lirOpName;
-    const char *mirOpName;
-    JSScript *script;
-    jsbytecode *pc;
+    const char* lirOpName;
+    const char* mirOpName;
+    JSScript* script;
+    jsbytecode* pc;
 
     masm.PushRegsInMask(RegisterSet::Volatile());
     masm.reserveStack(sizeof(IonLIRTraceData));
@@ -897,7 +897,7 @@ CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction *lir,
     if (lir) {
         lirIndex = lir->id();
         lirOpName = lir->opName();
-        if (MDefinition *mir = lir->mirRaw()) {
+        if (MDefinition* mir = lir->mirRaw()) {
             mirOpName = mir->opName();
             script = mir->block()->info().script();
             pc = mir->trackedPc();
@@ -931,7 +931,7 @@ CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction *lir,
     masm.movePtr(StackPointer, CallTempReg0);
     masm.setupUnalignedABICall(1, CallTempReg1);
     masm.passABIArg(CallTempReg0);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, TraceLIR));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, TraceLIR));
 
     masm.freeStack(sizeof(IonLIRTraceData));
     masm.PopRegsInMask(RegisterSet::Volatile());
@@ -939,8 +939,8 @@ CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction *lir,
     return true;
 }
 
-Label *
-CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock *mir)
+Label*
+CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock* mir)
 {
     // If this is a loop backedge to a loop header with an implicit interrupt
     // check, use a patchable jump. Skip this search if compiling without a
@@ -966,7 +966,7 @@ CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock *mir)
 }
 
 void
-CodeGeneratorShared::jumpToBlock(MBasicBlock *mir)
+CodeGeneratorShared::jumpToBlock(MBasicBlock* mir)
 {
     // Skip past trivial blocks.
     mir = skipTrivialBlocks(mir);
@@ -975,7 +975,7 @@ CodeGeneratorShared::jumpToBlock(MBasicBlock *mir)
     if (isNextBlock(mir->lir()))
         return;
 
-    if (Label *oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
+    if (Label* oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
         // Note: the backedge is initially a jump to the next instruction.
         // It will be patched to the target block's label during link().
         RepatchLabel rejoin;
@@ -991,12 +991,12 @@ CodeGeneratorShared::jumpToBlock(MBasicBlock *mir)
 // This function is not used for MIPS. MIPS has branchToBlock.
 #ifndef JS_CODEGEN_MIPS
 void
-CodeGeneratorShared::jumpToBlock(MBasicBlock *mir, Assembler::Condition cond)
+CodeGeneratorShared::jumpToBlock(MBasicBlock* mir, Assembler::Condition cond)
 {
     // Skip past trivial blocks.
     mir = skipTrivialBlocks(mir);
 
-    if (Label *oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
+    if (Label* oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
         // Note: the backedge is initially a jump to the next instruction.
         // It will be patched to the target block's label during link().
         RepatchLabel rejoin;
@@ -1011,7 +1011,7 @@ CodeGeneratorShared::jumpToBlock(MBasicBlock *mir, Assembler::Condition cond)
 #endif
 
 size_t
-CodeGeneratorShared::addCacheLocations(const CacheLocationList &locs, size_t *numLocs)
+CodeGeneratorShared::addCacheLocations(const CacheLocationList& locs, size_t* numLocs)
 {
     size_t firstIndex = runtimeData_.length();
     size_t numLocations = 0;

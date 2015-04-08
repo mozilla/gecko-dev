@@ -35,7 +35,7 @@ struct Register {
         Register r = { (Registers::Code)i };
         return r;
     }
-    static Register FromName(const char *name) {
+    static Register FromName(const char* name) {
         Registers::Code code = Registers::FromName(name);
         Register r = { code };
         return r;
@@ -44,7 +44,7 @@ struct Register {
         JS_ASSERT((uint32_t)code_ < Registers::Total);
         return code_;
     }
-    const char *name() const {
+    const char* name() const {
         return Registers::GetName(code());
     }
     bool operator ==(Register other) const {
@@ -69,7 +69,7 @@ struct FloatRegister {
         FloatRegister r = { (FloatRegisters::Code)i };
         return r;
     }
-    static FloatRegister FromName(const char *name) {
+    static FloatRegister FromName(const char* name) {
         FloatRegisters::Code code = FloatRegisters::FromName(name);
         FloatRegister r = { code };
         return r;
@@ -78,7 +78,7 @@ struct FloatRegister {
         JS_ASSERT((uint32_t)code_ < FloatRegisters::Total);
         return code_;
     }
-    const char *name() const {
+    const char* name() const {
         return FloatRegisters::GetName(code());
     }
     bool operator ==(FloatRegister other) const {
@@ -110,17 +110,17 @@ class RegisterDump
 // Information needed to recover machine register state.
 class MachineState
 {
-    mozilla::Array<uintptr_t *, Registers::Total> regs_;
-    mozilla::Array<double *, FloatRegisters::Total> fpregs_;
+    mozilla::Array<uintptr_t*, Registers::Total> regs_;
+    mozilla::Array<double*, FloatRegisters::Total> fpregs_;
 
   public:
-    static MachineState FromBailout(mozilla::Array<uintptr_t, Registers::Total> &regs,
-                                    mozilla::Array<double, FloatRegisters::Total> &fpregs);
+    static MachineState FromBailout(mozilla::Array<uintptr_t, Registers::Total>& regs,
+                                    mozilla::Array<double, FloatRegisters::Total>& fpregs);
 
-    void setRegisterLocation(Register reg, uintptr_t *up) {
+    void setRegisterLocation(Register reg, uintptr_t* up) {
         regs_[reg.code()] = up;
     }
-    void setRegisterLocation(FloatRegister reg, double *dp) {
+    void setRegisterLocation(FloatRegister reg, double* dp) {
         fpregs_[reg.code()] = dp;
     }
 

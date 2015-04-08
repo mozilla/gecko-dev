@@ -41,7 +41,7 @@ static const char * const ChannelNames[] =
 static bool
 FilterContainsLocation(HandleScript function)
 {
-    static const char *filter = getenv("IONFILTER");
+    static const char* filter = getenv("IONFILTER");
 
     // If there is no filter we accept all outputs.
     if (!filter || !filter[0])
@@ -51,10 +51,10 @@ FilterContainsLocation(HandleScript function)
     if (!function)
         return false;
 
-    const char *filename = function->filename();
+    const char* filename = function->filename();
     const size_t line = function->lineno();
     const size_t filelen = strlen(filename);
-    const char *index = strstr(filter, filename);
+    const char* index = strstr(filter, filename);
     while (index) {
         if (index == filter || index[-1] == ',') {
             if (index[filelen] == 0 || index[filelen] == ',')
@@ -78,21 +78,21 @@ jit::EnableIonDebugLogging()
 }
 
 void
-jit::IonSpewNewFunction(MIRGraph *graph, HandleScript func)
+jit::IonSpewNewFunction(MIRGraph* graph, HandleScript func)
 {
     if (GetIonContext()->runtime->onMainThread())
         ionspewer.beginFunction(graph, func);
 }
 
 void
-jit::IonSpewPass(const char *pass)
+jit::IonSpewPass(const char* pass)
 {
     if (GetIonContext()->runtime->onMainThread())
         ionspewer.spewPass(pass);
 }
 
 void
-jit::IonSpewPass(const char *pass, LinearScanAllocator *ra)
+jit::IonSpewPass(const char* pass, LinearScanAllocator* ra)
 {
     if (GetIonContext()->runtime->onMainThread())
         ionspewer.spewPass(pass, ra);
@@ -137,7 +137,7 @@ IonSpewer::isSpewingFunction() const
 }
 
 void
-IonSpewer::beginFunction(MIRGraph *graph, HandleScript function)
+IonSpewer::beginFunction(MIRGraph* graph, HandleScript function)
 {
     if (!inited_)
         return;
@@ -156,7 +156,7 @@ IonSpewer::beginFunction(MIRGraph *graph, HandleScript function)
 }
 
 void
-IonSpewer::spewPass(const char *pass)
+IonSpewer::spewPass(const char* pass)
 {
     if (!isSpewingFunction())
         return;
@@ -169,7 +169,7 @@ IonSpewer::spewPass(const char *pass)
 }
 
 void
-IonSpewer::spewPass(const char *pass, LinearScanAllocator *ra)
+IonSpewer::spewPass(const char* pass, LinearScanAllocator* ra)
 {
     if (!isSpewingFunction())
         return;
@@ -201,13 +201,13 @@ IonSpewer::endFunction()
 }
 
 
-FILE *jit::IonSpewFile = nullptr;
+FILE* jit::IonSpewFile = nullptr;
 
 static bool
-ContainsFlag(const char *str, const char *flag)
+ContainsFlag(const char* str, const char* flag)
 {
     size_t flaglen = strlen(flag);
-    const char *index = strstr(str, flag);
+    const char* index = strstr(str, flag);
     while (index) {
         if ((index == str || index[-1] == ',') && (index[flaglen] == 0 || index[flaglen] == ','))
             return true;
@@ -222,7 +222,7 @@ jit::CheckLogging()
     if (LoggingChecked)
         return;
     LoggingChecked = true;
-    const char *env = getenv("IONFLAGS");
+    const char* env = getenv("IONFLAGS");
     if (!env)
         return;
     if (strstr(env, "help")) {
@@ -338,7 +338,7 @@ jit::CheckLogging()
 }
 
 void
-jit::IonSpewStartVA(IonSpewChannel channel, const char *fmt, va_list ap)
+jit::IonSpewStartVA(IonSpewChannel channel, const char* fmt, va_list ap)
 {
     if (!IonSpewEnabled(channel))
         return;
@@ -348,7 +348,7 @@ jit::IonSpewStartVA(IonSpewChannel channel, const char *fmt, va_list ap)
 }
 
 void
-jit::IonSpewContVA(IonSpewChannel channel, const char *fmt, va_list ap)
+jit::IonSpewContVA(IonSpewChannel channel, const char* fmt, va_list ap)
 {
     if (!IonSpewEnabled(channel))
         return;
@@ -366,14 +366,14 @@ jit::IonSpewFin(IonSpewChannel channel)
 }
 
 void
-jit::IonSpewVA(IonSpewChannel channel, const char *fmt, va_list ap)
+jit::IonSpewVA(IonSpewChannel channel, const char* fmt, va_list ap)
 {
     IonSpewStartVA(channel, fmt, ap);
     IonSpewFin(channel);
 }
 
 void
-jit::IonSpew(IonSpewChannel channel, const char *fmt, ...)
+jit::IonSpew(IonSpewChannel channel, const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -382,7 +382,7 @@ jit::IonSpew(IonSpewChannel channel, const char *fmt, ...)
 }
 
 void
-jit::IonSpewStart(IonSpewChannel channel, const char *fmt, ...)
+jit::IonSpewStart(IonSpewChannel channel, const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -390,7 +390,7 @@ jit::IonSpewStart(IonSpewChannel channel, const char *fmt, ...)
     va_end(ap);
 }
 void
-jit::IonSpewCont(IonSpewChannel channel, const char *fmt, ...)
+jit::IonSpewCont(IonSpewChannel channel, const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);

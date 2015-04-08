@@ -436,12 +436,12 @@ public:
 
         JumpList() {}
 
-        JumpList(const JumpList &other)
+        JumpList(const JumpList& other)
         {
             m_jumps.appendAll(other.m_jumps);
         }
 
-        JumpList &operator=(const JumpList &other)
+        JumpList& operator=(const JumpList& other)
         {
             m_jumps.clear();
             m_jumps.append(other.m_jumps);
@@ -503,7 +503,7 @@ public:
         return m_assembler.size();
     }
 
-    unsigned char *buffer()
+    unsigned char* buffer()
     {
         return m_assembler.buffer();
     }

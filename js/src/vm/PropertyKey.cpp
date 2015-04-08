@@ -18,7 +18,7 @@
 using namespace js;
 
 bool
-JS::detail::ToPropertyKeySlow(JSContext *cx, HandleValue v, PropertyKey *key)
+JS::detail::ToPropertyKeySlow(JSContext* cx, HandleValue v, PropertyKey* key)
 {
     MOZ_ASSERT_IF(v.isInt32(), v.toInt32() < 0);
 

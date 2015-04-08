@@ -17,7 +17,7 @@
 using namespace js;
 using namespace js::jit;
 
-LIRGraph::LIRGraph(MIRGraph *mir)
+LIRGraph::LIRGraph(MIRGraph* mir)
   : blocks_(),
     constantPool_(mir->alloc()),
     constantPoolMap_(mir->alloc()),
@@ -33,7 +33,7 @@ LIRGraph::LIRGraph(MIRGraph *mir)
 }
 
 bool
-LIRGraph::addConstantToPool(const Value &v, uint32_t *index)
+LIRGraph::addConstantToPool(const Value& v, uint32_t* index)
 {
     JS_ASSERT(constantPoolMap_.initialized());
 
@@ -47,7 +47,7 @@ LIRGraph::addConstantToPool(const Value &v, uint32_t *index)
 }
 
 bool
-LIRGraph::noteNeedsSafepoint(LInstruction *ins)
+LIRGraph::noteNeedsSafepoint(LInstruction* ins)
 {
     // Instructions with safepoints must be in linear order.
     JS_ASSERT_IF(!safepoints_.empty(), safepoints_.back()->id() < ins->id());
@@ -57,7 +57,7 @@ LIRGraph::noteNeedsSafepoint(LInstruction *ins)
 }
 
 void
-LIRGraph::dump(FILE *fp) const
+LIRGraph::dump(FILE* fp) const
 {
     for (size_t i = 0; i < numBlocks(); i++) {
         getBlock(i)->dump(fp);
@@ -71,17 +71,17 @@ LIRGraph::dump() const
     dump(stderr);
 }
 
-LBlock *
-LBlock::New(TempAllocator &alloc, MBasicBlock *from)
+LBlock*
+LBlock::New(TempAllocator& alloc, MBasicBlock* from)
 {
-    LBlock *block = new(alloc) LBlock(from);
+    LBlock* block = new(alloc) LBlock(from);
     if (!block)
         return nullptr;
 
     // Count the number of LPhis we'll need.
     size_t numLPhis = 0;
     for (MPhiIterator i(from->phisBegin()), e(from->phisEnd()); i != e; ++i) {
-        MPhi *phi = *i;
+        MPhi* phi = *i;
         numLPhis += (phi->type() == MIRType_Value) ? BOX_PIECES : 1;
     }
 
@@ -95,13 +95,13 @@ LBlock::New(TempAllocator &alloc, MBasicBlock *from)
     size_t phiIndex = 0;
     size_t numPreds = from->numPredecessors();
     for (MPhiIterator i(from->phisBegin()), e(from->phisEnd()); i != e; ++i) {
-        MPhi *phi = *i;
+        MPhi* phi = *i;
         MOZ_ASSERT(phi->numOperands() == numPreds);
 
         int numPhis = (phi->type() == MIRType_Value) ? BOX_PIECES : 1;
         for (int i = 0; i < numPhis; i++) {
-            void *array = alloc.allocateArray<sizeof(LAllocation)>(numPreds);
-            LAllocation *inputs = static_cast<LAllocation *>(array);
+            void* array = alloc.allocateArray<sizeof(LAllocation)>(numPreds);
+            LAllocation* inputs = static_cast<LAllocation*>(array);
             if (!inputs)
                 return nullptr;
 
@@ -127,7 +127,7 @@ LBlock::firstId()
 uint32_t
 LBlock::lastId()
 {
-    LInstruction *last = *instructions_.rbegin();
+    LInstruction* last = *instructions_.rbegin();
     JS_ASSERT(last->id());
     // The last instruction is a control flow instruction which does not have
     // any output.
@@ -135,8 +135,8 @@ LBlock::lastId()
     return last->id();
 }
 
-LMoveGroup *
-LBlock::getEntryMoveGroup(TempAllocator &alloc)
+LMoveGroup*
+LBlock::getEntryMoveGroup(TempAllocator& alloc)
 {
     if (entryMoveGroup_)
         return entryMoveGroup_;
@@ -148,8 +148,8 @@ LBlock::getEntryMoveGroup(TempAllocator &alloc)
     return entryMoveGroup_;
 }
 
-LMoveGroup *
-LBlock::getExitMoveGroup(TempAllocator &alloc)
+LMoveGroup*
+LBlock::getExitMoveGroup(TempAllocator& alloc)
 {
     if (exitMoveGroup_)
         return exitMoveGroup_;
@@ -159,7 +159,7 @@ LBlock::getExitMoveGroup(TempAllocator &alloc)
 }
 
 void
-LBlock::dump(FILE *fp)
+LBlock::dump(FILE* fp)
 {
     fprintf(fp, "block%u:\n", mir()->id());
     for (size_t i = 0; i < numPhis(); ++i) {
@@ -179,7 +179,7 @@ LBlock::dump()
 }
 
 static size_t
-TotalOperandCount(LRecoverInfo *recoverInfo)
+TotalOperandCount(LRecoverInfo* recoverInfo)
 {
     LRecoverInfo::OperandIter it(recoverInfo->begin());
     LRecoverInfo::OperandIter end(recoverInfo->end());
@@ -192,29 +192,29 @@ TotalOperandCount(LRecoverInfo *recoverInfo)
     return accum;
 }
 
-LRecoverInfo::LRecoverInfo(TempAllocator &alloc)
+LRecoverInfo::LRecoverInfo(TempAllocator& alloc)
   : instructions_(alloc),
     recoverOffset_(INVALID_RECOVER_OFFSET)
 { }
 
-LRecoverInfo *
-LRecoverInfo::New(MIRGenerator *gen, MResumePoint *mir)
+LRecoverInfo*
+LRecoverInfo::New(MIRGenerator* gen, MResumePoint* mir)
 {
-    LRecoverInfo *recoverInfo = new(gen->alloc()) LRecoverInfo(gen->alloc());
+    LRecoverInfo* recoverInfo = new(gen->alloc()) LRecoverInfo(gen->alloc());
     if (!recoverInfo || !recoverInfo->init(mir))
         return nullptr;
 
     IonSpew(IonSpew_Snapshots, "Generating LIR recover info %p from MIR (%p)",
-            (void *)recoverInfo, (void *)mir);
+            (void*)recoverInfo, (void*)mir);
 
     return recoverInfo;
 }
 
 bool
-LRecoverInfo::appendOperands(MNode *ins)
+LRecoverInfo::appendOperands(MNode* ins)
 {
     for (size_t i = 0, end = ins->numOperands(); i < end; i++) {
-        MDefinition *def = ins->getOperand(i);
+        MDefinition* def = ins->getOperand(i);
 
         // As there is no cycle in the data-flow (without MPhi), checking for
         // isInWorkList implies that the definition is already in the
@@ -230,7 +230,7 @@ LRecoverInfo::appendOperands(MNode *ins)
 }
 
 bool
-LRecoverInfo::appendDefinition(MDefinition *def)
+LRecoverInfo::appendDefinition(MDefinition* def)
 {
     MOZ_ASSERT(def->isRecoveredOnBailout());
     def->setInWorklist();
@@ -240,7 +240,7 @@ LRecoverInfo::appendDefinition(MDefinition *def)
 }
 
 bool
-LRecoverInfo::appendResumePoint(MResumePoint *rp)
+LRecoverInfo::appendResumePoint(MResumePoint* rp)
 {
     if (rp->caller() && !appendResumePoint(rp->caller()))
         return false;
@@ -252,7 +252,7 @@ LRecoverInfo::appendResumePoint(MResumePoint *rp)
 }
 
 bool
-LRecoverInfo::init(MResumePoint *rp)
+LRecoverInfo::init(MResumePoint* rp)
 {
     // Sort operations in the order in which we need to restore the stack. This
     // implies that outer frames, as well as operations needed to recover the
@@ -262,7 +262,7 @@ LRecoverInfo::init(MResumePoint *rp)
         return false;
 
     // Remove temporary flags from all definitions.
-    for (MNode **it = begin(); it != end(); it++) {
+    for (MNode** it = begin(); it != end(); it++) {
         if (!(*it)->isDefinition())
             continue;
 
@@ -273,7 +273,7 @@ LRecoverInfo::init(MResumePoint *rp)
     return true;
 }
 
-LSnapshot::LSnapshot(LRecoverInfo *recoverInfo, BailoutKind kind)
+LSnapshot::LSnapshot(LRecoverInfo* recoverInfo, BailoutKind kind)
   : numSlots_(TotalOperandCount(recoverInfo) * BOX_PIECES),
     slots_(nullptr),
     recoverInfo_(recoverInfo),
@@ -283,21 +283,21 @@ LSnapshot::LSnapshot(LRecoverInfo *recoverInfo, BailoutKind kind)
 { }
 
 bool
-LSnapshot::init(MIRGenerator *gen)
+LSnapshot::init(MIRGenerator* gen)
 {
     slots_ = gen->allocate<LAllocation>(numSlots_);
     return !!slots_;
 }
 
-LSnapshot *
-LSnapshot::New(MIRGenerator *gen, LRecoverInfo *recover, BailoutKind kind)
+LSnapshot*
+LSnapshot::New(MIRGenerator* gen, LRecoverInfo* recover, BailoutKind kind)
 {
-    LSnapshot *snapshot = new(gen->alloc()) LSnapshot(recover, kind);
+    LSnapshot* snapshot = new(gen->alloc()) LSnapshot(recover, kind);
     if (!snapshot || !snapshot->init(gen))
         return nullptr;
 
     IonSpew(IonSpew_Snapshots, "Generating LIR snapshot %p from recover (%p)",
-            (void *)snapshot, (void *)recover);
+            (void*)snapshot, (void*)recover);
 
     return snapshot;
 }
@@ -314,7 +314,7 @@ LSnapshot::rewriteRecoveredInput(LUse input)
 }
 
 void
-LInstruction::printName(FILE *fp, Opcode op)
+LInstruction::printName(FILE* fp, Opcode op)
 {
     static const char * const names[] =
     {
@@ -322,14 +322,14 @@ LInstruction::printName(FILE *fp, Opcode op)
         LIR_OPCODE_LIST(LIROP)
 #undef LIROP
     };
-    const char *name = names[op];
+    const char* name = names[op];
     size_t len = strlen(name);
     for (size_t i = 0; i < len; i++)
         fprintf(fp, "%c", tolower(name[i]));
 }
 
 void
-LInstruction::printName(FILE *fp)
+LInstruction::printName(FILE* fp)
 {
     printName(fp, op());
 }
@@ -351,7 +351,7 @@ static const char * const TypeChars[] =
 };
 
 static void
-PrintDefinition(FILE *fp, const LDefinition &def)
+PrintDefinition(FILE* fp, const LDefinition& def)
 {
     fprintf(fp, "[%s", TypeChars[def.type()]);
     if (def.virtualRegister())
@@ -368,7 +368,7 @@ PrintDefinition(FILE *fp, const LDefinition &def)
 
 #ifdef DEBUG
 static void
-PrintUse(char *buf, size_t size, const LUse *use)
+PrintUse(char* buf, size_t size, const LUse* use)
 {
     switch (use->policy()) {
       case LUse::REGISTER:
@@ -395,7 +395,7 @@ PrintUse(char *buf, size_t size, const LUse *use)
     }
 }
 
-const char *
+const char*
 LAllocation::toString() const
 {
     // Not reentrant!
@@ -433,7 +433,7 @@ LAllocation::dump() const
 }
 
 void
-LInstruction::printOperands(FILE *fp)
+LInstruction::printOperands(FILE* fp)
 {
     for (size_t i = 0, e = numOperands(); i < e; i++) {
         fprintf(fp, " (%s)", getOperand(i)->toString());
@@ -443,7 +443,7 @@ LInstruction::printOperands(FILE *fp)
 }
 
 void
-LInstruction::assignSnapshot(LSnapshot *snapshot)
+LInstruction::assignSnapshot(LSnapshot* snapshot)
 {
     JS_ASSERT(!snapshot_);
     snapshot_ = snapshot;
@@ -452,7 +452,7 @@ LInstruction::assignSnapshot(LSnapshot *snapshot)
     if (IonSpewEnabled(IonSpew_Snapshots)) {
         IonSpewHeader(IonSpew_Snapshots);
         fprintf(IonSpewFile, "Assigning snapshot %p to instruction %p (",
-                (void *)snapshot, (void *)this);
+                (void*)snapshot, (void*)this);
         printName(IonSpewFile);
         fprintf(IonSpewFile, ")\n");
     }
@@ -460,7 +460,7 @@ LInstruction::assignSnapshot(LSnapshot *snapshot)
 }
 
 void
-LInstruction::dump(FILE *fp)
+LInstruction::dump(FILE* fp)
 {
     if (numDefs() != 0) {
         fprintf(fp, "{");
@@ -504,7 +504,7 @@ LInstruction::dump()
 }
 
 void
-LInstruction::initSafepoint(TempAllocator &alloc)
+LInstruction::initSafepoint(TempAllocator& alloc)
 {
     JS_ASSERT(!safepoint_);
     safepoint_ = new(alloc) LSafepoint(alloc);
@@ -512,7 +512,7 @@ LInstruction::initSafepoint(TempAllocator &alloc)
 }
 
 bool
-LMoveGroup::add(LAllocation *from, LAllocation *to, LDefinition::Type type)
+LMoveGroup::add(LAllocation* from, LAllocation* to, LDefinition::Type type)
 {
 #ifdef DEBUG
     JS_ASSERT(*from != *to);
@@ -523,7 +523,7 @@ LMoveGroup::add(LAllocation *from, LAllocation *to, LDefinition::Type type)
 }
 
 bool
-LMoveGroup::addAfter(LAllocation *from, LAllocation *to, LDefinition::Type type)
+LMoveGroup::addAfter(LAllocation* from, LAllocation* to, LDefinition::Type type)
 {
     // Transform the operands to this move so that performing the result
     // simultaneously with existing moves in the group will have the same
@@ -550,10 +550,10 @@ LMoveGroup::addAfter(LAllocation *from, LAllocation *to, LDefinition::Type type)
 }
 
 void
-LMoveGroup::printOperands(FILE *fp)
+LMoveGroup::printOperands(FILE* fp)
 {
     for (size_t i = 0; i < numMoves(); i++) {
-        const LMove &move = getMove(i);
+        const LMove& move = getMove(i);
         // Use two printfs, as LAllocation::toString is not reentrant.
         fprintf(fp, "[%s", move.from()->toString());
         fprintf(fp, " -> %s]", move.to()->toString());

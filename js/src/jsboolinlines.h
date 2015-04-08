@@ -27,9 +27,9 @@ BooleanGetPrimitiveValue(HandleObject obj)
 }
 
 inline bool
-EmulatesUndefined(JSObject *obj)
+EmulatesUndefined(JSObject* obj)
 {
-    JSObject *actual = MOZ_LIKELY(!obj->is<WrapperObject>()) ? obj : UncheckedUnwrap(obj);
+    JSObject* actual = MOZ_LIKELY(!obj->is<WrapperObject>()) ? obj : UncheckedUnwrap(obj);
     return actual->getClass()->emulatesUndefined();
 }
 

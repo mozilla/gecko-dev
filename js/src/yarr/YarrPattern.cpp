@@ -572,7 +572,7 @@ public:
     }
 
     ErrorCode setupAlternativeOffsets(PatternAlternative* alternative, unsigned currentCallFrameSize, unsigned initialInputPosition,
-                                      unsigned *callFrameSizeOut)
+                                      unsigned* callFrameSizeOut)
     {
         /*
          * Attempt detection of over-recursion:
@@ -684,7 +684,7 @@ public:
         return NoError;
     }
 
-    ErrorCode setupDisjunctionOffsets(PatternDisjunction* disjunction, unsigned initialCallFrameSize, unsigned initialInputPosition, unsigned *maximumCallFrameSizeOut)
+    ErrorCode setupDisjunctionOffsets(PatternDisjunction* disjunction, unsigned initialCallFrameSize, unsigned initialInputPosition, unsigned* maximumCallFrameSizeOut)
     {
         if ((disjunction != m_pattern.m_body) && (disjunction->m_alternatives.size() > 1))
             initialCallFrameSize += YarrStackSpaceForBackTrackInfoAlternative;
@@ -791,7 +791,7 @@ public:
             if (term.type == PatternTerm::TypeParenthesesSubpattern) {
                 PatternDisjunction* nestedDisjunction = term.parentheses.disjunction;
                 for (unsigned alt = 0; alt < nestedDisjunction->m_alternatives.size(); ++alt) {
-                    PatternAlternative *pattern = nestedDisjunction->m_alternatives[alt];
+                    PatternAlternative* pattern = nestedDisjunction->m_alternatives[alt];
                     if (pattern->m_terms.size() == 0)
                         continue;
                     if (containsCapturingTerms(pattern, 0, pattern->m_terms.size() - 1))
@@ -862,7 +862,7 @@ public:
         }
     }
 
-    void setStackBase(uint8_t *stackBase) {
+    void setStackBase(uint8_t* stackBase) {
         m_stackBase = stackBase;
     }
 

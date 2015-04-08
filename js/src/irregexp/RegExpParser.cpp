@@ -38,7 +38,7 @@ using namespace js::irregexp;
 // ----------------------------------------------------------------------------
 // RegExpBuilder
 
-RegExpBuilder::RegExpBuilder(LifoAlloc *alloc)
+RegExpBuilder::RegExpBuilder(LifoAlloc* alloc)
   : alloc(alloc),
     pending_empty_(false),
     characters_(nullptr),
@@ -109,7 +109,7 @@ RegExpBuilder::AddAtom(RegExpTree* term)
 }
 
 void
-RegExpBuilder::AddAssertion(RegExpTree *assert)
+RegExpBuilder::AddAssertion(RegExpTree* assert)
 {
     FlushText();
     terms_.Add(alloc, assert);
@@ -139,7 +139,7 @@ RegExpBuilder::FlushTerms()
     last_added_ = ADD_NONE;
 }
 
-RegExpTree *
+RegExpTree*
 RegExpBuilder::ToRegExp()
 {
     FlushTerms();
@@ -165,10 +165,10 @@ RegExpBuilder::AddQuantifierToAtom(int min, int max,
     if (characters_ != nullptr) {
         JS_ASSERT(last_added_ == ADD_CHAR);
         // Last atom was character.
-        CharacterVector *char_vector = characters_;
+        CharacterVector* char_vector = characters_;
         int num_chars = char_vector->length();
         if (num_chars > 1) {
-            CharacterVector *prefix = alloc->newInfallible<CharacterVector>(*alloc);
+            CharacterVector* prefix = alloc->newInfallible<CharacterVector>(*alloc);
             prefix->append(char_vector->begin(), num_chars - 1);
             text_.Add(alloc, alloc->newInfallible<RegExpAtom>(prefix));
             char_vector = alloc->newInfallible<CharacterVector>(*alloc);
@@ -204,8 +204,8 @@ RegExpBuilder::AddQuantifierToAtom(int min, int max,
 // ----------------------------------------------------------------------------
 // RegExpParser
 
-RegExpParser::RegExpParser(frontend::TokenStream &ts, LifoAlloc *alloc,
-                           const jschar *chars, const jschar *end, bool multiline_mode)
+RegExpParser::RegExpParser(frontend::TokenStream& ts, LifoAlloc* alloc,
+                           const jschar* chars, const jschar* end, bool multiline_mode)
   : ts(ts),
     alloc(alloc),
     captures_(nullptr),
@@ -222,7 +222,7 @@ RegExpParser::RegExpParser(frontend::TokenStream &ts, LifoAlloc *alloc,
     Advance();
 }
 
-RegExpTree *
+RegExpTree*
 RegExpParser::ReportError(unsigned errorNumber)
 {
     ts.reportError(errorNumber);
@@ -273,9 +273,9 @@ RegExpParser::ParseOctalLiteral()
 }
 
 bool
-RegExpParser::ParseHexEscape(int length, size_t *value)
+RegExpParser::ParseHexEscape(int length, size_t* value)
 {
-    const jschar *start = position();
+    const jschar* start = position();
     uint32_t val = 0;
     bool done = false;
     for (int i = 0; !done; i++) {
@@ -397,8 +397,8 @@ static const jschar kNoCharClass = 0;
 // If char_class is not kInvalidClass, it's interpreted as a class
 // escape (i.e., 's' means whitespace, from '\s').
 static inline void
-AddRangeOrEscape(LifoAlloc *alloc,
-                 CharacterRangeVector *ranges,
+AddRangeOrEscape(LifoAlloc* alloc,
+                 CharacterRangeVector* ranges,
                  jschar char_class,
                  CharacterRange range)
 {
@@ -418,7 +418,7 @@ RegExpParser::ParseCharacterClass()
         is_negated = true;
         Advance();
     }
-    CharacterRangeVector *ranges = alloc->newInfallible<CharacterRangeVector>(*alloc);
+    CharacterRangeVector* ranges = alloc->newInfallible<CharacterRangeVector>(*alloc);
     while (has_more() && current() != ']') {
         jschar char_class = kNoCharClass;
         CharacterRange first;
@@ -464,7 +464,7 @@ RegExpParser::ParseCharacterClass()
 }
 
 bool
-RegExpParser::ParseClassAtom(jschar* char_class, CharacterRange *char_range)
+RegExpParser::ParseClassAtom(jschar* char_class, CharacterRange* char_range)
 {
     JS_ASSERT(*char_class == kNoCharClass);
     widechar first = current();
@@ -552,7 +552,7 @@ RegExpParser::ParseBackReferenceIndex(int* index_out)
 
     // Try to parse a decimal literal that is no greater than the total number
     // of left capturing parentheses in the input.
-    const jschar *start = position();
+    const jschar* start = position();
     int value = Next() - '0';
     Advance(2);
     while (true) {
@@ -570,7 +570,7 @@ RegExpParser::ParseBackReferenceIndex(int* index_out)
     }
     if (value > captures_started()) {
         if (!is_scanned_for_captures_) {
-            const jschar *saved_position = position();
+            const jschar* saved_position = position();
             ScanForCaptures();
             Reset(saved_position);
         }
@@ -594,7 +594,7 @@ bool
 RegExpParser::ParseIntervalQuantifier(int* min_out, int* max_out)
 {
     JS_ASSERT(current() == '{');
-    const jschar *start = position();
+    const jschar* start = position();
     Advance();
     int min = 0;
     if (!IsDecimalDigit(current())) {
@@ -653,7 +653,7 @@ RegExpParser::ParseIntervalQuantifier(int* min_out, int* max_out)
 
 // Pattern ::
 //   Disjunction
-RegExpTree *
+RegExpTree*
 RegExpParser::ParsePattern()
 {
     RegExpTree* result = ParseDisjunction();
@@ -756,7 +756,7 @@ RegExpTree* RegExpParser::ParseDisjunction()
           case '.': {
             Advance();
             // everything except \x0a, \x0d, \u2028 and \u2029
-            CharacterRangeVector *ranges = alloc->newInfallible<CharacterRangeVector>(*alloc);
+            CharacterRangeVector* ranges = alloc->newInfallible<CharacterRangeVector>(*alloc);
             CharacterRange::AddClassEscape(alloc, '.', ranges);
             RegExpTree* atom = alloc->newInfallible<RegExpCharacterClass>(ranges, false);
             builder->AddAtom(atom);
@@ -785,7 +785,7 @@ RegExpTree* RegExpParser::ParseDisjunction()
                     captures_ = alloc->newInfallible<RegExpCaptureVector>(*alloc);
                 if (captures_started() >= kMaxCaptures)
                     return ReportError(JSMSG_TOO_MANY_PARENS);
-                captures_->append((RegExpCapture *) nullptr);
+                captures_->append((RegExpCapture*) nullptr);
             }
             // Store current state and begin new disjunction parsing.
             stored_state = alloc->newInfallible<RegExpParserState>(alloc, stored_state, subexpr_type,
@@ -822,7 +822,7 @@ RegExpTree* RegExpParser::ParseDisjunction()
               case 'd': case 'D': case 's': case 'S': case 'w': case 'W': {
                 widechar c = Next();
                 Advance(2);
-                CharacterRangeVector *ranges =
+                CharacterRangeVector* ranges =
                     alloc->newInfallible<CharacterRangeVector>(*alloc);
                 CharacterRange::AddClassEscape(alloc, c, ranges);
                 RegExpTree* atom = alloc->newInfallible<RegExpCharacterClass>(ranges, false);
@@ -841,7 +841,7 @@ RegExpTree* RegExpParser::ParseDisjunction()
                         builder->AddEmpty();
                         break;
                     }
-                    RegExpTree *atom = alloc->newInfallible<RegExpBackReference>(capture);
+                    RegExpTree* atom = alloc->newInfallible<RegExpBackReference>(capture);
                     builder->AddAtom(atom);
                     break;
                 }
@@ -983,9 +983,9 @@ RegExpTree* RegExpParser::ParseDisjunction()
 }
 
 bool
-irregexp::ParsePattern(frontend::TokenStream &ts, LifoAlloc &alloc,
-                       const jschar *chars, size_t length, bool multiline,
-                       RegExpCompileData *data)
+irregexp::ParsePattern(frontend::TokenStream& ts, LifoAlloc& alloc,
+                       const jschar* chars, size_t length, bool multiline,
+                       RegExpCompileData* data)
 {
     RegExpParser parser(ts, &alloc, chars, chars + length, multiline);
     data->tree = parser.ParsePattern();
@@ -999,8 +999,8 @@ irregexp::ParsePattern(frontend::TokenStream &ts, LifoAlloc &alloc,
 }
 
 bool
-irregexp::ParsePatternSyntax(frontend::TokenStream &ts, LifoAlloc &alloc,
-                             const jschar *chars, size_t length)
+irregexp::ParsePatternSyntax(frontend::TokenStream& ts, LifoAlloc& alloc,
+                             const jschar* chars, size_t length)
 {
     LifoAllocScope scope(&alloc);
 

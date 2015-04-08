@@ -128,12 +128,12 @@ class StackValue
         return data.arg.slot;
     }
 
-    void setConstant(const Value &v) {
+    void setConstant(const Value& v) {
         kind_ = Constant;
         data.constant.v = v;
         knownType_ = v.isDouble() ? JSVAL_TYPE_DOUBLE : v.extractNonDoubleType();
     }
-    void setRegister(const ValueOperand &val, JSValueType knownType = JSVAL_TYPE_UNKNOWN) {
+    void setRegister(const ValueOperand& val, JSValueType knownType = JSVAL_TYPE_UNKNOWN) {
         kind_ = Register;
         *data.reg.reg.addr() = val;
         knownType_ = knownType;
@@ -162,21 +162,21 @@ enum StackAdjustment { AdjustStack, DontAdjustStack };
 
 class FrameInfo
 {
-    JSScript *script;
-    MacroAssembler &masm;
+    JSScript* script;
+    MacroAssembler& masm;
 
     FixedList<StackValue> stack;
     size_t spIndex;
 
   public:
-    FrameInfo(JSScript *script, MacroAssembler &masm)
+    FrameInfo(JSScript* script, MacroAssembler& masm)
       : script(script),
         masm(masm),
         stack(),
         spIndex(0)
     { }
 
-    bool init(TempAllocator &alloc);
+    bool init(TempAllocator& alloc);
 
     uint32_t nlocals() const {
         return script->nfixed();
@@ -186,8 +186,8 @@ class FrameInfo
     }
 
   private:
-    inline StackValue *rawPush() {
-        StackValue *val = &stack[spIndex++];
+    inline StackValue* rawPush() {
+        StackValue* val = &stack[spIndex++];
         val->reset();
         return val;
     }
@@ -202,21 +202,21 @@ class FrameInfo
         } else {
             uint32_t diff = newDepth - stackDepth();
             for (uint32_t i = 0; i < diff; i++) {
-                StackValue *val = rawPush();
+                StackValue* val = rawPush();
                 val->setStack();
             }
 
             JS_ASSERT(spIndex == newDepth);
         }
     }
-    inline StackValue *peek(int32_t index) const {
+    inline StackValue* peek(int32_t index) const {
         JS_ASSERT(index < 0);
-        return const_cast<StackValue *>(&stack[spIndex + index]);
+        return const_cast<StackValue*>(&stack[spIndex + index]);
     }
 
     inline void pop(StackAdjustment adjust = AdjustStack) {
         spIndex--;
-        StackValue *popped = &stack[spIndex];
+        StackValue* popped = &stack[spIndex];
 
         if (adjust == AdjustStack && popped->kind() == StackValue::Stack)
             masm.addPtr(Imm32(sizeof(Value)), BaselineStackReg);
@@ -234,30 +234,30 @@ class FrameInfo
         if (adjust == AdjustStack && poppedStack > 0)
             masm.addPtr(Imm32(sizeof(Value) * poppedStack), BaselineStackReg);
     }
-    inline void push(const Value &val) {
-        StackValue *sv = rawPush();
+    inline void push(const Value& val) {
+        StackValue* sv = rawPush();
         sv->setConstant(val);
     }
-    inline void push(const ValueOperand &val, JSValueType knownType=JSVAL_TYPE_UNKNOWN) {
-        StackValue *sv = rawPush();
+    inline void push(const ValueOperand& val, JSValueType knownType=JSVAL_TYPE_UNKNOWN) {
+        StackValue* sv = rawPush();
         sv->setRegister(val, knownType);
     }
     inline void pushLocal(uint32_t local) {
         JS_ASSERT(local < nlocals());
-        StackValue *sv = rawPush();
+        StackValue* sv = rawPush();
         sv->setLocalSlot(local);
     }
     inline void pushArg(uint32_t arg) {
-        StackValue *sv = rawPush();
+        StackValue* sv = rawPush();
         sv->setArgSlot(arg);
     }
     inline void pushThis() {
-        StackValue *sv = rawPush();
+        StackValue* sv = rawPush();
         sv->setThis();
     }
     inline void pushScratchValue() {
         masm.pushValue(addressOfScratchValue());
-        StackValue *sv = rawPush();
+        StackValue* sv = rawPush();
         sv->setStack();
     }
     inline Address addressOfLocal(size_t local) const {
@@ -286,7 +286,7 @@ class FrameInfo
     Address addressOfReturnValue() const {
         return Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfReturnValue());
     }
-    Address addressOfStackValue(const StackValue *value) const {
+    Address addressOfStackValue(const StackValue* value) const {
         JS_ASSERT(value->kind() == StackValue::Stack);
         size_t slot = value - &stack[0];
         JS_ASSERT(slot < stackDepth());
@@ -298,7 +298,7 @@ class FrameInfo
 
     void popValue(ValueOperand dest);
 
-    void sync(StackValue *val);
+    void sync(StackValue* val);
     void syncStack(uint32_t uses);
     uint32_t numUnsyncedSlots();
     void popRegsAndSync(uint32_t uses);
@@ -309,9 +309,9 @@ class FrameInfo
 
 #ifdef DEBUG
     // Assert the state is valid before excuting "pc".
-    void assertValidState(const BytecodeInfo &info);
+    void assertValidState(const BytecodeInfo& info);
 #else
-    inline void assertValidState(const BytecodeInfo &info) {}
+    inline void assertValidState(const BytecodeInfo& info) {}
 #endif
 };
 

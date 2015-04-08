@@ -154,21 +154,21 @@ typedef bool                    (*JSInitCallback)(void);
  * stored in data.
  */
 typedef void
-(* JSTraceDataOp)(JSTracer *trc, void *data);
+(* JSTraceDataOp)(JSTracer* trc, void* data);
 
-void js_FinishGC(JSRuntime *rt);
+void js_FinishGC(JSRuntime* rt);
 
 namespace js {
 namespace gc {
 class StoreBuffer;
-void MarkPersistentRootedChains(JSTracer *);
-void FinishPersistentRootedChains(JSRuntime *);
+void MarkPersistentRootedChains(JSTracer*);
+void FinishPersistentRootedChains(JSRuntime*);
 }
 }
 
 namespace JS {
 
-typedef void (*OffThreadCompileCallback)(void *token, void *callbackData);
+typedef void (*OffThreadCompileCallback)(void* token, void* callbackData);
 
 namespace shadow {
 
@@ -179,13 +179,13 @@ struct Runtime
 
 #ifdef JSGC_GENERATIONAL
   private:
-    js::gc::StoreBuffer *gcStoreBufferPtr_;
+    js::gc::StoreBuffer* gcStoreBufferPtr_;
 #endif
 
   public:
     explicit Runtime(
 #ifdef JSGC_GENERATIONAL
-        js::gc::StoreBuffer *storeBuffer
+        js::gc::StoreBuffer* storeBuffer
 #endif
     )
       : needsBarrier_(false)
@@ -199,18 +199,18 @@ struct Runtime
     }
 
 #ifdef JSGC_GENERATIONAL
-    js::gc::StoreBuffer *gcStoreBufferPtr() { return gcStoreBufferPtr_; }
+    js::gc::StoreBuffer* gcStoreBufferPtr() { return gcStoreBufferPtr_; }
 #endif
 
-    static JS::shadow::Runtime *asShadowRuntime(JSRuntime *rt) {
+    static JS::shadow::Runtime* asShadowRuntime(JSRuntime* rt) {
         return reinterpret_cast<JS::shadow::Runtime*>(rt);
     }
 
     /* Allow inlining of PersistentRooted constructors and destructors. */
   private:
     template <typename Referent> friend class JS::PersistentRooted;
-    friend void js::gc::MarkPersistentRootedChains(JSTracer *);
-    friend void js::gc::FinishPersistentRootedChains(JSRuntime *rt);
+    friend void js::gc::MarkPersistentRootedChains(JSTracer*);
+    friend void js::gc::FinishPersistentRootedChains(JSRuntime* rt);
 
     mozilla::LinkedList<PersistentRootedFunction> functionPersistentRooteds;
     mozilla::LinkedList<PersistentRootedId>       idPersistentRooteds;
@@ -221,12 +221,12 @@ struct Runtime
 
     /* Specializations of this return references to the appropriate list. */
     template<typename Referent>
-    inline mozilla::LinkedList<PersistentRooted<Referent> > &getPersistentRootedList();
+    inline mozilla::LinkedList<PersistentRooted<Referent> >& getPersistentRootedList();
 };
 
 template<>
 inline mozilla::LinkedList<PersistentRootedFunction>
-&Runtime::getPersistentRootedList<JSFunction *>() { return functionPersistentRooteds; }
+&Runtime::getPersistentRootedList<JSFunction*>() { return functionPersistentRooteds; }
 
 template<>
 inline mozilla::LinkedList<PersistentRootedId>
@@ -234,15 +234,15 @@ inline mozilla::LinkedList<PersistentRootedId>
 
 template<>
 inline mozilla::LinkedList<PersistentRootedObject>
-&Runtime::getPersistentRootedList<JSObject *>() { return objectPersistentRooteds; }
+&Runtime::getPersistentRootedList<JSObject*>() { return objectPersistentRooteds; }
 
 template<>
 inline mozilla::LinkedList<PersistentRootedScript>
-&Runtime::getPersistentRootedList<JSScript *>() { return scriptPersistentRooteds; }
+&Runtime::getPersistentRootedList<JSScript*>() { return scriptPersistentRooteds; }
 
 template<>
 inline mozilla::LinkedList<PersistentRootedString>
-&Runtime::getPersistentRootedList<JSString *>() { return stringPersistentRooteds; }
+&Runtime::getPersistentRootedList<JSString*>() { return stringPersistentRooteds; }
 
 template<>
 inline mozilla::LinkedList<PersistentRootedValue>
@@ -253,8 +253,8 @@ inline mozilla::LinkedList<PersistentRootedValue>
 class JS_PUBLIC_API(AutoGCRooter)
 {
   public:
-    AutoGCRooter(JSContext *cx, ptrdiff_t tag);
-    AutoGCRooter(js::ContextFriendFields *cx, ptrdiff_t tag);
+    AutoGCRooter(JSContext* cx, ptrdiff_t tag);
+    AutoGCRooter(js::ContextFriendFields* cx, ptrdiff_t tag);
 
     ~AutoGCRooter() {
         MOZ_ASSERT(this == *stackTop);
@@ -262,9 +262,9 @@ class JS_PUBLIC_API(AutoGCRooter)
     }
 
     /* Implemented in gc/RootMarking.cpp. */
-    inline void trace(JSTracer *trc);
-    static void traceAll(JSTracer *trc);
-    static void traceAllWrappers(JSTracer *trc);
+    inline void trace(JSTracer* trc);
+    static void traceAll(JSTracer* trc);
+    static void traceAllWrappers(JSTracer* trc);
 
   protected:
     AutoGCRooter * const down;
@@ -307,8 +307,8 @@ class JS_PUBLIC_API(AutoGCRooter)
     AutoGCRooter ** const stackTop;
 
     /* No copy or assignment semantics. */
-    AutoGCRooter(AutoGCRooter &ida) MOZ_DELETE;
-    void operator=(AutoGCRooter &ida) MOZ_DELETE;
+    AutoGCRooter(AutoGCRooter& ida) MOZ_DELETE;
+    void operator=(AutoGCRooter& ida) MOZ_DELETE;
 };
 
 } /* namespace JS */
@@ -375,27 +375,27 @@ struct SpecificRootKind
     static ThingRootKind rootKind() { return Kind; }
 };
 
-template <> struct RootKind<JSObject *> : SpecificRootKind<JSObject *, THING_ROOT_OBJECT> {};
-template <> struct RootKind<JSFlatString *> : SpecificRootKind<JSFlatString *, THING_ROOT_STRING> {};
-template <> struct RootKind<JSFunction *> : SpecificRootKind<JSFunction *, THING_ROOT_OBJECT> {};
-template <> struct RootKind<JSString *> : SpecificRootKind<JSString *, THING_ROOT_STRING> {};
-template <> struct RootKind<JSScript *> : SpecificRootKind<JSScript *, THING_ROOT_SCRIPT> {};
+template <> struct RootKind<JSObject*> : SpecificRootKind<JSObject*, THING_ROOT_OBJECT> {};
+template <> struct RootKind<JSFlatString*> : SpecificRootKind<JSFlatString*, THING_ROOT_STRING> {};
+template <> struct RootKind<JSFunction*> : SpecificRootKind<JSFunction*, THING_ROOT_OBJECT> {};
+template <> struct RootKind<JSString*> : SpecificRootKind<JSString*, THING_ROOT_STRING> {};
+template <> struct RootKind<JSScript*> : SpecificRootKind<JSScript*, THING_ROOT_SCRIPT> {};
 template <> struct RootKind<jsid> : SpecificRootKind<jsid, THING_ROOT_ID> {};
 template <> struct RootKind<JS::Value> : SpecificRootKind<JS::Value, THING_ROOT_VALUE> {};
 
 struct ContextFriendFields
 {
   protected:
-    JSRuntime *const     runtime_;
+    JSRuntime* const     runtime_;
 
     /* The current compartment. */
-    JSCompartment       *compartment_;
+    JSCompartment*      compartment_;
 
     /* The current zone. */
-    JS::Zone            *zone_;
+    JS::Zone*           zone_;
 
   public:
-    explicit ContextFriendFields(JSRuntime *rt)
+    explicit ContextFriendFields(JSRuntime* rt)
       : runtime_(rt), compartment_(nullptr), zone_(nullptr), autoGCRooters(nullptr)
     {
 #ifdef JSGC_TRACK_EXACT_ROOTS
@@ -403,12 +403,12 @@ struct ContextFriendFields
 #endif
     }
 
-    static const ContextFriendFields *get(const JSContext *cx) {
-        return reinterpret_cast<const ContextFriendFields *>(cx);
+    static const ContextFriendFields* get(const JSContext* cx) {
+        return reinterpret_cast<const ContextFriendFields*>(cx);
     }
 
-    static ContextFriendFields *get(JSContext *cx) {
-        return reinterpret_cast<ContextFriendFields *>(cx);
+    static ContextFriendFields* get(JSContext* cx) {
+        return reinterpret_cast<ContextFriendFields*>(cx);
     }
 
 #ifdef JSGC_TRACK_EXACT_ROOTS
@@ -417,13 +417,13 @@ struct ContextFriendFields
      * Stack allocated GC roots for stack GC heap pointers, which may be
      * overwritten if moved during a GC.
      */
-    JS::Rooted<void*> *thingGCRooters[THING_ROOT_LIMIT];
+    JS::Rooted<void*>* thingGCRooters[THING_ROOT_LIMIT];
 
   public:
     template <class T>
-    inline JS::Rooted<T> *gcRooters() {
+    inline JS::Rooted<T>* gcRooters() {
         js::ThingRootKind kind = RootKind<T>::rootKind();
-        return reinterpret_cast<JS::Rooted<T> *>(thingGCRooters[kind]);
+        return reinterpret_cast<JS::Rooted<T>*>(thingGCRooters[kind]);
     }
 
 #endif
@@ -431,11 +431,11 @@ struct ContextFriendFields
     void checkNoGCRooters();
 
     /* Stack of thread-stack-allocated GC roots. */
-    JS::AutoGCRooter   *autoGCRooters;
+    JS::AutoGCRooter*  autoGCRooters;
 
-    friend JSRuntime *GetRuntime(const JSContext *cx);
-    friend JSCompartment *GetContextCompartment(const JSContext *cx);
-    friend JS::Zone *GetContextZone(const JSContext *cx);
+    friend JSRuntime* GetRuntime(const JSContext* cx);
+    friend JSCompartment* GetContextCompartment(const JSContext* cx);
+    friend JS::Zone* GetContextZone(const JSContext* cx);
     template <typename T> friend class JS::Rooted;
 };
 
@@ -449,20 +449,20 @@ struct ContextFriendFields
  *   usable without resorting to jsfriendapi.h, and when JSContext is an
  *   incomplete type.
  */
-inline JSRuntime *
-GetRuntime(const JSContext *cx)
+inline JSRuntime*
+GetRuntime(const JSContext* cx)
 {
     return ContextFriendFields::get(cx)->runtime_;
 }
 
-inline JSCompartment *
-GetContextCompartment(const JSContext *cx)
+inline JSCompartment*
+GetContextCompartment(const JSContext* cx)
 {
     return ContextFriendFields::get(cx)->compartment_;
 }
 
-inline JS::Zone *
-GetContextZone(const JSContext *cx)
+inline JS::Zone*
+GetContextZone(const JSContext* cx)
 {
     return ContextFriendFields::get(cx)->zone_;
 }
@@ -478,7 +478,7 @@ struct PerThreadDataFriendFields
     struct RuntimeDummy : JS::shadow::Runtime
     {
         struct PerThreadDummy {
-            void *field1;
+            void* field1;
             uintptr_t field2;
 #ifdef JS_DEBUG
             uint64_t field3;
@@ -496,13 +496,13 @@ struct PerThreadDataFriendFields
      * Stack allocated GC roots for stack GC heap pointers, which may be
      * overwritten if moved during a GC.
      */
-    JS::Rooted<void*> *thingGCRooters[THING_ROOT_LIMIT];
+    JS::Rooted<void*>* thingGCRooters[THING_ROOT_LIMIT];
 
   public:
     template <class T>
-    inline JS::Rooted<T> *gcRooters() {
+    inline JS::Rooted<T>* gcRooters() {
         js::ThingRootKind kind = RootKind<T>::rootKind();
-        return reinterpret_cast<JS::Rooted<T> *>(thingGCRooters[kind]);
+        return reinterpret_cast<JS::Rooted<T>*>(thingGCRooters[kind]);
     }
 #endif
 
@@ -511,21 +511,21 @@ struct PerThreadDataFriendFields
 
     static const size_t RuntimeMainThreadOffset = offsetof(RuntimeDummy, mainThread);
 
-    static inline PerThreadDataFriendFields *get(js::PerThreadData *pt) {
-        return reinterpret_cast<PerThreadDataFriendFields *>(pt);
+    static inline PerThreadDataFriendFields* get(js::PerThreadData* pt) {
+        return reinterpret_cast<PerThreadDataFriendFields*>(pt);
     }
 
-    static inline PerThreadDataFriendFields *getMainThread(JSRuntime *rt) {
+    static inline PerThreadDataFriendFields* getMainThread(JSRuntime* rt) {
         // mainThread must always appear directly after |JS::shadow::Runtime|.
         // Tested by a JS_STATIC_ASSERT in |jsfriendapi.cpp|
-        return reinterpret_cast<PerThreadDataFriendFields *>(
+        return reinterpret_cast<PerThreadDataFriendFields*>(
             reinterpret_cast<char*>(rt) + RuntimeMainThreadOffset);
     }
 
-    static inline const PerThreadDataFriendFields *getMainThread(const JSRuntime *rt) {
+    static inline const PerThreadDataFriendFields* getMainThread(const JSRuntime* rt) {
         // mainThread must always appear directly after |JS::shadow::Runtime|.
         // Tested by a JS_STATIC_ASSERT in |jsfriendapi.cpp|
-        return reinterpret_cast<const PerThreadDataFriendFields *>(
+        return reinterpret_cast<const PerThreadDataFriendFields*>(
             reinterpret_cast<const char*>(rt) + RuntimeMainThreadOffset);
     }
 

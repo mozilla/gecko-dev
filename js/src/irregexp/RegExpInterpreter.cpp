@@ -43,7 +43,7 @@ static const size_t kBitsPerByteLog2 = 3;
 class MOZ_STACK_CLASS RegExpStackCursor
 {
   public:
-    explicit RegExpStackCursor(JSContext *cx)
+    explicit RegExpStackCursor(JSContext* cx)
       : cx(cx), cursor(base())
     {}
 
@@ -80,33 +80,33 @@ class MOZ_STACK_CLASS RegExpStackCursor
     }
 
   private:
-    JSContext *cx;
+    JSContext* cx;
 
-    int32_t *cursor;
+    int32_t* cursor;
 
-    RegExpStack &stack() { return cx->runtime()->mainThread.regexpStack; }
-    int32_t *base() { return (int32_t *) stack().base(); }
+    RegExpStack& stack() { return cx->runtime()->mainThread.regexpStack; }
+    int32_t* base() { return (int32_t*) stack().base(); }
 };
 
 static int32_t
 Load32Aligned(const uint8_t* pc)
 {
     JS_ASSERT((reinterpret_cast<uintptr_t>(pc) & 3) == 0);
-    return *reinterpret_cast<const int32_t *>(pc);
+    return *reinterpret_cast<const int32_t*>(pc);
 }
 
 static int32_t
 Load16Aligned(const uint8_t* pc)
 {
     JS_ASSERT((reinterpret_cast<uintptr_t>(pc) & 1) == 0);
-    return *reinterpret_cast<const uint16_t *>(pc);
+    return *reinterpret_cast<const uint16_t*>(pc);
 }
 
 #define BYTECODE(name)  case BC_##name:
 
 RegExpRunStatus
-irregexp::InterpretCode(JSContext *cx, const uint8_t *byteCode,
-                        const jschar *chars, size_t current, size_t length, MatchPairs *matches)
+irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode,
+                        const jschar* chars, size_t current, size_t length, MatchPairs* matches)
 {
     const uint8_t* pc = byteCode;
 

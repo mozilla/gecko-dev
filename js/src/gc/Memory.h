@@ -25,35 +25,35 @@ class SystemPageAllocator
     size_t systemAllocGranularity() { return allocGranularity; }
 
     // Allocate or deallocate pages from the system with the given alignment.
-    void *mapAlignedPages(size_t size, size_t alignment);
-    void unmapPages(void *p, size_t size);
+    void* mapAlignedPages(size_t size, size_t alignment);
+    void unmapPages(void* p, size_t size);
 
     // Tell the OS that the given pages are not in use, so they should not be
     // written to a paging file. This may be a no-op on some platforms.
-    bool markPagesUnused(void *p, size_t size);
+    bool markPagesUnused(void* p, size_t size);
 
     // Undo |MarkPagesUnused|: tell the OS that the given pages are of interest
     // and should be paged in and out normally. This may be a no-op on some
     // platforms.
-    bool markPagesInUse(void *p, size_t size);
+    bool markPagesInUse(void* p, size_t size);
 
     // Returns #(hard faults) + #(soft faults)
     static size_t GetPageFaultCount();
 
     // Allocate memory mapped content.
     // The offset must be aligned according to alignment requirement.
-    static void *AllocateMappedContent(int fd, size_t offset, size_t length, size_t alignment);
+    static void* AllocateMappedContent(int fd, size_t offset, size_t length, size_t alignment);
 
     // Deallocate memory mapped content.
-    static void DeallocateMappedContent(void *p, size_t length);
+    static void DeallocateMappedContent(void* p, size_t length);
 
   private:
     bool decommitEnabled();
-    void *mapAlignedPagesSlow(size_t size, size_t alignment);
-    void *mapAlignedPagesLastDitch(size_t size, size_t alignment);
-    void getNewChunk(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize,
+    void* mapAlignedPagesSlow(size_t size, size_t alignment);
+    void* mapAlignedPagesLastDitch(size_t size, size_t alignment);
+    void getNewChunk(void** aAddress, void** aRetainedAddr, size_t* aRetainedSize,
                      size_t size, size_t alignment);
-    bool getNewChunkInner(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize,
+    bool getNewChunkInner(void** aAddress, void** aRetainedAddr, size_t* aRetainedSize,
                           size_t size, size_t alignment, bool addrsGrowDown);
 
     // The GC can only safely decommit memory when the page size of the
@@ -74,7 +74,7 @@ class SystemPageAllocator
     static const int    MaxLastDitchAttempts = 8;
 
 public:
-    void *testMapAlignedPagesLastDitch(size_t size, size_t alignment) {
+    void* testMapAlignedPagesLastDitch(size_t size, size_t alignment) {
         return mapAlignedPagesLastDitch(size, alignment);
     }
 };

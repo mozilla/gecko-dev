@@ -49,7 +49,7 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
     virtual ~mozJSComponentLoader();
 
     // ModuleLoader
-    const mozilla::Module* LoadModule(mozilla::FileLocation &aFile);
+    const mozilla::Module* LoadModule(mozilla::FileLocation& aFile);
 
     nsresult FindTargetObject(JSContext* aCx,
                               JS::MutableHandleObject aTargetObject);
@@ -66,29 +66,29 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
 
     JSObject* PrepareObjectForLocation(JSCLContextHelper& aCx,
                                        nsIFile* aComponentFile,
-                                       nsIURI *aComponent,
+                                       nsIURI* aComponent,
                                        bool aReuseLoaderGlobal,
-                                       bool *aRealFile);
+                                       bool* aRealFile);
 
     nsresult ObjectForLocation(ComponentLoaderInfo& aInfo,
                                nsIFile* aComponentFile,
                                JS::MutableHandleObject aObject,
                                JS::MutableHandleScript aTableScript,
-                               char **location,
+                               char** location,
                                bool aCatchException,
                                JS::MutableHandleValue aException);
 
-    nsresult ImportInto(const nsACString &aLocation,
+    nsresult ImportInto(const nsACString& aLocation,
                         JS::HandleObject targetObj,
-                        JSContext *callercx,
+                        JSContext* callercx,
                         JS::MutableHandleObject vp);
 
     nsCOMPtr<nsIComponentManager> mCompMgr;
     nsCOMPtr<nsIJSRuntimeService> mRuntimeService;
     nsCOMPtr<nsIPrincipal> mSystemPrincipal;
     nsCOMPtr<nsIXPConnectJSObjectHolder> mLoaderGlobal;
-    JSRuntime *mRuntime;
-    JSContext *mContext;
+    JSRuntime* mRuntime;
+    JSContext* mContext;
 
     class ModuleEntry : public mozilla::Module
     {
@@ -139,7 +139,7 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
         nsCOMPtr<xpcIJSGetFactory> getfactoryobj;
         JS::PersistentRootedObject obj;
         JS::PersistentRootedScript thisObjectKey;
-        char                *location;
+        char*               location;
     };
 
     friend class ModuleEntry;

@@ -32,46 +32,46 @@ static const uint32_t XDR_BYTECODE_VERSION = uint32_t(0xb973c0de - 173);
 
 class XDRBuffer {
   public:
-    explicit XDRBuffer(JSContext *cx)
+    explicit XDRBuffer(JSContext* cx)
       : context(cx), base(nullptr), cursor(nullptr), limit(nullptr) { }
 
-    JSContext *cx() const {
+    JSContext* cx() const {
         return context;
     }
 
-    void *getData(uint32_t *lengthp) const {
+    void* getData(uint32_t* lengthp) const {
         JS_ASSERT(size_t(cursor - base) <= size_t(UINT32_MAX));
         *lengthp = uint32_t(cursor - base);
         return base;
     }
 
-    void setData(const void *data, uint32_t length) {
-        base = static_cast<uint8_t *>(const_cast<void *>(data));
+    void setData(const void* data, uint32_t length) {
+        base = static_cast<uint8_t*>(const_cast<void*>(data));
         cursor = base;
         limit = base + length;
     }
 
-    const uint8_t *read(size_t n) {
+    const uint8_t* read(size_t n) {
         JS_ASSERT(n <= size_t(limit - cursor));
-        uint8_t *ptr = cursor;
+        uint8_t* ptr = cursor;
         cursor += n;
         return ptr;
     }
 
-    const char *readCString() {
-        char *ptr = reinterpret_cast<char *>(cursor);
-        cursor = reinterpret_cast<uint8_t *>(strchr(ptr, '\0')) + 1;
+    const char* readCString() {
+        char* ptr = reinterpret_cast<char*>(cursor);
+        cursor = reinterpret_cast<uint8_t*>(strchr(ptr, '\0')) + 1;
         JS_ASSERT(base < cursor);
         JS_ASSERT(cursor <= limit);
         return ptr;
     }
 
-    uint8_t *write(size_t n) {
+    uint8_t* write(size_t n) {
         if (n > size_t(limit - cursor)) {
             if (!grow(n))
                 return nullptr;
         }
-        uint8_t *ptr = cursor;
+        uint8_t* ptr = cursor;
         cursor += n;
         return ptr;
     }
@@ -85,10 +85,10 @@ class XDRBuffer {
   private:
     bool grow(size_t n);
 
-    JSContext   *const context;
-    uint8_t     *base;
-    uint8_t     *cursor;
-    uint8_t     *limit;
+    JSContext*  const context;
+    uint8_t*    base;
+    uint8_t*    cursor;
+    uint8_t*    limit;
 };
 
 /*
@@ -100,24 +100,24 @@ class XDRState {
     XDRBuffer buf;
 
   protected:
-    JSPrincipals *originPrincipals_;
+    JSPrincipals* originPrincipals_;
 
-    explicit XDRState(JSContext *cx)
+    explicit XDRState(JSContext* cx)
       : buf(cx), originPrincipals_(nullptr) {
     }
 
   public:
-    JSContext *cx() const {
+    JSContext* cx() const {
         return buf.cx();
     }
 
-    JSPrincipals *originPrincipals() const {
+    JSPrincipals* originPrincipals() const {
         return originPrincipals_;
     }
 
-    bool codeUint8(uint8_t *n) {
+    bool codeUint8(uint8_t* n) {
         if (mode == XDR_ENCODE) {
-            uint8_t *ptr = buf.write(sizeof *n);
+            uint8_t* ptr = buf.write(sizeof *n);
             if (!ptr)
                 return false;
             *ptr = *n;
@@ -127,40 +127,40 @@ class XDRState {
         return true;
     }
 
-    bool codeUint16(uint16_t *n) {
+    bool codeUint16(uint16_t* n) {
         if (mode == XDR_ENCODE) {
-            uint8_t *ptr = buf.write(sizeof *n);
+            uint8_t* ptr = buf.write(sizeof *n);
             if (!ptr)
                 return false;
             mozilla::LittleEndian::writeUint16(ptr, *n);
         } else {
-            const uint8_t *ptr = buf.read(sizeof *n);
+            const uint8_t* ptr = buf.read(sizeof *n);
             *n = mozilla::LittleEndian::readUint16(ptr);
         }
         return true;
     }
 
-    bool codeUint32(uint32_t *n) {
+    bool codeUint32(uint32_t* n) {
         if (mode == XDR_ENCODE) {
-            uint8_t *ptr = buf.write(sizeof *n);
+            uint8_t* ptr = buf.write(sizeof *n);
             if (!ptr)
                 return false;
             mozilla::LittleEndian::writeUint32(ptr, *n);
         } else {
-            const uint8_t *ptr = buf.read(sizeof *n);
+            const uint8_t* ptr = buf.read(sizeof *n);
             *n = mozilla::LittleEndian::readUint32(ptr);
         }
         return true;
     }
 
-    bool codeUint64(uint64_t *n) {
+    bool codeUint64(uint64_t* n) {
         if (mode == XDR_ENCODE) {
-            uint8_t *ptr = buf.write(sizeof(*n));
+            uint8_t* ptr = buf.write(sizeof(*n));
             if (!ptr)
                 return false;
             mozilla::LittleEndian::writeUint64(ptr, *n);
         } else {
-            const uint8_t *ptr = buf.read(sizeof(*n));
+            const uint8_t* ptr = buf.read(sizeof(*n));
             *n = mozilla::LittleEndian::readUint64(ptr);
         }
         return true;
@@ -172,7 +172,7 @@ class XDRState {
      * as C++ will extract the parameterized from the argument list.
      */
     template <typename T>
-    bool codeEnum32(T *val, typename mozilla::EnableIf<mozilla::IsEnum<T>::value, T>::Type * = NULL)
+    bool codeEnum32(T* val, typename mozilla::EnableIf<mozilla::IsEnum<T>::value, T>::Type * = NULL)
     {
         uint32_t tmp;
         if (mode == XDR_ENCODE)
@@ -184,7 +184,7 @@ class XDRState {
         return true;
     }
 
-    bool codeDouble(double *dp) {
+    bool codeDouble(double* dp) {
         union DoublePun {
             double d;
             uint64_t u;
@@ -198,9 +198,9 @@ class XDRState {
         return true;
     }
 
-    bool codeBytes(void *bytes, size_t len) {
+    bool codeBytes(void* bytes, size_t len) {
         if (mode == XDR_ENCODE) {
-            uint8_t *ptr = buf.write(len);
+            uint8_t* ptr = buf.write(len);
             if (!ptr)
                 return false;
             memcpy(ptr, bytes, len);
@@ -216,10 +216,10 @@ class XDRState {
      * decoding buffer and the caller must copy the string if it will outlive
      * the decoding buffer.
      */
-    bool codeCString(const char **sp) {
+    bool codeCString(const char** sp) {
         if (mode == XDR_ENCODE) {
             size_t n = strlen(*sp) + 1;
-            uint8_t *ptr = buf.write(n);
+            uint8_t* ptr = buf.write(n);
             if (!ptr)
                 return false;
             memcpy(ptr, *sp, n);
@@ -229,7 +229,7 @@ class XDRState {
         return true;
     }
 
-    bool codeChars(jschar *chars, size_t nchars);
+    bool codeChars(jschar* chars, size_t nchars);
 
     bool codeFunction(JS::MutableHandleObject objp);
     bool codeScript(MutableHandleScript scriptp);
@@ -238,7 +238,7 @@ class XDRState {
 
 class XDREncoder : public XDRState<XDR_ENCODE> {
   public:
-    explicit XDREncoder(JSContext *cx)
+    explicit XDREncoder(JSContext* cx)
       : XDRState<XDR_ENCODE>(cx) {
     }
 
@@ -246,12 +246,12 @@ class XDREncoder : public XDRState<XDR_ENCODE> {
         buf.freeBuffer();
     }
 
-    const void *getData(uint32_t *lengthp) const {
+    const void* getData(uint32_t* lengthp) const {
         return buf.getData(lengthp);
     }
 
-    void *forgetData(uint32_t *lengthp) {
-        void *data = buf.getData(lengthp);
+    void* forgetData(uint32_t* lengthp) {
+        void* data = buf.getData(lengthp);
         buf.setData(nullptr, 0);
         return data;
     }
@@ -259,8 +259,8 @@ class XDREncoder : public XDRState<XDR_ENCODE> {
 
 class XDRDecoder : public XDRState<XDR_DECODE> {
   public:
-    XDRDecoder(JSContext *cx, const void *data, uint32_t length,
-               JSPrincipals *originPrincipals);
+    XDRDecoder(JSContext* cx, const void* data, uint32_t length,
+               JSPrincipals* originPrincipals);
 
 };
 

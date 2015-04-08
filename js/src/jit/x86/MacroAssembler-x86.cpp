@@ -18,7 +18,7 @@
 using namespace js;
 using namespace js::jit;
 
-MacroAssemblerX86::Double *
+MacroAssemblerX86::Double*
 MacroAssemblerX86::getDouble(double d)
 {
     if (!doubleMap_.initialized()) {
@@ -37,7 +37,7 @@ MacroAssemblerX86::getDouble(double d)
         if (!enoughMemory_)
             return nullptr;
     }
-    Double &dbl = doubles_[doubleIndex];
+    Double& dbl = doubles_[doubleIndex];
     JS_ASSERT(!dbl.uses.bound());
     return &dbl;
 }
@@ -47,24 +47,24 @@ MacroAssemblerX86::loadConstantDouble(double d, FloatRegister dest)
 {
     if (maybeInlineDouble(d, dest))
         return;
-    Double *dbl = getDouble(d);
+    Double* dbl = getDouble(d);
     if (!dbl)
         return;
-    masm.movsd_mr(reinterpret_cast<const void *>(dbl->uses.prev()), dest.code());
+    masm.movsd_mr(reinterpret_cast<const void*>(dbl->uses.prev()), dest.code());
     dbl->uses.setPrev(masm.size());
 }
 
 void
 MacroAssemblerX86::addConstantDouble(double d, FloatRegister dest)
 {
-    Double *dbl = getDouble(d);
+    Double* dbl = getDouble(d);
     if (!dbl)
         return;
-    masm.addsd_mr(reinterpret_cast<const void *>(dbl->uses.prev()), dest.code());
+    masm.addsd_mr(reinterpret_cast<const void*>(dbl->uses.prev()), dest.code());
     dbl->uses.setPrev(masm.size());
 }
 
-MacroAssemblerX86::Float *
+MacroAssemblerX86::Float*
 MacroAssemblerX86::getFloat(float f)
 {
     if (!floatMap_.initialized()) {
@@ -83,7 +83,7 @@ MacroAssemblerX86::getFloat(float f)
         if (!enoughMemory_)
             return nullptr;
     }
-    Float &flt = floats_[floatIndex];
+    Float& flt = floats_[floatIndex];
     JS_ASSERT(!flt.uses.bound());
     return &flt;
 }
@@ -93,20 +93,20 @@ MacroAssemblerX86::loadConstantFloat32(float f, FloatRegister dest)
 {
     if (maybeInlineFloat(f, dest))
         return;
-    Float *flt = getFloat(f);
+    Float* flt = getFloat(f);
     if (!flt)
         return;
-    masm.movss_mr(reinterpret_cast<const void *>(flt->uses.prev()), dest.code());
+    masm.movss_mr(reinterpret_cast<const void*>(flt->uses.prev()), dest.code());
     flt->uses.setPrev(masm.size());
 }
 
 void
 MacroAssemblerX86::addConstantFloat32(float f, FloatRegister dest)
 {
-    Float *flt = getFloat(f);
+    Float* flt = getFloat(f);
     if (!flt)
         return;
-    masm.addss_mr(reinterpret_cast<const void *>(flt->uses.prev()), dest.code());
+    masm.addss_mr(reinterpret_cast<const void*>(flt->uses.prev()), dest.code());
     flt->uses.setPrev(masm.size());
 }
 
@@ -164,7 +164,7 @@ MacroAssemblerX86::setupUnalignedABICall(uint32_t args, Register scratch)
 }
 
 void
-MacroAssemblerX86::passABIArg(const MoveOperand &from, MoveOp::Type type)
+MacroAssemblerX86::passABIArg(const MoveOperand& from, MoveOp::Type type)
 {
     ++passedArgs_;
     MoveOperand to = MoveOperand(StackPointer, stackForCall_);
@@ -191,7 +191,7 @@ MacroAssemblerX86::passABIArg(FloatRegister reg, MoveOp::Type type)
 }
 
 void
-MacroAssemblerX86::callWithABIPre(uint32_t *stackAdjust)
+MacroAssemblerX86::callWithABIPre(uint32_t* stackAdjust)
 {
     JS_ASSERT(inCall_);
     JS_ASSERT(args_ == passedArgs_);
@@ -254,7 +254,7 @@ MacroAssemblerX86::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX86::callWithABI(void *fun, MoveOp::Type result)
+MacroAssemblerX86::callWithABI(void* fun, MoveOp::Type result)
 {
     uint32_t stackAdjust;
     callWithABIPre(&stackAdjust);
@@ -272,7 +272,7 @@ MacroAssemblerX86::callWithABI(AsmJSImmPtr fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX86::callWithABI(const Address &fun, MoveOp::Type result)
+MacroAssemblerX86::callWithABI(const Address& fun, MoveOp::Type result)
 {
     uint32_t stackAdjust;
     callWithABIPre(&stackAdjust);
@@ -281,7 +281,7 @@ MacroAssemblerX86::callWithABI(const Address &fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX86::handleFailureWithHandlerTail(void *handler)
+MacroAssemblerX86::handleFailureWithHandlerTail(void* handler)
 {
     // Reserve space for exception information.
     subl(Imm32(sizeof(ResumeFromException)), esp);
@@ -355,11 +355,11 @@ MacroAssemblerX86::handleFailureWithHandlerTail(void *handler)
 }
 
 void
-MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand &value, const Value &v, Label *label)
+MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand& value, const Value& v, Label* label)
 {
     jsval_layout jv = JSVAL_TO_IMPL(v);
     if (v.isMarkable())
-        cmpl(value.payloadReg(), ImmGCPtr(reinterpret_cast<gc::Cell *>(v.toGCThing())));
+        cmpl(value.payloadReg(), ImmGCPtr(reinterpret_cast<gc::Cell*>(v.toGCThing())));
     else
         cmpl(value.payloadReg(), Imm32(jv.s.payload.i32));
 
@@ -382,7 +382,7 @@ MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand &value, co
 
 template <typename T>
 void
-MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const T &dest,
+MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const T& dest,
                                      MIRType slotType)
 {
     if (valueType == MIRType_Double) {
@@ -402,24 +402,24 @@ MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType
 }
 
 template void
-MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const Address &dest,
+MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const Address& dest,
                                      MIRType slotType);
 
 template void
-MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const BaseIndex &dest,
+MacroAssemblerX86::storeUnboxedValue(ConstantOrRegister value, MIRType valueType, const BaseIndex& dest,
                                      MIRType slotType);
 
 #ifdef JSGC_GENERATIONAL
 
 void
 MacroAssemblerX86::branchPtrInNurseryRange(Condition cond, Register ptr, Register temp,
-                                           Label *label)
+                                           Label* label)
 {
     JS_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
     JS_ASSERT(ptr != temp);
     JS_ASSERT(temp != InvalidReg);  // A temp register is required for x86.
 
-    const Nursery &nursery = GetIonContext()->runtime->gcNursery();
+    const Nursery& nursery = GetIonContext()->runtime->gcNursery();
     movePtr(ImmWord(-ptrdiff_t(nursery.start())), temp);
     addPtr(ptr, temp);
     branchPtr(cond == Assembler::Equal ? Assembler::Below : Assembler::AboveOrEqual,
@@ -428,7 +428,7 @@ MacroAssemblerX86::branchPtrInNurseryRange(Condition cond, Register ptr, Registe
 
 void
 MacroAssemblerX86::branchValueIsNurseryObject(Condition cond, ValueOperand value, Register temp,
-                                              Label *label)
+                                              Label* label)
 {
     JS_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
 

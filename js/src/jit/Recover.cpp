@@ -24,14 +24,14 @@ using namespace js;
 using namespace js::jit;
 
 bool
-MNode::writeRecoverData(CompactBufferWriter &writer) const
+MNode::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSUME_UNREACHABLE("This instruction is not serializable");
     return false;
 }
 
 void
-RInstruction::readRecoverData(CompactBufferReader &reader, RInstructionStorage *raw)
+RInstruction::readRecoverData(CompactBufferReader& reader, RInstructionStorage* raw)
 {
     uint32_t op = reader.readUnsigned();
     switch (Opcode(op)) {
@@ -53,13 +53,13 @@ RInstruction::readRecoverData(CompactBufferReader &reader, RInstructionStorage *
 }
 
 bool
-MResumePoint::writeRecoverData(CompactBufferWriter &writer) const
+MResumePoint::writeRecoverData(CompactBufferWriter& writer) const
 {
     writer.writeUnsigned(uint32_t(RInstruction::Recover_ResumePoint));
 
-    MBasicBlock *bb = block();
-    JSFunction *fun = bb->info().funMaybeLazy();
-    JSScript *script = bb->info().script();
+    MBasicBlock* bb = block();
+    JSFunction* fun = bb->info().funMaybeLazy();
+    JSScript* script = bb->info().script();
     uint32_t exprStack = stackDepth() - bb->info().ninvoke();
 
 #ifdef DEBUG
@@ -68,7 +68,7 @@ MResumePoint::writeRecoverData(CompactBufferWriter &writer) const
     if (GetIonContext()->cx) {
         uint32_t stackDepth;
         bool reachablePC;
-        jsbytecode *bailPC = pc();
+        jsbytecode* bailPC = pc();
 
         if (mode() == MResumePoint::ResumeAfter)
             bailPC = GetNextPc(pc());
@@ -124,7 +124,7 @@ MResumePoint::writeRecoverData(CompactBufferWriter &writer) const
     return true;
 }
 
-RResumePoint::RResumePoint(CompactBufferReader &reader)
+RResumePoint::RResumePoint(CompactBufferReader& reader)
 {
     pcOffset_ = reader.readUnsigned();
     numOperands_ = reader.readUnsigned();
@@ -133,24 +133,24 @@ RResumePoint::RResumePoint(CompactBufferReader &reader)
 }
 
 bool
-RResumePoint::recover(JSContext *cx, SnapshotIterator &iter) const
+RResumePoint::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     MOZ_ASSUME_UNREACHABLE("This instruction is not recoverable.");
 }
 
 bool
-MBitNot::writeRecoverData(CompactBufferWriter &writer) const
+MBitNot::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_BitNot));
     return true;
 }
 
-RBitNot::RBitNot(CompactBufferReader &reader)
+RBitNot::RBitNot(CompactBufferReader& reader)
 { }
 
 bool
-RBitNot::recover(JSContext *cx, SnapshotIterator &iter) const
+RBitNot::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue operand(cx, iter.read());
 
@@ -164,18 +164,18 @@ RBitNot::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MBitOr::writeRecoverData(CompactBufferWriter &writer) const
+MBitOr::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_BitOr));
     return true;
 }
 
-RBitOr::RBitOr(CompactBufferReader &reader)
+RBitOr::RBitOr(CompactBufferReader& reader)
 {}
 
 bool
-RBitOr::recover(JSContext *cx, SnapshotIterator &iter) const
+RBitOr::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue lhs(cx, iter.read());
     RootedValue rhs(cx, iter.read());
@@ -191,18 +191,18 @@ RBitOr::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MBitXor::writeRecoverData(CompactBufferWriter &writer) const
+MBitXor::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_BitXor));
     return true;
 }
 
-RBitXor::RBitXor(CompactBufferReader &reader)
+RBitXor::RBitXor(CompactBufferReader& reader)
 { }
 
 bool
-RBitXor::recover(JSContext *cx, SnapshotIterator &iter) const
+RBitXor::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue lhs(cx, iter.read());
     RootedValue rhs(cx, iter.read());
@@ -217,18 +217,18 @@ RBitXor::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MLsh::writeRecoverData(CompactBufferWriter &writer) const
+MLsh::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_Lsh));
     return true;
 }
 
-RLsh::RLsh(CompactBufferReader &reader)
+RLsh::RLsh(CompactBufferReader& reader)
 {}
 
 bool
-RLsh::recover(JSContext *cx, SnapshotIterator &iter) const
+RLsh::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue lhs(cx, iter.read());
     RootedValue rhs(cx, iter.read());
@@ -244,18 +244,18 @@ RLsh::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MRsh::writeRecoverData(CompactBufferWriter &writer) const
+MRsh::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_Rsh));
     return true;
 }
 
-RRsh::RRsh(CompactBufferReader &reader)
+RRsh::RRsh(CompactBufferReader& reader)
 { }
 
 bool
-RRsh::recover(JSContext *cx, SnapshotIterator &iter) const
+RRsh::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue lhs(cx, iter.read());
     RootedValue rhs(cx, iter.read());
@@ -271,18 +271,18 @@ RRsh::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MUrsh::writeRecoverData(CompactBufferWriter &writer) const
+MUrsh::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_Ursh));
     return true;
 }
 
-RUrsh::RUrsh(CompactBufferReader &reader)
+RUrsh::RUrsh(CompactBufferReader& reader)
 { }
 
 bool
-RUrsh::recover(JSContext *cx, SnapshotIterator &iter) const
+RUrsh::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue lhs(cx, iter.read());
     RootedValue rhs(cx, iter.read());
@@ -297,7 +297,7 @@ RUrsh::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MAdd::writeRecoverData(CompactBufferWriter &writer) const
+MAdd::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_Add));
@@ -305,13 +305,13 @@ MAdd::writeRecoverData(CompactBufferWriter &writer) const
     return true;
 }
 
-RAdd::RAdd(CompactBufferReader &reader)
+RAdd::RAdd(CompactBufferReader& reader)
 {
     isFloatOperation_ = reader.readByte();
 }
 
 bool
-RAdd::recover(JSContext *cx, SnapshotIterator &iter) const
+RAdd::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue lhs(cx, iter.read());
     RootedValue rhs(cx, iter.read());
@@ -331,7 +331,7 @@ RAdd::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MSub::writeRecoverData(CompactBufferWriter &writer) const
+MSub::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_Sub));
@@ -339,13 +339,13 @@ MSub::writeRecoverData(CompactBufferWriter &writer) const
     return true;
 }
 
-RSub::RSub(CompactBufferReader &reader)
+RSub::RSub(CompactBufferReader& reader)
 {
     isFloatOperation_ = reader.readByte();
 }
 
 bool
-RSub::recover(JSContext *cx, SnapshotIterator &iter) const
+RSub::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue lhs(cx, iter.read());
     RootedValue rhs(cx, iter.read());
@@ -365,7 +365,7 @@ RSub::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MMul::writeRecoverData(CompactBufferWriter &writer) const
+MMul::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_Mul));
@@ -373,13 +373,13 @@ MMul::writeRecoverData(CompactBufferWriter &writer) const
     return true;
 }
 
-RMul::RMul(CompactBufferReader &reader)
+RMul::RMul(CompactBufferReader& reader)
 {
     isFloatOperation_ = reader.readByte();
 }
 
 bool
-RMul::recover(JSContext *cx, SnapshotIterator &iter) const
+RMul::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue lhs(cx, iter.read());
     RootedValue rhs(cx, iter.read());
@@ -398,7 +398,7 @@ RMul::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MDiv::writeRecoverData(CompactBufferWriter &writer) const
+MDiv::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_Div));
@@ -406,13 +406,13 @@ MDiv::writeRecoverData(CompactBufferWriter &writer) const
     return true;
 }
 
-RDiv::RDiv(CompactBufferReader &reader)
+RDiv::RDiv(CompactBufferReader& reader)
 {
     isFloatOperation_ = reader.readByte();
 }
 
 bool
-RDiv::recover(JSContext *cx, SnapshotIterator &iter) const
+RDiv::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedValue lhs(cx, iter.read());
     RootedValue rhs(cx, iter.read());
@@ -431,18 +431,18 @@ RDiv::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MMod::writeRecoverData(CompactBufferWriter &writer) const
+MMod::writeRecoverData(CompactBufferWriter& writer) const
 {
 	MOZ_ASSERT(canRecoverOnBailout());
 	writer.writeUnsigned(uint32_t(RInstruction::Recover_Mod));
 	return true;
 }
 
-RMod::RMod(CompactBufferReader &reader)
+RMod::RMod(CompactBufferReader& reader)
 { }
 
 bool
-RMod::recover(JSContext *cx, SnapshotIterator &iter) const
+RMod::recover(JSContext* cx, SnapshotIterator& iter) const
 {
 	RootedValue lhs(cx, iter.read());
 	RootedValue rhs(cx, iter.read());
@@ -457,7 +457,7 @@ RMod::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MNewObject::writeRecoverData(CompactBufferWriter &writer) const
+MNewObject::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_NewObject));
@@ -465,17 +465,17 @@ MNewObject::writeRecoverData(CompactBufferWriter &writer) const
     return true;
 }
 
-RNewObject::RNewObject(CompactBufferReader &reader)
+RNewObject::RNewObject(CompactBufferReader& reader)
 {
     templateObjectIsClassPrototype_ = reader.readByte();
 }
 
 bool
-RNewObject::recover(JSContext *cx, SnapshotIterator &iter) const
+RNewObject::recover(JSContext* cx, SnapshotIterator& iter) const
 {
     RootedObject templateObject(cx, &iter.read().toObject());
     RootedValue result(cx);
-    JSObject *resultObject = nullptr;
+    JSObject* resultObject = nullptr;
 
     // Use AutoEnterAnalysis to avoid invoking the object metadata callback
     // while bailing out, which could try to walk the stack.
@@ -496,28 +496,28 @@ RNewObject::recover(JSContext *cx, SnapshotIterator &iter) const
 }
 
 bool
-MNewDerivedTypedObject::writeRecoverData(CompactBufferWriter &writer) const
+MNewDerivedTypedObject::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
     writer.writeUnsigned(uint32_t(RInstruction::Recover_NewDerivedTypedObject));
     return true;
 }
 
-RNewDerivedTypedObject::RNewDerivedTypedObject(CompactBufferReader &reader)
+RNewDerivedTypedObject::RNewDerivedTypedObject(CompactBufferReader& reader)
 { }
 
 bool
-RNewDerivedTypedObject::recover(JSContext *cx, SnapshotIterator &iter) const
+RNewDerivedTypedObject::recover(JSContext* cx, SnapshotIterator& iter) const
 {
-    Rooted<SizedTypeDescr *> descr(cx, &iter.read().toObject().as<SizedTypeDescr>());
-    Rooted<TypedObject *> owner(cx, &iter.read().toObject().as<TypedObject>());
+    Rooted<SizedTypeDescr*> descr(cx, &iter.read().toObject().as<SizedTypeDescr>());
+    Rooted<TypedObject*> owner(cx, &iter.read().toObject().as<TypedObject>());
     int32_t offset = iter.read().toInt32();
 
     // Use AutoEnterAnalysis to avoid invoking the object metadata callback
     // while bailing out, which could try to walk the stack.
     types::AutoEnterAnalysis enter(cx);
 
-    JSObject *obj = TypedObject::createDerived(cx, descr, owner, offset);
+    JSObject* obj = TypedObject::createDerived(cx, descr, owner, offset);
     if (!obj)
         return false;
 

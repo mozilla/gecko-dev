@@ -12,13 +12,13 @@
 
 using namespace js;
 
-jschar *
+jschar*
 StringBuffer::extractWellSized()
 {
     size_t capacity = cb.capacity();
     size_t length = cb.length();
 
-    jschar *buf = cb.extractRawBuffer();
+    jschar* buf = cb.extractRawBuffer();
     if (!buf)
         return nullptr;
 
@@ -26,8 +26,8 @@ StringBuffer::extractWellSized()
     JS_ASSERT(capacity >= length);
     if (length > CharBuffer::sMaxInlineStorage && capacity - length > length / 4) {
         size_t bytes = sizeof(jschar) * (length + 1);
-        ExclusiveContext *cx = context();
-        jschar *tmp = (jschar *)cx->realloc_(buf, bytes);
+        ExclusiveContext* cx = context();
+        jschar* tmp = (jschar*)cx->realloc_(buf, bytes);
         if (!tmp) {
             js_free(buf);
             return nullptr;
@@ -38,10 +38,10 @@ StringBuffer::extractWellSized()
     return buf;
 }
 
-JSFlatString *
+JSFlatString*
 StringBuffer::finishString()
 {
-    ExclusiveContext *cx = context();
+    ExclusiveContext* cx = context();
     if (cb.empty())
         return cx->names().empty;
 
@@ -56,32 +56,32 @@ StringBuffer::finishString()
     if (!cb.append('\0'))
         return nullptr;
 
-    jschar *buf = extractWellSized();
+    jschar* buf = extractWellSized();
     if (!buf)
         return nullptr;
 
-    JSFlatString *str = js_NewString<CanGC>(cx, buf, length);
+    JSFlatString* str = js_NewString<CanGC>(cx, buf, length);
     if (!str)
         js_free(buf);
     return str;
 }
 
-JSAtom *
+JSAtom*
 StringBuffer::finishAtom()
 {
-    ExclusiveContext *cx = context();
+    ExclusiveContext* cx = context();
 
     size_t length = cb.length();
     if (length == 0)
         return cx->names().empty;
 
-    JSAtom *atom = AtomizeChars(cx, cb.begin(), length);
+    JSAtom* atom = AtomizeChars(cx, cb.begin(), length);
     cb.clear();
     return atom;
 }
 
 bool
-js::ValueToStringBufferSlow(JSContext *cx, const Value &arg, StringBuffer &sb)
+js::ValueToStringBufferSlow(JSContext* cx, const Value& arg, StringBuffer& sb)
 {
     RootedValue v(cx, arg);
     if (!ToPrimitive(cx, JSTYPE_STRING, &v))

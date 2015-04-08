@@ -233,7 +233,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                 if (jsexception.isObject()) {
                     // XPConnect may have constructed an object to represent a
                     // C++ QI failure. See if that is the case.
-                    Exception *e = nullptr;
+                    Exception* e = nullptr;
                     UNWRAP_OBJECT(Exception, &jsexception.toObject(), e);
 
                     if (e &&
@@ -366,7 +366,7 @@ nsXPCWrappedJSClass::BuildPropertyEnumerator(XPCCallContext& ccx,
             return NS_ERROR_FAILURE;
 
         size_t length;
-        const jschar *chars = JS_GetStringCharsAndLength(cx, name, &length);
+        const jschar* chars = JS_GetStringCharsAndLength(cx, name, &length);
         if (!chars)
             return NS_ERROR_FAILURE;
 
@@ -578,8 +578,8 @@ nsXPCWrappedJSClass::GetRootJSObject(JSContext* cx, JSObject* aJSObjArg)
 }
 
 void
-xpcWrappedJSErrorReporter(JSContext *cx, const char *message,
-                          JSErrorReport *report)
+xpcWrappedJSErrorReporter(JSContext* cx, const char* message,
+                          JSErrorReport* report)
 {
     if (report) {
         // If it is an exception report, then we can just deal with the
@@ -753,7 +753,7 @@ nsXPCWrappedJSClass::CleanupPointerTypeObject(const nsXPTType& type,
 class AutoClearPendingException
 {
 public:
-  AutoClearPendingException(JSContext *cx) : mCx(cx) { }
+  AutoClearPendingException(JSContext* cx) : mCx(cx) { }
   ~AutoClearPendingException() { JS_ClearPendingException(mCx); }
 private:
   JSContext* mCx;
@@ -968,8 +968,8 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     if (!ccx.IsValid())
         return retval;
 
-    XPCContext *xpcc = ccx.GetXPCContext();
-    JSContext *cx = ccx.GetJSContext();
+    XPCContext* xpcc = ccx.GetXPCContext();
+    JSContext* cx = ccx.GetJSContext();
 
     if (!cx || !xpcc || !IsReflectable(methodIndex))
         return NS_ERROR_FAILURE;
@@ -977,7 +977,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     // [implicit_jscontext] and [optional_argc] have a different calling
     // convention, which we don't support for JS-implemented components.
     if (info->WantsOptArgc() || info->WantsContext()) {
-        const char *str = "IDL methods marked with [implicit_jscontext] "
+        const char* str = "IDL methods marked with [implicit_jscontext] "
                           "or [optional_argc] may not be implemented in JS";
         // Throw and warn for good measure.
         JS_ReportError(cx, str);
@@ -1490,7 +1490,7 @@ nsXPCWrappedJSClass::GetInterfaceName()
 }
 
 static void
-FinalizeStub(JSFreeOp *fop, JSObject *obj)
+FinalizeStub(JSFreeOp* fop, JSObject* obj)
 {
 }
 

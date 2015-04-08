@@ -28,7 +28,7 @@ FilteringWrapper<Base, Policy>::~FilteringWrapper()
 
 template <typename Policy>
 static bool
-Filter(JSContext *cx, HandleObject wrapper, AutoIdVector &props)
+Filter(JSContext* cx, HandleObject wrapper, AutoIdVector& props)
 {
     size_t w = 0;
     RootedId id(cx);
@@ -45,7 +45,7 @@ Filter(JSContext *cx, HandleObject wrapper, AutoIdVector &props)
 
 template <typename Policy>
 static bool
-FilterSetter(JSContext *cx, JSObject *wrapper, jsid id, JS::MutableHandle<JSPropertyDescriptor> desc)
+FilterSetter(JSContext* cx, JSObject* wrapper, jsid id, JS::MutableHandle<JSPropertyDescriptor> desc)
 {
     bool setAllowed = Policy::check(cx, wrapper, id, Wrapper::SET);
     if (!setAllowed) {
@@ -58,7 +58,7 @@ FilterSetter(JSContext *cx, JSObject *wrapper, jsid id, JS::MutableHandle<JSProp
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::getPropertyDescriptor(JSContext *cx, HandleObject wrapper,
+FilteringWrapper<Base, Policy>::getPropertyDescriptor(JSContext* cx, HandleObject wrapper,
                                                       HandleId id,
                                                       JS::MutableHandle<JSPropertyDescriptor> desc)
 {
@@ -70,7 +70,7 @@ FilteringWrapper<Base, Policy>::getPropertyDescriptor(JSContext *cx, HandleObjec
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::getOwnPropertyDescriptor(JSContext *cx, HandleObject wrapper,
+FilteringWrapper<Base, Policy>::getOwnPropertyDescriptor(JSContext* cx, HandleObject wrapper,
                                                          HandleId id,
                                                          JS::MutableHandle<JSPropertyDescriptor> desc)
 {
@@ -82,8 +82,8 @@ FilteringWrapper<Base, Policy>::getOwnPropertyDescriptor(JSContext *cx, HandleOb
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::getOwnPropertyNames(JSContext *cx, HandleObject wrapper,
-                                                    AutoIdVector &props)
+FilteringWrapper<Base, Policy>::getOwnPropertyNames(JSContext* cx, HandleObject wrapper,
+                                                    AutoIdVector& props)
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
     return Base::getOwnPropertyNames(cx, wrapper, props) &&
@@ -92,8 +92,8 @@ FilteringWrapper<Base, Policy>::getOwnPropertyNames(JSContext *cx, HandleObject 
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::enumerate(JSContext *cx, HandleObject wrapper,
-                                          AutoIdVector &props)
+FilteringWrapper<Base, Policy>::enumerate(JSContext* cx, HandleObject wrapper,
+                                          AutoIdVector& props)
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
     return Base::enumerate(cx, wrapper, props) &&
@@ -102,8 +102,8 @@ FilteringWrapper<Base, Policy>::enumerate(JSContext *cx, HandleObject wrapper,
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::keys(JSContext *cx, HandleObject wrapper,
-                                     AutoIdVector &props)
+FilteringWrapper<Base, Policy>::keys(JSContext* cx, HandleObject wrapper,
+                                     AutoIdVector& props)
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
     return Base::keys(cx, wrapper, props) &&
@@ -112,7 +112,7 @@ FilteringWrapper<Base, Policy>::keys(JSContext *cx, HandleObject wrapper,
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::iterate(JSContext *cx, HandleObject wrapper,
+FilteringWrapper<Base, Policy>::iterate(JSContext* cx, HandleObject wrapper,
                                         unsigned flags, MutableHandleValue vp)
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
@@ -125,7 +125,7 @@ FilteringWrapper<Base, Policy>::iterate(JSContext *cx, HandleObject wrapper,
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::nativeCall(JSContext *cx, JS::IsAcceptableThis test,
+FilteringWrapper<Base, Policy>::nativeCall(JSContext* cx, JS::IsAcceptableThis test,
                                            JS::NativeImpl impl, JS::CallArgs args)
 {
     if (Policy::allowNativeCall(cx, test, impl))
@@ -135,7 +135,7 @@ FilteringWrapper<Base, Policy>::nativeCall(JSContext *cx, JS::IsAcceptableThis t
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::defaultValue(JSContext *cx, HandleObject obj,
+FilteringWrapper<Base, Policy>::defaultValue(JSContext* cx, HandleObject obj,
                                              JSType hint, MutableHandleValue vp)
 {
     return Base::defaultValue(cx, obj, hint, vp);
@@ -146,10 +146,10 @@ FilteringWrapper<Base, Policy>::defaultValue(JSContext *cx, HandleObject obj,
 template<>
 bool
 FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>
-                ::defaultValue(JSContext *cx, HandleObject obj,
+                ::defaultValue(JSContext* cx, HandleObject obj,
                                JSType hint, MutableHandleValue vp)
 {
-    JSString *str = JS_NewStringCopyZ(cx, "[Opaque]");
+    JSString* str = JS_NewStringCopyZ(cx, "[Opaque]");
     if (!str)
         return false;
     vp.set(JS::StringValue(str));
@@ -159,8 +159,8 @@ FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::enter(JSContext *cx, HandleObject wrapper,
-                                      HandleId id, Wrapper::Action act, bool *bp)
+FilteringWrapper<Base, Policy>::enter(JSContext* cx, HandleObject wrapper,
+                                      HandleId id, Wrapper::Action act, bool* bp)
 {
     // This is a super ugly hacky to get around Xray Resolve wonkiness.
     //

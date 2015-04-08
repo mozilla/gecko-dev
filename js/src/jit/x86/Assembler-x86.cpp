@@ -40,12 +40,12 @@ const Register ABIArgGenerator::NonArgReturnVolatileReg1 = edx;
 const Register ABIArgGenerator::NonVolatileReg = ebx;
 
 void
-Assembler::executableCopy(uint8_t *buffer)
+Assembler::executableCopy(uint8_t* buffer)
 {
     AssemblerX86Shared::executableCopy(buffer);
 
     for (size_t i = 0; i < jumps_.length(); i++) {
-        RelativePatch &rp = jumps_[i];
+        RelativePatch& rp = jumps_[i];
         JSC::X86Assembler::setRel32(buffer + rp.offset, rp.target);
     }
 }
@@ -56,7 +56,7 @@ class RelocationIterator
     uint32_t offset_;
 
   public:
-    RelocationIterator(CompactBufferReader &reader)
+    RelocationIterator(CompactBufferReader& reader)
       : reader_(reader)
     { }
 
@@ -72,19 +72,19 @@ class RelocationIterator
     }
 };
 
-static inline JitCode *
-CodeFromJump(uint8_t *jump)
+static inline JitCode*
+CodeFromJump(uint8_t* jump)
 {
-    uint8_t *target = (uint8_t *)JSC::X86Assembler::getRel32Target(jump);
+    uint8_t* target = (uint8_t*)JSC::X86Assembler::getRel32Target(jump);
     return JitCode::FromExecutable(target);
 }
 
 void
-Assembler::TraceJumpRelocations(JSTracer *trc, JitCode *code, CompactBufferReader &reader)
+Assembler::TraceJumpRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader)
 {
     RelocationIterator iter(reader);
     while (iter.read()) {
-        JitCode *child = CodeFromJump(code->raw() + iter.offset());
+        JitCode* child = CodeFromJump(code->raw() + iter.offset());
         MarkJitCodeUnbarriered(trc, &child, "rel32");
         JS_ASSERT(child == CodeFromJump(code->raw() + iter.offset()));
     }

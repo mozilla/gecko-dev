@@ -18,11 +18,11 @@
 namespace js {
 namespace jit {
 
-inline BaselineFrame *
+inline BaselineFrame*
 JitFrameIterator::baselineFrame() const
 {
     JS_ASSERT(isBaselineJS());
-    return (BaselineFrame *)(fp() - BaselineFrame::FramePointerOffset - BaselineFrame::Size());
+    return (BaselineFrame*)(fp() - BaselineFrame::FramePointerOffset - BaselineFrame::Size());
 }
 
 template <typename T>

@@ -560,12 +560,12 @@ public:
 
     void storeDouble(ImmDouble imm, Address address)
     {
-        storePtr(ImmPtr(reinterpret_cast<void *>(imm.u.u64)), address);
+        storePtr(ImmPtr(reinterpret_cast<void*>(imm.u.u64)), address);
     }
 
     void storeDouble(ImmDouble imm, BaseIndex address)
     {
-        storePtr(ImmPtr(reinterpret_cast<void *>(imm.u.u64)), address);
+        storePtr(ImmPtr(reinterpret_cast<void*>(imm.u.u64)), address);
     }
 
     static bool supportsFloatingPoint() { return true; }

@@ -37,12 +37,12 @@ XDRBuffer::grow(size_t n)
         return false;
     }
 
-    void *data = js_realloc(base, newCapacity);
+    void* data = js_realloc(base, newCapacity);
     if (!data) {
         js_ReportOutOfMemory(cx());
         return false;
     }
-    base = static_cast<uint8_t *>(data);
+    base = static_cast<uint8_t*>(data);
     cursor = base + offset;
     limit = base + newCapacity;
     return true;
@@ -50,16 +50,16 @@ XDRBuffer::grow(size_t n)
 
 template<XDRMode mode>
 bool
-XDRState<mode>::codeChars(jschar *chars, size_t nchars)
+XDRState<mode>::codeChars(jschar* chars, size_t nchars)
 {
     size_t nbytes = nchars * sizeof(jschar);
     if (mode == XDR_ENCODE) {
-        uint8_t *ptr = buf.write(nbytes);
+        uint8_t* ptr = buf.write(nbytes);
         if (!ptr)
             return false;
         mozilla::NativeEndian::copyAndSwapToLittleEndian(ptr, chars, nchars);
     } else {
-        const uint8_t *ptr = buf.read(nbytes);
+        const uint8_t* ptr = buf.read(nbytes);
         mozilla::NativeEndian::copyAndSwapFromLittleEndian(chars, ptr, nchars);
     }
     return true;
@@ -67,7 +67,7 @@ XDRState<mode>::codeChars(jschar *chars, size_t nchars)
 
 template<XDRMode mode>
 static bool
-VersionCheck(XDRState<mode> *xdr)
+VersionCheck(XDRState<mode>* xdr)
 {
     uint32_t bytecodeVer;
     if (mode == XDR_ENCODE)
@@ -121,8 +121,8 @@ XDRState<mode>::codeConstValue(MutableHandleValue vp)
     return XDRScriptConst(this, vp);
 }
 
-XDRDecoder::XDRDecoder(JSContext *cx, const void *data, uint32_t length,
-                       JSPrincipals *originPrincipals)
+XDRDecoder::XDRDecoder(JSContext* cx, const void* data, uint32_t length,
+                       JSPrincipals* originPrincipals)
   : XDRState<XDR_DECODE>(cx)
 {
     buf.setData(data, length);

@@ -14,10 +14,10 @@
 
 using namespace js;
 
-static JSFunction *foundFun = nullptr;
+static JSFunction* foundFun = nullptr;
 
 static bool
-CheckEnclosing(JSContext *cx, unsigned argc, Value *vp)
+CheckEnclosing(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
