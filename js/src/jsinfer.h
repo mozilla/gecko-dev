@@ -940,7 +940,7 @@ class TypeNewScript
     // Scripted function which this information was computed for.
     // If instances of the associated type object are created without calling
     // 'new' on this function, the new script information is cleared.
-    HeapPtrFunction fun;
+    RelocatablePtrFunction fun;
 
     // If fewer than PRELIMINARY_OBJECT_COUNT instances of the type are
     // created, this array holds pointers to each of those objects. When the
@@ -955,7 +955,7 @@ class TypeNewScript
     // reflects all definite properties the object will have, and the
     // allocation kind to use. Note that this is actually a PlainObject, but is
     // JSObject here to avoid cyclic include dependencies.
-    HeapPtrPlainObject templateObject_;
+    RelocatablePtrPlainObject templateObject_;
 
     // Order in which definite properties become initialized. We need this in
     // case the definite properties are invalidated (such as by adding a setter
@@ -972,11 +972,11 @@ class TypeNewScript
     // shape contains all such additional properties (plus the definite
     // properties). When an object of this type acquires this shape, it is
     // fully initialized and its type can be changed to initializedType.
-    HeapPtrShape initializedShape_;
+    RelocatablePtrShape initializedShape_;
 
     // Type object with definite properties set for all properties found by
     // both the definite and acquired properties analyses.
-    HeapPtrTypeObject initializedType_;
+    RelocatablePtrTypeObject initializedType_;
 
   public:
     TypeNewScript() { mozilla::PodZero(this); }
