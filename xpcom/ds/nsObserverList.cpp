@@ -89,6 +89,18 @@ nsObserverList::FillObserverArray(nsCOMArray<nsIObserver>& aArray)
 }
 
 void
+nsObserverList::AppendStrongObservers(nsCOMArray<nsIObserver>& aArray)
+{
+  aArray.SetCapacity(aArray.Length() + mObservers.Length());
+
+  for (int32_t i = mObservers.Length() - 1; i >= 0; --i) {
+    if (!mObservers[i].isWeakRef) {
+      aArray.AppendObject(mObservers[i].asObserver());
+    }
+  }
+}
+
+void
 nsObserverList::NotifyObservers(nsISupports* aSubject,
                                 const char* aTopic,
                                 const char16_t* someData)
@@ -98,16 +110,6 @@ nsObserverList::NotifyObservers(nsISupports* aSubject,
 
   for (int32_t i = 0; i < observers.Count(); ++i) {
     observers[i]->Observe(aSubject, aTopic, someData);
-  }
-}
-
-void
-nsObserverList::UnmarkGrayStrongObservers()
-{
-  for (uint32_t i = 0; i < mObservers.Length(); ++i) {
-    if (!mObservers[i].isWeakRef) {
-      xpc_TryUnmarkWrappedGrayObject(mObservers[i].asObserver());
-    }
   }
 }
 
