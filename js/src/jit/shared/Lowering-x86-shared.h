@@ -15,39 +15,39 @@ namespace jit {
 class LIRGeneratorX86Shared : public LIRGeneratorShared
 {
   protected:
-    LIRGeneratorX86Shared(MIRGenerator *gen, MIRGraph &graph, LIRGraph &lirGraph)
+    LIRGeneratorX86Shared(MIRGenerator* gen, MIRGraph& graph, LIRGraph& lirGraph)
       : LIRGeneratorShared(gen, graph, lirGraph)
     {}
 
-    LTableSwitch *newLTableSwitch(const LAllocation &in, const LDefinition &inputCopy,
-                                  MTableSwitch *ins);
-    LTableSwitchV *newLTableSwitchV(MTableSwitch *ins);
+    LTableSwitch* newLTableSwitch(const LAllocation& in, const LDefinition& inputCopy,
+                                  MTableSwitch* ins);
+    LTableSwitchV* newLTableSwitchV(MTableSwitch* ins);
 
-    bool visitGuardShape(MGuardShape *ins);
-    bool visitGuardObjectType(MGuardObjectType *ins);
-    bool visitPowHalf(MPowHalf *ins);
-    bool lowerForShift(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir, MDefinition *lhs,
-                       MDefinition *rhs);
-    bool lowerForALU(LInstructionHelper<1, 1, 0> *ins, MDefinition *mir, MDefinition *input);
-    bool lowerForALU(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir, MDefinition *lhs,
-                     MDefinition *rhs);
-    bool lowerForFPU(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir, MDefinition *lhs,
-                     MDefinition *rhs);
-    bool lowerForBitAndAndBranch(LBitAndAndBranch *baab, MInstruction *mir,
-                                 MDefinition *lhs, MDefinition *rhs);
-    bool visitConstant(MConstant *ins);
-    bool visitAsmJSNeg(MAsmJSNeg *ins);
-    bool lowerMulI(MMul *mul, MDefinition *lhs, MDefinition *rhs);
-    bool lowerDivI(MDiv *div);
-    bool lowerModI(MMod *mod);
-    bool lowerUDiv(MDiv *div);
-    bool lowerUMod(MMod *mod);
-    bool lowerUrshD(MUrsh *mir);
-    bool lowerConstantDouble(double d, MInstruction *ins);
-    bool lowerConstantFloat32(float d, MInstruction *ins);
-    bool lowerTruncateDToInt32(MTruncateToInt32 *ins);
-    bool lowerTruncateFToInt32(MTruncateToInt32 *ins);
-    bool visitForkJoinGetSlice(MForkJoinGetSlice *ins);
+    bool visitGuardShape(MGuardShape* ins);
+    bool visitGuardObjectType(MGuardObjectType* ins);
+    bool visitPowHalf(MPowHalf* ins);
+    bool lowerForShift(LInstructionHelper<1, 2, 0>* ins, MDefinition* mir, MDefinition* lhs,
+                       MDefinition* rhs);
+    bool lowerForALU(LInstructionHelper<1, 1, 0>* ins, MDefinition* mir, MDefinition* input);
+    bool lowerForALU(LInstructionHelper<1, 2, 0>* ins, MDefinition* mir, MDefinition* lhs,
+                     MDefinition* rhs);
+    bool lowerForFPU(LInstructionHelper<1, 2, 0>* ins, MDefinition* mir, MDefinition* lhs,
+                     MDefinition* rhs);
+    bool lowerForBitAndAndBranch(LBitAndAndBranch* baab, MInstruction* mir,
+                                 MDefinition* lhs, MDefinition* rhs);
+    bool visitConstant(MConstant* ins);
+    bool visitAsmJSNeg(MAsmJSNeg* ins);
+    bool lowerMulI(MMul* mul, MDefinition* lhs, MDefinition* rhs);
+    bool lowerDivI(MDiv* div);
+    bool lowerModI(MMod* mod);
+    bool lowerUDiv(MDiv* div);
+    bool lowerUMod(MMod* mod);
+    bool lowerUrshD(MUrsh* mir);
+    bool lowerConstantDouble(double d, MInstruction* ins);
+    bool lowerConstantFloat32(float d, MInstruction* ins);
+    bool lowerTruncateDToInt32(MTruncateToInt32* ins);
+    bool lowerTruncateFToInt32(MTruncateToInt32* ins);
+    bool visitForkJoinGetSlice(MForkJoinGetSlice* ins);
 };
 
 } // namespace jit

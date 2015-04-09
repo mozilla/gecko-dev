@@ -191,7 +191,7 @@ IsSpaceOrBOM2(jschar ch)
 inline jschar
 ToUpperCase(jschar ch)
 {
-    const CharacterInfo &info = CharInfo(ch);
+    const CharacterInfo& info = CharInfo(ch);
 
     return uint16_t(ch) + info.upperCase;
 }
@@ -199,7 +199,7 @@ ToUpperCase(jschar ch)
 inline jschar
 ToLowerCase(jschar ch)
 {
-    const CharacterInfo &info = CharInfo(ch);
+    const CharacterInfo& info = CharInfo(ch);
 
     return uint16_t(ch) + info.lowerCase;
 }

@@ -40,36 +40,36 @@ struct ReceiverObj
 struct InVariant
 {
     JSVariant variant;
-    InVariant(const JSVariant &variant) : variant(variant) {}
+    InVariant(const JSVariant& variant) : variant(variant) {}
 };
 
 struct OutVariant
 {
     JSVariant variant;
-    OutVariant(const JSVariant &variant) : variant(variant) {}
+    OutVariant(const JSVariant& variant) : variant(variant) {}
 };
 
 class Logging
 {
   public:
-    Logging(JavaScriptShared *shared, JSContext *cx) : shared(shared), cx(cx) {}
+    Logging(JavaScriptShared* shared, JSContext* cx) : shared(shared), cx(cx) {}
 
-    void print(const nsCString &str) {
-        const char *side = shared->isParent() ? "from child" : "from parent";
+    void print(const nsCString& str) {
+        const char* side = shared->isParent() ? "from child" : "from parent";
         printf("CPOW %s: %s\n", side, str.get());
     }
 
-    void print(const char *str) {
+    void print(const char* str) {
         print(nsCString(str));
     }
     template<typename T1>
-    void print(const char *fmt, const T1 &a1) {
+    void print(const char* fmt, const T1& a1) {
         nsAutoCString tmp1;
         format(a1, tmp1);
         print(nsPrintfCString(fmt, tmp1.get()));
     }
     template<typename T1, typename T2>
-    void print(const char *fmt, const T1 &a1, const T2 &a2) {
+    void print(const char* fmt, const T1& a1, const T2& a2) {
         nsAutoCString tmp1;
         nsAutoCString tmp2;
         format(a1, tmp1);
@@ -77,7 +77,7 @@ class Logging
         print(nsPrintfCString(fmt, tmp1.get(), tmp2.get()));
     }
     template<typename T1, typename T2, typename T3>
-    void print(const char *fmt, const T1 &a1, const T2 &a2, const T3 &a3) {
+    void print(const char* fmt, const T1& a1, const T2& a2, const T3& a3) {
         nsAutoCString tmp1;
         nsAutoCString tmp2;
         nsAutoCString tmp3;
@@ -87,12 +87,12 @@ class Logging
         print(nsPrintfCString(fmt, tmp1.get(), tmp2.get(), tmp3.get()));
     }
 
-    void format(const nsString &str, nsCString &out) {
+    void format(const nsString& str, nsCString& out) {
         out = NS_ConvertUTF16toUTF8(str);
     }
 
-    void formatObject(bool incoming, bool local, ObjectId id, nsCString &out) {
-        const char *side, *objDesc;
+    void formatObject(bool incoming, bool local, ObjectId id, nsCString& out) {
+        const char* side, *objDesc;
 
         if (local == incoming) {
             JS::RootedObject obj(cx);
@@ -114,11 +114,11 @@ class Logging
     }
 
 
-    void format(const ReceiverObj &obj, nsCString &out) {
+    void format(const ReceiverObj& obj, nsCString& out) {
         formatObject(true, true, obj.id, out);
     }
 
-    void format(const nsTArray<JSParam> &values, nsCString &out) {
+    void format(const nsTArray<JSParam>& values, nsCString& out) {
         nsAutoCString tmp;
         out.Truncate();
         for (size_t i = 0; i < values.Length(); i++) {
@@ -133,15 +133,15 @@ class Logging
         }
     }
 
-    void format(const InVariant &value, nsCString &out) {
+    void format(const InVariant& value, nsCString& out) {
         format(true, value.variant, out);
     }
 
-    void format(const OutVariant &value, nsCString &out) {
+    void format(const OutVariant& value, nsCString& out) {
         format(false, value.variant, out);
     }
 
-    void format(bool incoming, const JSVariant &value, nsCString &out) {
+    void format(bool incoming, const JSVariant& value, nsCString& out) {
         switch (value.type()) {
           case JSVariant::TUndefinedVariant: {
               out = "undefined";
@@ -158,7 +158,7 @@ class Logging
               break;
           }
           case JSVariant::TObjectVariant: {
-              const ObjectVariant &ovar = value.get_ObjectVariant();
+              const ObjectVariant& ovar = value.get_ObjectVariant();
               if (ovar.type() == ObjectVariant::TLocalObject)
                   formatObject(incoming, true, ovar.get_LocalObject().id(), out);
               else
@@ -185,8 +185,8 @@ class Logging
     }
 
   private:
-    JavaScriptShared *shared;
-    JSContext *cx;
+    JavaScriptShared* shared;
+    JSContext* cx;
 };
 
 }

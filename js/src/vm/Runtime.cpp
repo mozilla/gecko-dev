@@ -69,7 +69,7 @@ using JS::DoubleNaNValue;
 
 const JSSecurityCallbacks js::NullSecurityCallbacks = { };
 
-PerThreadData::PerThreadData(JSRuntime *runtime)
+PerThreadData::PerThreadData(JSRuntime* runtime)
   : PerThreadDataFriendFields(),
     runtime_(runtime),
     jitTop(nullptr),
@@ -120,7 +120,7 @@ static const JSWrapObjectCallbacks DefaultWrapObjectCallbacks = {
     nullptr
 };
 
-JSRuntime::JSRuntime(JSRuntime *parentRuntime)
+JSRuntime::JSRuntime(JSRuntime* parentRuntime)
   : JS::shadow::Runtime(
 #ifdef JSGC_GENERATIONAL
         &gc.storeBuffer
@@ -195,7 +195,7 @@ JSRuntime::JSRuntime(JSRuntime *parentRuntime)
     signalHandlersInstalled_(false),
     defaultFreeOp_(thisFromCtor(), false),
     debuggerMutations(0),
-    securityCallbacks(const_cast<JSSecurityCallbacks *>(&NullSecurityCallbacks)),
+    securityCallbacks(const_cast<JSSecurityCallbacks*>(&NullSecurityCallbacks)),
     DOMcallbacks(nullptr),
     destroyPrincipals(nullptr),
     structuredCloneCallbacks(nullptr),
@@ -288,7 +288,7 @@ JSRuntime::init(uint32_t maxbytes, uint32_t maxNurseryBytes)
     if (!gc.init(maxbytes, maxNurseryBytes))
         return false;
 
-    const char *size = getenv("JSGC_MARK_STACK_LIMIT");
+    const char* size = getenv("JSGC_MARK_STACK_LIMIT");
     if (size)
         SetMarkStackLimit(this, atoi(size));
 
@@ -366,7 +366,7 @@ JSRuntime::~JSRuntime()
         /* Clear debugging state to remove GC roots. */
         for (CompartmentsIter comp(this, SkipAtoms); !comp.done(); comp.next()) {
             comp->clearTraps(defaultFreeOp());
-            if (WatchpointMap *wpmap = comp->watchpointMap)
+            if (WatchpointMap* wpmap = comp->watchpointMap)
                 wpmap->clear();
         }
 
@@ -419,7 +419,7 @@ JSRuntime::~JSRuntime()
         for (ContextIter acx(this); !acx.done(); acx.next()) {
             fprintf(stderr,
 "JS API usage error: found live context at %p\n",
-                    (void *) acx.get());
+                    (void*) acx.get());
             cxcount++;
         }
         fprintf(stderr,
@@ -465,12 +465,12 @@ JSRuntime::~JSRuntime()
 }
 
 void
-NewObjectCache::clearNurseryObjects(JSRuntime *rt)
+NewObjectCache::clearNurseryObjects(JSRuntime* rt)
 {
 #ifdef JSGC_GENERATIONAL
     for (unsigned i = 0; i < mozilla::ArrayLength(entries); ++i) {
-        Entry &e = entries[i];
-        JSObject *obj = reinterpret_cast<JSObject *>(&e.templateObject);
+        Entry& e = entries[i];
+        JSObject* obj = reinterpret_cast<JSObject*>(&e.templateObject);
         if (IsInsideNursery(e.key) ||
             rt->gc.nursery.isInside(obj->slots) ||
             rt->gc.nursery.isInside(obj->elements))
@@ -493,7 +493,7 @@ JSRuntime::resetJitStackLimit()
  }
 
 void
-JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSizes *rtSizes)
+JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSizes* rtSizes)
 {
     // Several tables in the runtime enumerated below can be used off thread.
     AutoLockForExclusiveAccess lock(this);
@@ -535,7 +535,7 @@ JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::Runtim
     {
         AutoLockForInterrupt lock(this);
         if (jitRuntime()) {
-            if (JSC::ExecutableAllocator *ionAlloc = jitRuntime()->ionAlloc(this))
+            if (JSC::ExecutableAllocator* ionAlloc = jitRuntime()->ionAlloc(this))
                 ionAlloc->addSizeOfCode(&rtSizes->code);
         }
     }
@@ -589,8 +589,8 @@ JSRuntime::requestInterrupt(InterruptMode mode)
 #endif
 }
 
-JSC::ExecutableAllocator *
-JSRuntime::createExecutableAllocator(JSContext *cx)
+JSC::ExecutableAllocator*
+JSRuntime::createExecutableAllocator(JSContext* cx)
 {
     JS_ASSERT(!execAlloc_);
     JS_ASSERT(cx->runtime() == this);
@@ -603,8 +603,8 @@ JSRuntime::createExecutableAllocator(JSContext *cx)
 
 #ifdef JS_YARR
 
-WTF::BumpPointerAllocator *
-JSRuntime::createBumpPointerAllocator(JSContext *cx)
+WTF::BumpPointerAllocator*
+JSRuntime::createBumpPointerAllocator(JSContext* cx)
 {
     JS_ASSERT(!bumpAlloc_);
     JS_ASSERT(cx->runtime() == this);
@@ -617,13 +617,13 @@ JSRuntime::createBumpPointerAllocator(JSContext *cx)
 
 #endif // JS_YARR
 
-MathCache *
-JSRuntime::createMathCache(JSContext *cx)
+MathCache*
+JSRuntime::createMathCache(JSContext* cx)
 {
     JS_ASSERT(!mathCache_);
     JS_ASSERT(cx->runtime() == this);
 
-    MathCache *newMathCache = js_new<MathCache>();
+    MathCache* newMathCache = js_new<MathCache>();
     if (!newMathCache) {
         js_ReportOutOfMemory(cx);
         return nullptr;
@@ -634,7 +634,7 @@ JSRuntime::createMathCache(JSContext *cx)
 }
 
 bool
-JSRuntime::setDefaultLocale(const char *locale)
+JSRuntime::setDefaultLocale(const char* locale)
 {
     if (!locale)
         return false;
@@ -650,13 +650,13 @@ JSRuntime::resetDefaultLocale()
     defaultLocale = nullptr;
 }
 
-const char *
+const char*
 JSRuntime::getDefaultLocale()
 {
     if (defaultLocale)
         return defaultLocale;
 
-    char *locale, *lang, *p;
+    char* locale, *lang, *p;
 #ifdef HAVE_SETLOCALE
     locale = setlocale(LC_ALL, nullptr);
 #else
@@ -702,7 +702,7 @@ JSRuntime::updateMallocCounter(size_t nbytes)
 }
 
 void
-JSRuntime::updateMallocCounter(JS::Zone *zone, size_t nbytes)
+JSRuntime::updateMallocCounter(JS::Zone* zone, size_t nbytes)
 {
     gc.updateMallocCounter(zone, nbytes);
 }
@@ -715,14 +715,14 @@ JSRuntime::onTooMuchMalloc()
     gc.onTooMuchMalloc();
 }
 
-JS_FRIEND_API(void *)
-JSRuntime::onOutOfMemory(void *p, size_t nbytes)
+JS_FRIEND_API(void*)
+JSRuntime::onOutOfMemory(void* p, size_t nbytes)
 {
     return onOutOfMemory(p, nbytes, nullptr);
 }
 
-JS_FRIEND_API(void *)
-JSRuntime::onOutOfMemory(void *p, size_t nbytes, JSContext *cx)
+JS_FRIEND_API(void*)
+JSRuntime::onOutOfMemory(void* p, size_t nbytes, JSContext* cx)
 {
     if (isHeapBusy())
         return nullptr;
@@ -735,7 +735,7 @@ JSRuntime::onOutOfMemory(void *p, size_t nbytes, JSContext *cx)
     gc.waitBackgroundSweepOrAllocEnd();
     if (!p)
         p = js_malloc(nbytes);
-    else if (p == reinterpret_cast<void *>(1))
+    else if (p == reinterpret_cast<void*>(1))
         p = js_calloc(nbytes);
     else
         p = js_realloc(p, nbytes);
@@ -746,8 +746,8 @@ JSRuntime::onOutOfMemory(void *p, size_t nbytes, JSContext *cx)
     return nullptr;
 }
 
-void *
-JSRuntime::onOutOfMemoryCanGC(void *p, size_t bytes)
+void*
+JSRuntime::onOutOfMemoryCanGC(void* p, size_t bytes)
 {
     if (!largeAllocationFailureCallback || bytes < LARGE_ALLOCATION)
         return nullptr;
@@ -758,14 +758,14 @@ JSRuntime::onOutOfMemoryCanGC(void *p, size_t bytes)
 bool
 JSRuntime::activeGCInAtomsZone()
 {
-    Zone *zone = atomsCompartment_->zone();
+    Zone* zone = atomsCompartment_->zone();
     return zone->needsBarrier() || zone->isGCScheduled() || zone->wasGCStarted();
 }
 
 #ifdef JS_THREADSAFE
 
 void
-JSRuntime::setUsedByExclusiveThread(Zone *zone)
+JSRuntime::setUsedByExclusiveThread(Zone* zone)
 {
     JS_ASSERT(!zone->usedByExclusiveThread);
     zone->usedByExclusiveThread = true;
@@ -773,7 +773,7 @@ JSRuntime::setUsedByExclusiveThread(Zone *zone)
 }
 
 void
-JSRuntime::clearUsedByExclusiveThread(Zone *zone)
+JSRuntime::clearUsedByExclusiveThread(Zone* zone)
 {
     JS_ASSERT(zone->usedByExclusiveThread);
     zone->usedByExclusiveThread = false;
@@ -781,18 +781,18 @@ JSRuntime::clearUsedByExclusiveThread(Zone *zone)
 }
 
 bool
-js::CurrentThreadCanAccessRuntime(JSRuntime *rt)
+js::CurrentThreadCanAccessRuntime(JSRuntime* rt)
 {
     return rt->ownerThread_ == PR_GetCurrentThread() && !InParallelSection();
 }
 
 bool
-js::CurrentThreadCanAccessZone(Zone *zone)
+js::CurrentThreadCanAccessZone(Zone* zone)
 {
     if (CurrentThreadCanAccessRuntime(zone->runtime_))
         return true;
     if (InParallelSection()) {
-        DebugOnly<PerThreadData *> pt = js::TlsPerThreadData.get();
+        DebugOnly<PerThreadData*> pt = js::TlsPerThreadData.get();
         JS_ASSERT(pt && pt->associatedWith(zone->runtime_));
         return true;
     }
@@ -806,13 +806,13 @@ js::CurrentThreadCanAccessZone(Zone *zone)
 #else // JS_THREADSAFE
 
 bool
-js::CurrentThreadCanAccessRuntime(JSRuntime *rt)
+js::CurrentThreadCanAccessRuntime(JSRuntime* rt)
 {
     return true;
 }
 
 bool
-js::CurrentThreadCanAccessZone(Zone *zone)
+js::CurrentThreadCanAccessZone(Zone* zone)
 {
     return true;
 }
@@ -848,7 +848,7 @@ void
 js::AssertCurrentThreadCanLock(RuntimeLock which)
 {
 #ifdef JS_THREADSAFE
-    PerThreadData *pt = TlsPerThreadData.get();
+    PerThreadData* pt = TlsPerThreadData.get();
     if (pt && pt->runtime_)
         pt->runtime_->assertCanLock(which);
 #endif

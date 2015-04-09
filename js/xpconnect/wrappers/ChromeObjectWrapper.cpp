@@ -26,18 +26,18 @@ ChromeObjectWrapper ChromeObjectWrapper::singleton;
 using js::assertEnteredPolicy;
 
 static bool
-AllowedByBase(JSContext *cx, HandleObject wrapper, HandleId id,
+AllowedByBase(JSContext* cx, HandleObject wrapper, HandleId id,
               js::Wrapper::Action act)
 {
     MOZ_ASSERT(js::Wrapper::wrapperHandler(wrapper) ==
                &ChromeObjectWrapper::singleton);
     bool bp;
-    ChromeObjectWrapper *handler = &ChromeObjectWrapper::singleton;
+    ChromeObjectWrapper* handler = &ChromeObjectWrapper::singleton;
     return handler->ChromeObjectWrapperBase::enter(cx, wrapper, id, act, &bp);
 }
 
 static bool
-PropIsFromStandardPrototype(JSContext *cx, JS::MutableHandle<JSPropertyDescriptor> desc)
+PropIsFromStandardPrototype(JSContext* cx, JS::MutableHandle<JSPropertyDescriptor> desc)
 {
     MOZ_ASSERT(desc.object());
     RootedObject unwrapped(cx, js::UncheckedUnwrap(desc.object()));
@@ -50,13 +50,13 @@ PropIsFromStandardPrototype(JSContext *cx, JS::MutableHandle<JSPropertyDescripto
 // This lets us determine whether the property we would have found (given a
 // transparent wrapper) would have come off a standard prototype.
 static bool
-PropIsFromStandardPrototype(JSContext *cx, HandleObject wrapper,
+PropIsFromStandardPrototype(JSContext* cx, HandleObject wrapper,
                             HandleId id)
 {
     MOZ_ASSERT(js::Wrapper::wrapperHandler(wrapper) ==
                &ChromeObjectWrapper::singleton);
     Rooted<JSPropertyDescriptor> desc(cx);
-    ChromeObjectWrapper *handler = &ChromeObjectWrapper::singleton;
+    ChromeObjectWrapper* handler = &ChromeObjectWrapper::singleton;
     if (!handler->ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id,
                                                                  &desc) ||
         !desc.object())
@@ -67,7 +67,7 @@ PropIsFromStandardPrototype(JSContext *cx, HandleObject wrapper,
 }
 
 bool
-ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
+ChromeObjectWrapper::getPropertyDescriptor(JSContext* cx,
                                            HandleObject wrapper,
                                            HandleId id,
                                            JS::MutableHandle<JSPropertyDescriptor> desc)
@@ -100,8 +100,8 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
 }
 
 bool
-ChromeObjectWrapper::has(JSContext *cx, HandleObject wrapper,
-                         HandleId id, bool *bp)
+ChromeObjectWrapper::has(JSContext* cx, HandleObject wrapper,
+                         HandleId id, bool* bp)
 {
     assertEnteredPolicy(cx, wrapper, id, GET);
     // Try the lookup on the base wrapper if permitted.
@@ -128,7 +128,7 @@ ChromeObjectWrapper::has(JSContext *cx, HandleObject wrapper,
 }
 
 bool
-ChromeObjectWrapper::get(JSContext *cx, HandleObject wrapper,
+ChromeObjectWrapper::get(JSContext* cx, HandleObject wrapper,
                          HandleObject receiver, HandleId id,
                          MutableHandleValue vp)
 {
@@ -165,7 +165,7 @@ ChromeObjectWrapper::get(JSContext *cx, HandleObject wrapper,
 // contacts. This isn't really ideal, but make it work for now.
 bool
 ChromeObjectWrapper::objectClassIs(HandleObject obj, js::ESClassValue classValue,
-                                   JSContext *cx)
+                                   JSContext* cx)
 {
   return CrossCompartmentWrapper::objectClassIs(obj, classValue, cx);
 }
@@ -175,8 +175,8 @@ ChromeObjectWrapper::objectClassIs(HandleObject obj, js::ESClassValue classValue
 // enforcement or COWs isn't cheap. But it results in the cleanest code, and this
 // whole proto remapping thing for COWs is going to be phased out anyway.
 bool
-ChromeObjectWrapper::enter(JSContext *cx, HandleObject wrapper,
-                           HandleId id, js::Wrapper::Action act, bool *bp)
+ChromeObjectWrapper::enter(JSContext* cx, HandleObject wrapper,
+                           HandleId id, js::Wrapper::Action act, bool* bp)
 {
     if (AllowedByBase(cx, wrapper, id, act))
         return true;

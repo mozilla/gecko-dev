@@ -100,7 +100,7 @@ public:
     {
         ASSERT(!m_previous);
         size_t n = 0;
-        const BumpPointerPool *curr = this;
+        const BumpPointerPool* curr = this;
         while (curr) {
             n += m_allocation.size();
             curr = curr->m_next;

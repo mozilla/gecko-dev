@@ -67,15 +67,15 @@ NEW_BINDING(nsGlobalWindow, Window);
 #define DEFINE_UNWRAP_CAST(_interface, _base, _bit)                           \
 template <>                                                                   \
 MOZ_ALWAYS_INLINE bool                                                        \
-xpc_qsUnwrapThis<_interface>(JSContext *cx,                                   \
+xpc_qsUnwrapThis<_interface>(JSContext* cx,                                   \
                              JS::HandleObject obj,                            \
-                             _interface **ppThis,                             \
-                             nsISupports **pThisRef,                          \
+                             _interface** ppThis,                             \
+                             nsISupports** pThisRef,                          \
                              JS::MutableHandleValue pThisVal,                 \
                              bool failureFatal)                               \
 {                                                                             \
     nsresult rv;                                                              \
-    nsISupports *native =                                                     \
+    nsISupports* native =                                                     \
         castNativeFromWrapper(cx, obj, _bit,                                  \
                               ProtoIDAndDepth<_interface>::PrototypeID,       \
                               ProtoIDAndDepth<_interface>::Depth,             \
@@ -89,14 +89,14 @@ xpc_qsUnwrapThis<_interface>(JSContext *cx,                                   \
                                                                               \
 template <>                                                                   \
 MOZ_ALWAYS_INLINE nsresult                                                    \
-xpc_qsUnwrapArg<_interface>(JSContext *cx,                                    \
+xpc_qsUnwrapArg<_interface>(JSContext* cx,                                    \
                             JS::HandleValue v,                                \
-                            _interface **ppArg,                               \
-                            nsISupports **ppArgRef,                           \
+                            _interface** ppArg,                               \
+                            nsISupports** ppArgRef,                           \
                             JS::MutableHandleValue vp)                        \
 {                                                                             \
     nsresult rv;                                                              \
-    nsISupports *native =                                                     \
+    nsISupports* native =                                                     \
         castNativeArgFromWrapper(cx, v, _bit,                                 \
                                  ProtoIDAndDepth<_interface>::PrototypeID,    \
                                  ProtoIDAndDepth<_interface>::Depth,          \
@@ -108,10 +108,10 @@ xpc_qsUnwrapArg<_interface>(JSContext *cx,                                    \
                                                                               \
 template <>                                                                   \
 inline nsresult                                                               \
-xpc_qsUnwrapArg<_interface>(JSContext *cx,                                    \
+xpc_qsUnwrapArg<_interface>(JSContext* cx,                                    \
                             JS::HandleValue v,                                \
-                            _interface **ppArg,                               \
-                            _interface **ppArgRef,                            \
+                            _interface** ppArg,                               \
+                            _interface** ppArgRef,                            \
                             JS::MutableHandleValue vp)                        \
 {                                                                             \
     nsISupports* argRef = static_cast<_base*>(*ppArgRef);                     \
@@ -125,10 +125,10 @@ namespace dom {                                                               \
                                                                               \
 template <>                                                                   \
 MOZ_ALWAYS_INLINE nsresult                                                    \
-UnwrapArg<_interface>(JSContext *cx,                                          \
+UnwrapArg<_interface>(JSContext* cx,                                          \
                       JS::HandleValue v,                                      \
-                      _interface **ppArg,                                     \
-                      nsISupports **ppArgRef,                                 \
+                      _interface** ppArg,                                     \
+                      nsISupports** ppArgRef,                                 \
                       JS::MutableHandleValue vp)                              \
 {                                                                             \
   return xpc_qsUnwrapArg<_interface>(cx, v, ppArg, ppArgRef, vp);             \
@@ -136,10 +136,10 @@ UnwrapArg<_interface>(JSContext *cx,                                          \
                                                                               \
 template <>                                                                   \
 inline nsresult                                                               \
-UnwrapArg<_interface>(JSContext *cx,                                          \
+UnwrapArg<_interface>(JSContext* cx,                                          \
                       JS::HandleValue v,                                      \
-                      _interface **ppArg,                                     \
-                      _interface **ppArgRef,                                  \
+                      _interface** ppArg,                                     \
+                      _interface** ppArgRef,                                  \
                       JS::MutableHandleValue vp)                              \
 {                                                                             \
   return xpc_qsUnwrapArg<_interface>(cx, v, ppArg, ppArgRef, vp);             \
@@ -159,14 +159,14 @@ DOMCI_CASTABLE_INTERFACES(unused)
 #undef DOMCI_CASTABLE_INTERFACE
 
 inline nsresult
-xpc_qsUnwrapArg_HTMLElement(JSContext *cx,
+xpc_qsUnwrapArg_HTMLElement(JSContext* cx,
                             JS::HandleValue v,
-                            nsIAtom *aTag,
-                            nsIContent **ppArg,
-                            nsISupports **ppArgRef,
+                            nsIAtom* aTag,
+                            nsIContent** ppArg,
+                            nsISupports** ppArgRef,
                             JS::MutableHandleValue vp)
 {
-    nsGenericHTMLElement *elem;
+    nsGenericHTMLElement* elem;
     JS::RootedValue val(cx);
     nsresult rv =
         xpc_qsUnwrapArg<nsGenericHTMLElement>(cx, v, &elem, ppArgRef, &val);
@@ -184,13 +184,13 @@ xpc_qsUnwrapArg_HTMLElement(JSContext *cx,
 #define DEFINE_UNWRAP_CAST_HTML(_tag, _clazz)                                 \
 template <>                                                                   \
 inline nsresult                                                               \
-xpc_qsUnwrapArg<_clazz>(JSContext *cx,                                        \
+xpc_qsUnwrapArg<_clazz>(JSContext* cx,                                        \
                         JS::HandleValue v,                                    \
-                        _clazz **ppArg,                                       \
-                        nsISupports **ppArgRef,                               \
+                        _clazz** ppArg,                                       \
+                        nsISupports** ppArgRef,                               \
                         JS::MutableHandleValue vp)                            \
 {                                                                             \
-    nsIContent *elem;                                                         \
+    nsIContent* elem;                                                         \
     nsresult rv = xpc_qsUnwrapArg_HTMLElement(cx, v, nsGkAtoms::_tag, &elem,  \
                                               ppArgRef, vp);                  \
     if (NS_SUCCEEDED(rv))                                                     \
@@ -200,8 +200,8 @@ xpc_qsUnwrapArg<_clazz>(JSContext *cx,                                        \
                                                                               \
 template <>                                                                   \
 inline nsresult                                                               \
-xpc_qsUnwrapArg<_clazz>(JSContext *cx, JS::HandleValue v, _clazz **ppArg,     \
-                        _clazz **ppArgRef, JS::MutableHandleValue vp)         \
+xpc_qsUnwrapArg<_clazz>(JSContext* cx, JS::HandleValue v, _clazz** ppArg,     \
+                        _clazz** ppArgRef, JS::MutableHandleValue vp)         \
 {                                                                             \
     nsISupports* argRef = static_cast<nsIContent*>(*ppArgRef);                \
     nsresult rv = xpc_qsUnwrapArg<_clazz>(cx, v, ppArg, &argRef, vp);         \
@@ -214,10 +214,10 @@ namespace dom {                                                               \
                                                                               \
 template <>                                                                   \
 inline nsresult                                                               \
-UnwrapArg<_clazz>(JSContext *cx,                                              \
+UnwrapArg<_clazz>(JSContext* cx,                                              \
                   JS::HandleValue v,                                          \
-                  _clazz **ppArg,                                             \
-                  nsISupports **ppArgRef,                                     \
+                  _clazz** ppArg,                                             \
+                  nsISupports** ppArgRef,                                     \
                   JS::MutableHandleValue vp)                                  \
 {                                                                             \
     return xpc_qsUnwrapArg<_clazz>(cx, v, ppArg, ppArgRef, vp);               \
@@ -225,8 +225,8 @@ UnwrapArg<_clazz>(JSContext *cx,                                              \
                                                                               \
 template <>                                                                   \
 inline nsresult                                                               \
-UnwrapArg<_clazz>(JSContext *cx, JS::HandleValue v, _clazz **ppArg,           \
-                  _clazz **ppArgRef, JS::MutableHandleValue vp)               \
+UnwrapArg<_clazz>(JSContext* cx, JS::HandleValue v, _clazz** ppArg,           \
+                  _clazz** ppArgRef, JS::MutableHandleValue vp)               \
 {                                                                             \
     return xpc_qsUnwrapArg<_clazz>(cx, v, ppArg, ppArgRef, vp);               \
 }                                                                             \
@@ -242,13 +242,13 @@ DEFINE_UNWRAP_CAST_HTML(option, mozilla::dom::HTMLOptionElement)
 DEFINE_UNWRAP_CAST_HTML(video, mozilla::dom::HTMLVideoElement)
 
 inline nsISupports*
-ToSupports(nsContentList *p)
+ToSupports(nsContentList* p)
 {
     return static_cast<nsINodeList*>(p);
 }
 
 inline nsISupports*
-ToCanonicalSupports(nsContentList *p)
+ToCanonicalSupports(nsContentList* p)
 {
     return static_cast<nsINodeList*>(p);
 }

@@ -31,26 +31,26 @@ class StringBuffer
 
     CharBuffer cb;
 
-    ExclusiveContext *context() const {
+    ExclusiveContext* context() const {
         return cb.allocPolicy().context()->asExclusiveContext();
     }
 
-    StringBuffer(const StringBuffer &other) MOZ_DELETE;
-    void operator=(const StringBuffer &other) MOZ_DELETE;
+    StringBuffer(const StringBuffer& other) MOZ_DELETE;
+    void operator=(const StringBuffer& other) MOZ_DELETE;
 
   public:
-    explicit StringBuffer(ExclusiveContext *cx) : cb(cx) { }
+    explicit StringBuffer(ExclusiveContext* cx) : cb(cx) { }
 
     inline bool reserve(size_t len) { return cb.reserve(len); }
     inline bool resize(size_t len) { return cb.resize(len); }
     inline bool append(const jschar c) { return cb.append(c); }
-    inline bool append(const jschar *chars, size_t len) { return cb.append(chars, len); }
+    inline bool append(const jschar* chars, size_t len) { return cb.append(chars, len); }
     inline bool append(const JS::ConstCharPtr chars, size_t len) { return cb.append(chars.get(), len); }
-    inline bool append(const jschar *begin, const jschar *end) { return cb.append(begin, end); }
-    inline bool append(JSString *str);
-    inline bool append(JSLinearString *str);
+    inline bool append(const jschar* begin, const jschar* end) { return cb.append(begin, end); }
+    inline bool append(JSString* str);
+    inline bool append(JSLinearString* str);
     inline bool appendN(const jschar c, size_t n) { return cb.appendN(c, n); }
-    inline bool appendInflated(const char *cstr, size_t len);
+    inline bool appendInflated(const char* cstr, size_t len);
 
     template <size_t ArrayLength>
     bool append(const char (&array)[ArrayLength]) {
@@ -61,23 +61,23 @@ class StringBuffer
     void infallibleAppend(const jschar c) {
         cb.infallibleAppend(c);
     }
-    void infallibleAppend(const jschar *chars, size_t len) {
+    void infallibleAppend(const jschar* chars, size_t len) {
         cb.infallibleAppend(chars, len);
     }
     void infallibleAppend(const JS::ConstCharPtr chars, size_t len) {
         cb.infallibleAppend(chars.get(), len);
     }
-    void infallibleAppend(const jschar *begin, const jschar *end) {
+    void infallibleAppend(const jschar* begin, const jschar* end) {
         cb.infallibleAppend(begin, end);
     }
     void infallibleAppendN(const jschar c, size_t n) {
         cb.infallibleAppendN(c, n);
     }
 
-    jschar *begin() { return cb.begin(); }
-    jschar *end() { return cb.end(); }
-    const jschar *begin() const { return cb.begin(); }
-    const jschar *end() const { return cb.end(); }
+    jschar* begin() { return cb.begin(); }
+    jschar* end() { return cb.end(); }
+    const jschar* begin() const { return cb.begin(); }
+    const jschar* end() const { return cb.end(); }
     bool empty() const { return cb.empty(); }
     size_t length() const { return cb.length(); }
 
@@ -85,37 +85,37 @@ class StringBuffer
      * Creates a string from the characters in this buffer, then (regardless
      * whether string creation succeeded or failed) empties the buffer.
      */
-    JSFlatString *finishString();
+    JSFlatString* finishString();
 
     /* Identical to finishString() except that an atom is created. */
-    JSAtom *finishAtom();
+    JSAtom* finishAtom();
 
     /*
      * Creates a raw string from the characters in this buffer.  The string is
      * exactly the characters in this buffer: it is *not* null-terminated
      * unless the last appended character was |(jschar)0|.
      */
-    jschar *extractWellSized();
+    jschar* extractWellSized();
 };
 
 inline bool
-StringBuffer::append(JSLinearString *str)
+StringBuffer::append(JSLinearString* str)
 {
-    JS::Anchor<JSString *> anch(str);
+    JS::Anchor<JSString*> anch(str);
     return cb.append(str->chars(), str->length());
 }
 
 inline bool
-StringBuffer::append(JSString *str)
+StringBuffer::append(JSString* str)
 {
-    JSLinearString *linear = str->ensureLinear(context());
+    JSLinearString* linear = str->ensureLinear(context());
     if (!linear)
         return false;
     return append(linear);
 }
 
 inline bool
-StringBuffer::appendInflated(const char *cstr, size_t cstrlen)
+StringBuffer::appendInflated(const char* cstr, size_t cstrlen)
 {
     size_t lengthBefore = length();
     if (!cb.growByUninitialized(cstrlen))
@@ -126,10 +126,10 @@ StringBuffer::appendInflated(const char *cstr, size_t cstrlen)
 
 /* ES5 9.8 ToString, appending the result to the string buffer. */
 extern bool
-ValueToStringBufferSlow(JSContext *cx, const Value &v, StringBuffer &sb);
+ValueToStringBufferSlow(JSContext* cx, const Value& v, StringBuffer& sb);
 
 inline bool
-ValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb)
+ValueToStringBuffer(JSContext* cx, const Value& v, StringBuffer& sb)
 {
     if (v.isString())
         return sb.append(v.toString());
@@ -139,7 +139,7 @@ ValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb)
 
 /* ES5 9.8 ToString for booleans, appending the result to the string buffer. */
 inline bool
-BooleanToStringBuffer(bool b, StringBuffer &sb)
+BooleanToStringBuffer(bool b, StringBuffer& sb)
 {
     return b ? sb.append("true") : sb.append("false");
 }

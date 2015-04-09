@@ -41,14 +41,14 @@ class TypeDescrSet;
 
 class TypeDescrSetBuilder {
   private:
-    Vector<TypeDescr *, 4, SystemAllocPolicy> entries_;
+    Vector<TypeDescr*, 4, SystemAllocPolicy> entries_;
     bool invalid_;
 
   public:
     TypeDescrSetBuilder();
 
-    bool insert(TypeDescr *typeRepr);
-    bool build(IonBuilder &builder, TypeDescrSet *out);
+    bool insert(TypeDescr* typeRepr);
+    bool build(IonBuilder& builder, TypeDescrSet* out);
 };
 
 class TypeDescrSet {
@@ -57,20 +57,20 @@ class TypeDescrSet {
     friend class TypeDescrSetBuilder;
 
     size_t length_;
-    TypeDescr **entries_; // Allocated using temp policy
+    TypeDescr** entries_; // Allocated using temp policy
 
-    TypeDescrSet(size_t length, TypeDescr **entries);
+    TypeDescrSet(size_t length, TypeDescr** entries);
 
     size_t length() const {
         return length_;
     }
 
-    TypeDescr *get(uint32_t i) const {
+    TypeDescr* get(uint32_t i) const {
         return entries_[i];
     }
 
     template<typename T>
-    bool genericType(typename T::Type *out);
+    bool genericType(typename T::Type* out);
 
   public:
     //////////////////////////////////////////////////////////////////////
@@ -79,7 +79,7 @@ class TypeDescrSet {
     // For more flexible constructors, see
     // TypeDescrSetBuilder above.
 
-    TypeDescrSet(const TypeDescrSet &c);
+    TypeDescrSet(const TypeDescrSet& c);
     TypeDescrSet(); // empty set
 
     //////////////////////////////////////////////////////////////////////
@@ -100,10 +100,10 @@ class TypeDescrSet {
     //
     // At the moment condition (2) trivially holds.  When Bug 922115
     // lands, some array types will be unsized.
-    bool allHaveSameSize(int32_t *out);
+    bool allHaveSameSize(int32_t* out);
 
-    types::TemporaryTypeSet *suitableTypeSet(IonBuilder &builder,
-                                             const Class *knownClass);
+    types::TemporaryTypeSet* suitableTypeSet(IonBuilder& builder,
+                                             const Class* knownClass);
 
     //////////////////////////////////////////////////////////////////////
     // The following operations are only valid on a non-empty set:
@@ -113,7 +113,7 @@ class TypeDescrSet {
     // Returns the prototype that a typed object whose type is within
     // this TypeDescrSet would have. Returns `null` if this cannot be
     // predicted or instances of the type are not objects (e.g., uint8).
-    JSObject *knownPrototype() const;
+    JSObject* knownPrototype() const;
 
     //////////////////////////////////////////////////////////////////////
     // Scalar operations
@@ -122,7 +122,7 @@ class TypeDescrSet {
 
     // If all type descrs in this set have a single type, returns true
     // and sets *out. Else returns false.
-    bool scalarType(ScalarTypeDescr::Type *out);
+    bool scalarType(ScalarTypeDescr::Type* out);
 
     //////////////////////////////////////////////////////////////////////
     // Reference operations
@@ -131,7 +131,7 @@ class TypeDescrSet {
 
     // If all type descrs in this set have a single type, returns true
     // and sets *out. Else returns false.
-    bool referenceType(ReferenceTypeDescr::Type *out);
+    bool referenceType(ReferenceTypeDescr::Type* out);
 
     //////////////////////////////////////////////////////////////////////
     // Reference operations
@@ -140,7 +140,7 @@ class TypeDescrSet {
 
     // If all type descrs in this set have a single type, returns true
     // and sets *out. Else returns false.
-    bool x4Type(X4TypeDescr::Type *out);
+    bool x4Type(X4TypeDescr::Type* out);
 
     //////////////////////////////////////////////////////////////////////
     // SizedArray operations
@@ -150,12 +150,12 @@ class TypeDescrSet {
     // Determines whether all arrays in this set have the same,
     // statically known, array length and return that length
     // (via `*length`) if so. Otherwise returns false.
-    bool hasKnownArrayLength(int32_t *length);
+    bool hasKnownArrayLength(int32_t* length);
 
     // Returns a `TypeDescrSet` representing the element
     // types of the various array types in this set. The returned set
     // may be the empty set.
-    bool arrayElementType(IonBuilder &builder, TypeDescrSet *out);
+    bool arrayElementType(IonBuilder& builder, TypeDescrSet* out);
 
     //////////////////////////////////////////////////////////////////////
     // Struct operations
@@ -179,11 +179,11 @@ class TypeDescrSet {
     // on the type and offset of a field but disagree about its index,
     // e.g. the field `c` in `new StructType({a: uint8, b: uint8, c:
     // uint16})` and `new StructType({a: uint16, c: uint16})`.
-    bool fieldNamed(IonBuilder &builder,
+    bool fieldNamed(IonBuilder& builder,
                     jsid id,
-                    int32_t *offset,
-                    TypeDescrSet *out,
-                    size_t *index);
+                    int32_t* offset,
+                    TypeDescrSet* out,
+                    size_t* index);
 };
 
 struct TypeDescrSetHasher

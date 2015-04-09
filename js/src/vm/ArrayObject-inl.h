@@ -16,7 +16,7 @@
 namespace js {
 
 inline void
-ArrayObject::setLength(ExclusiveContext *cx, uint32_t length)
+ArrayObject::setLength(ExclusiveContext* cx, uint32_t length)
 {
     JS_ASSERT(lengthIsWritable());
 

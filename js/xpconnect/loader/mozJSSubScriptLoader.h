@@ -32,15 +32,15 @@ public:
     NS_DECL_MOZIJSSUBSCRIPTLOADER
 
 private:
-    nsresult ReadScript(nsIURI *uri, JSContext *cx, JSObject *target_obj,
-                        const nsAString &charset, const char *uriStr,
-                        nsIIOService *serv, nsIPrincipal *principal,
+    nsresult ReadScript(nsIURI* uri, JSContext* cx, JSObject* target_obj,
+                        const nsAString& charset, const char* uriStr,
+                        nsIIOService* serv, nsIPrincipal* principal,
                         bool reuseGlobal, JS::MutableHandleScript script,
                         JS::MutableHandleFunction function);
 
-    nsresult DoLoadSubScriptWithOptions(const nsAString &url,
-                                        LoadSubScriptOptions  &options,
-                                        JSContext *cx,
+    nsresult DoLoadSubScriptWithOptions(const nsAString& url,
+                                        LoadSubScriptOptions& options,
+                                        JSContext* cx,
                                         JS::MutableHandle<JS::Value> retval);
 
     nsCOMPtr<nsIPrincipal> mSystemPrincipal;

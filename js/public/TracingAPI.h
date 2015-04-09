@@ -33,12 +33,12 @@ template <typename T> class TenuredHeap;
 // of its mappings. This should be used in cases where the tracer
 // wants to use the existing liveness of entries.
 typedef void
-(* JSTraceCallback)(JSTracer *trc, void **thingp, JSGCTraceKind kind);
+(* JSTraceCallback)(JSTracer* trc, void** thingp, JSGCTraceKind kind);
 
 // Callback that JSTraceOp implementation can provide to return a string
 // describing the reference traced with JS_CallTracer.
 typedef void
-(* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
+(* JSTraceNamePrinter)(JSTracer* trc, char* buf, size_t bufsize);
 
 enum WeakMapTraceKind {
     DoNotTraceWeakMaps = 0,
@@ -49,7 +49,7 @@ enum WeakMapTraceKind {
 class JS_PUBLIC_API(JSTracer)
 {
   public:
-    JSTracer(JSRuntime *rt, JSTraceCallback traceCallback,
+    JSTracer(JSRuntime* rt, JSTraceCallback traceCallback,
              WeakMapTraceKind weakTraceKind = TraceWeakMapValues);
 
     // Set debugging information about a reference to a traceable thing to prepare
@@ -66,18 +66,18 @@ class JS_PUBLIC_API(JSTracer)
     //
     // The storage for name or callback's arguments needs to live only until
     // the following call to JS_CallTracer returns.
-    void setTracingDetails(JSTraceNamePrinter printer, const void *arg, size_t index) {
+    void setTracingDetails(JSTraceNamePrinter printer, const void* arg, size_t index) {
         debugPrinter_ = printer;
         debugPrintArg_ = arg;
         debugPrintIndex_ = index;
     }
 
-    void setTracingIndex(const char *name, size_t index) {
-        setTracingDetails(nullptr, (void *)name, index);
+    void setTracingIndex(const char* name, size_t index) {
+        setTracingDetails(nullptr, (void*)name, index);
     }
 
-    void setTracingName(const char *name) {
-        setTracingDetails(nullptr, (void *)name, size_t(-1));
+    void setTracingName(const char* name) {
+        setTracingDetails(nullptr, (void*)name, size_t(-1));
     }
 
     // Remove the currently set tracing details.
@@ -91,19 +91,19 @@ class JS_PUBLIC_API(JSTracer)
 
     // Get the string set with the most recent call to setTracingName or return
     // fallback if a name printer function has been installed.
-    const char *tracingName(const char *fallback) const;
+    const char* tracingName(const char* fallback) const;
 
     // Build a description of this edge in the heap graph. This call may invoke
     // the debug printer, which may inspect arbitrary areas of the heap.
-    const char *getTracingEdgeName(char *buffer, size_t bufferSize);
+    const char* getTracingEdgeName(char* buffer, size_t bufferSize);
 
     // Access the currently active tracing details.
     JSTraceNamePrinter debugPrinter() const;
-    const void *debugPrintArg() const;
+    const void* debugPrintArg() const;
     size_t debugPrintIndex() const;
 
     // Return the runtime set on the tracer.
-    JSRuntime *runtime() const { return runtime_; }
+    JSRuntime* runtime() const { return runtime_; }
 
     // Return the weak map tracing behavior set on this tracer.
     WeakMapTraceKind eagerlyTraceWeakMaps() const { return eagerlyTraceWeakMaps_; }
@@ -118,13 +118,13 @@ class JS_PUBLIC_API(JSTracer)
     //
     // This is currently complicated by our need to nest calls for Values
     // stored as keys in hash tables.
-    void setTracingLocation(void *location);
+    void setTracingLocation(void* location);
     void unsetTracingLocation();
-    void **tracingLocation(void **thingp);
+    void** tracingLocation(void** thingp);
 #else
-    void setTracingLocation(void *location) {}
+    void setTracingLocation(void* location) {}
     void unsetTracingLocation() {}
-    void **tracingLocation(void **thingp) { return nullptr; }
+    void** tracingLocation(void** thingp) { return nullptr; }
 #endif
 
     // We expose |callback| directly so that IS_GC_MARKING_TRACER can compare
@@ -132,13 +132,13 @@ class JS_PUBLIC_API(JSTracer)
     JSTraceCallback     callback;
 
   private:
-    JSRuntime           *runtime_;
+    JSRuntime*          runtime_;
     JSTraceNamePrinter  debugPrinter_;
-    const void          *debugPrintArg_;
+    const void*         debugPrintArg_;
     size_t              debugPrintIndex_;
     WeakMapTraceKind    eagerlyTraceWeakMaps_;
 #ifdef JS_GC_ZEAL
-    void                *realLocation_;
+    void*               realLocation_;
 #endif
 };
 
@@ -155,44 +155,44 @@ class JS_PUBLIC_API(JSTracer)
 // and re-inserted with the correct hash.
 //
 extern JS_PUBLIC_API(void)
-JS_CallValueTracer(JSTracer *trc, JS::Value *valuep, const char *name);
+JS_CallValueTracer(JSTracer* trc, JS::Value* valuep, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallIdTracer(JSTracer *trc, jsid *idp, const char *name);
+JS_CallIdTracer(JSTracer* trc, jsid* idp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallObjectTracer(JSTracer *trc, JSObject **objp, const char *name);
+JS_CallObjectTracer(JSTracer* trc, JSObject** objp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallStringTracer(JSTracer *trc, JSString **strp, const char *name);
+JS_CallStringTracer(JSTracer* trc, JSString** strp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallScriptTracer(JSTracer *trc, JSScript **scriptp, const char *name);
+JS_CallScriptTracer(JSTracer* trc, JSScript** scriptp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapValueTracer(JSTracer *trc, JS::Heap<JS::Value> *valuep, const char *name);
+JS_CallHeapValueTracer(JSTracer* trc, JS::Heap<JS::Value>* valuep, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapIdTracer(JSTracer *trc, JS::Heap<jsid> *idp, const char *name);
+JS_CallHeapIdTracer(JSTracer* trc, JS::Heap<jsid>* idp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapObjectTracer(JSTracer *trc, JS::Heap<JSObject *> *objp, const char *name);
+JS_CallHeapObjectTracer(JSTracer* trc, JS::Heap<JSObject*>* objp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapStringTracer(JSTracer *trc, JS::Heap<JSString *> *strp, const char *name);
+JS_CallHeapStringTracer(JSTracer* trc, JS::Heap<JSString*>* strp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapScriptTracer(JSTracer *trc, JS::Heap<JSScript *> *scriptp, const char *name);
+JS_CallHeapScriptTracer(JSTracer* trc, JS::Heap<JSScript*>* scriptp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_CallHeapFunctionTracer(JSTracer *trc, JS::Heap<JSFunction *> *funp, const char *name);
+JS_CallHeapFunctionTracer(JSTracer* trc, JS::Heap<JSFunction*>* funp, const char* name);
 
 template <typename HashSetEnum>
 inline void
-JS_CallHashSetObjectTracer(JSTracer *trc, HashSetEnum &e, JSObject *const &key, const char *name)
+JS_CallHashSetObjectTracer(JSTracer* trc, HashSetEnum& e, JSObject* const& key, const char* name)
 {
-    JSObject *updated = key;
-    trc->setTracingLocation(reinterpret_cast<void *>(&const_cast<JSObject *&>(key)));
+    JSObject* updated = key;
+    trc->setTracingLocation(reinterpret_cast<void*>(&const_cast<JSObject*&>(key)));
     JS_CallObjectTracer(trc, &updated, name);
     if (updated != key)
         e.rekeyFront(key, updated);
@@ -201,16 +201,16 @@ JS_CallHashSetObjectTracer(JSTracer *trc, HashSetEnum &e, JSObject *const &key, 
 // Trace an object that is known to always be tenured.  No post barriers are
 // required in this case.
 extern JS_PUBLIC_API(void)
-JS_CallTenuredObjectTracer(JSTracer *trc, JS::TenuredHeap<JSObject *> *objp, const char *name);
+JS_CallTenuredObjectTracer(JSTracer* trc, JS::TenuredHeap<JSObject*>* objp, const char* name);
 
 extern JS_PUBLIC_API(void)
-JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
+JS_TraceChildren(JSTracer* trc, void* thing, JSGCTraceKind kind);
 
 extern JS_PUBLIC_API(void)
-JS_TraceRuntime(JSTracer *trc);
+JS_TraceRuntime(JSTracer* trc);
 
 extern JS_PUBLIC_API(void)
-JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
-                     void *thing, JSGCTraceKind kind, bool includeDetails);
+JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc,
+                     void* thing, JSGCTraceKind kind, bool includeDetails);
 
 #endif /* js_TracingAPI_h */

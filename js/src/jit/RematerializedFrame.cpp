@@ -17,19 +17,19 @@ using namespace jit;
 
 struct CopyValueToRematerializedFrame
 {
-    Value *slots;
+    Value* slots;
 
-    explicit CopyValueToRematerializedFrame(Value *slots)
+    explicit CopyValueToRematerializedFrame(Value* slots)
       : slots(slots)
     { }
 
-    void operator()(const Value &v) {
+    void operator()(const Value& v) {
         *slots++ = v;
     }
 };
 
-RematerializedFrame::RematerializedFrame(ThreadSafeContext *cx, uint8_t *top,
-                                         InlineFrameIterator &iter)
+RematerializedFrame::RematerializedFrame(ThreadSafeContext* cx, uint8_t* top,
+                                         InlineFrameIterator& iter)
   : prevUpToDate_(false),
     top_(top),
     frameNo_(iter.frameNo()),
@@ -41,8 +41,8 @@ RematerializedFrame::RematerializedFrame(ThreadSafeContext *cx, uint8_t *top,
                                 &argsObj_, &thisValue_, ReadFrame_Actuals);
 }
 
-/* static */ RematerializedFrame *
-RematerializedFrame::New(ThreadSafeContext *cx, uint8_t *top, InlineFrameIterator &iter)
+/* static */ RematerializedFrame*
+RematerializedFrame::New(ThreadSafeContext* cx, uint8_t* top, InlineFrameIterator& iter)
 {
     unsigned numFormals = iter.isFunctionFrame() ? iter.callee()->nargs() : 0;
     size_t numBytes = sizeof(RematerializedFrame) +
@@ -50,26 +50,26 @@ RematerializedFrame::New(ThreadSafeContext *cx, uint8_t *top, InlineFrameIterato
          iter.script()->nfixed()) * sizeof(Value) -
         sizeof(Value); // 1 Value included in sizeof(RematerializedFrame)
 
-    void *buf = cx->calloc_(numBytes);
+    void* buf = cx->calloc_(numBytes);
     if (!buf)
         return nullptr;
 
     return new (buf) RematerializedFrame(cx, top, iter);
 }
 
-CallObject &
+CallObject&
 RematerializedFrame::callObj() const
 {
     JS_ASSERT(hasCallObj());
 
-    JSObject *scope = scopeChain();
+    JSObject* scope = scopeChain();
     while (!scope->is<CallObject>())
         scope = scope->enclosingScope();
     return scope->as<CallObject>();
 }
 
 void
-RematerializedFrame::mark(JSTracer *trc)
+RematerializedFrame::mark(JSTracer* trc)
 {
     gc::MarkScriptRoot(trc, &script_, "remat ion frame script");
     gc::MarkObjectRoot(trc, &scopeChain_, "remat ion frame scope chain");

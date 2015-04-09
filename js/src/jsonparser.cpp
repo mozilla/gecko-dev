@@ -40,15 +40,15 @@ JSONParser::~JSONParser()
 }
 
 void
-JSONParser::trace(JSTracer *trc)
+JSONParser::trace(JSTracer* trc)
 {
     for (size_t i = 0; i < stack.length(); i++) {
         if (stack[i].state == FinishArrayElement) {
-            ElementVector &elements = stack[i].elements();
+            ElementVector& elements = stack[i].elements();
             for (size_t j = 0; j < elements.length(); j++)
                 gc::MarkValueRoot(trc, &elements[j], "JSONParser element");
         } else {
-            PropertyVector &properties = stack[i].properties();
+            PropertyVector& properties = stack[i].properties();
             for (size_t j = 0; j < properties.length(); j++) {
                 gc::MarkValueRoot(trc, &properties[j].value, "JSONParser property value");
                 gc::MarkIdRoot(trc, &properties[j].id, "JSONParser property id");
@@ -58,7 +58,7 @@ JSONParser::trace(JSTracer *trc)
 }
 
 void
-JSONParser::getTextPosition(uint32_t *column, uint32_t *line)
+JSONParser::getTextPosition(uint32_t* column, uint32_t* line)
 {
     ConstTwoByteChars ptr = begin;
     uint32_t col = 1;
@@ -79,7 +79,7 @@ JSONParser::getTextPosition(uint32_t *column, uint32_t *line)
 }
 
 void
-JSONParser::error(const char *msg)
+JSONParser::error(const char* msg)
 {
     if (errorHandling == RaiseError) {
         uint32_t column = 1, line = 1;
@@ -128,7 +128,7 @@ JSONParser::readString()
         if (*current == '"') {
             size_t length = current - start;
             current++;
-            JSFlatString *str = (ST == JSONParser::PropertyName)
+            JSFlatString* str = (ST == JSONParser::PropertyName)
                                 ? AtomizeChars(cx, start.get(), length)
                                 : js_NewStringCopyN<CanGC>(cx, start.get(), length);
             if (!str)
@@ -160,7 +160,7 @@ JSONParser::readString()
 
         jschar c = *current++;
         if (c == '"') {
-            JSFlatString *str = (ST == JSONParser::PropertyName)
+            JSFlatString* str = (ST == JSONParser::PropertyName)
                                 ? buffer.finishAtom()
                                 : buffer.finishString();
             if (!str)
@@ -282,7 +282,7 @@ JSONParser::readNumber()
         }
 
         double d;
-        const jschar *dummy;
+        const jschar* dummy;
         if (!GetPrefixInteger(cx, digitStart.get(), current.get(), 10, &dummy, &d))
             return token(OOM);
         JS_ASSERT(current == dummy);
@@ -328,7 +328,7 @@ JSONParser::readNumber()
     }
 
     double d;
-    const jschar *finish;
+    const jschar* finish;
     if (!js_strtod(cx, digitStart.get(), current.get(), &finish, &d))
         return token(OOM);
     JS_ASSERT(current == finish);
@@ -565,15 +565,15 @@ JSONParser::advanceAfterProperty()
     return token(Error);
 }
 
-JSObject *
-JSONParser::createFinishedObject(PropertyVector &properties)
+JSObject*
+JSONParser::createFinishedObject(PropertyVector& properties)
 {
     /*
      * Look for an existing cached type and shape for objects with this set of
      * properties.
      */
     {
-        JSObject *obj = cx->compartment()->types.newTypedObject(cx, properties.begin(),
+        JSObject* obj = cx->compartment()->types.newTypedObject(cx, properties.begin(),
                                                                 properties.length());
         if (obj)
             return obj;
@@ -611,11 +611,11 @@ JSONParser::createFinishedObject(PropertyVector &properties)
 }
 
 inline bool
-JSONParser::finishObject(MutableHandleValue vp, PropertyVector &properties)
+JSONParser::finishObject(MutableHandleValue vp, PropertyVector& properties)
 {
     JS_ASSERT(&properties == &stack.back().properties());
 
-    JSObject *obj = createFinishedObject(properties);
+    JSObject* obj = createFinishedObject(properties);
     if (!obj)
         return false;
 
@@ -627,11 +627,11 @@ JSONParser::finishObject(MutableHandleValue vp, PropertyVector &properties)
 }
 
 inline bool
-JSONParser::finishArray(MutableHandleValue vp, ElementVector &elements)
+JSONParser::finishArray(MutableHandleValue vp, ElementVector& elements)
 {
     JS_ASSERT(&elements == &stack.back().elements());
 
-    JSObject *obj = NewDenseCopiedArray(cx, elements.length(), elements.begin());
+    JSObject* obj = NewDenseCopiedArray(cx, elements.length(), elements.begin());
     if (!obj)
         return false;
 
@@ -658,7 +658,7 @@ JSONParser::parse(MutableHandleValue vp)
     while (true) {
         switch (state) {
           case FinishObjectMember: {
-            PropertyVector &properties = stack.back().properties();
+            PropertyVector& properties = stack.back().properties();
             properties.back().value = value;
 
             token = advanceAfterProperty();
@@ -681,7 +681,7 @@ JSONParser::parse(MutableHandleValue vp)
           JSONMember:
             if (token == String) {
                 jsid id = AtomToId(atomValue());
-                PropertyVector &properties = stack.back().properties();
+                PropertyVector& properties = stack.back().properties();
                 if (!properties.append(IdValuePair(id)))
                     return false;
                 token = advancePropertyColon();
@@ -698,7 +698,7 @@ JSONParser::parse(MutableHandleValue vp)
             return errorReturn();
 
           case FinishArrayElement: {
-            ElementVector &elements = stack.back().elements();
+            ElementVector& elements = stack.back().elements();
             if (!elements.append(value.get()))
                 return false;
             token = advanceAfterArrayElement();
@@ -735,7 +735,7 @@ JSONParser::parse(MutableHandleValue vp)
                 break;
 
               case ArrayOpen: {
-                ElementVector *elements;
+                ElementVector* elements;
                 if (!freeElements.empty()) {
                     elements = freeElements.popCopy();
                     elements->clear();
@@ -757,7 +757,7 @@ JSONParser::parse(MutableHandleValue vp)
               }
 
               case ObjectOpen: {
-                PropertyVector *properties;
+                PropertyVector* properties;
                 if (!freeProperties.empty()) {
                     properties = freeProperties.popCopy();
                     properties->clear();

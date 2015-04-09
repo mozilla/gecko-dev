@@ -9,7 +9,7 @@
 namespace js {
 
 /* static */ bool
-DebuggerMemory::construct(JSContext *cx, unsigned argc, Value *vp)
+DebuggerMemory::construct(JSContext* cx, unsigned argc, Value* vp)
 {
     JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NO_CONSTRUCTOR,
                          "Debugger.Memory");

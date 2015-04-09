@@ -14,7 +14,7 @@
 namespace js {
 
 void
-ValueReadBarrier(const Value &value)
+ValueReadBarrier(const Value& value)
 {
     if (value.isObject())
         JSObject::readBarrier(&value.toObject());
@@ -26,39 +26,39 @@ ValueReadBarrier(const Value &value)
 
 #ifdef DEBUG
 bool
-HeapSlot::preconditionForSet(JSObject *owner, Kind kind, uint32_t slot)
+HeapSlot::preconditionForSet(JSObject* owner, Kind kind, uint32_t slot)
 {
     return kind == Slot
          ? &owner->getSlotRef(slot) == this
-         : &owner->getDenseElement(slot) == (const Value *)this;
+         : &owner->getDenseElement(slot) == (const Value*)this;
 }
 
 bool
-HeapSlot::preconditionForSet(Zone *zone, JSObject *owner, Kind kind, uint32_t slot)
+HeapSlot::preconditionForSet(Zone* zone, JSObject* owner, Kind kind, uint32_t slot)
 {
     bool ok = kind == Slot
             ? &owner->getSlotRef(slot) == this
-            : &owner->getDenseElement(slot) == (const Value *)this;
+            : &owner->getDenseElement(slot) == (const Value*)this;
     return ok && owner->zone() == zone;
 }
 
 bool
-HeapSlot::preconditionForWriteBarrierPost(JSObject *obj, Kind kind, uint32_t slot, Value target) const
+HeapSlot::preconditionForWriteBarrierPost(JSObject* obj, Kind kind, uint32_t slot, Value target) const
 {
     return kind == Slot
          ? obj->getSlotAddressUnchecked(slot)->get() == target
-         : static_cast<HeapSlot *>(obj->getDenseElements() + slot)->get() == target;
+         : static_cast<HeapSlot*>(obj->getDenseElements() + slot)->get() == target;
 }
 
 bool
-RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone *shadowZone)
+RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone* shadowZone)
 {
     return shadowZone->runtimeFromMainThread()->isHeapMajorCollecting();
 }
 #endif // DEBUG
 
 bool
-StringIsPermanentAtom(JSString *str)
+StringIsPermanentAtom(JSString* str)
 {
     return str->isPermanentAtom();
 }

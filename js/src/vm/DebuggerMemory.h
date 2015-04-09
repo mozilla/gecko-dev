@@ -22,7 +22,7 @@ class DebuggerMemory : public JSObject {
 
 public:
 
-    static bool construct(JSContext *cx, unsigned argc, Value *vp);
+    static bool construct(JSContext* cx, unsigned argc, Value* vp);
 
     static const Class          class_;
     static const JSPropertySpec properties[];

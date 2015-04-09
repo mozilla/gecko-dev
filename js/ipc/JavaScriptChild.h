@@ -17,20 +17,20 @@ namespace jsipc {
 class JavaScriptChild : public JavaScriptBase<PJavaScriptChild>
 {
   public:
-    JavaScriptChild(JSRuntime *rt);
+    JavaScriptChild(JSRuntime* rt);
     virtual ~JavaScriptChild();
 
     bool init();
-    void finalize(JSFreeOp *fop);
+    void finalize(JSFreeOp* fop);
 
-    void drop(JSObject *obj);
+    void drop(JSObject* obj);
 
   protected:
     virtual bool isParent() { return false; }
 
   private:
-    bool fail(JSContext *cx, ReturnStatus *rs);
-    bool ok(ReturnStatus *rs);
+    bool fail(JSContext* cx, ReturnStatus* rs);
+    bool ok(ReturnStatus* rs);
 };
 
 } // mozilla

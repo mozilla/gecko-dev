@@ -47,7 +47,7 @@ BEGIN_TEST(testWeakMap_basicOperations)
     return true;
 }
 
-JSObject *newKey()
+JSObject* newKey()
 {
     return JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr());
 }
@@ -119,17 +119,17 @@ BEGIN_TEST(testWeakMap_keyDelegates)
     return true;
 }
 
-static void SetKeyDelegate(JSObject *key, JSObject *delegate)
+static void SetKeyDelegate(JSObject* key, JSObject* delegate)
 {
     JS_SetPrivate(key, delegate);
 }
 
-static JSObject *GetKeyDelegate(JSObject *obj)
+static JSObject* GetKeyDelegate(JSObject* obj)
 {
     return static_cast<JSObject*>(JS_GetPrivate(obj));
 }
 
-JSObject *newKey()
+JSObject* newKey()
 {
     static const js::Class keyClass = {
         "keyWithDelgate",
@@ -159,7 +159,7 @@ JSObject *newKey()
 
     JS::RootedObject key(cx);
     key = JS_NewObject(cx,
-                       reinterpret_cast<const JSClass *>(&keyClass),
+                       reinterpret_cast<const JSClass*>(&keyClass),
                        JS::NullPtr(),
                        JS::NullPtr());
     if (!key)
@@ -170,7 +170,7 @@ JSObject *newKey()
     return key;
 }
 
-JSObject *newCCW(JS::HandleObject sourceZone, JS::HandleObject destZone)
+JSObject* newCCW(JS::HandleObject sourceZone, JS::HandleObject destZone)
 {
     /*
      * Now ensure that this zone will be swept first by adding a cross
@@ -192,7 +192,7 @@ JSObject *newCCW(JS::HandleObject sourceZone, JS::HandleObject destZone)
     return object;
 }
 
-JSObject *newDelegate()
+JSObject* newDelegate()
 {
     static const JSClass delegateClass = {
         "delegate",

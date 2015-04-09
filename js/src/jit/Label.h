@@ -19,13 +19,13 @@ struct LabelBase
     bool bound_   : 1;
 
     // Disallow assignment.
-    void operator =(const LabelBase &label);
+    void operator =(const LabelBase& label);
   public:
     static const int32_t INVALID_OFFSET = -1;
 
     LabelBase() : offset_(INVALID_OFFSET), bound_(false)
     { }
-    LabelBase(const LabelBase &label)
+    LabelBase(const LabelBase& label)
       : offset_(label.offset_),
         bound_(label.bound_)
     { }
@@ -81,7 +81,7 @@ class Label : public LabelBase
   public:
     Label()
     { }
-    Label(const Label &label) : LabelBase(label)
+    Label(const Label& label) : LabelBase(label)
     { }
 };
 

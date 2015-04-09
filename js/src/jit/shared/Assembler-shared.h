@@ -109,7 +109,7 @@ static inline bool
 IsCompilingAsmJS()
 {
     // asm.js compilation pushes an IonContext with a null JSCompartment.
-    IonContext *ictx = MaybeGetIonContext();
+    IonContext* ictx = MaybeGetIonContext();
     return ictx && ictx->compartment == nullptr;
 }
 
@@ -121,7 +121,7 @@ CanUsePointerImmediates()
 
     // Pointer immediates can still be used with asm.js when the resulting code
     // is being profiled; the module will not be serialized in this case.
-    IonContext *ictx = MaybeGetIonContext();
+    IonContext* ictx = MaybeGetIonContext();
     if (ictx && ictx->runtime->profilingScripts())
         return true;
 
@@ -132,9 +132,9 @@ CanUsePointerImmediates()
 // Pointer to be embedded as an immediate in an instruction.
 struct ImmPtr
 {
-    void *value;
+    void* value;
 
-    explicit ImmPtr(const void *value) : value(const_cast<void*>(value))
+    explicit ImmPtr(const void* value) : value(const_cast<void*>(value))
     {
         // To make code serialization-safe, asm.js compilation should only
         // compile pointer immediates using AsmJSImmPtr.
@@ -143,35 +143,35 @@ struct ImmPtr
 
     template <class R>
     explicit ImmPtr(R (*pf)())
-      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+      : value(JS_FUNC_TO_DATA_PTR(void*, pf))
     {
         JS_ASSERT(CanUsePointerImmediates());
     }
 
     template <class R, class A1>
     explicit ImmPtr(R (*pf)(A1))
-      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+      : value(JS_FUNC_TO_DATA_PTR(void*, pf))
     {
         JS_ASSERT(CanUsePointerImmediates());
     }
 
     template <class R, class A1, class A2>
     explicit ImmPtr(R (*pf)(A1, A2))
-      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+      : value(JS_FUNC_TO_DATA_PTR(void*, pf))
     {
         JS_ASSERT(CanUsePointerImmediates());
     }
 
     template <class R, class A1, class A2, class A3>
     explicit ImmPtr(R (*pf)(A1, A2, A3))
-      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+      : value(JS_FUNC_TO_DATA_PTR(void*, pf))
     {
         JS_ASSERT(CanUsePointerImmediates());
     }
 
     template <class R, class A1, class A2, class A3, class A4>
     explicit ImmPtr(R (*pf)(A1, A2, A3, A4))
-      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+      : value(JS_FUNC_TO_DATA_PTR(void*, pf))
     {
         JS_ASSERT(CanUsePointerImmediates());
     }
@@ -182,12 +182,12 @@ struct ImmPtr
 // instruction. The initial value of the immediate is 'addr' and this value is
 // either clobbered or used in the patching process.
 struct PatchedImmPtr {
-    void *value;
+    void* value;
 
     explicit PatchedImmPtr()
       : value(nullptr)
     { }
-    explicit PatchedImmPtr(const void *value)
+    explicit PatchedImmPtr(const void* value)
       : value(const_cast<void*>(value))
     { }
 };
@@ -195,9 +195,9 @@ struct PatchedImmPtr {
 // Used for immediates which require relocation.
 struct ImmGCPtr
 {
-    const gc::Cell *value;
+    const gc::Cell* value;
 
-    explicit ImmGCPtr(const gc::Cell *ptr) : value(ptr)
+    explicit ImmGCPtr(const gc::Cell* ptr) : value(ptr)
     {
         JS_ASSERT(!IsPoisonedPtr(ptr));
         JS_ASSERT_IF(ptr, ptr->isTenured());
@@ -213,7 +213,7 @@ struct ImmGCPtr
 // Used for immediates which require relocation and may be traced during minor GC.
 struct ImmMaybeNurseryPtr : public ImmGCPtr
 {
-    explicit ImmMaybeNurseryPtr(gc::Cell *ptr)
+    explicit ImmMaybeNurseryPtr(gc::Cell* ptr)
     {
         this->value = ptr;
         JS_ASSERT(!IsPoisonedPtr(ptr));
@@ -227,16 +227,16 @@ struct ImmMaybeNurseryPtr : public ImmGCPtr
 // instruction.
 struct AbsoluteAddress
 {
-    void *addr;
+    void* addr;
 
-    explicit AbsoluteAddress(const void *addr)
+    explicit AbsoluteAddress(const void* addr)
       : addr(const_cast<void*>(addr))
     {
         JS_ASSERT(CanUsePointerImmediates());
     }
 
     AbsoluteAddress offset(ptrdiff_t delta) {
-        return AbsoluteAddress(((uint8_t *) addr) + delta);
+        return AbsoluteAddress(((uint8_t*) addr) + delta);
     }
 };
 
@@ -245,12 +245,12 @@ struct AbsoluteAddress
 // either clobbered or used in the patching process.
 struct PatchedAbsoluteAddress
 {
-    void *addr;
+    void* addr;
 
     explicit PatchedAbsoluteAddress()
       : addr(nullptr)
     { }
-    explicit PatchedAbsoluteAddress(const void *addr)
+    explicit PatchedAbsoluteAddress(const void* addr)
       : addr(const_cast<void*>(addr))
     { }
 };
@@ -343,7 +343,7 @@ struct AbsoluteLabel : public LabelBase
   public:
     AbsoluteLabel()
     { }
-    AbsoluteLabel(const AbsoluteLabel &label) : LabelBase(label)
+    AbsoluteLabel(const AbsoluteLabel& label) : LabelBase(label)
     { }
     int32_t prev() const {
         JS_ASSERT(!bound());
@@ -376,13 +376,13 @@ class CodeLabel
   public:
     CodeLabel()
     { }
-    explicit CodeLabel(const AbsoluteLabel &dest)
+    explicit CodeLabel(const AbsoluteLabel& dest)
        : dest_(dest)
     { }
-    AbsoluteLabel *dest() {
+    AbsoluteLabel* dest() {
         return &dest_;
     }
-    Label *src() {
+    Label* src() {
         return &src_;
     }
 };
@@ -418,7 +418,7 @@ class CodeOffsetJump
     size_t offset() const {
         return offset_;
     }
-    void fixup(MacroAssembler *masm);
+    void fixup(MacroAssembler* masm);
 };
 
 class CodeOffsetLabel
@@ -432,7 +432,7 @@ class CodeOffsetLabel
     size_t offset() const {
         return offset_;
     }
-    void fixup(MacroAssembler *masm);
+    void fixup(MacroAssembler* masm);
 
 };
 
@@ -443,7 +443,7 @@ class CodeOffsetLabel
 
 class CodeLocationJump
 {
-    uint8_t *raw_;
+    uint8_t* raw_;
 #ifdef DEBUG
     enum State { Uninitialized, Absolute, Relative };
     State state_;
@@ -466,7 +466,7 @@ class CodeLocationJump
 #endif
 
 #ifdef JS_SMALL_BRANCH
-    uint8_t *jumpTableEntry_;
+    uint8_t* jumpTableEntry_;
 #endif
 
   public:
@@ -474,35 +474,35 @@ class CodeLocationJump
         raw_ = nullptr;
         setUninitialized();
 #ifdef JS_SMALL_BRANCH
-        jumpTableEntry_ = (uint8_t *) 0xdeadab1e;
+        jumpTableEntry_ = (uint8_t*) 0xdeadab1e;
 #endif
     }
-    CodeLocationJump(JitCode *code, CodeOffsetJump base) {
+    CodeLocationJump(JitCode* code, CodeOffsetJump base) {
         *this = base;
         repoint(code);
     }
 
     void operator = (CodeOffsetJump base) {
-        raw_ = (uint8_t *) base.offset();
+        raw_ = (uint8_t*) base.offset();
         setRelative();
 #ifdef JS_SMALL_BRANCH
-        jumpTableEntry_ = (uint8_t *) base.jumpTableIndex();
+        jumpTableEntry_ = (uint8_t*) base.jumpTableIndex();
 #endif
     }
 
-    void repoint(JitCode *code, MacroAssembler* masm = nullptr);
+    void repoint(JitCode* code, MacroAssembler* masm = nullptr);
 
-    uint8_t *raw() const {
+    uint8_t* raw() const {
         JS_ASSERT(state_ == Absolute);
         return raw_;
     }
-    uint8_t *offset() const {
+    uint8_t* offset() const {
         JS_ASSERT(state_ == Relative);
         return raw_;
     }
 
 #ifdef JS_SMALL_BRANCH
-    uint8_t *jumpTableEntry() const {
+    uint8_t* jumpTableEntry() const {
         JS_ASSERT(state_ == Absolute);
         return jumpTableEntry_;
     }
@@ -511,7 +511,7 @@ class CodeLocationJump
 
 class CodeLocationLabel
 {
-    uint8_t *raw_;
+    uint8_t* raw_;
 #ifdef DEBUG
     enum State { Uninitialized, Absolute, Relative };
     State state_;
@@ -538,28 +538,28 @@ class CodeLocationLabel
         raw_ = nullptr;
         setUninitialized();
     }
-    CodeLocationLabel(JitCode *code, CodeOffsetLabel base) {
+    CodeLocationLabel(JitCode* code, CodeOffsetLabel base) {
         *this = base;
         repoint(code);
     }
-    explicit CodeLocationLabel(JitCode *code) {
+    explicit CodeLocationLabel(JitCode* code) {
         raw_ = code->raw();
         setAbsolute();
     }
-    explicit CodeLocationLabel(uint8_t *raw) {
+    explicit CodeLocationLabel(uint8_t* raw) {
         raw_ = raw;
         setAbsolute();
     }
 
     void operator = (CodeOffsetLabel base) {
-        raw_ = (uint8_t *)base.offset();
+        raw_ = (uint8_t*)base.offset();
         setRelative();
     }
-    ptrdiff_t operator - (const CodeLocationLabel &other) {
+    ptrdiff_t operator - (const CodeLocationLabel& other) {
         return raw_ - other.raw_;
     }
 
-    void repoint(JitCode *code, MacroAssembler *masm = nullptr);
+    void repoint(JitCode* code, MacroAssembler* masm = nullptr);
 
 #ifdef DEBUG
     bool isSet() const {
@@ -567,11 +567,11 @@ class CodeLocationLabel
     }
 #endif
 
-    uint8_t *raw() const {
+    uint8_t* raw() const {
         JS_ASSERT(state_ == Absolute);
         return raw_;
     }
-    uint8_t *offset() const {
+    uint8_t* offset() const {
         JS_ASSERT(state_ == Relative);
         return raw_;
     }
@@ -701,8 +701,8 @@ class AsmJSHeapAccess
     void setOffset(uint32_t offset) { offset_ = offset; }
 #if defined(JS_CODEGEN_X86)
     bool hasLengthCheck() const { return cmpDelta_ > 0; }
-    void *patchLengthAt(uint8_t *code) const { return code + (offset_ - cmpDelta_); }
-    void *patchOffsetAt(uint8_t *code) const { return code + (offset_ + opLength_); }
+    void* patchLengthAt(uint8_t* code) const { return code + (offset_ - cmpDelta_); }
+    void* patchOffsetAt(uint8_t* code) const { return code + (offset_ + opLength_); }
 #endif
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     unsigned opLength() const { return opLength_; }
@@ -822,10 +822,10 @@ class AssemblerShared
     }
 
     bool append(CallSite callsite) { return callsites_.append(callsite); }
-    CallSiteVector &&extractCallSites() { return Move(callsites_); }
+    CallSiteVector&& extractCallSites() { return Move(callsites_); }
 
     bool append(AsmJSHeapAccess access) { return asmJSHeapAccesses_.append(access); }
-    AsmJSHeapAccessVector &&extractAsmJSHeapAccesses() { return Move(asmJSHeapAccesses_); }
+    AsmJSHeapAccessVector&& extractAsmJSHeapAccesses() { return Move(asmJSHeapAccesses_); }
 
     bool append(AsmJSGlobalAccess access) { return asmJSGlobalAccesses_.append(access); }
     size_t numAsmJSGlobalAccesses() const { return asmJSGlobalAccesses_.length(); }

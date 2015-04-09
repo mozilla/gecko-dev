@@ -20,14 +20,14 @@ using namespace mozilla::jsipc;
 using mozilla::AutoSafeJSContext;
 
 static void
-FinalizeChild(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartment, void *data)
+FinalizeChild(JSFreeOp* fop, JSFinalizeStatus status, bool isCompartment, void* data)
 {
     if (status == JSFINALIZE_GROUP_START) {
-        static_cast<JavaScriptChild *>(data)->finalize(fop);
+        static_cast<JavaScriptChild*>(data)->finalize(fop);
     }
 }
 
-JavaScriptChild::JavaScriptChild(JSRuntime *rt)
+JavaScriptChild::JavaScriptChild(JSRuntime* rt)
   : JavaScriptShared(rt),
     JavaScriptBase<PJavaScriptChild>(rt)
 {
@@ -51,7 +51,7 @@ JavaScriptChild::init()
 }
 
 void
-JavaScriptChild::finalize(JSFreeOp *fop)
+JavaScriptChild::finalize(JSFreeOp* fop)
 {
     objects_.finalize(fop);
     objectIds_.finalize(fop);

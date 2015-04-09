@@ -667,14 +667,14 @@ public:
     }
 
     // As branch32_force32, but allow the value ('right') to be patched.
-    Jump branch32WithPatch(Condition cond, RegisterID left, TrustedImm32 right, DataLabel32 &dataLabel)
+    Jump branch32WithPatch(Condition cond, RegisterID left, TrustedImm32 right, DataLabel32& dataLabel)
     {
         ASSERT(left != ARMRegisters::S1);
         dataLabel = moveWithPatch(right, ARMRegisters::S1);
         return branch32(cond, left, ARMRegisters::S1, true);
     }
 
-    Jump branch32WithPatch(Condition cond, Address left, TrustedImm32 right, DataLabel32 &dataLabel)
+    Jump branch32WithPatch(Condition cond, Address left, TrustedImm32 right, DataLabel32& dataLabel)
     {
         ASSERT(left.base != ARMRegisters::S1);
         load32(left, ARMRegisters::S1);
