@@ -135,7 +135,8 @@ nsPluginInstanceOwner::NotifyPaintWaiter(nsDisplayListBuilder* aBuilder)
 {
   // This is notification for reftests about async plugin paint start
   if (!mWaitingForPaint && !IsUpToDate() && aBuilder->ShouldSyncDecodeImages()) {
-    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, false);
+    nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(content, false);
     // Run this event as soon as it's safe to do so, since listeners need to
     // receive it immediately
     mWaitingForPaint = nsContentUtils::AddScriptRunner(event);
@@ -265,7 +266,6 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
     mPluginWindow = nullptr;
 
   mObjectFrame = nullptr;
-  mContent = nullptr;
   mWidgetCreationComplete = false;
 #ifdef XP_MACOSX
   memset(&mCGPluginPortCopy, 0, sizeof(NP_CGContext));
@@ -307,10 +307,13 @@ nsPluginInstanceOwner::~nsPluginInstanceOwner()
   int32_t cnt;
 
   if (mWaitingForPaint) {
-    // We don't care when the event is dispatched as long as it's "soon",
-    // since whoever needs it will be waiting for it.
-    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, true);
-    NS_DispatchToMainThread(event);
+    nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+    if (content) {
+      // We don't care when the event is dispatched as long as it's "soon",
+      // since whoever needs it will be waiting for it.
+      nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(content, true);
+      NS_DispatchToMainThread(event);
+    }
   }
 
   mObjectFrame = nullptr;
@@ -445,7 +448,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetAttribute(const char* name, const char* 
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetDOMElement(nsIDOMElement* *result)
 {
-  return CallQueryInterface(mContent, result);
+  return CallQueryReferent(mContent.get(), result);
 }
 
 nsresult nsPluginInstanceOwner::GetInstance(nsNPAPIPluginInstance **aInstance)
@@ -463,13 +466,16 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
                                             void *aHeadersData,
                                             uint32_t aHeadersDataLen)
 {
-  NS_ENSURE_TRUE(mContent, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  if (!content) {
+    return NS_ERROR_NULL_POINTER;
+  }
 
-  if (mContent->IsEditable()) {
+  if (content->IsEditable()) {
     return NS_OK;
   }
 
-  nsIDocument *doc = mContent->GetCurrentDoc();
+  nsIDocument *doc = content->GetCurrentDoc();
   if (!doc) {
     return NS_ERROR_FAILURE;
   }
@@ -519,7 +525,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
     Preferences::GetInt("privacy.popups.disable_from_plugins");
   nsAutoPopupStatePusher popupStatePusher((PopupControlState)blockPopups);
 
-  rv = lh->OnLinkClick(mContent, uri, unitarget.get(), NullString(),
+  rv = lh->OnLinkClick(content, uri, unitarget.get(), NullString(),
                        aPostStream, headersDataStream, true);
 
   return rv;
@@ -564,12 +570,14 @@ NS_IMETHODIMP nsPluginInstanceOwner::ShowStatus(const char16_t *aStatusMsg)
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetDocument(nsIDocument* *aDocument)
 {
-  if (!aDocument)
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  if (!aDocument || !content) {
     return NS_ERROR_NULL_POINTER;
+  }
 
   // XXX sXBL/XBL2 issue: current doc or owner doc?
   // But keep in mind bug 322414 comment 33
-  NS_IF_ADDREF(*aDocument = mContent->OwnerDoc());
+  NS_IF_ADDREF(*aDocument = content->OwnerDoc());
   return NS_OK;
 }
 
@@ -578,9 +586,10 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   // If our object frame has gone away, we won't be able to determine
   // up-to-date-ness, so just fire off the event.
   if (mWaitingForPaint && (!mObjectFrame || IsUpToDate())) {
+    nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
     // We don't care when the event is dispatched as long as it's "soon",
     // since whoever needs it will be waiting for it.
-    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, true);
+    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(content, true);
     NS_DispatchToMainThread(event);
     mWaitingForPaint = false;
   }
@@ -775,7 +784,8 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetTagType(nsPluginTagType *result)
 
   *result = nsPluginTagType_Unknown;
 
-  nsIAtom *atom = mContent->Tag();
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  nsIAtom *atom = content->Tag();
 
   if (atom == nsGkAtoms::applet)
     *result = nsPluginTagType_Applet;
@@ -840,7 +850,8 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
 
   // Convert to a 16-bit count. Subtract 3 in case we add an extra
   // "src", "wmode", or "codebase" entry below.
-  uint32_t cattrs = mContent->GetAttrCount();
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  uint32_t cattrs = content->GetAttrCount();
   if (cattrs < 0x0000FFFC) {
     mNumCachedAttrs = static_cast<uint16_t>(cattrs);
   } else {
@@ -863,7 +874,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   nsCOMArray<nsIDOMElement> ourParams;
 
   // Get all dependent PARAM tags, even if they are not direct children.
-  nsCOMPtr<nsIDOMElement> mydomElement = do_QueryInterface(mContent);
+  nsCOMPtr<nsIDOMElement> mydomElement = do_QueryInterface(content);
   NS_ENSURE_TRUE(mydomElement, NS_ERROR_NO_INTERFACE);
 
   // Making DOM method calls can cause our frame to go away.
@@ -930,9 +941,9 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   // look for "data", lets instead copy the "data" attribute and add another entry
   // to the bottom of the array if there isn't already a "src" specified.
   nsAutoString data;
-  if (mContent->Tag() == nsGkAtoms::object &&
-      !mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::src) &&
-      mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::data, data) &&
+  if (content->Tag() == nsGkAtoms::object &&
+      !content->HasAttr(kNameSpaceID_None, nsGkAtoms::src) &&
+      content->GetAttr(kNameSpaceID_None, nsGkAtoms::data, data) &&
       !data.IsEmpty()) {
     mNumCachedAttrs++;
   }
@@ -962,13 +973,13 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   bool addCodebase = false;
   nsAutoCString codebaseStr;
   if (isJava) {
-    nsCOMPtr<nsIObjectLoadingContent> objlc = do_QueryInterface(mContent);
+    nsCOMPtr<nsIObjectLoadingContent> objlc = do_QueryInterface(content);
     NS_ENSURE_TRUE(objlc, NS_ERROR_UNEXPECTED);
     nsCOMPtr<nsIURI> codebaseURI;
     nsresult rv = objlc->GetBaseURI(getter_AddRefs(codebaseURI));
     NS_ENSURE_SUCCESS(rv, rv);
     codebaseURI->GetSpec(codebaseStr);
-    if (!mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::codebase)) {
+    if (!content->HasAttr(kNameSpaceID_None, nsGkAtoms::codebase)) {
       mNumCachedAttrs++;
       addCodebase = true;
     }
@@ -986,8 +997,8 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   // source order, while in XML and XHTML it's the same as the source order
   // (see the AddAttributes functions in the HTML and XML content sinks).
   int32_t start, end, increment;
-  if (mContent->IsHTML() &&
-      mContent->IsInHTMLDocument()) {
+  if (content->IsHTML() &&
+      content->IsInHTMLDocument()) {
     // HTML.  Walk attributes in reverse order.
     start = numRealAttrs - 1;
     end = -1;
@@ -1008,10 +1019,10 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
 
   // Add attribute name/value pairs.
   for (int32_t index = start; index != end; index += increment) {
-    const nsAttrName* attrName = mContent->GetAttrNameAt(index);
+    const nsAttrName* attrName = content->GetAttrNameAt(index);
     nsIAtom* atom = attrName->LocalName();
     nsAutoString value;
-    mContent->GetAttr(attrName->NamespaceID(), atom, value);
+    content->GetAttr(attrName->NamespaceID(), atom, value);
     nsAutoString name;
     atom->ToString(name);
 
@@ -1664,7 +1675,7 @@ nsPluginInstanceOwner::ProcessMouseDown(nsIDOMEvent* aMouseEvent)
     
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
     if (fm) {
-      nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(mContent);
+      nsCOMPtr<nsIDOMElement> elem = do_QueryReferent(mContent);
       fm->SetFocus(elem, 0);
     }
   }
@@ -2203,7 +2214,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
     // The plugin needs focus to receive keyboard and touch events
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
     if (fm) {
-      nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(mContent);
+      nsCOMPtr<nsIDOMElement> elem = do_QueryReferent(mContent);
       fm->SetFocus(elem, 0);
     }
   }
@@ -2296,34 +2307,36 @@ nsPluginInstanceOwner::Destroy()
     ::CGColorSpaceRelease(mColorProfile);
 #endif
 
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+
   // unregister context menu listener
   if (mCXMenuListener) {
-    mCXMenuListener->Destroy(mContent);
+    mCXMenuListener->Destroy(content);
     mCXMenuListener = nullptr;
   }
 
-  mContent->RemoveEventListener(NS_LITERAL_STRING("focus"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("blur"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mouseup"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mousedown"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mousemove"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("click"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dblclick"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mouseover"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mouseout"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("keypress"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("keydown"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("keyup"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("drop"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragdrop"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("drag"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragenter"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragover"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragleave"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragexit"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragstart"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("draggesture"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragend"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("focus"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("blur"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mouseup"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mousedown"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mousemove"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("click"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("dblclick"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mouseover"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mouseout"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("keypress"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("keydown"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("keyup"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("drop"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragdrop"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("drag"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragenter"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragover"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragleave"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragexit"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragstart"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("draggesture"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragend"), this, true);
 
 #if MOZ_WIDGET_ANDROID
   RemovePluginView();
@@ -2671,7 +2684,7 @@ nsresult nsPluginInstanceOwner::Init(nsIContent* aContent)
 {
   mLastEventloopNestingLevel = GetEventloopNestingLevel();
 
-  mContent = aContent;
+  mContent = do_GetWeakReference(aContent);
 
   // Get a frame, don't reflow. If a reflow was necessary it should have been
   // done at a higher level than this (content).
@@ -2693,37 +2706,37 @@ nsresult nsPluginInstanceOwner::Init(nsIContent* aContent)
   // register context menu listener
   mCXMenuListener = new nsPluginDOMContextMenuListener(aContent);
 
-  mContent->AddEventListener(NS_LITERAL_STRING("focus"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("focus"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("blur"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("blur"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mouseup"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mouseup"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mousedown"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mousedown"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mousemove"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mousemove"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("click"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("click"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("dblclick"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("dblclick"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mouseover"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mouseover"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mouseout"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mouseout"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("keypress"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("keydown"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("keyup"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("drop"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragdrop"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("drag"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragenter"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragover"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragleave"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragexit"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragstart"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("draggesture"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragend"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("keypress"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("keydown"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("keyup"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("drop"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragdrop"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("drag"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragenter"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragover"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragleave"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragexit"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragstart"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("draggesture"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragend"), this, true);
 
   return NS_OK; 
 }
@@ -2778,10 +2791,11 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
   if (!windowless && !nsIWidget::UsePuppetWidgets()) {
     // Try to get a parent widget, on some platforms widget creation will fail without
     // a parent.
+    nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
     nsCOMPtr<nsIWidget> parentWidget;
     nsIDocument *doc = nullptr;
-    if (mContent) {
-      doc = mContent->OwnerDoc();
+    if (content) {
+      doc = content->OwnerDoc();
       parentWidget = nsContentUtils::WidgetForDocument(doc);
     }
 
@@ -3090,7 +3104,8 @@ nsPluginInstanceOwner::GetContentsScaleFactor(double *result)
   // for plugins. On other platforms, plugin coordinates are always in device
   // pixels.
 #if defined(XP_MACOSX)
-  nsIPresShell* presShell = nsContentUtils::FindPresShellForDocument(mContent->OwnerDoc());
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  nsIPresShell* presShell = nsContentUtils::FindPresShellForDocument(content->OwnerDoc());
   if (presShell) {
     scaleFactor = double(nsPresContext::AppUnitsPerCSSPixel())/
       presShell->GetPresContext()->DeviceContext()->UnscaledAppUnitsPerDevPixel();
@@ -3160,10 +3175,11 @@ NS_IMETHODIMP nsPluginInstanceOwner::PrivateModeChanged(bool aEnabled)
 
 already_AddRefed<nsIURI> nsPluginInstanceOwner::GetBaseURI() const
 {
-  if (!mContent) {
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  if (!content) {
     return nullptr;
   }
-  return mContent->GetBaseURI();
+  return content->GetBaseURI();
 }
 
 // nsPluginDOMContextMenuListener class implementation
