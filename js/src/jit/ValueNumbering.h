@@ -28,40 +28,40 @@ class ValueNumberer
         // Hash policy for ValueSet.
         struct ValueHasher
         {
-            typedef const MDefinition *Lookup;
-            typedef MDefinition *Key;
+            typedef const MDefinition* Lookup;
+            typedef MDefinition* Key;
             static HashNumber hash(Lookup ins);
             static bool match(Key k, Lookup l);
-            static void rekey(Key &k, Key newKey);
+            static void rekey(Key& k, Key newKey);
         };
 
-        typedef HashSet<MDefinition *, ValueHasher, IonAllocPolicy> ValueSet;
+        typedef HashSet<MDefinition*, ValueHasher, IonAllocPolicy> ValueSet;
 
         ValueSet set_;        // Set of visible values
 
       public:
-        explicit VisibleValues(TempAllocator &alloc);
+        explicit VisibleValues(TempAllocator& alloc);
         bool init();
 
         typedef ValueSet::Ptr Ptr;
         typedef ValueSet::AddPtr AddPtr;
 
-        Ptr findLeader(const MDefinition *def) const;
-        AddPtr findLeaderForAdd(MDefinition *def);
-        bool insert(AddPtr p, MDefinition *def);
-        void overwrite(AddPtr p, MDefinition *def);
-        void forget(const MDefinition *def);
+        Ptr findLeader(const MDefinition* def) const;
+        AddPtr findLeaderForAdd(MDefinition* def);
+        bool insert(AddPtr p, MDefinition* def);
+        void overwrite(AddPtr p, MDefinition* def);
+        void forget(const MDefinition* def);
         void clear();
 #ifdef DEBUG
-        bool has(const MDefinition *def) const;
+        bool has(const MDefinition* def) const;
 #endif
     };
 
-    typedef Vector<MBasicBlock *, 4, IonAllocPolicy> BlockWorklist;
-    typedef Vector<MDefinition *, 4, IonAllocPolicy> DefWorklist;
+    typedef Vector<MBasicBlock*, 4, IonAllocPolicy> BlockWorklist;
+    typedef Vector<MDefinition*, 4, IonAllocPolicy> DefWorklist;
 
-    MIRGenerator *const mir_;
-    MIRGraph &graph_;
+    MIRGenerator* const mir_;
+    MIRGraph& graph_;
     VisibleValues values_;            // Numbered values
     DefWorklist deadDefs_;            // Worklist for deleting values
     BlockWorklist unreachableBlocks_; // Worklist for unreachable blocks
@@ -77,31 +77,31 @@ class ValueNumberer
         SetUseRemoved
     };
 
-    bool deleteDefsRecursively(MDefinition *def);
-    bool discardPhiOperands(MPhi *phi, const MBasicBlock *phiBlock,
+    bool deleteDefsRecursively(MDefinition* def);
+    bool discardPhiOperands(MPhi* phi, const MBasicBlock* phiBlock,
                             UseRemovedOption useRemovedOption = SetUseRemoved);
-    bool discardInsOperands(MInstruction *ins,
+    bool discardInsOperands(MInstruction* ins,
                             UseRemovedOption useRemovedOption = SetUseRemoved);
-    bool deleteDef(MDefinition *def,
+    bool deleteDef(MDefinition* def,
                    UseRemovedOption useRemovedOption = SetUseRemoved);
     bool processDeadDefs();
 
-    bool removePredecessor(MBasicBlock *block, MBasicBlock *pred);
-    bool removeBlocksRecursively(MBasicBlock *block, const MBasicBlock *root);
+    bool removePredecessor(MBasicBlock* block, MBasicBlock* pred);
+    bool removeBlocksRecursively(MBasicBlock* block, const MBasicBlock* root);
 
-    MDefinition *simplified(MDefinition *def) const;
-    MDefinition *leader(MDefinition *def);
-    bool hasLeader(const MPhi *phi, const MBasicBlock *phiBlock) const;
-    bool loopHasOptimizablePhi(MBasicBlock *backedge) const;
+    MDefinition* simplified(MDefinition* def) const;
+    MDefinition* leader(MDefinition* def);
+    bool hasLeader(const MPhi* phi, const MBasicBlock* phiBlock) const;
+    bool loopHasOptimizablePhi(MBasicBlock* backedge) const;
 
-    bool visitDefinition(MDefinition *def);
-    bool visitControlInstruction(MBasicBlock *block, const MBasicBlock *root);
-    bool visitBlock(MBasicBlock *block, const MBasicBlock *root);
-    bool visitDominatorTree(MBasicBlock *root, size_t *totalNumVisited);
+    bool visitDefinition(MDefinition* def);
+    bool visitControlInstruction(MBasicBlock* block, const MBasicBlock* root);
+    bool visitBlock(MBasicBlock* block, const MBasicBlock* root);
+    bool visitDominatorTree(MBasicBlock* root, size_t* totalNumVisited);
     bool visitGraph();
 
   public:
-    ValueNumberer(MIRGenerator *mir, MIRGraph &graph);
+    ValueNumberer(MIRGenerator* mir, MIRGraph& graph);
 
     enum UpdateAliasAnalysisFlag {
         DontUpdateAliasAnalysis,

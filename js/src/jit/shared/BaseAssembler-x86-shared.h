@@ -460,7 +460,7 @@ public:
 
     size_t size() const { return m_formatter.size(); }
     size_t allocSize() const { return m_formatter.allocSize(); }
-    unsigned char *buffer() const { return m_formatter.buffer(); }
+    unsigned char* buffer() const { return m_formatter.buffer(); }
     bool oom() const { return m_formatter.oom(); }
 
     void nop()
@@ -860,7 +860,7 @@ public:
         m_formatter.oneByteOp64(OP_AND_GvEv, dst, base, index, scale, offset);
     }
 
-    void andq_mr(const void *addr, RegisterID dst)
+    void andq_mr(const void* addr, RegisterID dst)
     {
         spew("andq       %p, %s",
              addr, nameIReg(8,dst));
@@ -1656,7 +1656,7 @@ public:
         m_formatter.immediate32(imm);
     }
 
-    void testl_i32m(int imm, const void *addr)
+    void testl_i32m(int imm, const void* addr)
     {
         spew("testl      $0x%x, %p",
              imm, addr);
@@ -3727,7 +3727,7 @@ public:
         *next = JmpSrc(offset);
         return true;
     }
-    void setNextJump(const JmpSrc& from, const JmpSrc &to)
+    void setNextJump(const JmpSrc& from, const JmpSrc& to)
     {
         // Sanity check - if the assembler has OOM'd, it will start overwriting
         // its internal buffer and thus our links could be garbage.
@@ -3874,7 +3874,7 @@ public:
     }
 
     void* executableAllocAndCopy(js::jit::ExecutableAllocator* allocator,
-                                 js::jit::ExecutablePool **poolp, js::jit::CodeKind kind)
+                                 js::jit::ExecutablePool** poolp, js::jit::CodeKind kind)
     {
         return m_formatter.executableAllocAndCopy(allocator, poolp, kind);
     }
@@ -3888,7 +3888,7 @@ public:
     {
         intptr_t offset = reinterpret_cast<intptr_t>(to) - reinterpret_cast<intptr_t>(from);
         MOZ_ASSERT(offset == static_cast<int32_t>(offset));
-#define JS_CRASH(x) *(int *)x = 0
+#define JS_CRASH(x) *(int*)x = 0
         if (offset != static_cast<int32_t>(offset))
             JS_CRASH(0xC0DE);
 #undef JS_CRASH
@@ -3897,20 +3897,20 @@ public:
         setInt32(from, offset);
     }
 
-    static void *getRel32Target(void* where)
+    static void* getRel32Target(void* where)
     {
         int32_t rel = getInt32(where);
-        return (char *)where + rel;
+        return (char*)where + rel;
     }
 
-    static void *getPointer(void* where)
+    static void* getPointer(void* where)
     {
-        return reinterpret_cast<void **>(where)[-1];
+        return reinterpret_cast<void**>(where)[-1];
     }
 
-    static void **getPointerRef(void* where)
+    static void** getPointerRef(void* where)
     {
-        return &reinterpret_cast<void **>(where)[-1];
+        return &reinterpret_cast<void**>(where)[-1];
     }
 
     static void setPointer(void* where, const void* value)
@@ -3922,7 +3922,7 @@ public:
     // Test whether the given address will fit in an address immediate field.
     // This is always true on x86, but on x64 it's only true for addreses
     // which fit in the 32-bit immediate field.
-    static bool isAddressImmediate(const void *address) {
+    static bool isAddressImmediate(const void* address) {
         intptr_t value = reinterpret_cast<intptr_t>(address);
         int32_t immediate = static_cast<int32_t>(value);
         return value == immediate;
@@ -3931,7 +3931,7 @@ public:
     // Convert the given address to a 32-bit immediate field value. This is
     // a no-op on x86, but on x64 it asserts that the address is actually
     // a valid address immediate.
-    static int32_t addressImmediate(const void *address) {
+    static int32_t addressImmediate(const void* address) {
 #ifdef JS_CODEGEN_X64
         // x64's 64-bit addresses don't all fit in the 32-bit immediate.
         MOZ_ASSERT(isAddressImmediate(address));
@@ -4408,7 +4408,7 @@ private:
 
         size_t size() const { return m_buffer.size(); }
         size_t allocSize() const { return m_buffer.allocSize(); }
-        unsigned char *buffer() const { return m_buffer.buffer(); }
+        unsigned char* buffer() const { return m_buffer.buffer(); }
         bool oom() const { return m_buffer.oom(); }
         bool isAligned(int alignment) const { return m_buffer.isAligned(alignment); }
         void* data() const { return m_buffer.data(); }

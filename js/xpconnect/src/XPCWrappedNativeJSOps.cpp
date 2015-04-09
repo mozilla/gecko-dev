@@ -67,7 +67,7 @@ ToStringGuts(XPCCallContext& ccx)
 /***************************************************************************/
 
 static bool
-XPC_WN_Shared_ToString(JSContext *cx, unsigned argc, jsval *vp)
+XPC_WN_Shared_ToString(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     RootedObject obj(cx, JS_THIS_OBJECT(cx, vp));
@@ -83,11 +83,11 @@ XPC_WN_Shared_ToString(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-XPC_WN_Shared_ToSource(JSContext *cx, unsigned argc, jsval *vp)
+XPC_WN_Shared_ToSource(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     static const char empty[] = "({})";
-    JSString *str = JS_NewStringCopyN(cx, empty, sizeof(empty)-1);
+    JSString* str = JS_NewStringCopyN(cx, empty, sizeof(empty)-1);
     if (!str)
         return false;
     args.rval().setString(str);
@@ -135,7 +135,7 @@ GetDoubleWrappedJSObject(XPCCallContext& ccx, XPCWrappedNative* wrapper)
 // double wrapped JSObjects.
 
 static bool
-XPC_WN_DoubleWrappedGetter(JSContext *cx, unsigned argc, jsval *vp)
+XPC_WN_DoubleWrappedGetter(JSContext* cx, unsigned argc, jsval* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -413,7 +413,7 @@ DefinePropertyIfFound(XPCCallContext& ccx,
 /***************************************************************************/
 
 static bool
-XPC_WN_OnlyIWrite_AddPropertyStub(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp)
+XPC_WN_OnlyIWrite_AddPropertyStub(JSContext* cx, HandleObject obj, HandleId id, MutableHandleValue vp)
 {
     XPCCallContext ccx(JS_CALLER, cx, obj, NullPtr(), id);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -427,35 +427,35 @@ XPC_WN_OnlyIWrite_AddPropertyStub(JSContext *cx, HandleObject obj, HandleId id, 
 }
 
 static bool
-XPC_WN_OnlyIWrite_SetPropertyStub(JSContext *cx, HandleObject obj, HandleId id, bool strict,
+XPC_WN_OnlyIWrite_SetPropertyStub(JSContext* cx, HandleObject obj, HandleId id, bool strict,
                                   MutableHandleValue vp)
 {
     return XPC_WN_OnlyIWrite_AddPropertyStub(cx, obj, id, vp);
 }
 
 static bool
-XPC_WN_CannotModifyPropertyStub(JSContext *cx, HandleObject obj, HandleId id,
+XPC_WN_CannotModifyPropertyStub(JSContext* cx, HandleObject obj, HandleId id,
                                 MutableHandleValue vp)
 {
     return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
 static bool
-XPC_WN_CantDeletePropertyStub(JSContext *cx, HandleObject obj, HandleId id,
-                              bool *succeeded)
+XPC_WN_CantDeletePropertyStub(JSContext* cx, HandleObject obj, HandleId id,
+                              bool* succeeded)
 {
     return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
 static bool
-XPC_WN_CannotModifyStrictPropertyStub(JSContext *cx, HandleObject obj, HandleId id, bool strict,
+XPC_WN_CannotModifyStrictPropertyStub(JSContext* cx, HandleObject obj, HandleId id, bool strict,
                                       MutableHandleValue vp)
 {
     return XPC_WN_CannotModifyPropertyStub(cx, obj, id, vp);
 }
 
 static bool
-XPC_WN_Shared_Convert(JSContext *cx, HandleObject obj, JSType type, MutableHandleValue vp)
+XPC_WN_Shared_Convert(JSContext* cx, HandleObject obj, JSType type, MutableHandleValue vp)
 {
     if (type == JSTYPE_OBJECT) {
         vp.set(OBJECT_TO_JSVAL(obj));
@@ -512,7 +512,7 @@ XPC_WN_Shared_Convert(JSContext *cx, HandleObject obj, JSType type, MutableHandl
 }
 
 static bool
-XPC_WN_Shared_Enumerate(JSContext *cx, HandleObject obj)
+XPC_WN_Shared_Enumerate(JSContext* cx, HandleObject obj)
 {
     XPCCallContext ccx(JS_CALLER, cx, obj);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -556,7 +556,7 @@ enum WNHelperType {
 };
 
 static void
-WrappedNativeFinalize(js::FreeOp *fop, JSObject *obj, WNHelperType helperType)
+WrappedNativeFinalize(js::FreeOp* fop, JSObject* obj, WNHelperType helperType)
 {
     const js::Class* clazz = js::GetObjectClass(obj);
     if (clazz->flags & JSCLASS_DOM_GLOBAL) {
@@ -573,7 +573,7 @@ WrappedNativeFinalize(js::FreeOp *fop, JSObject *obj, WNHelperType helperType)
 }
 
 static void
-XPC_WN_NoHelper_Finalize(js::FreeOp *fop, JSObject *obj)
+XPC_WN_NoHelper_Finalize(js::FreeOp* fop, JSObject* obj)
 {
     WrappedNativeFinalize(fop, obj, WN_NOHELPER);
 }
@@ -587,7 +587,7 @@ XPC_WN_NoHelper_Finalize(js::FreeOp *fop, JSObject *obj)
  */
 
 static void
-MarkWrappedNative(JSTracer *trc, JSObject *obj)
+MarkWrappedNative(JSTracer* trc, JSObject* obj)
 {
     const js::Class* clazz = js::GetObjectClass(obj);
     if (clazz->flags & JSCLASS_DOM_GLOBAL) {
@@ -595,19 +595,19 @@ MarkWrappedNative(JSTracer *trc, JSObject *obj)
     }
     MOZ_ASSERT(IS_WN_CLASS(clazz));
 
-    XPCWrappedNative *wrapper = XPCWrappedNative::Get(obj);
+    XPCWrappedNative* wrapper = XPCWrappedNative::Get(obj);
     if (wrapper && wrapper->IsValid())
         wrapper->TraceInside(trc);
 }
 
 /* static */ void
-XPCWrappedNative::Trace(JSTracer *trc, JSObject *obj)
+XPCWrappedNative::Trace(JSTracer* trc, JSObject* obj)
 {
     MarkWrappedNative(trc, obj);
 }
 
 static bool
-XPC_WN_NoHelper_Resolve(JSContext *cx, HandleObject obj, HandleId id)
+XPC_WN_NoHelper_Resolve(JSContext* cx, HandleObject obj, HandleId id)
 {
     XPCCallContext ccx(JS_CALLER, cx, obj, NullPtr(), id);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -629,12 +629,12 @@ XPC_WN_NoHelper_Resolve(JSContext *cx, HandleObject obj, HandleId id)
                                  JSPROP_PERMANENT, nullptr);
 }
 
-static JSObject *
-XPC_WN_OuterObject(JSContext *cx, HandleObject objArg)
+static JSObject*
+XPC_WN_OuterObject(JSContext* cx, HandleObject objArg)
 {
-    JSObject *obj = objArg;
+    JSObject* obj = objArg;
 
-    XPCWrappedNative *wrapper = XPCWrappedNative::Get(obj);
+    XPCWrappedNative* wrapper = XPCWrappedNative::Get(obj);
     if (!wrapper) {
         Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
 
@@ -727,7 +727,7 @@ const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
 /***************************************************************************/
 
 static bool
-XPC_WN_MaybeResolvingPropertyStub(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp)
+XPC_WN_MaybeResolvingPropertyStub(JSContext* cx, HandleObject obj, HandleId id, MutableHandleValue vp)
 {
     XPCCallContext ccx(JS_CALLER, cx, obj);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -739,14 +739,14 @@ XPC_WN_MaybeResolvingPropertyStub(JSContext *cx, HandleObject obj, HandleId id, 
 }
 
 static bool
-XPC_WN_MaybeResolvingStrictPropertyStub(JSContext *cx, HandleObject obj, HandleId id, bool strict,
+XPC_WN_MaybeResolvingStrictPropertyStub(JSContext* cx, HandleObject obj, HandleId id, bool strict,
                                         MutableHandleValue vp)
 {
     return XPC_WN_MaybeResolvingPropertyStub(cx, obj, id, vp);
 }
 
 static bool
-XPC_WN_MaybeResolvingDeletePropertyStub(JSContext *cx, HandleObject obj, HandleId id, bool *succeeded)
+XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, HandleObject obj, HandleId id, bool* succeeded)
 {
     XPCCallContext ccx(JS_CALLER, cx, obj);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -761,7 +761,7 @@ XPC_WN_MaybeResolvingDeletePropertyStub(JSContext *cx, HandleObject obj, HandleI
 
 // macro fun!
 #define PRE_HELPER_STUB                                                       \
-    JSObject *unwrapped = js::CheckedUnwrap(obj, false);                      \
+    JSObject* unwrapped = js::CheckedUnwrap(obj, false);                      \
     if (!unwrapped) {                                                         \
         JS_ReportError(cx, "Permission denied to operate on object.");        \
         return false;                                                         \
@@ -769,7 +769,7 @@ XPC_WN_MaybeResolvingDeletePropertyStub(JSContext *cx, HandleObject obj, HandleI
     if (!IS_WN_REFLECTOR(unwrapped)) {                                        \
         return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);                    \
     }                                                                         \
-    XPCWrappedNative *wrapper = XPCWrappedNative::Get(unwrapped);             \
+    XPCWrappedNative* wrapper = XPCWrappedNative::Get(unwrapped);             \
     THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);                             \
     bool retval = true;                                                       \
     nsresult rv = wrapper->GetScriptableCallback()->
@@ -780,7 +780,7 @@ XPC_WN_MaybeResolvingDeletePropertyStub(JSContext *cx, HandleObject obj, HandleI
     return retval;
 
 static bool
-XPC_WN_Helper_AddProperty(JSContext *cx, HandleObject obj, HandleId id,
+XPC_WN_Helper_AddProperty(JSContext* cx, HandleObject obj, HandleId id,
                           MutableHandleValue vp)
 {
     PRE_HELPER_STUB
@@ -789,8 +789,8 @@ XPC_WN_Helper_AddProperty(JSContext *cx, HandleObject obj, HandleId id,
 }
 
 static bool
-XPC_WN_Helper_DelProperty(JSContext *cx, HandleObject obj, HandleId id,
-                          bool *succeeded)
+XPC_WN_Helper_DelProperty(JSContext* cx, HandleObject obj, HandleId id,
+                          bool* succeeded)
 {
     *succeeded = true;
     PRE_HELPER_STUB
@@ -799,7 +799,7 @@ XPC_WN_Helper_DelProperty(JSContext *cx, HandleObject obj, HandleId id,
 }
 
 bool
-XPC_WN_Helper_GetProperty(JSContext *cx, HandleObject obj, HandleId id,
+XPC_WN_Helper_GetProperty(JSContext* cx, HandleObject obj, HandleId id,
                           MutableHandleValue vp)
 {
     PRE_HELPER_STUB
@@ -808,7 +808,7 @@ XPC_WN_Helper_GetProperty(JSContext *cx, HandleObject obj, HandleId id,
 }
 
 bool
-XPC_WN_Helper_SetProperty(JSContext *cx, HandleObject obj, HandleId id, bool strict,
+XPC_WN_Helper_SetProperty(JSContext* cx, HandleObject obj, HandleId id, bool strict,
                           MutableHandleValue vp)
 {
     PRE_HELPER_STUB
@@ -817,7 +817,7 @@ XPC_WN_Helper_SetProperty(JSContext *cx, HandleObject obj, HandleId id, bool str
 }
 
 static bool
-XPC_WN_Helper_Convert(JSContext *cx, HandleObject obj, JSType type, MutableHandleValue vp)
+XPC_WN_Helper_Convert(JSContext* cx, HandleObject obj, JSType type, MutableHandleValue vp)
 {
     PRE_HELPER_STUB
     Convert(wrapper, cx, obj, type, vp.address(), &retval);
@@ -825,7 +825,7 @@ XPC_WN_Helper_Convert(JSContext *cx, HandleObject obj, JSType type, MutableHandl
 }
 
 static bool
-XPC_WN_Helper_Call(JSContext *cx, unsigned argc, jsval *vp)
+XPC_WN_Helper_Call(JSContext* cx, unsigned argc, jsval* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     // N.B. we want obj to be the callee, not JS_THIS(cx, vp)
@@ -842,7 +842,7 @@ XPC_WN_Helper_Call(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-XPC_WN_Helper_Construct(JSContext *cx, unsigned argc, jsval *vp)
+XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, jsval* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     RootedObject obj(cx, &args.callee());
@@ -860,7 +860,7 @@ XPC_WN_Helper_Construct(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-XPC_WN_Helper_HasInstance(JSContext *cx, HandleObject obj, MutableHandleValue valp, bool *bp)
+XPC_WN_Helper_HasInstance(JSContext* cx, HandleObject obj, MutableHandleValue valp, bool* bp)
 {
     bool retval2;
     PRE_HELPER_STUB
@@ -870,13 +870,13 @@ XPC_WN_Helper_HasInstance(JSContext *cx, HandleObject obj, MutableHandleValue va
 }
 
 static void
-XPC_WN_Helper_Finalize(js::FreeOp *fop, JSObject *obj)
+XPC_WN_Helper_Finalize(js::FreeOp* fop, JSObject* obj)
 {
     WrappedNativeFinalize(fop, obj, WN_HELPER);
 }
 
 static bool
-XPC_WN_Helper_NewResolve(JSContext *cx, HandleObject obj, HandleId id,
+XPC_WN_Helper_NewResolve(JSContext* cx, HandleObject obj, HandleId id,
                          MutableHandleObject objp)
 {
     nsresult rv = NS_OK;
@@ -993,10 +993,10 @@ XPC_WN_Helper_NewResolve(JSContext *cx, HandleObject obj, HandleId id,
 */
 
 bool
-XPC_WN_JSOp_Enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
+XPC_WN_JSOp_Enumerate(JSContext* cx, HandleObject obj, JSIterateOp enum_op,
                       MutableHandleValue statep, MutableHandleId idp)
 {
-    const js::Class *clazz = js::GetObjectClass(obj);
+    const js::Class* clazz = js::GetObjectClass(obj);
     if (!IS_WN_CLASS(clazz) || clazz == &XPC_WN_NoHelper_JSClass.base) {
         // obj must be a prototype object or a wrapper w/o a
         // helper. Short circuit this call to the default
@@ -1071,7 +1071,7 @@ XPC_WN_JSOp_Enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
 }
 
 JSObject*
-XPC_WN_JSOp_ThisObject(JSContext *cx, HandleObject obj)
+XPC_WN_JSOp_ThisObject(JSContext* cx, HandleObject obj)
 {
     return JS_ObjectToOuterObject(cx, obj);
 }
@@ -1198,7 +1198,7 @@ XPCNativeScriptableShared::PopulateJSClass()
     else
         mJSClass.base.finalize = XPC_WN_NoHelper_Finalize;
 
-    js::ObjectOps *ops = &mJSClass.base.ops;
+    js::ObjectOps* ops = &mJSClass.base.ops;
     ops->enumerate = XPC_WN_JSOp_Enumerate;
     ops->thisObject = XPC_WN_JSOp_ThisObject;
 
@@ -1249,10 +1249,10 @@ XPCNativeScriptableShared::PopulateJSClass()
 #define IS_CU_CLASS(clasp) (clasp->name[0] == 'n' && !strcmp(clasp->name, "nsXPCComponents_Utils"))
 
 MOZ_ALWAYS_INLINE JSObject*
-FixUpThisIfBroken(JSObject *obj, JSObject *funobj)
+FixUpThisIfBroken(JSObject* obj, JSObject* funobj)
 {
     if (funobj) {
-        const js::Class *parentClass = js::GetObjectClass(js::GetObjectParent(funobj));
+        const js::Class* parentClass = js::GetObjectClass(js::GetObjectParent(funobj));
         if (MOZ_UNLIKELY((IS_NOHELPER_CLASS(parentClass) || IS_CU_CLASS(parentClass)) &&
                          (js::GetObjectClass(obj) != parentClass)))
         {
@@ -1263,7 +1263,7 @@ FixUpThisIfBroken(JSObject *obj, JSObject *funobj)
 }
 
 bool
-XPC_WN_CallMethod(JSContext *cx, unsigned argc, jsval *vp)
+XPC_WN_CallMethod(JSContext* cx, unsigned argc, jsval* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     MOZ_ASSERT(JS_TypeOfValue(cx, args.calleev()) == JSTYPE_FUNCTION, "bad function");
@@ -1289,7 +1289,7 @@ XPC_WN_CallMethod(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 bool
-XPC_WN_GetterSetter(JSContext *cx, unsigned argc, jsval *vp)
+XPC_WN_GetterSetter(JSContext* cx, unsigned argc, jsval* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     MOZ_ASSERT(JS_TypeOfValue(cx, args.calleev()) == JSTYPE_FUNCTION, "bad function");
@@ -1327,7 +1327,7 @@ XPC_WN_GetterSetter(JSContext *cx, unsigned argc, jsval *vp)
 /***************************************************************************/
 
 static bool
-XPC_WN_Shared_Proto_Enumerate(JSContext *cx, HandleObject obj)
+XPC_WN_Shared_Proto_Enumerate(JSContext* cx, HandleObject obj)
 {
     MOZ_ASSERT(js::GetObjectClass(obj) == &XPC_WN_ModsAllowed_WithCall_Proto_JSClass ||
                js::GetObjectClass(obj) == &XPC_WN_ModsAllowed_NoCall_Proto_JSClass ||
@@ -1367,7 +1367,7 @@ XPC_WN_Shared_Proto_Enumerate(JSContext *cx, HandleObject obj)
 }
 
 static void
-XPC_WN_Shared_Proto_Finalize(js::FreeOp *fop, JSObject *obj)
+XPC_WN_Shared_Proto_Finalize(js::FreeOp* fop, JSObject* obj)
 {
     // This can be null if xpc shutdown has already happened
     XPCWrappedNativeProto* p = (XPCWrappedNativeProto*) xpc_GetJSPrivate(obj);
@@ -1376,7 +1376,7 @@ XPC_WN_Shared_Proto_Finalize(js::FreeOp *fop, JSObject *obj)
 }
 
 static void
-XPC_WN_Shared_Proto_Trace(JSTracer *trc, JSObject *obj)
+XPC_WN_Shared_Proto_Trace(JSTracer* trc, JSObject* obj)
 {
     // This can be null if xpc shutdown has already happened
     XPCWrappedNativeProto* p =
@@ -1388,7 +1388,7 @@ XPC_WN_Shared_Proto_Trace(JSTracer *trc, JSObject *obj)
 /*****************************************************/
 
 static bool
-XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, HandleObject obj, HandleId id)
+XPC_WN_ModsAllowed_Proto_Resolve(JSContext* cx, HandleObject obj, HandleId id)
 {
     MOZ_ASSERT(js::GetObjectClass(obj) == &XPC_WN_ModsAllowed_WithCall_Proto_JSClass ||
                js::GetObjectClass(obj) == &XPC_WN_ModsAllowed_NoCall_Proto_JSClass,
@@ -1467,7 +1467,7 @@ const js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
 /***************************************************************************/
 
 static bool
-XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext *cx, HandleObject obj, HandleId id,
+XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext* cx, HandleObject obj, HandleId id,
                                         MutableHandleValue vp)
 {
     MOZ_ASSERT(js::GetObjectClass(obj) == &XPC_WN_NoMods_WithCall_Proto_JSClass ||
@@ -1491,14 +1491,14 @@ XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext *cx, HandleObject obj, HandleI
 }
 
 static bool
-XPC_WN_OnlyIWrite_Proto_SetPropertyStub(JSContext *cx, HandleObject obj, HandleId id, bool strict,
+XPC_WN_OnlyIWrite_Proto_SetPropertyStub(JSContext* cx, HandleObject obj, HandleId id, bool strict,
                                         MutableHandleValue vp)
 {
     return XPC_WN_OnlyIWrite_Proto_AddPropertyStub(cx, obj, id, vp);
 }
 
 static bool
-XPC_WN_NoMods_Proto_Resolve(JSContext *cx, HandleObject obj, HandleId id)
+XPC_WN_NoMods_Proto_Resolve(JSContext* cx, HandleObject obj, HandleId id)
 {
     MOZ_ASSERT(js::GetObjectClass(obj) == &XPC_WN_NoMods_WithCall_Proto_JSClass ||
                js::GetObjectClass(obj) == &XPC_WN_NoMods_NoCall_Proto_JSClass,
@@ -1579,7 +1579,7 @@ const js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
 /***************************************************************************/
 
 static bool
-XPC_WN_TearOff_Enumerate(JSContext *cx, HandleObject obj)
+XPC_WN_TearOff_Enumerate(JSContext* cx, HandleObject obj)
 {
     XPCCallContext ccx(JS_CALLER, cx, obj);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -1601,7 +1601,7 @@ XPC_WN_TearOff_Enumerate(JSContext *cx, HandleObject obj)
 }
 
 static bool
-XPC_WN_TearOff_Resolve(JSContext *cx, HandleObject obj, HandleId id)
+XPC_WN_TearOff_Resolve(JSContext* cx, HandleObject obj, HandleId id)
 {
     XPCCallContext ccx(JS_CALLER, cx, obj);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -1622,7 +1622,7 @@ XPC_WN_TearOff_Resolve(JSContext *cx, HandleObject obj, HandleId id)
 }
 
 static void
-XPC_WN_TearOff_Finalize(js::FreeOp *fop, JSObject *obj)
+XPC_WN_TearOff_Finalize(js::FreeOp* fop, JSObject* obj)
 {
     XPCWrappedNativeTearOff* p = (XPCWrappedNativeTearOff*)
         xpc_GetJSPrivate(obj);

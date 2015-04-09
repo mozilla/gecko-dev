@@ -55,7 +55,7 @@ XPC_Log_Finish()
 }
 
 void
-XPC_Log_print(const char *fmt, ...)
+XPC_Log_print(const char* fmt, ...)
 {
     va_list ap;
     char line[LINE_LEN];

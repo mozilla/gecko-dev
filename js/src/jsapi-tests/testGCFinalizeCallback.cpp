@@ -118,7 +118,7 @@ BEGIN_TEST(testGCFinalizeCallback)
     return true;
 }
 
-JSObject *createTestGlobal()
+JSObject* createTestGlobal()
 {
     JS::CompartmentOptions options;
     options.setVersion(JSVERSION_LATEST);
@@ -182,7 +182,7 @@ bool checkFinalizeIsCompartmentGC(bool isCompartmentGC)
 }
 
 static void
-FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartmentGC, void *data)
+FinalizeCallback(JSFreeOp* fop, JSFinalizeStatus status, bool isCompartmentGC, void* data)
 {
     if (FinalizeCalls < BufferSize) {
         StatusBuffer[FinalizeCalls] = status;

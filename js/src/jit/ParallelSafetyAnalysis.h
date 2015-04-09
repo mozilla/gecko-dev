@@ -23,12 +23,12 @@ class AutoDestroyAllocator;
 // graph and replaces them with MBail blocks.
 class ParallelSafetyAnalysis
 {
-    MIRGenerator *mir_;
-    MIRGraph &graph_;
+    MIRGenerator* mir_;
+    MIRGraph& graph_;
 
   public:
-    ParallelSafetyAnalysis(MIRGenerator *mir,
-                           MIRGraph &graph)
+    ParallelSafetyAnalysis(MIRGenerator* mir,
+                           MIRGraph& graph)
       : mir_(mir),
         graph_(graph)
     {}
@@ -42,8 +42,8 @@ class ParallelSafetyAnalysis
 //
 // This code may clone scripts and thus may invoke the GC.  Hence only
 // run from the link phase, which executes on the main thread.
-typedef Vector<JSScript *, 4, IonAllocPolicy> CallTargetVector;
-bool AddPossibleCallees(JSContext *cx, MIRGraph &graph, CallTargetVector &targets);
+typedef Vector<JSScript*, 4, IonAllocPolicy> CallTargetVector;
+bool AddPossibleCallees(JSContext* cx, MIRGraph& graph, CallTargetVector& targets);
 
 } // namespace jit
 } // namespace js

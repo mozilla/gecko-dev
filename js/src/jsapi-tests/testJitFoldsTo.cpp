@@ -19,23 +19,23 @@ using namespace js::jit;
 BEGIN_TEST(testJitFoldsTo_DivReciprocal)
 {
     MinimalFunc func;
-    MBasicBlock *block = func.createEntryBlock();
+    MBasicBlock* block = func.createEntryBlock();
 
     // return p / 4.0
-    MParameter *p = func.createParameter();
+    MParameter* p = func.createParameter();
     block->add(p);
-    MConstant *c = MConstant::New(func.alloc, DoubleValue(4.0));
+    MConstant* c = MConstant::New(func.alloc, DoubleValue(4.0));
     block->add(c);
-    MDiv *div = MDiv::New(func.alloc, p, c, MIRType_Double);
+    MDiv* div = MDiv::New(func.alloc, p, c, MIRType_Double);
     block->add(div);
-    MReturn *ret = MReturn::New(func.alloc, div);
+    MReturn* ret = MReturn::New(func.alloc, div);
     block->end(ret);
 
     if (!func.runGVN())
         return false;
 
     // Test that the div got folded to p * 0.25.
-    MDefinition *op = ret->getOperand(0);
+    MDefinition* op = ret->getOperand(0);
     CHECK(op->isMul());
     CHECK(op->getOperand(0) == p);
     CHECK(op->getOperand(1)->isConstant());
@@ -47,23 +47,23 @@ END_TEST(testJitFoldsTo_DivReciprocal)
 BEGIN_TEST(testJitFoldsTo_NoDivReciprocal)
 {
     MinimalFunc func;
-    MBasicBlock *block = func.createEntryBlock();
+    MBasicBlock* block = func.createEntryBlock();
 
     // return p / 5.0
-    MParameter *p = func.createParameter();
+    MParameter* p = func.createParameter();
     block->add(p);
-    MConstant *c = MConstant::New(func.alloc, DoubleValue(5.0));
+    MConstant* c = MConstant::New(func.alloc, DoubleValue(5.0));
     block->add(c);
-    MDiv *div = MDiv::New(func.alloc, p, c, MIRType_Double);
+    MDiv* div = MDiv::New(func.alloc, p, c, MIRType_Double);
     block->add(div);
-    MReturn *ret = MReturn::New(func.alloc, div);
+    MReturn* ret = MReturn::New(func.alloc, div);
     block->end(ret);
 
     if (!func.runGVN())
         return false;
 
     // Test that the div didn't get folded.
-    MDefinition *op = ret->getOperand(0);
+    MDefinition* op = ret->getOperand(0);
     CHECK(op->isDiv());
     CHECK(op->getOperand(0) == p);
     CHECK(op->getOperand(1) == c);

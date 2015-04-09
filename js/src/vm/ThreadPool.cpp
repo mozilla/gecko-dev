@@ -32,14 +32,14 @@ ComposeSliceBounds(uint16_t from, uint16_t to)
 }
 
 static inline void
-DecomposeSliceBounds(uint32_t bounds, uint16_t *from, uint16_t *to)
+DecomposeSliceBounds(uint32_t bounds, uint16_t* from, uint16_t* to)
 {
     *from = bounds >> 16;
     *to = bounds & uint16_t(~0);
     MOZ_ASSERT(*from <= *to);
 }
 
-ThreadPoolWorker::ThreadPoolWorker(uint32_t workerId, uint32_t rngSeed, ThreadPool *pool)
+ThreadPoolWorker::ThreadPoolWorker(uint32_t workerId, uint32_t rngSeed, ThreadPool* pool)
   : workerId_(workerId),
     pool_(pool),
     sliceBounds_(0),
@@ -56,7 +56,7 @@ ThreadPoolWorker::hasWork() const
 }
 
 bool
-ThreadPoolWorker::popSliceFront(uint16_t *sliceId)
+ThreadPoolWorker::popSliceFront(uint16_t* sliceId)
 {
     uint32_t bounds;
     uint16_t from, to;
@@ -73,7 +73,7 @@ ThreadPoolWorker::popSliceFront(uint16_t *sliceId)
 }
 
 bool
-ThreadPoolWorker::popSliceBack(uint16_t *sliceId)
+ThreadPoolWorker::popSliceBack(uint16_t* sliceId)
 {
     uint32_t bounds;
     uint16_t from, to;
@@ -103,7 +103,7 @@ ThreadPoolWorker::discardSlices()
 }
 
 bool
-ThreadPoolWorker::stealFrom(ThreadPoolWorker *victim, uint16_t *sliceId)
+ThreadPoolWorker::stealFrom(ThreadPoolWorker* victim, uint16_t* sliceId)
 {
     // Instead of popping the slice from the front by incrementing sliceStart_,
     // decrement sliceEnd_. Usually this gives us better locality.
@@ -115,7 +115,7 @@ ThreadPoolWorker::stealFrom(ThreadPoolWorker *victim, uint16_t *sliceId)
     return true;
 }
 
-ThreadPoolWorker *
+ThreadPoolWorker*
 ThreadPoolWorker::randomWorker()
 {
     // Perform 32-bit xorshift.
@@ -150,14 +150,14 @@ ThreadPoolWorker::start()
 #ifdef MOZ_NUWA_PROCESS
 extern "C" {
 MFBT_API bool IsNuwaProcess();
-MFBT_API void NuwaMarkCurrentThread(void (*recreate)(void *), void *arg);
+MFBT_API void NuwaMarkCurrentThread(void (*recreate)(void*), void* arg);
 }
 #endif
 
 void
-ThreadPoolWorker::HelperThreadMain(void *arg)
+ThreadPoolWorker::HelperThreadMain(void* arg)
 {
-    ThreadPoolWorker *worker = (ThreadPoolWorker*) arg;
+    ThreadPoolWorker* worker = (ThreadPoolWorker*) arg;
 
 #ifdef MOZ_NUWA_PROCESS
     if (IsNuwaProcess()) {
@@ -222,7 +222,7 @@ ThreadPoolWorker::submitSlices(uint16_t sliceStart, uint16_t sliceEnd)
 }
 
 bool
-ThreadPoolWorker::getSlice(ForkJoinContext *cx, uint16_t *sliceId)
+ThreadPoolWorker::getSlice(ForkJoinContext* cx, uint16_t* sliceId)
 {
     // First see whether we have any work ourself.
     if (popSliceFront(sliceId))
@@ -241,7 +241,7 @@ ThreadPoolWorker::getSlice(ForkJoinContext *cx, uint16_t *sliceId)
 }
 
 void
-ThreadPoolWorker::terminate(AutoLockMonitor &lock)
+ThreadPoolWorker::terminate(AutoLockMonitor& lock)
 {
     MOZ_ASSERT(lock.isFor(*pool_));
     MOZ_ASSERT(state_ != TERMINATED);
@@ -254,7 +254,7 @@ ThreadPoolWorker::terminate(AutoLockMonitor &lock)
 // The |ThreadPool| starts up workers, submits work to them, and shuts
 // them down when requested.
 
-ThreadPool::ThreadPool(JSRuntime *rt)
+ThreadPool::ThreadPool(JSRuntime* rt)
   : activeWorkers_(0),
     joinBarrier_(nullptr),
     job_(nullptr),
@@ -304,17 +304,17 @@ bool
 ThreadPool::workStealing() const
 {
 #ifdef DEBUG
-    if (char *stealEnv = getenv("JS_THREADPOOL_STEAL"))
+    if (char* stealEnv = getenv("JS_THREADPOOL_STEAL"))
         return !!strtol(stealEnv, nullptr, 10);
 #endif
 
     return true;
 }
 
-extern uint64_t random_next(uint64_t *, int);
+extern uint64_t random_next(uint64_t*, int);
 
 bool
-ThreadPool::lazyStartWorkers(JSContext *cx)
+ThreadPool::lazyStartWorkers(JSContext* cx)
 {
     // Starts the workers if they have not already been started.  If
     // something goes wrong, reports an error and ensures that all
@@ -334,7 +334,7 @@ ThreadPool::lazyStartWorkers(JSContext *cx)
     uint64_t rngState = 0;
     for (uint32_t workerId = 0; workerId < numWorkers(); workerId++) {
         uint32_t rngSeed = uint32_t(random_next(&rngState, 32));
-        ThreadPoolWorker *worker = cx->new_<ThreadPoolWorker>(workerId, rngSeed, this);
+        ThreadPoolWorker* worker = cx->new_<ThreadPoolWorker>(workerId, rngSeed, this);
         if (!worker || !workers_.append(worker)) {
             terminateWorkersAndReportOOM(cx);
             return false;
@@ -355,7 +355,7 @@ ThreadPool::lazyStartWorkers(JSContext *cx)
 }
 
 void
-ThreadPool::terminateWorkersAndReportOOM(JSContext *cx)
+ThreadPool::terminateWorkersAndReportOOM(JSContext* cx)
 {
     terminateWorkers();
     MOZ_ASSERT(workers_.empty());
@@ -392,7 +392,7 @@ ThreadPool::terminate()
 }
 
 void
-ThreadPool::join(AutoLockMonitor &lock)
+ThreadPool::join(AutoLockMonitor& lock)
 {
     MOZ_ASSERT(lock.isFor(*this));
     if (--activeWorkers_ == 0)
@@ -400,7 +400,7 @@ ThreadPool::join(AutoLockMonitor &lock)
 }
 
 void
-ThreadPool::waitForWorkers(AutoLockMonitor &lock)
+ThreadPool::waitForWorkers(AutoLockMonitor& lock)
 {
     MOZ_ASSERT(lock.isFor(*this));
     while (activeWorkers_ > 0)
@@ -409,7 +409,7 @@ ThreadPool::waitForWorkers(AutoLockMonitor &lock)
 }
 
 ParallelResult
-ThreadPool::executeJob(JSContext *cx, ParallelJob *job, uint16_t sliceStart, uint16_t sliceMax)
+ThreadPool::executeJob(JSContext* cx, ParallelJob* job, uint16_t sliceStart, uint16_t sliceMax)
 {
     MOZ_ASSERT(sliceStart < sliceMax);
     MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
@@ -496,23 +496,23 @@ ThreadPool::abortJob()
 // to manage a predictable chunk cache here as we don't want chunks to
 // be deallocated during a parallel section.
 
-gc::ForkJoinNurseryChunk *
+gc::ForkJoinNurseryChunk*
 ThreadPool::getChunk()
 {
 #ifdef JSGC_FJGENERATIONAL
     PR_Lock(chunkLock_);
     timeOfLastAllocation_ = PRMJ_Now()/1000000;
-    ChunkFreeList *p = freeChunks_;
+    ChunkFreeList* p = freeChunks_;
     if (p)
         freeChunks_ = p->next;
     PR_Unlock(chunkLock_);
 
     if (p) {
         // Already poisoned.
-        return reinterpret_cast<gc::ForkJoinNurseryChunk *>(p);
+        return reinterpret_cast<gc::ForkJoinNurseryChunk*>(p);
     }
-    gc::ForkJoinNurseryChunk *c =
-        reinterpret_cast<gc::ForkJoinNurseryChunk *>(
+    gc::ForkJoinNurseryChunk* c =
+        reinterpret_cast<gc::ForkJoinNurseryChunk*>(
             gc::MapAlignedPages(gc::ChunkSize, gc::ChunkSize));
     if (!c)
         return c;
@@ -524,13 +524,13 @@ ThreadPool::getChunk()
 }
 
 void
-ThreadPool::putFreeChunk(gc::ForkJoinNurseryChunk *c)
+ThreadPool::putFreeChunk(gc::ForkJoinNurseryChunk* c)
 {
 #ifdef JSGC_FJGENERATIONAL
     poisonChunk(c);
 
     PR_Lock(chunkLock_);
-    ChunkFreeList *p = reinterpret_cast<ChunkFreeList *>(c);
+    ChunkFreeList* p = reinterpret_cast<ChunkFreeList*>(c);
     p->next = freeChunks_;
     freeChunks_ = p;
     PR_Unlock(chunkLock_);
@@ -538,7 +538,7 @@ ThreadPool::putFreeChunk(gc::ForkJoinNurseryChunk *c)
 }
 
 void
-ThreadPool::poisonChunk(gc::ForkJoinNurseryChunk *c)
+ThreadPool::poisonChunk(gc::ForkJoinNurseryChunk* c)
 {
 #ifdef JSGC_FJGENERATIONAL
 #ifdef DEBUG
@@ -562,12 +562,12 @@ ThreadPool::clearChunkCache()
 {
 #ifdef JSGC_FJGENERATIONAL
     PR_Lock(chunkLock_);
-    ChunkFreeList *p = freeChunks_;
+    ChunkFreeList* p = freeChunks_;
     freeChunks_ = nullptr;
     PR_Unlock(chunkLock_);
 
     while (p) {
-        ChunkFreeList *victim = p;
+        ChunkFreeList* victim = p;
         p = p->next;
         gc::UnmapPages(victim, gc::ChunkSize);
     }

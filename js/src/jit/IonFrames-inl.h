@@ -28,24 +28,24 @@ SafepointIndex::resolve()
 #endif
 }
 
-inline uint8_t *
+inline uint8_t*
 JitFrameIterator::returnAddress() const
 {
-    IonCommonFrameLayout *current = (IonCommonFrameLayout *) current_;
+    IonCommonFrameLayout* current = (IonCommonFrameLayout*) current_;
     return current->returnAddress();
 }
 
 inline size_t
 JitFrameIterator::prevFrameLocalSize() const
 {
-    IonCommonFrameLayout *current = (IonCommonFrameLayout *) current_;
+    IonCommonFrameLayout* current = (IonCommonFrameLayout*) current_;
     return current->prevFrameLocalSize();
 }
 
 inline FrameType
 JitFrameIterator::prevType() const
 {
-    IonCommonFrameLayout *current = (IonCommonFrameLayout *) current_;
+    IonCommonFrameLayout* current = (IonCommonFrameLayout*) current_;
     return current->prevType();
 }
 
@@ -60,16 +60,16 @@ JitFrameIterator::isFakeExitFrame() const
     return res;
 }
 
-inline IonExitFrameLayout *
+inline IonExitFrameLayout*
 JitFrameIterator::exitFrame() const
 {
     JS_ASSERT(type() == JitFrame_Exit);
     JS_ASSERT(!isFakeExitFrame());
-    return (IonExitFrameLayout *) fp();
+    return (IonExitFrameLayout*) fp();
 }
 
-inline BaselineFrame *
-GetTopBaselineFrame(JSContext *cx)
+inline BaselineFrame*
+GetTopBaselineFrame(JSContext* cx)
 {
     JitFrameIterator iter(cx);
     JS_ASSERT(iter.type() == JitFrame_Exit);
@@ -80,14 +80,14 @@ GetTopBaselineFrame(JSContext *cx)
     return iter.baselineFrame();
 }
 
-inline JSScript *
-GetTopIonJSScript(JSContext *cx, void **returnAddrOut = nullptr)
+inline JSScript*
+GetTopIonJSScript(JSContext* cx, void** returnAddrOut = nullptr)
 {
     return GetTopIonJSScript(cx->mainThread().jitTop, returnAddrOut, SequentialExecution);
 }
 
-inline JSScript *
-GetTopIonJSScript(ForkJoinContext *cx, void **returnAddrOut = nullptr)
+inline JSScript*
+GetTopIonJSScript(ForkJoinContext* cx, void** returnAddrOut = nullptr)
 {
     return GetTopIonJSScript(cx->perThreadData->jitTop, returnAddrOut, ParallelExecution);
 }

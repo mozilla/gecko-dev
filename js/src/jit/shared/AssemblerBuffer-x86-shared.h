@@ -163,7 +163,7 @@ namespace jit {
                 return 0;
             }
 
-            m_allocSize = js::AlignBytes(m_size, sizeof(void *));
+            m_allocSize = js::AlignBytes(m_size, sizeof(void*));
 
             void* result = allocator->alloc(m_allocSize, poolp, kind);
             if (!result) {
@@ -177,9 +177,9 @@ namespace jit {
             return memcpy(result, m_buffer, m_size);
         }
 
-        unsigned char *buffer() const {
+        unsigned char* buffer() const {
             MOZ_ASSERT(!m_oom);
-            return reinterpret_cast<unsigned char *>(m_buffer);
+            return reinterpret_cast<unsigned char*>(m_buffer);
         }
 
     protected:
@@ -267,7 +267,7 @@ namespace jit {
 
     class GenericAssembler
     {
-        js::Sprinter *printer;
+        js::Sprinter* printer;
 
       public:
 
@@ -278,11 +278,11 @@ namespace jit {
           , isOOLPath(false)
         {}
 
-        void setPrinter(js::Sprinter *sp) {
+        void setPrinter(js::Sprinter* sp) {
             printer = sp;
         }
 
-        void spew(const char *fmt, ...)
+        void spew(const char* fmt, ...)
 #ifdef __GNUC__
             __attribute__ ((format (printf, 2, 3)))
 #endif
@@ -305,7 +305,7 @@ namespace jit {
             }
         }
 
-        static void staticSpew(const char *fmt, ...)
+        static void staticSpew(const char* fmt, ...)
 #ifdef __GNUC__
             __attribute__ ((format (printf, 1, 2)))
 #endif

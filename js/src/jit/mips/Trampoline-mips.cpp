@@ -53,20 +53,20 @@ struct EnterJITRegs
 struct EnterJITArgs
 {
     // First 4 argumet placeholders
-    void *jitcode; // <- sp points here when function is entered.
+    void* jitcode; // <- sp points here when function is entered.
     int maxArgc;
-    Value *maxArgv;
-    InterpreterFrame *fp;
+    Value* maxArgv;
+    InterpreterFrame* fp;
 
     // Arguments on stack
     CalleeToken calleeToken;
-    JSObject *scopeChain;
+    JSObject* scopeChain;
     size_t numStackValues;
-    Value *vp;
+    Value* vp;
 };
 
 static void
-GenerateReturn(MacroAssembler &masm, int returnCode)
+GenerateReturn(MacroAssembler& masm, int returnCode)
 {
     MOZ_ASSERT(masm.framePushed() == sizeof(EnterJITRegs));
 
@@ -95,7 +95,7 @@ GenerateReturn(MacroAssembler &masm, int returnCode)
 }
 
 static void
-GeneratePrologue(MacroAssembler &masm)
+GeneratePrologue(MacroAssembler& masm)
 {
     // Save non-volatile registers. These must be saved by the trampoline,
     // rather than the JIT'd code, because they are scanned by the conservative
@@ -123,12 +123,12 @@ GeneratePrologue(MacroAssembler &masm)
 /*
  * This method generates a trampoline for a c++ function with the following
  * signature:
- *   void enter(void *code, int argc, Value *argv, InterpreterFrame *fp,
- *              CalleeToken calleeToken, JSObject *scopeChain, Value *vp)
+ *   void enter(void* code, int argc, Value* argv, InterpreterFrame* fp,
+ *              CalleeToken calleeToken, JSObject* scopeChain, Value* vp)
  *   ...using standard EABI calling convention
  */
-JitCode *
-JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
+JitCode*
+JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
 {
     const Register reg_code = a0;
     const Register reg_argc = a1;
@@ -247,7 +247,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.passABIArg(BaselineFrameReg); // BaselineFrame
         masm.passABIArg(OsrFrameReg); // InterpreterFrame
         masm.passABIArg(numStackValues);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, jit::InitBaselineFrameForOsr));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, jit::InitBaselineFrameForOsr));
 
         regs.add(OsrFrameReg);
         regs.add(scratch);
@@ -306,7 +306,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
     Linker linker(masm);
     AutoFlushICache afc("GenerateEnterJIT");
-    JitCode *code = linker.newCode<NoGC>(cx, OTHER_CODE);
+    JitCode* code = linker.newCode<NoGC>(cx, OTHER_CODE);
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "EnterJIT");
@@ -315,8 +315,8 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     return code;
 }
 
-JitCode *
-JitRuntime::generateInvalidator(JSContext *cx)
+JitCode*
+JitRuntime::generateInvalidator(JSContext* cx)
 {
     MacroAssembler masm(cx);
 
@@ -358,7 +358,7 @@ JitRuntime::generateInvalidator(JSContext *cx)
     masm.passABIArg(a0);
     masm.passABIArg(a1);
     masm.passABIArg(a2);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, InvalidationBailout));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, InvalidationBailout));
 
     masm.loadPtr(Address(StackPointer, 0), a2);
     masm.loadPtr(Address(StackPointer, sizeof(uintptr_t)), a1);
@@ -371,13 +371,13 @@ JitRuntime::generateInvalidator(JSContext *cx)
     masm.addPtr(a1, StackPointer);
 
     // Jump to shared bailout tail. The BailoutInfo pointer has to be in r2.
-    JitCode *bailoutTail = cx->runtime()->jitRuntime()->getBailoutTail();
+    JitCode* bailoutTail = cx->runtime()->jitRuntime()->getBailoutTail();
     masm.branch(bailoutTail);
 
     Linker linker(masm);
     AutoFlushICache afc("Invalidator");
-    JitCode *code = linker.newCode<NoGC>(cx, OTHER_CODE);
-    IonSpew(IonSpew_Invalidate, "   invalidation thunk created at %p", (void *) code->raw());
+    JitCode* code = linker.newCode<NoGC>(cx, OTHER_CODE);
+    IonSpew(IonSpew_Invalidate, "   invalidation thunk created at %p", (void*) code->raw());
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "Invalidator");
@@ -386,8 +386,8 @@ JitRuntime::generateInvalidator(JSContext *cx)
     return code;
 }
 
-JitCode *
-JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void **returnAddrOut)
+JitCode*
+JitRuntime::generateArgumentsRectifier(JSContext* cx, ExecutionMode mode, void** returnAddrOut)
 {
     MacroAssembler masm(cx);
 
@@ -508,12 +508,12 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     masm.ret();
     Linker linker(masm);
     AutoFlushICache afc("ArgumentsRectifier");
-    JitCode *code = linker.newCode<NoGC>(cx, OTHER_CODE);
+    JitCode* code = linker.newCode<NoGC>(cx, OTHER_CODE);
 
     CodeOffsetLabel returnLabel(returnOffset);
     returnLabel.fixup(&masm);
     if (returnAddrOut)
-        *returnAddrOut = (void *) (code->raw() + returnLabel.offset());
+        *returnAddrOut = (void*) (code->raw() + returnLabel.offset());
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "ArgumentsRectifier");
@@ -545,7 +545,7 @@ static const uint32_t bailoutInfoOutParamSize = 2 * sizeof(uintptr_t);
  * (See: JitRuntime::generateBailoutHandler).
  */
 static void
-PushBailoutFrame(MacroAssembler &masm, uint32_t frameClass, Register spArg)
+PushBailoutFrame(MacroAssembler& masm, uint32_t frameClass, Register spArg)
 {
     // Make sure that alignment is proper.
     masm.checkStackAlignment();
@@ -578,7 +578,7 @@ PushBailoutFrame(MacroAssembler &masm, uint32_t frameClass, Register spArg)
 }
 
 static void
-GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
+GenerateBailoutThunk(JSContext* cx, MacroAssembler& masm, uint32_t frameClass)
 {
     PushBailoutFrame(masm, frameClass, a0);
 
@@ -590,7 +590,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     masm.setupAlignedABICall(2);
     masm.passABIArg(a0);
     masm.passABIArg(a1);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Bailout));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, Bailout));
 
     // Get BailoutInfo pointer
     masm.loadPtr(Address(StackPointer, 0), a2);
@@ -612,12 +612,12 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     }
 
     // Jump to shared bailout tail. The BailoutInfo pointer has to be in a2.
-    JitCode *bailoutTail = cx->runtime()->jitRuntime()->getBailoutTail();
+    JitCode* bailoutTail = cx->runtime()->jitRuntime()->getBailoutTail();
     masm.branch(bailoutTail);
 }
 
 static void
-GenerateParallelBailoutThunk(MacroAssembler &masm, uint32_t frameClass)
+GenerateParallelBailoutThunk(MacroAssembler& masm, uint32_t frameClass)
 {
     // As GenerateBailoutThunk, except we return an error immediately. We do
     // the bailout dance so that we can walk the stack and have accurate
@@ -627,14 +627,14 @@ GenerateParallelBailoutThunk(MacroAssembler &masm, uint32_t frameClass)
 
     // Parallel bailout is like parallel failure in that we unwind all the way
     // to the entry frame. Reserve space for the frame pointer of the entry frame.
-    const int sizeOfEntryFramePointer = sizeof(uint8_t *) * 2;
+    const int sizeOfEntryFramePointer = sizeof(uint8_t*) * 2;
     masm.reserveStack(sizeOfEntryFramePointer);
     masm.movePtr(sp, a1);
 
     masm.setupAlignedABICall(2);
     masm.passABIArg(a0);
     masm.passABIArg(a1);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, BailoutPar));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, BailoutPar));
 
     // Get the frame pointer of the entry frame and return.
     masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
@@ -642,8 +642,8 @@ GenerateParallelBailoutThunk(MacroAssembler &masm, uint32_t frameClass)
     masm.ret();
 }
 
-JitCode *
-JitRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
+JitCode*
+JitRuntime::generateBailoutTable(JSContext* cx, uint32_t frameClass)
 {
     MacroAssembler masm(cx);
 
@@ -662,7 +662,7 @@ JitRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
 
     Linker linker(masm);
     AutoFlushICache afc("BailoutTable");
-    JitCode *code = linker.newCode<NoGC>(cx, OTHER_CODE);
+    JitCode* code = linker.newCode<NoGC>(cx, OTHER_CODE);
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "BailoutTable");
@@ -671,8 +671,8 @@ JitRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
     return code;
 }
 
-JitCode *
-JitRuntime::generateBailoutHandler(JSContext *cx, ExecutionMode mode)
+JitCode*
+JitRuntime::generateBailoutHandler(JSContext* cx, ExecutionMode mode)
 {
     MacroAssembler masm(cx);
 
@@ -689,7 +689,7 @@ JitRuntime::generateBailoutHandler(JSContext *cx, ExecutionMode mode)
 
     Linker linker(masm);
     AutoFlushICache afc("BailoutHandler");
-    JitCode *code = linker.newCode<NoGC>(cx, OTHER_CODE);
+    JitCode* code = linker.newCode<NoGC>(cx, OTHER_CODE);
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "BailoutHandler");
@@ -698,8 +698,8 @@ JitRuntime::generateBailoutHandler(JSContext *cx, ExecutionMode mode)
     return code;
 }
 
-JitCode *
-JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
+JitCode*
+JitRuntime::generateVMWrapper(JSContext* cx, const VMFunction& f)
 {
     MOZ_ASSERT(functionWrappers_);
     MOZ_ASSERT(functionWrappers_->initialized());
@@ -888,7 +888,7 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     Linker linker(masm);
     AutoFlushICache afc("VMWrapper");
-    JitCode *wrapper = linker.newCode<NoGC>(cx, OTHER_CODE);
+    JitCode* wrapper = linker.newCode<NoGC>(cx, OTHER_CODE);
     if (!wrapper)
         return nullptr;
 
@@ -904,8 +904,8 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
     return wrapper;
 }
 
-JitCode *
-JitRuntime::generatePreBarrier(JSContext *cx, MIRType type)
+JitCode*
+JitRuntime::generatePreBarrier(JSContext* cx, MIRType type)
 {
     MacroAssembler masm(cx);
 
@@ -932,7 +932,7 @@ JitRuntime::generatePreBarrier(JSContext *cx, MIRType type)
 
     Linker linker(masm);
     AutoFlushICache afc("PreBarrier");
-    JitCode *code = linker.newCode<NoGC>(cx, OTHER_CODE);
+    JitCode* code = linker.newCode<NoGC>(cx, OTHER_CODE);
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "PreBarrier");
@@ -941,11 +941,11 @@ JitRuntime::generatePreBarrier(JSContext *cx, MIRType type)
     return code;
 }
 
-typedef bool (*HandleDebugTrapFn)(JSContext *, BaselineFrame *, uint8_t *, bool *);
+typedef bool (*HandleDebugTrapFn)(JSContext*, BaselineFrame*, uint8_t*, bool*);
 static const VMFunction HandleDebugTrapInfo = FunctionInfo<HandleDebugTrapFn>(HandleDebugTrap);
 
-JitCode *
-JitRuntime::generateDebugTrapHandler(JSContext *cx)
+JitCode*
+JitRuntime::generateDebugTrapHandler(JSContext* cx)
 {
     MacroAssembler masm(cx);
 
@@ -962,7 +962,7 @@ JitRuntime::generateDebugTrapHandler(JSContext *cx)
     masm.movePtr(ImmPtr(nullptr), BaselineStubReg);
     EmitEnterStubFrame(masm, scratch2);
 
-    JitCode *code = cx->runtime()->jitRuntime()->getVMWrapper(HandleDebugTrapInfo);
+    JitCode* code = cx->runtime()->jitRuntime()->getVMWrapper(HandleDebugTrapInfo);
     if (!code)
         return nullptr;
 
@@ -992,7 +992,7 @@ JitRuntime::generateDebugTrapHandler(JSContext *cx)
 
     Linker linker(masm);
     AutoFlushICache afc("DebugTrapHandler");
-    JitCode *codeDbg = linker.newCode<NoGC>(cx, OTHER_CODE);
+    JitCode* codeDbg = linker.newCode<NoGC>(cx, OTHER_CODE);
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(codeDbg, "DebugTrapHandler");
@@ -1002,8 +1002,8 @@ JitRuntime::generateDebugTrapHandler(JSContext *cx)
 }
 
 
-JitCode *
-JitRuntime::generateExceptionTailStub(JSContext *cx, void *handler)
+JitCode*
+JitRuntime::generateExceptionTailStub(JSContext* cx, void* handler)
 {
     MacroAssembler masm;
 
@@ -1011,7 +1011,7 @@ JitRuntime::generateExceptionTailStub(JSContext *cx, void *handler)
 
     Linker linker(masm);
     AutoFlushICache afc("ExceptionTailStub");
-    JitCode *code = linker.newCode<NoGC>(cx, OTHER_CODE);
+    JitCode* code = linker.newCode<NoGC>(cx, OTHER_CODE);
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "ExceptionTailStub");
@@ -1020,8 +1020,8 @@ JitRuntime::generateExceptionTailStub(JSContext *cx, void *handler)
     return code;
 }
 
-JitCode *
-JitRuntime::generateBailoutTailStub(JSContext *cx)
+JitCode*
+JitRuntime::generateBailoutTailStub(JSContext* cx)
 {
     MacroAssembler masm;
 
@@ -1029,7 +1029,7 @@ JitRuntime::generateBailoutTailStub(JSContext *cx)
 
     Linker linker(masm);
     AutoFlushICache afc("BailoutTailStub");
-    JitCode *code = linker.newCode<NoGC>(cx, OTHER_CODE);
+    JitCode* code = linker.newCode<NoGC>(cx, OTHER_CODE);
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "BailoutTailStub");

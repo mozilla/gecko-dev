@@ -53,11 +53,11 @@ JSID_IS_STRING(jsid id)
     return (JSID_BITS(id) & JSID_TYPE_MASK) == 0;
 }
 
-static MOZ_ALWAYS_INLINE JSString *
+static MOZ_ALWAYS_INLINE JSString*
 JSID_TO_STRING(jsid id)
 {
     MOZ_ASSERT(JSID_IS_STRING(id));
-    return (JSString *)JSID_BITS(id);
+    return (JSString*)JSID_BITS(id);
 }
 
 /*
@@ -68,7 +68,7 @@ JSID_TO_STRING(jsid id)
  * string must be appropriately rooted to avoid being collected by the GC.
  */
 JS_PUBLIC_API(jsid)
-INTERNED_STRING_TO_JSID(JSContext *cx, JSString *str);
+INTERNED_STRING_TO_JSID(JSContext* cx, JSString* str);
 
 static MOZ_ALWAYS_INLINE bool
 JSID_IS_ZERO(jsid id)
@@ -114,15 +114,15 @@ JSID_IS_SYMBOL(jsid id)
            JSID_BITS(id) != JSID_TYPE_SYMBOL;
 }
 
-static MOZ_ALWAYS_INLINE JS::Symbol *
+static MOZ_ALWAYS_INLINE JS::Symbol*
 JSID_TO_SYMBOL(jsid id)
 {
     MOZ_ASSERT(JSID_IS_SYMBOL(id));
-    return (JS::Symbol *)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
+    return (JS::Symbol*)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
 }
 
 static MOZ_ALWAYS_INLINE jsid
-SYMBOL_TO_JSID(JS::Symbol *sym)
+SYMBOL_TO_JSID(JS::Symbol* sym)
 {
     jsid id;
     MOZ_ASSERT(sym != nullptr);
@@ -139,10 +139,10 @@ JSID_IS_GCTHING(jsid id)
     return JSID_IS_STRING(id) || JSID_IS_SYMBOL(id);
 }
 
-static MOZ_ALWAYS_INLINE void *
+static MOZ_ALWAYS_INLINE void*
 JSID_TO_GCTHING(jsid id)
 {
-    return (void *)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
+    return (void*)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
 }
 
 static MOZ_ALWAYS_INLINE bool
@@ -183,8 +183,8 @@ template <> struct GCMethods<jsid>
     static bool poisoned(jsid id) { return IsPoisonedId(id); }
     static bool needsPostBarrier(jsid id) { return false; }
 #ifdef JSGC_GENERATIONAL
-    static void postBarrier(jsid *idp) {}
-    static void relocate(jsid *idp) {}
+    static void postBarrier(jsid* idp) {}
+    static void relocate(jsid* idp) {}
 #endif
 };
 

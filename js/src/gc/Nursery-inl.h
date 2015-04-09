@@ -20,11 +20,11 @@ namespace js {
 namespace gc {
 
 /* static */
-inline RelocationOverlay *
-RelocationOverlay::fromCell(Cell *cell)
+inline RelocationOverlay*
+RelocationOverlay::fromCell(Cell* cell)
 {
     JS_ASSERT(!cell->isTenured());
-    return reinterpret_cast<RelocationOverlay *>(cell);
+    return reinterpret_cast<RelocationOverlay*>(cell);
 }
 
 inline bool
@@ -33,7 +33,7 @@ RelocationOverlay::isForwarded() const
     return magic_ == Relocated;
 }
 
-inline Cell *
+inline Cell*
 RelocationOverlay::forwardingAddress() const
 {
     JS_ASSERT(isForwarded());
@@ -41,7 +41,7 @@ RelocationOverlay::forwardingAddress() const
 }
 
 inline void
-RelocationOverlay::forwardTo(Cell *cell)
+RelocationOverlay::forwardTo(Cell* cell)
 {
     JS_ASSERT(!isForwarded());
     magic_ = Relocated;
@@ -49,7 +49,7 @@ RelocationOverlay::forwardTo(Cell *cell)
     next_ = nullptr;
 }
 
-inline RelocationOverlay *
+inline RelocationOverlay*
 RelocationOverlay::next() const
 {
     return next_;
@@ -60,20 +60,20 @@ RelocationOverlay::next() const
 
 template <typename T>
 MOZ_ALWAYS_INLINE bool
-js::Nursery::getForwardedPointer(T **ref)
+js::Nursery::getForwardedPointer(T** ref)
 {
     JS_ASSERT(ref);
-    JS_ASSERT(isInside((void *)*ref));
-    const gc::RelocationOverlay *overlay = reinterpret_cast<const gc::RelocationOverlay *>(*ref);
+    JS_ASSERT(isInside((void*)*ref));
+    const gc::RelocationOverlay* overlay = reinterpret_cast<const gc::RelocationOverlay*>(*ref);
     if (!overlay->isForwarded())
         return false;
     /* This static cast from Cell* restricts T to valid (GC thing) types. */
-    *ref = static_cast<T *>(overlay->forwardingAddress());
+    *ref = static_cast<T*>(overlay->forwardingAddress());
     return true;
 }
 
 inline void
-js::Nursery::forwardBufferPointer(JSTracer* trc, HeapSlot **pSlotElems)
+js::Nursery::forwardBufferPointer(JSTracer* trc, HeapSlot** pSlotElems)
 {
     trc->runtime()->gc.nursery.forwardBufferPointer(pSlotElems);
 }

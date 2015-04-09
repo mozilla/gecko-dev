@@ -31,28 +31,28 @@ struct MinimalFunc
         options(),
         info(0, SequentialExecution),
         graph(&alloc),
-        mir(static_cast<CompileCompartment *>(nullptr), options, &alloc, &graph,
-            &info, static_cast<const OptimizationInfo *>(nullptr)),
+        mir(static_cast<CompileCompartment*>(nullptr), options, &alloc, &graph,
+            &info, static_cast<const OptimizationInfo*>(nullptr)),
         numParams(0)
     { }
 
-    MBasicBlock *createEntryBlock()
+    MBasicBlock* createEntryBlock()
     {
-        MBasicBlock *block = MBasicBlock::NewAsmJS(graph, info, nullptr, MBasicBlock::NORMAL);
+        MBasicBlock* block = MBasicBlock::NewAsmJS(graph, info, nullptr, MBasicBlock::NORMAL);
         graph.addBlock(block);
         return block;
     }
 
-    MBasicBlock *createBlock(MBasicBlock *pred)
+    MBasicBlock* createBlock(MBasicBlock* pred)
     {
-        MBasicBlock *block = MBasicBlock::NewAsmJS(graph, info, pred, MBasicBlock::NORMAL);
+        MBasicBlock* block = MBasicBlock::NewAsmJS(graph, info, pred, MBasicBlock::NORMAL);
         graph.addBlock(block);
         return block;
     }
 
-    MParameter *createParameter()
+    MParameter* createParameter()
     {
-        MParameter *p = MParameter::New(alloc, numParams++, nullptr);
+        MParameter* p = MParameter::New(alloc, numParams++, nullptr);
         return p;
     }
 

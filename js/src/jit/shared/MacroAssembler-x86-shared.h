@@ -42,7 +42,7 @@ class MacroAssemblerX86Shared : public Assembler
         else
             ucomisd(lhs, rhs);
     }
-    void branchDouble(DoubleCondition cond, FloatRegister lhs, FloatRegister rhs, Label *label)
+    void branchDouble(DoubleCondition cond, FloatRegister lhs, FloatRegister rhs, Label* label)
     {
         compareDouble(cond, lhs, rhs);
 
@@ -69,7 +69,7 @@ class MacroAssemblerX86Shared : public Assembler
         else
             ucomiss(lhs, rhs);
     }
-    void branchFloat(DoubleCondition cond, FloatRegister lhs, FloatRegister rhs, Label *label)
+    void branchFloat(DoubleCondition cond, FloatRegister lhs, FloatRegister rhs, Label* label)
     {
         compareFloat(cond, lhs, rhs);
 
@@ -90,8 +90,8 @@ class MacroAssemblerX86Shared : public Assembler
         j(ConditionFromDoubleCondition(cond), label);
     }
 
-    void branchNegativeZero(FloatRegister reg, Register scratch, Label *label);
-    void branchNegativeZeroFloat32(FloatRegister reg, Register scratch, Label *label);
+    void branchNegativeZero(FloatRegister reg, Register scratch, Label* label);
+    void branchNegativeZeroFloat32(FloatRegister reg, Register scratch, Label* label);
 
     void move32(Imm32 imm, Register dest) {
         // Use the ImmWord version of mov to register, which has special
@@ -99,25 +99,25 @@ class MacroAssemblerX86Shared : public Assembler
         // is zero-extended.
         mov(ImmWord(uint32_t(imm.value)), dest);
     }
-    void move32(Imm32 imm, const Operand &dest) {
+    void move32(Imm32 imm, const Operand& dest) {
         movl(imm, dest);
     }
     void move32(Register src, Register dest) {
         movl(src, dest);
     }
-    void move32(Register src, const Operand &dest) {
+    void move32(Register src, const Operand& dest) {
         movl(src, dest);
     }
     void and32(Register src, Register dest) {
         andl(src, dest);
     }
-    void and32(const Address &src, Register dest) {
+    void and32(const Address& src, Register dest) {
         andl(Operand(src), dest);
     }
     void and32(Imm32 imm, Register dest) {
         andl(imm, dest);
     }
-    void and32(Imm32 imm, const Address &dest) {
+    void and32(Imm32 imm, const Address& dest) {
         andl(imm, Operand(dest));
     }
     void or32(Register src, Register dest) {
@@ -126,7 +126,7 @@ class MacroAssemblerX86Shared : public Assembler
     void or32(Imm32 imm, Register dest) {
         orl(imm, dest);
     }
-    void or32(Imm32 imm, const Address &dest) {
+    void or32(Imm32 imm, const Address& dest) {
         orl(imm, Operand(dest));
     }
     void neg32(Register reg) {
@@ -135,7 +135,7 @@ class MacroAssemblerX86Shared : public Assembler
     void test32(Register lhs, Register rhs) {
         testl(lhs, rhs);
     }
-    void test32(const Address &addr, Imm32 imm) {
+    void test32(const Address& addr, Imm32 imm) {
         testl(Operand(addr), imm);
     }
     void test32(Register lhs, Imm32 rhs) {
@@ -147,10 +147,10 @@ class MacroAssemblerX86Shared : public Assembler
     void cmp32(Register a, Register b) {
         cmpl(a, b);
     }
-    void cmp32(const Operand &lhs, Imm32 rhs) {
+    void cmp32(const Operand& lhs, Imm32 rhs) {
         cmpl(lhs, rhs);
     }
-    void cmp32(const Operand &lhs, Register rhs) {
+    void cmp32(const Operand& lhs, Register rhs) {
         cmpl(lhs, rhs);
     }
     void add32(Register src, Register dest) {
@@ -159,7 +159,7 @@ class MacroAssemblerX86Shared : public Assembler
     void add32(Imm32 imm, Register dest) {
         addl(imm, dest);
     }
-    void add32(Imm32 imm, const Address &dest) {
+    void add32(Imm32 imm, const Address& dest) {
         addl(imm, Operand(dest));
     }
     void sub32(Imm32 imm, Register dest) {
@@ -169,12 +169,12 @@ class MacroAssemblerX86Shared : public Assembler
         subl(src, dest);
     }
     template <typename T>
-    void branchAdd32(Condition cond, T src, Register dest, Label *label) {
+    void branchAdd32(Condition cond, T src, Register dest, Label* label) {
         add32(src, dest);
         j(cond, label);
     }
     template <typename T>
-    void branchSub32(Condition cond, T src, Register dest, Label *label) {
+    void branchSub32(Condition cond, T src, Register dest, Label* label) {
         sub32(src, dest);
         j(cond, label);
     }
@@ -187,61 +187,61 @@ class MacroAssemblerX86Shared : public Assembler
     void not32(Register reg) {
         notl(reg);
     }
-    void atomic_inc32(const Operand &addr) {
+    void atomic_inc32(const Operand& addr) {
         lock_incl(addr);
     }
-    void atomic_dec32(const Operand &addr) {
+    void atomic_dec32(const Operand& addr) {
         lock_decl(addr);
     }
-    void atomic_cmpxchg32(Register src, const Operand &addr, Register dest) {
+    void atomic_cmpxchg32(Register src, const Operand& addr, Register dest) {
         // %eax must be explicitly provided for calling clarity.
         MOZ_ASSERT(dest.code() == X86Registers::eax);
         lock_cmpxchg32(src, addr);
     }
 
-    void branch16(Condition cond, Register lhs, Register rhs, Label *label) {
+    void branch16(Condition cond, Register lhs, Register rhs, Label* label) {
         cmpw(lhs, rhs);
         j(cond, label);
     }
-    void branch32(Condition cond, const Operand &lhs, Register rhs, Label *label) {
+    void branch32(Condition cond, const Operand& lhs, Register rhs, Label* label) {
         cmpl(lhs, rhs);
         j(cond, label);
     }
-    void branch32(Condition cond, const Operand &lhs, Imm32 rhs, Label *label) {
+    void branch32(Condition cond, const Operand& lhs, Imm32 rhs, Label* label) {
         cmpl(lhs, rhs);
         j(cond, label);
     }
-    void branch32(Condition cond, const Address &lhs, Register rhs, Label *label) {
+    void branch32(Condition cond, const Address& lhs, Register rhs, Label* label) {
         cmpl(Operand(lhs), rhs);
         j(cond, label);
     }
-    void branch32(Condition cond, const Address &lhs, Imm32 imm, Label *label) {
+    void branch32(Condition cond, const Address& lhs, Imm32 imm, Label* label) {
         cmpl(Operand(lhs), imm);
         j(cond, label);
     }
-    void branch32(Condition cond, Register lhs, Imm32 imm, Label *label) {
+    void branch32(Condition cond, Register lhs, Imm32 imm, Label* label) {
         cmpl(lhs, imm);
         j(cond, label);
     }
-    void branch32(Condition cond, Register lhs, Register rhs, Label *label) {
+    void branch32(Condition cond, Register lhs, Register rhs, Label* label) {
         cmpl(lhs, rhs);
         j(cond, label);
     }
-    void branchTest16(Condition cond, Register lhs, Register rhs, Label *label) {
+    void branchTest16(Condition cond, Register lhs, Register rhs, Label* label) {
         testw(lhs, rhs);
         j(cond, label);
     }
-    void branchTest32(Condition cond, Register lhs, Register rhs, Label *label) {
+    void branchTest32(Condition cond, Register lhs, Register rhs, Label* label) {
         JS_ASSERT(cond == Zero || cond == NonZero || cond == Signed || cond == NotSigned);
         testl(lhs, rhs);
         j(cond, label);
     }
-    void branchTest32(Condition cond, Register lhs, Imm32 imm, Label *label) {
+    void branchTest32(Condition cond, Register lhs, Imm32 imm, Label* label) {
         JS_ASSERT(cond == Zero || cond == NonZero || cond == Signed || cond == NotSigned);
         testl(lhs, imm);
         j(cond, label);
     }
-    void branchTest32(Condition cond, const Address &address, Imm32 imm, Label *label) {
+    void branchTest32(Condition cond, const Address& address, Imm32 imm, Label* label) {
         JS_ASSERT(cond == Zero || cond == NonZero || cond == Signed || cond == NotSigned);
         testl(Operand(address), imm);
         j(cond, label);
@@ -249,7 +249,7 @@ class MacroAssemblerX86Shared : public Assembler
 
     // The following functions are exposed for use in platform-shared code.
     template <typename T>
-    void Push(const T &t) {
+    void Push(const T& t) {
         push(t);
         framePushed_ += sizeof(intptr_t);
     }
@@ -266,7 +266,7 @@ class MacroAssemblerX86Shared : public Assembler
     }
 
     template <typename T>
-    void Pop(const T &t) {
+    void Pop(const T& t) {
         pop(t);
         framePushed_ -= sizeof(intptr_t);
     }
@@ -285,19 +285,19 @@ class MacroAssemblerX86Shared : public Assembler
         framePushed_ = framePushed;
     }
 
-    void jump(Label *label) {
+    void jump(Label* label) {
         jmp(label);
     }
-    void jump(JitCode *code) {
+    void jump(JitCode* code) {
         jmp(code);
     }
-    void jump(RepatchLabel *label) {
+    void jump(RepatchLabel* label) {
         jmp(label);
     }
     void jump(Register reg) {
         jmp(Operand(reg));
     }
-    void jump(const Address &addr) {
+    void jump(const Address& addr) {
         jmp(Operand(addr));
     }
 
@@ -311,10 +311,10 @@ class MacroAssemblerX86Shared : public Assembler
         zeroDouble(dest);
         cvtsi2sd(src, dest);
     }
-    void convertInt32ToDouble(const Address &src, FloatRegister dest) {
+    void convertInt32ToDouble(const Address& src, FloatRegister dest) {
         convertInt32ToDouble(Operand(src), dest);
     }
-    void convertInt32ToDouble(const Operand &src, FloatRegister dest) {
+    void convertInt32ToDouble(const Operand& src, FloatRegister dest) {
         // Clear the output register first to break dependencies; see above;
         zeroDouble(dest);
         cvtsi2sd(Operand(src), dest);
@@ -324,10 +324,10 @@ class MacroAssemblerX86Shared : public Assembler
         zeroFloat32(dest);
         cvtsi2ss(src, dest);
     }
-    void convertInt32ToFloat32(const Address &src, FloatRegister dest) {
+    void convertInt32ToFloat32(const Address& src, FloatRegister dest) {
         convertInt32ToFloat32(Operand(src), dest);
     }
-    void convertInt32ToFloat32(const Operand &src, FloatRegister dest) {
+    void convertInt32ToFloat32(const Operand& src, FloatRegister dest) {
         // Clear the output register first to break dependencies; see above;
         zeroFloat32(dest);
         cvtsi2ss(src, dest);
@@ -337,66 +337,66 @@ class MacroAssemblerX86Shared : public Assembler
         ucomisd(ScratchDoubleReg, reg);
         return truthy ? NonZero : Zero;
     }
-    void branchTestDoubleTruthy(bool truthy, FloatRegister reg, Label *label) {
+    void branchTestDoubleTruthy(bool truthy, FloatRegister reg, Label* label) {
         Condition cond = testDoubleTruthy(truthy, reg);
         j(cond, label);
     }
-    void load8ZeroExtend(const Address &src, Register dest) {
+    void load8ZeroExtend(const Address& src, Register dest) {
         movzbl(Operand(src), dest);
     }
-    void load8ZeroExtend(const BaseIndex &src, Register dest) {
+    void load8ZeroExtend(const BaseIndex& src, Register dest) {
         movzbl(Operand(src), dest);
     }
-    void load8SignExtend(const Address &src, Register dest) {
+    void load8SignExtend(const Address& src, Register dest) {
         movsbl(Operand(src), dest);
     }
-    void load8SignExtend(const BaseIndex &src, Register dest) {
+    void load8SignExtend(const BaseIndex& src, Register dest) {
         movsbl(Operand(src), dest);
     }
     template <typename S, typename T>
-    void store8(const S &src, const T &dest) {
+    void store8(const S& src, const T& dest) {
         movb(src, Operand(dest));
     }
-    void load16ZeroExtend(const Address &src, Register dest) {
+    void load16ZeroExtend(const Address& src, Register dest) {
         movzwl(Operand(src), dest);
     }
-    void load16ZeroExtend(const BaseIndex &src, Register dest) {
+    void load16ZeroExtend(const BaseIndex& src, Register dest) {
         movzwl(Operand(src), dest);
     }
     template <typename S, typename T>
-    void store16(const S &src, const T &dest) {
+    void store16(const S& src, const T& dest) {
         movw(src, Operand(dest));
     }
-    void load16SignExtend(const Address &src, Register dest) {
+    void load16SignExtend(const Address& src, Register dest) {
         movswl(Operand(src), dest);
     }
-    void load16SignExtend(const BaseIndex &src, Register dest) {
+    void load16SignExtend(const BaseIndex& src, Register dest) {
         movswl(Operand(src), dest);
     }
-    void load32(const Address &address, Register dest) {
+    void load32(const Address& address, Register dest) {
         movl(Operand(address), dest);
     }
-    void load32(const BaseIndex &src, Register dest) {
+    void load32(const BaseIndex& src, Register dest) {
         movl(Operand(src), dest);
     }
-    void load32(const Operand &src, Register dest) {
+    void load32(const Operand& src, Register dest) {
         movl(src, dest);
     }
     template <typename S, typename T>
-    void store32(const S &src, const T &dest) {
+    void store32(const S& src, const T& dest) {
         movl(src, Operand(dest));
     }
     template <typename S, typename T>
-    void store32_NoSecondScratch(const S &src, const T &dest) {
+    void store32_NoSecondScratch(const S& src, const T& dest) {
         store32(src, dest);
     }
-    void loadDouble(const Address &src, FloatRegister dest) {
+    void loadDouble(const Address& src, FloatRegister dest) {
         movsd(src, dest);
     }
-    void loadDouble(const BaseIndex &src, FloatRegister dest) {
+    void loadDouble(const BaseIndex& src, FloatRegister dest) {
         movsd(src, dest);
     }
-    void loadDouble(const Operand &src, FloatRegister dest) {
+    void loadDouble(const Operand& src, FloatRegister dest) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             loadDouble(src.toAddress(), dest);
@@ -408,13 +408,13 @@ class MacroAssemblerX86Shared : public Assembler
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void storeDouble(FloatRegister src, const Address &dest) {
+    void storeDouble(FloatRegister src, const Address& dest) {
         movsd(src, dest);
     }
-    void storeDouble(FloatRegister src, const BaseIndex &dest) {
+    void storeDouble(FloatRegister src, const BaseIndex& dest) {
         movsd(src, dest);
     }
-    void storeDouble(FloatRegister src, const Operand &dest) {
+    void storeDouble(FloatRegister src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
             storeDouble(src, dest.toAddress());
@@ -470,77 +470,77 @@ class MacroAssemblerX86Shared : public Assembler
         cvtsd2ss(src, dest);
     }
 
-    void bitwiseAndX4(const Operand &src, FloatRegister dest) {
+    void bitwiseAndX4(const Operand& src, FloatRegister dest) {
         // TODO Using the "ps" variant for all types incurs a domain crossing
         // penalty for integer types and double.
         andps(src, dest);
     }
-    void bitwiseOrX4(const Operand &src, FloatRegister dest) {
+    void bitwiseOrX4(const Operand& src, FloatRegister dest) {
         orps(src, dest);
     }
-    void bitwiseXorX4(const Operand &src, FloatRegister dest) {
+    void bitwiseXorX4(const Operand& src, FloatRegister dest) {
         xorps(src, dest);
     }
 
-    void loadAlignedInt32x4(const Address &src, FloatRegister dest) {
+    void loadAlignedInt32x4(const Address& src, FloatRegister dest) {
         movdqa(Operand(src), dest);
     }
-    void loadAlignedInt32x4(const Operand &src, FloatRegister dest) {
+    void loadAlignedInt32x4(const Operand& src, FloatRegister dest) {
         movdqa(src, dest);
     }
-    void storeAlignedInt32x4(FloatRegister src, const Address &dest) {
+    void storeAlignedInt32x4(FloatRegister src, const Address& dest) {
         movdqa(src, Operand(dest));
     }
     void moveAlignedInt32x4(FloatRegister src, FloatRegister dest) {
         movdqa(src, dest);
     }
-    void loadUnalignedInt32x4(const Address &src, FloatRegister dest) {
+    void loadUnalignedInt32x4(const Address& src, FloatRegister dest) {
         movdqu(Operand(src), dest);
     }
-    void storeUnalignedInt32x4(FloatRegister src, const Address &dest) {
+    void storeUnalignedInt32x4(FloatRegister src, const Address& dest) {
         movdqu(src, Operand(dest));
     }
-    void packedEqualInt32x4(const Operand &src, FloatRegister dest) {
+    void packedEqualInt32x4(const Operand& src, FloatRegister dest) {
         pcmpeqd(src, dest);
     }
-    void packedGreaterThanInt32x4(const Operand &src, FloatRegister dest) {
+    void packedGreaterThanInt32x4(const Operand& src, FloatRegister dest) {
         pcmpgtd(src, dest);
     }
-    void packedAddInt32(const Operand &src, FloatRegister dest) {
+    void packedAddInt32(const Operand& src, FloatRegister dest) {
         paddd(src, dest);
     }
-    void packedSubInt32(const Operand &src, FloatRegister dest) {
+    void packedSubInt32(const Operand& src, FloatRegister dest) {
         psubd(src, dest);
     }
 
-    void loadAlignedFloat32x4(const Address &src, FloatRegister dest) {
+    void loadAlignedFloat32x4(const Address& src, FloatRegister dest) {
         movaps(Operand(src), dest);
     }
-    void loadAlignedFloat32x4(const Operand &src, FloatRegister dest) {
+    void loadAlignedFloat32x4(const Operand& src, FloatRegister dest) {
         movaps(src, dest);
     }
-    void storeAlignedFloat32x4(FloatRegister src, const Address &dest) {
+    void storeAlignedFloat32x4(FloatRegister src, const Address& dest) {
         movaps(src, Operand(dest));
     }
     void moveAlignedFloat32x4(FloatRegister src, FloatRegister dest) {
         movaps(src, dest);
     }
-    void loadUnalignedFloat32x4(const Address &src, FloatRegister dest) {
+    void loadUnalignedFloat32x4(const Address& src, FloatRegister dest) {
         movups(Operand(src), dest);
     }
-    void storeUnalignedFloat32x4(FloatRegister src, const Address &dest) {
+    void storeUnalignedFloat32x4(FloatRegister src, const Address& dest) {
         movups(src, Operand(dest));
     }
-    void packedAddFloat32(const Operand &src, FloatRegister dest) {
+    void packedAddFloat32(const Operand& src, FloatRegister dest) {
         addps(src, dest);
     }
-    void packedSubFloat32(const Operand &src, FloatRegister dest) {
+    void packedSubFloat32(const Operand& src, FloatRegister dest) {
         subps(src, dest);
     }
-    void packedMulFloat32(const Operand &src, FloatRegister dest) {
+    void packedMulFloat32(const Operand& src, FloatRegister dest) {
         mulps(src, dest);
     }
-    void packedDivFloat32(const Operand &src, FloatRegister dest) {
+    void packedDivFloat32(const Operand& src, FloatRegister dest) {
         divps(src, dest);
     }
     static uint32_t ComputeShuffleMask(SimdLane x, SimdLane y = LaneX,
@@ -579,25 +579,25 @@ class MacroAssemblerX86Shared : public Assembler
         movd(src, dest);
         cvtss2sd(dest, dest);
     }
-    void loadFloatAsDouble(const Address &src, FloatRegister dest) {
+    void loadFloatAsDouble(const Address& src, FloatRegister dest) {
         movss(src, dest);
         cvtss2sd(dest, dest);
     }
-    void loadFloatAsDouble(const BaseIndex &src, FloatRegister dest) {
+    void loadFloatAsDouble(const BaseIndex& src, FloatRegister dest) {
         movss(src, dest);
         cvtss2sd(dest, dest);
     }
-    void loadFloatAsDouble(const Operand &src, FloatRegister dest) {
+    void loadFloatAsDouble(const Operand& src, FloatRegister dest) {
         loadFloat32(src, dest);
         cvtss2sd(dest, dest);
     }
-    void loadFloat32(const Address &src, FloatRegister dest) {
+    void loadFloat32(const Address& src, FloatRegister dest) {
         movss(src, dest);
     }
-    void loadFloat32(const BaseIndex &src, FloatRegister dest) {
+    void loadFloat32(const BaseIndex& src, FloatRegister dest) {
         movss(src, dest);
     }
-    void loadFloat32(const Operand &src, FloatRegister dest) {
+    void loadFloat32(const Operand& src, FloatRegister dest) {
         switch (src.kind()) {
           case Operand::MEM_REG_DISP:
             loadFloat32(src.toAddress(), dest);
@@ -609,13 +609,13 @@ class MacroAssemblerX86Shared : public Assembler
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void storeFloat32(FloatRegister src, const Address &dest) {
+    void storeFloat32(FloatRegister src, const Address& dest) {
         movss(src, dest);
     }
-    void storeFloat32(FloatRegister src, const BaseIndex &dest) {
+    void storeFloat32(FloatRegister src, const BaseIndex& dest) {
         movss(src, dest);
     }
-    void storeFloat32(FloatRegister src, const Operand &dest) {
+    void storeFloat32(FloatRegister src, const Operand& dest) {
         switch (dest.kind()) {
           case Operand::MEM_REG_DISP:
             storeFloat32(src, dest.toAddress());
@@ -635,7 +635,7 @@ class MacroAssemblerX86Shared : public Assembler
     // Checks whether a double is representable as a 32-bit integer. If so, the
     // integer is written to the output register. Otherwise, a bailout is taken to
     // the given snapshot. This function overwrites the scratch float register.
-    void convertDoubleToInt32(FloatRegister src, Register dest, Label *fail,
+    void convertDoubleToInt32(FloatRegister src, Register dest, Label* fail,
                               bool negativeZeroCheck = true)
     {
         // Check for -0.0
@@ -653,7 +653,7 @@ class MacroAssemblerX86Shared : public Assembler
     // Checks whether a float32 is representable as a 32-bit integer. If so, the
     // integer is written to the output register. Otherwise, a bailout is taken to
     // the given snapshot. This function overwrites the scratch float register.
-    void convertFloat32ToInt32(FloatRegister src, Register dest, Label *fail,
+    void convertFloat32ToInt32(FloatRegister src, Register dest, Label* fail,
                                bool negativeZeroCheck = true)
     {
         // Check for -0.0
@@ -709,7 +709,7 @@ class MacroAssemblerX86Shared : public Assembler
         return false;
     }
 
-    bool maybeInlineInt32x4(const SimdConstant &v, const FloatRegister &dest) {
+    bool maybeInlineInt32x4(const SimdConstant& v, const FloatRegister& dest) {
         static const SimdConstant zero = SimdConstant::CreateX4(0, 0, 0, 0);
         static const SimdConstant minusOne = SimdConstant::CreateX4(-1, -1, -1, -1);
         if (v == zero) {
@@ -722,7 +722,7 @@ class MacroAssemblerX86Shared : public Assembler
         }
         return false;
     }
-    bool maybeInlineFloat32x4(const SimdConstant &v, const FloatRegister &dest) {
+    bool maybeInlineFloat32x4(const SimdConstant& v, const FloatRegister& dest) {
         static const SimdConstant zero = SimdConstant::CreateX4(0.f, 0.f, 0.f, 0.f);
         if (v == zero) {
             // This won't get inlined if the SimdConstant v contains -0 in any
@@ -782,27 +782,27 @@ class MacroAssemblerX86Shared : public Assembler
     }
 
     // Emit a JMP that can be toggled to a CMP. See ToggleToJmp(), ToggleToCmp().
-    CodeOffsetLabel toggledJump(Label *label) {
+    CodeOffsetLabel toggledJump(Label* label) {
         CodeOffsetLabel offset(size());
         jump(label);
         return offset;
     }
 
     template <typename T>
-    void computeEffectiveAddress(const T &address, Register dest) {
+    void computeEffectiveAddress(const T& address, Register dest) {
         lea(Operand(address), dest);
     }
 
     // Builds an exit frame on the stack, with a return address to an internal
     // non-function. Returns offset to be passed to markSafepointAt().
-    bool buildFakeExitFrame(Register scratch, uint32_t *offset);
-    void callWithExitFrame(JitCode *target);
+    bool buildFakeExitFrame(Register scratch, uint32_t* offset);
+    void callWithExitFrame(JitCode* target);
 
-    void call(const CallSiteDesc &desc, Label *label) {
+    void call(const CallSiteDesc& desc, Label* label) {
         call(label);
         append(desc, currentOffset(), framePushed_);
     }
-    void call(const CallSiteDesc &desc, Register reg) {
+    void call(const CallSiteDesc& desc, Register reg) {
         call(reg);
         append(desc, currentOffset(), framePushed_);
     }
@@ -830,7 +830,7 @@ class MacroAssemblerX86Shared : public Assembler
     }
 
   protected:
-    bool buildOOLFakeExitFrame(void *fakeReturnAddr);
+    bool buildOOLFakeExitFrame(void* fakeReturnAddr);
 };
 
 } // namespace jit

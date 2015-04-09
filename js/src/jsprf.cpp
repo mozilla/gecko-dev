@@ -37,14 +37,14 @@ using namespace js;
 
 struct SprintfState
 {
-    int (*stuff)(SprintfState *ss, const char *sp, size_t len);
+    int (*stuff)(SprintfState* ss, const char* sp, size_t len);
 
-    char *base;
-    char *cur;
+    char* base;
+    char* cur;
     size_t maxlen;
 
-    int (*func)(void *arg, const char *sp, uint32_t len);
-    void *arg;
+    int (*func)(void* arg, const char* sp, uint32_t len);
+    void* arg;
 };
 
 /*
@@ -80,13 +80,13 @@ const size_t NAS_DEFAULT_NUM = 20;  // default number of NumberedArgumentState a
 #define FLAG_NEG        0x10
 
 inline int
-generic_write(SprintfState *ss, const char *src, size_t srclen)
+generic_write(SprintfState* ss, const char* src, size_t srclen)
 {
     return (*ss->stuff)(ss, src, srclen);
 }
 
 inline int
-generic_write(SprintfState *ss, const jschar *src, size_t srclen)
+generic_write(SprintfState* ss, const jschar* src, size_t srclen)
 {
     const size_t CHUNK_SIZE = 64;
     char chunk[CHUNK_SIZE];
@@ -111,7 +111,7 @@ generic_write(SprintfState *ss, const jschar *src, size_t srclen)
 // Fill into the buffer using the data in src
 template <typename Char>
 static int
-fill2(SprintfState *ss, const Char *src, int srclen, int width, int flags)
+fill2(SprintfState* ss, const Char* src, int srclen, int width, int flags)
 {
     char space = ' ';
     int rv;
@@ -146,7 +146,7 @@ fill2(SprintfState *ss, const Char *src, int srclen, int width, int flags)
  * Fill a number. The order is: optional-sign zero-filling conversion-digits
  */
 static int
-fill_n(SprintfState *ss, const char *src, int srclen, int width, int prec, int type, int flags)
+fill_n(SprintfState* ss, const char* src, int srclen, int width, int prec, int type, int flags)
 {
     int zerowidth = 0;
     int precwidth = 0;
@@ -234,11 +234,11 @@ fill_n(SprintfState *ss, const char *src, int srclen, int width, int prec, int t
 }
 
 /* Convert a long into its printable form. */
-static int cvt_l(SprintfState *ss, long num, int width, int prec, int radix,
-                 int type, int flags, const char *hexp)
+static int cvt_l(SprintfState* ss, long num, int width, int prec, int radix,
+                 int type, int flags, const char* hexp)
 {
     char cvtbuf[100];
-    char *cvt;
+    char* cvt;
     int digits;
 
     // according to the man page this needs to happen
@@ -268,8 +268,8 @@ static int cvt_l(SprintfState *ss, long num, int width, int prec, int radix,
 }
 
 /* Convert a 64-bit integer into its printable form. */
-static int cvt_ll(SprintfState *ss, int64_t num, int width, int prec, int radix,
-                  int type, int flags, const char *hexp)
+static int cvt_ll(SprintfState* ss, int64_t num, int width, int prec, int radix,
+                  int type, int flags, const char* hexp)
 {
     // According to the man page, this needs to happen.
     if (prec == 0 && num == 0)
@@ -280,7 +280,7 @@ static int cvt_ll(SprintfState *ss, int64_t num, int width, int prec, int radix,
     // stop when the number is zero.
     int64_t rad = int64_t(radix);
     char cvtbuf[100];
-    char *cvt = cvtbuf + sizeof(cvtbuf);
+    char* cvt = cvtbuf + sizeof(cvtbuf);
     int digits = 0;
     while (num != 0) {
         int64_t quot = uint64_t(num) / rad;
@@ -306,7 +306,7 @@ static int cvt_ll(SprintfState *ss, int64_t num, int width, int prec, int radix,
  *
  * XXX stop using sprintf to convert floating point
  */
-static int cvt_f(SprintfState *ss, double d, const char *fmt0, const char *fmt1)
+static int cvt_f(SprintfState* ss, double d, const char* fmt0, const char* fmt1)
 {
     char fin[20];
     char fout[300];
@@ -323,7 +323,7 @@ static int cvt_f(SprintfState *ss, double d, const char *fmt0, const char *fmt1)
     // Convert floating point using the native sprintf code
 #ifdef DEBUG
     {
-        const char *p = fin;
+        const char* p = fin;
         while (*p) {
             JS_ASSERT(*p != 'L');
             p++;
@@ -340,11 +340,11 @@ static int cvt_f(SprintfState *ss, double d, const char *fmt0, const char *fmt1)
     return (*ss->stuff)(ss, fout, strlen(fout));
 }
 
-static inline const char *generic_null_str(const char *) { return "(null)"; }
-static inline const jschar *generic_null_str(const jschar *) { return MOZ_UTF16("(null)"); }
+static inline const char* generic_null_str(const char*) { return "(null)"; }
+static inline const jschar* generic_null_str(const jschar*) { return MOZ_UTF16("(null)"); }
 
-static inline size_t generic_strlen(const char *s) { return strlen(s); }
-static inline size_t generic_strlen(const jschar *s) { return js_strlen(s); }
+static inline size_t generic_strlen(const char* s) { return strlen(s); }
+static inline size_t generic_strlen(const jschar* s) { return js_strlen(s); }
 
 /*
  * Convert a string into its printable form.  "width" is the output
@@ -353,7 +353,7 @@ static inline size_t generic_strlen(const jschar *s) { return js_strlen(s); }
  */
 template <typename Char>
 static int
-cvt_s(SprintfState *ss, const Char *s, int width, int prec, int flags)
+cvt_s(SprintfState* ss, const Char* s, int width, int prec, int flags)
 {
     if (prec == 0)
         return 0;
@@ -375,13 +375,13 @@ cvt_s(SprintfState *ss, const Char *s, int width, int prec, int flags)
  *      fmp = "%4$i, %2$d, %3s, %1d";
  * the number must start from 1, and no gap among them
  */
-static NumArgState *
-BuildArgArray(const char *fmt, va_list ap, int *rv, NumArgState *nasArray)
+static NumArgState*
+BuildArgArray(const char* fmt, va_list ap, int* rv, NumArgState* nasArray)
 {
     size_t number = 0, cn = 0, i;
-    const char *p;
+    const char* p;
     char c;
-    NumArgState *nas;
+    NumArgState* nas;
 
 
     // First pass:
@@ -422,7 +422,7 @@ BuildArgArray(const char *fmt, va_list ap, int *rv, NumArgState *nasArray)
         return nullptr;
 
     if (number > NAS_DEFAULT_NUM) {
-        nas = (NumArgState *) js_malloc(number * sizeof(NumArgState));
+        nas = (NumArgState*) js_malloc(number * sizeof(NumArgState));
         if (!nas) {
             *rv = -1;
             return nullptr;
@@ -526,11 +526,11 @@ BuildArgArray(const char *fmt, va_list ap, int *rv, NumArgState *nasArray)
 
         case 'p':
             // XXX should use cpp
-            if (sizeof(void *) == sizeof(int32_t)) {
+            if (sizeof(void*) == sizeof(int32_t)) {
                 nas[cn].type = TYPE_UINT32;
-            } else if (sizeof(void *) == sizeof(int64_t)) {
+            } else if (sizeof(void*) == sizeof(int64_t)) {
                 nas[cn].type = TYPE_UINT64;
-            } else if (sizeof(void *) == sizeof(int)) {
+            } else if (sizeof(void*) == sizeof(int)) {
                 nas[cn].type = TYPE_UINTN;
             } else {
                 nas[cn].type = TYPE_UNKNOWN;
@@ -618,7 +618,7 @@ BuildArgArray(const char *fmt, va_list ap, int *rv, NumArgState *nasArray)
  * The workhorse sprintf code.
  */
 static int
-dosprintf(SprintfState *ss, const char *fmt, va_list ap)
+dosprintf(SprintfState* ss, const char* fmt, va_list ap)
 {
     char c;
     int flags, width, prec, radix, type;
@@ -629,19 +629,19 @@ dosprintf(SprintfState *ss, const char *fmt, va_list ap)
         long l;
         int64_t ll;
         double d;
-        const char *s;
+        const char* s;
         const jschar* ws;
-        int *ip;
+        int* ip;
     } u;
-    const char *fmt0;
+    const char* fmt0;
     static const char hex[] = "0123456789abcdef";
     static const char HEX[] = "0123456789ABCDEF";
-    const char *hexp;
+    const char* hexp;
     int rv, i;
-    NumArgState *nas = nullptr;
+    NumArgState* nas = nullptr;
     NumArgState nasArray[NAS_DEFAULT_NUM];
     char pattern[20];
-    const char *dolPt = nullptr;  // in "%4$.2f", dolPt will point to '.'
+    const char* dolPt = nullptr;  // in "%4$.2f", dolPt will point to '.'
 
     // Build an argument array, IF the fmt is numbered argument
     // list style, to contain the Numbered Argument list pointers.
@@ -891,11 +891,11 @@ dosprintf(SprintfState *ss, const char *fmt, va_list ap)
             break;
 
           case 'p':
-            if (sizeof(void *) == sizeof(int32_t)) {
+            if (sizeof(void*) == sizeof(int32_t)) {
                 type = TYPE_UINT32;
-            } else if (sizeof(void *) == sizeof(int64_t)) {
+            } else if (sizeof(void*) == sizeof(int64_t)) {
                 type = TYPE_UINT64;
-            } else if (sizeof(void *) == sizeof(int)) {
+            } else if (sizeof(void*) == sizeof(int)) {
                 type = TYPE_UINTN;
             } else {
                 JS_ASSERT(0);
@@ -966,17 +966,17 @@ dosprintf(SprintfState *ss, const char *fmt, va_list ap)
  * before it overflows.
  */
 static int
-GrowStuff(SprintfState *ss, const char *sp, size_t len)
+GrowStuff(SprintfState* ss, const char* sp, size_t len)
 {
     ptrdiff_t off;
-    char *newbase;
+    char* newbase;
     size_t newlen;
 
     off = ss->cur - ss->base;
     if (off + len >= ss->maxlen) {
         /* Grow the buffer */
         newlen = ss->maxlen + ((len > 32) ? len : 32);
-        newbase = static_cast<char *>(js_realloc(ss->base, newlen));
+        newbase = static_cast<char*>(js_realloc(ss->base, newlen));
         if (!newbase) {
             /* Ran out of memory */
             return -1;
@@ -998,11 +998,11 @@ GrowStuff(SprintfState *ss, const char *sp, size_t len)
 /*
  * sprintf into a js_malloc'd buffer
  */
-JS_PUBLIC_API(char *)
-JS_smprintf(const char *fmt, ...)
+JS_PUBLIC_API(char*)
+JS_smprintf(const char* fmt, ...)
 {
     va_list ap;
-    char *rv;
+    char* rv;
 
     va_start(ap, fmt);
     rv = JS_vsmprintf(fmt, ap);
@@ -1014,13 +1014,13 @@ JS_smprintf(const char *fmt, ...)
  * Free memory allocated, for the caller, by JS_smprintf
  */
 JS_PUBLIC_API(void)
-JS_smprintf_free(char *mem)
+JS_smprintf_free(char* mem)
 {
     js_free(mem);
 }
 
-JS_PUBLIC_API(char *)
-JS_vsmprintf(const char *fmt, va_list ap)
+JS_PUBLIC_API(char*)
+JS_vsmprintf(const char* fmt, va_list ap)
 {
     SprintfState ss;
     int rv;
@@ -1041,7 +1041,7 @@ JS_vsmprintf(const char *fmt, va_list ap)
  * Stuff routine that discards overflow data
  */
 static int
-LimitStuff(SprintfState *ss, const char *sp, size_t len)
+LimitStuff(SprintfState* ss, const char* sp, size_t len)
 {
     size_t limit = ss->maxlen - (ss->cur - ss->base);
 
@@ -1059,7 +1059,7 @@ LimitStuff(SprintfState *ss, const char *sp, size_t len)
  * when finished.
  */
 JS_PUBLIC_API(uint32_t)
-JS_snprintf(char *out, uint32_t outlen, const char *fmt, ...)
+JS_snprintf(char* out, uint32_t outlen, const char* fmt, ...)
 {
     va_list ap;
     int rv;
@@ -1075,7 +1075,7 @@ JS_snprintf(char *out, uint32_t outlen, const char *fmt, ...)
 }
 
 JS_PUBLIC_API(uint32_t)
-JS_vsnprintf(char *out, uint32_t outlen, const char *fmt, va_list ap)
+JS_vsnprintf(char* out, uint32_t outlen, const char* fmt, va_list ap)
 {
     SprintfState ss;
     uint32_t n;
@@ -1099,11 +1099,11 @@ JS_vsnprintf(char *out, uint32_t outlen, const char *fmt, va_list ap)
     return n ? n - 1 : n;
 }
 
-JS_PUBLIC_API(char *)
-JS_sprintf_append(char *last, const char *fmt, ...)
+JS_PUBLIC_API(char*)
+JS_sprintf_append(char* last, const char* fmt, ...)
 {
     va_list ap;
-    char *rv;
+    char* rv;
 
     va_start(ap, fmt);
     rv = JS_vsprintf_append(last, fmt, ap);
@@ -1111,8 +1111,8 @@ JS_sprintf_append(char *last, const char *fmt, ...)
     return rv;
 }
 
-JS_PUBLIC_API(char *)
-JS_vsprintf_append(char *last, const char *fmt, va_list ap)
+JS_PUBLIC_API(char*)
+JS_vsprintf_append(char* last, const char* fmt, va_list ap)
 {
     SprintfState ss;
     int rv;

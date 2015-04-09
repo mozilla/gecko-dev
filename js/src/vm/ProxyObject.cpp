@@ -13,14 +13,14 @@
 
 using namespace js;
 
-/* static */ ProxyObject *
-ProxyObject::New(JSContext *cx, const BaseProxyHandler *handler, HandleValue priv, TaggedProto proto_,
-                 JSObject *parent_, const ProxyOptions &options)
+/* static */ ProxyObject*
+ProxyObject::New(JSContext* cx, const BaseProxyHandler* handler, HandleValue priv, TaggedProto proto_,
+                 JSObject* parent_, const ProxyOptions& options)
 {
     Rooted<TaggedProto> proto(cx, proto_);
     RootedObject parent(cx, parent_);
 
-    const Class *clasp = options.clasp();
+    const Class* clasp = options.clasp();
 
     JS_ASSERT(isValidProxyClass(clasp));
     JS_ASSERT_IF(proto.isObject(), cx->compartment() == proto.toObject()->compartment());
@@ -67,25 +67,25 @@ ProxyObject::initCrossCompartmentPrivate(HandleValue priv)
 }
 
 void
-ProxyObject::setSameCompartmentPrivate(const Value &priv)
+ProxyObject::setSameCompartmentPrivate(const Value& priv)
 {
     setSlot(PRIVATE_SLOT, priv);
 }
 
 void
-ProxyObject::initHandler(const BaseProxyHandler *handler)
+ProxyObject::initHandler(const BaseProxyHandler* handler)
 {
     initSlot(HANDLER_SLOT, PrivateValue(const_cast<BaseProxyHandler*>(handler)));
 }
 
 static void
-NukeSlot(ProxyObject *proxy, uint32_t slot)
+NukeSlot(ProxyObject* proxy, uint32_t slot)
 {
     proxy->setReservedSlot(slot, NullValue());
 }
 
 void
-ProxyObject::nuke(const BaseProxyHandler *handler)
+ProxyObject::nuke(const BaseProxyHandler* handler)
 {
     /* Allow people to add their own number of reserved slots beyond the expected 4 */
     unsigned numSlots = JSCLASS_RESERVED_SLOTS(getClass());

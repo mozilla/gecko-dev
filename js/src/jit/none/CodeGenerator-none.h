@@ -17,40 +17,40 @@ class CodeGeneratorNone : public CodeGeneratorShared
   public:
     NonAssertingLabel returnLabel_;
 
-    CodeGeneratorNone(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
+    CodeGeneratorNone(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm)
       : CodeGeneratorShared(gen, graph, masm)
     {
         MOZ_CRASH();
     }
 
     template <typename T> inline Register ToOperand(T) { MOZ_CRASH(); }
-    MoveOperand toMoveOperand(const LAllocation *) const { MOZ_CRASH(); }
+    MoveOperand toMoveOperand(const LAllocation*) const { MOZ_CRASH(); }
     template <typename T1, typename T2>
-    bool bailoutCmp32(Assembler::Condition, T1, T2, LSnapshot *) { MOZ_CRASH(); }
+    bool bailoutCmp32(Assembler::Condition, T1, T2, LSnapshot*) { MOZ_CRASH(); }
     template<typename T>
-    bool bailoutTest32(Assembler::Condition, Register, T, LSnapshot *) { MOZ_CRASH(); }
+    bool bailoutTest32(Assembler::Condition, Register, T, LSnapshot*) { MOZ_CRASH(); }
     template <typename T1, typename T2>
-    bool bailoutCmpPtr(Assembler::Condition, T1, T2, LSnapshot *) { MOZ_CRASH(); }
-    bool bailoutTestPtr(Assembler::Condition, Register, Register, LSnapshot *) { MOZ_CRASH(); }
-    bool bailoutIfFalseBool(Register, LSnapshot *) { MOZ_CRASH(); }
-    bool bailoutFrom(Label *, LSnapshot *) { MOZ_CRASH(); }
-    bool bailout(LSnapshot *) { MOZ_CRASH(); }
-    bool bailoutIf(Assembler::Condition, LSnapshot *) { MOZ_CRASH(); }
+    bool bailoutCmpPtr(Assembler::Condition, T1, T2, LSnapshot*) { MOZ_CRASH(); }
+    bool bailoutTestPtr(Assembler::Condition, Register, Register, LSnapshot*) { MOZ_CRASH(); }
+    bool bailoutIfFalseBool(Register, LSnapshot*) { MOZ_CRASH(); }
+    bool bailoutFrom(Label*, LSnapshot*) { MOZ_CRASH(); }
+    bool bailout(LSnapshot*) { MOZ_CRASH(); }
+    bool bailoutIf(Assembler::Condition, LSnapshot*) { MOZ_CRASH(); }
     bool generatePrologue() { MOZ_CRASH(); }
     bool generateEpilogue() { MOZ_CRASH(); }
     bool generateOutOfLineCode() { MOZ_CRASH(); }
-    void testNullEmitBranch(Assembler::Condition, ValueOperand, MBasicBlock *, MBasicBlock *) {
+    void testNullEmitBranch(Assembler::Condition, ValueOperand, MBasicBlock*, MBasicBlock*) {
         MOZ_CRASH();
     }
-    void testUndefinedEmitBranch(Assembler::Condition, ValueOperand, MBasicBlock *, MBasicBlock *) {
+    void testUndefinedEmitBranch(Assembler::Condition, ValueOperand, MBasicBlock*, MBasicBlock*) {
         MOZ_CRASH();
     }
-    bool emitTableSwitchDispatch(MTableSwitch *, Register, Register) { MOZ_CRASH(); }
-    ValueOperand ToValue(LInstruction *, size_t) { MOZ_CRASH(); }
-    ValueOperand ToOutValue(LInstruction *) { MOZ_CRASH(); }
-    ValueOperand ToTempValue(LInstruction *, size_t) { MOZ_CRASH(); }
+    bool emitTableSwitchDispatch(MTableSwitch*, Register, Register) { MOZ_CRASH(); }
+    ValueOperand ToValue(LInstruction*, size_t) { MOZ_CRASH(); }
+    ValueOperand ToOutValue(LInstruction*) { MOZ_CRASH(); }
+    ValueOperand ToTempValue(LInstruction*, size_t) { MOZ_CRASH(); }
     bool generateInvalidateEpilogue() { MOZ_CRASH(); }
-    void postAsmJSCall(LAsmJSCall *) { MOZ_CRASH(); }
+    void postAsmJSCall(LAsmJSCall*) { MOZ_CRASH(); }
 };
 
 typedef CodeGeneratorNone CodeGeneratorSpecific;

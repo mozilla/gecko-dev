@@ -41,25 +41,25 @@ using namespace js::gc;
 using mozilla::PodZero;
 
 JS_PUBLIC_API(bool)
-JS_GetDebugMode(JSContext *cx)
+JS_GetDebugMode(JSContext* cx)
 {
     return cx->compartment()->debugMode();
 }
 
 JS_PUBLIC_API(bool)
-JS_SetDebugMode(JSContext *cx, bool debug)
+JS_SetDebugMode(JSContext* cx, bool debug)
 {
     return JS_SetDebugModeForCompartment(cx, cx->compartment(), debug);
 }
 
 JS_PUBLIC_API(void)
-JS_SetRuntimeDebugMode(JSRuntime *rt, bool debug)
+JS_SetRuntimeDebugMode(JSRuntime* rt, bool debug)
 {
     rt->debugMode = !!debug;
 }
 
 JSTrapStatus
-js::ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
+js::ScriptDebugPrologue(JSContext* cx, AbstractFramePtr frame, jsbytecode* pc)
 {
     JS_ASSERT_IF(frame.isInterpreterFrame(), frame.asInterpreterFrame() == cx->interpreterFrame());
 
@@ -84,7 +84,7 @@ js::ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
 }
 
 bool
-js::ScriptDebugEpilogue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc, bool okArg)
+js::ScriptDebugEpilogue(JSContext* cx, AbstractFramePtr frame, jsbytecode* pc, bool okArg)
 {
     JS_ASSERT_IF(frame.isInterpreterFrame(), frame.asInterpreterFrame() == cx->interpreterFrame());
 
@@ -94,7 +94,7 @@ js::ScriptDebugEpilogue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc, b
 }
 
 JSTrapStatus
-js::DebugExceptionUnwind(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
+js::DebugExceptionUnwind(JSContext* cx, AbstractFramePtr frame, jsbytecode* pc)
 {
     JS_ASSERT(cx->compartment()->debugMode());
 
@@ -130,7 +130,7 @@ js::DebugExceptionUnwind(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
 }
 
 JS_FRIEND_API(bool)
-JS_SetDebugModeForAllCompartments(JSContext *cx, bool debug)
+JS_SetDebugModeForAllCompartments(JSContext* cx, bool debug)
 {
     for (ZonesIter zone(cx->runtime(), SkipAtoms); !zone.done(); zone.next()) {
         // Invalidate a zone at a time to avoid doing a ZoneCellIter
@@ -148,7 +148,7 @@ JS_SetDebugModeForAllCompartments(JSContext *cx, bool debug)
 }
 
 JS_FRIEND_API(bool)
-JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, bool debug)
+JS_SetDebugModeForCompartment(JSContext* cx, JSCompartment* comp, bool debug)
 {
     AutoDebugModeInvalidation invalidate(comp);
     return comp->setDebugModeFromC(cx, !!debug, invalidate);
@@ -157,25 +157,25 @@ JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, bool debug)
 /************************************************************************/
 
 JS_PUBLIC_API(unsigned)
-JS_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
+JS_PCToLineNumber(JSContext* cx, JSScript* script, jsbytecode* pc)
 {
     return js::PCToLineNumber(script, pc);
 }
 
-JS_PUBLIC_API(jsbytecode *)
-JS_LineNumberToPC(JSContext *cx, JSScript *script, unsigned lineno)
+JS_PUBLIC_API(jsbytecode*)
+JS_LineNumberToPC(JSContext* cx, JSScript* script, unsigned lineno)
 {
     return js_LineNumberToPC(script, lineno);
 }
 
-JS_PUBLIC_API(JSScript *)
-JS_GetFunctionScript(JSContext *cx, HandleFunction fun)
+JS_PUBLIC_API(JSScript*)
+JS_GetFunctionScript(JSContext* cx, HandleFunction fun)
 {
     if (fun->isNative())
         return nullptr;
     if (fun->isInterpretedLazy()) {
         AutoCompartment funCompartment(cx, fun);
-        JSScript *script = fun->getOrCreateScript(cx);
+        JSScript* script = fun->getOrCreateScript(cx);
         if (!script)
             MOZ_CRASH();
         return script;
@@ -185,22 +185,22 @@ JS_GetFunctionScript(JSContext *cx, HandleFunction fun)
 
 /************************************************************************/
 
-JS_PUBLIC_API(const char *)
-JS_GetScriptFilename(JSScript *script)
+JS_PUBLIC_API(const char*)
+JS_GetScriptFilename(JSScript* script)
 {
     return script->filename();
 }
 
-JS_PUBLIC_API(const jschar *)
-JS_GetScriptSourceMap(JSContext *cx, JSScript *script)
+JS_PUBLIC_API(const jschar*)
+JS_GetScriptSourceMap(JSContext* cx, JSScript* script)
 {
-    ScriptSource *source = script->scriptSource();
+    ScriptSource* source = script->scriptSource();
     JS_ASSERT(source);
     return source->hasSourceMapURL() ? source->sourceMapURL() : nullptr;
 }
 
 JS_PUBLIC_API(unsigned)
-JS_GetScriptBaseLineNumber(JSContext *cx, JSScript *script)
+JS_GetScriptBaseLineNumber(JSContext* cx, JSScript* script)
 {
     return script->lineno();
 }
@@ -208,7 +208,7 @@ JS_GetScriptBaseLineNumber(JSContext *cx, JSScript *script)
 /***************************************************************************/
 
 extern JS_PUBLIC_API(void)
-JS_DumpPCCounts(JSContext *cx, HandleScript script)
+JS_DumpPCCounts(JSContext* cx, HandleScript script)
 {
     JS_ASSERT(script->hasScriptCounts());
 
@@ -223,7 +223,7 @@ JS_DumpPCCounts(JSContext *cx, HandleScript script)
 }
 
 JS_PUBLIC_API(void)
-JS_DumpCompartmentPCCounts(JSContext *cx)
+JS_DumpCompartmentPCCounts(JSContext* cx)
 {
     for (ZoneCellIter i(cx->zone(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
         RootedScript script(cx, i.get<JSScript>());
@@ -236,12 +236,12 @@ JS_DumpCompartmentPCCounts(JSContext *cx)
 
     for (unsigned thingKind = FINALIZE_OBJECT0; thingKind < FINALIZE_OBJECT_LIMIT; thingKind++) {
         for (ZoneCellIter i(cx->zone(), (AllocKind) thingKind); !i.done(); i.next()) {
-            JSObject *obj = i.get<JSObject>();
+            JSObject* obj = i.get<JSObject>();
             if (obj->compartment() != cx->compartment())
                 continue;
 
             if (obj->is<AsmJSModuleObject>()) {
-                AsmJSModule &module = obj->as<AsmJSModuleObject>().module();
+                AsmJSModule& module = obj->as<AsmJSModuleObject>().module();
 
                 Sprinter sprinter(cx);
                 if (!sprinter.init())
@@ -250,7 +250,7 @@ JS_DumpCompartmentPCCounts(JSContext *cx)
                 fprintf(stdout, "--- Asm.js Module ---\n");
 
                 for (size_t i = 0; i < module.numFunctionCounts(); i++) {
-                    jit::IonScriptCounts *counts = module.functionCounts(i);
+                    jit::IonScriptCounts* counts = module.functionCounts(i);
                     DumpIonScriptCounts(&sprinter, counts);
                 }
 
@@ -261,8 +261,8 @@ JS_DumpCompartmentPCCounts(JSContext *cx)
     }
 }
 
-static const char *
-FormatValue(JSContext *cx, const Value &vArg, JSAutoByteString &bytes)
+static const char*
+FormatValue(JSContext* cx, const Value& vArg, JSAutoByteString& bytes)
 {
     RootedValue v(cx, vArg);
 
@@ -281,17 +281,17 @@ FormatValue(JSContext *cx, const Value &vArg, JSAutoByteString &bytes)
 
     if (!str)
         return nullptr;
-    const char *buf = bytes.encodeLatin1(cx, str);
+    const char* buf = bytes.encodeLatin1(cx, str);
     if (!buf)
         return nullptr;
-    const char *found = strstr(buf, "function ");
+    const char* found = strstr(buf, "function ");
     if (found && (found - buf <= 2))
         return "[function]";
     return buf;
 }
 
-static char *
-FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int num,
+static char*
+FormatFrame(JSContext* cx, const NonBuiltinScriptFrameIter& iter, char* buf, int num,
             bool showArgs, bool showLocals, bool showThisProps)
 {
     JS_ASSERT(!cx->isExceptionPending());
@@ -301,7 +301,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
     RootedObject scopeChain(cx, iter.scopeChain());
     JSAutoCompartment ac(cx, scopeChain);
 
-    const char *filename = script->filename();
+    const char* filename = script->filename();
     unsigned lineno = PCToLineNumber(script, pc);
     RootedFunction fun(cx, iter.maybeCallee());
     RootedString funname(cx);
@@ -350,10 +350,10 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
             }
 
             JSAutoByteString valueBytes;
-            const char *value = FormatValue(cx, arg, valueBytes);
+            const char* value = FormatValue(cx, arg, valueBytes);
 
             JSAutoByteString nameBytes;
-            const char *name = nullptr;
+            const char* name = nullptr;
 
             if (i < bindings.length()) {
                 name = nameBytes.encodeLatin1(cx, bindings[i].name());
@@ -400,7 +400,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
         if (!thisVal.isUndefined()) {
             JSAutoByteString thisValBytes;
             RootedString thisValStr(cx, ToString<CanGC>(cx, thisVal));
-            const char *str = nullptr;
+            const char* str = nullptr;
             if (thisValStr &&
                 (str = thisValBytes.encodeLatin1(cx, thisValStr)))
             {
@@ -437,8 +437,8 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
 
             JSAutoByteString nameBytes;
             JSAutoByteString valueBytes;
-            const char *name = FormatValue(cx, key, nameBytes);
-            const char *value = FormatValue(cx, v, valueBytes);
+            const char* name = FormatValue(cx, key, nameBytes);
+            const char* value = FormatValue(cx, v, valueBytes);
             if (name && value) {
                 buf = JS_sprintf_append(buf, "    this.%s = %s%s%s\n",
                                         name,
@@ -458,8 +458,8 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
     return buf;
 }
 
-JS_PUBLIC_API(char *)
-JS::FormatStackDump(JSContext *cx, char *buf, bool showArgs, bool showLocals, bool showThisProps)
+JS_PUBLIC_API(char*)
+JS::FormatStackDump(JSContext* cx, char* buf, bool showArgs, bool showLocals, bool showThisProps)
 {
     int num = 0;
 
