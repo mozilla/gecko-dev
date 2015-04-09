@@ -2525,7 +2525,7 @@ ReleaseObservedTypes(JSRuntime* rt)
  * arbitrary compartment in the zone.
  */
 static void
-SweepCompartments(FreeOp* fop, Zone* zone, bool keepAtleastOne, bool destroyingRuntime)
+SweepCompartments(FreeOp* fop, Zone* zone, bool keepAtleastOne, bool lastGC)
 {
     JSRuntime* rt = zone->runtimeFromMainThread();
     JSDestroyCompartmentCallback callback = rt->destroyCompartmentCallback;
@@ -2543,7 +2543,7 @@ SweepCompartments(FreeOp* fop, Zone* zone, bool keepAtleastOne, bool destroyingR
          * deleted and keepAtleastOne is true.
          */
         bool dontDelete = read == end && !foundOne && keepAtleastOne;
-        if ((!comp->marked && !dontDelete) || destroyingRuntime) {
+        if ((!comp->marked && !dontDelete) || lastGC) {
             if (callback)
                 callback(fop, comp);
             if (comp->principals)
@@ -2559,13 +2559,9 @@ SweepCompartments(FreeOp* fop, Zone* zone, bool keepAtleastOne, bool destroyingR
 }
 
 static void
-SweepZones(FreeOp* fop, bool destroyingRuntime)
+SweepZones(FreeOp* fop, bool lastGC)
 {
     JSRuntime* rt = fop->runtime();
-    MOZ_ASSERT_IF(destroyingRuntime, rt->gc.numActiveZoneIters == 0);
-    if (rt->numActiveZoneIters)
-        return;
-
     JSZoneCallback callback = rt->destroyZoneCallback;
 
     /* Skip the atomsCompartment zone. */
@@ -2580,17 +2576,17 @@ SweepZones(FreeOp* fop, bool destroyingRuntime)
 
         if (zone->wasGCStarted()) {
             if ((zone->allocator.arenas.arenaListsAreEmpty() && !zone->hasMarkedCompartments()) ||
-                destroyingRuntime)
+                lastGC)
             {
                 zone->allocator.arenas.checkEmptyFreeLists();
                 if (callback)
                     callback(zone);
-                SweepCompartments(fop, zone, false, destroyingRuntime);
+                SweepCompartments(fop, zone, false, lastGC);
                 JS_ASSERT(zone->compartments.empty());
                 fop->delete_(zone);
                 continue;
             }
-            SweepCompartments(fop, zone, true, destroyingRuntime);
+            SweepCompartments(fop, zone, true, lastGC);
         }
         *write++ = zone;
     }
@@ -3791,7 +3787,7 @@ EndSweepingZoneGroup(JSRuntime* rt)
 }
 
 static void
-BeginSweepPhase(JSRuntime* rt, bool destroyingRuntime)
+BeginSweepPhase(JSRuntime* rt, bool lastGC)
 {
     /*
      * Sweep phase.
@@ -3808,7 +3804,7 @@ BeginSweepPhase(JSRuntime* rt, bool destroyingRuntime)
     gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP);
 
 #ifdef JS_THREADSAFE
-    rt->gcSweepOnBackgroundThread = !destroyingRuntime && rt->useHelperThreads();
+    rt->gcSweepOnBackgroundThread = !lastGC && rt->useHelperThreads();
 #endif
 
 #ifdef DEBUG
@@ -3907,12 +3903,12 @@ SweepPhase(JSRuntime* rt, SliceBudget& sliceBudget)
 }
 
 static void
-EndSweepPhase(JSRuntime* rt, JSGCInvocationKind gckind, bool destroyingRuntime)
+EndSweepPhase(JSRuntime* rt, JSGCInvocationKind gckind, bool lastGC)
 {
     gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP);
     FreeOp fop(rt, rt->gcSweepOnBackgroundThread);
 
-    JS_ASSERT_IF(destroyingRuntime, !rt->gcSweepOnBackgroundThread);
+    JS_ASSERT_IF(lastGC, !rt->gcSweepOnBackgroundThread);
 
     JS_ASSERT(rt->gcMarker.isDrained());
     rt->gcMarker.stop();
@@ -3963,8 +3959,8 @@ EndSweepPhase(JSRuntime* rt, JSGCInvocationKind gckind, bool destroyingRuntime)
          * This removes compartments from rt->compartment, so we do it last to make
          * sure we don't miss sweeping any compartments.
          */
-        if (!destroyingRuntime)
-            SweepZones(&fop, destroyingRuntime);
+        if (!lastGC)
+            SweepZones(&fop, lastGC);
 
         if (!rt->gcSweepOnBackgroundThread) {
             /*
@@ -4005,8 +4001,8 @@ EndSweepPhase(JSRuntime* rt, JSGCInvocationKind gckind, bool destroyingRuntime)
         rt->freeLifoAlloc.freeAll();
 
         /* Ensure the compartments get swept if it's the last GC. */
-        if (destroyingRuntime)
-            SweepZones(&fop, destroyingRuntime);
+        if (lastGC)
+            SweepZones(&fop, lastGC);
     }
 
     for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next()) {
@@ -4343,7 +4339,7 @@ IncrementalCollectSlice(JSRuntime* rt,
     AutoCopyFreeListToArenasForGC copy(rt);
     AutoGCSlice slice(rt);
 
-    bool destroyingRuntime = (reason == JS::gcreason::DESTROY_RUNTIME);
+    bool lastGC = (reason == JS::gcreason::DESTROY_RUNTIME);
 
     gc::State initialState = rt->gcIncrementalState;
 
@@ -4388,7 +4384,7 @@ IncrementalCollectSlice(JSRuntime* rt,
             return;
         }
 
-        if (!destroyingRuntime)
+        if (!lastGC)
             PushZealSelectedObjects(rt);
 
         rt->gcIncrementalState = MARK;
@@ -4430,7 +4426,7 @@ IncrementalCollectSlice(JSRuntime* rt,
          * This runs to completion, but we don't continue if the budget is
          * now exhasted.
          */
-        BeginSweepPhase(rt, destroyingRuntime);
+        BeginSweepPhase(rt, lastGC);
         if (sliceBudget.isOverBudget())
             break;
 
@@ -4449,7 +4445,7 @@ IncrementalCollectSlice(JSRuntime* rt,
         if (!finished)
             break;
 
-        EndSweepPhase(rt, gckind, destroyingRuntime);
+        EndSweepPhase(rt, gckind, lastGC);
 
         if (rt->gcSweepOnBackgroundThread)
             rt->gcHelperThread.startBackgroundSweep(gckind == GC_SHRINK);
@@ -5390,14 +5386,3 @@ JS::AutoAssertNoGC::~AutoAssertNoGC()
         MOZ_ASSERT(gcNumber == runtime->gcNumber, "GC ran inside an AutoAssertNoGC scope.");
 }
 #endif
-
-AutoEnterIteration::AutoEnterIteration(JSRuntime *rt_) : rt(rt_)
-{
-    ++rt->numActiveZoneIters;
-}
-
-AutoEnterIteration::~AutoEnterIteration()
-{
-    MOZ_ASSERT(rt->numActiveZoneIters);
-    --rt->numActiveZoneIters;
-}
