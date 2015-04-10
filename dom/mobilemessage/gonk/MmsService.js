@@ -721,6 +721,7 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function() {
                 (aError) => {
                   debug("Failed to ensureRouting: " + aError);
 
+                  mmsConnection.release();
                   cancellable.done(_HTTP_STATUS_FAILED_TO_ROUTE);
                 });
       }).bind(this));
