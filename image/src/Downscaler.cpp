@@ -77,13 +77,15 @@ Downscaler::BeginFrame(const nsIntSize& aOriginalSize,
 
   auto resizeMethod = skia::ImageOperations::RESIZE_LANCZOS3;
 
-  skia::resize::ComputeFilters(resizeMethod, mOriginalSize.width,
-                               mTargetSize.width, 0,
-                               mTargetSize.width, mXFilter.get());
+  skia::resize::ComputeFilters(resizeMethod,
+                               mOriginalSize.width, mTargetSize.width,
+                               0, mTargetSize.width,
+                               mXFilter.get());
 
-  skia::resize::ComputeFilters(resizeMethod, mOriginalSize.height,
-                               mTargetSize.height, 0,
-                               mTargetSize.height, mYFilter.get());
+  skia::resize::ComputeFilters(resizeMethod,
+                               mOriginalSize.height, mTargetSize.height,
+                               0, mTargetSize.height,
+                               mYFilter.get());
 
   // Allocate the buffer, which contains scanlines of the original image.
   size_t bufferLen = mOriginalSize.width * sizeof(uint32_t);
@@ -131,6 +133,18 @@ Downscaler::ResetForNextProgressivePass()
   mLinesInBuffer = 0;
 }
 
+static void
+GetFilterOffsetAndLength(UniquePtr<skia::ConvolutionFilter1D>& aFilter,
+                         int32_t aOutputImagePosition,
+                         int32_t* aFilterOffsetOut,
+                         int32_t* aFilterLengthOut)
+{
+  MOZ_ASSERT(aOutputImagePosition < aFilter->num_values());
+  aFilter->FilterForValue(aOutputImagePosition,
+                          aFilterOffsetOut,
+                          aFilterLengthOut);
+}
+
 void
 Downscaler::CommitRow()
 {
@@ -140,7 +154,8 @@ Downscaler::CommitRow()
 
   int32_t filterOffset = 0;
   int32_t filterLength = 0;
-  mYFilter->FilterForValue(mCurrentOutLine, &filterOffset, &filterLength);
+  GetFilterOffsetAndLength(mYFilter, mCurrentOutLine,
+                           &filterOffset, &filterLength);
 
   int32_t inLineToRead = filterOffset + mLinesInBuffer;
   MOZ_ASSERT(mCurrentInLine <= inLineToRead, "Reading past end of input");
@@ -153,7 +168,9 @@ Downscaler::CommitRow()
   while (mLinesInBuffer == filterLength &&
          mCurrentOutLine < mTargetSize.height) {
     DownscaleInputLine();
-    mYFilter->FilterForValue(mCurrentOutLine, &filterOffset, &filterLength);
+
+    GetFilterOffsetAndLength(mYFilter, mCurrentOutLine,
+                             &filterOffset, &filterLength);
   }
 
   mCurrentInLine += 1;
@@ -189,6 +206,7 @@ Downscaler::DownscaleInputLine()
 
   int32_t filterOffset = 0;
   int32_t filterLength = 0;
+  MOZ_ASSERT(mCurrentOutLine < mYFilter->num_values());
   auto filterValues =
     mYFilter->FilterForValue(mCurrentOutLine, &filterOffset, &filterLength);
 
@@ -207,7 +225,8 @@ Downscaler::DownscaleInputLine()
 
   int32_t newFilterOffset = 0;
   int32_t newFilterLength = 0;
-  mYFilter->FilterForValue(mCurrentOutLine, &newFilterOffset, &newFilterLength);
+  GetFilterOffsetAndLength(mYFilter, mCurrentOutLine,
+                           &newFilterOffset, &newFilterLength);
 
   int diff = newFilterOffset - filterOffset;
   MOZ_ASSERT(diff >= 0, "Moving backwards in the filter?");
