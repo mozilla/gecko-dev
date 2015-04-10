@@ -1062,6 +1062,8 @@ class BarrieredId
                 JS_ASSERT(obj == JSID_TO_OBJECT(value));
             }
         } else if (JSID_IS_STRING(value)) {
+            if (StringIsPermanentAtom(JSID_TO_STRING(value)))
+                return;
             JSString* str = JSID_TO_STRING(value);
             JS::shadow::Zone* shadowZone = ShadowZoneOfStringFromAnyThread(str);
             if (shadowZone->needsBarrier()) {
