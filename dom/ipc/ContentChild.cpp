@@ -1464,6 +1464,14 @@ ContentChild::ActorDestroy(ActorDestroyReason why)
         mConsoleListener->mChild = nullptr;
     }
 
+#ifdef MOZ_NUWA_PROCESS
+    if (IsNuwaProcess()) {
+        // The Nuwa cannot go through the full XPCOM shutdown path or deadlock
+        // will result.
+        QuickExit();
+    }
+#endif
+
     XRE_ShutdownChildProcess();
 }
 
