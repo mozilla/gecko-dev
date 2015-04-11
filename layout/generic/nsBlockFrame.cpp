@@ -1116,7 +1116,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   state.mOverflowTracker = &tracker;
 
   // Drain & handle pushed floats
-  DrainPushedFloats(state);
+  DrainPushedFloats();
   nsOverflowAreas fcBounds;
   nsReflowStatus fcStatus = NS_FRAME_COMPLETE;
   ReflowPushedFloats(state, fcBounds, fcStatus);
@@ -4484,9 +4484,13 @@ nsBlockFrame::DrainSelfOverflowList()
  * might push some of them on).  Floats with placeholders in this block
  * are reflowed by (nsBlockReflowState/nsLineLayout)::AddFloat, which
  * also maintains these invariants.
+ *
+ * DrainSelfPushedFloats moves any pushed floats from this block's own
+ * PushedFloats list back into mFloats.  DrainPushedFloats additionally
+ * moves frames from its prev-in-flow's PushedFloats list into mFloats.
  */
 void
-nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
+nsBlockFrame::DrainSelfPushedFloats()
 {
 #ifdef DEBUG
   // Between when we drain pushed floats and when we complete reflow,
@@ -4549,12 +4553,18 @@ nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
       RemovePushedFloats()->Delete(presContext->PresShell());
     }
   }
+}
+
+void
+nsBlockFrame::DrainPushedFloats()
+{
+  DrainSelfPushedFloats();
 
   // After our prev-in-flow has completed reflow, it may have a pushed
   // floats list, containing floats that we need to own.  Take these.
   nsBlockFrame* prevBlock = static_cast<nsBlockFrame*>(GetPrevInFlow());
   if (prevBlock) {
-    AutoFrameListPtr list(presContext, prevBlock->RemovePushedFloats());
+    AutoFrameListPtr list(PresContext(), prevBlock->RemovePushedFloats());
     if (list && list->NotEmpty()) {
       mFloats.InsertFrames(this, nullptr, *list);
     }
@@ -4754,6 +4764,7 @@ nsBlockFrame::AppendFrames(ChildListID  aListID,
   }
   if (aListID != kPrincipalList) {
     if (kFloatList == aListID) {
+      DrainSelfPushedFloats(); // ensure the last frame is in mFloats
       mFloats.AppendFrames(nullptr, aFrameList);
       return;
     }
@@ -4794,6 +4805,7 @@ nsBlockFrame::InsertFrames(ChildListID aListID,
 
   if (aListID != kPrincipalList) {
     if (kFloatList == aListID) {
+      DrainSelfPushedFloats(); // ensure aPrevFrame is in mFloats
       mFloats.InsertFrames(this, aPrevFrame, aFrameList);
       return;
     }
