@@ -940,9 +940,6 @@ TelemetryImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
     "Memory used by the telemetry system.");
 }
 
-// A initializer to initialize histogram collection
-StatisticsRecorder gStatisticsRecorder;
-
 // Hardcoded probes
 struct TelemetryHistogram {
   uint32_t min;
