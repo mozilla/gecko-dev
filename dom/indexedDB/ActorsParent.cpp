@@ -4165,6 +4165,9 @@ private:
 
   virtual void
   SendResults() MOZ_OVERRIDE;
+
+  virtual void
+  ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
 };
 
 class OpenDatabaseOp::VersionChangeOp MOZ_FINAL
@@ -11997,6 +12000,18 @@ OpenDatabaseOp::SendResults()
   mDatabase.swap(database);
 
   FinishSendResults();
+}
+
+void
+OpenDatabaseOp::ActorDestroy(ActorDestroyReason aWhy)
+{
+  AssertIsOnBackgroundThread();
+
+  NoteActorDestroyed();
+
+  if (mDatabase && aWhy != Deletion) {
+    mDatabase->Invalidate();
+  }
 }
 
 void
