@@ -1179,7 +1179,7 @@ nsDisplayListBuilder::IsAnimatedGeometryRoot(nsIFrame* aFrame, nsIFrame** aParen
     return true;
   }
 
-  if (parentType == nsGkAtoms::scrollFrame) {
+  if (parentType == nsGkAtoms::scrollFrame || parentType == nsGkAtoms::listControlFrame) {
     nsIScrollableFrame* sf = do_QueryFrame(parent);
     if (sf->IsScrollingActive(this) && sf->GetScrolledFrame() == aFrame) {
       return true;
