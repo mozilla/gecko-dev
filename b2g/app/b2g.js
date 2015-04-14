@@ -751,7 +751,7 @@ pref("hal.processPriorityManager.gonk.LowCPUNice", 18);
 //
 // Do not change these values without gfx team review.
 pref("hal.gonk.COMPOSITOR.rt_priority", 0);
-pref("hal.gonk.COMPOSITOR.nice", 0);
+pref("hal.gonk.COMPOSITOR.nice", -4);
 
 // Fire a memory pressure event when the system has less than Xmb of memory
 // remaining.  You should probably set this just above Y.KillUnderKB for
