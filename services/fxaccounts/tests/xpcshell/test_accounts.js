@@ -24,7 +24,8 @@ let log = Log.repository.getLogger("Services.FxAccounts.test");
 log.level = Log.Level.Debug;
 
 // See verbose logging from FxAccounts.jsm
-Services.prefs.setCharPref("identity.fxaccounts.loglevel", "DEBUG");
+Services.prefs.setCharPref("identity.fxaccounts.loglevel", "Trace");
+Log.repository.getLogger("FirefoxAccounts").level = Log.Level.Trace;
 
 function run_test() {
   run_next_test();
@@ -47,15 +48,10 @@ function MockFxAccountsClient() {
   // user account has been verified
   this.recoveryEmailStatus = function (sessionToken) {
     // simulate a call to /recovery_email/status
-    let deferred = Promise.defer();
-
-    let response = {
+    return Promise.resolve({
       email: this._email,
       verified: this._verified
-    };
-    deferred.resolve(response);
-
-    return deferred.promise;
+    });
   };
 
   this.accountStatus = function(uid) {
@@ -113,6 +109,8 @@ MockStorage.prototype = Object.freeze({
  */
 function MockFxAccounts() {
   return new FxAccounts({
+    VERIFICATION_POLL_TIMEOUT_INITIAL: 100, // 100ms
+
     _getCertificateSigned_calls: [],
     _d_signCertificate: Promise.defer(),
     _now_is: new Date(),
@@ -158,10 +156,12 @@ add_test(function test_non_https_remote_server_uri() {
 });
 
 add_task(function test_get_signed_in_user_initially_unset() {
-  // This test, unlike the rest, uses an un-mocked FxAccounts instance.
-  // However, we still need to pass an object to the constructor to
-  // force it to expose "internal", so we can test the disk storage.
-  let account = new FxAccounts({onlySetInternal: true})
+  // This test, unlike many of the the rest, uses a (largely) un-mocked
+  // FxAccounts instance.
+  // We do mock the storage to keep the test fast on b2g.
+  let account = new FxAccounts({
+    signedInUserStorage: new MockStorage(),
+  });
   let credentials = {
     email: "foo@example.com",
     uid: "1234@lcip.org",
@@ -171,6 +171,8 @@ add_task(function test_get_signed_in_user_initially_unset() {
     kB: "cafe",
     verified: true
   };
+  // and a sad hack to ensure the mocked storage is used for the initial reads.
+  account.internal.currentAccountState.signedInUserStorage = account.internal.signedInUserStorage;
 
   let result = yield account.getSignedInUser();
   do_check_eq(result, null);
@@ -199,12 +201,14 @@ add_task(function test_get_signed_in_user_initially_unset() {
   do_check_eq(result, null);
 });
 
-add_task(function test_getCertificate() {
+add_task(function* test_getCertificate() {
   _("getCertificate()");
-  // This test, unlike the rest, uses an un-mocked FxAccounts instance.
-  // However, we still need to pass an object to the constructor to
-  // force it to expose "internal".
-  let fxa = new FxAccounts({onlySetInternal: true})
+  // This test, unlike many of the the rest, uses a (largely) un-mocked
+  // FxAccounts instance.
+  // We do mock the storage to keep the test fast on b2g.
+  let fxa = new FxAccounts({
+    signedInUserStorage: new MockStorage(),
+  });
   let credentials = {
     email: "foo@example.com",
     uid: "1234@lcip.org",
@@ -214,6 +218,8 @@ add_task(function test_getCertificate() {
     kB: "cafe",
     verified: true
   };
+  // and a sad hack to ensure the mocked storage is used for the initial reads.
+  fxa.internal.currentAccountState.signedInUserStorage = fxa.internal.signedInUserStorage;
   yield fxa.setSignedInUser(credentials);
 
   // Test that an expired cert throws if we're offline.
@@ -223,7 +229,7 @@ add_task(function test_getCertificate() {
   let offline = Services.io.offline;
   Services.io.offline = true;
   // This call would break from missing parameters ...
-  fxa.internal.currentAccountState.getCertificate().then(
+  yield fxa.internal.currentAccountState.getCertificate().then(
     result => {
       Services.io.offline = offline;
       do_throw("Unexpected success");
@@ -234,7 +240,6 @@ add_task(function test_getCertificate() {
       do_check_eq(err, "Error: OFFLINE");
     }
   );
-  _("----- DONE ----\n");
 });
 
 
