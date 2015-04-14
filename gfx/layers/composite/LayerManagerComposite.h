@@ -162,6 +162,13 @@ public:
   virtual const char* Name() const MOZ_OVERRIDE { return ""; }
 
   /**
+   * Restricts the shadow visible region of layers that are covered with
+   * opaque content. aOpaqueRegion is the region already known to be covered
+   * with opaque content, in the post-transform coordinate space of aLayer.
+   */
+  void ApplyOcclusionCulling(Layer* aLayer, nsIntRegion& aOpaqueRegion);
+
+  /**
    * RAII helper class to add a mask effect with the compositable from aMaskLayer
    * to the EffectChain aEffect and notify the compositable when we are done.
    */
@@ -422,6 +429,13 @@ public:
   bool GetShadowTransformSetByAnimation() { return mShadowTransformSetByAnimation; }
   bool HasLayerBeenComposited() { return mLayerComposited; }
   nsIntRect GetClearRect() { return mClearRect; }
+
+  /**
+   * Return the part of the visible region that has been fully rendered.
+   * While progressive drawing is in progress this region will be
+   * a subset of the shadow visible region.
+   */
+  nsIntRegion GetFullyRenderedRegion();
 
 protected:
   gfx::Matrix4x4 mShadowTransform;
