@@ -670,13 +670,14 @@ this.DOMApplicationRegistry = {
   loadAndUpdateApps: function() {
     return Task.spawn(function() {
       let runUpdate = AppsUtils.isFirstRun(Services.prefs);
+      let loadAppPermission = Services.prefs.getBoolPref("dom.apps.reset-permissions");
 
       yield this.loadCurrentRegistry();
 
-      if (runUpdate) {
+      if (runUpdate || !loadAppPermission) {
 
         // Run migration before uninstall of core apps happens.
-        Services.obs.notifyObservers(null, "webapps-before-update-merge", null);        
+        Services.obs.notifyObservers(null, "webapps-before-update-merge", null);
 
 #ifdef MOZ_WIDGET_GONK
         yield this.installSystemApps();
@@ -696,6 +697,8 @@ this.DOMApplicationRegistry = {
         // Need to update the persisted list of apps since
         // installPreinstalledApp() removes the ones failing to install.
         this._saveApps();
+
+	Services.prefs.setBoolPref("dom.apps.reset-permissions", true);
       }
 
       // DataStores must be initialized at startup.
