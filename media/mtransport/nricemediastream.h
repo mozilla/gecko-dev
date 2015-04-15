@@ -142,7 +142,6 @@ class NrIceMediaStream {
 
   // Parse remote attributes
   nsresult ParseAttributes(std::vector<std::string>& candidates);
-  bool HasParsedAttributes() const { return has_parsed_attrs_; }
 
   // Parse trickle ICE candidate
   nsresult ParseTrickleCandidate(const std::string& candidate);
@@ -199,8 +198,7 @@ class NrIceMediaStream {
       name_(name),
       components_(components),
       stream_(nullptr),
-      level_(0) {},
-      has_parsed_attrs_(false) {}
+      level_(0) {}
 
   ~NrIceMediaStream();
 
@@ -212,7 +210,6 @@ class NrIceMediaStream {
   const size_t components_;
   nr_ice_media_stream *stream_;
   uint16_t level_;
-  bool has_parsed_attrs_;
 };
 
 

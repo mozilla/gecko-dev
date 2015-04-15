@@ -214,12 +214,6 @@ class NrIceCtx {
     return nullptr;
   }
 
-  // Some might be null
-  size_t GetStreamCount() const
-  {
-    return streams_.size();
-  }
-
   // The name of the ctx
   const std::string& name() const { return name_; }
 
