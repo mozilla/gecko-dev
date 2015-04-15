@@ -19,7 +19,7 @@
   <project name="fake-libdvm" path="dalvik" remote="b2g" revision="d50ae982b19f42f0b66d08b9eb306be81687869f"/>
   <project name="gaia" path="gaia" remote="mozillaorg" revision="16e948bfaaa15dbc0200135d52f16257b4eab193"/>
   <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="5430501cd5371dfc0674a7911ab61e8ec621e00c"/>
-  <project name="moztt" path="external/moztt" remote="b2g" revision="fe893bb760a3bb64375f62fdf4762a58c59df9ef"/>
+  <project name="moztt" path="external/moztt" remote="b2g" revision="fd5a7abf75af8751bbce59db2a309845364d32e8"/>
   <project name="apitrace" path="external/apitrace" remote="apitrace" revision="34ea6163f9f0e0122fb0bb03607eccdca31ced7a"/>
   <project name="valgrind" path="external/valgrind" remote="b2g" revision="daa61633c32b9606f58799a3186395fd2bbb8d8c"/>
   <project name="vex" path="external/VEX" remote="b2g" revision="47f031c320888fe9f3e656602588565b52d43010"/>
