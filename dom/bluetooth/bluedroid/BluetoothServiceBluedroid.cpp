@@ -1112,6 +1112,43 @@ BluetoothServiceBluedroid::UuidToServiceClassInt(const BluetoothUuid& mUuid)
   return ntohs(shortUuid);
 }
 
+bool
+BluetoothServiceBluedroid::IsConnected(const nsAString& aRemoteBdAddr)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  nsString connectedAddress;
+
+  // Check whether HFP/HSP are connected.
+  BluetoothProfileManagerBase* profile;
+  profile = BluetoothHfpManager::Get();
+  if (profile && profile->IsConnected()) {
+    profile->GetAddress(connectedAddress);
+    if (aRemoteBdAddr.Equals(connectedAddress)) {
+      return true;
+    }
+  }
+
+  // Check whether OPP is connected.
+  profile = BluetoothOppManager::Get();
+  if (profile->IsConnected()) {
+    profile->GetAddress(connectedAddress);
+    if (aRemoteBdAddr.Equals(connectedAddress)) {
+      return true;
+    }
+  }
+
+  // Check whether A2DP is connected.
+  profile = BluetoothA2dpManager::Get();
+  if (profile->IsConnected()) {
+    profile->GetAddress(connectedAddress);
+    if (aRemoteBdAddr.Equals(connectedAddress)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 //
 // Bluetooth notifications
 //
@@ -1402,6 +1439,10 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
       BT_LOGD("Other non-handled device properties. Type: %d", p.mType);
     }
   }
+
+  // BlueDroid wouldn't notify the status of connection, therefore, query the
+  // connection state and append to properties array
+  BT_APPEND_NAMED_VALUE(props, "Connected", IsConnected(aBdAddr));
 
   if (sRequestedDeviceCountArray.IsEmpty()) {
     // This is possible because the callback would be called after turning
