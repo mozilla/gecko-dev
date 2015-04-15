@@ -21,6 +21,7 @@
 #include "Axis.h"
 #include "InputQueue.h"
 #include "APZUtils.h"
+#include "Layers.h"                     // for Layer::ScrollDirection
 #include "LayersTypes.h"
 #include "TaskThrottler.h"
 #include "mozilla/gfx/Matrix.h"
@@ -366,6 +367,10 @@ public:
    */
   ParentLayerPoint ToParentLayerCoordinates(const ScreenPoint& aVector,
                                             const ScreenPoint& aAnchor) const;
+
+  // Return whether or not there is room to scroll this APZC
+  // in the given direction.
+  bool CanScroll(Layer::ScrollDirection aDirection) const;
 
 protected:
   // Protected destructor, to discourage deletion outside of Release():
