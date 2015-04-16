@@ -1493,7 +1493,6 @@ nsContainerFrame::DrainSelfOverflowList()
 {
   AutoFrameListPtr overflowFrames(PresContext(), StealOverflowFrames());
   if (overflowFrames) {
-    NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
     mFrames.AppendFrames(nullptr, *overflowFrames);
     return true;
   }
