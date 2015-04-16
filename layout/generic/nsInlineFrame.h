@@ -64,6 +64,7 @@ public:
                                      bool aRespectClusters = true) MOZ_OVERRIDE;
   
   virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+  virtual nsresult StealFrame(nsIFrame* aChild, bool aForceNormal) MOZ_OVERRIDE;
 
   // nsIHTMLReflow overrides
   virtual void AddInlineMinISize(nsRenderingContext *aRenderingContext,
