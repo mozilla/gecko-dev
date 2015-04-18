@@ -3345,6 +3345,8 @@ GCHelperState::startBackgroundAllocationIfIdle()
 void
 GCHelperState::doSweep()
 {
+    AutoSetThreadIsSweeping threadIsSweeping;
+
     if (sweepFlag) {
         sweepFlag = false;
         AutoUnlockGC unlock(rt);
@@ -4749,6 +4751,8 @@ GCRuntime::beginSweepPhase(bool destroyingRuntime)
      * fail, rather than nest badly and leave the unmarked newborn to be swept.
      */
 
+    AutoSetThreadIsSweeping threadIsSweeping;
+
     JS_ASSERT(!abortSweepAfterCurrentGroup);
 
     computeNonIncrementalMarkingForValidation();
@@ -4810,6 +4814,8 @@ GCRuntime::drainMarkStack(SliceBudget& sliceBudget, gcstats::Phase phase)
 bool
 GCRuntime::sweepPhase(SliceBudget& sliceBudget)
 {
+    AutoSetThreadIsSweeping threadIsSweeping;
+
     gcstats::AutoPhase ap(stats, gcstats::PHASE_SWEEP);
     FreeOp fop(rt);
 
@@ -4879,6 +4885,8 @@ GCRuntime::sweepPhase(SliceBudget& sliceBudget)
 void
 GCRuntime::endSweepPhase(bool destroyingRuntime)
 {
+    AutoSetThreadIsSweeping threadIsSweeping;
+
     gcstats::AutoPhase ap(stats, gcstats::PHASE_SWEEP);
     FreeOp fop(rt);
 

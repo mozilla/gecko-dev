@@ -789,7 +789,7 @@ class AsmJSModule
     uint8_t *                             code_;
     uint8_t *                             interruptExit_;
     StaticLinkData                        staticLinkData_;
-    HeapPtrArrayBufferObject              maybeHeap_;
+    RelocatablePtrArrayBufferObject       maybeHeap_;
     bool                                  dynamicallyLinked_;
     bool                                  loadedFromCache_;
     bool                                  profilingEnabled_;
