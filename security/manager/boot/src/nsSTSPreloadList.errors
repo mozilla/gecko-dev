@@ -60,7 +60,6 @@ gparent.org: did not receive HSTS header
 greplin.com: could not connect to host
 groups.google.com: did not receive HSTS header (error ignored - included regardless)
 hackerone-user-content.com: could not connect to host
-haste.ch: could not connect to host
 history.google.com: did not receive HSTS header (error ignored - included regardless)
 hoerbuecher-und-hoerspiele.de: did not receive HSTS header
 honeytracks.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
@@ -71,7 +70,7 @@ inertianetworks.com: did not receive HSTS header
 intercom.io: did not receive HSTS header
 iop.intuit.com: max-age too low: 86400
 irccloud.com: did not receive HSTS header
-janoberst.com: could not connect to host
+janoberst.com: did not receive HSTS header
 jelmer.co.uk: could not connect to host
 jottit.com: could not connect to host
 k-dev.de: could not connect to host
@@ -109,7 +108,6 @@ openshift.redhat.com: did not receive HSTS header
 ottospora.nl: could not connect to host
 passwordbox.com: did not receive HSTS header
 piratenlogin.de: could not connect to host
-pixi.me: could not connect to host
 platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header (error ignored - included regardless)
 pressfreedomfoundation.org: did not receive HSTS header
@@ -126,7 +124,6 @@ sah3.net: could not connect to host
 saturngames.co.uk: could not connect to host
 script.google.com: did not receive HSTS header (error ignored - included regardless)
 sdsl-speedtest.de: could not connect to host
-security-carpet.com: could not connect to host
 security.google.com: did not receive HSTS header (error ignored - included regardless)
 semenkovich.com: did not receive HSTS header
 serverdensity.io: did not receive HSTS header
@@ -144,6 +141,7 @@ square.com: did not receive HSTS header
 ssl.google-analytics.com: did not receive HSTS header (error ignored - included regardless)
 ssl.panoramio.com: did not receive HSTS header
 stocktrade.de: could not connect to host
+subrosa.io: could not connect to host
 sunshinepress.org: could not connect to host
 surfeasy.com: did not receive HSTS header
 talk.google.com: could not connect to host
