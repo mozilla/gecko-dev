@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1439633637793000);
+const PRTime gPreloadListExpirationTime = INT64_C(1440238486576000);
 
 class nsSTSPreload
 {
@@ -20,7 +20,6 @@ class nsSTSPreload
 static const nsSTSPreload kSTSPreloadList[] = {
   { "0x0a.net", true },
   { "17hats.com", true },
-  { "18f.gsa.gov", true },
   { "1a-diamantscheiben.de", true },
   { "1a-vermessung.at", true },
   { "1a-werkstattgeraete.de", true },
@@ -130,7 +129,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "bugzilla.mozilla.org", true },
   { "bulktrade.de", true },
   { "business.lookout.com", false },
-  { "buttercoin.com", true },
   { "buzzconcert.com", true },
   { "bytepark.de", false },
   { "ca.gparent.org", false },
@@ -476,7 +474,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mattmccutchen.net", true },
   { "mbp.banking.co.at", false },
   { "md5file.com", true },
-  { "mdfnet.se", false },
+  { "mdfnet.se", true },
   { "meamod.com", true },
   { "mediacru.sh", true },
   { "medium.com", true },
@@ -730,7 +728,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "tageau.com", true },
   { "talk.google.com", true },
   { "talkgadget.google.com", true },
-  { "tapka.cz", true },
   { "tatort-fanpage.de", true },
   { "tauchkater.de", true },
   { "techhipster.net", true },
