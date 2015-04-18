@@ -123,6 +123,30 @@ struct AutoStopVerifyingBarriers
     AutoStopVerifyingBarriers(JSRuntime*, bool) {}
 };
 #endif /* JS_GC_ZEAL */
+// In debug builds, set/unset the GC sweeping flag for the current thread.
+struct AutoSetThreadIsSweeping
+{
+#ifdef DEBUG
+    explicit AutoSetThreadIsSweeping(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
+      : threadData_(js::TlsPerThreadData.get())
+    {
+        MOZ_ASSERT(!threadData_->gcSweeping);
+        threadData_->gcSweeping = true;
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    ~AutoSetThreadIsSweeping() {
+        MOZ_ASSERT(threadData_->gcSweeping);
+        threadData_->gcSweeping = false;
+    }
+
+  private:
+    PerThreadData* threadData_;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+#else
+    AutoSetThreadIsSweeping() {}
+#endif
+};
 
 } /* namespace gc */
 } /* namespace js */

@@ -55,6 +55,13 @@ RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone* shadowZone)
 {
     return shadowZone->runtimeFromMainThread()->isHeapMajorCollecting();
 }
+
+bool
+CurrentThreadIsGCSweeping()
+{
+    return js::TlsPerThreadData.get()->gcSweeping;
+}
+
 #endif // DEBUG
 
 bool

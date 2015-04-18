@@ -123,7 +123,7 @@ class RegExpShared
 #endif
 
     /* Source to the RegExp, for lazy compilation. */
-    HeapPtrAtom        source;
+    RelocatablePtrAtom source;
 
     RegExpFlag         flags;
     size_t             parenCount;

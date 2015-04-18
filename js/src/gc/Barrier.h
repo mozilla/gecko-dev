@@ -161,6 +161,9 @@ class PropertyName;
 #ifdef DEBUG
 bool
 RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone* shadowZone);
+
+bool
+CurrentThreadIsGCSweeping();
 #endif
 
 bool
@@ -499,14 +502,16 @@ class PreBarriered : public BarrieredBase<T>
 /*
  * A pre- and post-barriered heap pointer, for use inside the JS engine.
  *
+ * It must only be stored in memory that has GC lifetime. HeapPtr must not be
+ * used in contexts where it may be implicitly moved or deleted, e.g. most
+ * containers.
+ *
  * Not to be confused with JS::Heap<T>. This is a different class from the
  * external interface and implements substantially different semantics.
  *
  * The post-barriers implemented by this class are faster than those
  * implemented by RelocatablePtr<T> or JS::Heap<T> at the cost of not
- * automatically handling deletion or movement. It should generally only be
- * stored in memory that has GC lifetime. HeapPtr must not be used in contexts
- * where it may be implicitly moved or deleted, e.g. most containers.
+ * automatically handling deletion or movement.
  */
 template <class T>
 class HeapPtr : public BarrieredBase<T>
@@ -515,6 +520,11 @@ class HeapPtr : public BarrieredBase<T>
     HeapPtr() : BarrieredBase<T>(GCMethods<T>::initial()) {}
     explicit HeapPtr(T v) : BarrieredBase<T>(v) { post(); }
     explicit HeapPtr(const HeapPtr<T>& v) : BarrieredBase<T>(v) { post(); }
+#ifdef DEBUG
+    ~HeapPtr() {
+        MOZ_ASSERT(CurrentThreadIsGCSweeping());
+    }
+#endif
 
     void init(T v) {
         JS_ASSERT(!GCMethods<T>::poisoned(v));
@@ -540,13 +550,6 @@ class HeapPtr : public BarrieredBase<T>
 
   protected:
     void post() { InternalGCMethods<T>::postBarrier(&this->value); }
-
-    /* Make this friend so it can access pre() and post(). */
-    template <class T1, class T2>
-    friend inline void
-    BarrieredSetPair(Zone* zone,
-                     HeapPtr<T1*>& v1, T1* val1,
-                     HeapPtr<T2*>& v2, T2* val2);
 
   private:
     /*
@@ -626,6 +629,17 @@ class RelocatablePtr : public BarrieredBase<T>
 
     RelocatablePtr<T>& operator=(T v) {
         this->pre();
+        postBarrieredSet(v);
+        return *this;
+    }
+
+    RelocatablePtr<T>& operator=(const RelocatablePtr<T>& v) {
+        this->pre();
+        postBarrieredSet(v.value);
+        return *this;
+    }
+
+    void postBarrieredSet(const T& v) {
         JS_ASSERT(!GCMethods<T>::poisoned(v));
         if (GCMethods<T>::needsPostBarrier(v)) {
             this->value = v;
@@ -636,24 +650,14 @@ class RelocatablePtr : public BarrieredBase<T>
         } else {
             this->value = v;
         }
-        return *this;
     }
 
-    RelocatablePtr<T>& operator=(const RelocatablePtr<T>& v) {
-        this->pre();
-        JS_ASSERT(!GCMethods<T>::poisoned(v.value));
-        if (GCMethods<T>::needsPostBarrier(v.value)) {
-            this->value = v.value;
-            post();
-        } else if (GCMethods<T>::needsPostBarrier(this->value)) {
-            relocate();
-            this->value = v;
-        } else {
-            this->value = v;
-        }
-
-        return *this;
-    }
+    /* Make this friend so it can access pre() and post(). */
+    template <class T1, class T2>
+    friend inline void
+    BarrieredSetPair(Zone* zone,
+                     RelocatablePtr<T1*>& v1, T1* val1,
+                     RelocatablePtr<T2*>& v2, T2* val2);
 
   protected:
     void post() {
@@ -678,17 +682,15 @@ class RelocatablePtr : public BarrieredBase<T>
 template <class T1, class T2>
 static inline void
 BarrieredSetPair(Zone* zone,
-                 HeapPtr<T1*>& v1, T1* val1,
-                 HeapPtr<T2*>& v2, T2* val2)
+                 RelocatablePtr<T1*>& v1, T1* val1,
+                 RelocatablePtr<T2*>& v2, T2* val2)
 {
     if (T1::needWriteBarrierPre(zone)) {
         v1.pre();
         v2.pre();
     }
-    v1.unsafeSet(val1);
-    v2.unsafeSet(val2);
-    v1.post();
-    v2.post();
+    v1.postBarrieredSet(val1);
+    v2.postBarrieredSet(val2);
 }
 
 /* Useful for hashtables with a HeapPtr as key. */
@@ -778,9 +780,17 @@ typedef PreBarriered<JSObject*> PreBarrieredObject;
 typedef PreBarriered<JSScript*> PreBarrieredScript;
 typedef PreBarriered<jit::JitCode*> PreBarrieredJitCode;
 
+typedef RelocatablePtr<ArrayBufferObject*> RelocatablePtrArrayBufferObject;
 typedef RelocatablePtr<JSObject*> RelocatablePtrObject;
+typedef RelocatablePtr<JSFunction*> RelocatablePtrFunction;
 typedef RelocatablePtr<JSScript*> RelocatablePtrScript;
 typedef RelocatablePtr<NestedScopeObject*> RelocatablePtrNestedScopeObject;
+typedef RelocatablePtr<Shape*> RelocatablePtrShape;
+typedef RelocatablePtr<jit::JitCode*> RelocatablePtrJitCode;
+typedef RelocatablePtr<JSLinearString*> RelocatablePtrLinearString;
+typedef RelocatablePtr<JSString*> RelocatablePtrString;
+typedef RelocatablePtr<JSAtom*> RelocatablePtrAtom;
+typedef RelocatablePtr<types::TypeObject*> RelocatablePtrTypeObject;
 
 typedef HeapPtr<ArrayBufferObject*> HeapPtrArrayBufferObject;
 typedef HeapPtr<BaseShape*> HeapPtrBaseShape;

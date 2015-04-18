@@ -495,7 +495,7 @@ class AsmJSModule
     StaticLinkData                        staticLinkData_;
     bool                                  dynamicallyLinked_;
     bool                                  loadedFromCache_;
-    HeapPtrArrayBufferObject              maybeHeap_;
+    RelocatablePtrArrayBufferObject       maybeHeap_;
 
     // The next two fields need to be kept out of the Pod as they depend on the
     // position of the module within the ScriptSource and thus aren't invariant
