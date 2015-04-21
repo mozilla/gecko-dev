@@ -7,6 +7,7 @@
 
 const { devtools } = Components.utils.import("resource://gre/modules/devtools/Loader.jsm", {});
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 Object.defineProperty(this, "NetworkHelper", {
   get: function() {
@@ -42,6 +43,7 @@ const MockRequest = {
 };
 
 function run_test() {
+  Services.prefs.setIntPref("security.cert_pinning.enforcement_level", 1);
   let result = NetworkHelper.parseSecurityInfo(MockSecurityInfo, MockRequest);
   equal(result.hpkp, true, "Static HPKP detected.");
 }
