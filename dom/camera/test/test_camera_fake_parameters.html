@@ -362,14 +362,6 @@ var tests = [
       });
 
       // test setters and getters
-      var sync = new Promise(function(resolve, reject) {
-        // Use setConfiguration() (which will fail on the profile)
-        // to signify that the CameraControl thread has run and our
-        // settings are applied. Yes--this is an ugly hack.
-        cam.setConfiguration({ mode: 'video',
-                               recorderProfile: 'weird-unsupported-profile'
-                             }).then(resolve, resolve);
-      });
       var sizeGenerator = function() {
         var sizes = [ { height: 3264, width: 1836 },
                       { height: 1836, width: 3264 },
@@ -383,12 +375,18 @@ var tests = [
         try {
           var size = sizeGenerator.next();
           cam.setPictureSize(size);
-          sync.then(function() {
+
+          // Use setConfiguration() (which will fail on the profile)
+          // to signify that the CameraControl thread has run and our
+          // settings are applied. Yes--this is an ugly hack.
+          cam.setConfiguration({ mode: 'video',
+                                 recorderProfile: 'weird-unsupported-profile'
+          }).catch(function() {
             var got = cam.getPictureSize();
             ok(got.width == size.width && got.height == size.height,
               "Set size " + size.toSource() + ", got size " + got.toSource());
             nextSize();
-          }, onError);
+          });
         } catch(e) {
           if (e instanceof StopIteration) {
             next();
