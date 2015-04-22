@@ -12,7 +12,7 @@
   <!--original fetch url was https://git.mozilla.org/releases-->
   <remote fetch="https://git.mozilla.org/releases" name="mozillaorg"/>
   <!-- B2G specific things. -->
-  <project name="platform_build" path="build" remote="b2g" revision="6b0721ca0e92788df30daf8f7a5fb2863544f9c8">
+  <project name="platform_build" path="build" remote="b2g" revision="61e82f99bb8bc78d52b5717e9a2481ec7267fa33">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
   <project name="gaia" path="gaia" remote="mozillaorg" revision="41a85c5f9db291d4f7c0e94c8416b5115b4ee407"/>
