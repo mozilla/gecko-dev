@@ -20,7 +20,7 @@
   </project>
   <project name="fake-dalvik" path="dalvik" remote="b2g" revision="ca1f327d5acc198bb4be62fa51db2c039032c9ce"/>
   <project name="gaia.git" path="gaia" remote="mozillaorg" revision="41a85c5f9db291d4f7c0e94c8416b5115b4ee407"/>
-  <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="122a178914f0b34f1c55fb1040f7fa5bcd11abc2"/>
+  <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="3a6886700cd20ed46b1d093e81483c63b6af27cb"/>
   <project name="rilproxy" path="rilproxy" remote="b2g" revision="827214fcf38d6569aeb5c6d6f31cb296d1f09272"/>
   <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="72067ca0cb52bda5426913ad1eb89842929c0296"/>
   <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="6bfddcebdf18b159340c6d65d00fb767b6b7121f"/>
