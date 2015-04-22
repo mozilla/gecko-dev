@@ -375,6 +375,13 @@ ZoneOfValueFromAnyThread(const JS::Value& value)
     return static_cast<js::gc::Cell*>(value.toGCThing())->tenuredZoneFromAnyThread();
 }
 
+MOZ_ALWAYS_INLINE JS::Zone*
+ZoneOfIdFromAnyThread(const jsid& id)
+{
+    MOZ_ASSERT(JSID_IS_GCTHING(id));
+    return static_cast<gc::Cell*>(JSID_TO_GCTHING(id))->tenuredZoneFromAnyThread();
+}
+
 void
 ValueReadBarrier(const Value& value);
 
@@ -475,6 +482,11 @@ struct InternalGCMethods<Value>
     static void readBarrier(const Value& v) { ValueReadBarrier(v); }
 };
 
+namespace gc {
+void
+MarkIdUnbarriered(JSTracer* trc, jsid* id, const char* name);
+} // namespace gc
+
 template <>
 struct InternalGCMethods<jsid>
 {
@@ -482,25 +494,33 @@ struct InternalGCMethods<jsid>
 
     static void preBarrier(jsid id) {
 #ifdef JSGC_INCREMENTAL
-        if (JSID_IS_STRING(id)) {
-            JSString* str = JSID_TO_STRING(id);
-            JS::shadow::Zone* shadowZone = ShadowZoneOfStringFromAnyThread(str);
-            if (shadowZone->needsIncrementalBarrier()) {
-                js::gc::MarkStringUnbarriered(shadowZone->barrierTracer(), &str, "write barrier");
-                JS_ASSERT(str == JSID_TO_STRING(id));
-            }
-        } else if (JSID_IS_SYMBOL(id)) {
-            JS::Symbol* sym = JSID_TO_SYMBOL(id);
-            JS::shadow::Zone* shadowZone = ShadowZoneOfSymbolFromAnyThread(sym);
-            if (shadowZone->needsIncrementalBarrier()) {
-                js::gc::MarkSymbolUnbarriered(shadowZone->barrierTracer(), &sym, "write barrier");
-                JS_ASSERT(sym == JSID_TO_SYMBOL(id));
-            }
+        MOZ_ASSERT(!CurrentThreadIsIonCompiling());
+        if (JSID_IS_STRING(id) && StringIsPermanentAtom(JSID_TO_STRING(id)))
+            return;
+        if (JSID_IS_GCTHING(id) && shadowRuntimeFromAnyThread(id)->needsIncrementalBarrier())
+            preBarrierImpl(ZoneOfIdFromAnyThread(id), id);
+#endif
+    }
+  private:
+    static JSRuntime* runtimeFromAnyThread(jsid id) {
+        MOZ_ASSERT(JSID_IS_GCTHING(id));
+        return static_cast<gc::Cell*>(JSID_TO_GCTHING(id))->runtimeFromAnyThread();
+    }
+    static JS::shadow::Runtime* shadowRuntimeFromAnyThread(jsid id) {
+        return reinterpret_cast<JS::shadow::Runtime*>(runtimeFromAnyThread(id));
+    }
+    static void preBarrierImpl(Zone *zone, jsid id) {
+#ifdef JSGC_INCREMENTAL
+        JS::shadow::Zone* shadowZone = JS::shadow::Zone::asShadowZone(zone);
+        if (shadowZone->needsIncrementalBarrier()) {
+            jsid tmp(id);
+            js::gc::MarkIdUnbarriered(shadowZone->barrierTracer(), &tmp, "id write barrier");
+            MOZ_ASSERT(tmp == id);
         }
 #endif
     }
-    static void preBarrier(Zone* zone, jsid id) { preBarrier(id); }
 
+  public:
     static void postBarrier(jsid* idp) {}
     static void postBarrierRelocate(jsid* idp) {}
     static void postBarrierRemove(jsid* idp) {}
