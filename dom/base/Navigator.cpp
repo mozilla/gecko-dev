@@ -108,6 +108,10 @@
 
 #include "mozilla/dom/FeatureList.h"
 
+#ifdef MOZ_WIDGET_GONK
+#include <cutils/properties.h>
+#endif
+
 namespace mozilla {
 namespace dom {
 
@@ -1522,6 +1526,17 @@ Navigator::GetFeature(const nsAString& aName, ErrorResult& aRv)
     }
     return p.forget();
   } // hardware.memory
+#endif
+
+#ifdef MOZ_WIDGET_GONK
+  if (aName.EqualsLiteral("acl.version")) {
+    char value[PROPERTY_VALUE_MAX];
+    uint32_t len = property_get("persist.acl.version", value, nullptr);
+    if (len > 0) {
+      p->MaybeResolve(NS_ConvertUTF8toUTF16(value));
+      return p.forget();
+    }
+  }
 #endif
 
   p->MaybeResolve(JS::UndefinedHandleValue);
