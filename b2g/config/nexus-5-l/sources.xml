@@ -154,6 +154,6 @@
   <project name="platform/hardware/qcom/wlan" path="hardware/qcom/wlan" revision="6417804bea95f6e46094a01a06025a86e28c5b0d"/>
   <project name="platform/hardware/ril" path="hardware/ril" revision="e00d716e7e3d31729f75399855b6921e90cb0b66"/>
   <project name="platform_system_bluetoothd" path="system/bluetoothd" remote="b2g" revision="4b8294f1a07833fefe5f99c92be4b356e783e99e"/>
-  <project name="platform_system_nfcd" path="system/nfcd" remote="b2g" revision="de927361215b03e8aaa39ff25b3e691520417cb4"/>
+  <project name="platform_system_nfcd" path="system/nfcd" remote="b2g" revision="999fe56a337357de00bfbd5fd596b1288e5bf76f"/>
   <project name="platform_system_libfdio" path="system/libfdio" remote="b2g" revision="4f7546c61ce97257d5122fe2021625d21c4f4c60"/>
 </manifest>
