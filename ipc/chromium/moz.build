@@ -76,6 +76,7 @@ UNIFIED_SOURCES += [
     'src/chrome/common/chrome_switches.cc',
     'src/chrome/common/debug_flags.cc',
     'src/chrome/common/env_vars.cc',
+    'src/chrome/common/ipc_channel.cc',
     'src/chrome/common/ipc_channel_proxy.cc',
     'src/chrome/common/ipc_logging.cc',
     'src/chrome/common/ipc_message.cc',
