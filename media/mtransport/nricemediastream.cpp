@@ -209,7 +209,6 @@ nsresult NrIceMediaStream::ParseAttributes(std::vector<std::string>&
     return NS_ERROR_FAILURE;
   }
 
-  has_parsed_attrs_ = true;
   return NS_OK;
 }
 

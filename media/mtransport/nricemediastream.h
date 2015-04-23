@@ -149,7 +149,6 @@ class NrIceMediaStream {
 
   // Parse remote attributes
   nsresult ParseAttributes(std::vector<std::string>& candidates);
-  bool HasParsedAttributes() const { return has_parsed_attrs_; }
 
   // Parse trickle ICE candidate
   nsresult ParseTrickleCandidate(const std::string& candidate);
@@ -205,8 +204,7 @@ class NrIceMediaStream {
       name_(name),
       components_(components),
       stream_(nullptr),
-      opaque_(nullptr),
-      has_parsed_attrs_(false) {}
+      opaque_(nullptr) {}
 
   DISALLOW_COPY_ASSIGN(NrIceMediaStream);
 
@@ -216,7 +214,6 @@ class NrIceMediaStream {
   const int components_;
   nr_ice_media_stream *stream_;
   ScopedDeletePtr<NrIceOpaque> opaque_;
-  bool has_parsed_attrs_;
 };
 
 
