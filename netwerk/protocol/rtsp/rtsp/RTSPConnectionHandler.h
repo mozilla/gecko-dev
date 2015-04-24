@@ -43,9 +43,15 @@
 
 extern PRLogModuleInfo* gRtspLog;
 
-// If no access units are received within 2 secs, assume that the rtp
-// stream has ended and signal end of stream.
-static int64_t kAccessUnitTimeoutUs = 2000000ll;
+// If no access units are received within 10 secs, assume that the rtp
+// stream has ended and abort.
+static int64_t kAccessUnitTimeoutUs = 10000000ll;
+
+// The end-of-stream timer will be running in the last 2 seconds of duration.
+static int64_t kActivateEndOfStreamTimerUs = 2000000ll;
+
+// The end-of-stream timer will timeout in 2 seconds.
+static int64_t kEndOfStreamTimeoutUs = 2000000ll;
 
 // If no access units arrive for the first 10 secs after starting the
 // stream, assume none ever will and signal EOS or switch transports.
@@ -129,6 +135,8 @@ struct RtspConnectionHandler : public AHandler {
           mNTPAnchorUs(-1),
           mMediaAnchorUs(-1),
           mLastMediaTimeUs(0),
+          mNumAccessUnitsReceived(0),
+          mCheckPending(false),
           mCheckGeneration(0),
           mTryTCPInterleaving(false),
           mTryFakeRTCP(false),
@@ -186,19 +194,20 @@ struct RtspConnectionHandler : public AHandler {
     }
 
     void setCheckPending(bool flag) {
+        mCheckPending = flag;
         for (size_t i = 0; i < mTracks.size(); ++i) {
-            setCheckPending(i, flag);
+            setEndOfStreamCheckPending(i, flag);
         }
     }
 
-    void setCheckPending(size_t trackIndex, bool flag) {
+    void setEndOfStreamCheckPending(size_t trackIndex, bool flag) {
         TrackInfo *info = &mTracks.editItemAt(trackIndex);
         if (info) {
             info->mCheckPendings = flag;
         }
     }
 
-    bool getCheckPending(size_t trackIndex) {
+    bool getEndOfStreamCheckPending(size_t trackIndex) {
         TrackInfo *info = &mTracks.editItemAt(trackIndex);
         return info->mCheckPendings;
     }
@@ -931,7 +940,28 @@ struct RtspConnectionHandler : public AHandler {
                 break;
             }
 
-            case 'chek':
+            // AccessUnitTimeoutCheck
+            case 'autc':
+            {
+                int32_t generation;
+                CHECK(msg->findInt32("generation", &generation));
+                if (generation != mCheckGeneration) {
+                    // This is an outdated message. Ignore.
+                    break;
+                }
+
+                if (mNumAccessUnitsReceived == 0) {
+                    LOGI("stream ended? aborting.");
+                    disconnect();
+                    break;
+                }
+                mNumAccessUnitsReceived = 0;
+                msg->post(kAccessUnitTimeoutUs);
+                break;
+            }
+
+            // EndOfStreamCheck
+            case 'eosc':
             {
                 int32_t generation;
                 CHECK(msg->findInt32("generation", &generation));
@@ -947,11 +977,9 @@ struct RtspConnectionHandler : public AHandler {
                 }
 
                 if (track->mNumAccessUnitsReceiveds == 0) {
-                    LOGI("stream ended? aborting.");
                     if (gIOService->IsOffline()) {
-                        sp<AMessage> reply = new AMessage(kWhatDisconnected, id());
-                        reply->setInt32("result", ERROR_CONNECTION_LOST);
-                        mConn->disconnect(reply);
+                        LOGI("stream ended? aborting.");
+                        disconnect();
                         break;
                     }
                     sp<AMessage> endStreamMsg = new AMessage('endofstream', id());
@@ -960,7 +988,7 @@ struct RtspConnectionHandler : public AHandler {
                     break;
                 }
                 track->mNumAccessUnitsReceiveds = 0;
-                msg->post(kAccessUnitTimeoutUs);
+                msg->post(kEndOfStreamTimeoutUs);
                 break;
             }
 
@@ -991,6 +1019,9 @@ struct RtspConnectionHandler : public AHandler {
                     break;
                 }
 
+                mNumAccessUnitsReceived++;
+                postAccessUnitTimeoutCheck();
+
                 size_t trackIndex;
                 CHECK(msg->findSize("track-index", &trackIndex));
 
@@ -1000,9 +1031,6 @@ struct RtspConnectionHandler : public AHandler {
                 }
 
                 TrackInfo *track = &mTracks.editItemAt(trackIndex);
-
-                track->mNumAccessUnitsReceiveds++;
-                postAccessUnitTimeoutCheck(trackIndex);
 
                 int32_t eos;
                 if (msg->findInt32("eos", &eos)) {
@@ -1043,6 +1071,17 @@ struct RtspConnectionHandler : public AHandler {
                 }
 
                 onAccessUnitComplete(trackIndex, accessUnit);
+
+                // This code is put here because now accessUnit has timestamp.
+                track->mNumAccessUnitsReceiveds++;
+                int64_t duration, timeUs;
+                mSessionDesc->getDurationUs(&duration);
+                accessUnit->meta()->findInt64("timeUs", &timeUs);
+
+                // Start a timer to detect end-of-stream if close to the end.
+                if (timeUs >= duration - kActivateEndOfStreamTimerUs) {
+                    postEndOfStreamCheck(trackIndex);
+                }
                 break;
             }
 
@@ -1133,9 +1172,12 @@ struct RtspConnectionHandler : public AHandler {
                     break;
                 }
 
+                mCheckPending = false;
+                postAccessUnitTimeoutCheck();
+
                 for (size_t i = 0; i < mTracks.size(); i++) {
-                    setCheckPending(i, false);
-                    postAccessUnitTimeoutCheck(i);
+                    setEndOfStreamCheckPending(i, false);
+                    postEndOfStreamCheck(i);
                 }
 
                 if (result == OK) {
@@ -1239,14 +1281,24 @@ struct RtspConnectionHandler : public AHandler {
         msg->post((mKeepAliveTimeoutUs * 9) / 10);
     }
 
-    void postAccessUnitTimeoutCheck(size_t trackIndex) {
-        if (getCheckPending(trackIndex)) {
+    void postEndOfStreamCheck(size_t trackIndex) {
+        if (getEndOfStreamCheckPending(trackIndex)) {
             return;
         }
-        setCheckPending(trackIndex, true);
-        sp<AMessage> check = new AMessage('chek', id());
+        setEndOfStreamCheckPending(trackIndex, true);
+        sp<AMessage> check = new AMessage('eosc', id());
         check->setInt32("generation", mCheckGeneration);
         check->setSize("trackIndex", trackIndex);
+        check->post(kEndOfStreamTimeoutUs);
+    }
+
+    void postAccessUnitTimeoutCheck() {
+        if (mCheckPending) {
+            return;
+        }
+        mCheckPending = true;
+        sp<AMessage> check = new AMessage('autc', id());
+        check->setInt32("generation", mCheckGeneration);
         check->post(kAccessUnitTimeoutUs);
     }
 
@@ -1413,6 +1465,8 @@ private:
     int64_t mMediaAnchorUs;
     int64_t mLastMediaTimeUs;
 
+    int64_t mNumAccessUnitsReceived;
+    bool mCheckPending;
     int32_t mCheckGeneration;
     bool mTryTCPInterleaving;
     bool mTryFakeRTCP;
