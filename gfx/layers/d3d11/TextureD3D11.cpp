@@ -842,6 +842,10 @@ SyncObjectD3D11::FinalizeFrame()
     hr = mutex->AcquireSync(0, 20000);
 
     if (hr == WAIT_TIMEOUT) {
+      if (gfxWindowsPlatform::GetPlatform()->DidRenderingDeviceReset()) {
+        gfxWarning() << "AcquireSync timed out because of device reset.";
+        return;
+      }
       MOZ_CRASH();
     }
 
@@ -866,6 +870,10 @@ SyncObjectD3D11::FinalizeFrame()
     hr = mutex->AcquireSync(0, 20000);
 
     if (hr == WAIT_TIMEOUT) {
+      if (gfxWindowsPlatform::GetPlatform()->DidRenderingDeviceReset()) {
+        gfxWarning() << "AcquireSync timed out because of device reset.";
+        return;
+      }
       MOZ_CRASH();
     }
 
