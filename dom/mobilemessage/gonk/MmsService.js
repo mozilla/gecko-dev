@@ -167,6 +167,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gMobileConnectionService",
                                    "@mozilla.org/mobileconnection/mobileconnectionservice;1",
                                    "nsIMobileConnectionService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gNetworkService",
+                                   "@mozilla.org/network/service;1",
+                                   "nsINetworkService");
+
 XPCOMUtils.defineLazyGetter(this, "MMS", function() {
   let MMS = {};
   Cu.import("resource://gre/modules/MmsPduHelper.jsm", MMS);
@@ -706,31 +710,36 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function() {
           url = mmsConnection.mmsc;
         }
 
-        let startTransaction = function () {
+        let startTransaction = function (netId) {
           if (DEBUG) debug("sendRequest: register proxy filter to " + url);
           let proxyFilter = new MmsProxyFilter(mmsConnection, url);
           gpps.registerFilter(proxyFilter, 0);
 
           cancellable.xhr = this.sendHttpRequest(mmsConnection, method,
-                                                 url, istream, proxyFilter,
+                                                 url, istream, proxyFilter, netId,
                                                  cancellable.done.bind(cancellable));
         }.bind(this);
 
-        mmsConnection.ensureRouting(url)
-          .then(() => startTransaction(),
-                (aError) => {
-                  debug("Failed to ensureRouting: " + aError);
+        let onRejected = aReason => {
+          debug(aReason);
+          mmsConnection.release();
+          cancellable.done(_HTTP_STATUS_FAILED_TO_ROUTE);
+        };
 
-                  mmsConnection.release();
-                  cancellable.done(_HTTP_STATUS_FAILED_TO_ROUTE);
-                });
+        // TODO: |getNetId| will be implemented as a sync call in nsINetworkManager
+        //       once Bug 1141903 is landed.
+        mmsConnection.ensureRouting(url)
+          .then(() => gNetworkService.getNetId(mmsConnection.networkInterface.name),
+                (aReason) => onRejected('Failed to ensureRouting: ' + aReason))
+          .then((netId) => startTransaction(netId),
+                (aReason) => onRejected('Failed to getNetId: ' + aReason));
       }).bind(this));
 
       return cancellable;
     },
 
     sendHttpRequest: function(mmsConnection, method, url, istream, proxyFilter,
-                              callback) {
+                              netId, callback) {
       let releaseMmsConnectionAndCallback = function(httpStatus, data) {
         gpps.unregisterFilter(proxyFilter);
         // Always release the MMS network connection before callback.
@@ -743,6 +752,7 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function() {
                   .createInstance(Ci.nsIXMLHttpRequest);
 
         // Basic setups
+        xhr.networkInterfaceId = netId;
         xhr.open(method, url, true);
         xhr.responseType = "arraybuffer";
         if (istream) {

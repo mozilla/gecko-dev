@@ -339,42 +339,48 @@ NetworkManager.prototype = {
     switch (network.state) {
       case Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED:
         gNetworkService.createNetwork(network.name, () => {
-          // Add host route for data calls
-          if (this.isNetworkTypeMobile(network.type)) {
-            gNetworkService.removeHostRoutes(network.name);
-            this.setHostRoutes(network);
-          }
 
           // Remove pre-created default route and let setAndConfigureActive()
           // to set default route only on preferred network
           gNetworkService.removeDefaultRoute(network);
 
-          // Dun type is a special case where we add the default route to a
-          // secondary table.
-          if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
-            this.setSecondaryDefaultRoute(network);
-          }
+          // Set DNS server as early as possible to prevent from
+          // premature domain name lookup.
+          gNetworkService.setDNS(network, () => {
 
-          this._addSubnetRoutes(network);
-          this.setAndConfigureActive();
-
-          // Update data connection when Wifi connected/disconnected
-          if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI && this.mRil) {
-            for (let i = 0; i < this.mRil.numRadioInterfaces; i++) {
-              this.mRil.getRadioInterface(i).updateRILNetworkInterface();
+            // Add host route for data calls
+            if (this.isNetworkTypeMobile(network.type)) {
+              gNetworkService.removeHostRoutes(network.name);
+              this.setHostRoutes(network);
             }
-          }
 
-          this.onConnectionChanged(network);
+            // Dun type is a special case where we add the default route to a
+            // secondary table.
+            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
+              this.setSecondaryDefaultRoute(network);
+            }
 
-          // Probing the public network accessibility after routing table is ready
-          CaptivePortalDetectionHelper
-            .notify(CaptivePortalDetectionHelper.EVENT_CONNECT, this.active);
+            this._addSubnetRoutes(network);
+            this.setAndConfigureActive();
 
-          // Notify outer modules like MmsService to start the transaction after
-          // the configuration of the network interface is done.
-          Services.obs.notifyObservers(network, TOPIC_CONNECTION_STATE_CHANGED,
-                                       this.convertConnectionType(network));
+            // Update data connection when Wifi connected/disconnected
+            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI && this.mRil) {
+              for (let i = 0; i < this.mRil.numRadioInterfaces; i++) {
+                this.mRil.getRadioInterface(i).updateRILNetworkInterface();
+              }
+            }
+
+            this.onConnectionChanged(network);
+
+            // Probing the public network accessibility after routing table is ready
+            CaptivePortalDetectionHelper
+              .notify(CaptivePortalDetectionHelper.EVENT_CONNECT, this.active);
+
+            // Notify outer modules like MmsService to start the transaction after
+            // the configuration of the network interface is done.
+            Services.obs.notifyObservers(network, TOPIC_CONNECTION_STATE_CHANGED,
+                                         this.convertConnectionType(network));
+          });
         });
 
         break;
@@ -610,7 +616,7 @@ NetworkManager.prototype = {
       // The override was just set, so reconfigure the network.
       if (this.active != this._overriddenActive) {
         this.active = this._overriddenActive;
-        this._setDefaultRouteAndDNS(this.active, oldActive);
+        this._setDefaultRouteAndProxy(this.active, oldActive);
         Services.obs.notifyObservers(this.active, TOPIC_ACTIVE_CHANGED, null);
       }
       return;
@@ -621,7 +627,7 @@ NetworkManager.prototype = {
         this.active.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED &&
         this.active.type == this._preferredNetworkType) {
       debug("Active network is already our preferred type.");
-      this._setDefaultRouteAndDNS(this.active, oldActive);
+      this._setDefaultRouteAndProxy(this.active, oldActive);
       return;
     }
 
@@ -655,10 +661,8 @@ NetworkManager.prototype = {
         this.active = defaultDataNetwork;
       }
       // Don't set default route on secondary APN
-      if (this.isNetworkTypeSecondaryMobile(this.active.type)) {
-        gNetworkService.setDNS(this.active, function() {});
-      } else {
-        this._setDefaultRouteAndDNS(this.active, oldActive);
+      if (!this.isNetworkTypeSecondaryMobile(this.active.type)) {
+        this._setDefaultRouteAndProxy(this.active, oldActive);
       }
     }
 
@@ -682,44 +686,48 @@ NetworkManager.prototype = {
       return Promise.resolve([hostname]);
     }
 
-    let deferred = Promise.defer();
-    let onLookupComplete = (aRequest, aRecord, aStatus) => {
-      if (!Components.isSuccessCode(aStatus)) {
-        deferred.reject(new Error(
-          "Failed to resolve '" + hostname + "', with status: " + aStatus));
-        return;
-      }
+    // Wrap gDNSService.asyncResolveExtended to a promise, which
+    // resolves with an array of ip addresses or rejects with
+    // the reason otherwise.
+    let hostResolveWrapper = aNetId => {
+      return new Promise((aResolve, aReject) => {
+        // Callback for gDNSService.asyncResolveExtended.
+        let onLookupComplete = (aRequest, aRecord, aStatus) => {
+          if (!Components.isSuccessCode(aStatus)) {
+            aReject(new Error("Failed to resolve '" + hostname +
+                              "', with status: " + aStatus));
+            return;
+          }
 
-      let retval = [];
-      while (aRecord.hasMore()) {
-        retval.push(aRecord.getNextAddrAsString());
-      }
+          let retval = [];
+          while (aRecord.hasMore()) {
+            retval.push(aRecord.getNextAddrAsString());
+          }
 
-      if (!retval.length) {
-        deferred.reject(new Error("No valid address after DNS lookup!"));
-        return;
-      }
+          if (!retval.length) {
+            aReject(new Error("No valid address after DNS lookup!"));
+            return;
+          }
 
-      if (DEBUG) debug("hostname is resolved: " + hostname);
-      if (DEBUG) debug("Addresses: " + JSON.stringify(retval));
+          debug("hostname is resolved: " + hostname);
+          debug("Addresses: " + JSON.stringify(retval));
 
-      deferred.resolve(retval);
+          aResolve(retval);
+        };
+
+        debug('Calling gDNSService.asyncResolveExtended: ' + aNetId + ', ' + hostname);
+        gDNSService.asyncResolveExtended(hostname,
+                                         0,
+                                         aNetId,
+                                         onLookupComplete,
+                                         Services.tm.mainThread);
+      });
     };
 
-    // Bug 1058282 - Explicitly request ipv4 to get around 8.8.8.8 probe at
-    // http://androidxref.com/4.3_r2.1/xref/bionic/libc/netbsd/net/getaddrinfo.c#1923
-    //
-    // Whenever MMS connection is the only network interface, there is no
-    // default route so that any ip probe will fail.
-    let flags = 0;
-    if (network.type === Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
-      flags |= Ci.nsIDNSService.RESOLVE_DISABLE_IPV6;
-    }
-
-    // TODO: Bug 992772 - Resolve the hostname with specified networkInterface.
-    gDNSService.asyncResolve(hostname, flags, onLookupComplete, Services.tm.mainThread);
-
-    return deferred.promise;
+    // TODO: |getNetId| will be implemented as a sync call in nsINetworkManager
+    //       once Bug 1141903 is landed.
+    return gNetworkService.getNetId(network.name)
+      .then(aNetId => hostResolveWrapper(aNetId));
   },
 
   convertConnectionType: function(network) {
@@ -1306,15 +1314,13 @@ NetworkManager.prototype = {
     callback.call(this);
   },
 
-  _setDefaultRouteAndDNS: function(network, oldInterface) {
+  _setDefaultRouteAndProxy: function(network, oldInterface) {
     gNetworkService.setDefaultRoute(network, oldInterface, function(success) {
       if (!success) {
         gNetworkService.destroyNetwork(network, function() {});
         return;
       }
-      gNetworkService.setDNS(network, function(result) {
-        gNetworkService.setNetworkProxy(network);
-      });
+      gNetworkService.setNetworkProxy(network);
     });
   },
 };
