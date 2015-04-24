@@ -587,12 +587,23 @@ this.DOMApplicationRegistry = {
             this.webapps[id].removable = false;
           }
         } else {
+          // Fields that we must not update. Confere bug 993011 comment 10.
+          let fieldsBlacklist = ["basePath", "id", "installerAppId",
+            "installerIsBrowser", "localId", "receipts", "storeId",
+            "storeVersion"];
           // we fall into this case if the app is present in /system/b2g/webapps/webapps.json
           // and in /data/local/webapps/webapps.json: this happens when updating gaia apps
           // Confere bug 989876
           // We also should fall in this case when the app is a preinstalled third party app.
-          this.webapps[oldId].updateTime = data[id].updateTime;
-          this.webapps[oldId].lastUpdateCheck = data[id].updateTime;
+          for (let field in data[id]) {
+            if (fieldsBlacklist.indexOf(field) === -1) {
+              this.webapps[oldId][field] = data[id][field];
+            }
+          }
+
+          this.webapps[oldId].manifestHash = "";
+          this.webapps[oldId].packageHash = "";
+
           // If the id for the app has changed on the update, keep a pointer to the old one
           // since we'll need this to update the app files.
           if (id !== oldId) {
