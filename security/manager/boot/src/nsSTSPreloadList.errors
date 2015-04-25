@@ -11,10 +11,11 @@ azprep.us: could not connect to host
 barcodeberlin.com: did not receive HSTS header
 bassh.net: could not connect to host
 bccx.com: could not connect to host
+bcrook.com: could not connect to host
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
+blacklane.com: did not receive HSTS header
 blog.lookout.com: did not receive HSTS header
-braintreegateway.com: did not receive HSTS header
 braintreepayments.com: did not receive HSTS header
 browserid.org: did not receive HSTS header
 business.medbank.com.mt: did not receive HSTS header
@@ -131,6 +132,7 @@ shops.neonisi.com: could not connect to host
 siammedia.co: did not receive HSTS header
 silentcircle.org: could not connect to host
 simon.butcher.name: max-age too low: 2629743
+simplystudio.com: could not connect to host
 sites.google.com: did not receive HSTS header (error ignored - included regardless)
 sol.io: could not connect to host
 souyar.de: could not connect to host
@@ -141,7 +143,6 @@ square.com: did not receive HSTS header
 ssl.google-analytics.com: did not receive HSTS header (error ignored - included regardless)
 ssl.panoramio.com: did not receive HSTS header
 stocktrade.de: could not connect to host
-subrosa.io: could not connect to host
 sunshinepress.org: could not connect to host
 surfeasy.com: did not receive HSTS header
 talk.google.com: could not connect to host
