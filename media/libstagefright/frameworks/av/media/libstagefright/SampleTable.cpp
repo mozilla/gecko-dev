@@ -28,6 +28,8 @@
 #include <media/stagefright/DataSource.h>
 #include <media/stagefright/Utils.h>
 
+#include <stdint.h>
+
 namespace stagefright {
 
 // static
@@ -38,6 +40,9 @@ const uint32_t SampleTable::kChunkOffsetType64 = FOURCC('c', 'o', '6', '4');
 const uint32_t SampleTable::kSampleSizeType32 = FOURCC('s', 't', 's', 'z');
 // static
 const uint32_t SampleTable::kSampleSizeTypeCompact = FOURCC('s', 't', 'z', '2');
+
+static const uint32_t kMAX_ALLOCATION =
+    (SIZE_MAX < INT32_MAX ? SIZE_MAX : INT32_MAX) - 128;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -190,11 +195,11 @@ status_t SampleTable::setChunkOffsetParams(
     mNumChunkOffsets = U32_AT(&header[4]);
 
     if (mChunkOffsetType == kChunkOffsetType32) {
-        if (data_size < 8 + mNumChunkOffsets * 4) {
+        if (data_size < 8 + (uint64_t)mNumChunkOffsets * 4) {
             return ERROR_MALFORMED;
         }
     } else {
-        if (data_size < 8 + mNumChunkOffsets * 8) {
+        if (data_size < 8 + (uint64_t)mNumChunkOffsets * 8) {
             return ERROR_MALFORMED;
         }
     }
@@ -227,7 +232,7 @@ status_t SampleTable::setSampleToChunkParams(
 
     mNumSampleToChunkOffsets = U32_AT(&header[4]);
 
-    if (data_size < 8 + mNumSampleToChunkOffsets * 12) {
+    if (data_size < 8 + (uint64_t)mNumSampleToChunkOffsets * 12) {
         return ERROR_MALFORMED;
     }
 
@@ -288,7 +293,7 @@ status_t SampleTable::setSampleSizeParams(
             return OK;
         }
 
-        if (data_size < 12 + mNumSampleSizes * 4) {
+        if (data_size < 12 + (uint64_t)mNumSampleSizes * 4) {
             return ERROR_MALFORMED;
         }
     } else {
@@ -305,7 +310,7 @@ status_t SampleTable::setSampleSizeParams(
             return ERROR_MALFORMED;
         }
 
-        if (data_size < 12 + (mNumSampleSizes * mSampleSizeFieldSize + 4) / 8) {
+        if (data_size < 12 + ((uint64_t)mNumSampleSizes * mSampleSizeFieldSize + 4) / 8) {
             return ERROR_MALFORMED;
         }
     }
@@ -331,6 +336,10 @@ status_t SampleTable::setTimeToSampleParams(
     }
 
     mTimeToSampleCount = U32_AT(&header[4]);
+    if (mTimeToSampleCount > kMAX_ALLOCATION / 2 / sizeof(uint32_t)) {
+        // Avoid later overflow.
+        return ERROR_MALFORMED;
+    }
     mTimeToSample = new uint32_t[mTimeToSampleCount * 2];
 
     size_t size = sizeof(uint32_t) * mTimeToSampleCount * 2;
@@ -366,9 +375,9 @@ status_t SampleTable::setCompositionTimeToSampleParams(
         return ERROR_MALFORMED;
     }
 
-    size_t numEntries = U32_AT(&header[4]);
+    uint32_t numEntries = U32_AT(&header[4]);
 
-    if (data_size != (numEntries + 1) * 8) {
+    if (data_size != ((uint64_t)numEntries + 1) * 8) {
         return ERROR_MALFORMED;
     }
 
@@ -413,6 +422,10 @@ status_t SampleTable::setSyncSampleParams(off64_t data_offset, size_t data_size)
     }
 
     mNumSyncSamples = U32_AT(&header[4]);
+    if (mNumSyncSamples > kMAX_ALLOCATION / sizeof(uint32_t)) {
+        // Avoid later overflow.
+        return ERROR_MALFORMED;
+    }
 
     if (mNumSyncSamples < 2) {
         ALOGV("Table of sync samples is empty or has only a single entry!");
