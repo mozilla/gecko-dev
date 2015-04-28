@@ -533,29 +533,24 @@ GonkCameraParameters::SetTranslated(uint32_t aKey, const ICameraControl::Positio
   MOZ_ASSERT(aKey == CAMERA_PARAM_PICTURE_LOCATION);
 
   // Add any specified location information -- we don't care if these fail.
-  if (!isnan(aPosition.latitude)) {
-    DOM_CAMERA_LOGI("setting picture latitude to %lf\n", aPosition.latitude);
+  if (!isnan(aPosition.latitude) &&
+      !isnan(aPosition.longitude) &&
+      !isnan(aPosition.altitude) &&
+      !isnan(aPosition.timestamp)) {
+    DOM_CAMERA_LOGI("setting picture gps coordinates to (%lf, %lf, %lf, %lf)\n",
+      aPosition.latitude, aPosition.longitude, aPosition.altitude, aPosition.timestamp);
     SetImpl(Parameters::KEY_GPS_LATITUDE, nsPrintfCString("%lf", aPosition.latitude).get());
-  } else {
-    ClearImpl(Parameters::KEY_GPS_LATITUDE);
-  }
-  if (!isnan(aPosition.longitude)) {
-    DOM_CAMERA_LOGI("setting picture longitude to %lf\n", aPosition.longitude);
     SetImpl(Parameters::KEY_GPS_LONGITUDE, nsPrintfCString("%lf", aPosition.longitude).get());
-  } else {
-    ClearImpl(Parameters::KEY_GPS_LONGITUDE);
-  }
-  if (!isnan(aPosition.altitude)) {
-    DOM_CAMERA_LOGI("setting picture altitude to %lf\n", aPosition.altitude);
     SetImpl(Parameters::KEY_GPS_ALTITUDE, nsPrintfCString("%lf", aPosition.altitude).get());
-  } else {
-    ClearImpl(Parameters::KEY_GPS_ALTITUDE);
-  }
-  if (!isnan(aPosition.timestamp)) {
-    DOM_CAMERA_LOGI("setting picture timestamp to %lf\n", aPosition.timestamp);
     SetImpl(Parameters::KEY_GPS_TIMESTAMP, nsPrintfCString("%lf", aPosition.timestamp).get());
+    SetImpl(Parameters::KEY_GPS_PROCESSING_METHOD, "UNKNOWN");
   } else {
+    DOM_CAMERA_LOGI("clear incomplete gps information\n");
+    ClearImpl(Parameters::KEY_GPS_LATITUDE);
+    ClearImpl(Parameters::KEY_GPS_LONGITUDE);
+    ClearImpl(Parameters::KEY_GPS_ALTITUDE);
     ClearImpl(Parameters::KEY_GPS_TIMESTAMP);
+    ClearImpl(Parameters::KEY_GPS_PROCESSING_METHOD);
   }
 
   return NS_OK;
