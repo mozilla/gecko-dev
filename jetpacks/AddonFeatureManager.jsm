@@ -32,13 +32,9 @@ function getIndexById(id) {
   return null;
 }
 
-var started = false;
-
 this.AddonFeatureManager = {
   _boostraps: new Array(ADDONS_LENGTH),
   startup: function() {
-    if (started) return;
-    started = true;
     console.log("AFM: Startup");
 
     // Enable all default add-on features
