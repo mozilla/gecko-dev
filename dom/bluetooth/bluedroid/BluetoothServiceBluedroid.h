@@ -215,6 +215,10 @@ public:
   virtual void EnergyInfoNotification(
     const BluetoothActivityEnergyInfo& aInfo) MOZ_OVERRIDE;
 
+  virtual void BackendErrorNotification(bool aCrashed) MOZ_OVERRIDE;
+
+  virtual void CompleteToggleBt(bool aEnabled) MOZ_OVERRIDE;
+
 protected:
   static nsresult StartGonkBluetooth();
   static nsresult StopGonkBluetooth();
