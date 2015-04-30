@@ -1,0 +1,11 @@
+
+
+EXTRA_JS_MODULES.jetpacks += [
+    'AddonFeatureManager.jsm',
+    'config.json',
+]
+
+EXTRA_JS_MODULES.jetpacks.example += [
+    'example/index.js',
+    'example/package.json',
+]

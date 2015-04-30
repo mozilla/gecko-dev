@@ -1,0 +1,13 @@
+{
+  "id": "example-addon-feature@mozilla.com",
+  "title": "My Jetpack Feature!",
+  "name": "example-jetpack-feature",
+  "version": "0.0.1",
+  "description": "A example Jetpack Feature",
+  "main": "index.js",
+  "author": "Erik Vold",
+  "engines": {
+    "firefox": ">=38.0a1"
+  },
+  "license": "MPL v2"
+}
