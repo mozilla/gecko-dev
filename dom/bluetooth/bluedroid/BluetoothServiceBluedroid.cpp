@@ -1383,7 +1383,8 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
  * RemoteDevicePropertiesNotification will be called
  *
  *   (1) automatically by Bluedroid when BT is turning on, or
- *   (2) as result of GetRemoteDeviceProperties.
+ *   (2) as result of remote device properties update during discovery, or
+ *   (3) as result of GetRemoteDeviceProperties.
  */
 void
 BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
@@ -1462,8 +1463,18 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
   BT_APPEND_NAMED_VALUE(props, "Connected", IsConnected(aBdAddr));
 
   if (sRequestedDeviceCountArray.IsEmpty()) {
-    // This is possible because the callback would be called after turning
-    // Bluetooth on.
+    /**
+     * This is possible when
+     *
+     *  (1) the callback is called after Bluetooth is turned on, or
+     *  (2) remote device properties get updated during discovery.
+     *
+     * For (2), fire 'devicefound' again to update device name.
+     * See bug 1076553 for more information.
+     */
+    DistributeSignal(BluetoothSignal(NS_LITERAL_STRING("DeviceFound"),
+                                     NS_LITERAL_STRING(KEY_ADAPTER),
+                                     BluetoothValue(props)));
     return;
   }
 
