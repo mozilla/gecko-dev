@@ -128,7 +128,7 @@
   <project name="device/generic/armv7-a-neon" path="device/generic/armv7-a-neon" revision="72ffdf71c68a96309212eb13d63560d66db14c9e"/>
   <project name="device_generic_goldfish" path="device/generic/goldfish" remote="b2g" revision="0c967fc587b614ffe391eb24e0b7f9f3bc31147b"/>
   <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="57b16fcb790bdf0b53b3c6435a37ccc8ca90ed36"/>
-  <project name="platform/external/wpa_supplicant_8" path="external/wpa_supplicant_8" revision="694cecf256122d0cb3b6a1a4efb4b5c7401db223"/>
+  <project name="platform_external_wpa_supplicant_8" path="external/wpa_supplicant_8" remote="b2g" revision="9a725b0f5aa715282f8854ac56e5b63efc9cd077"/>
   <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="7de2e90f8d27aa7047978aa10c911f1035fe57dd"/>
   <project name="platform/development" path="development" revision="5968ff4e13e0d696ad8d972281fc27ae5a12829b"/>
   <project name="android-sdk" path="sdk" remote="b2g" revision="0951179277915335251c5e11d242e4e1a8c2236f"/>
