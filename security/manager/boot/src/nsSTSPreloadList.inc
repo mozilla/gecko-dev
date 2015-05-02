@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1440843063224000);
+const PRTime gPreloadListExpirationTime = INT64_C(1441447883412000);
 
 class nsSTSPreload
 {
@@ -82,7 +82,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "bugzilla.mozilla.org", true },
   { "business.lookout.com", false },
   { "bytepark.de", false },
-  { "ca.gparent.org", false },
+  { "ca.gparent.org", true },
   { "carezone.com", false },
   { "cartouche24.eu", true },
   { "cartucce24.it", true },
@@ -215,6 +215,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "it-schwerin.de", true },
   { "itriskltd.com", true },
   { "jackyyf.com", false },
+  { "janoberst.com", true },
   { "janus-engineering.de", true },
   { "jelmer.co.uk", true },
   { "jelmer.uk", true },
@@ -222,7 +223,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "jitsi.org", false },
   { "jonas-keidel.de", true },
   { "jonaswitmer.ch", true },
-  { "julian-kipka.de", true },
   { "k-dev.de", true },
   { "kardize24.pl", true },
   { "keeperapp.com", true },
@@ -334,7 +334,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "payroll.xero.com", false },
   { "pdf.yt", true },
   { "picksin.club", true },
-  { "pierre-schmitz.com", true },
   { "pixi.me", true },
   { "play.google.com", false },
   { "plus.google.com", false },
