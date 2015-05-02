@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1440843248357000);
+const PRTime gPreloadListExpirationTime = INT64_C(1441448133909000);
 
 class nsSTSPreload
 {
@@ -130,7 +130,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "business.lookout.com", false },
   { "buzzconcert.com", true },
   { "bytepark.de", false },
-  { "ca.gparent.org", false },
+  { "ca.gparent.org", true },
   { "cackette.com", true },
   { "call.me", true },
   { "camolist.com", true },
@@ -328,11 +328,9 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "helpium.de", true },
   { "henriknoerr.com", true },
   { "hex2013.com", true },
-  { "hexony.com", true },
   { "hg.python.org", true },
   { "history.google.com", true },
   { "honeybadger.io", false },
-  { "horseboners.xxx", true },
   { "horza.org", true },
   { "hostedtalkgadget.google.com", true },
   { "hostinginnederland.nl", true },
@@ -371,6 +369,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "itshost.ru", true },
   { "jackyyf.com", false },
   { "jakub-boucek.cz", true },
+  { "janoberst.com", true },
   { "janus-engineering.de", true },
   { "jelmer.co.uk", true },
   { "jelmer.uk", true },
@@ -380,7 +379,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "jonas-keidel.de", true },
   { "jonaswitmer.ch", true },
   { "jonnybarnes.uk", true },
-  { "julian-kipka.de", true },
   { "jwilsson.com", true },
   { "jwilsson.me", true },
   { "k-dev.de", true },
@@ -590,7 +588,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "pestici.de", true },
   { "phoenixlogan.com", true },
   { "picksin.club", true },
-  { "pierre-schmitz.com", true },
   { "pixi.me", true },
   { "play.google.com", false },
   { "plothost.com", true },
@@ -617,7 +614,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "r3s1stanc3.me", true },
   { "rad-route.de", true },
   { "raiseyourflag.com", true },
-  { "ravchat.com", true },
   { "redteam-pentesting.de", true },
   { "reedloden.com", true },
   { "reishunger.de", true },
@@ -713,7 +709,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "studydrive.net", true },
   { "subrosa.io", true },
   { "suite73.org", true },
-  { "sunjaydhama.com", true },
   { "supplies24.at", true },
   { "supplies24.es", true },
   { "support.mayfirst.org", false },
