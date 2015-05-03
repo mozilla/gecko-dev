@@ -41,7 +41,6 @@ class MediaOmxReader : public MediaOmxCommonReader
   int64_t mAudioSeekTimeUs;
   int64_t mLastParserDuration;
   int32_t mSkipCount;
-  bool mUseParserDuration;
   bool mIsShutdown;
 protected:
   android::sp<android::OmxDecoder> mOmxDecoder;
