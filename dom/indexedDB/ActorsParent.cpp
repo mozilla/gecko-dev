@@ -3163,7 +3163,7 @@ private:
     mCachedStatements;
   nsTArray<nsRefPtr<FullObjectStoreMetadata>>
     mModifiedAutoIncrementObjectStoreMetadataArray;
-  const uint64_t mTransactionId;
+  uint64_t mTransactionId;
   const nsCString mDatabaseId;
   const int64_t mLoggingSerialNumber;
   uint64_t mActiveRequestCount;
@@ -3217,10 +3217,12 @@ public:
   }
 
   void
-  SetActive()
+  SetActive(uint64_t aTransactionId)
   {
     AssertIsOnBackgroundThread();
+    MOZ_ASSERT(aTransactionId);
 
+    mTransactionId = aTransactionId;
     mHasBeenActive = true;
   }
 
@@ -5881,16 +5883,6 @@ Factory::Create(const LoggingInfo& aLoggingInfo)
 
   // If this is the first instance then we need to do some initialization.
   if (!sFactoryInstanceCount) {
-    if (!gTransactionThreadPool) {
-      nsRefPtr<TransactionThreadPool> threadPool =
-        TransactionThreadPool::Create();
-      if (NS_WARN_IF(!threadPool)) {
-        return nullptr;
-      }
-
-      gTransactionThreadPool = threadPool;
-    }
-
     MOZ_ASSERT(!gLiveDatabaseHashtable);
     gLiveDatabaseHashtable = new DatabaseActorHashtable();
 
@@ -6543,18 +6535,29 @@ Database::RecvPBackgroundIDBTransactionConstructor(
     return true;
   }
 
+  if (!gTransactionThreadPool) {
+    nsRefPtr<TransactionThreadPool> threadPool =
+      TransactionThreadPool::Create();
+    if (NS_WARN_IF(!threadPool)) {
+      return nullptr;
+    }
+
+    gTransactionThreadPool = threadPool;
+  }
+
+  const uint64_t transactionId = gTransactionThreadPool->NextTransactionId();
+
   auto* transaction = static_cast<NormalTransaction*>(aActor);
+  transaction->SetActive(transactionId);
 
   // Add a placeholder for this transaction immediately.
-  gTransactionThreadPool->Start(transaction->TransactionId(),
+  gTransactionThreadPool->Start(transactionId,
                                 mMetadata->mDatabaseId,
                                 aObjectStoreNames,
                                 aMode,
                                 GetLoggingInfo()->Id(),
                                 transaction->LoggingSerialNumber(),
                                 gStartTransactionRunnable);
-
-  transaction->SetActive();
 
   if (NS_WARN_IF(!RegisterTransaction(transaction))) {
     IDB_REPORT_INTERNAL_ERR();
@@ -6648,7 +6651,7 @@ Database::RecvClose()
 
 TransactionBase::TransactionBase(Database* aDatabase, Mode aMode)
   : mDatabase(aDatabase)
-  , mTransactionId(gTransactionThreadPool->NextTransactionId())
+  , mTransactionId(0)
   , mDatabaseId(aDatabase->Id())
   , mLoggingSerialNumber(aDatabase->GetLoggingInfo()->NextTransactionSN(aMode))
   , mActiveRequestCount(0)
@@ -6666,7 +6669,6 @@ TransactionBase::TransactionBase(Database* aDatabase, Mode aMode)
 {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aDatabase);
-  MOZ_ASSERT(mTransactionId);
   MOZ_ASSERT(mLoggingSerialNumber);
 }
 
@@ -10681,15 +10683,18 @@ FactoryOp::WaitForTransactions()
   nsTArray<nsCString> databaseIds;
   databaseIds.AppendElement(mDatabaseId);
 
-  nsRefPtr<TransactionThreadPool> threadPool = gTransactionThreadPool.get();
-  MOZ_ASSERT(threadPool);
-
-  // WaitForDatabasesToComplete() will run this op immediately if there are no
-  // transactions blocking it, so be sure to set the next state here before
-  // calling it.
   mState = State_WaitingForTransactionsToComplete;
 
-  threadPool->WaitForDatabasesToComplete(databaseIds, this);
+  nsRefPtr<TransactionThreadPool> threadPool = gTransactionThreadPool.get();
+  if (threadPool) {
+    // WaitForDatabasesToComplete() will run this op immediately if there are no
+    // transactions blocking it, so be sure to set the next state here before
+    // calling it.
+
+    threadPool->WaitForDatabasesToComplete(databaseIds, this);
+  } else {
+    unused << Run();
+  }
   return;
 }
 
@@ -11844,6 +11849,19 @@ OpenDatabaseOp::DispatchToWorkThread()
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
   }
 
+  if (!gTransactionThreadPool) {
+    nsRefPtr<TransactionThreadPool> threadPool =
+      TransactionThreadPool::Create();
+    if (!threadPool) {
+      IDB_REPORT_INTERNAL_ERR();
+      return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
+    }
+
+    gTransactionThreadPool = threadPool;
+  }
+
+  const uint64_t transactionId = gTransactionThreadPool->NextTransactionId();
+
   mState = State_DatabaseWorkVersionChange;
 
   // Intentionally empty.
@@ -11856,15 +11874,15 @@ OpenDatabaseOp::DispatchToWorkThread()
 
   nsRefPtr<VersionChangeOp> versionChangeOp = new VersionChangeOp(this);
 
-  gTransactionThreadPool->Start(mVersionChangeTransaction->TransactionId(),
+  mVersionChangeTransaction->SetActive(transactionId);
+
+  gTransactionThreadPool->Start(transactionId,
                                 mVersionChangeTransaction->DatabaseId(),
                                 objectStoreNames,
                                 mVersionChangeTransaction->GetMode(),
                                 backgroundChildLoggingId,
                                 loggingSerialNumber,
                                 versionChangeOp);
-
-  mVersionChangeTransaction->SetActive();
 
   mVersionChangeTransaction->NoteActiveRequest();
 
