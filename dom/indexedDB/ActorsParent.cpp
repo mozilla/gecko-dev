@@ -4135,6 +4135,9 @@ private:
   EnsureDatabaseActorIsAlive();
 
   void
+  CleanupBackgroundThreadObjects(bool aInvalidate);
+
+  void
   MetadataToSpec(DatabaseSpec& aSpec);
 
   void
@@ -4144,6 +4147,9 @@ private:
 #else
   { }
 #endif
+
+  virtual void
+  ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
 
   virtual nsresult
   QuotaManagerOpen() MOZ_OVERRIDE;
@@ -5188,7 +5194,7 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
 
     if (sInstance) {
-      return sInstance->mShutdownRequested;
+      return sInstance->IsShuttingDown();
     }
 
     return QuotaManager::IsShuttingDown();
@@ -5269,13 +5275,11 @@ class QuotaClient::ShutdownTransactionThreadPoolRunnable MOZ_FINAL
   : public nsRunnable
 {
   nsRefPtr<QuotaClient> mQuotaClient;
-  bool mHasRequestedShutDown;
 
 public:
 
   explicit ShutdownTransactionThreadPoolRunnable(QuotaClient* aQuotaClient)
     : mQuotaClient(aQuotaClient)
-    , mHasRequestedShutDown(false)
   {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aQuotaClient);
@@ -9858,7 +9862,6 @@ QuotaClient::
 ShutdownTransactionThreadPoolRunnable::Run()
 {
   if (NS_IsMainThread()) {
-    MOZ_ASSERT(mHasRequestedShutDown);
     MOZ_ASSERT(QuotaClient::GetInstance() == mQuotaClient);
     MOZ_ASSERT(mQuotaClient->mShutdownRunnable == this);
 
@@ -9870,16 +9873,11 @@ ShutdownTransactionThreadPoolRunnable::Run()
 
   AssertIsOnBackgroundThread();
 
-  if (!mHasRequestedShutDown) {
-    mHasRequestedShutDown = true;
+  nsRefPtr<TransactionThreadPool> threadPool = gTransactionThreadPool.get();
+  if (threadPool) {
+    threadPool->Shutdown();
 
-    nsRefPtr<TransactionThreadPool> threadPool = gTransactionThreadPool.get();
-    if (threadPool) {
-      threadPool->Shutdown();
-
-      gTransactionThreadPool = nullptr;
-    }
-
+    gTransactionThreadPool = nullptr;
   }
 
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(this)));
@@ -11218,6 +11216,18 @@ OpenDatabaseOp::OpenDatabaseOp(Factory* aFactory,
   }
 }
 
+void
+OpenDatabaseOp::ActorDestroy(ActorDestroyReason aWhy)
+{
+  AssertIsOnOwningThread();
+
+  FactoryOp::ActorDestroy(aWhy);
+
+  if (aWhy != Deletion) {
+    CleanupBackgroundThreadObjects(/* aInvalidate */ true);
+  }
+}
+
 nsresult
 OpenDatabaseOp::QuotaManagerOpen()
 {
@@ -11729,7 +11739,6 @@ OpenDatabaseOp::BeginVersionChange()
   MOZ_ASSERT(!mVersionChangeTransaction);
 
   if (NS_WARN_IF(QuotaClient::IsShuttingDownOnNonMainThread()) ||
-      !OperationMayProceed() ||
       IsActorDestroyed()) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -11847,7 +11856,8 @@ OpenDatabaseOp::DispatchToWorkThread()
                IDBTransaction::VERSION_CHANGE);
   MOZ_ASSERT(mMaybeBlockedDatabases.IsEmpty());
 
-  if (IsActorDestroyed()) {
+  if (NS_WARN_IF(QuotaClient::IsShuttingDownOnNonMainThread()) ||
+      IsActorDestroyed()) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
   }
@@ -11894,7 +11904,6 @@ OpenDatabaseOp::SendUpgradeNeeded()
   MOZ_ASSERT_IF(!IsActorDestroyed(), mDatabase);
 
   if (NS_WARN_IF(QuotaClient::IsShuttingDownOnNonMainThread()) ||
-      !OperationMayProceed() ||
       IsActorDestroyed()) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -11955,7 +11964,11 @@ OpenDatabaseOp::SendResults()
     mVersionChangeTransaction = nullptr;
   }
 
-  if (!IsActorDestroyed()) {
+  if (IsActorDestroyed()) {
+    if (NS_SUCCEEDED(mResultCode)) {
+      mResultCode = NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
+    }
+  } else {
     FactoryRequestResponse response;
 
     if (NS_SUCCEEDED(mResultCode)) {
@@ -11990,14 +12003,7 @@ OpenDatabaseOp::SendResults()
       PBackgroundIDBFactoryRequestParent::Send__delete__(this, response);
   }
 
-  if (NS_FAILED(mResultCode) && mOfflineStorage) {
-    mOfflineStorage->CloseOnOwningThread();
-    DatabaseOfflineStorage::UnregisterOnOwningThread(mOfflineStorage.forget());
-  }
-
-  // Make sure to release the database on this thread.
-  nsRefPtr<Database> database;
-  mDatabase.swap(database);
+  CleanupBackgroundThreadObjects(NS_FAILED(mResultCode));
 
   FinishSendResults();
 }
@@ -12089,6 +12095,27 @@ OpenDatabaseOp::EnsureDatabaseActorIsAlive()
   }
 
   return NS_OK;
+}
+
+void
+OpenDatabaseOp::CleanupBackgroundThreadObjects(bool aInvalidate)
+{
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(IsActorDestroyed());
+
+  if (mDatabase) {
+    MOZ_ASSERT(!mOfflineStorage);
+
+    if (aInvalidate) {
+      mDatabase->Invalidate();
+    }
+
+    // Make sure to release the database on this thread.
+    mDatabase = nullptr;
+  } else if (mOfflineStorage) {
+    mOfflineStorage->CloseOnOwningThread();
+    DatabaseOfflineStorage::UnregisterOnOwningThread(mOfflineStorage.forget());
+  }
 }
 
 void
@@ -12604,7 +12631,6 @@ DeleteDatabaseOp::BeginVersionChange()
   MOZ_ASSERT(mMaybeBlockedDatabases.IsEmpty());
 
   if (NS_WARN_IF(QuotaClient::IsShuttingDownOnNonMainThread()) ||
-      !OperationMayProceed() ||
       IsActorDestroyed()) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -12644,7 +12670,6 @@ DeleteDatabaseOp::DispatchToWorkThread()
   MOZ_ASSERT(mMaybeBlockedDatabases.IsEmpty());
 
   if (NS_WARN_IF(QuotaClient::IsShuttingDownOnNonMainThread()) ||
-      !OperationMayProceed() ||
       IsActorDestroyed()) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
