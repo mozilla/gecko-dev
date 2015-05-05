@@ -1,0 +1,11 @@
+{
+  "addons": [
+    {
+      "manifest": {
+        "id": "example-addon-feature@mozilla.com",
+        "version": "0.0.1"
+      },
+      "rootURI": "resource://gre/modules/jetpacks/example/"
+    }
+  ]
+}
