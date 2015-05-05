@@ -54,7 +54,9 @@ TapGestureInput CreateTapEvent(const MultiTouchInput& aTouch, TapGestureInput::T
   return TapGestureInput(aType,
                          aTouch.mTime,
                          aTouch.mTimeStamp,
-                         aTouch.mTouches[0].mScreenPoint,
+                         // Use mLocalScreenPoint as this goes directly to APZC
+                         // without being transformed in APZCTreeManager.
+                         aTouch.mTouches[0].mLocalScreenPoint,
                          aTouch.modifiers);
 }
 
