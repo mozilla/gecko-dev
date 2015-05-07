@@ -758,6 +758,7 @@ void MediaDecoder::FirstFrameLoaded(MediaInfo* aInfo)
   bool notifyResourceIsLoaded = !mCalledResourceLoaded &&
                                 IsDataCachedToEndOfResource();
   if (mOwner) {
+    Invalidate();
     mOwner->FirstFrameLoaded(notifyResourceIsLoaded);
   }
 
