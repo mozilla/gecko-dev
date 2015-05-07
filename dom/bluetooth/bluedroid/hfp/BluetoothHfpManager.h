@@ -111,6 +111,9 @@ public:
   void IgnoreWaitingCall();
   void ToggleCalls();
 
+  // Handle unexpected backend crash
+  void HandleBackendError();
+
   //
   // Bluetooth notifications
   //
