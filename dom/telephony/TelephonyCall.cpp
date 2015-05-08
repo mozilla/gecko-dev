@@ -266,8 +266,7 @@ TelephonyCall::HangUp(ErrorResult& aRv)
   nsRefPtr<Promise> promise = Promise::Create(global, aRv);
   NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
 
-  if (mCallState == nsITelephonyService::CALL_STATE_DISCONNECTING ||
-      mCallState == nsITelephonyService::CALL_STATE_DISCONNECTED) {
+  if (mCallState == nsITelephonyService::CALL_STATE_DISCONNECTED) {
     NS_WARNING("HangUp on previously disconnected call is rejected!");
     promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
     return promise.forget();
@@ -295,7 +294,8 @@ TelephonyCall::Hold(ErrorResult& aRv)
   nsRefPtr<Promise> promise = Promise::Create(global, aRv);
   NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
 
-  if (mCallState != nsITelephonyService::CALL_STATE_CONNECTED) {
+  if (mCallState != nsITelephonyService::CALL_STATE_CONNECTED &&
+      mCallState != nsITelephonyService::CALL_STATE_HOLDING) {
     NS_WARNING("Hold non-connected call is rejected!");
     promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
     return promise.forget();
@@ -340,7 +340,8 @@ TelephonyCall::Resume(ErrorResult& aRv)
   nsRefPtr<Promise> promise = Promise::Create(global, aRv);
   NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
 
-  if (mCallState != nsITelephonyService::CALL_STATE_HELD) {
+  if (mCallState != nsITelephonyService::CALL_STATE_HELD &&
+      mCallState != nsITelephonyService::CALL_STATE_RESUMING) {
     NS_WARNING("Resume non-held call is rejected!");
     promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
     return promise.forget();

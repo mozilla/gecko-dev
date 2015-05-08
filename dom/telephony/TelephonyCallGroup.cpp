@@ -304,7 +304,8 @@ TelephonyCallGroup::HangUp(ErrorResult& aRv)
 void
 TelephonyCallGroup::Hold(ErrorResult& aRv)
 {
-  if (mCallState != nsITelephonyService::CALL_STATE_CONNECTED) {
+  if (mCallState != nsITelephonyService::CALL_STATE_CONNECTED &&
+      mCallState != nsITelephonyService::CALL_STATE_HOLDING) {
     NS_WARNING("Hold non-connected call ignored!");
     return;
   }
@@ -323,7 +324,8 @@ TelephonyCallGroup::Hold(ErrorResult& aRv)
 void
 TelephonyCallGroup::Resume(ErrorResult& aRv)
 {
-  if (mCallState != nsITelephonyService::CALL_STATE_HELD) {
+  if (mCallState != nsITelephonyService::CALL_STATE_HELD &&
+      mCallState != nsITelephonyService::CALL_STATE_RESUMING) {
     NS_WARNING("Resume non-held call ignored!");
     return;
   }
