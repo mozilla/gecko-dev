@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1441448179231000);
+const PRTime gPreloadListExpirationTime = INT64_C(1442052924163000);
 
 class nsSTSPreload
 {
@@ -73,7 +73,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "arivo.com.br", true },
   { "arlen.io", true },
   { "auf-feindgebiet.de", true },
-  { "azabani.com", true },
   { "baer.im", true },
   { "balikonos.cz", true },
   { "bank.simple.com", false },
@@ -120,7 +119,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "bonigo.de", true },
   { "bookingapp.nl", true },
   { "boxcryptor.com", true },
-  { "brage.info", true },
+  { "brage.info", false },
   { "braintreegateway.com", true },
   { "brunosouza.org", true },
   { "buddhistische-weisheiten.org", true },
@@ -130,7 +129,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "business.lookout.com", false },
   { "buzzconcert.com", true },
   { "bytepark.de", false },
-  { "ca.gparent.org", false },
+  { "ca.gparent.org", true },
   { "cackette.com", true },
   { "call.me", true },
   { "camolist.com", true },
@@ -334,7 +333,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "hg.python.org", true },
   { "history.google.com", true },
   { "honeybadger.io", false },
-  { "horseboners.xxx", true },
   { "horza.org", true },
   { "hostedtalkgadget.google.com", true },
   { "hostinginnederland.nl", true },
@@ -373,6 +371,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "itshost.ru", true },
   { "jackyyf.com", false },
   { "jakub-boucek.cz", true },
+  { "janoberst.com", true },
   { "janus-engineering.de", true },
   { "jelmer.co.uk", true },
   { "jelmer.uk", true },
@@ -382,7 +381,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "jonas-keidel.de", true },
   { "jonaswitmer.ch", true },
   { "jonnybarnes.uk", true },
-  { "julian-kipka.de", true },
   { "jwilsson.com", true },
   { "jwilsson.me", true },
   { "k-dev.de", true },
@@ -451,7 +449,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "lolicore.ch", true },
   { "lookout.com", false },
   { "ludwig.im", true },
-  { "lukonet.com", true },
   { "lumi.do", false },
   { "luneta.nearbuysystems.com", false },
   { "mach-politik.ch", true },
