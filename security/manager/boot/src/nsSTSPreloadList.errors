@@ -1,9 +1,11 @@
 admin.google.com: did not receive HSTS header (error ignored - included regardless)
 adsfund.org: could not connect to host
 airbnb.com: did not receive HSTS header
+alpha.irccloud.com: could not connect to host
 api.mega.co.nz: could not connect to host
 api.recurly.com: did not receive HSTS header
 apis.google.com: did not receive HSTS header (error ignored - included regardless)
+apn-einstellungen.de: could not connect to host
 app.manilla.com: could not connect to host
 appengine.google.com: did not receive HSTS header (error ignored - included regardless)
 appseccalifornia.org: could not connect to host
@@ -27,7 +29,6 @@ chrome-devtools-frontend.appspot.com: did not receive HSTS header (error ignored
 chrome.google.com: did not receive HSTS header (error ignored - included regardless)
 code.google.com: did not receive HSTS header (error ignored - included regardless)
 codereview.chromium.org: did not receive HSTS header (error ignored - included regardless)
-conformal.com: could not connect to host
 crate.io: did not receive HSTS header
 crbug.com: did not receive HSTS header
 crowdcurity.com: did not receive HSTS header
@@ -70,6 +71,7 @@ inertianetworks.com: did not receive HSTS header
 intercom.io: did not receive HSTS header
 iop.intuit.com: max-age too low: 86400
 irccloud.com: did not receive HSTS header
+janus-engineering.de: could not connect to host
 jelmer.co.uk: could not connect to host
 jottit.com: could not connect to host
 julian-kipka.de: did not receive HSTS header
@@ -82,6 +84,7 @@ koop-bremen.de: [Exception... "Component returned failure code: 0x80004005 (NS_E
 liberty.lavabit.com: could not connect to host
 library.linode.com: did not receive HSTS header
 lifeguard.aecom.com: max-age too low: 86400
+lockify.com: could not connect to host
 login.corp.google.com: max-age too low: 7776000 (error ignored - included regardless)
 logotype.se: did not receive HSTS header
 lumi.do: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
@@ -107,7 +110,6 @@ npw.net: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FA
 openshift.redhat.com: did not receive HSTS header
 ottospora.nl: could not connect to host
 passwordbox.com: did not receive HSTS header
-pierre-schmitz.com: did not receive HSTS header
 piratenlogin.de: could not connect to host
 platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header (error ignored - included regardless)
@@ -150,10 +152,8 @@ talkgadget.google.com: did not receive HSTS header (error ignored - included reg
 tektoria.de: did not receive HSTS header
 tomfisher.eu: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 translate.googleapis.com: did not receive HSTS header (error ignored - included regardless)
-unterfrankenclan.de: could not connect to host
 uprotect.it: could not connect to host
 viennan.net: did not receive HSTS header
-vocaloid.my: could not connect to host
 wallet.google.com: did not receive HSTS header (error ignored - included regardless)
 webmail.mayfirst.org: did not receive HSTS header
 wiz.biz: could not connect to host
