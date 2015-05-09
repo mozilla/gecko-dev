@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1441448164606000);
+const PRTime gPreloadListExpirationTime = INT64_C(1442052951669000);
 
 class nsSTSPreload
 {
@@ -73,7 +73,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "arivo.com.br", true },
   { "arlen.io", true },
   { "auf-feindgebiet.de", true },
-  { "azabani.com", true },
   { "baer.im", true },
   { "balikonos.cz", true },
   { "bank.simple.com", false },
@@ -120,7 +119,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "bonigo.de", true },
   { "bookingapp.nl", true },
   { "boxcryptor.com", true },
-  { "brage.info", true },
+  { "brage.info", false },
   { "braintreegateway.com", true },
   { "brunosouza.org", true },
   { "buddhistische-weisheiten.org", true },
@@ -449,7 +448,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "lolicore.ch", true },
   { "lookout.com", false },
   { "ludwig.im", true },
-  { "lukonet.com", true },
   { "lumi.do", false },
   { "luneta.nearbuysystems.com", false },
   { "mach-politik.ch", true },
@@ -591,6 +589,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "pestici.de", true },
   { "phoenixlogan.com", true },
   { "picksin.club", true },
+  { "pierre-schmitz.com", true },
   { "pixi.me", true },
   { "play.google.com", false },
   { "plothost.com", true },
