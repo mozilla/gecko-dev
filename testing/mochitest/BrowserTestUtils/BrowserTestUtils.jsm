@@ -105,20 +105,18 @@ this.BrowserTestUtils = {
    * @resolves The tab switched to.
    */
   switchTab(tabbrowser, tab) {
-    let promise = new Promise(resolve => {
-      tabbrowser.addEventListener("TabSwitchDone", function onSwitch() {
-        tabbrowser.removeEventListener("TabSwitchDone", onSwitch);
-        TestUtils.executeSoon(() => resolve(tabbrowser.selectedTab));
-      });
-    });
-
     if (typeof tab == "function") {
       tab();
     }
     else {
       tabbrowser.selectedTab = tab;
     }
-    return promise;
+
+    //XXX this is esr38, we do not have e10s, this is never async, we do not pass go
+    // and do not collect, err, I mean, we continue without waiting for an event:
+    return new Promise(resolve => {
+      TestUtils.executeSoon(() => resolve(tabbrowser.selectedTab));
+    });
   },
 
   /**
@@ -140,11 +138,10 @@ this.BrowserTestUtils = {
    */
   browserLoaded(browser, includeSubFrames=false) {
     return new Promise(resolve => {
-      browser.messageManager.addMessageListener("browser-test-utils:loadEvent",
-                                                 function onLoad(msg) {
-        if (!msg.data.subframe || includeSubFrames) {
-          browser.messageManager.removeMessageListener(
-            "browser-test-utils:loadEvent", onLoad);
+      let mm = browser.ownerDocument.defaultView.messageManager;
+      mm.addMessageListener("browser-test-utils:loadEvent", function onLoad(msg) {
+        if (msg.target == browser && (!msg.data.subframe || includeSubFrames)) {
+          mm.removeMessageListener("browser-test-utils:loadEvent", onLoad);
           resolve();
         }
       });
@@ -340,26 +337,4 @@ this.BrowserTestUtils = {
   {
     return BrowserTestUtils.synthesizeMouse(null, offsetX, offsetY, event, browser);
   },
-
-  /**
-   * Removes the given tab from its parent tabbrowser and
-   * waits until its final message has reached the parent.
-   */
-  removeTab(tab, options = {}) {
-    let dontRemove = options && options.dontRemove;
-
-    return new Promise(resolve => {
-      let {messageManager: mm, frameLoader} = tab.linkedBrowser;
-      mm.addMessageListener("SessionStore:update", function onMessage(msg) {
-        if (msg.targetFrameLoader == frameLoader && msg.data.isFinal) {
-          mm.removeMessageListener("SessionStore:update", onMessage);
-          resolve();
-        }
-      }, true);
-
-      if (!dontRemove && !tab.closing) {
-        tab.ownerDocument.defaultView.gBrowser.removeTab(tab);
-      }
-    });
-  }
 };
