@@ -833,6 +833,10 @@ public:
   virtual void ScrollbarActivityStarted() const MOZ_OVERRIDE;
   virtual void ScrollbarActivityStopped() const MOZ_OVERRIDE;
 
+  virtual bool IsScrollbarOnRight() const MOZ_OVERRIDE {
+    return mHelper.IsScrollbarOnRight();
+  }
+
   virtual void SetTransformingByAPZ(bool aTransforming) MOZ_OVERRIDE {
     mHelper.SetTransformingByAPZ(aTransforming);
   }
@@ -1208,6 +1212,10 @@ public:
 
   virtual void ScrollbarActivityStarted() const MOZ_OVERRIDE;
   virtual void ScrollbarActivityStopped() const MOZ_OVERRIDE;
+
+  virtual bool IsScrollbarOnRight() const MOZ_OVERRIDE {
+    return mHelper.IsScrollbarOnRight();
+  }
 
   virtual void SetTransformingByAPZ(bool aTransforming) MOZ_OVERRIDE {
     mHelper.SetTransformingByAPZ(aTransforming);

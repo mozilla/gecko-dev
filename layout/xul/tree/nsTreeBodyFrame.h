@@ -147,6 +147,9 @@ public:
   }
   virtual void ScrollbarActivityStarted() const MOZ_OVERRIDE;
   virtual void ScrollbarActivityStopped() const MOZ_OVERRIDE;
+  virtual bool IsScrollbarOnRight() const MOZ_OVERRIDE {
+    return (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR);
+  }
 
   // Overridden from nsIFrame to cache our pres context.
   virtual void Init(nsIContent*       aContent,

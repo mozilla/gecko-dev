@@ -65,6 +65,9 @@ public:
   virtual nsIFrame* GetScrollbarBox(bool aVertical) MOZ_OVERRIDE;
   virtual void ScrollbarActivityStarted() const MOZ_OVERRIDE {}
   virtual void ScrollbarActivityStopped() const MOZ_OVERRIDE {}
+  virtual bool IsScrollbarOnRight() const MOZ_OVERRIDE {
+    return (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR);
+  }
 
 
   // nsIReflowCallback
