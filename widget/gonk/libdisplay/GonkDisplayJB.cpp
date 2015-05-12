@@ -315,16 +315,24 @@ ANativeWindowBuffer*
 GonkDisplayJB::DequeueBuffer()
 {
     ANativeWindowBuffer *buf;
-    mSTClient->dequeueBuffer(mSTClient.get(), &buf, &mFence);
+    int fenceFd = -1;
+    mSTClient->dequeueBuffer(mSTClient.get(), &buf, &fenceFd);
+    sp<Fence> fence(new Fence(fenceFd));
+#if ANDROID_VERSION == 17
+    fence->waitForever(1000, "GonkDisplayJB_DequeueBuffer");
+    // 1000 is what Android uses. It is a warning timeout in ms.
+    // This timeout was removed in ANDROID_VERSION 18.
+#else
+    fence->waitForever("GonkDisplayJB_DequeueBuffer");
+#endif
     return buf;
 }
 
 bool
 GonkDisplayJB::QueueBuffer(ANativeWindowBuffer* buf)
 {
-    bool success = Post(buf->handle, -1);
-    int error = mSTClient->queueBuffer(mSTClient.get(), buf, mFence);
-
+    int error = mSTClient->queueBuffer(mSTClient.get(), buf, -1);
+    bool success = Post(mFBSurface->lastHandle, mFBSurface->GetPrevFBAcquireFd());
     return error == 0 && success;
 }
 
