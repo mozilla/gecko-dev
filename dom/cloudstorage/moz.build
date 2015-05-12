@@ -38,7 +38,7 @@ FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '/dom/base',
     '/dom/ipc',
-    '/dom/system/gonk',
+    '/dom/system/gonk/cloudstorage',
 ]
 
 #MOCHITEST_MANIFESTS += [
