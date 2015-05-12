@@ -111,6 +111,7 @@ DIRS += [
     'resourcestats',
     'manifest',
     'vr',
+    'cloudstorage',
 ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':

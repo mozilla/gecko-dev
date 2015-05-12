@@ -405,6 +405,7 @@ FAIL_ON_WARNINGS = True
 LOCAL_INCLUDES += [
     '../battery',
     '../bluetooth',
+    '../cloudstorage',
     '../events',
     '../media',
     '../network',

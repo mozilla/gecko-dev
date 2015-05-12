@@ -662,6 +662,10 @@ private:
     virtual bool DeallocPSpeechSynthesisParent(PSpeechSynthesisParent* aActor) override;
     virtual bool RecvPSpeechSynthesisConstructor(PSpeechSynthesisParent* aActor) override;
 
+    virtual PCloudStorageParent* AllocPCloudStorageParent() override;
+    virtual bool DeallocPCloudStorageParent(PCloudStorageParent* aActor) override;
+    virtual bool RecvPCloudStorageConstructor(PCloudStorageParent* aActor) override;
+
     virtual bool RecvReadPrefsArray(InfallibleTArray<PrefSetting>* aPrefs) override;
     virtual bool RecvReadFontList(InfallibleTArray<FontListEntry>* retValue) override;
 
@@ -850,7 +854,6 @@ private:
     virtual bool DeallocPDocAccessibleParent(PDocAccessibleParent*) override;
     virtual bool RecvPDocAccessibleConstructor(PDocAccessibleParent* aDoc,
                                                PDocAccessibleParent* aParentDoc, const uint64_t& aParentID) override;
-
     virtual PWebrtcGlobalParent* AllocPWebrtcGlobalParent() override;
     virtual bool DeallocPWebrtcGlobalParent(PWebrtcGlobalParent *aActor) override;
 

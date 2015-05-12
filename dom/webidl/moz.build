@@ -76,6 +76,7 @@ WEBIDL_FILES = [
     'Client.webidl',
     'Clients.webidl',
     'ClipboardEvent.webidl',
+    'CloudStorageService.webidl',
     'CommandEvent.webidl',
     'Comment.webidl',
     'CompositionEvent.webidl',
