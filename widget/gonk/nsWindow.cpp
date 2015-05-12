@@ -54,6 +54,7 @@
 #include "mozilla/TouchEvents.h"
 #include "nsThreadUtils.h"
 #include "HwcComposer2D.h"
+#include "VsyncSource.h"
 
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Gonk" , ## args)
 #define LOGW(args...) __android_log_print(ANDROID_LOG_WARN, "Gonk", ## args)
@@ -125,13 +126,55 @@ private:
     bool mIsOn;
 };
 
+class VsyncControlRunnable : public nsRunnable
+{
+public:
+    VsyncControlRunnable(bool aEnabled)
+        : mEnabled(aEnabled)
+    {
+    }
+
+    NS_IMETHOD Run()
+    {
+        VsyncControl(mEnabled);
+
+        return NS_OK;
+    }
+
+    static void VsyncControl(bool aEnabled)
+    {
+        MOZ_ASSERT(gfxPrefs::HardwareVsyncEnabled());
+        MOZ_ASSERT(NS_IsMainThread());
+
+        VsyncSource::Display &display =
+            gfxPlatform::GetPlatform()->GetHardwareVsync()->GetGlobalDisplay();
+        if (aEnabled) {
+            display.EnableVsync();
+        } else {
+            display.DisableVsync();
+        }
+    }
+
+private:
+    bool mEnabled;
+};
+
 static StaticRefPtr<ScreenOnOffEvent> sScreenOnEvent;
 static StaticRefPtr<ScreenOnOffEvent> sScreenOffEvent;
+static StaticRefPtr<VsyncControlRunnable> sVsyncOnRunnable;
+static StaticRefPtr<VsyncControlRunnable> sVsyncOffRunnable;
 
 static void
 displayEnabledCallback(bool enabled)
 {
-    HwcComposer2D::GetInstance()->EnableVsync(enabled);
+    if (gfxPrefs::HardwareVsyncEnabled()) {
+        if (NS_IsMainThread()) {
+            VsyncControlRunnable::VsyncControl(enabled);
+        } else {
+            NS_DispatchToMainThread(enabled ? sVsyncOnRunnable : sVsyncOffRunnable);
+        }
+    }
+
     NS_DispatchToMainThread(enabled ? sScreenOnEvent : sScreenOffEvent);
 }
 
@@ -150,6 +193,11 @@ nsWindow::nsWindow()
     ClearOnShutdown(&sScreenOnEvent);
     sScreenOffEvent = new ScreenOnOffEvent(false);
     ClearOnShutdown(&sScreenOffEvent);
+    sVsyncOnRunnable = new VsyncControlRunnable(true);
+    ClearOnShutdown(&sVsyncOnRunnable);
+    sVsyncOffRunnable = new VsyncControlRunnable(false);
+    ClearOnShutdown(&sVsyncOffRunnable);
+
     GetGonkDisplay()->OnEnabled(displayEnabledCallback);
 
     nsIntSize screenSize;
