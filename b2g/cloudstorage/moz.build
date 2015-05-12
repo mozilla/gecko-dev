@@ -1,0 +1,11 @@
+
+EXTRA_JS_MODULES += [
+    'async.jsm',
+    'CloudStorage.jsm',
+    'DataCache.jsm',
+    'Dropbox.jsm',
+    'MemoryDataStore.jsm',
+    'MetaCache.jsm',
+    'Sample.jsm',
+    'udManager.jsm',
+]

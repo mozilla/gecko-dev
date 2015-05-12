@@ -16,3 +16,4 @@ if CONFIG['GAIADIR']:
 
 DIRS += ['app']
 
+DIRS += ['cloudstorage']
