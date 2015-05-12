@@ -80,6 +80,9 @@
 #ifdef MOZ_B2G_BT
 #include "BluetoothManager.h"
 #endif
+
+#include "nsCloudStorageService.h"
+
 #include "DOMCameraManager.h"
 
 #ifdef MOZ_AUDIO_CHANNEL_MANAGER
@@ -196,6 +199,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
 #ifdef MOZ_B2G_BT
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBluetooth)
 #endif
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCloudStorageService)
 #ifdef MOZ_AUDIO_CHANNEL_MANAGER
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAudioChannelManager)
 #endif
@@ -303,6 +307,10 @@ Navigator::Invalidate()
     mBluetooth = nullptr;
   }
 #endif
+
+  if (mCloudStorageService) {
+    mCloudStorageService = nullptr;
+  }
 
   mCameraManager = nullptr;
 
@@ -1858,6 +1866,19 @@ Navigator::GetMozBluetooth(ErrorResult& aRv)
   return mBluetooth;
 }
 #endif //MOZ_B2G_BT
+
+cloudstorage::nsCloudStorageService*
+Navigator::GetCloudStorageService(ErrorResult& aRv)
+{
+  if (!mCloudStorageService) {
+    if (!mWindow) {
+      aRv.Throw(NS_ERROR_UNEXPECTED);
+      return nullptr;
+    }
+    mCloudStorageService = cloudstorage::nsCloudStorageService::Create(mWindow);
+  }
+  return mCloudStorageService;
+}
 
 nsresult
 Navigator::EnsureMessagesManager()

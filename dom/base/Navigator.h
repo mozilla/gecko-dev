@@ -83,6 +83,10 @@ class BluetoothManager;
 } // namespace bluetooth
 #endif // MOZ_B2G_BT
 
+namespace cloudstorage {
+class nsCloudStorageService;
+}
+
 #ifdef MOZ_B2G_RIL
 class MobileConnectionArray;
 #endif
@@ -253,6 +257,7 @@ public:
 #ifdef MOZ_B2G_BT
   bluetooth::BluetoothManager* GetMozBluetooth(ErrorResult& aRv);
 #endif // MOZ_B2G_BT
+  cloudstorage::nsCloudStorageService* GetCloudStorageService(ErrorResult& aRv);
 #ifdef MOZ_TIME_MANAGER
   time::TimeManager* GetMozTime(ErrorResult& aRv);
 #endif // MOZ_TIME_MANAGER
@@ -369,6 +374,7 @@ private:
 #ifdef MOZ_B2G_BT
   nsRefPtr<bluetooth::BluetoothManager> mBluetooth;
 #endif
+  nsRefPtr<cloudstorage::nsCloudStorageService> mCloudStorageService;
 #ifdef MOZ_AUDIO_CHANNEL_MANAGER
   nsRefPtr<system::AudioChannelManager> mAudioChannelManager;
 #endif

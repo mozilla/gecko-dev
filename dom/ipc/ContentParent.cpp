@@ -64,6 +64,7 @@
 #include "mozilla/dom/telephony/TelephonyParent.h"
 #include "mozilla/dom/time/DateCacheCleaner.h"
 #include "mozilla/dom/voicemail/VoicemailParent.h"
+#include "mozilla/dom/cloudstorage/CloudStorageParent.h"
 #include "mozilla/embedding/printingui/PrintingParent.h"
 #include "mozilla/hal_sandbox/PHalParent.h"
 #include "mozilla/ipc/BackgroundChild.h"
@@ -243,6 +244,7 @@ using namespace CrashReporter;
 #endif
 using namespace mozilla::dom::bluetooth;
 using namespace mozilla::dom::cellbroadcast;
+using namespace mozilla::dom::cloudstorage;
 using namespace mozilla::dom::devicestorage;
 using namespace mozilla::dom::icc;
 using namespace mozilla::dom::indexedDB;
@@ -3956,6 +3958,30 @@ ContentParent::RecvPSpeechSynthesisConstructor(PSpeechSynthesisParent* aActor)
 #else
     return false;
 #endif
+}
+
+PCloudStorageParent*
+ContentParent::AllocPCloudStorageParent()
+{
+    return new mozilla::dom::cloudstorage::CloudStorageParent();
+}
+
+bool
+ContentParent::DeallocPCloudStorageParent(PCloudStorageParent* aActor)
+{
+    delete aActor;
+    return true;
+}
+
+bool
+ContentParent::RecvPCloudStorageConstructor(PCloudStorageParent* aActor)
+{
+/*
+    nsRefPtr<BluetoothService> btService = BluetoothService::Get();
+    NS_ENSURE_TRUE(btService, false);
+    return static_cast<BluetoothParent*>(aActor)->InitWithService(btService);
+*/
+    return true;
 }
 
 bool
