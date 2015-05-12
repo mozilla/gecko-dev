@@ -253,6 +253,11 @@ partial interface Navigator {
   sequence<DeviceStorage> getDeviceStorages(DOMString type);
 };
 
+partial interface Navigator {
+  [Throws]
+  readonly attribute CloudStorageService cloudStorageService;
+};
+
 // nsIDOMNavigatorDesktopNotification
 partial interface Navigator {
   [Throws, Pref="notification.feature.enabled", UnsafeInPrerendering]

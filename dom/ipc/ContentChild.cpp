@@ -170,6 +170,7 @@
 #include "mozilla/dom/FileSystemTaskBase.h"
 #include "mozilla/dom/bluetooth/PBluetoothChild.h"
 #include "mozilla/dom/PFMRadioChild.h"
+#include "mozilla/dom/cloudstorage/PCloudStorageChild.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 
 #ifdef MOZ_WEBSPEECH
@@ -197,6 +198,7 @@ using namespace mozilla;
 using namespace mozilla::docshell;
 using namespace mozilla::dom::bluetooth;
 using namespace mozilla::dom::cellbroadcast;
+using namespace mozilla::dom::cloudstorage;
 using namespace mozilla::dom::devicestorage;
 using namespace mozilla::dom::icc;
 using namespace mozilla::dom::ipc;
@@ -875,7 +877,6 @@ class MemoryReportCallback final : public nsIMemoryReporterCallback
 {
 public:
     NS_DECL_ISUPPORTS
-
     explicit MemoryReportCallback(MemoryReportRequestChild* aActor,
                                   const nsACString& aProcess)
     : mActor(aActor)
@@ -1829,6 +1830,19 @@ ContentChild::DeallocPWebrtcGlobalChild(PWebrtcGlobalChild *aActor)
     return true;
 }
 
+PCloudStorageChild*
+ContentChild::AllocPCloudStorageChild()
+{
+    MOZ_CRASH("No one should be allocating PCloudStorageChild actors");
+    return nullptr;
+}
+
+bool
+ContentChild::DeallocPCloudStorageChild(PCloudStorageChild* aActor)
+{
+    delete aActor;
+    return true;
+}
 
 bool
 ContentChild::RecvRegisterChrome(InfallibleTArray<ChromePackage>&& packages,
