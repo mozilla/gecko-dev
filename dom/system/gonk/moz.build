@@ -117,6 +117,7 @@ LOCAL_INCLUDES += [
     '/dom/base',
     '/dom/bluetooth',
     '/dom/geolocation',
+    '/dom/system/gonk/cloudstorage',
     '/dom/wifi',
 ]
 

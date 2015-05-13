@@ -40,8 +40,11 @@
 #include "VolumeManager.h"
 #include "nsIStatusReporter.h"
 
+#include "CloudStorageManager.h"
+
 using namespace mozilla::hal;
 USING_MTP_NAMESPACE
+using namespace mozilla::system::cloudstorage;
 
 /**************************************************************************
 *
@@ -1396,6 +1399,7 @@ static StaticRefPtr<AutoMounterSetting> sAutoMounterSetting;
 void
 InitAutoMounter()
 {
+  InitCloudStorageManager();
   InitVolumeManager();
   sAutoMounterSetting = new AutoMounterSetting();
 

@@ -6,6 +6,9 @@
 
 #include "CloudStorageRequestParent.h"
 #include "CloudStorageLog.h"
+#include "CloudStorageManager.h"
+
+using namespace mozilla::system::cloudstorage;
 
 namespace mozilla {
 namespace dom {
@@ -28,11 +31,20 @@ CloudStorageRequestParent::HandleRequest(const CloudStorageRequest& aRequest)
     case CloudStorageRequest::TEnableStorageRequest: {
       // handle enable request here
       LOG("Handle enable cloud storage request");
+      EnableStorageRequest enableReq = aRequest.get_EnableStorageRequest();
+      LOG("cloud name: %s, type: %d, accessToken: %s", NS_ConvertUTF16toUTF8(enableReq.cloudName()).get()
+                                                     , enableReq.cloudType()
+                                                     , NS_ConvertUTF16toUTF8(enableReq.accessToken()).get());
+      CloudStorageManager::FindAddCloudStorageByName(NS_ConvertUTF16toUTF8(enableReq.cloudName()));
+      CloudStorageManager::StartCloudStorage(NS_ConvertUTF16toUTF8(enableReq.cloudName()));
       return true;
     }
     case CloudStorageRequest::TDisableStorageRequest: {
       // handle disable request here
       LOG("Handle disable cloud storage request");
+      DisableStorageRequest disableReq = aRequest.get_DisableStorageRequest();
+      LOG("cloud name: %s", NS_ConvertUTF16toUTF8(disableReq.cloudName()).get());
+      CloudStorageManager::StopCloudStorage(NS_ConvertUTF16toUTF8(disableReq.cloudName()));
       return true;
     }
     default: MOZ_CRASH("Unknown type!"); return false;
