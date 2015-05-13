@@ -470,6 +470,8 @@
 @BINPATH@/components/RILSystemMessengerHelper.manifest
 @BINPATH@/components/TelephonyAudioService.js
 @BINPATH@/components/TelephonyAudioService.manifest
+@BINPATH@/components/USSDReceivedWrapper.js
+@BINPATH@/components/USSDReceivedWrapper.manifest
 #ifndef DISABLE_MOZ_RIL_GEOLOC
 @BINPATH@/components/TelephonyService.js
 @BINPATH@/components/TelephonyService.manifest
