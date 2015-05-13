@@ -33,16 +33,15 @@ public:
       /*
       RefPtr<Volume> vol = VolumeManager::FindAddVolumeByName(mCloudStorage->Name());
       vol->SetCloudVolume(mCloudStorage->MountPoint());
-      while (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
-        handler->HandleOneRequest();
-      }
-      LOG("Stop cloud storage %s.", mCloudStorage->Name().get());
-      vol->Dump("CloudStorageRunnable");
-      handler->Close(); 
       */
+      while (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
+        //handler->HandleOneRequest();
+	sleep(1);
+      }
     } else {
       LOG("Construct cloud storage handler fail");
     }
+    delete handler;
     LOG("going to finish RequestHandler.");
     return NS_OK;
   }
