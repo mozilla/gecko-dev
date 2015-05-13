@@ -30,10 +30,9 @@ public:
   { 
     CloudStorageRequestHandler* handler = new CloudStorageRequestHandler(mCloudStorage->MountPoint());
     if (handler) {
-      /*
       RefPtr<Volume> vol = VolumeManager::FindAddVolumeByName(mCloudStorage->Name());
-      vol->SetCloudVolume(mCloudStorage->MountPoint());
-      */
+      vol->SetFakeVolume(mCloudStorage->MountPoint());
+      VolumeManager::Dump("CloudStorage");
       while (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
         //handler->HandleOneRequest();
 	sleep(1);
@@ -41,7 +40,9 @@ public:
     } else {
       LOG("Construct cloud storage handler fail");
     }
+    VolumeManager::RemoveVolumeByName(mCloudStorage->Name());
     delete handler;
+    VolumeManager::Dump("CloudStorage");
     LOG("going to finish RequestHandler.");
     return NS_OK;
   }
