@@ -128,6 +128,7 @@ public:
   static TemporaryRef<Volume> GetVolume(VolumeArray::index_type aIndex);
   static TemporaryRef<Volume> FindVolumeByName(const nsCSubstring& aName);
   static TemporaryRef<Volume> FindAddVolumeByName(const nsCSubstring& aName);
+  static void RemoveVolumeByName(const nsCSubstring& aName);
   static void InitConfig();
 
   static void       PostCommand(VolumeCommand* aCommand);

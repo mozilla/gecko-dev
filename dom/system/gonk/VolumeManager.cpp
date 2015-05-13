@@ -156,6 +156,21 @@ VolumeManager::FindAddVolumeByName(const nsCSubstring& aName)
 }
 
 //static
+void
+VolumeManager::RemoveVolumeByName(const nsCSubstring& aName)
+{
+  VolumeArray::size_type  numVolumes = NumVolumes();
+  VolumeArray::index_type volIndex;
+  for (volIndex = 0; volIndex < numVolumes; volIndex++) {
+    RefPtr<Volume> vol = GetVolume(volIndex);
+    if (vol->Name().Equals(aName)) {
+      break;
+    }
+  }
+  sVolumeManager->mVolumeArray.RemoveElementAt(volIndex);
+}
+
+//static
 void VolumeManager::InitConfig()
 {
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
