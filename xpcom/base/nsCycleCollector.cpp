@@ -1326,6 +1326,8 @@ private:
   void ShutdownCollect();
 
   void FixGrayBits(bool aForceGC, TimeLog& aTimeLog);
+  bool IsIncrementalGCInProgress();
+  void FinishAnyIncrementalGCInProgress();
   bool ShouldMergeZones(ccType aCCType);
 
   void BeginCollection(ccType aCCType, nsICycleCollectorListener* aManualListener);
@@ -3509,6 +3511,22 @@ nsCycleCollector::FixGrayBits(bool aForceGC, TimeLog& aTimeLog)
   aTimeLog.Checkpoint("FixGrayBits GC");
 }
 
+bool
+nsCycleCollector::IsIncrementalGCInProgress()
+{
+  return mJSRuntime && JS::IsIncrementalGCInProgress(mJSRuntime->Runtime());
+}
+
+void
+nsCycleCollector::FinishAnyIncrementalGCInProgress()
+{
+  if (IsIncrementalGCInProgress()) {
+    NS_WARNING("Finishing incremental GC in progress during CC");
+    JS::PrepareForIncrementalGC(mJSRuntime->Runtime());
+    JS::FinishIncrementalGC(mJSRuntime->Runtime(), JS::gcreason::CC_FORCED);
+  }
+}
+
 void
 nsCycleCollector::CleanupAfterCollection()
 {
@@ -3549,6 +3567,8 @@ nsCycleCollector::CleanupAfterCollection()
 void
 nsCycleCollector::ShutdownCollect()
 {
+  FinishAnyIncrementalGCInProgress();
+
   SliceBudget unlimitedBudget;
   uint32_t i;
   for (i = 0; i < DEFAULT_SHUTDOWN_COLLECTIONS; ++i) {
@@ -3581,6 +3601,8 @@ nsCycleCollector::Collect(ccType aCCType,
     return false;
   }
   mActivelyCollecting = true;
+
+  MOZ_ASSERT(!IsIncrementalGCInProgress());
 
   bool startedIdle = (mIncrementalPhase == IdlePhase);
   bool collectedAny = false;
@@ -3767,6 +3789,12 @@ nsCycleCollector::BeginCollection(ccType aCCType,
     // hijinks from ForgetSkippable and compartmental GCs.
     mListener->GetWantAllTraces(&forceGC);
   }
+
+  // BeginCycleCollectionCallback() might have started an IGC, and we need
+  // to finish it before we run FixGrayBits.
+  FinishAnyIncrementalGCInProgress();
+  timeLog.Checkpoint("Pre-FixGrayBits finish IGC");
+
   FixGrayBits(forceGC, timeLog);
 
   FreeSnowWhite(true);
@@ -3775,6 +3803,11 @@ nsCycleCollector::BeginCollection(ccType aCCType,
   if (mListener && NS_FAILED(mListener->Begin())) {
     mListener = nullptr;
   }
+
+  // FreeSnowWhite could potentially have started an IGC, which we need
+  // to finish before we look at any JS roots.
+  FinishAnyIncrementalGCInProgress();
+  timeLog.Checkpoint("Post-FreeSnowWhite finish IGC");
 
   // Set up the data structures for building the graph.
   mGraph.Init();
