@@ -55,9 +55,10 @@ def getUrlProperties(filename, package):
         ('completeMarUrl', lambda m: m.endswith('.complete.mar')),
         ('partialMarUrl', lambda m: m.endswith('.mar') and '.partial.' in m),
         ('codeCoverageURL', lambda m: m.endswith('code-coverage-gcno.zip')),
+        ('testPackagesUrl', lambda m: m.endswith('test_packages.json')),
         ('packageUrl', lambda m: m.endswith(package)),
     ]
-    url_re = re.compile(r'''^(https?://.*?\.(?:tar\.bz2|dmg|zip|apk|rpm|mar|tar\.gz))$''')
+    url_re = re.compile(r'''^(https?://.*?\.(?:tar\.bz2|dmg|zip|apk|rpm|mar|tar\.gz|json))$''')
     properties = {}
 
     try:
