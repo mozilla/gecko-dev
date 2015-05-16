@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-  <title>Test to ensure NetworkStats enabled and no networkstats-manage perm does not allow open</title>
+  <title>Test to ensure NetworkStats is not accessible when it is disabled</title>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 </head>
@@ -12,35 +12,30 @@
 <pre id="test">
 <script type="application/javascript">
 
-// Test to ensure NetworkStats is enabled but mozNetworkStats.getAvailableNetworks
-// does not work in content because mozNetworkStats is null when no permission.
+"use strict";
 
-SpecialPowers.setBoolPref("dom.mozNetworkStats.enabled", true);
-SpecialPowers.removePermission("networkstats-manage", document);
+SimpleTest.waitForExplicitFinish();
 
-ok(SpecialPowers.getBoolPref("dom.mozNetworkStats.enabled"),
-   "Preference 'dom.mozNetworkStats.enabled' is true.");
+// Test to ensure NetworkStats is not accessible when it is disabled.
+SpecialPowers.pushPrefEnv({'set': [["dom.mozNetworkStats.enabled", true]]},
+                          function() {
+  SpecialPowers.pushPermissions([{ 'type': 'networkstats-manage', 'allow': 1, 'context': window.document }],
+                                function() {
 
-ok(!SpecialPowers.hasPermission("networkstats-manage", document),
-   "Has no permission 'networkstats-manage'.");
+    ok(SpecialPowers.hasPermission("networkstats-manage", document),
+       "Has permission 'networkstats-manage'.");
 
-ok('mozNetworkStats' in navigator, "navigator.mozNetworkStats should exist");
+    ok(SpecialPowers.getBoolPref("dom.mozNetworkStats.enabled"),
+       "Preference 'dom.mozNetworkStats.enabled' is true.");
 
-is(navigator.mozNetworkStats, null,
-   "mozNetworkStats should be null when no permission.");
+    ok('mozNetworkStats' in navigator, "navigator.mozNetworkStats should exist");
 
-var error;
-try {
-  navigator.mozNetworkStats.getAvailableNetworks;
+    ok(navigator.mozNetworkStats instanceof SpecialPowers.Ci.nsIDOMMozNetworkStatsManager,
+       "navigator.mozNetworkStats should be a nsIDOMMozNetworkStatsManager object");
 
-  ok(false,
-  	 "Accessing navigator.mozNetworkStats.getAvailableNetworks should throw!");
-} catch (ex) {
-  error = ex;
-}
-
-ok(error,
-   "Got an exception accessing navigator.mozNetworkStats.getAvailableNetworks");
+    SimpleTest.finish();
+  });
+});
 
 </script>
 </pre>
