@@ -1006,4 +1006,4 @@ static const int kPublicKeyPinningPreloadListLength = 328;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1439633724983000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1440238438549000);
