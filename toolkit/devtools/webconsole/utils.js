@@ -1664,25 +1664,19 @@ WebConsoleCommands._registerOriginal("$_", {
  * @return array of nsIDOMNode
  */
 WebConsoleCommands._registerOriginal("$x", function JSTH_$x(aOwner, aXPath,
-aContext), r_node.UNORDERED_NODE_ITERATOR_TYPE
+aContext, resultType.UNORDERED_NODE_ITERATOR_TYPE) 
 {
   let nodes = new aOwner.window.wrappedJSObject.Array();
   let doc = aOwner.window.document;
   aContext = aContext || doc;
   
-  try { 
-    if (r_node == undefined) {
+  if (typeof resultType === "undefined") {
       let results = doc.evaluate(aXPath, aContext, null,
                                  Ci.nsIDOMXPathResult.ANY_TYPE, null);
     } else {
       let results = doc.evaluate(aXPath, aContext, null, 
-                                 Ci.nsIDOMXPathResult.UNORDERED_NODE_ITERATOR_TYPE,
-                                 null); 
+                                 Ci.nsIDOMXPathResult.UNORDERED_NODE_ITERATOR_TYPE, null); 
     }
-   }
-   catch(ex) {
-      return results; 
-   }
 
   let node;
   while ((node = results.iterateNext())) {
