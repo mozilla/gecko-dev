@@ -1625,7 +1625,9 @@ exports.WebConsoleCommands = WebConsoleCommands;
  */
 WebConsoleCommands._registerOriginal("$", function JSTH_$(aOwner, aSelector)
 {
-  return aOwner.window.document.querySelector(aSelector);
+
+  return aOwner.window.document.Array.prototype.slice.call(document.querySelectorAll(aSelector))
+
 });
 
 /**
