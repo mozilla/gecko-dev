@@ -1663,14 +1663,27 @@ WebConsoleCommands._registerOriginal("$_", {
  *        Context to run the xPath query on. Uses window.document if not set.
  * @return array of nsIDOMNode
  */
-WebConsoleCommands._registerOriginal("$x", function JSTH_$x(aOwner, aXPath, aContext)
+WebConsoleCommands._registerOriginal("$x", function JSTH_$x(aOwner, aXPath,
+aContext), r_node.UNORDERED_NODE_ITERATOR_TYPE
 {
   let nodes = new aOwner.window.wrappedJSObject.Array();
   let doc = aOwner.window.document;
   aContext = aContext || doc;
+  
+  try { 
+    if (r_node == undefined) {
+      let results = doc.evaluate(aXPath, aContext, null,
+                                 Ci.nsIDOMXPathResult.ANY_TYPE, null);
+    } else {
+      let results = doc.evaluate(aXPath, aContext, null, 
+                                 Ci.nsIDOMXPathResult.UNORDERED_NODE_ITERATOR_TYPE,
+                                 null); 
+    }
+   }
+   catch(ex) {
+      return results; 
+   }
 
-  let results = doc.evaluate(aXPath, aContext, null,
-                             Ci.nsIDOMXPathResult.ANY_TYPE, null);
   let node;
   while ((node = results.iterateNext())) {
     nodes.push(node);
