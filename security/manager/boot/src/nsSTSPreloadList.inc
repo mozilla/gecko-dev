@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1442052924163000);
+const PRTime gPreloadListExpirationTime = INT64_C(1442657658758000);
 
 class nsSTSPreload
 {
@@ -73,7 +73,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "arivo.com.br", true },
   { "arlen.io", true },
   { "auf-feindgebiet.de", true },
-  { "azabani.com", true },
   { "baer.im", true },
   { "balikonos.cz", true },
   { "bank.simple.com", false },
@@ -117,10 +116,9 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "blubbablasen.de", true },
   { "bodo-wolff.de", true },
   { "bohramt.de", true },
-  { "bonigo.de", true },
   { "bookingapp.nl", true },
   { "boxcryptor.com", true },
-  { "brage.info", true },
+  { "brage.info", false },
   { "braintreegateway.com", true },
   { "brunosouza.org", true },
   { "buddhistische-weisheiten.org", true },
@@ -424,7 +422,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "lavalite.de", true },
   { "lb-toner.de", true },
   { "leadbook.ru", true },
-  { "ledgerscope.net", false },
   { "leonardcamacho.me", true },
   { "liebel.org", true },
   { "lighting-centres.co.uk", true },
@@ -450,7 +447,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "lolicore.ch", true },
   { "lookout.com", false },
   { "ludwig.im", true },
-  { "lukonet.com", true },
   { "lumi.do", false },
   { "luneta.nearbuysystems.com", false },
   { "mach-politik.ch", true },
@@ -492,7 +488,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "minez-nightswatch.com", true },
   { "minikneet.com", true },
   { "minnesotadata.com", true },
-  { "mirrorx.com", true },
   { "miskatonic.org", true },
   { "mkcert.org", true },
   { "mnsure.org", true },
@@ -592,6 +587,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "pestici.de", true },
   { "phoenixlogan.com", true },
   { "picksin.club", true },
+  { "pierre-schmitz.com", true },
   { "pixi.me", true },
   { "play.google.com", false },
   { "plothost.com", true },
@@ -865,7 +861,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.intercom.io", false },
   { "www.irccloud.com", false },
   { "www.lastpass.com", false },
-  { "www.ledgerscope.net", false },
   { "www.linode.com", false },
   { "www.lookout.com", false },
   { "www.makeyourlaws.org", true },
@@ -892,7 +887,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "xps2pdf.co.uk", true },
   { "y-o-w.com", true },
   { "yahvehyireh.com", true },
-  { "yetii.net", true },
   { "yoursecondphone.co", true },
   { "ypart.eu", true },
   { "z.ai", true },
