@@ -31,9 +31,6 @@ Dropbox.init = function (){
 };
 
 Dropbox._handleJson = function (xmlhttp, cb){
-  if(xmlhttp.readyState !== 4)
-    return ;
-
   var response = {
     data: null
   };
@@ -46,6 +43,8 @@ Dropbox._handleJson = function (xmlhttp, cb){
         error: 'parsing failed.'
       }, response);
     }
+  } else if (xmlhttp.status == 404){
+    cb(null, response); // File not found
   } else {
     cb({
       error: 'http status: ' + xmlhttp.status
@@ -59,7 +58,7 @@ Dropbox.quota = function (cb){
   xmlhttp.open('get', 'https://api.dropbox.com/1/account/info', true);
   xmlhttp.setRequestHeader('Authorization', 'Bearer ' + self.USERTOKEN);
   xmlhttp.setRequestHeader('Accept', 'application/json');
-  xmlhttp.onreadystatechange = function () {
+  xmlhttp.onload = function () {
     self._handleJson(xmlhttp, function (error, response){
       if (response.data) {
         var quotaInfo = response.data.quota_info;
@@ -99,7 +98,7 @@ Dropbox.getFileMeta = function (path, cb){
   xmlhttp.open('get', 'https://api.dropbox.com/1/metadata/auto' + path, true);
   xmlhttp.setRequestHeader('Authorization', 'Bearer ' + self.USERTOKEN);
   xmlhttp.setRequestHeader('Accept', 'application/json');
-  xmlhttp.onreadystatechange = function () {
+  xmlhttp.onload = function () {
     self._handleJson(xmlhttp, function (error, response){
       if (response.data) {
         var data = response.data;
@@ -124,7 +123,7 @@ Dropbox.getFileList = function (path, cb){
   xmlhttp.open('get', 'https://api.dropbox.com/1/metadata/auto' + path, true);
   xmlhttp.setRequestHeader('Authorization', 'Bearer ' + self.USERTOKEN);
   xmlhttp.setRequestHeader('Accept', 'application/json');
-  xmlhttp.onreadystatechange = function () {
+  xmlhttp.onload = function () {
     self._handleJson(xmlhttp, function (error, response){
       if (response.data) {
         var data = response.data;
@@ -154,34 +153,37 @@ Dropbox.getFileDownload = function (path, offset, size, cb){
   xmlhttp.open('get', 'https://api-content.dropbox.com/1/files/auto' + path, true);
   xmlhttp.setRequestHeader('Authorization', 'Bearer ' + self.USERTOKEN);
   xmlhttp.setRequestHeader('Range', 'bytes=' + offset + '-' + ( offset + size - 1 ));
-  xmlhttp.responseType = 'blob';
+  xmlhttp.responseType = 'arraybuffer';
   xmlhttp.onload = function () {
+    var res = xmlhttp.response;
+    var length = res.length;
     cb(null, {
-      data: xmlhttp.response
+      data: res,
+      length: length
     });
   };
 
   xmlhttp.send();
 };
 
-Dropbox._tokenRequest = function (link, auth, params, cb){
-  var self = this;
-  unirest.post(link)
-  .auth(auth)
-  .header('Accept', 'application/json')
-  .send(params)
-  .end(function (httpResponse) {
-    self._handleJson(httpResponse, cb);
-  });
+/*
+step 1: Dropbox.getAuthLink
+Visit the link: https://www.dropbox.com/1/oauth2/authorize?
+client_id=<API_KEY>&
+response_type=code
+*/
+
+Dropbox.getAuthLink = function (api_key, cb){
+  var link = 'https://www.dropbox.com/1/oauth2/authorize?' +
+    'client_id=' + api_key + '&' +
+    'response_type=code';
+  cb(null, {data: {
+    authLink: link
+  }});
 };
 
 /*
-step 1:
-https://www.dropbox.com/1/oauth2/authorize?
-client_id=<API_KEY>&
-response_type=code
-
-step 2:
+step 2: Dropbox.getAccessToken
 curl https://api.dropbox.com/1/oauth2/token \
 -d code=<USER_CODE> \
 -d grant_type=authorization_code \
@@ -194,37 +196,37 @@ Response:
   "uid": "??????"
 }
 */
-
-Dropbox.getAccessToken = function (api_key, api_secret, cb){
+Dropbox.getAccessToken = function (api_key, api_secret, device_code, cb){
   var self = this;
-  var device_code = null;
-
-  var link = 'https://www.dropbox.com/1/oauth2/authorize?' +
-    'client_id=' + api_key + '&' +
-    'response_type=code';
-
-  var rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  rl.question("Please go to the link\n" + link + "\nand input the code for oauth:\n", function(answer) {
-    device_code = answer;
-    console.log('\nYour code: ' + device_code);
-    rl.close();
-
-    var linkToken = 'https://api.dropbox.com/1/oauth2/token';
-    self._tokenRequest(linkToken, {
-      'user': api_key,
-      'pass': api_secret
-    }, {
-      'code': device_code,
-      'grant_type': 'authorization_code'
-    }, function(error, response){
-      console.log(response);
+  var linkToken = 'https://' + api_key + ':' + api_secret + '@' +
+    'api.dropbox.com/1/oauth2/token';
+  var params = {
+    'code': device_code,
+    'grant_type': 'authorization_code'
+  };
+  var strParams = 'code=' + encodeURIComponent(params.code) +
+    '&grant_type=' + encodeURIComponent(params.grant_type);
+  var xmlhttp = new XMLHttpRequest();
+  xmlhttp.open('post', linkToken, true);
+  xmlhttp.setRequestHeader('Accept', 'application/json');
+  xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xmlhttp.setRequestHeader('Content-length', strParams.length);
+  xmlhttp.onload = function (){
+    self._handleJson(xmlhttp, function (error, response){
+      if (response.data) {
+        var data = response.data;
+        var result = {
+          data:{
+            access_token: data.access_token
+          }
+        };
+        cb(error, result);
+      } else {
+        cb(error, response);
+      }
     });
-  });
-
+  };
+  xmlhttp.send(strParams);
 };
 
 this.EXPORTED_SYMBOLS = ['Dropbox'];

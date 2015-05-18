@@ -24,7 +24,7 @@ udManager.queueHandler = function (task, callback) {
 	var self = this;
 	task.status = "DOWNLOADING";
 	this.downloadFileInRange(task.path, task.offset, task.size, function(error, response){
-		console.log(task.path + "|" + task.offset + '| done!! ' + response.data.length);
+		console.log(task.path + "|" + task.offset + '| done!! ' + response.length);
 
 		// Write the buffer to the cache file.
 		self.dataCache.writeCache(task, response.data, function(){
@@ -246,8 +246,8 @@ udManager.downloadFileInRange = function(path, offset, size, cb) {
 			}else if( !response || !response.data || !response.data instanceof Buffer ){
 				console.log('[ERROR] retry, error response: ' + response);
 				setTimeout(retry , 800);
-			}else if( size != response.data.length ){
-				console.log('[ERROR] retry, size error: ' + offset + " " + size + " " + response.data.length + " " + response.data);
+			}else if( size != response.length ){
+				console.log('[ERROR] retry, size error: ' + offset + " " + size + " " + response.length);
 				setTimeout(retry , 800);
 			}else{
 				cb(error, response);

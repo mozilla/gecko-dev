@@ -11,12 +11,12 @@ MemoryDataStore.deleteEntry = function (key){
 
 MemoryDataStore.readEntry =
   function (key, targetBuffer, targetOffset, sourceOffset, length){
-  this._data[key].copy(targetBuffer,
-    targetOffset, sourceOffset, sourceOffset + length);
+  this._data[key].slice(sourceOffset, sourceOffset + length).
+    copyWithin(targetBuffer, targetOffset);
 };
 
 MemoryDataStore.writeEntry = function (key, data, cb){
-  this._data[key] = new Buffer(data);
+  this._data[key] = new Uint8Array(data);
   cb(null);
 };
 
