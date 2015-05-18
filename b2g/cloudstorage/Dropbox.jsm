@@ -14,10 +14,9 @@ if(ENV_JS_ENGINE === 'gecko'){
 
 var Dropbox = {};
 
-Dropbox.init = function (){
+Dropbox.init = function (options){
   if(ENV_JS_ENGINE === 'gecko'){
-    this.USERTOKEN =
-      'SAMPLE_ACCESS_TOKEN';
+    this.USERTOKEN = options.accessToken;
     return ;
   }
   var tokenFileName = process.env.HOME + '/.dropbox_token';

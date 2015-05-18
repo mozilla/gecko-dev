@@ -20,6 +20,8 @@ let CloudStorage = {
     this.status = false;
 
     udManager.init({
+      accessToken:
+        'SAMPLE_ACCESS_TOKEN',
       webStorageModule: Dropbox,
       metaCacheModule: MetaCache,
       dataCacheModule: DataCache
