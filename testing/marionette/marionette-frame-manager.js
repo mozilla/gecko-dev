@@ -120,7 +120,7 @@ FrameManager.prototype = {
       catch(e) {
         if (e.result ==  Components.results.NS_ERROR_NOT_INITIALIZED) {
           logger.info("deleting frame");
-          remoteFrames.splice(i, 1);
+          remoteFrames.splice(i--, 1);
           continue;
         }
       }
