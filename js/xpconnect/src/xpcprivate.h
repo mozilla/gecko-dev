@@ -249,10 +249,10 @@ AddToCCKind(JSGCTraceKind kind)
     return kind == JSTRACE_OBJECT || kind == JSTRACE_SCRIPT;
 }
 
-class nsXPConnect final : public nsIXPConnect,
-                          public nsIThreadObserver,
-                          public nsSupportsWeakReference,
-                          public nsIJSRuntimeService
+class nsXPConnect MOZ_FINAL : public nsIXPConnect,
+                              public nsIThreadObserver,
+                              public nsSupportsWeakReference,
+                              public nsIJSRuntimeService
 {
 public:
     // all the interface method declarations...
@@ -2002,7 +2002,7 @@ void* xpc_GetJSPrivate(JSObject* obj);
 // XPCWrappedNative the wrapper around one instance of a native xpcom object
 // to be used from JavaScript.
 
-class XPCWrappedNative final : public nsIXPConnectWrappedNative
+class XPCWrappedNative MOZ_FINAL : public nsIXPConnectWrappedNative
 {
 public:
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -2315,7 +2315,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPCWrappedJSClass,
 // nsXPCWrappedJSClass represents the sharable factored out common code and
 // data for nsXPCWrappedJS instances for the same interface type.
 
-class nsXPCWrappedJSClass final : public nsIXPCWrappedJSClass
+class nsXPCWrappedJSClass MOZ_FINAL : public nsIXPCWrappedJSClass
 {
     // all the interface method declarations...
     NS_DECL_ISUPPORTS
