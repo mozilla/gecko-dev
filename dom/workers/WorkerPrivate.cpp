@@ -74,7 +74,6 @@
 #include "nsProxyRelease.h"
 #include "nsSandboxFlags.h"
 #include "prthread.h"
-#include "nsThread.h"
 #include "xpcpublic.h"
 
 #ifdef ANDROID
@@ -4401,17 +4400,6 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
 
     {
       MutexAutoLock lock(mMutex);
-
-#ifdef MOZ_NUWA_PROCESS
-      {
-        nsThread *thr = static_cast<nsThread*>(NS_GetCurrentThread());
-        ReentrantMonitorAutoEnter mon(thr->ThreadStatusMonitor());
-        if (mControlQueue.IsEmpty() &&
-            !(normalRunnablesPending = NS_HasPendingEvents(mThread))) {
-          thr->SetIdle();
-        }
-      }
-#endif // MOZ_NUWA_PROCESS
 
       while (mControlQueue.IsEmpty() &&
              !(normalRunnablesPending = NS_HasPendingEvents(mThread))) {
