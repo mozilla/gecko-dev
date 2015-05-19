@@ -1,0 +1,42 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include protocol PContent;
+include protocol PCloudStorageRequest;
+
+namespace mozilla {
+namespace dom {
+namespace cloudstorage {
+
+struct EnableStorageRequest
+{
+  nsString cloudName;
+  uint16_t cloudType;
+  nsString accessToken;
+};
+
+struct DisableStorageRequest
+{
+  nsString cloudName;
+};
+
+union CloudStorageRequest
+{
+  EnableStorageRequest;
+  DisableStorageRequest;
+};
+
+protocol PCloudStorage
+{
+  manager PContent;
+  manages PCloudStorageRequest;
+parent:
+  __delete__();
+  PCloudStorageRequest(CloudStorageRequest request);
+};
+
+}
+}
+}

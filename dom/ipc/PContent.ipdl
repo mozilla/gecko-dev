@@ -51,6 +51,7 @@ include protocol PVoicemail;
 include protocol PJavaScript;
 include protocol PRemoteSpellcheckEngine;
 include protocol PWebrtcGlobal;
+include protocol PCloudStorage;
 include DOMTypes;
 include JavaScriptTypes;
 include InputStreamParams;
@@ -446,6 +447,7 @@ prio(normal upto urgent) sync protocol PContent
     manages PJavaScript;
     manages PRemoteSpellcheckEngine;
     manages PWebrtcGlobal;
+    manages PCloudStorage;
 
 both:
     // Depending on exactly how the new browser is being created, it might be
@@ -782,6 +784,7 @@ parent:
     PAsmJSCacheEntry(OpenMode openMode, WriteParams write, Principal principal);
 
     PWebrtcGlobal();
+    PCloudStorage();
 
     // Services remoting
 

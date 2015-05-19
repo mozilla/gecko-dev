@@ -281,6 +281,9 @@ public:
     virtual PSpeechSynthesisChild* AllocPSpeechSynthesisChild() override;
     virtual bool DeallocPSpeechSynthesisChild(PSpeechSynthesisChild* aActor) override;
 
+    virtual PCloudStorageChild* AllocPCloudStorageChild() override;
+    virtual bool DeallocPCloudStorageChild(PCloudStorageChild* aActor) override;
+
     virtual bool RecvRegisterChrome(InfallibleTArray<ChromePackage>&& packages,
                                     InfallibleTArray<ResourceMapping>&& resources,
                                     InfallibleTArray<OverrideMapping>&& overrides,
