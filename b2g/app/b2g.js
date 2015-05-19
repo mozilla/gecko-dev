@@ -1102,11 +1102,10 @@ pref("dom.mozSettings.allowForceReadOnly", false);
 // RequestSync API is enabled by default on B2G.
 pref("dom.requestSync.enabled", true);
 
-// Bug 1147753 - Weird issues with vsync on L devices
-// so disable them on L, but enable on KK and ICS
-// kit kat == 19, L = 21, 20 is kit-kat for wearables
-// 15 is for the ICS emulators which will fallback to software vsync
-#if ANDROID_VERSION == 19 || ANDROID_VERSION == 15
+// Only enable for kit kat and above devices
+// kit kat == 19, L = 21, L-MR1 = 22, 20 is kit-kat for wearables.
+// 15 is for the ICS emulators which will fallback to software vsync.
+#if ANDROID_VERSION == 19 || ANDROID_VERSION == 21 || ANDROID_VERSION == 22 || ANDROID_VERSION == 15
 pref("gfx.vsync.hw-vsync.enabled", true);
 pref("gfx.vsync.compositor", true);
 pref("gfx.touch.resample", true);
