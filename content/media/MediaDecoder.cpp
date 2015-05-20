@@ -170,7 +170,7 @@ void MediaDecoder::Pause()
 {
   MOZ_ASSERT(NS_IsMainThread());
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  if ((mPlayState == PLAY_STATE_LOADING && mIsDormant)  || mPlayState == PLAY_STATE_SEEKING || mPlayState == PLAY_STATE_ENDED) {
+  if (mPlayState == PLAY_STATE_LOADING || mPlayState == PLAY_STATE_SEEKING || mPlayState == PLAY_STATE_ENDED) {
     mNextState = PLAY_STATE_PAUSED;
     return;
   }
@@ -443,7 +443,7 @@ MediaDecoder::MediaDecoder() :
   mReentrantMonitor("media.decoder"),
   mIsDormant(false),
   mIsExitingDormant(false),
-  mPlayState(PLAY_STATE_PAUSED),
+  mPlayState(PLAY_STATE_LOADING),
   mNextState(PLAY_STATE_PAUSED),
   mCalledResourceLoaded(false),
   mIgnoreProgressData(false),
@@ -567,8 +567,6 @@ nsresult MediaDecoder::InitializeStateMachine(MediaDecoder* aCloneDonor)
   // set them now
   SetStateMachineParameters();
 
-  ChangeState(PLAY_STATE_LOADING);
-
   return ScheduleStateMachineThread();
 }
 
@@ -614,7 +612,7 @@ nsresult MediaDecoder::Play()
   }
   nsresult res = ScheduleStateMachineThread();
   NS_ENSURE_SUCCESS(res,res);
-  if ((mPlayState == PLAY_STATE_LOADING && mIsDormant) || mPlayState == PLAY_STATE_SEEKING) {
+  if (mPlayState == PLAY_STATE_LOADING || mPlayState == PLAY_STATE_SEEKING) {
     mNextState = PLAY_STATE_PLAYING;
     return NS_OK;
   }
@@ -642,7 +640,7 @@ nsresult MediaDecoder::Seek(double aTime, SeekTarget::Type aSeekType)
   // If we are already in the seeking state, then setting mRequestedSeekTarget
   // above will result in the new seek occurring when the current seek
   // completes.
-  if ((mPlayState != PLAY_STATE_LOADING || !mIsDormant) && mPlayState != PLAY_STATE_SEEKING) {
+  if (mPlayState != PLAY_STATE_LOADING && mPlayState != PLAY_STATE_SEEKING) {
     bool paused = false;
     if (mOwner) {
       paused = mOwner->GetPaused();
@@ -728,6 +726,24 @@ void MediaDecoder::MetadataLoaded(MediaInfo* aInfo, MetadataTags* aTags)
     Invalidate();
     mOwner->MetadataLoaded(aInfo, aTags);
   }
+}
+
+void MediaDecoder::FirstFrameLoaded(MediaInfo* aInfo)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mShuttingDown) {
+    return;
+  }
+
+  DECODER_LOG("FirstFrameLoaded, channels=%u rate=%u hasAudio=%d hasVideo=%d",
+              aInfo->mAudio.mChannels, aInfo->mAudio.mRate,
+              aInfo->HasAudio(), aInfo->HasVideo());
+
+  if (mPlayState == PLAY_STATE_LOADING && mIsDormant && !mIsExitingDormant) {
+    return;
+  }
+
+  mInfo = aInfo;
 
   if (!mCalledResourceLoaded) {
     StartProgress();
@@ -742,6 +758,7 @@ void MediaDecoder::MetadataLoaded(MediaInfo* aInfo, MetadataTags* aTags)
   bool notifyResourceIsLoaded = !mCalledResourceLoaded &&
                                 IsDataCachedToEndOfResource();
   if (mOwner) {
+    Invalidate();
     mOwner->FirstFrameLoaded(notifyResourceIsLoaded);
   }
 

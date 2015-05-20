@@ -196,6 +196,55 @@ LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget, const
   mTargetBounds = aRect;
 }
 
+void
+LayerManagerComposite::ApplyOcclusionCulling(Layer* aLayer, nsIntRegion& aOpaqueRegion)
+{
+  nsIntRegion localOpaque;
+  Matrix transform2d;
+  bool isTranslation = false;
+  // If aLayer has a simple transform (only an integer translation) then we
+  // can easily convert aOpaqueRegion into pre-transform coordinates and include
+  // that region.
+  if (aLayer->GetLocalTransform().Is2D(&transform2d)) {
+    if (transform2d.IsIntegerTranslation()) {
+      isTranslation = true;
+      localOpaque = aOpaqueRegion;
+      localOpaque.MoveBy(-transform2d._31, -transform2d._32);
+    }
+  }
+
+  // Subtract any areas that we know to be opaque from our
+  // visible region.
+  LayerComposite *composite = aLayer->AsLayerComposite();
+  if (!localOpaque.IsEmpty()) {
+    nsIntRegion visible = composite->GetShadowVisibleRegion();
+    visible.Sub(visible, localOpaque);
+    composite->SetShadowVisibleRegion(visible);
+  }
+
+  // Compute occlusions for our descendants (in front-to-back order) and allow them to
+  // contribute to localOpaque.
+  for (Layer* child = aLayer->GetLastChild(); child; child = child->GetPrevSibling()) {
+    ApplyOcclusionCulling(child, localOpaque);
+  }
+
+  // If we have a simple transform, then we can add our opaque area into
+  // aOpaqueRegion.
+  if (isTranslation &&
+      !aLayer->GetMaskLayer() &&
+      aLayer->GetLocalOpacity() == 1.0f) {
+    if (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) {
+      localOpaque.Or(localOpaque, composite->GetFullyRenderedRegion());
+    }
+    localOpaque.MoveBy(transform2d._31, transform2d._32);
+    const nsIntRect* clip = aLayer->GetEffectiveClipRect();
+    if (clip) {
+      localOpaque.And(localOpaque, *clip);
+    }
+    aOpaqueRegion.Or(aOpaqueRegion, localOpaque);
+  }
+}
+
 bool
 LayerManagerComposite::EndEmptyTransaction(EndTransactionFlags aFlags)
 {
@@ -256,6 +305,8 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
     // so we don't need to pass any global transform here.
     mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
 
+    nsIntRegion opaque;
+    ApplyOcclusionCulling(mRoot, opaque);
     Render();
     mGeometryChanged = false;
   } else {
@@ -1077,6 +1128,20 @@ LayerManagerComposite::NotifyShadowTreeTransaction()
 {
   if (mFPS) {
     mFPS->NotifyShadowTreeTransaction();
+  }
+}
+
+nsIntRegion
+LayerComposite::GetFullyRenderedRegion() {
+  if (TiledLayerComposer* tiled = GetTiledLayerComposer()) {
+    nsIntRegion shadowVisibleRegion = GetShadowVisibleRegion();
+    // Discard the region which hasn't been drawn yet when doing
+    // progressive drawing. Note that if the shadow visible region
+    // shrunk the tiled valig region may not have discarded this yet.
+    shadowVisibleRegion.And(shadowVisibleRegion, tiled->GetValidRegion());
+    return shadowVisibleRegion;
+  } else {
+    return GetShadowVisibleRegion();
   }
 }
 

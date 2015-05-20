@@ -215,6 +215,11 @@ public:
     return mLowPrecisionTiledBuffer.GetValidRegion();
   }
 
+  const nsIntRegion& GetValidRegion() const MOZ_OVERRIDE
+  {
+    return mTiledBuffer.GetValidRegion();
+  }
+
   virtual bool UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
                                    const SurfaceDescriptorTiles& aTiledDescriptor) MOZ_OVERRIDE;
 

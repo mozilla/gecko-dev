@@ -98,6 +98,10 @@ public:
   virtual nsresult ReadMetadata(MediaInfo* aInfo,
                                 MetadataTags** aTags) = 0;
 
+  // Fills aInfo with the latest cached data required to present the media,
+  // ReadUpdatedMetadata will always be called once ReadMetadata has succeeded.
+  virtual void ReadUpdatedMetadata(MediaInfo* aInfo) { };
+
   // Moves the decode head to aTime microseconds. aStartTime and aEndTime
   // denote the start and end times of the media in usecs, and aCurrentTime
   // is the current playback position in microseconds.
