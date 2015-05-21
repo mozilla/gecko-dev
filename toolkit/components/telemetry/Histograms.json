@@ -7314,5 +7314,15 @@
     "expires_in_version": "45",
     "kind": "count",
     "description": "The number of Sync 1.5 migrations completed by Android Sync."
+  },
+  "PERMISSIONS_SQL_CORRUPTED": {
+    "expires_in_version": "never",
+    "kind": "count",
+    "description": "Record the permissions.sqlite init failure"
+  },
+  "DEFECTIVE_PERMISSIONS_SQL_REMOVED": {
+    "expires_in_version": "never",
+    "kind": "count",
+    "description": "Record the removal of defective permissions.sqlite"
   }
 }
