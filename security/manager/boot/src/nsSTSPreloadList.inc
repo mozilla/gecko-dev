@@ -8,8 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-inc.orig
-const PRTime gPreloadListExpirationTime = INT64_C(1442657629505000);
+const PRTime gPreloadListExpirationTime = INT64_C(1443262448538000);
 
 class nsSTSPreload
 {
@@ -40,7 +39,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "alecvannoten.be", true },
   { "alexsexton.com", true },
   { "alexyang.me", true },
-  { "alpha.irccloud.com", false },
   { "anadoluefessporkulubu.org", true },
   { "andreasbreitenlohner.de", true },
   { "anetaben.nl", true },
@@ -115,9 +113,8 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "blog.linode.com", false },
   { "blog.torproject.org", false },
   { "blubbablasen.de", true },
-  { "bodo-wolff.de", true },
+  { "bodo-wolff.de", false },
   { "bohramt.de", true },
-  { "bonigo.de", true },
   { "bookingapp.nl", true },
   { "boxcryptor.com", true },
   { "brage.info", false },
@@ -262,7 +259,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "feedbin.com", false },
   { "ferienhaus-polchow-ruegen.de", false },
   { "fiken.no", true },
-  { "finn.io", true },
+  { "finn.io", false },
   { "firemail.io", true },
   { "fischer-its.com", true },
   { "fj.simple.com", false },
@@ -277,7 +274,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "fralef.me", false },
   { "frederik-braun.com", true },
   { "freenetproject.org", true },
-  { "freeshell.de", true },
   { "freethought.org.au", true },
   { "fronteers.nl", true },
   { "fundingempire.com", true },
@@ -373,7 +369,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "jackyyf.com", false },
   { "jakub-boucek.cz", true },
   { "janoberst.com", true },
-  { "janus-engineering.de", true },
   { "jelmer.co.uk", true },
   { "jelmer.uk", true },
   { "jfreitag.de", true },
@@ -408,7 +403,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "klaxn.com", true },
   { "kleidertauschpartys.de", true },
   { "knowledgehook.com", true },
-  { "koenvdheuvel.me", true },
   { "komandakovalchuk.com", false },
   { "konklone.com", true },
   { "koop-bremen.de", true },
@@ -424,7 +418,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "lavalite.de", true },
   { "lb-toner.de", true },
   { "leadbook.ru", true },
-  { "ledgerscope.net", false },
   { "leonardcamacho.me", true },
   { "liebel.org", true },
   { "lighting-centres.co.uk", true },
@@ -473,7 +466,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mattmccutchen.net", true },
   { "mbp.banking.co.at", false },
   { "md5file.com", true },
-  { "mdfnet.se", true },
+  { "mdfnet.se", false },
   { "meamod.com", true },
   { "mediacru.sh", true },
   { "medium.com", true },
@@ -488,10 +481,9 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mike-bland.com", true },
   { "mikewest.org", true },
   { "miku.hatsune.my", false },
-  { "minez-nightswatch.com", true },
+  { "minez-nightswatch.com", false },
   { "minikneet.com", true },
   { "minnesotadata.com", true },
-  { "mirrorx.com", true },
   { "miskatonic.org", true },
   { "mkcert.org", true },
   { "mnsure.org", true },
@@ -599,7 +591,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "plus.sandbox.google.com", false },
   { "portal.tirol.gv.at", true },
   { "posteo.de", false },
-  { "powerplannerapp.com", true },
   { "prakharprasad.com", true },
   { "prefontaine.name", true },
   { "profiles.google.com", true },
@@ -865,7 +856,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.intercom.io", false },
   { "www.irccloud.com", false },
   { "www.lastpass.com", false },
-  { "www.ledgerscope.net", false },
   { "www.linode.com", false },
   { "www.lookout.com", false },
   { "www.makeyourlaws.org", true },
