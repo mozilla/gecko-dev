@@ -353,9 +353,10 @@ class MOZ_STACK_CLASS TokenStream
         bool isDirtyLine:1;     // Non-whitespace since start of line.
         bool sawOctalEscape:1;  // Saw an octal character escape.
         bool hadError:1;        // Returned TOK_ERROR from getToken.
+        bool hitOOM:1;          // Hit OOM.
 
         Flags()
-          : isEOF(), isDirtyLine(), sawOctalEscape(), hadError()
+          : isEOF(), isDirtyLine(), sawOctalEscape(), hadError(), hitOOM()
         {}
     };
 
@@ -424,8 +425,15 @@ class MOZ_STACK_CLASS TokenStream
         // it's the same as the line that the current token ends on, that's a
         // stronger condition than what we are looking for, and we don't need
         // to return TOK_EOL.
-        if (lookahead != 0 && srcCoords.isOnThisLine(curr.pos.end, lineno))
-            return tokens[(cursor + 1) & ntokensMask].type;
+        if (lookahead != 0) {
+            bool onThisLine;
+            if (!srcCoords.isOnThisLine(curr.pos.end, lineno, &onThisLine)) {
+                reportError(JSMSG_OUT_OF_MEMORY);
+                return TOK_ERROR;
+            }
+            if (onThisLine)
+                return tokens[(cursor + 1) & ntokensMask].type;
+        }
 
         // The above check misses two cases where we don't have to return
         // TOK_EOL.
@@ -488,7 +496,7 @@ class MOZ_STACK_CLASS TokenStream
         Token lookaheadTokens[maxLookahead];
     };
 
-    void advance(size_t position);
+    bool advance(size_t position);
     void tell(Position*);
     void seek(const Position& pos);
     bool seek(const Position& pos, const TokenStream& other);
@@ -588,14 +596,16 @@ class MOZ_STACK_CLASS TokenStream
       public:
         SourceCoords(ExclusiveContext* cx, uint32_t ln);
 
-        void add(uint32_t lineNum, uint32_t lineStartOffset);
+        bool add(uint32_t lineNum, uint32_t lineStartOffset);
         bool fill(const SourceCoords& other);
 
-        bool isOnThisLine(uint32_t offset, uint32_t lineNum) const {
+        bool isOnThisLine(uint32_t offset, uint32_t lineNum, bool* onThisLine) const {
             uint32_t lineIndex = lineNumToIndex(lineNum);
-            JS_ASSERT(lineIndex + 1 < lineStartOffsets_.length());  // +1 due to sentinel
-            return lineStartOffsets_[lineIndex] <= offset &&
-                   offset < lineStartOffsets_[lineIndex + 1];
+            if (lineIndex + 1 >= lineStartOffsets_.length()) // +1 due to sentinel
+                return false;
+            *onThisLine = lineStartOffsets_[lineIndex] <= offset &&
+                          offset < lineStartOffsets_[lineIndex + 1];
+            return true;
         }
 
         uint32_t lineNum(uint32_t offset) const;

@@ -1714,7 +1714,8 @@ Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
         // (in TokenStream()) to begin() - column() so that column numbers in
         // the lazily parsed script are correct.
         uint32_t userbufBase = lazyOuter->begin() - lazyOuter->column();
-        tokenStream.advance(fun->lazyScript()->end() - userbufBase);
+        if (!tokenStream.advance(fun->lazyScript()->end() - userbufBase))
+            return false;
 
         *pbodyProcessed = true;
         return true;
