@@ -1,6 +1,8 @@
+adamkostecki.de: could not connect to host
 admin.google.com: did not receive HSTS header (error ignored - included regardless)
 adsfund.org: could not connect to host
 airbnb.com: did not receive HSTS header
+alpha.irccloud.com: did not receive HSTS header
 api.mega.co.nz: could not connect to host
 api.recurly.com: did not receive HSTS header
 apis.google.com: did not receive HSTS header (error ignored - included regardless)
@@ -12,6 +14,7 @@ azprep.us: could not connect to host
 barcodeberlin.com: did not receive HSTS header
 bassh.net: could not connect to host
 bccx.com: could not connect to host
+bedeta.de: could not connect to host
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
 blacklane.com: did not receive HSTS header
@@ -48,10 +51,11 @@ epoxate.com: did not receive HSTS header
 errors.zenpayroll.com: could not connect to host
 espra.com: could not connect to host
 fatzebra.com.au: did not receive HSTS header
+freeshell.de: did not receive HSTS header
 gamesdepartment.co.uk: did not receive HSTS header
 getlantern.org: did not receive HSTS header
 glass.google.com: did not receive HSTS header (error ignored - included regardless)
-globalcs.co.uk: did not receive HSTS header
+globalcs.co.uk: max-age too low: 0
 gmail.com: did not receive HSTS header (error ignored - included regardless)
 googlemail.com: did not receive HSTS header (error ignored - included regardless)
 googleplex.com: could not connect to host
@@ -71,7 +75,7 @@ inertianetworks.com: did not receive HSTS header
 intercom.io: did not receive HSTS header
 iop.intuit.com: max-age too low: 86400
 irccloud.com: did not receive HSTS header
-janus-engineering.de: could not connect to host
+janus-engineering.de: did not receive HSTS header
 jelmer.co.uk: could not connect to host
 jottit.com: could not connect to host
 julian-kipka.de: did not receive HSTS header
@@ -81,6 +85,7 @@ kitsta.com: could not connect to host
 kiwiirc.com: max-age too low: 5256000
 klaxn.com: could not connect to host
 koop-bremen.de: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
+kura.io: could not connect to host
 ledgerscope.net: max-age too low: 86400
 liberty.lavabit.com: could not connect to host
 library.linode.com: did not receive HSTS header
