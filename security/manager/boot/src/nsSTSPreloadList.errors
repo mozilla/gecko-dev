@@ -1,6 +1,8 @@
+adamkostecki.de: could not connect to host
 admin.google.com: did not receive HSTS header (error ignored - included regardless)
 adsfund.org: could not connect to host
 airbnb.com: did not receive HSTS header
+alpha.irccloud.com: did not receive HSTS header
 api.mega.co.nz: could not connect to host
 api.recurly.com: did not receive HSTS header
 apis.google.com: did not receive HSTS header (error ignored - included regardless)
@@ -12,11 +14,11 @@ azprep.us: could not connect to host
 barcodeberlin.com: did not receive HSTS header
 bassh.net: could not connect to host
 bccx.com: could not connect to host
+bedeta.de: could not connect to host
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
 blacklane.com: did not receive HSTS header
 blog.lookout.com: did not receive HSTS header
-bonigo.de: did not receive HSTS header
 braintreepayments.com: did not receive HSTS header
 browserid.org: did not receive HSTS header
 business.medbank.com.mt: did not receive HSTS header
@@ -54,10 +56,11 @@ epoxate.com: did not receive HSTS header
 errors.zenpayroll.com: could not connect to host
 espra.com: could not connect to host
 fatzebra.com.au: did not receive HSTS header
+freeshell.de: did not receive HSTS header
 gamesdepartment.co.uk: did not receive HSTS header
 getlantern.org: did not receive HSTS header
 glass.google.com: did not receive HSTS header (error ignored - included regardless)
-globalcs.co.uk: did not receive HSTS header
+globalcs.co.uk: max-age too low: 0
 gmail.com: did not receive HSTS header (error ignored - included regardless)
 googlemail.com: did not receive HSTS header (error ignored - included regardless)
 googleplex.com: could not connect to host
@@ -79,7 +82,7 @@ intercom.io: did not receive HSTS header
 iop.intuit.com: max-age too low: 86400
 irccloud.com: did not receive HSTS header
 itshost.ru: could not connect to host
-janus-engineering.de: could not connect to host
+janus-engineering.de: did not receive HSTS header
 jelmer.co.uk: could not connect to host
 jottit.com: could not connect to host
 julian-kipka.de: did not receive HSTS header
@@ -89,8 +92,10 @@ keymaster.lookout.com: did not receive HSTS header
 kitsta.com: could not connect to host
 kiwiirc.com: max-age too low: 5256000
 klaxn.com: could not connect to host
-komandakovalchuk.com: could not connect to host
+koenvdheuvel.me: did not receive HSTS header
+komandakovalchuk.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b32_20-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 koop-bremen.de: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b32_20-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
+kura.io: could not connect to host
 ledgerscope.net: max-age too low: 86400
 liberty.lavabit.com: could not connect to host
 library.linode.com: did not receive HSTS header
@@ -107,7 +112,6 @@ matatall.com: could not connect to host
 matteomarescotti.name: could not connect to host
 mediacru.sh: could not connect to host
 meinebo.it: could not connect to host
-mirrorx.com: did not receive HSTS header
 mobilethreat.net: could not connect to host
 mobilethreatnetwork.net: could not connect to host
 mqas.net: could not connect to host
@@ -131,6 +135,7 @@ passwordbox.com: did not receive HSTS header
 piratenlogin.de: could not connect to host
 platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header (error ignored - included regardless)
+powerplannerapp.com: did not receive HSTS header
 pressfreedomfoundation.org: did not receive HSTS header
 prodpad.com: did not receive HSTS header
 promecon-gmbh.de: did not receive HSTS header
@@ -196,5 +201,4 @@ www.paycheckrecords.com: max-age too low: 86400
 www.rme.li: did not receive HSTS header
 www.sandbox.mydigipass.com: could not connect to host
 www.surfeasy.com: did not receive HSTS header
-yetii.net: did not receive HSTS header
 zoo24.de: could not connect to host
