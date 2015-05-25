@@ -2180,7 +2180,8 @@ js::LookupAsmJSModuleInCache(ExclusiveContext* cx,
 
     module->staticallyLink(cx);
 
-    parser.tokenStream.advance(module->srcEndBeforeCurly());
+    if (!parser.tokenStream.advance(module->srcEndBeforeCurly()))
+        return false;
 
     int64_t usecAfter = PRMJ_Now();
     int ms = (usecAfter - usecBefore) / PRMJ_USEC_PER_MSEC;
