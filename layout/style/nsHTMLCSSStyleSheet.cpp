@@ -94,11 +94,8 @@ nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
 /* virtual */ void
 nsHTMLCSSStyleSheet::RulesMatching(PseudoElementRuleProcessorData* aData)
 {
-  if (nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(aData->mPseudoType)) {
-    MOZ_ASSERT(aData->mPseudoElement,
-        "If pseudo element is supposed to support style attribute, it must "
-        "have a pseudo element set");
-
+  if (nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(aData->mPseudoType) &&
+      aData->mPseudoElement) {
     // just get the one and only style rule from the content's STYLE attribute
     css::StyleRule* rule = aData->mPseudoElement->GetInlineStyleRule();
     if (rule) {
