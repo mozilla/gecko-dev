@@ -140,7 +140,7 @@ public:
   Init();
 
   void
-  Teardown();
+  Teardown(bool aSendUnpin);
 
   bool
   AddRemoveEventListeners(bool aUpload, bool aAdd);
@@ -308,7 +308,9 @@ private:
   {
     AssertIsOnMainThread();
 
-    mProxy->Teardown();
+    // This means the XHR was GC'd, so we can't be pinned, and we don't need to
+    // try to unpin.
+    mProxy->Teardown(/* aSendUnpin */ false);
     mProxy = nullptr;
 
     return NS_OK;
@@ -563,7 +565,7 @@ private:
   virtual nsresult
   MainThreadRun() MOZ_OVERRIDE
   {
-    mProxy->Teardown();
+    mProxy->Teardown(/* aSendUnpin */ true);
     MOZ_ASSERT(!mProxy->mSyncLoopTarget);
     return NS_OK;
   }
@@ -935,7 +937,7 @@ Proxy::Init()
 }
 
 void
-Proxy::Teardown()
+Proxy::Teardown(bool aSendUnpin)
 {
   AssertIsOnMainThread();
 
@@ -948,10 +950,12 @@ Proxy::Teardown()
     mXHR->Abort();
 
     if (mOutstandingSendCount) {
-      nsRefPtr<XHRUnpinRunnable> runnable =
-        new XHRUnpinRunnable(mWorkerPrivate, mXMLHttpRequestPrivate);
-      if (!runnable->Dispatch(nullptr)) {
-        NS_RUNTIMEABORT("We're going to hang at shutdown anyways.");
+      if (aSendUnpin) {
+        nsRefPtr<XHRUnpinRunnable> runnable =
+          new XHRUnpinRunnable(mWorkerPrivate, mXMLHttpRequestPrivate);
+        if (!runnable->Dispatch(nullptr)) {
+          NS_RUNTIMEABORT("We're going to hang at shutdown anyways.");
+        }
       }
 
       if (mSyncLoopTarget) {
