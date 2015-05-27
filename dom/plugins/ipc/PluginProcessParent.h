@@ -81,7 +81,7 @@ private:
     void RunLaunchCompleteTask();
 
     std::string mPluginFilePath;
-    TaskFactory<PluginProcessParent> mTaskFactory;
+    ScopedMethodFactory<PluginProcessParent> mTaskFactory;
     UniquePtr<LaunchCompleteTask> mLaunchCompleteTask;
     MessageLoop* mMainMsgLoop;
     bool mRunCompleteTaskImmediately;
