@@ -164,6 +164,7 @@
     _(LambdaArrow)                  \
     _(LambdaForSingleton)           \
     _(LambdaPar)                    \
+    _(KeepAliveObject)              \
     _(Slots)                        \
     _(Elements)                     \
     _(ConvertElementsToDoubles)     \
