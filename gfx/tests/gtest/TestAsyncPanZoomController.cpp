@@ -975,15 +975,18 @@ TEST_F(APZCPanningTester, PanWithTouchActionAuto) {
                       | mozilla::layers::AllowedTouchBehavior::VERTICAL_PAN);
 }
 
-TEST_F(APZCPanningTester, PanWithTouchActionNone) {
-  SCOPED_GFX_PREF(TouchActionEnabled, bool, true);
-  DoPanTest(false, false, 0);
-}
-
-TEST_F(APZCPanningTester, PanWithTouchActionPanX) {
-  SCOPED_GFX_PREF(TouchActionEnabled, bool, true);
-  DoPanTest(false, true, mozilla::layers::AllowedTouchBehavior::HORIZONTAL_PAN);
-}
+// These two tests are disabled on b2g37 for spurious failures.
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=1167721#c17
+//
+//TEST_F(APZCPanningTester, PanWithTouchActionNone) {
+//  SCOPED_GFX_PREF(TouchActionEnabled, bool, true);
+//  DoPanTest(false, false, 0);
+//}
+//
+//TEST_F(APZCPanningTester, PanWithTouchActionPanX) {
+//  SCOPED_GFX_PREF(TouchActionEnabled, bool, true);
+//  DoPanTest(false, true, mozilla::layers::AllowedTouchBehavior::HORIZONTAL_PAN);
+//}
 
 TEST_F(APZCPanningTester, PanWithTouchActionPanY) {
   SCOPED_GFX_PREF(TouchActionEnabled, bool, true);
