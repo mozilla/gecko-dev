@@ -16,9 +16,12 @@
 #define SSL_LIBRARY_VERSION_TLS_1_0             0x0301
 #define SSL_LIBRARY_VERSION_TLS_1_1             0x0302
 #define SSL_LIBRARY_VERSION_TLS_1_2             0x0303
+#define SSL_LIBRARY_VERSION_TLS_1_3             0x0304
+
 /* Note: this is the internal format, not the wire format */
 #define SSL_LIBRARY_VERSION_DTLS_1_0            0x0302
 #define SSL_LIBRARY_VERSION_DTLS_1_2            0x0303
+#define SSL_LIBRARY_VERSION_DTLS_1_3            0x0304
 
 /* deprecated old name */
 #define SSL_LIBRARY_VERSION_3_1_TLS SSL_LIBRARY_VERSION_TLS_1_0
@@ -26,6 +29,7 @@
 /* The DTLS versions used in the spec */
 #define SSL_LIBRARY_VERSION_DTLS_1_0_WIRE       ((~0x0100) & 0xffff)
 #define SSL_LIBRARY_VERSION_DTLS_1_2_WIRE       ((~0x0102) & 0xffff)
+#define SSL_LIBRARY_VERSION_DTLS_1_3_WIRE       ((~0x0103) & 0xffff)
 
 /* Header lengths of some of the messages */
 #define SSL_HL_ERROR_HBYTES                     3

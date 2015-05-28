@@ -35,6 +35,7 @@
 #   dbupgrade.sh - upgrade databases to new shareable version (used
 #                  only in upgrade test cycle)
 #   memleak.sh   - memory leak testing (optional)
+#   ssl_gtests.sh- Gtest based unit tests for ssl (optional)
 #
 # NSS testing is now devided to 4 cycles:
 # ---------------------------------------
@@ -301,7 +302,7 @@ fi
 # following test for modutil should check for that instead.
 # Exception: when building softoken only, shlibsign is the
 # last file created.
-if [ ${NSS_BUILD_SOFTOKEN_ONLY} -eq "1" ]; then
+if [ "${NSS_BUILD_SOFTOKEN_ONLY}" = "1" ]; then
   LAST_FILE_BUILT=shlibsign
 else
   LAST_FILE_BUILT=modutil

@@ -81,7 +81,7 @@ static sslOptions ssl_defaults = {
     PR_FALSE,   /* enableOCSPStapling */
     PR_TRUE,    /* enableNPN          */
     PR_FALSE,   /* enableALPN         */
-    PR_FALSE,   /* dummy              */
+    PR_TRUE,    /* reuseServerECDHEKey */
     PR_FALSE    /* enableFallbackSCSV */
 };
 
@@ -89,13 +89,13 @@ static sslOptions ssl_defaults = {
  * default range of enabled SSL/TLS protocols
  */
 static SSLVersionRange versions_defaults_stream = {
-    SSL_LIBRARY_VERSION_3_0,
-    SSL_LIBRARY_VERSION_TLS_1_0
+    SSL_LIBRARY_VERSION_TLS_1_0,
+    SSL_LIBRARY_VERSION_TLS_1_2
 };
 
 static SSLVersionRange versions_defaults_datagram = {
     SSL_LIBRARY_VERSION_TLS_1_1,
-    SSL_LIBRARY_VERSION_TLS_1_1
+    SSL_LIBRARY_VERSION_TLS_1_2
 };
 
 #define VERSIONS_DEFAULTS(variant) \
@@ -786,6 +786,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
         ss->opt.enableALPN = on;
         break;
 
+      case SSL_REUSE_SERVER_ECDHE_KEY:
+        ss->opt.reuseServerECDHEKey = on;
+        break;
+
       case SSL_ENABLE_FALLBACK_SCSV:
         ss->opt.enableFallbackSCSV = on;
         break;
@@ -862,6 +866,8 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     case SSL_ENABLE_OCSP_STAPLING: on = ss->opt.enableOCSPStapling; break;
     case SSL_ENABLE_NPN:          on = ss->opt.enableNPN;          break;
     case SSL_ENABLE_ALPN:         on = ss->opt.enableALPN;         break;
+    case SSL_REUSE_SERVER_ECDHE_KEY:
+                                  on = ss->opt.reuseServerECDHEKey; break;
     case SSL_ENABLE_FALLBACK_SCSV: on = ss->opt.enableFallbackSCSV; break;
 
     default:
@@ -926,6 +932,9 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
        break;
     case SSL_ENABLE_NPN:          on = ssl_defaults.enableNPN;          break;
     case SSL_ENABLE_ALPN:         on = ssl_defaults.enableALPN;         break;
+    case SSL_REUSE_SERVER_ECDHE_KEY:
+       on = ssl_defaults.reuseServerECDHEKey;
+       break;
     case SSL_ENABLE_FALLBACK_SCSV:
        on = ssl_defaults.enableFallbackSCSV;
        break;
@@ -1102,6 +1111,10 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
       case SSL_ENABLE_ALPN:
         ssl_defaults.enableALPN = on;
+        break;
+
+      case SSL_REUSE_SERVER_ECDHE_KEY:
+        ssl_defaults.reuseServerECDHEKey = on;
         break;
 
       case SSL_ENABLE_FALLBACK_SCSV:
