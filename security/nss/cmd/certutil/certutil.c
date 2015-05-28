@@ -40,7 +40,7 @@
 #define MIN_KEY_BITS		512
 /* MAX_KEY_BITS should agree with MAX_RSA_MODULUS in freebl */
 #define MAX_KEY_BITS		8192
-#define DEFAULT_KEY_BITS	1024
+#define DEFAULT_KEY_BITS	2048
 
 #define GEN_BREAK(e) rv=e; break;
 
@@ -180,7 +180,7 @@ AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle, char *name, char *trusts,
 
 static SECStatus
 CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
-        SECOidTag hashAlgTag, CERTName *subject, char *phone, int ascii, 
+        SECOidTag hashAlgTag, CERTName *subject, const char *phone, int ascii,
 	const char *emailAddrs, const char *dnsNames,
         certutilExtnList extnList, const char *extGeneric,
         /*out*/ SECItem *result)
@@ -270,7 +270,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
 	}
 
 	if (!phone)
-	    phone = strdup("(not specified)");
+	    phone = "(not specified)";
 
 	email = CERT_GetCertEmailAddress(subject);
 	if (!email)
@@ -323,6 +323,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
 	    }
 	    PR_smprintf_free(header);
 	}
+	PORT_Free(obuf);
     } else {
 	(void) SECITEM_CopyItem(NULL, result, &signedReq);
     }
@@ -971,19 +972,19 @@ PrintSyntax(char *progName)
     FPS "Usage:  %s -N [-d certdir] [-P dbprefix] [-f pwfile] [--empty-password]\n", progName);
     FPS "Usage:  %s -T [-d certdir] [-P dbprefix] [-h token-name]\n"
 	"\t\t [-f pwfile] [-0 SSO-password]\n", progName);
-    FPS "\t%s -A -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n", 
+    FPS "\t%s -A -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n",
     	progName);
     FPS "\t%s -B -i batch-file\n", progName);
     FPS "\t%s -C [-c issuer-name | -x] -i cert-request-file -o cert-file\n"
 	"\t\t [-m serial-number] [-w warp-months] [-v months-valid]\n"
-        "\t\t [-f pwfile] [-d certdir] [-P dbprefix]\n"
+        "\t\t [-f pwfile] [-d certdir] [-P dbprefix] [-Z hashAlg]\n"
         "\t\t [-1 | --keyUsage [keyUsageKeyword,..]] [-2] [-3] [-4]\n"
         "\t\t [-5 | --nsCertType [nsCertTypeKeyword,...]]\n"
         "\t\t [-6 | --extKeyUsage [extKeyUsageKeyword,...]] [-7 emailAddrs]\n"
         "\t\t [-8 dns-names] [-a]\n",
 	progName);
     FPS "\t%s -D -n cert-name [-d certdir] [-P dbprefix]\n", progName);
-    FPS "\t%s -E -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n", 
+    FPS "\t%s -E -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n",
 	progName);
     FPS "\t%s -F -n nickname [-d certdir] [-P dbprefix]\n", 
 	progName);
@@ -1010,14 +1011,15 @@ PrintSyntax(char *progName)
 	progName);
     FPS "\t\t [-P targetDBPrefix] [--source-prefix sourceDBPrefix]\n");
     FPS "\t\t [-f targetPWfile] [-@ sourcePWFile]\n");
-    FPS "\t%s -L [-n cert-name] [--email email-address] [-X] [-r] [-a]\n",
+    FPS "\t%s -L [-n cert-name] [-h token-name] [--email email-address]\n",
 	progName);
-    FPS "\t\t [--dump-ext-val OID] [-d certdir] [-P dbprefix]\n");
+    FPS "\t\t [-X] [-r] [-a] [--dump-ext-val OID] [-d certdir] [-P dbprefix]\n");
     FPS "\t%s -M -n cert-name -t trustargs [-d certdir] [-P dbprefix]\n",
 	progName);
     FPS "\t%s -O -n cert-name [-X] [-d certdir] [-a] [-P dbprefix]\n", progName);
     FPS "\t%s -R -s subj -o cert-request-file [-d certdir] [-P dbprefix] [-p phone] [-a]\n"
-	"\t\t [-7 emailAddrs] [-k key-type-or-id] [-h token-name] [-f pwfile] [-g key-size]\n",
+        "\t\t [-7 emailAddrs] [-k key-type-or-id] [-h token-name] [-f pwfile]\n"
+        "\t\t [-g key-size] [-Z hashAlg]\n",
 	progName);
     FPS "\t%s -V -n cert-name -u usage [-b time] [-e] [-a]\n"
 	"\t\t[-X] [-d certdir] [-P dbprefix]\n",
@@ -1027,7 +1029,7 @@ PrintSyntax(char *progName)
     FPS "\t%s -S -n cert-name -s subj [-c issuer-name | -x]  -t trustargs\n"
 	"\t\t [-k key-type-or-id] [-q key-params] [-h token-name] [-g key-size]\n"
         "\t\t [-m serial-number] [-w warp-months] [-v months-valid]\n"
-	"\t\t [-f pwfile] [-d certdir] [-P dbprefix]\n"
+        "\t\t [-f pwfile] [-d certdir] [-P dbprefix] [-Z hashAlg]\n"
         "\t\t [-p phone] [-1] [-2] [-3] [-4] [-5] [-6] [-7 emailAddrs]\n"
         "\t\t [-8 DNS-names]\n"
         "\t\t [--extAIA] [--extSIA] [--extCP] [--extPM] [--extPC] [--extIA]\n"
@@ -1137,6 +1139,11 @@ static void luC(enum usage_level ul, const char *command)
         "   -d certdir");
     FPS "%-20s Cert & Key database prefix\n",
         "   -P dbprefix");
+    FPS "%-20s \n"
+              "%-20s Specify the hash algorithm to use. Possible keywords:\n"
+              "%-20s \"MD2\", \"MD4\", \"MD5\", \"SHA1\", \"SHA224\",\n"
+              "%-20s \"SHA256\", \"SHA384\", \"SHA512\"\n",
+        "   -Z hashAlg", "", "", "");
     FPS "%-20s \n"
               "%-20s Create key usage extension. Possible keywords:\n"
               "%-20s \"digitalSignature\", \"nonRepudiation\", \"keyEncipherment\",\n"
@@ -1336,6 +1343,8 @@ static void luL(enum usage_level ul, const char *command)
         "-L");
     if (ul == usage_selected && !is_my_command)
         return;
+    FPS "%-20s Name of token to search (\"all\" for all tokens)\n",
+        "   -h token-name ");
     FPS "%-20s Pretty print named cert (list all if unspecified)\n",
         "   -n cert-name");
     FPS "%-20s \n"
@@ -1388,6 +1397,8 @@ static void luN(enum usage_level ul, const char *command)
         "   -d certdir");
     FPS "%-20s Cert & Key database prefix\n",
         "   -P dbprefix");
+    FPS "%-20s Specify the password file\n",
+        "   -f password-file");
     FPS "%-20s use empty password when creating a new database\n",
         "   --empty-password");
     FPS "\n");
@@ -1473,6 +1484,11 @@ static void luR(enum usage_level ul, const char *command)
         "   -P dbprefix");
     FPS "%-20s Specify the contact phone number (\"123-456-7890\")\n",
         "   -p phone");
+    FPS "%-20s \n"
+              "%-20s Specify the hash algorithm to use. Possible keywords:\n"
+              "%-20s \"MD2\", \"MD4\", \"MD5\", \"SHA1\", \"SHA224\",\n"
+              "%-20s \"SHA256\", \"SHA384\", \"SHA512\"\n",
+        "   -Z hashAlg", "", "", "");
     FPS "%-20s Output the cert request in ASCII (RFC1113); default is binary\n",
         "   -a");
     FPS "%-20s \n",
@@ -1634,6 +1650,11 @@ static void luS(enum usage_level ul, const char *command)
         "   -P dbprefix");
     FPS "%-20s Specify the contact phone number (\"123-456-7890\")\n",
         "   -p phone");
+    FPS "%-20s \n"
+              "%-20s Specify the hash algorithm to use. Possible keywords:\n"
+              "%-20s \"MD2\", \"MD4\", \"MD5\", \"SHA1\", \"SHA224\",\n"
+              "%-20s \"SHA256\", \"SHA384\", \"SHA512\"\n",
+        "   -Z hashAlg", "", "", "");
     FPS "%-20s Create key usage extension\n",
         "   -1 ");
     FPS "%-20s Create basic constraint extension\n",
