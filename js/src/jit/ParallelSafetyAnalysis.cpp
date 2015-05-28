@@ -199,6 +199,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     CUSTOM_OP(Lambda)
     UNSAFE_OP(LambdaArrow)
     UNSAFE_OP(ImplicitThis)
+    SAFE_OP(KeepAliveObject)
     SAFE_OP(Slots)
     SAFE_OP(Elements)
     SAFE_OP(ConstantElements)

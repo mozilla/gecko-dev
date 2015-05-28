@@ -2110,6 +2110,15 @@ LIRGenerator::visitImplicitThis(MImplicitThis* ins)
 }
 
 bool
+LIRGenerator::visitKeepAliveObject(MKeepAliveObject* ins)
+{
+    MDefinition* obj = ins->object();
+    MOZ_ASSERT(obj->type() == MIRType_Object);
+
+    return add(new(alloc()) LKeepAliveObject(useKeepalive(obj)), ins);
+}
+
+bool
 LIRGenerator::visitSlots(MSlots* ins)
 {
     return define(new(alloc()) LSlots(useRegisterAtStart(ins->object())), ins);

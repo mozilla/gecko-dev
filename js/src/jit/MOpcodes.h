@@ -110,6 +110,7 @@ namespace jit {
     _(Lambda)                                                               \
     _(LambdaArrow)                                                          \
     _(ImplicitThis)                                                         \
+    _(KeepAliveObject)                                                      \
     _(Slots)                                                                \
     _(Elements)                                                             \
     _(ConstantElements)                                                     \

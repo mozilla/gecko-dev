@@ -64,6 +64,9 @@ AssertExtendedGraphCoherency(MIRGraph& graph);
 bool
 EliminateRedundantChecks(MIRGraph& graph);
 
+void
+AddKeepAliveInstructions(MIRGraph& graph);
+
 bool
 UnsplitEdges(LIRGraph* lir);
 

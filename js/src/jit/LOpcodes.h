@@ -166,6 +166,7 @@
     _(LambdaForSingleton)           \
     _(LambdaPar)                    \
     _(ImplicitThis)                 \
+    _(KeepAliveObject)              \
     _(Slots)                        \
     _(Elements)                     \
     _(ConvertElementsToDoubles)     \

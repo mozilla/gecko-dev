@@ -145,7 +145,8 @@ namespace jit {
     _(EffectiveAddressAnalysis)                       \
     _(EliminateDeadCode)                              \
     _(EdgeCaseAnalysis)                               \
-    _(EliminateRedundantChecks)
+    _(EliminateRedundantChecks)                       \
+    _(AddKeepAliveInstructions)
 
 class AutoTraceLog;
 

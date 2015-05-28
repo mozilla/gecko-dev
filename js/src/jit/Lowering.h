@@ -160,6 +160,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitLambdaArrow(MLambdaArrow* ins);
     bool visitLambdaPar(MLambdaPar* ins);
     bool visitImplicitThis(MImplicitThis* ins);
+    bool visitKeepAliveObject(MKeepAliveObject* ins);
     bool visitSlots(MSlots* ins);
     bool visitElements(MElements* ins);
     bool visitConstantElements(MConstantElements* ins);
