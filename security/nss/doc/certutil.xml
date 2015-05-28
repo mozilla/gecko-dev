@@ -247,7 +247,7 @@ Add one or multiple extensions that certutil cannot encode yet, by loading their
 
       <varlistentry>
         <term>-g keysize</term>
-        <listitem><para>Set a key size to use when generating new public and private key pairs. The minimum is 512 bits and the maximum is 16384 bits. The default is 1024 bits. Any size between the minimum and maximum is allowed.</para></listitem>
+        <listitem><para>Set a key size to use when generating new public and private key pairs. The minimum is 512 bits and the maximum is 16384 bits. The default is 2048 bits. Any size between the minimum and maximum is allowed.</para></listitem>
       </varlistentry>
 
 
@@ -457,6 +457,23 @@ of the attribute codes:
       <varlistentry>
         <term>-z noise-file</term>
         <listitem><para>Read a seed value from the specified file to generate a new private and public key pair. This argument makes it possible to use hardware-generated seed values or manually create a value from the keyboard. The minimum file size is 20 bytes.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>-Z hashAlg</term>
+        <listitem>
+        <para>Specify the hash algorithm to use with the -C, -S or -R command options. Possible keywords:</para>
+        <itemizedlist>
+          <listitem><para>MD2</para></listitem>
+          <listitem><para>MD4</para></listitem>
+          <listitem><para>MD5</para></listitem>
+          <listitem><para>SHA1</para></listitem>
+          <listitem><para>SHA224</para></listitem>
+          <listitem><para>SHA256</para></listitem>
+          <listitem><para>SHA384</para></listitem>
+          <listitem><para>SHA512</para></listitem>
+        </itemizedlist>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
