@@ -2158,6 +2158,12 @@ CodeGenerator::visitSlots(LSlots* lir)
 }
 
 void
+CodeGenerator::visitKeepAliveObject(LKeepAliveObject* lir)
+{
+    // No-op.
+}
+
+void
 CodeGenerator::visitLoadSlotT(LLoadSlotT* lir)
 {
     Register base = ToRegister(lir->slots());

@@ -54,6 +54,7 @@
     _(EliminateDeadCode)                              \
     _(EdgeCaseAnalysis)                               \
     _(EliminateRedundantChecks)                       \
+    _(AddKeepAliveInstructions)                       \
     _(GenerateLIR)                                    \
     _(RegisterAllocation)                             \
     _(GenerateCode)
