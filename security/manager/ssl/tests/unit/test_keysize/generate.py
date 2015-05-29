@@ -135,4 +135,7 @@ def generate_certs(key_type, bad_key_size, ok_key_size):
 # tested at the moment is 1016
 generate_certs('rsa', '1016', '1024')
 
-generate_certs('dsa', '960', '1024')
+# If given 1024 bits as the desired key size, openssl appears to generate keys
+# that NSS considers to be 1023 bits, so we have to pass in 1025 bits as the
+# desired key size.
+generate_certs('dsa', '960', '1025')
