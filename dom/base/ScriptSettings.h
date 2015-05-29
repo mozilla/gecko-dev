@@ -345,8 +345,6 @@ private:
   friend nsIPrincipal* GetWebIDLCallerPrincipal();
 
   nsIDocShell* mDocShellForJSRunToCompletion;
-
-  bool mIsMainThread;
 };
 
 /*
