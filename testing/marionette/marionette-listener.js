@@ -423,16 +423,12 @@ function createExecuteContentSandbox(aWindow, timeout) {
     }
   });
 
-  if (aWindow.wrappedJSObject.SpecialPowers != undefined) {
-    XPCOMUtils.defineLazyGetter(sandbox, 'SpecialPowers', function() {
-      return aWindow.wrappedJSObject.SpecialPowers;
-    });
-  }
-  else {
-    XPCOMUtils.defineLazyGetter(sandbox, 'SpecialPowers', function() {
-      return new SpecialPowers(aWindow);
-    });
-  }
+  XPCOMUtils.defineLazyGetter(sandbox, 'SpecialPowers', function() {
+    if (!aWindow.wrappedJSObject.SpecialPowers) {
+      aWindow.wrappedJSObject.SpecialPowers = new SpecialPowers(aWindow);
+    }
+    return aWindow.wrappedJSObject.SpecialPowers;
+  });
 
   sandbox.asyncComplete = function sandbox_asyncComplete(value, status, stack, commandId) {
     if (commandId == asyncTestCommandId) {
