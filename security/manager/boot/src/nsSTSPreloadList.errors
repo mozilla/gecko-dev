@@ -42,6 +42,7 @@ crypto.is: max-age too low: 7776000
 csawctf.poly.edu: could not connect to host
 cyanogenmod.xxx: could not connect to host
 cybershambles.com: could not connect to host
+deadbeef.ninja: could not connect to host
 discovery.lookout.com: did not receive HSTS header
 dl.google.com: did not receive HSTS header (error ignored - included regardless)
 docs.google.com: did not receive HSTS header (error ignored - included regardless)
@@ -56,9 +57,10 @@ epoxate.com: did not receive HSTS header
 errors.zenpayroll.com: could not connect to host
 espra.com: could not connect to host
 fatzebra.com.au: did not receive HSTS header
-freeshell.de: did not receive HSTS header
+fleximus.org: max-age too low: 1
 gamesdepartment.co.uk: did not receive HSTS header
 getlantern.org: did not receive HSTS header
+getssl.uz: could not connect to host
 glass.google.com: did not receive HSTS header (error ignored - included regardless)
 globalcs.co.uk: max-age too low: 0
 gmail.com: did not receive HSTS header (error ignored - included regardless)
@@ -92,8 +94,7 @@ keymaster.lookout.com: did not receive HSTS header
 kitsta.com: could not connect to host
 kiwiirc.com: max-age too low: 5256000
 klaxn.com: could not connect to host
-koenvdheuvel.me: did not receive HSTS header
-komandakovalchuk.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b34_21-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 124"  data: no]
+komandakovalchuk.com: could not connect to host
 koop-bremen.de: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b34_21-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 124"  data: no]
 kura.io: could not connect to host
 ledgerscope.net: max-age too low: 86400
@@ -107,8 +108,8 @@ m.gparent.org: could not connect to host
 mail.google.com: did not receive HSTS header (error ignored - included regardless)
 manage.zenpayroll.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b34_21-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 124"  data: no]
 market.android.com: did not receive HSTS header (error ignored - included regardless)
+markusueberallassetmanagement.de: could not connect to host
 marshut.net: could not connect to host
-matatall.com: could not connect to host
 matteomarescotti.name: could not connect to host
 mediacru.sh: could not connect to host
 meinebo.it: could not connect to host
@@ -120,30 +121,32 @@ mydigipass.com: did not receive HSTS header
 mykolab.com: did not receive HSTS header
 myni.io: could not connect to host
 neonisi.com: could not connect to host
+netzbit.de: did not receive HSTS header
 netzpolitik.org: did not receive HSTS header
 nexth.de: could not connect to host
 nexth.net: could not connect to host
 nexth.us: could not connect to host
 ng-security.com: could not connect to host
-nmctest.net: could not connect to host
 noexpect.org: could not connect to host
 npw.net: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b34_21-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 124"  data: no]
 openshift.redhat.com: did not receive HSTS header
 ottospora.nl: could not connect to host
 partyvan.nl: could not connect to host
 partyvan.se: could not connect to host
+passport.yandex.ua: could not connect to host
 passwordbox.com: did not receive HSTS header
 piratenlogin.de: could not connect to host
 platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header (error ignored - included regardless)
-powerplannerapp.com: did not receive HSTS header
 pressfreedomfoundation.org: did not receive HSTS header
 prodpad.com: did not receive HSTS header
+projektzentrisch.de: could not connect to host
 promecon-gmbh.de: did not receive HSTS header
 proximato.com: could not connect to host
 pult.co: could not connect to host
 rapidresearch.me: could not connect to host
 redports.org: did not receive HSTS header
+reishunger.de: did not receive HSTS header
 reserve-online.net: did not receive HSTS header
 riseup.net: did not receive HSTS header
 rme.li: did not receive HSTS header
@@ -184,6 +187,7 @@ uprotect.it: could not connect to host
 vhost.co.id: could not connect to host
 viennan.net: did not receive HSTS header
 webmail.mayfirst.org: did not receive HSTS header
+willnorris.com: could not connect to host
 wiz.biz: could not connect to host
 www.apollo-auto.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b34_21-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 124"  data: no]
 www.calyxinstitute.org: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b34_21-l64-periodicupdate-00/getHSTSPreloadList.js :: processStsHeader :: line 124"  data: no]

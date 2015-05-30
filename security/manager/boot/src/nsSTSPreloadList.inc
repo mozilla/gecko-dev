@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1443262480103000);
+const PRTime gPreloadListExpirationTime = INT64_C(1443867537559000);
 
 class nsSTSPreload
 {
@@ -264,7 +264,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "fischer-its.com", true },
   { "fj.simple.com", false },
   { "flamer-scene.com", true },
-  { "fleximus.org", false },
   { "floobits.com", true },
   { "flynn.io", true },
   { "forewordreviews.com", true },
@@ -274,6 +273,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "fralef.me", false },
   { "frederik-braun.com", true },
   { "freenetproject.org", true },
+  { "freeshell.de", true },
   { "freethought.org.au", true },
   { "fronteers.nl", true },
   { "fundingempire.com", true },
@@ -459,7 +459,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "market.android.com", true },
   { "markusueberallassetmanagement.de", true },
   { "marshut.net", true },
-  { "matatall.com", true },
+  { "matatall.com", false },
   { "mathiasbynens.be", true },
   { "matteomarescotti.it", true },
   { "mattmccutchen.net", true },
@@ -517,7 +517,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "neg9.org", false },
   { "neilwynne.com", false },
   { "net-safe.info", true },
-  { "netzbit.de", true },
   { "newstarnootropics.com", true },
   { "ng-security.com", true },
   { "nginxnudes.com", true },
@@ -610,7 +609,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "raiseyourflag.com", true },
   { "redteam-pentesting.de", true },
   { "reedloden.com", true },
-  { "reishunger.de", true },
   { "residentsinsurance.co.uk", true },
   { "reviews.anime.my", true },
   { "riccy.org", true },
