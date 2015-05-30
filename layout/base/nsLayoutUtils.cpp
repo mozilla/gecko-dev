@@ -998,6 +998,13 @@ nsLayoutUtils::GetDisplayPort(nsIContent* aContent, nsRect *aResult)
   return GetDisplayPortImpl(aContent, aResult, 1.0f);
 }
 
+/* static */ bool
+nsLayoutUtils::GetDisplayPortForVisibilityTesting(nsIContent* aContent,
+                                                  nsRect* aResult)
+{
+  return GetDisplayPortImpl(aContent, aResult, 1.0f);
+}
+
 bool
 nsLayoutUtils::SetDisplayPortMargins(nsIContent* aContent,
                                      nsIPresShell* aPresShell,
