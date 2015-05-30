@@ -51,7 +51,6 @@ epoxate.com: did not receive HSTS header
 errors.zenpayroll.com: could not connect to host
 espra.com: could not connect to host
 fatzebra.com.au: did not receive HSTS header
-freeshell.de: did not receive HSTS header
 gamesdepartment.co.uk: did not receive HSTS header
 getlantern.org: did not receive HSTS header
 glass.google.com: did not receive HSTS header (error ignored - included regardless)
@@ -98,6 +97,7 @@ m.gparent.org: could not connect to host
 mail.google.com: did not receive HSTS header (error ignored - included regardless)
 manage.zenpayroll.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr31-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 125"  data: no]
 market.android.com: did not receive HSTS header (error ignored - included regardless)
+markusueberallassetmanagement.de: could not connect to host
 matteomarescotti.name: could not connect to host
 mediacru.sh: could not connect to host
 mobilethreat.net: could not connect to host
@@ -106,6 +106,7 @@ my.alfresco.com: did not receive HSTS header
 mydigipass.com: did not receive HSTS header
 mykolab.com: did not receive HSTS header
 neonisi.com: could not connect to host
+netzbit.de: did not receive HSTS header
 netzpolitik.org: did not receive HSTS header
 nexth.de: could not connect to host
 nexth.net: could not connect to host
@@ -121,6 +122,7 @@ platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header (error ignored - included regardless)
 pressfreedomfoundation.org: did not receive HSTS header
 prodpad.com: did not receive HSTS header
+projektzentrisch.de: could not connect to host
 promecon-gmbh.de: did not receive HSTS header
 pult.co: could not connect to host
 rapidresearch.me: could not connect to host
