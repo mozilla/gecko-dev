@@ -80,8 +80,6 @@ public:
 
   void CancelNotifyAfterRemotePaint(TabChild* aTabChild);
 
-  static void ShutDown();
-
   // Beware that these methods don't override their super-class equivalent (which
   // are not virtual), they just overload them.
   // All of these Send* methods just add a sanity check (that it is not too late
