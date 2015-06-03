@@ -59,4 +59,3 @@ protected:
 } // namespace mozilla
 
 #endif
-
