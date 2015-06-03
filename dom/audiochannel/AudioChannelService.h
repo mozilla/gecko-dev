@@ -15,7 +15,7 @@
 #include "AudioChannelCommon.h"
 #include "AudioChannelAgent.h"
 #include "nsAttrValue.h"
-#include "nsClassHashtable.h"
+#include "nsTObserverArray.h"
 #include "mozilla/dom/AudioChannelBinding.h"
 
 class nsIRunnable;
@@ -189,47 +189,38 @@ protected:
   AudioChannelInternalType GetInternalType(AudioChannel aChannel,
                                            bool aElementHidden);
 
-  class AudioChannelAgentData {
+  class AudioChannelAgentData
+  {
   public:
-    AudioChannelAgentData(AudioChannel aChannel,
+    AudioChannelAgentData(AudioChannelAgent* aAgent,
+                          AudioChannel aChannel,
                           bool aElementHidden,
                           AudioChannelState aState,
                           bool aWithVideo)
-    : mChannel(aChannel)
+    : mAgent(aAgent)
+    , mChannel(aChannel)
     , mElementHidden(aElementHidden)
     , mState(aState)
     , mWithVideo(aWithVideo)
-    {}
+    {
+      MOZ_ASSERT(mAgent);
+    }
 
+    // AudioChannelAgent will unregister itself in the DTOR.
+    AudioChannelAgent* mAgent;
     AudioChannel mChannel;
     bool mElementHidden;
     AudioChannelState mState;
     const bool mWithVideo;
   };
 
-  static PLDHashOperator
-  NotifyEnumerator(AudioChannelAgent* aAgent,
-                   AudioChannelAgentData* aData, void *aUnused);
-
-  static PLDHashOperator
-  RefreshAgentsVolumeEnumerator(AudioChannelAgent* aAgent,
-                                AudioChannelAgentData* aUnused,
-                                void *aPtr);
-
-  static PLDHashOperator
-  CountWindowEnumerator(AudioChannelAgent* aAgent,
-                        AudioChannelAgentData* aUnused,
-                        void *aPtr);
-
-  static PLDHashOperator
-  WindowDestroyedEnumerator(AudioChannelAgent* aAgent,
-                            nsAutoPtr<AudioChannelAgentData>& aData,
-                            void *aPtr);
+  AudioChannelAgentData* Find(AudioChannelAgent* aAgent);
 
   // This returns the number of agents from this aWindow.
   uint32_t CountWindow(nsIDOMWindow* aWindow);
 
-  nsClassHashtable< nsPtrHashKey<AudioChannelAgent>, AudioChannelAgentData > mAgents;
+  nsTObserverArray<nsAutoPtr<AudioChannelAgentData>> mAgents;
+
 #ifdef MOZ_WIDGET_GONK
   nsTArray<SpeakerManagerService*>  mSpeakerManager;
 #endif
