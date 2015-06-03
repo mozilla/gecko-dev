@@ -87,6 +87,14 @@ static const char kEnd_Entity_Test_CertFingerprint[] =
 static const char kEntrust_Root_Certification_AuthorityFingerprint[] =
   "bb+uANN7nNc/j7R95lkXrwDg3d9C286sIMF8AnXuIJU=";
 
+/* Entrust Root Certification Authority - EC1 */
+static const char kEntrust_Root_Certification_Authority___EC1Fingerprint[] =
+  "/qK31kX7pz11PB7Jp4cMQOH3sMVh6Se5hb9xGGbjbyI=";
+
+/* Entrust Root Certification Authority - G2 */
+static const char kEntrust_Root_Certification_Authority___G2Fingerprint[] =
+  "du6FkDdMcVQ3u8prumAo6t3i3G27uMP2EOhR8R0at/U=";
+
 /* Entrust.net Premium 2048 Secure Server CA */
 static const char kEntrust_net_Premium_2048_Secure_Server_CAFingerprint[] =
   "HqPF5D7WbC2imDpCpKebHpBnhs6fG1hiFBmgBGOofTg=";
@@ -111,17 +119,13 @@ static const char kGOOGLE_PIN_AlphaSSL_G2Fingerprint[] =
 static const char kGOOGLE_PIN_CryptoCat1Fingerprint[] =
   "vKaqtTLWmVuXPVJE+0OqN5sRc4VCcSQHI/W3XTDVR24=";
 
-/* GOOGLE_PIN_EntrustRootEC1 */
-static const char kGOOGLE_PIN_EntrustRootEC1Fingerprint[] =
-  "/qK31kX7pz11PB7Jp4cMQOH3sMVh6Se5hb9xGGbjbyI=";
-
-/* GOOGLE_PIN_Entrust_G2 */
-static const char kGOOGLE_PIN_Entrust_G2Fingerprint[] =
-  "du6FkDdMcVQ3u8prumAo6t3i3G27uMP2EOhR8R0at/U=";
-
 /* GOOGLE_PIN_Entrust_SSL */
 static const char kGOOGLE_PIN_Entrust_SSLFingerprint[] =
   "nsxRNo6G40YPZsKV5JQt1TCA8nseQQr/LRqp1Oa8fnw=";
+
+/* GOOGLE_PIN_GTECyberTrustGlobalRoot */
+static const char kGOOGLE_PIN_GTECyberTrustGlobalRootFingerprint[] =
+  "EGn6R6CqT4z3ERscrqNl7q7RC//zJmDe9uBhS/rnCHU=";
 
 /* GOOGLE_PIN_GoDaddySecure */
 static const char kGOOGLE_PIN_GoDaddySecureFingerprint[] =
@@ -135,13 +139,13 @@ static const char kGOOGLE_PIN_LibertylavabitcomFingerprint[] =
 static const char kGOOGLE_PIN_RapidSSLFingerprint[] =
   "lT09gPUeQfbYrlxRtpsHrjDblj9Rpz+u7ajfCrg4qDM=";
 
+/* GOOGLE_PIN_ThawtePremiumServer */
+static const char kGOOGLE_PIN_ThawtePremiumServerFingerprint[] =
+  "9TwiBZgX3Zb0AGUWOdL4V+IQcKWavtkHlADZ9pVQaQA=";
+
 /* GOOGLE_PIN_Tor2web */
 static const char kGOOGLE_PIN_Tor2webFingerprint[] =
   "99ogQzjMuUTBkG1ZP7FME0K4kvBEti8Buzu4nZjRItM=";
-
-/* GTE CyberTrust Global Root */
-static const char kGTE_CyberTrust_Global_RootFingerprint[] =
-  "EGn6R6CqT4z3ERscrqNl7q7RC//zJmDe9uBhS/rnCHU=";
 
 /* GeoTrust Global CA */
 static const char kGeoTrust_Global_CAFingerprint[] =
@@ -242,10 +246,6 @@ static const char kTC_TrustCenter_Universal_CA_IIIFingerprint[] =
 /* TestSPKI */
 static const char kTestSPKIFingerprint[] =
   "AAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-
-/* Thawte Premium Server CA */
-static const char kThawte_Premium_Server_CAFingerprint[] =
-  "9TwiBZgX3Zb0AGUWOdL4V+IQcKWavtkHlADZ9pVQaQA=";
 
 /* Tor1 */
 static const char kTor1Fingerprint[] =
@@ -557,7 +557,7 @@ static const char* kPinset_twitterCDN_sha256_Data[] = {
   kVerisign_Class_3_Public_Primary_Certification_Authority___G2Fingerprint,
   kAddTrust_Low_Value_Services_RootFingerprint,
   kUTN_USERFirst_Object_Root_CAFingerprint,
-  kGTE_CyberTrust_Global_RootFingerprint,
+  kGOOGLE_PIN_GTECyberTrustGlobalRootFingerprint,
   kGeoTrust_Global_CA_2Fingerprint,
   kEntrust_net_Premium_2048_Secure_Server_CAFingerprint,
   kDigiCert_Assured_ID_Root_CAFingerprint,
@@ -579,7 +579,7 @@ static const char* kPinset_twitterCDN_sha256_Data[] = {
   kEntrust_Root_Certification_AuthorityFingerprint,
   kVerisign_Class_2_Public_Primary_Certification_Authority___G3Fingerprint,
   kGlobalSign_Root_CA___R3Fingerprint,
-  kGOOGLE_PIN_Entrust_G2Fingerprint,
+  kEntrust_Root_Certification_Authority___G2Fingerprint,
   kGeoTrust_Universal_CA_2Fingerprint,
   kGeoTrust_Global_CAFingerprint,
   kGlobalSign_Root_CA___R2Fingerprint,
@@ -634,8 +634,8 @@ static const StaticPinset kPinset_lavabit = {
 };
 
 static const char* kPinset_dropbox_sha256_Data[] = {
-  kGOOGLE_PIN_EntrustRootEC1Fingerprint,
-  kThawte_Premium_Server_CAFingerprint,
+  kEntrust_Root_Certification_Authority___EC1Fingerprint,
+  kGOOGLE_PIN_ThawtePremiumServerFingerprint,
   kthawte_Primary_Root_CA___G3Fingerprint,
   kthawte_Primary_Root_CAFingerprint,
   kEntrust_net_Premium_2048_Secure_Server_CAFingerprint,
@@ -647,7 +647,7 @@ static const char* kPinset_dropbox_sha256_Data[] = {
   kDigiCert_High_Assurance_EV_Root_CAFingerprint,
   kthawte_Primary_Root_CA___G2Fingerprint,
   kEntrust_Root_Certification_AuthorityFingerprint,
-  kGOOGLE_PIN_Entrust_G2Fingerprint,
+  kEntrust_Root_Certification_Authority___G2Fingerprint,
   kGeoTrust_Global_CAFingerprint,
   kGeoTrust_Primary_Certification_Authority___G3Fingerprint,
   kDigiCert_Global_Root_CAFingerprint,
@@ -1006,4 +1006,4 @@ static const int kPublicKeyPinningPreloadListLength = 328;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1440238438549000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1441448259881000);
