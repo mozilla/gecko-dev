@@ -536,7 +536,8 @@ Telephony::SetSpeakerEnabled(bool aEnabled, ErrorResult& aRv)
 void
 Telephony::GetActive(Nullable<OwningTelephonyCallOrTelephonyCallGroup>& aValue)
 {
-  if (mGroup->CallState() == nsITelephonyService::CALL_STATE_CONNECTED) {
+  if (mGroup->CallState() == nsITelephonyService::CALL_STATE_CONNECTED ||
+      mGroup->CallState() == nsITelephonyService::CALL_STATE_HOLDING) {
     aValue.SetValue().SetAsTelephonyCallGroup() = mGroup;
   } else {
     // Search the first active call.
