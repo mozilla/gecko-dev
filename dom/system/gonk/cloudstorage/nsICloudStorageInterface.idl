@@ -1,0 +1,13 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+[scriptable, uuid(2A478E9A-FF9D-11E4-BA25-AC271E5D46B0)]
+interface nsICloudStorageInterface : nsISupports
+{
+  void getFileMeta(in AUTF8String cloudname,
+                   in AUTF8String path);
+};
+
