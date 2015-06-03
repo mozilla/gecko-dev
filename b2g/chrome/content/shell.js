@@ -36,9 +36,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
 XPCOMUtils.defineLazyModuleGetter(this, "Screenshot",
                                   "resource://gre/modules/Screenshot.jsm");
 
+/*
 XPCOMUtils.defineLazyModuleGetter(this, "CloudStorage",
                                   "resource://gre/modules/CloudStorage.jsm");
-
+*/
 Cu.import('resource://gre/modules/Webapps.jsm');
 DOMApplicationRegistry.allAppsLaunchable = true;
 
@@ -357,7 +358,7 @@ var shell = {
     WebappsHelper.init();
     UserAgentOverrides.init();
     CaptivePortalLoginHelper.init();
-    CloudStorage.init();
+//    CloudStorage.init();
 
     this.contentBrowser.src = homeURL;
     this.isHomeLoaded = false;
@@ -847,7 +848,7 @@ window.addEventListener('ContentStart', function ss_onContentStart() {
       });
     }
 */
-    CloudStorage.toggle();
+//    CloudStorage.toggle();
   });
 });
 

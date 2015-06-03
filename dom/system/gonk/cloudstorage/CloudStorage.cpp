@@ -28,20 +28,16 @@ public:
 
   nsresult Run()
   { 
-    CloudStorageRequestHandler* handler = new CloudStorageRequestHandler(mCloudStorage->MountPoint());
+    CloudStorageRequestHandler* handler = new CloudStorageRequestHandler(mCloudStorage);
     if (handler) {
       RefPtr<Volume> vol = VolumeManager::FindAddVolumeByName(mCloudStorage->Name());
       vol->SetFakeVolume(mCloudStorage->MountPoint());
       VolumeManager::Dump("CloudStorage");
-      while (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
-        //handler->HandleOneRequest();
-	sleep(1);
-      }
+      handler->HandleRequests();
     } else {
       LOG("Construct cloud storage handler fail");
     }
     VolumeManager::RemoveVolumeByName(mCloudStorage->Name());
-    delete handler;
     VolumeManager::Dump("CloudStorage");
     LOG("going to finish RequestHandler.");
     return NS_OK;
@@ -54,7 +50,12 @@ private:
 CloudStorage::CloudStorage(const nsCString& aCloudStorageName)
   : mCloudStorageName(aCloudStorageName),
     mMountPoint(""),
-    mState(CloudStorage::STATE_READY)
+    mState(CloudStorage::STATE_READY),
+    mWaitForRequest(false),
+    mRequestData(),
+    mResponseData(),
+    mNodeHashTable(),
+    mPathHashTable()
 {
   mMountPoint.Append("/data/cloud");
   if ( -1 == mkdir(mMountPoint.get(), S_IRWXU|S_IRWXG)) {
@@ -81,6 +82,8 @@ CloudStorage::CloudStorage(const nsCString& aCloudStorageName)
   } else {
     LOG("%s is created.", mMountPoint.get());
   }
+  mNodeHashTable.Put(1, NS_LITERAL_CSTRING("/"));
+  mPathHashTable.Put(NS_LITERAL_CSTRING("/"), 1);
 }
 
 //static
@@ -97,7 +100,11 @@ const char* CloudStorage::StateStr(const CloudStorage::eState& aState)
 void
 CloudStorage::StartStorage()
 {
+  if (mState == CloudStorage::STATE_RUNNING)
+    return;
+  
   mState = CloudStorage::STATE_RUNNING;
+  mWaitForRequest = false;
   LOG("Start cloud storage %s", mCloudStorageName.get());
   nsresult rv = NS_NewNamedThread("CloudStorage", getter_AddRefs(mRunnableThread));
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -114,7 +121,55 @@ CloudStorage::StopStorage()
     return;
   LOG("Stop cloud storage %s", mCloudStorageName.get());
   mState = CloudStorage::STATE_READY;
+  mWaitForRequest = false;
 }
+
+nsCString
+CloudStorage::GetPathByNId(uint64_t aKey)
+{
+  nsCString path;
+  if (mNodeHashTable.Get(aKey, &path)) {
+    return path;
+  } else {
+    return NS_LITERAL_CSTRING("");
+  }
+}
+
+void
+CloudStorage::PutPathByNId(uint64_t aKey, nsCString aPath)
+{
+  mNodeHashTable.Put(aKey, aPath);
+}
+
+void
+CloudStorage::RemovePathByNId(uint64_t aKey)
+{
+  mNodeHashTable.Remove(aKey);
+}
+
+uint64_t
+CloudStorage::GetNIdByPath(nsCString aKey)
+{
+  uint64_t NId;
+  if (mPathHashTable.Get(aKey, &NId)) {
+    return NId;
+  } else {
+    return 0;
+  }
+}
+
+void
+CloudStorage::PutNIdByPath(nsCString aKey, uint64_t aNId)
+{
+  mPathHashTable.Put(aKey, aNId);
+}
+
+void
+CloudStorage::RemoveNIdByPath(nsCString aKey)
+{
+  mPathHashTable.Remove(aKey);
+}
+
 
 } // end namespace cloudstorage
 } // end namespace system

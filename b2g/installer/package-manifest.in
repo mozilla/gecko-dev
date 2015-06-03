@@ -176,7 +176,9 @@
 #ifdef MOZ_WIDGET_GONK
 @RESPATH@/components/dom_wifi.xpt
 @RESPATH@/components/dom_system_gonk.xpt
+@RESPATH@/components/dom_system_gonk_cloudstorage.xpt
 #endif
+
 #ifdef MOZ_B2G_RIL
 @RESPATH@/components/dom_wappush.xpt
 @RESPATH@/components/dom_mobileconnection.xpt
@@ -465,6 +467,8 @@
 @RESPATH@/components/TetheringService.manifest
 @RESPATH@/components/WifiWorker.js
 @RESPATH@/components/WifiWorker.manifest
+@RESPATH@/components/nsCloudStorageInterface.js
+@RESPATH@/components/nsCloudStorageInterface.manifest
 #endif // MOZ_WIDGET_GONK
 
 ; Camera

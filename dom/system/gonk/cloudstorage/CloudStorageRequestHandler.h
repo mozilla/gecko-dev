@@ -5,13 +5,14 @@
 #ifndef mozilla_system_cloudstroagerequesthandler_h__
 #define mozilla_system_cloudstroagerequesthandler_h__
 
-
 #include "nsString.h"
 #include "fuse.h"
 
 namespace mozilla {
 namespace system {
 namespace cloudstorage {
+
+class CloudStorage;
 
 #define CLOUD_STORAGE_NO_STATUS 1
 
@@ -20,40 +21,44 @@ class CloudStorageRequestHandler
 public:
   NS_INLINE_DECL_REFCOUNTING(CloudStorageRequestHandler)
   
-  CloudStorageRequestHandler(const nsCString& aMountPoint);
+  CloudStorageRequestHandler(CloudStorage* aCloudStorage);
   virtual ~CloudStorageRequestHandler();
 
-  void HandleOneRequest();
-  void Close();
+  void HandleRequests();
 
 protected:
   void Init();
-  void InitFuse(int aFd);
-  void InitFuseHandler();
+  void Close();
+
+  void SendRequestToMainThread();
+  uint64_t AcquireOrCreateChildNId(const nsCString& childpath);
+
+//  void InitFuse(int aFd);
+//  void InitFuseHandler();
 
   int HandleRequest(const FuseInHeader *hdr, const void *data, size_t data_len);
-  virtual int HandleLookup(const FuseInHeader *hdr, const char* name) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleForget(const FuseInHeader *hdr, const FuseForgetIn *req) { return CLOUD_STORAGE_NO_STATUS; } 
-  virtual int HandleGetAttr(const FuseInHeader *hdr, const FuseGetAttrIn *req) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleSetAttr(const FuseInHeader *hdr, const FuseSetAttrIn *req) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleMkNod(const FuseInHeader* hdr, const FuseMkNodIn* req, const char* name) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleMkDir(const FuseInHeader* hdr, const FuseMkDirIn* req, const char* name) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleUnlink(const FuseInHeader* hdr, const char* name) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleRmDir(const FuseInHeader* hdr, const char* name) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleRename(const FuseInHeader* hdr, const FuseRenameIn* req, const char* old_name, const char* new_name) { return CLOUD_STORAGE_NO_STATUS; } 
-  virtual int HandleOpen(const FuseInHeader* hdr, const FuseOpenIn* req) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleRead(const FuseInHeader* hdr, const FuseReadIn* req) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleWrite(const FuseInHeader* hdr, const FuseWriteIn* req, const void* buffer) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleStatfs(const FuseInHeader* hdr) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleRelease(const FuseInHeader* hdr, const FuseReleaseIn* req) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleFsync(const FuseInHeader* hdr, const FuseFsyncIn* req) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleFlush(const FuseInHeader* hdr) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleOpenDir(const FuseInHeader* hdr, const FuseOpenIn* req) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleReadDir(const FuseInHeader* hdr, const FuseReadIn* req) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleReleaseDir(const FuseInHeader* hdr, const FuseReleaseIn* req) { return CLOUD_STORAGE_NO_STATUS; }
-  virtual int HandleInit(const FuseInHeader* hdr, const FuseInitIn* req) { return CLOUD_STORAGE_NO_STATUS; }
-
-  nsCString mMountPoint;
+  virtual int HandleLookup(const FuseInHeader *hdr, const char* name);
+  virtual int HandleForget(const FuseInHeader *hdr, const FuseForgetIn *req); 
+  virtual int HandleGetAttr(const FuseInHeader *hdr, const FuseGetAttrIn *req);
+  virtual int HandleSetAttr(const FuseInHeader *hdr, const FuseSetAttrIn *req);
+  virtual int HandleMkNod(const FuseInHeader* hdr, const FuseMkNodIn* req, const char* name);
+  virtual int HandleMkDir(const FuseInHeader* hdr, const FuseMkDirIn* req, const char* name);
+  virtual int HandleUnlink(const FuseInHeader* hdr, const char* name);
+  virtual int HandleRmDir(const FuseInHeader* hdr, const char* name);
+  virtual int HandleRename(const FuseInHeader* hdr, const FuseRenameIn* req, const char* old_name, const char* new_name); 
+  virtual int HandleOpen(const FuseInHeader* hdr, const FuseOpenIn* req);
+  virtual int HandleRead(const FuseInHeader* hdr, const FuseReadIn* req);
+  virtual int HandleWrite(const FuseInHeader* hdr, const FuseWriteIn* req, const void* buffer);
+  virtual int HandleStatfs(const FuseInHeader* hdr);
+  virtual int HandleRelease(const FuseInHeader* hdr, const FuseReleaseIn* req);
+  virtual int HandleFsync(const FuseInHeader* hdr, const FuseFsyncIn* req);
+  virtual int HandleFlush(const FuseInHeader* hdr);
+  virtual int HandleOpenDir(const FuseInHeader* hdr, const FuseOpenIn* req);
+  virtual int HandleReadDir(const FuseInHeader* hdr, const FuseReadIn* req);
+  virtual int HandleReleaseDir(const FuseInHeader* hdr, const FuseReleaseIn* req);
+  virtual int HandleInit(const FuseInHeader* hdr, const FuseInitIn* req);
+ 
+  CloudStorage* mCloudStorage;
   Fuse* mFuse;
   FuseHandler* mFuseHandler;
 };

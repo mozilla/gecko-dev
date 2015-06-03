@@ -15,6 +15,26 @@
 #define FUSE_KERNEL_VERSION 7
 #define FUSE_KERNEL_MINOR_VERSION 13
 #define FUSE_ROOT_ID 1
+#define FUSE_UNKNOWN_INO 0xffffffff
+
+#define FUSE_ASYNC_READ         (1 << 0)
+#define FUSE_POSIX_LOCKS        (1 << 1)
+#define FUSE_FILE_OPS           (1 << 2)
+#define FUSE_ATOMIC_O_TRUNC     (1 << 3)
+#define FUSE_EXPORT_SUPPORT     (1 << 4)
+#define FUSE_BIG_WRITES         (1 << 5)
+#define FUSE_DONT_MASK          (1 << 6)
+#define FUSE_SPLICE_WRITE       (1 << 7)
+#define FUSE_SPLICE_MOVE        (1 << 8)
+#define FUSE_SPLICE_READ        (1 << 9)
+#define FUSE_FLOCK_LOCKS        (1 << 10)
+#define FUSE_HAS_IOCTL_DIR      (1 << 11)
+#define FUSE_AUTO_INVAL_DATA    (1 << 12)
+#define FUSE_DO_READDIRPLUS     (1 << 13)
+#define FUSE_READDIRPLUS_AUTO   (1 << 14)
+#define FUSE_ASYNC_DIO          (1 << 15)
+#define FUSE_WRITEBACK_CACHE    (1 << 16)
+#define FUSE_NO_OPEN_SUPPORT    (1 << 17)
 
 typedef struct SFuseAttr {
   __u64  ino;
@@ -324,6 +344,7 @@ typedef struct SFuseOutHeader {
 typedef struct SFuse {
   //pthread_mutex_t lock;
   __u64 next_generation;
+  __u64 rootnid;
   int fd;
 } Fuse;
 
@@ -335,6 +356,20 @@ typedef struct SFuseHandler {
     __u8 read_buffer[CLOUD_STORAGE_MAX_READ];
   };
 } FuseHandler;
+
+#define FUSE_NAME_OFFSET offsetof(FuseDirent, name)
+#define FUSE_DIRENT_ALIGN(x) (((x) + sizeof(__u64) - 1) & ~(sizeof(__u64) - 1))
+#define FUSE_DIRENT_SIZE(d) \
+	FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + (d)->namelen)
+
+
+typedef struct SFuseDirent {
+  __u64 ino;
+  __u64 off;
+  __u32 namelen;
+  __u32 type;
+  char name[0];
+} FuseDirent;
 
 typedef enum eFuseOpcode {
   FUSE_LOOKUP      = 1,

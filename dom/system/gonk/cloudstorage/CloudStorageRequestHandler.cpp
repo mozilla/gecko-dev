@@ -4,6 +4,8 @@
 
 #include "CloudStorageRequestHandler.h"
 #include "CloudStorageLog.h"
+#include "CloudStorage.h"
+#include "CloudStorageTester.h"
 
 //#include <pthread.h>
 #include <fcntl.h>
@@ -19,15 +21,57 @@
 #include <sys/statfs.h>
 #include <sys/time.h> 
 #include <sys/types.h>
+#include <sys/select.h>
+#include <sys/uio.h>
 #include <math.h>
 #include <ctype.h>
+
+#include "nsICloudStorageInterface.h"
+#include "mozilla/Services.h"
+#include "nsCOMPtr.h"
 
 namespace mozilla {
 namespace system {
 namespace cloudstorage {
 
-CloudStorageRequestHandler::CloudStorageRequestHandler(const nsCString& aMountPoint)
-  : mMountPoint(aMountPoint),
+class CloudStorageRequestRunnable : public nsRunnable
+{
+public:
+  CloudStorageRequestRunnable(CloudStorage* aCloudStorage)
+    : mCloudStorage(aCloudStorage)
+  {
+  }
+
+  nsresult Run()
+  { 
+    
+    LOG("call do_CreateInstance for cloudstorageinterface");
+    nsresult rv;
+    nsCOMPtr<nsICloudStorageInterface> csi = do_CreateInstance(
+                                                "@mozilla.org/cloudstorageinterface;1", &rv);
+    if (NS_FAILED(rv)) {
+      LOG("fail to get csi [%x]", rv);
+    }
+    if (csi) {
+      LOG("cloud name: %s", mCloudStorage->Name().get());
+      LOG("path: %s", mCloudStorage->RequestData().Path.get());
+      LOG("call GetFileMeta");
+      rv = csi->GetFileMeta(mCloudStorage->Name(), mCloudStorage->RequestData().Path);
+      if (NS_FAILED(rv)) {
+        LOG("fail to call cloudstorageinterface->GetFileMeta(%s) [%x]", mCloudStorage->RequestData().Path.get(), rv);
+      }
+    } else {
+      LOG("fail to get cloudstorageinterface");
+    }
+    
+    return NS_OK;
+  }
+private:
+  CloudStorage* mCloudStorage;
+};
+
+CloudStorageRequestHandler::CloudStorageRequestHandler(CloudStorage* aCloudStorage)
+  : mCloudStorage(aCloudStorage),
     mFuse(NULL),
     mFuseHandler(NULL)
 {
@@ -46,7 +90,7 @@ CloudStorageRequestHandler::Init()
   char opts[256];
   int res;
 
-  umount2(mMountPoint.get(), 2);
+  umount2(mCloudStorage->MountPoint().get(), 2);
 
   fd = open("/dev/fuse", O_RDWR);
   if (fd < 0){
@@ -58,41 +102,28 @@ CloudStorageRequestHandler::Init()
   snprintf(opts, sizeof(opts),
     "fd=%i,rootmode=40000,default_permissions,allow_other,user_id=0,group_id=1015",fd);
 
-  res = mount("/dev/fuse", mMountPoint.get(), "fuse", MS_NOSUID | MS_NODEV, opts);
+  res = mount("/dev/fuse", mCloudStorage->MountPoint().get(), "fuse", MS_NOSUID | MS_NODEV, opts);
   if (res < 0) {
     LOG("cannot mount fuse filesystem: %s", strerror(errno));
     close(fd);
     return;
   }
 
-  InitFuse(fd);
-  InitFuseHandler();
+  mFuse = new Fuse();
+  mFuse->fd = fd;
+  mFuse->rootnid = FUSE_ROOT_ID;
+  mFuse->next_generation = 0;
+  mFuseHandler = new FuseHandler();
+  mFuseHandler->fuse = mFuse;
+  mFuseHandler->token = 0;
   
   umask(0);
 }
 
 void
-CloudStorageRequestHandler::InitFuse(int aFd)
-{
-  mFuse = new Fuse();
-  //pthread_mutex_init(&mFuse->lock, NULL);
-
-  mFuse->fd = aFd;
-  mFuse->next_generation = 0;
-}
-
-void
-CloudStorageRequestHandler::InitFuseHandler()
-{
-  mFuseHandler = new FuseHandler();
-  mFuseHandler->fuse = mFuse;
-  mFuseHandler->token = 0;
-}
-
-void
 CloudStorageRequestHandler::Close()
 {
-  umount2(mMountPoint.get(), 2);
+  umount2(mCloudStorage->MountPoint().get(), 2);
   if (mFuse) {
     close(mFuse->fd);
     delete mFuse;
@@ -102,44 +133,68 @@ CloudStorageRequestHandler::Close()
     delete mFuseHandler;
     mFuseHandler = NULL;
   }
+  if (mCloudStorage) {
+    // needn't delete cloudstorage, manager will maintain its life time
+    mCloudStorage = NULL;
+  }
 }
 
 void
-CloudStorageRequestHandler::HandleOneRequest()
+CloudStorageRequestHandler::HandleRequests()
 {
-  ssize_t len = read(mFuse->fd, mFuseHandler->request_buffer, sizeof(mFuseHandler->request_buffer));
-  if (len < 0) {
-    if (errno != EINTR) {
-      LOG("[%d] handle_fuse_requests: errno=%d", mFuseHandler->token, errno);
+  while (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(mFuse->fd, &fds);
+    struct timespec timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_nsec = 100000000;
+
+    int res = pselect(mFuse->fd+1, &fds, NULL, NULL, &timeout, NULL);
+    if (res == -1 && errno != EINTR) {
+      LOG("pselect error %d.", errno);
+      continue;
+    } else if (res == 0) { //timeout
+      continue;
+    } else if (FD_ISSET(mFuse->fd, &fds)) {
+      ssize_t len = read(mFuse->fd, mFuseHandler->request_buffer, sizeof(mFuseHandler->request_buffer));
+      if (len < 0) {
+        if (errno != EINTR) {
+          LOG("[%d] handle_fuse_requests: errno=%d", mFuseHandler->token, errno);
+        }
+        continue;
+      }
+
+      if ((size_t)len < sizeof(FuseInHeader)) {
+        LOG("[%d] request too short: len=%zu", mFuseHandler->token, (size_t)len);
+        continue;
+      }
+
+      const FuseInHeader *hdr = (const FuseInHeader*)((void*)mFuseHandler->request_buffer);
+      if (hdr->len != (size_t)len) {
+        LOG("[%d] malformed header: len=%zu, hdr->len=%u", mFuseHandler->token, (size_t)len, hdr->len);
+          continue;
+      }
+
+      const void *data = mFuseHandler->request_buffer + sizeof(FuseInHeader);
+      size_t data_len = len - sizeof(FuseInHeader);
+      uint64_t unique = hdr->unique;
+
+      int res = HandleRequest(hdr, data, data_len);
+
+      if (res != CLOUD_STORAGE_NO_STATUS) {
+        if (res) {
+          LOG("[%d] LOG %d", mFuseHandler->token, res);
+        }
+        FuseOutHeader outhdr;
+        outhdr.len = sizeof(outhdr);
+        outhdr.error = res;
+        outhdr.unique = unique;
+        write(mFuse->fd, &outhdr, sizeof(outhdr));
+      }
+    } else {
+      LOG("fds is ready, but not mFuse->fd, should not be here.");
     }
-    return;
-  }
-
-  if ((size_t)len < sizeof(FuseInHeader)) {
-    LOG("[%d] request too short: len=%zu", mFuseHandler->token, (size_t)len);
-    return;
-  }
-
-  const FuseInHeader *hdr = (const FuseInHeader*)((void*)mFuseHandler->request_buffer);
-  if (hdr->len != (size_t)len) {
-    LOG("[%d] malformed header: len=%zu, hdr->len=%u", mFuseHandler->token, (size_t)len, hdr->len);
-      return;
-  }
-
-  const void *data = mFuseHandler->request_buffer + sizeof(FuseInHeader);
-  size_t data_len = len - sizeof(FuseInHeader);
-  __u64 unique = hdr->unique;
-  int res = HandleRequest(hdr, data, data_len);
-
-  if (res != CLOUD_STORAGE_NO_STATUS) {
-    if (res) {
-      LOG("[%d] LOG %d", mFuseHandler->token, res);
-    }
-    FuseOutHeader outhdr;
-    outhdr.len = sizeof(outhdr);
-    outhdr.error = res;
-    outhdr.unique = unique;
-    write(mFuse->fd, &outhdr, sizeof(outhdr));
   }
 }
 
@@ -260,6 +315,444 @@ CloudStorageRequestHandler::HandleRequest(const FuseInHeader *hdr, const void *d
       return -ENOSYS;
     }
   }
+}
+
+void
+CloudStorageRequestHandler::SendRequestToMainThread()
+{
+  /*
+  mCloudStorage->SetWaitForRequest(true);
+  nsresult rv = NS_DispatchToMainThread(new CloudStorageRequestRunnable(mCloudStorage));
+  if (NS_FAILED(rv)) {
+    LOG("dispatch to main thread fail %x", rv);
+  }
+  LOG("return value: %x", rv);
+  while (mCloudStorage->IsWaitForRequest() && mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
+    sleep(1);
+  }
+  */
+}
+
+uint64_t
+CloudStorageRequestHandler::AcquireOrCreateChildNId(const nsCString& childpath)
+{
+  uint64_t nid = mCloudStorage->GetNIdByPath(childpath);
+  if (nid != 0) {
+    return nid;
+  }
+  uint64_t* nidptr = (uint64_t*)malloc(sizeof(uint64_t));
+  nid = (uint64_t) (uintptr_t)nidptr;
+  mCloudStorage->PutPathByNId(nid, childpath);
+  mCloudStorage->PutNIdByPath(childpath, nid);
+  return nid;
+}
+
+int
+CloudStorageRequestHandler::HandleLookup(const FuseInHeader *hdr, const char* name)
+{
+  LOG("Lookup");
+  nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
+  if (path.Equals(NS_LITERAL_CSTRING(""))) {
+    return -ENOENT; 
+  }
+  LOG("path: %s, passed name %s", path.get(), name);
+  nsCString childpath = path;
+  if (hdr->nodeid != FUSE_ROOT_ID) {
+    childpath.AppendLiteral("/");
+  }
+  childpath.AppendASCII(name);
+  LOG("childpath: %s", childpath.get());
+  uint64_t childnid = AcquireOrCreateChildNId(childpath);
+  if (childnid == 0) {
+    return -ENOMEM;
+  }
+    
+  FuseEntryOut out;
+  CloudStorageTester tester;
+  out.attr = tester.GetAttrByPath(childpath, hdr->nodeid);
+  out.attr_valid = 10;
+  out.entry_valid = 10;
+  out.nodeid = childnid;
+  out.generation = mFuse->next_generation++;
+
+  if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
+    FuseOutHeader outhdr;
+    struct iovec vec[2];
+    int res;
+    outhdr.len = sizeof(out) + sizeof(outhdr);
+    outhdr.error = 0;
+    outhdr.unique = hdr->unique;
+    vec[0].iov_base = &outhdr;
+    vec[0].iov_len = sizeof(outhdr);
+    vec[1].iov_base = (void*) &out;
+    vec[1].iov_len = sizeof(out);
+    res = writev(mFuse->fd, vec, 2);
+    if (res < 0) {
+      LOG("*** REPLY FAILED *** %d", errno);
+    }
+  }
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleForget(const FuseInHeader *hdr, const FuseForgetIn *req) 
+{
+  LOG("Forget");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleGetAttr(const FuseInHeader *hdr, const FuseGetAttrIn* req) 
+{
+  LOG("GetAttr");
+  nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
+  if (path.Equals(NS_LITERAL_CSTRING(""))) {
+    return -ENOENT; 
+  }
+  LOG("path: %s", path.get());
+
+  FuseAttrOut attrOut;
+
+  CloudStorageTester tester;
+  attrOut.attr = tester.GetAttrByPath(path, hdr->nodeid);
+
+  CloudStorageRequestData reqData;
+  reqData.Path = path;
+  mCloudStorage->SetRequestData(reqData);
+  mCloudStorage->SetWaitForRequest(true);
+  nsresult rv = NS_DispatchToMainThread(new CloudStorageRequestRunnable(mCloudStorage));
+  if (NS_FAILED(rv)) {
+    LOG("dispatch to main thread fail %x", rv);
+  }
+  while (mCloudStorage->IsWaitForRequest() && mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
+    sleep(1);
+  }
+
+  attrOut.attr.size = mCloudStorage->ResponseData().FileSize;
+  attrOut.attr.atime = mCloudStorage->ResponseData().MTime;
+  attrOut.attr.mtime = mCloudStorage->ResponseData().MTime;
+  attrOut.attr.ctime = mCloudStorage->ResponseData().CTime;
+  attrOut.attr.atimensec = mCloudStorage->ResponseData().MTime;
+  attrOut.attr.mtimensec = mCloudStorage->ResponseData().MTime;
+  attrOut.attr.ctimensec = mCloudStorage->ResponseData().CTime;
+
+  attrOut.attr.ino = hdr->nodeid;
+  attrOut.attr_valid = 10;
+
+  if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
+    FuseOutHeader outhdr;
+    struct iovec vec[2];
+    int res;
+    outhdr.len = sizeof(attrOut) + sizeof(outhdr);
+    outhdr.error = 0;
+    outhdr.unique = hdr->unique;
+    vec[0].iov_base = &outhdr;
+    vec[0].iov_len = sizeof(outhdr);
+    vec[1].iov_base = (void*) &attrOut;
+    vec[1].iov_len = sizeof(attrOut);
+    res = writev(mFuse->fd, vec, 2);
+    if (res < 0) {
+      LOG("*** reply failed *** %d", errno);
+    }
+  }
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleSetAttr(const FuseInHeader *hdr, const FuseSetAttrIn *req)
+{
+  LOG("SetAttr");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleMkNod(const FuseInHeader* hdr, const FuseMkNodIn* req, const char* name)
+{
+  LOG("MkNod");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int CloudStorageRequestHandler::HandleMkDir(const FuseInHeader* hdr, const FuseMkDirIn* req, const char* name)
+{
+  LOG("MkDir");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleUnlink(const FuseInHeader* hdr, const char* name)
+{
+  LOG("Unlink");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleRmDir(const FuseInHeader* hdr, const char* name)
+{
+  LOG("RmDir");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleRename(const FuseInHeader* hdr, const FuseRenameIn* req, const char* old_name, const char* new_name)
+{
+  LOG("Rename");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleOpen(const FuseInHeader* hdr, const FuseOpenIn* req)
+{
+  LOG("Open");
+  nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
+  if (path.Equals(NS_LITERAL_CSTRING(""))) {
+    return -ENOENT; 
+  }
+  LOG("path: %s", path.get());
+
+  FuseOpenOut out;
+  uint64_t* handle = (uint64_t*) malloc(sizeof(uint64_t));
+  out.fh = (uint64_t) (uintptr_t) handle;
+  out.open_flags = 0;
+  out.padding = 0;
+
+  CloudStorageTester tester;
+  tester.Open(path, out.fh);
+
+  if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
+    FuseOutHeader outhdr;
+    struct iovec vec[2];
+    int res;
+    outhdr.len = sizeof(out) + sizeof(outhdr);
+    outhdr.error = 0;
+    outhdr.unique = hdr->unique;
+    vec[0].iov_base = &outhdr;
+    vec[0].iov_len = sizeof(outhdr);
+    vec[1].iov_base = (void*) &out;
+    vec[1].iov_len = sizeof(out);
+    res = writev(mFuse->fd, vec, 2);
+    if (res < 0) {
+      LOG("*** REPLY FAILED *** %d", errno);
+    }
+  }
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleRead(const FuseInHeader* hdr, const FuseReadIn* req)
+{
+  LOG("Read");
+  nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
+  if (path.Equals(NS_LITERAL_CSTRING(""))) {
+    return -ENOENT; 
+  }
+  LOG("path: %s, nodeid: %llx, size: %d, offset: %d", path.get(), hdr->nodeid, req->size, (int)req->offset);
+
+  char* buffer = (char*)malloc(sizeof(char)*req->size);
+  int32_t size = -1;
+  CloudStorageTester tester;
+  tester.GetData(req->fh, req->size, req->offset, buffer, size);
+
+  if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
+    if (size < 0) {
+      return size;
+    }
+    FuseOutHeader outhdr;
+    struct iovec vec[2];
+    int res;
+    outhdr.len = size + sizeof(outhdr);
+    outhdr.error = 0;
+    outhdr.unique = hdr->unique;
+    vec[0].iov_base = &outhdr;
+    vec[0].iov_len = sizeof(outhdr);
+    vec[1].iov_base = (void*) buffer;
+    vec[1].iov_len = size;
+    res = writev(mFuse->fd, vec, 2);
+    if (res < 0) {
+      LOG("*** REPLY FAILED *** %d", errno);
+    }
+    free(buffer);
+  }
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleWrite(const FuseInHeader* hdr, const FuseWriteIn* req, const void* buffer)
+{
+  LOG("Write");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleStatfs(const FuseInHeader* hdr)
+{
+  LOG("Statfs");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleRelease(const FuseInHeader* hdr, const FuseReleaseIn* req)
+{
+  LOG("Release");
+  nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
+  if (path.Equals(NS_LITERAL_CSTRING(""))) {
+    return -ENOENT; 
+  }
+  LOG("path: %s", path.get());
+
+  CloudStorageTester tester;
+  tester.Close(req->fh);
+  return 0;
+}
+
+int
+CloudStorageRequestHandler::HandleFsync(const FuseInHeader* hdr, const FuseFsyncIn* req)
+{
+  LOG("Fsync");
+  return 0;
+}
+
+int
+CloudStorageRequestHandler::HandleFlush(const FuseInHeader* hdr)
+{
+  LOG("Flush");
+
+  nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
+  if (path.Equals(NS_LITERAL_CSTRING(""))) {
+    return -ENOENT; 
+  }
+  LOG("path: %s", path.get());
+
+  return 0;
+}
+
+int
+CloudStorageRequestHandler::HandleOpenDir(const FuseInHeader* hdr, const FuseOpenIn* req)
+{
+
+  LOG("OpenDir");
+
+  nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
+  if (path.Equals(NS_LITERAL_CSTRING(""))) {
+    return -ENOENT; 
+  }
+  LOG("path: %s", path.get());
+  FuseOpenOut out;
+  // when releaseDir is called, call free for dirHandle
+  uint64_t* dirHandle = (uint64_t*) malloc(sizeof(uint64_t));
+  if (!dirHandle) {
+    return -ENOMEM;
+  }
+  out.fh = (uint64_t) (uintptr_t) dirHandle;
+  out.open_flags = 0;
+  out.padding = 0;
+  FuseOutHeader outhdr;
+  struct iovec vec[2];
+  int res;
+  outhdr.len = sizeof(out) + sizeof(outhdr);
+  outhdr.error = 0;
+  outhdr.unique = hdr->unique;
+  vec[0].iov_base = &outhdr;
+  vec[0].iov_len = sizeof(outhdr);
+  vec[1].iov_base = (void*) &out;
+  vec[1].iov_len = sizeof(out);
+  res = writev(mFuse->fd, vec, 2);
+  if (res < 0) {
+    LOG("*** REPLY FAILED *** %d", errno);
+  }
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleReadDir(const FuseInHeader* hdr, const FuseReadIn* req)
+{
+  LOG("ReadDir");
+  nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
+  if (path.Equals(NS_LITERAL_CSTRING(""))) {
+    return -ENOENT; 
+  }
+  LOG("path: %s", path.get());
+  char buffer[8192];
+  FuseDirent *fde = (FuseDirent*) buffer;
+  fde->ino = FUSE_UNKNOWN_INO;
+  fde->off = req->offset + 1;
+  nsCString entryName;
+  uint32_t entryType;
+  CloudStorageTester tester;
+  tester.GetEntry(path, req->offset, entryName, entryType);
+  LOG("entry name: %s, entry type: %s", entryName.get(), (entryType == DT_REG)?"file":"directory");
+
+  if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
+    if (entryName.Equals("")) {
+      return 0;
+    }
+    fde->type = entryType;
+    fde->namelen = entryName.Length();
+    memcpy(fde->name, entryName.get(), fde->namelen + 1);
+
+    FuseOutHeader outhdr;
+    struct iovec vec[2];
+    int res;
+    outhdr.len = FUSE_DIRENT_ALIGN(sizeof(FuseDirent) + fde->namelen) + sizeof(outhdr);
+    outhdr.error = 0;
+    outhdr.unique = hdr->unique;
+    vec[0].iov_base = &outhdr;
+    vec[0].iov_len = sizeof(outhdr);
+    vec[1].iov_base = (void*) fde;
+    vec[1].iov_len = FUSE_DIRENT_ALIGN(sizeof(FuseDirent) + fde->namelen);
+    res = writev(mFuse->fd, vec, 2);
+    if (res < 0) {
+      LOG("*** REPLY FAILED *** %d", errno);
+    }
+  }
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleReleaseDir(const FuseInHeader* hdr, const FuseReleaseIn* req)
+{
+  LOG("ReleaseDir");
+
+  nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
+  if (path.Equals(NS_LITERAL_CSTRING(""))) {
+    return -ENOENT; 
+  }
+  LOG("path: %s", path.get());
+  uint64_t* handle = (uint64_t*)(uintptr_t) req->fh;
+  free(handle);
+  LOG("finish ReleaseDir");
+  return CLOUD_STORAGE_NO_STATUS;
+}
+
+int
+CloudStorageRequestHandler::HandleInit(const FuseInHeader* hdr, const FuseInitIn* req)
+{
+  LOG("Init");
+  FuseInitOut out;
+  out.major = FUSE_KERNEL_VERSION;
+  out.minor = FUSE_KERNEL_MINOR_VERSION;
+  out.max_readahead = req->max_readahead;
+  out.flags = FUSE_ATOMIC_O_TRUNC | FUSE_BIG_WRITES;
+  out.max_background = 32;
+  out.congestion_threshold = 32;
+  out.max_write = CLOUD_STORAGE_MAX_WRITE;
+
+  FuseOutHeader outhdr;
+  struct iovec vec[2];
+  int res;
+  outhdr.len = sizeof(out) + sizeof(outhdr);
+  outhdr.error = 0;
+  outhdr.unique = hdr->unique;
+  vec[0].iov_base = &outhdr;
+  vec[0].iov_len = sizeof(outhdr);
+  vec[1].iov_base = (void*) &out;
+  vec[1].iov_len = sizeof(out);
+  res = writev(mFuse->fd, vec, 2);
+  if (res < 0) {
+    LOG("*** REPLY FAILED *** %d", errno);
+  }
+
+  //FuseReply(fuse, hdr->unique, &out, sizeof(out));
+  return CLOUD_STORAGE_NO_STATUS;
 }
 
 /*

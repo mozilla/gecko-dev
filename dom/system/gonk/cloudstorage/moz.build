@@ -14,10 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#XPIDL_SOURCES += [
-#]
+XPIDL_SOURCES += [
+    'nsICloudStorageGeckoInterface.idl',
+    'nsICloudStorageInterface.idl',
+]
 
-#XPIDL_MODULE = 'dom_system_gonk'
+XPIDL_MODULE = 'dom_system_gonk_cloudstorage'
 
 EXPORTS += [
     'CloudStorage.h',
@@ -29,24 +31,15 @@ UNIFIED_SOURCES += [
     'CloudStorage.cpp',
     'CloudStorageManager.cpp',
     'CloudStorageRequestHandler.cpp',
+    'CloudStorageTester.cpp',
+    'nsCloudStorageGeckoInterface.cpp',
+    'nsCloudStorageGeckoInterfaceModule.cpp',
 ]
 
-#EXTRA_COMPONENTS += [
-#]
-#EXTRA_JS_MODULES += [
-#]
-
-FAIL_ON_WARNINGS = True
-
-include('/ipc/chromium/chromium-config.mozbuild')
-
-LOCAL_INCLUDES += [
-    '/dom/base',
-    '/dom/system/gonk',
-    '/dom/system/gonk/cloudstorage/fuse',
+EXTRA_COMPONENTS += [
+    'nsCloudStorageInterface.js',
+    'nsCloudStorageInterface.manifest',
 ]
-
-FINAL_LIBRARY = 'xul'
 
 EXTRA_JS_MODULES += [
     'async.jsm',
@@ -59,3 +52,14 @@ EXTRA_JS_MODULES += [
     'udManager.jsm',
 ]
 
+FAIL_ON_WARNINGS = True
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+LOCAL_INCLUDES += [
+    '/dom/base',
+    '/dom/system/gonk',
+    '/dom/system/gonk/cloudstorage/fuse',
+]
+
+FINAL_LIBRARY = 'xul'

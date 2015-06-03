@@ -1,0 +1,17 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+[scriptable, uuid(6937FB48-0912-11E5-85D3-611D1E5D46B0)]
+interface nsICloudStorageGeckoInterface : nsISupports
+{
+  void setFileMeta(in AUTF8String cloudname,
+                   in AUTF8String path,
+                   in boolean isDir,
+		   in unsigned long long size,
+		   in unsigned long long mtime,
+		   in unsigned long long ctime);
+};
+
