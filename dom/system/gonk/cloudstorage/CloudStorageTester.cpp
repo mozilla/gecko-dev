@@ -60,6 +60,19 @@ CloudStorageTester::GetAttrByPath(const nsCString& aPath, const uint64_t aNodeId
   attr.nlink = s.st_nlink;
   attr.uid = 0;
   attr.gid = 1015;
+  LOG("size: %llu", attr.size);
+  LOG("blocks: %llu", attr.blocks);
+  LOG("blocksize: %u", attr.blksize);
+  LOG("atime: %llu", attr.atime);
+  LOG("mtime: %llu", attr.mtime);
+  LOG("ctime: %llu", attr.ctime);
+  LOG("atimensec: %u", attr.atimensec);
+  LOG("mtimensec: %u", attr.mtimensec);
+  LOG("ctimensec: %u", attr.ctimensec);
+  LOG("mode: %x", attr.mode);
+  LOG("nlinks: %u", attr.nlink);
+  LOG("rdev: %u", attr.rdev);
+  LOG("padding: %u", attr.padding);
   return attr;
 }
 

@@ -43,8 +43,7 @@ public:
   }
 
   nsresult Run()
-  { 
-    
+  {     
     LOG("call do_CreateInstance for cloudstorageinterface");
     nsresult rv;
     nsCOMPtr<nsICloudStorageInterface> csi = do_CreateInstance(
@@ -320,17 +319,14 @@ CloudStorageRequestHandler::HandleRequest(const FuseInHeader *hdr, const void *d
 void
 CloudStorageRequestHandler::SendRequestToMainThread()
 {
-  /*
   mCloudStorage->SetWaitForRequest(true);
   nsresult rv = NS_DispatchToMainThread(new CloudStorageRequestRunnable(mCloudStorage));
   if (NS_FAILED(rv)) {
     LOG("dispatch to main thread fail %x", rv);
   }
-  LOG("return value: %x", rv);
   while (mCloudStorage->IsWaitForRequest() && mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
-    sleep(1);
+    usleep(10);
   }
-  */
 }
 
 uint64_t
@@ -368,8 +364,22 @@ CloudStorageRequestHandler::HandleLookup(const FuseInHeader *hdr, const char* na
   }
     
   FuseEntryOut out;
+  /*
   CloudStorageTester tester;
-  out.attr = tester.GetAttrByPath(childpath, hdr->nodeid);
+  tester.GetAttrByPath(childpath, hdr->nodeid);
+  */
+  out.attr.ino = hdr->nodeid;
+  out.attr = mCloudStorage->GetAttrByPath(childpath);
+  if (out.attr.size == 0) {
+    LOG("No Attr for path, send request to main thread");
+    CloudStorageRequestData reqData;
+    reqData.RequestType = (uint32_t) FUSE_GETATTR;
+    reqData.Path = childpath;
+    mCloudStorage->SetRequestData(reqData);
+    SendRequestToMainThread();
+    out.attr = mCloudStorage->GetAttrByPath(childpath);
+  }
+
   out.attr_valid = 10;
   out.entry_valid = 10;
   out.nodeid = childnid;
@@ -413,30 +423,22 @@ CloudStorageRequestHandler::HandleGetAttr(const FuseInHeader *hdr, const FuseGet
 
   FuseAttrOut attrOut;
 
+/*
   CloudStorageTester tester;
-  attrOut.attr = tester.GetAttrByPath(path, hdr->nodeid);
-
-  CloudStorageRequestData reqData;
-  reqData.Path = path;
-  mCloudStorage->SetRequestData(reqData);
-  mCloudStorage->SetWaitForRequest(true);
-  nsresult rv = NS_DispatchToMainThread(new CloudStorageRequestRunnable(mCloudStorage));
-  if (NS_FAILED(rv)) {
-    LOG("dispatch to main thread fail %x", rv);
-  }
-  while (mCloudStorage->IsWaitForRequest() && mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
-    sleep(1);
-  }
-
-  attrOut.attr.size = mCloudStorage->ResponseData().FileSize;
-  attrOut.attr.atime = mCloudStorage->ResponseData().MTime;
-  attrOut.attr.mtime = mCloudStorage->ResponseData().MTime;
-  attrOut.attr.ctime = mCloudStorage->ResponseData().CTime;
-  attrOut.attr.atimensec = mCloudStorage->ResponseData().MTime;
-  attrOut.attr.mtimensec = mCloudStorage->ResponseData().MTime;
-  attrOut.attr.ctimensec = mCloudStorage->ResponseData().CTime;
-
+  tester.GetAttrByPath(path, hdr->nodeid);
+*/
   attrOut.attr.ino = hdr->nodeid;
+  attrOut.attr = mCloudStorage->GetAttrByPath(path);
+  LOG("attr.size: %llu", attrOut.attr.size);
+  if (attrOut.attr.size == 0) {
+    LOG("No attr for path, send request to main thread");
+    CloudStorageRequestData reqData;
+    reqData.RequestType = (uint32_t) FUSE_GETATTR;
+    reqData.Path = path;
+    mCloudStorage->SetRequestData(reqData);
+    SendRequestToMainThread();
+    attrOut.attr = mCloudStorage->GetAttrByPath(path);
+  }
   attrOut.attr_valid = 10;
 
   if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {

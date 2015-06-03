@@ -39,6 +39,7 @@ LOCAL_INCLUDES += [
     '/dom/base',
     '/dom/ipc',
     '/dom/system/gonk/cloudstorage',
+    '/dom/system/gonk/cloudstorage/fuse',
 ]
 
 #MOCHITEST_MANIFESTS += [

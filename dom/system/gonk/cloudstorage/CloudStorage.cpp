@@ -55,7 +55,8 @@ CloudStorage::CloudStorage(const nsCString& aCloudStorageName)
     mRequestData(),
     mResponseData(),
     mNodeHashTable(),
-    mPathHashTable()
+    mPathHashTable(),
+    mAttrHashTable()
 {
   mMountPoint.Append("/data/cloud");
   if ( -1 == mkdir(mMountPoint.get(), S_IRWXU|S_IRWXG)) {
@@ -168,6 +169,29 @@ void
 CloudStorage::RemoveNIdByPath(nsCString aKey)
 {
   mPathHashTable.Remove(aKey);
+}
+
+FuseAttr
+CloudStorage::GetAttrByPath(nsCString aPath)
+{
+  FuseAttr res;
+  if (!mAttrHashTable.Get(aPath, &res)) {
+    LOG("No attr for path %s", aPath.get());
+    res.size = 0;
+  }
+  return res;
+}
+
+void
+CloudStorage::SetAttrByPath(nsCString aPath, FuseAttr attr)
+{
+  mAttrHashTable.Put(aPath, attr);
+}
+
+void
+CloudStorage::RemoveAttrByPath(nsCString aPath)
+{
+  mAttrHashTable.Remove(aPath);
 }
 
 

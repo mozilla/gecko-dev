@@ -10,6 +10,7 @@
 #include "nsCOMPtr.h"
 #include "nsRefPtr.h"
 #include "nsDataHashtable.h"
+#include "fuse.h"
 
 namespace mozilla {
 namespace system {
@@ -103,6 +104,10 @@ public:
   void PutNIdByPath(nsCString aKey, uint64_t aNId);
   void RemoveNIdByPath(nsCString aKey);
 
+  FuseAttr GetAttrByPath(nsCString aPath);
+  void SetAttrByPath(nsCString aPath, FuseAttr aAttr);
+  void RemoveAttrByPath(nsCString aPath);
+
   void StartStorage();
   void StopStorage();
 
@@ -116,6 +121,7 @@ private:
   CloudStorageResponseData mResponseData;
   nsDataHashtable<nsUint64HashKey, nsCString> mNodeHashTable;
   nsDataHashtable<nsCStringHashKey, uint64_t> mPathHashTable;
+  nsDataHashtable<nsCStringHashKey, FuseAttr> mAttrHashTable;
 };
 
 } // end namespace cloudstorage
