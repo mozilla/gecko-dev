@@ -9,4 +9,12 @@ no_sccache=1
 
 . "$topsrcdir/build/mozconfig.common"
 
+# Allow overriding this from the environment, and don't
+# try to set it if it doesn't exist. As per above, this file is also
+# used for local builds, and we may need to override this for builds in
+# other environments.
+if test -z "$SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE" -a -f /builds/crash-stats-api.token; then
+  export SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE=/builds/crash-stats-api.token
+fi
+
 ac_add_options --disable-unified-compilation
