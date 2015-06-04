@@ -13,5 +13,16 @@ interface nsICloudStorageGeckoInterface : nsISupports
 		   in unsigned long long size,
 		   in unsigned long long mtime,
 		   in unsigned long long ctime);
+  
+  void setFileList(in AUTF8String cloudname,
+                   in AUTF8String path,
+		   in AUTF8String childpath,
+                   in boolean isdir,
+		   in unsigned long long size,
+		   in unsigned long long mtime,
+		   in unsigned long long ctime);
+
+  void finishRequest(in AUTF8String cloudname);
+ 
 };
 
