@@ -1621,6 +1621,13 @@ CodeGenerator::visitPointer(LPointer* lir)
 }
 
 bool
+CodeGenerator::visitKeepAliveObject(LKeepAliveObject* lir)
+{
+    // No-op.
+    return true;
+}
+
+bool
 CodeGenerator::visitSlots(LSlots* lir)
 {
     Address slots(ToRegister(lir->object()), JSObject::offsetOfSlots());
