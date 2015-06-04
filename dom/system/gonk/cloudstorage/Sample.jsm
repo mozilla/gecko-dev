@@ -82,7 +82,10 @@ Sample.getFileDownload = function (path, offset, size, cb){
   var meta = this._findMeta(path);
   if (meta && typeof meta === 'string') {
     var result = meta.substr(offset, size);
-    cb(null, {data: result});
+    cb(null, {
+      data: result,
+      length: result.length
+    });
   } else {
     cb(null, null);
   }
