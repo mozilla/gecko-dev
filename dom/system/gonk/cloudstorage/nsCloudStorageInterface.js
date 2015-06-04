@@ -53,6 +53,23 @@ nsCloudStorageInterface.prototype = {
       cls = Components.classes["@mozilla.org/cloudstoragegeckointerface;1"];
       instance = cls.createInstance(Components.interfaces.nsICloudStorageGeckoInterface);
       instance.setFileMeta(cloudname, path, response.data.list[0].isdir, response.data.list[0].size, response.data.list[0].mtime, response.data.list[0].ctime);
+      instance.finishRequest(cloudname);
+    });
+  },
+  
+  getFileList: function(cloudname, path) {
+    log("cloudname: " + cloudname + " " + "path: " + path);
+    log("call udManager.getFileList");
+    udManager.getFileList(path, function (error, response) {
+      log(JSON.stringify(response.data));
+      var cls, instance;
+      cls = Components.classes["@mozilla.org/cloudstoragegeckointerface;1"];
+      instance = cls.createInstance(Components.interfaces.nsICloudStorageGeckoInterface);
+      for (var pathIdx = 0; pathIdx < response.data.list.length; pathIdx++ ) {
+         var fileData = response.data.list[pathIdx];
+         instance.setFileList(cloudname, path, fileData.path, fileData.isdir, fileData.size, fileData.mtime, fileData.ctime);
+      }
+      instance.finishRequest(cloudname);
     });
   }
 };

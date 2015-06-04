@@ -9,5 +9,8 @@ interface nsICloudStorageInterface : nsISupports
 {
   void getFileMeta(in AUTF8String cloudname,
                    in AUTF8String path);
+
+  void getFileList(in AUTF8String cloudname,
+                   in AUTF8String path);
 };
 

@@ -52,12 +52,33 @@ public:
       LOG("fail to get csi [%x]", rv);
     }
     if (csi) {
-      LOG("cloud name: %s", mCloudStorage->Name().get());
-      LOG("path: %s", mCloudStorage->RequestData().Path.get());
-      LOG("call GetFileMeta");
-      rv = csi->GetFileMeta(mCloudStorage->Name(), mCloudStorage->RequestData().Path);
-      if (NS_FAILED(rv)) {
-        LOG("fail to call cloudstorageinterface->GetFileMeta(%s) [%x]", mCloudStorage->RequestData().Path.get(), rv);
+      switch (mCloudStorage->RequestData().RequestType) {
+        case FUSE_GETATTR: {
+          LOG("cloud name: %s", mCloudStorage->Name().get());
+          LOG("path: %s", mCloudStorage->RequestData().Path.get());
+          LOG("call GetFileMeta");
+          rv = csi->GetFileMeta(mCloudStorage->Name(), mCloudStorage->RequestData().Path);
+          if (NS_FAILED(rv)) {
+            LOG("fail to call cloudstorageinterface->GetFileMeta(%s) [%x]", mCloudStorage->RequestData().Path.get(), rv);
+          }
+	  break;
+	}
+	case FUSE_READDIR: {
+	  LOG("cloud name: %s", mCloudStorage->Name().get());
+          LOG("path: %s", mCloudStorage->RequestData().Path.get());
+          LOG("call GetFileList");
+          rv = csi->GetFileList(mCloudStorage->Name(), mCloudStorage->RequestData().Path);
+          if (NS_FAILED(rv)) {
+            LOG("fail to call cloudstorageinterface->GetFileMeta(%s) [%x]", mCloudStorage->RequestData().Path.get(), rv);
+          }
+	  break;
+	}
+	default: {
+	  LOG("Unknown request type [%u]", mCloudStorage->RequestData().RequestType);
+	  if (mCloudStorage->IsWaitForRequest()) {
+	    mCloudStorage->SetWaitForRequest(false);
+	  }
+	}
       }
     } else {
       LOG("fail to get cloudstorageinterface");
@@ -422,11 +443,6 @@ CloudStorageRequestHandler::HandleGetAttr(const FuseInHeader *hdr, const FuseGet
   LOG("path: %s", path.get());
 
   FuseAttrOut attrOut;
-
-/*
-  CloudStorageTester tester;
-  tester.GetAttrByPath(path, hdr->nodeid);
-*/
   attrOut.attr.ino = hdr->nodeid;
   attrOut.attr = mCloudStorage->GetAttrByPath(path);
   LOG("attr.size: %llu", attrOut.attr.size);
@@ -672,22 +688,39 @@ CloudStorageRequestHandler::HandleReadDir(const FuseInHeader* hdr, const FuseRea
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
     return -ENOENT; 
   }
-  LOG("path: %s", path.get());
+  LOG("path: %s, offset: %llu", path.get(), req->offset);
   char buffer[8192];
   FuseDirent *fde = (FuseDirent*) buffer;
   fde->ino = FUSE_UNKNOWN_INO;
   fde->off = req->offset + 1;
   nsCString entryName;
-  uint32_t entryType;
-  CloudStorageTester tester;
-  tester.GetEntry(path, req->offset, entryName, entryType);
-  LOG("entry name: %s, entry type: %s", entryName.get(), (entryType == DT_REG)?"file":"directory");
+ 
+  entryName = mCloudStorage->GetEntryByPathAndOffset(path, req->offset);
+  if (entryName.Equals(NS_LITERAL_CSTRING(""))) {
+    CloudStorageRequestData reqData;
+    reqData.RequestType = (uint32_t) FUSE_READDIR;
+    reqData.Path = path;
+    mCloudStorage->SetRequestData(reqData);
+    SendRequestToMainThread();
+    entryName = mCloudStorage->GetEntryByPathAndOffset(path, req->offset);
+  }
 
   if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
     if (entryName.Equals("")) {
+      LOG("No entry");
       return 0;
     }
-    fde->type = entryType;
+    nsCString childPath = path;
+    if (!path.Equals(NS_LITERAL_CSTRING("/"))) {
+      childPath.Append(NS_LITERAL_CSTRING("/"));
+    }
+    childPath.Append(entryName);
+
+    if (S_ISDIR(mCloudStorage->GetAttrByPath(childPath).mode)) {
+      fde->type = DT_DIR;
+    } else {
+      fde->type = DT_REG;
+    }
     fde->namelen = entryName.Length();
     memcpy(fde->name, entryName.get(), fde->namelen + 1);
 

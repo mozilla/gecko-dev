@@ -10,6 +10,7 @@
 #include "nsCOMPtr.h"
 #include "nsRefPtr.h"
 #include "nsDataHashtable.h"
+#include "nsTArray.h"
 #include "fuse.h"
 
 namespace mozilla {
@@ -105,13 +106,20 @@ public:
   void RemoveNIdByPath(nsCString aKey);
 
   FuseAttr GetAttrByPath(nsCString aPath);
-  void SetAttrByPath(nsCString aPath, FuseAttr aAttr);
+  void SetAttrByPath(nsCString aPath, bool aIsDir, uint64_t aSize, uint64_t aMTime, uint64_t aCTime);
   void RemoveAttrByPath(nsCString aPath);
+
+  nsCString GetEntryByPathAndOffset(nsCString aPath, uint64_t aOffset);
+  void AddEntryByPath(nsCString aPath, nsCString aEntry);
+  void RemoveEntryByPath(nsCString aPath, nsCString aEntry);
 
   void StartStorage();
   void StopStorage();
 
 private:
+
+  FuseAttr CreateAttr(bool aIsDir, uint64_t aSize, uint64_t aMTime, uint64_t aCTime);
+
   nsCString mCloudStorageName;
   nsCString mMountPoint;
   eState    mState;
@@ -122,6 +130,7 @@ private:
   nsDataHashtable<nsUint64HashKey, nsCString> mNodeHashTable;
   nsDataHashtable<nsCStringHashKey, uint64_t> mPathHashTable;
   nsDataHashtable<nsCStringHashKey, FuseAttr> mAttrHashTable;
+  nsDataHashtable<nsCStringHashKey, nsTArray<nsCString > > mEntryListHashTable;
 };
 
 } // end namespace cloudstorage
