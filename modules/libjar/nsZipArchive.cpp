@@ -637,17 +637,19 @@ MOZ_WIN_MEM_TRY_BEGIN
     uint16_t namelen = xtoint(central->filename_len);
     uint16_t extralen = xtoint(central->extrafield_len);
     uint16_t commentlen = xtoint(central->commentfield_len);
-
-    // Point to the next item at the top of loop
-    buf += ZIPCENTRAL_SIZE + namelen + extralen + commentlen;
+    uint32_t diff = ZIPCENTRAL_SIZE + namelen + extralen + commentlen;
 
     // Sanity check variable sizes and refuse to deal with
     // anything too big: it's likely a corrupt archive.
     if (namelen < 1 ||
         namelen > kMaxNameLength ||
-        buf >= endp) {
+        buf >= buf + diff || // No overflow
+        buf >= endp - diff) {
       return NS_ERROR_FILE_CORRUPTED;
     }
+
+    // Point to the next item at the top of loop
+    buf += diff;
 
     nsZipItem* item = CreateZipItem();
     if (!item)
@@ -779,7 +781,7 @@ MOZ_WIN_MEM_TRY_BEGIN
   uint32_t len = mFd->mLen;
   const uint8_t* data = mFd->mFileData;
   uint32_t offset = aItem->LocalOffset();
-  if (offset + ZIPLOCAL_SIZE > len)
+  if (len < ZIPLOCAL_SIZE || offset > len - ZIPLOCAL_SIZE)
     return nullptr;
 
   // -- check signature before using the structure, in case the zip file is corrupt
@@ -795,7 +797,8 @@ MOZ_WIN_MEM_TRY_BEGIN
             xtoint(Local->extrafield_len);
 
   // -- check if there is enough source data in the file
-  if (offset + aItem->Size() > len)
+  if (len < aItem->Size() ||
+      offset > len - aItem->Size())
     return nullptr;
 
   return data + offset;
