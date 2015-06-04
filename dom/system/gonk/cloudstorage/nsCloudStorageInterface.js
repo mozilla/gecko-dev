@@ -52,7 +52,9 @@ nsCloudStorageInterface.prototype = {
       var cls, instance;
       cls = Components.classes["@mozilla.org/cloudstoragegeckointerface;1"];
       instance = cls.createInstance(Components.interfaces.nsICloudStorageGeckoInterface);
-      instance.setFileMeta(cloudname, path, response.data.list[0].isdir, response.data.list[0].size, response.data.list[0].mtime, response.data.list[0].ctime);
+      if (response.data) {
+        instance.setFileMeta(cloudname, path, response.data.list[0].isdir, response.data.list[0].size, response.data.list[0].mtime, response.data.list[0].ctime);
+      }
       instance.finishRequest(cloudname);
     });
   },
