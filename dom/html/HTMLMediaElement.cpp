@@ -867,7 +867,8 @@ void HTMLMediaElement::SelectResource()
         "Should think we're not loading from source children by default");
 
       mLoadingSrc = uri;
-      if (mPreloadAction == HTMLMediaElement::PRELOAD_NONE) {
+      if (mPreloadAction == HTMLMediaElement::PRELOAD_NONE &&
+          !IsMediaStreamURI(mLoadingSrc)) {
         // preload:none media, suspend the load here before we make any
         // network requests.
         SuspendLoad();
@@ -1012,7 +1013,8 @@ void HTMLMediaElement::LoadFromSourceChildren()
     NS_ASSERTION(mNetworkState == nsIDOMHTMLMediaElement::NETWORK_LOADING,
                  "Network state should be loading");
 
-    if (mPreloadAction == HTMLMediaElement::PRELOAD_NONE) {
+    if (mPreloadAction == HTMLMediaElement::PRELOAD_NONE &&
+        !IsMediaStreamURI(mLoadingSrc)) {
       // preload:none media, suspend the load here before we make any
       // network requests.
       SuspendLoad();
