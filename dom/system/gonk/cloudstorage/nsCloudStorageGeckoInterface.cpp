@@ -76,3 +76,15 @@ nsCloudStorageGeckoInterface::SetFileList(const nsACString_internal& aCloudName,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsCloudStorageGeckoInterface::SetData(const nsACString_internal& aCloudName,
+                                      const nsACString_internal& aBuffer,
+                                      int32_t aSize)
+{
+  nsCString cloudName(aCloudName);
+  nsCString buffer(aBuffer);
+
+  RefPtr<CloudStorage> cloudStorage = CloudStorageManager::FindCloudStorageByName(cloudName);
+  cloudStorage->SetDataBuffer(buffer.get(), aSize);
+  return NS_OK;
+}
