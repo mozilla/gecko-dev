@@ -27,13 +27,13 @@ function log(msg) {
   dump('CloudStorage: ' + msg + '\n');
 }
 
-function nsCloudStorageInterface() { 
+function nsCloudStorageInterface() {
   log("nsCloudStorageInterface constructor");
   log("call udManager.init()");
   udManager.init({
       accessToken:
         'kR1EcZML0N4AAAAAAAAAR7FkWBgDSVFk17g3--pNIBv0sR_gs85HlSkHAo8q_6-N',
-      webStorageModule: Dropbox,
+      webStorageModule: Sample,
       metaCacheModule: MetaCache,
       dataCacheModule: DataCache
   })
@@ -58,7 +58,7 @@ nsCloudStorageInterface.prototype = {
       instance.finishRequest(cloudname);
     });
   },
-  
+
   getFileList: function(cloudname, path) {
     log("cloudname: " + cloudname + " " + "path: " + path);
     log("call udManager.getFileList");

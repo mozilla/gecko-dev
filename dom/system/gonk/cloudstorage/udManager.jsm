@@ -2,6 +2,9 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import('resource://gre/modules/foco.jsm');
 const { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
+Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'setTimeout',
+  'resource://gre/modules/Timer.jsm');
 
 var UD_BLOCK_SIZE = 1*1024*1024;
 var UD_QUEUE_SIZE = 3;
@@ -242,7 +245,7 @@ udManager.downloadFileInRange = function(path, offset, size, cb) {
 			if(error){
 				console.log('[ERROR] retry, error happened: ' + error);
 				setTimeout(retry , 800);
-			}else if( !response || !response.data || !response.data instanceof Buffer ){
+			}else if( !response || !response.data || !response.data instanceof ArrayBuffer ){
 				console.log('[ERROR] retry, error response: ' + response);
 				setTimeout(retry , 800);
 			}else if( size != response.length ){
