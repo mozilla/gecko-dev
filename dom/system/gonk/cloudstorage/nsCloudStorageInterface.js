@@ -27,13 +27,13 @@ function log(msg) {
   dump('CloudStorage: ' + msg + '\n');
 }
 
-function nsCloudStorageInterface() {
+function nsCloudStorageInterface() { 
   log("nsCloudStorageInterface constructor");
   log("call udManager.init()");
   udManager.init({
       accessToken:
-        'SAMPLE_ACCESS_TOKEN',
-      webStorageModule: Sample,
+        'kR1EcZML0N4AAAAAAAAAR7FkWBgDSVFk17g3--pNIBv0sR_gs85HlSkHAo8q_6-N',
+      webStorageModule: Dropbox,
       metaCacheModule: MetaCache,
       dataCacheModule: DataCache
   })
@@ -58,7 +58,7 @@ nsCloudStorageInterface.prototype = {
       instance.finishRequest(cloudname);
     });
   },
-
+  
   getFileList: function(cloudname, path) {
     log("cloudname: " + cloudname + " " + "path: " + path);
     log("call udManager.getFileList");
@@ -71,6 +71,19 @@ nsCloudStorageInterface.prototype = {
          var fileData = response.data.list[pathIdx];
          instance.setFileList(cloudname, path, fileData.path, fileData.isdir, fileData.size, fileData.mtime, fileData.ctime);
       }
+      instance.finishRequest(cloudname);
+    });
+  },
+
+  getData: function(cloudname, path, size, offset) {
+    log("cloudname: " + cloudname + " " + "path: " + path);
+    log("call udManager.downloadFileInRange");
+    var buffer;
+    udManager.downloadFileInRangeByCache(path, buffer, offset, size, function () {
+      var cls, instance;
+      cls = Components.classes["@mozilla.org/cloudstoragegeckointerface;1"];
+      instance = cls.createInstance(Components.interfaces.nsICloudStorageGeckoInterface);
+      log(JSON.stringify(buffer));
       instance.finishRequest(cloudname);
     });
   }

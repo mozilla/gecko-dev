@@ -12,5 +12,10 @@ interface nsICloudStorageInterface : nsISupports
 
   void getFileList(in AUTF8String cloudname,
                    in AUTF8String path);
+
+  void getData(in AUTF8String cloudname,
+               in AUTF8String path,
+               in unsigned long long size,
+               in unsigned long long offset);
 };
 
