@@ -27,7 +27,7 @@ function log(msg) {
   dump('CloudStorage: ' + msg + '\n');
 }
 
-function nsCloudStorageInterface() {
+function nsCloudStorageInterface() { 
   log("nsCloudStorageInterface constructor");
   log("call udManager.init()");
   udManager.init({
@@ -58,7 +58,7 @@ nsCloudStorageInterface.prototype = {
       instance.finishRequest(cloudname);
     });
   },
-
+  
   getFileList: function(cloudname, path) {
     log("cloudname: " + cloudname + " " + "path: " + path);
     log("call udManager.getFileList");
@@ -78,12 +78,13 @@ nsCloudStorageInterface.prototype = {
   getData: function(cloudname, path, size, offset) {
     log("cloudname: " + cloudname + " " + "path: " + path);
     log("call udManager.downloadFileInRange");
-    var buffer;
+    var buffer = new Uint8Array(size);
     udManager.downloadFileInRangeByCache(path, buffer, offset, size, function () {
       var cls, instance;
       cls = Components.classes["@mozilla.org/cloudstoragegeckointerface;1"];
       instance = cls.createInstance(Components.interfaces.nsICloudStorageGeckoInterface);
       log(JSON.stringify(buffer));
+      instance.setData(cloudname, buffer.toString(), buffer.byteLength);
       instance.finishRequest(cloudname);
     });
   }

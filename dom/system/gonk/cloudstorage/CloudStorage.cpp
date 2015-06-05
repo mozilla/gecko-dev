@@ -280,6 +280,14 @@ CloudStorage::GetEntryByPathAndOffset(nsCString aPath, uint64_t aOffset)
   return NS_LITERAL_CSTRING("");
 }
 
+void
+CloudStorage::SetDataBuffer(const char* aBuffer, int32_t aSize)
+{
+  mBufferSize = aSize;
+  memset(mBuffer, 0, 8912);
+  memcpy(mBuffer, aBuffer, aSize);
+}
+
 } // end namespace cloudstorage
 } // end namespace system
 } // end namespace mozilla

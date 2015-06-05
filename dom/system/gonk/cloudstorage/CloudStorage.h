@@ -97,7 +97,7 @@ public:
   void SetResponseData(const CloudStorageResponseData& aData) { mResponseData = aData; }
   CloudStorageResponseData ResponseData() { return mResponseData; }
 
-  
+
   nsCString GetPathByNId(uint64_t aKey);
   void PutPathByNId(uint64_t aKey, nsCString aPath);
   void RemovePathByNId(uint64_t aKey);
@@ -116,6 +116,10 @@ public:
   void StartStorage();
   void StopStorage();
 
+  void SetDataBuffer(const char* buffer, int32_t size);
+  const char* DataBuffer() { return mBuffer; }
+  int32_t DataBufferSize() { return mBufferSize; }
+
 private:
 
   FuseAttr CreateAttr(bool aIsDir, uint64_t aSize, uint64_t aMTime, uint64_t aCTime);
@@ -131,6 +135,8 @@ private:
   nsDataHashtable<nsCStringHashKey, uint64_t> mPathHashTable;
   nsDataHashtable<nsCStringHashKey, FuseAttr> mAttrHashTable;
   nsDataHashtable<nsCStringHashKey, nsTArray<nsCString > > mEntryListHashTable;
+  char mBuffer[8912];
+  int32_t mBufferSize;
 };
 
 } // end namespace cloudstorage

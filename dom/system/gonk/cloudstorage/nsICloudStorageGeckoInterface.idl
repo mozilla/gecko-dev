@@ -10,17 +10,21 @@ interface nsICloudStorageGeckoInterface : nsISupports
   void setFileMeta(in AUTF8String cloudname,
                    in AUTF8String path,
                    in boolean isDir,
-		   in unsigned long long size,
-		   in unsigned long long mtime,
-		   in unsigned long long ctime);
-  
+                   in unsigned long long size,
+                   in unsigned long long mtime,
+                   in unsigned long long ctime);
+
   void setFileList(in AUTF8String cloudname,
                    in AUTF8String path,
-		   in AUTF8String childpath,
+                   in AUTF8String childpath,
                    in boolean isdir,
-		   in unsigned long long size,
-		   in unsigned long long mtime,
-		   in unsigned long long ctime);
+                   in unsigned long long size,
+                   in unsigned long long mtime,
+                   in unsigned long long ctime);
+
+  void setData(in AUTF8String cloudname,
+               in AUTF8String buffer,
+               in long size);
 
   void finishRequest(in AUTF8String cloudname);
  
