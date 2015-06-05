@@ -45,45 +45,56 @@ public:
   nsresult Run()
   {     
     nsresult rv;
-    nsCOMPtr<nsICloudStorageInterface> csi = do_CreateInstance(
-                                                "@mozilla.org/cloudstorageinterface;1", &rv);
-    if (NS_FAILED(rv)) {
-      LOG("fail to get csi [%x]", rv);
-    }
-    if (csi) {
-      switch (mCloudStorage->RequestData().RequestType) {
-        case FUSE_GETATTR: {
-          rv = csi->GetFileMeta(mCloudStorage->Name(), mCloudStorage->RequestData().Path);
-          if (NS_FAILED(rv)) {
-            LOG("fail to call cloudstorageinterface->GetFileMeta(%s) [%x]", mCloudStorage->RequestData().Path.get(), rv);
-          }
-          break;
-        }
-        case FUSE_READDIR: {
-          rv = csi->GetFileList(mCloudStorage->Name(), mCloudStorage->RequestData().Path);
-          if (NS_FAILED(rv)) {
-            LOG("fail to call cloudstorageinterface->GetFileList(%s) [%x]", mCloudStorage->RequestData().Path.get(), rv);
-          }
-          break;
-        }
-        case FUSE_READ: {
-          break;
-        }
-        default: {
-          LOG("Unknown request type [%u]", mCloudStorage->RequestData().RequestType);
-          if (mCloudStorage->IsWaitForRequest()) {
+//    if (!mInterface) {
+      nsCOMPtr<nsICloudStorageInterface > mInterface = do_CreateInstance("@mozilla.org/cloudstorageinterface;1", &rv);
+      if (NS_FAILED(rv)) {
+        LOG("fail to get cloudstorageinterface [%x]", rv);
+        if (mCloudStorage->IsWaitForRequest()) {
           mCloudStorage->SetWaitForRequest(false);
-          }
+        }
+        return NS_OK;
+      }
+//    }
+    switch (mCloudStorage->RequestData().RequestType) {
+      case FUSE_GETATTR: {
+        rv = mInterface->GetFileMeta(mCloudStorage->Name(), mCloudStorage->RequestData().Path);
+        if (NS_FAILED(rv)) {
+          LOG("fail to call cloudstorageinterface->GetFileMeta(%s) [%x]", mCloudStorage->RequestData().Path.get(), rv);
+        }
+        break;
+      }
+      case FUSE_READDIR: {
+        rv = mInterface->GetFileList(mCloudStorage->Name(), mCloudStorage->RequestData().Path);
+        if (NS_FAILED(rv)) {
+          LOG("fail to call cloudstorageinterface->GetFileList(%s) [%x]", mCloudStorage->RequestData().Path.get(), rv);
+        }
+        break;
+      }
+      case FUSE_READ: {
+        rv = mInterface->GetData(mCloudStorage->Name(),
+	                         mCloudStorage->RequestData().Path,
+                                 mCloudStorage->RequestData().Size,
+                                 mCloudStorage->RequestData().Offset);
+	if (NS_FAILED(rv)) {
+	  LOG("fail to call cloudstroageinterface->GetData(%s, %u, %llu) [%x]", mCloudStorage->RequestData().Path.get(), mCloudStorage->RequestData().Size, mCloudStorage->RequestData().Offset, rv);
+	}
+        break;
+      }
+      default: {
+        LOG("Unknown request type [%u]", mCloudStorage->RequestData().RequestType);
+        if (mCloudStorage->IsWaitForRequest()) {
+          mCloudStorage->SetWaitForRequest(false);
         }
       }
-    } else {
-      LOG("fail to get cloudstorageinterface");
     }
     return NS_OK;
   }
 private:
   CloudStorage* mCloudStorage;
+//  static nsCOMPtr<nsICloudStorageInterface> mInterface;
 };
+
+// nsCOMPtr<nsICloudStorageInterface> CloudStorageRequestRunnable::mInterface = NULL;
 
 CloudStorageRequestHandler::CloudStorageRequestHandler(CloudStorage* aCloudStorage)
   : mCloudStorage(aCloudStorage),
@@ -527,6 +538,9 @@ CloudStorageRequestHandler::HandleOpen(const FuseInHeader* hdr, const FuseOpenIn
   out.open_flags = 0;
   out.padding = 0;
 
+  CloudStorageTester tester;
+  tester.Open(path, out.fh);
+
   if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
     FuseOutHeader outhdr;
     struct iovec vec[2];
@@ -554,14 +568,14 @@ CloudStorageRequestHandler::HandleRead(const FuseInHeader* hdr, const FuseReadIn
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
     return -ENOENT; 
   }
-  LOG("path: %s, nodeid: %llx, size: %d, offset: %d", path.get(), hdr->nodeid, req->size, (int)req->offset);
+  LOG("path: %s, nodeid: %llu, size: %d, offset: %d", path.get(), hdr->nodeid, req->size, (int)req->offset);
 
   char* buffer = (char*)malloc(sizeof(char)*req->size);
   int32_t size = -1;
 
   CloudStorageTester tester;
   tester.GetData(req->fh, req->size, req->offset, buffer, size);  
-
+  
   CloudStorageRequestData reqData;
   reqData.RequestType = (uint32_t) FUSE_READ;
   reqData.Path = path;
@@ -569,6 +583,7 @@ CloudStorageRequestHandler::HandleRead(const FuseInHeader* hdr, const FuseReadIn
   reqData.Offset = req->offset;
   mCloudStorage->SetRequestData(reqData);
   SendRequestToMainThread();
+  
 
   if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
     if (size < 0) {
@@ -723,6 +738,8 @@ CloudStorageRequestHandler::HandleReadDir(const FuseInHeader* hdr, const FuseRea
     }
     fde->namelen = entryName.Length();
     memcpy(fde->name, entryName.get(), fde->namelen + 1);
+
+    LOG("entry: %s, type: %s", entryName.get(), fde->type == DT_DIR ? "directory" : "file");
 
     FuseOutHeader outhdr;
     struct iovec vec[2];
