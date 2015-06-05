@@ -1,6 +1,6 @@
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
-Cu.import('resource://gre/modules/async.jsm');
+Cu.import('resource://gre/modules/foco.jsm');
 const { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 
 var UD_BLOCK_SIZE = 1*1024*1024;
@@ -19,7 +19,7 @@ udManager._isIllegalFileName = function (path) {
 	return false;
 }
 
-udManager.queueHandler = function (task, callback) {
+udManager.queueHandler = function (id, task, callback) {
 	console.log('  [B] ' + task.path + "|" + task.offset + '| downloading...');
 	var self = this;
 	task.status = "DOWNLOADING";
@@ -43,7 +43,7 @@ udManager.init = function(options){
 	});
 	this.metaCache.init();
 	this.dataCache.init(UD_BLOCK_SIZE);
-	this.FileDownloadQueue = async.queue(
+	this.FileDownloadQueue = foco.priorityQueue(
 		this.queueHandler.bind(this), UD_QUEUE_SIZE);
 }
 
@@ -181,25 +181,22 @@ udManager._isAllRequestDone = function (downloadRequest){
 
 udManager._requestPushAndDownload = function (path, downloadRequest, cb){
 	var self = this;
-	async.each(downloadRequest, function(task, callback){
+	foco.each(downloadRequest, function(index, task, callback){
 		var taskMd5sum = task.md5sum;
 		var data = self.dataCache.get(taskMd5sum);
 
 		if (data) {
 			console.log('  [C1] ' + data.path + " is in cache: " + data.status + "| " + task.offset);
+			udManager.FileDownloadQueue.priorityChange(taskMd5sum, 0);
 			callback();
 		} else if ( task.priority === "PREFETCH" ) {
 			self.dataCache.update(taskMd5sum, task);
-			udManager.FileDownloadQueue.push(task, function (err){
-				console.log('  [C3] ' + 'pushed task is done.');
-			});
+			udManager.FileDownloadQueue.push(taskMd5sum, 1, task);
 			callback();
 		}else{
 			self.dataCache.update(taskMd5sum, task);
-			udManager.FileDownloadQueue.push(task, function (err){
-				console.log('  [C2] ' + 'pushed task is done.');
-				callback();
-			});
+			udManager.FileDownloadQueue.push(taskMd5sum, 0, task);
+			callback();
 		}
 	}, function(err){
 		// Verify the download request is all finished or not.
@@ -271,7 +268,7 @@ udManager.downloadFileInMultiRange = function(path, list, cb) {
 	}else{
 		listArray = list.list;
 	}
-	async.each(listArray, function(item, callback){
+	foco.each(listArray, function(index, item, callback){
 		udManager.downloadFileInRange(path, item.offset, item.size, function(error, response){
 			console.log(response.data);
 			callback();

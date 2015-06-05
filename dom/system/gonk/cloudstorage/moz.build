@@ -42,10 +42,10 @@ EXTRA_COMPONENTS += [
 ]
 
 EXTRA_JS_MODULES += [
-    'async.jsm',
     'CloudStorage.jsm',
     'DataCache.jsm',
     'Dropbox.jsm',
+    'foco.jsm',
     'MemoryDataStore.jsm',
     'MetaCache.jsm',
     'Sample.jsm',
