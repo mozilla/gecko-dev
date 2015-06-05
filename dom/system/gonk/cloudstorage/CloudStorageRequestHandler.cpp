@@ -19,7 +19,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
-#include <sys/time.h> 
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/uio.h>
@@ -43,7 +43,7 @@ public:
   }
 
   nsresult Run()
-  {     
+  {
     nsresult rv;
 //    if (!mInterface) {
       nsCOMPtr<nsICloudStorageInterface > mInterface = do_CreateInstance("@mozilla.org/cloudstorageinterface;1", &rv);
@@ -142,7 +142,7 @@ CloudStorageRequestHandler::Init()
   mFuseHandler = new FuseHandler();
   mFuseHandler->fuse = mFuse;
   mFuseHandler->token = 0;
-  
+
   umask(0);
 }
 
@@ -376,7 +376,7 @@ CloudStorageRequestHandler::HandleLookup(const FuseInHeader *hdr, const char* na
   LOG("Lookup");
   nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
-    return -ENOENT; 
+    return -ENOENT;
   }
   LOG("path: %s, passed name %s", path.get(), name);
   nsCString childpath = path;
@@ -389,7 +389,7 @@ CloudStorageRequestHandler::HandleLookup(const FuseInHeader *hdr, const char* na
   if (childnid == 0) {
     return -ENOMEM;
   }
-    
+
   FuseEntryOut out;
   out.attr.ino = hdr->nodeid;
   out.attr = mCloudStorage->GetAttrByPath(childpath);
@@ -430,19 +430,19 @@ CloudStorageRequestHandler::HandleLookup(const FuseInHeader *hdr, const char* na
 }
 
 int
-CloudStorageRequestHandler::HandleForget(const FuseInHeader *hdr, const FuseForgetIn *req) 
+CloudStorageRequestHandler::HandleForget(const FuseInHeader *hdr, const FuseForgetIn *req)
 {
   LOG("Forget");
   return CLOUD_STORAGE_NO_STATUS;
 }
 
 int
-CloudStorageRequestHandler::HandleGetAttr(const FuseInHeader *hdr, const FuseGetAttrIn* req) 
+CloudStorageRequestHandler::HandleGetAttr(const FuseInHeader *hdr, const FuseGetAttrIn* req)
 {
   LOG("GetAttr");
   nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
-    return -ENOENT; 
+    return -ENOENT;
   }
   LOG("path: %s", path.get());
 
@@ -528,7 +528,7 @@ CloudStorageRequestHandler::HandleOpen(const FuseInHeader* hdr, const FuseOpenIn
   LOG("Open");
   nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
-    return -ENOENT; 
+    return -ENOENT;
   }
   LOG("path: %s", path.get());
 
@@ -538,8 +538,8 @@ CloudStorageRequestHandler::HandleOpen(const FuseInHeader* hdr, const FuseOpenIn
   out.open_flags = 0;
   out.padding = 0;
 
-  CloudStorageTester tester;
-  tester.Open(path, out.fh);
+  //CloudStorageTester tester;
+  //tester.Open(path, out.fh);
 
   if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
     FuseOutHeader outhdr;
@@ -566,16 +566,16 @@ CloudStorageRequestHandler::HandleRead(const FuseInHeader* hdr, const FuseReadIn
   LOG("Read");
   nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
-    return -ENOENT; 
+    return -ENOENT;
   }
   LOG("path: %s, nodeid: %llu, size: %d, offset: %d", path.get(), hdr->nodeid, req->size, (int)req->offset);
 
   char* buffer = (char*)malloc(sizeof(char)*req->size);
   int32_t size = -1;
 
-  CloudStorageTester tester;
-  tester.GetData(req->fh, req->size, req->offset, buffer, size);  
-  
+  //CloudStorageTester tester;
+  //tester.GetData(req->fh, req->size, req->offset, buffer, size);
+
   CloudStorageRequestData reqData;
   reqData.RequestType = (uint32_t) FUSE_READ;
   reqData.Path = path;
@@ -583,7 +583,7 @@ CloudStorageRequestHandler::HandleRead(const FuseInHeader* hdr, const FuseReadIn
   reqData.Offset = req->offset;
   mCloudStorage->SetRequestData(reqData);
   SendRequestToMainThread();
-  
+
 
   if (mCloudStorage->State() == CloudStorage::STATE_RUNNING) {
     if (size < 0) {
@@ -628,12 +628,12 @@ CloudStorageRequestHandler::HandleRelease(const FuseInHeader* hdr, const FuseRel
   LOG("Release");
   nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
-    return -ENOENT; 
+    return -ENOENT;
   }
   LOG("path: %s", path.get());
 
-  CloudStorageTester tester;
-  tester.Close(req->fh);
+  //CloudStorageTester tester;
+  //tester.Close(req->fh);
   return 0;
 }
 
@@ -651,7 +651,7 @@ CloudStorageRequestHandler::HandleFlush(const FuseInHeader* hdr)
 
   nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
-    return -ENOENT; 
+    return -ENOENT;
   }
   LOG("path: %s", path.get());
 
@@ -666,7 +666,7 @@ CloudStorageRequestHandler::HandleOpenDir(const FuseInHeader* hdr, const FuseOpe
 
   nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
-    return -ENOENT; 
+    return -ENOENT;
   }
   LOG("path: %s", path.get());
   FuseOpenOut out;
@@ -701,7 +701,7 @@ CloudStorageRequestHandler::HandleReadDir(const FuseInHeader* hdr, const FuseRea
   LOG("ReadDir");
   nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
-    return -ENOENT; 
+    return -ENOENT;
   }
   LOG("path: %s, offset: %llu", path.get(), req->offset);
   char buffer[8192];
@@ -709,7 +709,7 @@ CloudStorageRequestHandler::HandleReadDir(const FuseInHeader* hdr, const FuseRea
   fde->ino = FUSE_UNKNOWN_INO;
   fde->off = req->offset + 1;
   nsCString entryName;
- 
+
   entryName = mCloudStorage->GetEntryByPathAndOffset(path, req->offset);
   if (entryName.Equals(NS_LITERAL_CSTRING(""))) {
     CloudStorageRequestData reqData;
@@ -765,7 +765,7 @@ CloudStorageRequestHandler::HandleReleaseDir(const FuseInHeader* hdr, const Fuse
   LOG("ReleaseDir");
   nsCString path = mCloudStorage->GetPathByNId(hdr->nodeid);
   if (path.Equals(NS_LITERAL_CSTRING(""))) {
-    return -ENOENT; 
+    return -ENOENT;
   }
   LOG("path: %s", path.get());
   uint64_t* handle = (uint64_t*)(uintptr_t) req->fh;

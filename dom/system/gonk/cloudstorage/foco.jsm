@@ -1,4 +1,9 @@
 this.EXPORTED_SYMBOLS = ['foco'];
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'setTimeout',
+  'resource://gre/modules/Timer.jsm');
+
 var self = this;
 (function (){
   var foco = {};
