@@ -87,6 +87,14 @@ static const char kEnd_Entity_Test_CertFingerprint[] =
 static const char kEntrust_Root_Certification_AuthorityFingerprint[] =
   "bb+uANN7nNc/j7R95lkXrwDg3d9C286sIMF8AnXuIJU=";
 
+/* Entrust Root Certification Authority - EC1 */
+static const char kEntrust_Root_Certification_Authority___EC1Fingerprint[] =
+  "/qK31kX7pz11PB7Jp4cMQOH3sMVh6Se5hb9xGGbjbyI=";
+
+/* Entrust Root Certification Authority - G2 */
+static const char kEntrust_Root_Certification_Authority___G2Fingerprint[] =
+  "du6FkDdMcVQ3u8prumAo6t3i3G27uMP2EOhR8R0at/U=";
+
 /* Entrust.net Premium 2048 Secure Server CA */
 static const char kEntrust_net_Premium_2048_Secure_Server_CAFingerprint[] =
   "HqPF5D7WbC2imDpCpKebHpBnhs6fG1hiFBmgBGOofTg=";
@@ -110,14 +118,6 @@ static const char kFacebookBackupFingerprint[] =
 /* GOOGLE_PIN_DigiCertECCSecureServerCA */
 static const char kGOOGLE_PIN_DigiCertECCSecureServerCAFingerprint[] =
   "PZXN3lRAy+8tBKk2Ox6F7jIlnzr2Yzmwqc3JnyfXoCw=";
-
-/* GOOGLE_PIN_EntrustRootEC1 */
-static const char kGOOGLE_PIN_EntrustRootEC1Fingerprint[] =
-  "/qK31kX7pz11PB7Jp4cMQOH3sMVh6Se5hb9xGGbjbyI=";
-
-/* GOOGLE_PIN_Entrust_G2 */
-static const char kGOOGLE_PIN_Entrust_G2Fingerprint[] =
-  "du6FkDdMcVQ3u8prumAo6t3i3G27uMP2EOhR8R0at/U=";
 
 /* GOOGLE_PIN_Entrust_SSL */
 static const char kGOOGLE_PIN_Entrust_SSLFingerprint[] =
@@ -624,7 +624,7 @@ static const char* kPinset_twitterCDN_sha256_Data[] = {
   kEntrust_Root_Certification_AuthorityFingerprint,
   kVerisign_Class_2_Public_Primary_Certification_Authority___G3Fingerprint,
   kGlobalSign_Root_CA___R3Fingerprint,
-  kGOOGLE_PIN_Entrust_G2Fingerprint,
+  kEntrust_Root_Certification_Authority___G2Fingerprint,
   kGeoTrust_Universal_CA_2Fingerprint,
   kGeoTrust_Global_CAFingerprint,
   kGlobalSign_Root_CA___R2Fingerprint,
@@ -650,7 +650,7 @@ static const StaticPinset kPinset_twitterCDN = {
 };
 
 static const char* kPinset_dropbox_sha256_Data[] = {
-  kGOOGLE_PIN_EntrustRootEC1Fingerprint,
+  kEntrust_Root_Certification_Authority___EC1Fingerprint,
   kGOOGLE_PIN_ThawtePremiumServerFingerprint,
   kthawte_Primary_Root_CA___G3Fingerprint,
   kthawte_Primary_Root_CAFingerprint,
@@ -663,7 +663,7 @@ static const char* kPinset_dropbox_sha256_Data[] = {
   kDigiCert_High_Assurance_EV_Root_CAFingerprint,
   kthawte_Primary_Root_CA___G2Fingerprint,
   kEntrust_Root_Certification_AuthorityFingerprint,
-  kGOOGLE_PIN_Entrust_G2Fingerprint,
+  kEntrust_Root_Certification_Authority___G2Fingerprint,
   kGeoTrust_Global_CAFingerprint,
   kGeoTrust_Primary_Certification_Authority___G3Fingerprint,
   kDigiCert_Global_Root_CAFingerprint,
@@ -1018,6 +1018,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "goto.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "groups.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "gstatic.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "gvt2.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "gvt3.com", true, false, false, -1, &kPinset_google_root_pems },
   { "hangouts.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "history.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "hostedtalkgadget.google.com", true, false, false, -1, &kPinset_google_root_pems },
@@ -1089,8 +1091,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "ytimg.com", true, false, false, -1, &kPinset_google_root_pems },
 };
 
-// Pinning Preload List Length = 350;
+// Pinning Preload List Length = 352;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1441448608050000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1442053098965000);
