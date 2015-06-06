@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1443866959602000);
+const PRTime gPreloadListExpirationTime = INT64_C(1444471769795000);
 
 class nsSTSPreload
 {
@@ -21,7 +21,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "accounts.firefox.com", true },
   { "accounts.google.com", true },
   { "aclu.org", false },
-  { "activiti.alfresco.com", false },
   { "adamkostecki.de", true },
   { "addvocate.com", true },
   { "admin.google.com", true },
@@ -187,6 +186,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "groups.google.com", true },
   { "guphi.net", true },
   { "guthabenkarten-billiger.de", true },
+  { "hackerone-user-content.com", true },
   { "hackerone.com", true },
   { "harvestapp.com", true },
   { "hasilocke.de", true },
@@ -293,7 +293,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "munich-rage.de", true },
   { "musicgamegalaxy.de", true },
   { "mutantmonkey.sexy", true },
-  { "mwe.st", true },
+  { "mwe.st", false },
   { "my.onlime.ch", false },
   { "my.xero.com", false },
   { "mylookout.com", false },
@@ -436,7 +436,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "trauertexte.info", true },
   { "tunebitfm.de", true },
   { "twitter.com", false },
-  { "ub3rk1tten.com", true },
+  { "ub3rk1tten.com", false },
   { "ubertt.org", true },
   { "ukrainians.ch", true },
   { "unterfrankenclan.de", true },
