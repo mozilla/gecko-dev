@@ -1,6 +1,7 @@
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import('resource://gre/modules/MemoryDataStore.jsm');
+const { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 
 var DataCache = {};
 
@@ -112,10 +113,19 @@ DataCache.readCache = function (path, buffer, offset, size, requestList, cb){
 };
 
 DataCache.generateKey = function (task){
-  var crypto = require('crypto');
-  var name = task.path + '' + task.offset + '';
-  var hash = crypto.createHash('md5').update(name).digest('hex');
-  return hash;
+  function hashCode(str) {
+    var hash = 0, i, chr, len;
+    if (str.length == 0) return hash;
+    for (i = 0, len = str.length; i < len; i++) {
+      chr   = str.charCodeAt(i);
+      hash  = ((hash << 5) - hash) + chr;
+      hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+  }
+
+  var obscured = task.path.replace(/\//g, ':');
+  return hashCode(task.path) + '@' + obscured + '@' + task.offset;
 };
 
 this.EXPORTED_SYMBOLS = ['DataCache'];
