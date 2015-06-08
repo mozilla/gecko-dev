@@ -1299,7 +1299,7 @@ class RetryDecodeRunnable : public nsRunnable
 {
 public:
   RetryDecodeRunnable(RasterImage* aImage,
-                      const IntSize& aSize,
+                      const nsIntSize& aSize,
                       uint32_t aFlags)
     : mImage(aImage)
     , mSize(aSize)
@@ -1316,7 +1316,7 @@ public:
 
 private:
   nsRefPtr<RasterImage> mImage;
-  const IntSize mSize;
+  const nsIntSize mSize;
   const uint32_t mFlags;
 };
 
