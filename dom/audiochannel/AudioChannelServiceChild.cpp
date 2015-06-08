@@ -74,8 +74,8 @@ AudioChannelServiceChild::~AudioChannelServiceChild()
 AudioChannelState
 AudioChannelServiceChild::GetState(AudioChannelAgent* aAgent, bool aElementHidden)
 {
-  AudioChannelAgentData* data = Find(aAgent);
-  if (!data) {
+  AudioChannelAgentData* data;
+  if (!mAgents.Get(aAgent, &data)) {
     return AUDIO_CHANNEL_STATE_MUTED;
   }
 
@@ -131,8 +131,8 @@ AudioChannelServiceChild::RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
 void
 AudioChannelServiceChild::UnregisterAudioChannelAgent(AudioChannelAgent* aAgent)
 {
-  AudioChannelAgentData* pData = Find(aAgent);
-  if (!pData) {
+  AudioChannelAgentData *pData;
+  if (!mAgents.Get(aAgent, &pData)) {
     return;
   }
 
