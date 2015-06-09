@@ -666,6 +666,7 @@ VFY_Begin
 VFY_CreateContext
 VFY_DestroyContext
 VFY_End
+VFY_EndWithSignature
 VFY_Update
 VFY_VerifyDataDirect
 VFY_VerifyDataWithAlgorithmID
