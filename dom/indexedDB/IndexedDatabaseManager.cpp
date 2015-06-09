@@ -107,6 +107,8 @@ END_INDEXEDDB_NAMESPACE
 
 namespace {
 
+NS_DEFINE_IID(kIDBRequestIID, PRIVATE_IDBREQUEST_IID);
+
 mozilla::StaticRefPtr<IndexedDatabaseManager> gDBManager;
 
 mozilla::Atomic<bool> gInitialized(false);
