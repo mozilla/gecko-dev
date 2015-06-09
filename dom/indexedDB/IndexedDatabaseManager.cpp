@@ -318,19 +318,31 @@ IndexedDatabaseManager::FireWindowOnError(nsPIDOMWindow* aOwner,
     return NS_OK;
   }
 
+  Event* internalEvent = aVisitor.mDOMEvent->InternalDOMEvent();
+  MOZ_ASSERT(internalEvent);
+
+  if (!internalEvent->IsTrusted()) {
+    return NS_OK;
+  }
+
   nsString type;
-  nsresult rv = aVisitor.mDOMEvent->GetType(type);
+  nsresult rv = internalEvent->GetType(type);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!type.EqualsLiteral(ERROR_EVT_STR)) {
     return NS_OK;
   }
 
-  nsCOMPtr<EventTarget> eventTarget =
-    aVisitor.mDOMEvent->InternalDOMEvent()->GetTarget();
+  nsCOMPtr<EventTarget> eventTarget = internalEvent->GetTarget();
+  MOZ_ASSERT(eventTarget);
 
-  IDBRequest* request = static_cast<IDBRequest*>(eventTarget.get());
-  NS_ENSURE_TRUE(request, NS_ERROR_UNEXPECTED);
+  // Only mess with events that were originally targeted to an IDBRequest.
+  nsRefPtr<IDBRequest> request;
+  if (NS_FAILED(eventTarget->QueryInterface(kIDBRequestIID,
+                                            getter_AddRefs(request))) ||
+      !request) {
+    return NS_OK;
+  }
 
   ErrorResult ret;
   nsRefPtr<DOMError> error = request->GetError(ret);
