@@ -11,8 +11,11 @@ MemoryDataStore.deleteEntry = function (key){
 
 MemoryDataStore.readEntry =
   function (key, targetBuffer, targetOffset, sourceOffset, length){
-  this._data[key].slice(sourceOffset, sourceOffset + length).
-    copyWithin(targetBuffer, targetOffset);
+  var uint8a = this._data[key];
+  var sliced = uint8a.slice(sourceOffset, sourceOffset + length);
+  for(var i = targetOffset, copied = 0; i < length; i++, copied++){
+    targetBuffer[i] = sliced[copied];
+  }
 };
 
 MemoryDataStore.writeEntry = function (key, data, cb){

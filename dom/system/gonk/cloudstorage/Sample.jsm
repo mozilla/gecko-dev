@@ -51,7 +51,7 @@ Sample._getMeta = function (path) {
       return {
         isdir: 0,
         path: path,
-        size: meta.length,
+        size: meta.length * 2, // for 16bit UNICODE
         mtime: Date.now(),
         ctime: Date.now()
       };
@@ -91,9 +91,10 @@ Sample.getFileDownload = function (path, offset, size, cb){
   var meta = this._findMeta(path);
   if (meta && typeof meta === 'string') {
     var result = meta.substr(offset, size);
+    var ab = str2ab(result);
     cb(null, {
-      data: str2ab(result),
-      length: result.length
+      data: ab,
+      length: ab.byteLength
     });
   } else {
     cb(null, null);
