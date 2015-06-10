@@ -23,8 +23,8 @@ interface nsICloudStorageGeckoInterface : nsISupports
                    in unsigned long long ctime);
 
   void setData(in AUTF8String cloudname,
-               in AUTF8String buffer,
-               in long size);
+               [array, size_is(length)] in octet buffer,
+               in unsigned long length );
 
   void finishRequest(in AUTF8String cloudname);
  
