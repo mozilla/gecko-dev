@@ -422,7 +422,19 @@ CloudStorageRequestHandler::HandleLookup(const FuseInHeader *hdr, const char* na
     vec[1].iov_len = sizeof(out);
     res = writev(mFuse->fd, vec, 2);
     if (res < 0) {
-      LOG("*** REPLY FAILED *** %d", errno);
+      LOG("*** REPLY FAILED ***");
+      switch (errno) {
+        case EAGAIN: LOG("EAGAIN"); break;
+        case EBADF: LOG("EBADF"); break;
+        case EFAULT: LOG("EFAULT"); break;
+        case EFBIG: LOG("EFBIG"); break;
+        case EINVAL: LOG("EINVAL"); break;
+        case EINTR: LOG("EINTR"); break;
+        case EIO: LOG("EIO"); break;
+        case ENOSPC: LOG("ENOSPC"); break;
+        case EPIPE: LOG("EPIPE"); break;
+        default : LOG("Unknown error no %d", errno);
+      }
     }
   }
   return CLOUD_STORAGE_NO_STATUS;
@@ -550,7 +562,19 @@ CloudStorageRequestHandler::HandleOpen(const FuseInHeader* hdr, const FuseOpenIn
     vec[1].iov_len = sizeof(out);
     res = writev(mFuse->fd, vec, 2);
     if (res < 0) {
-      LOG("*** REPLY FAILED *** %d", errno);
+      LOG("*** REPLY FAILED ***");
+      switch (errno) {
+        case EAGAIN: LOG("EAGAIN"); break;
+        case EBADF: LOG("EBADF"); break;
+        case EFAULT: LOG("EFAULT"); break;
+        case EFBIG: LOG("EFBIG"); break;
+        case EINVAL: LOG("EINVAL"); break;
+        case EINTR: LOG("EINTR"); break;
+        case EIO: LOG("EIO"); break;
+        case ENOSPC: LOG("ENOSPC"); break;
+        case EPIPE: LOG("EPIPE"); break;
+        default : LOG("Unknown error no %d", errno);
+      }
     }
   }
   return CLOUD_STORAGE_NO_STATUS;
@@ -590,7 +614,19 @@ CloudStorageRequestHandler::HandleRead(const FuseInHeader* hdr, const FuseReadIn
     vec[1].iov_len = mCloudStorage->DataBufferSize();
     res = writev(mFuse->fd, vec, 2);
     if (res < 0) {
-      LOG("*** REPLY FAILED *** %d", errno);
+      LOG("*** REPLY FAILED ***");
+      switch (errno) {
+        case EAGAIN: LOG("EAGAIN"); break;
+        case EBADF: LOG("EBADF"); break;
+        case EFAULT: LOG("EFAULT"); break;
+        case EFBIG: LOG("EFBIG"); break;
+        case EINVAL: LOG("EINVAL"); break;
+        case EINTR: LOG("EINTR"); break;
+        case EIO: LOG("EIO"); break;
+        case ENOSPC: LOG("ENOSPC"); break;
+        case EPIPE: LOG("EPIPE"); break;
+        default : LOG("Unknown error no %d", errno);
+      }
     }
   }
   return CLOUD_STORAGE_NO_STATUS;
@@ -677,7 +713,19 @@ CloudStorageRequestHandler::HandleOpenDir(const FuseInHeader* hdr, const FuseOpe
   vec[1].iov_len = sizeof(out);
   res = writev(mFuse->fd, vec, 2);
   if (res < 0) {
-    LOG("*** REPLY FAILED *** %d", errno);
+    LOG("*** REPLY FAILED ***");
+    switch (errno) {
+      case EAGAIN: LOG("EAGAIN"); break;
+      case EBADF: LOG("EBADF"); break;
+      case EFAULT: LOG("EFAULT"); break;
+      case EFBIG: LOG("EFBIG"); break;
+      case EINVAL: LOG("EINVAL"); break;
+      case EINTR: LOG("EINTR"); break;
+      case EIO: LOG("EIO"); break;
+      case ENOSPC: LOG("ENOSPC"); break;
+      case EPIPE: LOG("EPIPE"); break;
+      default : LOG("Unknown error no %d", errno);
+    }
   }
   return CLOUD_STORAGE_NO_STATUS;
 }
@@ -740,7 +788,19 @@ CloudStorageRequestHandler::HandleReadDir(const FuseInHeader* hdr, const FuseRea
     vec[1].iov_len = FUSE_DIRENT_ALIGN(sizeof(FuseDirent) + fde->namelen);
     res = writev(mFuse->fd, vec, 2);
     if (res < 0) {
-      LOG("*** REPLY FAILED *** %d", errno);
+      LOG("*** REPLY FAILED ***");
+      switch (errno) {
+        case EAGAIN: LOG("EAGAIN"); break;
+        case EBADF: LOG("EBADF"); break;
+        case EFAULT: LOG("EFAULT"); break;
+        case EFBIG: LOG("EFBIG"); break;
+        case EINVAL: LOG("EINVAL"); break;
+        case EINTR: LOG("EINTR"); break;
+        case EIO: LOG("EIO"); break;
+        case ENOSPC: LOG("ENOSPC"); break;
+        case EPIPE: LOG("EPIPE"); break;
+        default : LOG("Unknown error no %d", errno);
+      }
     }
   }
   return CLOUD_STORAGE_NO_STATUS;
@@ -785,7 +845,19 @@ CloudStorageRequestHandler::HandleInit(const FuseInHeader* hdr, const FuseInitIn
   vec[1].iov_len = sizeof(out);
   res = writev(mFuse->fd, vec, 2);
   if (res < 0) {
-    LOG("*** REPLY FAILED *** %d", errno);
+    LOG("*** REPLY FAILED ***");
+    switch (errno) {
+      case EAGAIN: LOG("EAGAIN"); break;
+      case EBADF: LOG("EBADF"); break;
+      case EFAULT: LOG("EFAULT"); break;
+      case EFBIG: LOG("EFBIG"); break;
+      case EINVAL: LOG("EINVAL"); break;
+      case EINTR: LOG("EINTR"); break;
+      case EIO: LOG("EIO"); break;
+      case ENOSPC: LOG("ENOSPC"); break;
+      case EPIPE: LOG("EPIPE"); break;
+      default : LOG("Unknown error no %d", errno);
+    }
   }
 
   return CLOUD_STORAGE_NO_STATUS;

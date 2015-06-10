@@ -58,7 +58,9 @@ CloudStorage::CloudStorage(const nsCString& aCloudStorageName)
     mNodeHashTable(),
     mPathHashTable(),
     mAttrHashTable(),
-    mEntryListHashTable()
+    mEntryListHashTable(),
+    mBuffer(NULL),
+    mBufferSize(-1)
 {
   mMountPoint.Append("/data/cloud");
   if ( -1 == mkdir(mMountPoint.get(), S_IRWXU|S_IRWXG)) {
@@ -87,6 +89,13 @@ CloudStorage::CloudStorage(const nsCString& aCloudStorageName)
   }
   mNodeHashTable.Put(1, NS_LITERAL_CSTRING("/"));
   mPathHashTable.Put(NS_LITERAL_CSTRING("/"), 1);
+}
+
+CloudStorage::~CloudStorage()
+{
+  if (mBuffer != NULL) {
+    free(mBuffer);
+  }
 }
 
 //static
@@ -283,8 +292,13 @@ CloudStorage::GetEntryByPathAndOffset(nsCString aPath, uint64_t aOffset)
 void
 CloudStorage::SetDataBuffer(const char* aBuffer, int32_t aSize)
 {
+  LOG("buffer size: %d", aSize);
   mBufferSize = aSize;
-  memset(mBuffer, 0, 8912);
+  if (mBuffer != NULL) {
+    free(mBuffer);
+  }
+  mBuffer = (char*) malloc(sizeof(char)*aSize);
+  memset(mBuffer, 0, aSize);
   memcpy(mBuffer, aBuffer, aSize);
 }
 

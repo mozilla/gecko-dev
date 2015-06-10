@@ -32,7 +32,7 @@ function nsCloudStorageInterface() {
   log("call udManager.init()");
   udManager.init({
       accessToken:
-        'kR1EcZML0N4AAAAAAAAAR7FkWBgDSVFk17g3--pNIBv0sR_gs85HlSkHAo8q_6-N',
+        '<ACCESS_TOKEN>',
       webStorageModule: Sample,
       metaCacheModule: MetaCache,
       dataCacheModule: DataCache
@@ -82,9 +82,6 @@ nsCloudStorageInterface.prototype = {
     udManager.downloadFileInRangeByCache(path, buffer, offset, size, function () {
       var cls, instance;
       cls = Components.classes["@mozilla.org/cloudstoragegeckointerface;1"];
-      for (var idx = 0; idx < 10; ++idx) {
-        log("buffer["+idx+"]: 0x"+buffer[idx]);
-      }
       instance = cls.createInstance(Components.interfaces.nsICloudStorageGeckoInterface);
       instance.setData(cloudname, buffer, buffer.byteLength);
       instance.finishRequest(cloudname);
