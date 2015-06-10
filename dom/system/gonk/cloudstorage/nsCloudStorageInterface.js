@@ -82,9 +82,11 @@ nsCloudStorageInterface.prototype = {
     udManager.downloadFileInRangeByCache(path, buffer, offset, size, function () {
       var cls, instance;
       cls = Components.classes["@mozilla.org/cloudstoragegeckointerface;1"];
+      for (var idx = 0; idx < 10; ++idx) {
+        log("buffer["+idx+"]: 0x"+buffer[idx]);
+      }
       instance = cls.createInstance(Components.interfaces.nsICloudStorageGeckoInterface);
-      log(JSON.stringify(buffer));
-      instance.setData(cloudname, buffer.toString(), buffer.byteLength);
+      instance.setData(cloudname, buffer, buffer.byteLength);
       instance.finishRequest(cloudname);
     });
   }
