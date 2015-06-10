@@ -44,7 +44,7 @@ public:
   nsresult Run()
   {     
     nsresult rv;
-//    if (!mInterface) {
+    if (!mInterface) {
       nsCOMPtr<nsICloudStorageInterface > mInterface = do_CreateInstance("@mozilla.org/cloudstorageinterface;1", &rv);
       if (NS_FAILED(rv)) {
         LOG("fail to get cloudstorageinterface [%x]", rv);
@@ -53,7 +53,7 @@ public:
         }
         return NS_OK;
       }
-//    }
+    }
     switch (mCloudStorage->RequestData().RequestType) {
       case FUSE_GETATTR: {
         rv = mInterface->GetFileMeta(mCloudStorage->Name(), mCloudStorage->RequestData().Path);
@@ -90,10 +90,10 @@ public:
   }
 private:
   CloudStorage* mCloudStorage;
-//  static nsCOMPtr<nsICloudStorageInterface> mInterface;
+  static nsCOMPtr<nsICloudStorageInterface> mInterface;
 };
 
-// nsCOMPtr<nsICloudStorageInterface> CloudStorageRequestRunnable::mInterface = NULL;
+nsCOMPtr<nsICloudStorageInterface> CloudStorageRequestRunnable::mInterface = NULL;
 
 CloudStorageRequestHandler::CloudStorageRequestHandler(CloudStorage* aCloudStorage)
   : mCloudStorage(aCloudStorage),
