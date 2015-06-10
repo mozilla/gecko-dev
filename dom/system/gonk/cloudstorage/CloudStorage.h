@@ -76,6 +76,7 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CloudStorage)
 
   CloudStorage(const nsCString& aCloudStorageName);
+  ~CloudStorage();
 
 public:
   enum eState {
@@ -135,7 +136,7 @@ private:
   nsDataHashtable<nsCStringHashKey, uint64_t> mPathHashTable;
   nsDataHashtable<nsCStringHashKey, FuseAttr> mAttrHashTable;
   nsDataHashtable<nsCStringHashKey, nsTArray<nsCString > > mEntryListHashTable;
-  char mBuffer[8912];
+  char* mBuffer;
   int32_t mBufferSize;
 };
 
