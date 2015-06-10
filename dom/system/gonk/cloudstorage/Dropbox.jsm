@@ -155,7 +155,7 @@ Dropbox.getFileDownload = function (path, offset, size, cb){
   xmlhttp.responseType = 'arraybuffer';
   xmlhttp.onload = function () {
     var res = xmlhttp.response;
-    var length = res.length;
+    var length = res.byteLength;
     cb(null, {
       data: res,
       length: length
