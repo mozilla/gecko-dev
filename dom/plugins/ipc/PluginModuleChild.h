@@ -283,6 +283,8 @@ public:
         // CGContextRef we pass to it in NPP_HandleEvent(NPCocoaEventDrawRect)
         // outside of that call.  See bug 804606.
         QUIRK_FLASH_AVOID_CGMODE_CRASHES                = 1 << 10,
+        // Win: Addresses a Unity bug with mouse capture.
+        QUIRK_UNITY_FIXUP_MOUSE_CAPTURE                 = 1 << 11,
     };
 
     int GetQuirks() { return mQuirks; }
