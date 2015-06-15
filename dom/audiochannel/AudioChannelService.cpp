@@ -62,6 +62,7 @@ AudioChannelService::GetAudioChannelService()
   }
 
   return gAudioChannelService;
+
 }
 
 // static
@@ -135,12 +136,11 @@ AudioChannelService::RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
     return;
   }
 
-  AudioChannelAgentData* data =
-    new AudioChannelAgentData(aAgent, aChannel,
-                              true /* aElementHidden */,
-                              AUDIO_CHANNEL_STATE_MUTED /* aState */,
-                              aWithVideo);
-  mAgents.AppendElement(data);
+  AudioChannelAgentData* data = new AudioChannelAgentData(aChannel,
+                                true /* aElementHidden */,
+                                AUDIO_CHANNEL_STATE_MUTED /* aState */,
+                                aWithVideo);
+  mAgents.Put(aAgent, data);
   RegisterType(aChannel, CONTENT_PROCESS_ID_MAIN, aWithVideo);
 
   // If this is the first agent for this window, we must notify the observers.
@@ -219,16 +219,7 @@ AudioChannelService::UnregisterAudioChannelAgent(AudioChannelAgent* aAgent)
   }
 
   nsAutoPtr<AudioChannelAgentData> data;
-  nsTObserverArray<nsAutoPtr<AudioChannelAgentData>>::ForwardIterator iter(mAgents);
-  while (iter.HasMore()) {
-    nsAutoPtr<AudioChannelAgentData>& pData = iter.GetNext();
-    if (pData->mAgent == aAgent) {
-      uint32_t pos = mAgents.IndexOf(pData);
-      data = pData.forget();
-      mAgents.RemoveElementAt(pos);
-      break;
-    }
-  }
+  mAgents.RemoveAndForget(aAgent, data);
 
   if (data) {
     UnregisterType(data->mChannel, data->mElementHidden,
@@ -358,18 +349,17 @@ AudioChannelService::UpdateChannelType(AudioChannel aChannel,
 AudioChannelState
 AudioChannelService::GetState(AudioChannelAgent* aAgent, bool aElementHidden)
 {
-  AudioChannelAgentData* agentData = Find(aAgent);
-  if (!agentData) {
+  AudioChannelAgentData* data;
+  if (!mAgents.Get(aAgent, &data)) {
     return AUDIO_CHANNEL_STATE_MUTED;
   }
 
-  bool oldElementHidden = agentData->mElementHidden;
+  bool oldElementHidden = data->mElementHidden;
   // Update visibility.
-  agentData->mElementHidden = aElementHidden;
+  data->mElementHidden = aElementHidden;
 
-  agentData->mState = GetStateInternal(agentData->mChannel,
-                                       CONTENT_PROCESS_ID_MAIN,
-                                       aElementHidden, oldElementHidden);
+  data->mState = GetStateInternal(data->mChannel, CONTENT_PROCESS_ID_MAIN,
+                                aElementHidden, oldElementHidden);
   #ifdef MOZ_WIDGET_GONK
   /** Only modify the speaker status when
    *  (1) apps in the foreground.
@@ -386,7 +376,7 @@ AudioChannelService::GetState(AudioChannelAgent* aAgent, bool aElementHidden)
   }
   #endif
 
-  return agentData->mState;
+  return data->mState;
 }
 
 AudioChannelState
@@ -680,6 +670,15 @@ AudioChannelService::SendAudioChannelChangedNotification(uint64_t aChildID)
   }
 }
 
+PLDHashOperator
+AudioChannelService::NotifyEnumerator(AudioChannelAgent* aAgent,
+                                      AudioChannelAgentData* aData, void* aUnused)
+{
+  MOZ_ASSERT(aAgent);
+  aAgent->NotifyAudioChannelStateChanged();
+  return PL_DHASH_NEXT;
+}
+
 class NotifyRunnable : public nsRunnable
 {
 public:
@@ -717,11 +716,7 @@ AudioChannelService::Notify()
   mRunnable = nullptr;
 
   // Notify any agent for the main process.
-  nsTObserverArray<nsAutoPtr<AudioChannelAgentData>>::ForwardIterator iter(mAgents);
-  while (iter.HasMore()) {
-    AudioChannelAgentData* data = iter.GetNext();
-    data->mAgent->NotifyAudioChannelStateChanged();
-  }
+  mAgents.EnumerateRead(NotifyEnumerator, nullptr);
 
   // Notify for the child processes.
   nsTArray<ContentParent*> children;
@@ -769,6 +764,28 @@ AudioChannelService::ChannelsActiveWithHigherPriorityThan(
   }
 
   return false;
+}
+
+PLDHashOperator
+AudioChannelService::WindowDestroyedEnumerator(AudioChannelAgent* aAgent,
+                                               nsAutoPtr<AudioChannelAgentData>& aData,
+                                               void* aPtr)
+{
+  uint64_t* innerID = static_cast<uint64_t*>(aPtr);
+  MOZ_ASSERT(innerID);
+
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aAgent->Window());
+  if (!window || window->WindowID() != *innerID) {
+    return PL_DHASH_NEXT;
+  }
+
+  AudioChannelService* service = AudioChannelService::GetAudioChannelService();
+  MOZ_ASSERT(service);
+
+  service->UnregisterType(aData->mChannel, aData->mElementHidden,
+                          CONTENT_PROCESS_ID_MAIN, aData->mWithVideo);
+
+  return PL_DHASH_REMOVE;
 }
 
 NS_IMETHODIMP
@@ -872,22 +889,7 @@ AudioChannelService::Observe(nsISupports* aSubject, const char* aTopic, const ch
       return rv;
     }
 
-    nsTObserverArray<nsAutoPtr<AudioChannelAgentData>>::ForwardIterator iter(mAgents);
-    while (iter.HasMore()) {
-      AudioChannelAgentData* data = iter.GetNext();
-
-      nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(data->mAgent->Window());
-      if (window && !window->IsInnerWindow()) {
-        window = window->GetCurrentInnerWindow();
-      }
-
-      if (!window || window->WindowID() != innerID) {
-        continue;
-      }
-
-      UnregisterType(data->mChannel, data->mElementHidden,
-                     CONTENT_PROCESS_ID_MAIN, data->mWithVideo);
-    }
+    mAgents.Enumerate(WindowDestroyedEnumerator, &innerID);
 
 #ifdef MOZ_WIDGET_GONK
     bool active = AnyAudioChannelIsActive();
@@ -947,37 +949,79 @@ AudioChannelService::GetInternalType(AudioChannel aChannel,
   MOZ_CRASH("unexpected audio channel");
 }
 
+struct RefreshAgentsVolumeData
+{
+  explicit RefreshAgentsVolumeData(nsPIDOMWindow* aWindow)
+    : mWindow(aWindow)
+  {}
+
+  nsPIDOMWindow* mWindow;
+  nsTArray<nsRefPtr<AudioChannelAgent>> mAgents;
+};
+
+PLDHashOperator
+AudioChannelService::RefreshAgentsVolumeEnumerator(AudioChannelAgent* aAgent,
+                                                   AudioChannelAgentData* aUnused,
+                                                   void* aPtr)
+{
+  MOZ_ASSERT(aAgent);
+  RefreshAgentsVolumeData* data = static_cast<RefreshAgentsVolumeData*>(aPtr);
+  MOZ_ASSERT(data);
+
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aAgent->Window());
+  if (window && !window->IsInnerWindow()) {
+    window = window->GetCurrentInnerWindow();
+  }
+
+  if (window == data->mWindow) {
+    data->mAgents.AppendElement(aAgent);
+  }
+
+  return PL_DHASH_NEXT;
+}
 void
 AudioChannelService::RefreshAgentsVolume(nsPIDOMWindow* aWindow)
 {
-  nsTObserverArray<nsAutoPtr<AudioChannelAgentData>>::ForwardIterator iter(mAgents);
-  while (iter.HasMore()) {
-    AudioChannelAgentData* data = iter.GetNext();
+  RefreshAgentsVolumeData data(aWindow);
+  mAgents.EnumerateRead(RefreshAgentsVolumeEnumerator, &data);
 
-    nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(data->mAgent->Window());
-    if (window && !window->IsInnerWindow()) {
-      window = window->GetCurrentInnerWindow();
-    }
-
-    if (window == aWindow) {
-      data->mAgent->WindowVolumeChanged();
-    }
+  for (uint32_t i = 0; i < data.mAgents.Length(); ++i) {
+    data.mAgents[i]->WindowVolumeChanged();
   }
+}
+
+struct CountWindowData
+{
+  explicit CountWindowData(nsIDOMWindow* aWindow)
+    : mWindow(aWindow)
+    , mCount(0)
+  {}
+
+  nsIDOMWindow* mWindow;
+  uint32_t mCount;
+};
+
+PLDHashOperator
+AudioChannelService::CountWindowEnumerator(AudioChannelAgent* aAgent,
+                                           AudioChannelAgentData* aUnused,
+                                           void* aPtr)
+{
+  CountWindowData* data = static_cast<CountWindowData*>(aPtr);
+  MOZ_ASSERT(aAgent);
+
+  if (aAgent->Window() == data->mWindow) {
+    ++data->mCount;
+  }
+
+  return PL_DHASH_NEXT;
 }
 
 uint32_t
 AudioChannelService::CountWindow(nsIDOMWindow* aWindow)
 {
-  uint32_t count = 0;
-  nsTObserverArray<nsAutoPtr<AudioChannelAgentData>>::ForwardIterator iter(mAgents);
-  while (iter.HasMore()) {
-    AudioChannelAgentData* data = iter.GetNext();
-    if (data->mAgent->Window() == aWindow) {
-      ++count;
-    }
-  }
-
-  return count;
+  CountWindowData data(aWindow);
+  mAgents.EnumerateRead(CountWindowEnumerator, &data);
+  return data.mCount;
 }
 
 /* static */ const nsAttrValue::EnumTable*
@@ -1080,18 +1124,4 @@ AudioChannelService::UnregisterTelephonyChild(uint64_t aChildID)
   }
 
   MOZ_ASSERT(false, "This should not happen.");
-}
-
-AudioChannelService::AudioChannelAgentData*
-AudioChannelService::Find(AudioChannelAgent* aAgent)
-{
-  nsTObserverArray<nsAutoPtr<AudioChannelAgentData>>::ForwardIterator iter(mAgents);
-  while (iter.HasMore()) {
-    AudioChannelAgentData* data = iter.GetNext();
-    if (data->mAgent == aAgent) {
-      return data;
-    }
-  }
-
-  return nullptr;
 }
