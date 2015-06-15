@@ -36,6 +36,7 @@ public:
   virtual void AddOutputStream(ProcessedMediaStream* aStream,
                                bool aFinishWhenEnded);
   virtual void SetPlaybackRate(double aPlaybackRate);
+  virtual void PlaybackEnded();
 
   void AudioOffloadTearDown();
 

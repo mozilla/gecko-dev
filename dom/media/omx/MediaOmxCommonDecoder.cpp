@@ -173,6 +173,20 @@ MediaOmxCommonDecoder::SetPlaybackRate(double aPlaybackRate)
 }
 
 void
+MediaOmxCommonDecoder::PlaybackEnded()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mAudioOffloadPlayer &&
+      mPlayState == PLAY_STATE_SEEKING) {
+    MediaDecoder::SeekingStoppedAtEnd();
+    return;
+  }
+
+  MediaDecoder::PlaybackEnded();
+}
+
+void
 MediaOmxCommonDecoder::ChangeState(PlayState aState)
 {
   MOZ_ASSERT(NS_IsMainThread());

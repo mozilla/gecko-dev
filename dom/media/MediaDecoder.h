@@ -794,7 +794,7 @@ public:
 
   // Called when the video has completed playing.
   // Call on the main thread only.
-  void PlaybackEnded();
+  virtual void PlaybackEnded();
 
   // Seeking has stopped. Inform the element on the main
   // thread.
