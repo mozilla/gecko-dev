@@ -24,7 +24,7 @@
   <project name="rilproxy" path="rilproxy" remote="b2g" revision="827214fcf38d6569aeb5c6d6f31cb296d1f09272"/>
   <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="be8bb350ebc71e9e884355e965209d40e6cf82d4"/>
   <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="fb6780a02635a8ee0af1fa245398f69a6cc070f8"/>
-  <project name="moztt" path="external/moztt" remote="b2g" revision="fd5a7abf75af8751bbce59db2a309845364d32e8"/>
+  <project name="moztt" path="external/moztt" remote="b2g" revision="84044f804d943c45ec46c2f244bf263cda245689"/>
   <project name="apitrace" path="external/apitrace" remote="apitrace" revision="34ea6163f9f0e0122fb0bb03607eccdca31ced7a"/>
   <!-- Stock Android things -->
   <project name="platform/abi/cpp" path="abi/cpp" revision="dd924f92906085b831bf1cbbc7484d3c043d613c"/>
