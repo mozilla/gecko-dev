@@ -1880,6 +1880,11 @@ XMLHttpRequest::SendInternal(const nsAString& aStringBody,
     new SendRunnable(mWorkerPrivate, mProxy, aStringBody, Move(aBody),
                      aClonedObjects, syncLoopTarget, hasUploadListeners);
   if (!runnable->Dispatch(cx)) {
+    // Dispatch() may have spun the event loop and we may have already unrooted.
+    // If so we don't want autoUnpin to try again.
+    if (!mRooted) {
+      autoUnpin.Clear();
+    }
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -1942,8 +1947,8 @@ XMLHttpRequest::Open(const nsACString& aMethod, const nsAString& aUrl,
 
   mProxy->mOpening = true;
   if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    ReleaseProxy();
     mProxy->mOpening = false;
+    ReleaseProxy();
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
