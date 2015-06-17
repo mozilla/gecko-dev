@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1443867454430000);
+const PRTime gPreloadListExpirationTime = INT64_C(1445076864540000);
 
 class nsSTSPreload
 {
@@ -26,7 +26,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "accounts.firefox.com", true },
   { "accounts.google.com", true },
   { "aclu.org", false },
-  { "activiti.alfresco.com", false },
   { "adamkostecki.de", true },
   { "addvocate.com", true },
   { "admin.google.com", true },
@@ -245,7 +244,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "eurotramp.com", true },
   { "everhome.de", true },
   { "evstatus.com", true },
-  { "exiahost.com", false },
   { "explodie.org", true },
   { "f-droid.org", true },
   { "fabhub.io", true },
@@ -311,6 +309,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "guphi.net", true },
   { "guthabenkarten-billiger.de", true },
   { "hack.li", true },
+  { "hackerone-user-content.com", true },
   { "hackerone.com", true },
   { "hansvaneijsden.com", true },
   { "harvestapp.com", true },
@@ -376,7 +375,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "jonas-keidel.de", true },
   { "jonaswitmer.ch", true },
   { "jonnybarnes.uk", true },
-  { "jwilsson.com", true },
   { "jwilsson.me", true },
   { "k-dev.de", true },
   { "kaheim.de", true },
@@ -502,7 +500,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mutantmonkey.in", true },
   { "mutantmonkey.info", true },
   { "mutantmonkey.sexy", true },
-  { "mwe.st", true },
+  { "mwe.st", false },
   { "my.onlime.ch", false },
   { "my.xero.com", false },
   { "mygadgetguardian.lookout.com", false },
@@ -698,7 +696,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "stretchmyan.us", true },
   { "stripe.com", true },
   { "strongest-privacy.com", true },
-  { "studydrive.net", true },
   { "subrosa.io", true },
   { "suite73.org", true },
   { "supplies24.at", true },
@@ -716,7 +713,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "tatort-fanpage.de", true },
   { "tauchkater.de", true },
   { "techhipster.net", true },
-  { "tegelsensanitaironline.nl", true },
   { "tekshrek.com", true },
   { "tent.io", true },
   { "testsuite.org", true },
@@ -765,7 +761,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "tunebitfm.de", true },
   { "twitter.com", false },
   { "typingrevolution.com", true },
-  { "ub3rk1tten.com", true },
+  { "ub3rk1tten.com", false },
   { "ubertt.org", true },
   { "ukdefencejournal.org.uk", true },
   { "ukhas.net", true },
