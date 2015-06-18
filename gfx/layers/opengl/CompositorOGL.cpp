@@ -1346,7 +1346,11 @@ CompositorOGL::CopyToTarget(DrawTarget *aTarget, const gfx::Matrix& aTransform)
         Factory::CreateDataSourceSurface(rect.Size(), gfx::SurfaceFormat::B8G8R8A8);
 
   DataSourceSurface::MappedSurface map;
-  source->Map(DataSourceSurface::MapType::WRITE, &map);
+  if (!source->Map(DataSourceSurface::MapType::WRITE, &map)) {
+    NS_ERROR("Failed to map surface for writing!");
+    return;
+  }
+
   // XXX we should do this properly one day without using the gfxImageSurface
   nsRefPtr<gfxImageSurface> surf =
     new gfxImageSurface(map.mData,
