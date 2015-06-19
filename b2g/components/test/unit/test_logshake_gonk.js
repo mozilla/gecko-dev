@@ -65,27 +65,6 @@ add_test(function test_ensure_sdcard() {
   run_next_test();
 });
 
-add_test(function test_logShake_captureLogs_returns() {
-  // Enable LogShake
-  LogShake.init();
-
-  LogShake.captureLogs().then(logResults => {
-    LogShake.uninit();
-
-    ok(logResults.logFilenames.length > 0, "Should have filenames");
-    ok(logResults.logPrefix.length > 0, "Should have prefix");
-
-    run_next_test();
-  },
-  error => {
-    LogShake.uninit();
-
-    ok(false, "Should not have received error: " + error);
-
-    run_next_test();
-  });
-});
-
 add_test(function test_logShake_captureLogs_writes() {
   // Enable LogShake
   LogShake.init();
@@ -94,6 +73,9 @@ add_test(function test_logShake_captureLogs_writes() {
 
   LogShake.captureLogs().then(logResults => {
     LogShake.uninit();
+
+    ok(logResults.logFilenames.length > 0, "Should have filenames");
+    ok(logResults.logPrefix.length > 0, "Should have prefix");
 
     logResults.logFilenames.forEach(f => {
       let p = OS.Path.join(sdcard, f);
