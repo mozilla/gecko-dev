@@ -662,10 +662,8 @@ CopySurface(gfxASurface* aSurface)
   }
 
   DataSourceSurface::MappedSurface map;
-  if (!data->Map(DataSourceSurface::WRITE, &map)) {
-    NS_ERROR("Failed to map surface for reading!");
-    return nullptr;
-  }
+  DebugOnly<bool> result = data->Map(DataSourceSurface::WRITE, &map);
+  MOZ_ASSERT(result, "Should always succeed mapping raw data surfaces!");
 
   nsRefPtr<gfxImageSurface> image = new gfxImageSurface(map.mData, size, map.mStride, format);
   nsRefPtr<gfxContext> ctx = new gfxContext(image);

@@ -483,10 +483,7 @@ GLScreenBuffer::Readback(SharedSurface_GL* src, DataSourceSurface* dest)
 {
   MOZ_ASSERT(src && dest);
   DataSourceSurface::MappedSurface ms;
-  if (!dest->Map(DataSourceSurface::MapType::READ, &ms)) {
-    NS_ERROR("Failed to map surface for reading.");
-    return;
-  }
+  dest->Map(DataSourceSurface::MapType::READ, &ms);
   nsRefPtr<gfxImageSurface> wrappedDest =
     new gfxImageSurface(ms.mData,
                         ThebesIntSize(dest->GetSize()),

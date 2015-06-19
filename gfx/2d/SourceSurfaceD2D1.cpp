@@ -156,10 +156,7 @@ DataSourceSurfaceD2D1::Map(MapType aMapType, MappedSurface *aMappedSurface)
   }
 
   D2D1_MAPPED_RECT map;
-  if (FAILED(mBitmap->Map(D2D1_MAP_OPTIONS_READ, &map))) {
-    gfxCriticalError() << "Failed to map bitmap.";
-    return false;
-  }
+  mBitmap->Map(D2D1_MAP_OPTIONS_READ, &map);
   aMappedSurface->mData = map.bits;
   aMappedSurface->mStride = map.pitch;
 
@@ -192,10 +189,7 @@ DataSourceSurfaceD2D1::EnsureMapped()
   if (mMapped) {
     return;
   }
-  if (FAILED(mBitmap->Map(D2D1_MAP_OPTIONS_READ, &mMap))) {
-    gfxCriticalError() << "Failed to map bitmap.";
-    return;
-  }
+  mBitmap->Map(D2D1_MAP_OPTIONS_READ, &mMap);
   mMapped = true;
 }
 

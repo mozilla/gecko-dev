@@ -75,9 +75,7 @@ nsImageToPixbuf::SourceSurfaceToPixbuf(SourceSurface* aSurface,
 
     RefPtr<DataSourceSurface> dataSurface = aSurface->GetDataSurface();
     DataSourceSurface::MappedSurface map;
-    if (!dataSurface->Map(DataSourceSurface::MapType::READ, &map))
-        return nullptr;
-
+    dataSurface->Map(DataSourceSurface::MapType::READ, &map);
     uint8_t* srcData = map.mData;
     int32_t srcStride = map.mStride;
 
