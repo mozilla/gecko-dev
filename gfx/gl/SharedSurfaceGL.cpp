@@ -326,7 +326,10 @@ SharedSurface_Basic::Fence()
     ScopedBindFramebuffer autoFB(mGL, mFB);
 
     DataSourceSurface::MappedSurface map;
-    mData->Map(DataSourceSurface::MapType::WRITE, &map);
+    if (!mData->Map(DataSourceSurface::MapType::WRITE, &map)) {
+      NS_ERROR("Failed to map surface for writing.");
+      return;
+    }
     nsRefPtr<gfxImageSurface> wrappedData =
       new gfxImageSurface(map.mData,
                           ThebesIntSize(mData->GetSize()),
