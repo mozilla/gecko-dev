@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1445076604484000);
+const PRTime gPreloadListExpirationTime = INT64_C(1445681402793000);
 
 class nsSTSPreload
 {
@@ -277,7 +277,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mbp.banking.co.at", false },
   { "mediacru.sh", true },
   { "medium.com", true },
-  { "mega.co.nz", false },
+  { "mega.co.nz", true },
   { "members.mayfirst.org", false },
   { "members.nearlyfreespeech.net", false },
   { "mig5.net", true },
@@ -362,7 +362,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "sakaki.anime.my", true },
   { "salaervergleich.com", true },
   { "sandbox.mydigipass.com", false },
-  { "schokokeks.org", false },
+  { "schokokeks.org", true },
   { "schwarzer.it", true },
   { "scrambl.is", true },
   { "script.google.com", true },
@@ -395,6 +395,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "stocktrade.de", false },
   { "stripe.com", true },
   { "strongest-privacy.com", true },
+  { "studydrive.net", true },
   { "subrosa.io", true },
   { "supplies24.at", true },
   { "supplies24.es", true },
@@ -503,7 +504,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.paypal.com", false },
   { "www.python.org", true },
   { "www.roddis.net", true },
-  { "www.schokokeks.org", false },
+  { "www.schokokeks.org", true },
   { "www.simbolo.co.uk", false },
   { "www.simple.com", false },
   { "www.therapynotes.com", true },
