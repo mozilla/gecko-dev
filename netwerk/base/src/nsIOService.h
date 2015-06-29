@@ -70,10 +70,6 @@ public:
     bool IsOffline() { return mOffline; }
     bool IsLinkUp();
 
-    bool IsComingOnline() const {
-      return mOffline && mSettingOffline && !mSetOfflineValue;
-    }
-
 private:
     // These shouldn't be called directly:
     // - construct using GetInstance
