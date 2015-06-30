@@ -8,6 +8,7 @@
 
 #include "2D.h"
 #include "Filters.h"
+#include "Logging.h"
 
 #include <vector>
 
@@ -176,7 +177,10 @@ public:
     RefPtr<DataSourceSurface> surf = Factory::CreateDataSourceSurface(GetSize(), GetFormat());
 
     DataSourceSurface::MappedSurface mappedSurf;
-    surf->Map(DataSourceSurface::MapType::WRITE, &mappedSurf);
+    if (!surf->Map(DataSourceSurface::MapType::WRITE, &mappedSurf)) {
+      gfxCriticalError() << "DrawTargetTiled::GetDataSurface failed to map surface";
+      return nullptr;
+    }
 
     {
       RefPtr<DrawTarget> dt =
