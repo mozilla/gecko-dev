@@ -272,7 +272,7 @@ public:
    * lower precision, usually 15.6 ms, but with very good performance benefit.
    * Use it for measurements of longer times, like >200ms timeouts.
    */
-  static TimeStamp Now() { return Now(true); }
+  B2G_ACL_EXPORT static TimeStamp Now() { return Now(true); }
   static TimeStamp NowLoRes() { return Now(false); }
 
   /**
@@ -393,7 +393,7 @@ private:
 
   MOZ_IMPLICIT TimeStamp(TimeStampValue aValue) : mValue(aValue) {}
 
-  static TimeStamp Now(bool aHighResolution);
+  B2G_ACL_EXPORT static TimeStamp Now(bool aHighResolution);
 
   /**
    * Computes the uptime of the current process in microseconds. The result
