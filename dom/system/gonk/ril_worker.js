@@ -1730,15 +1730,31 @@ RilObject.prototype = {
     call.hangUpLocal = true;
     if (call.state === CALL_STATE_HOLDING) {
       this.hangUpBackground(options);
-    } else {
-      this.telephonyRequestQueue.push(REQUEST_HANGUP, () => {
-        let Buf = this.context.Buf;
-        Buf.newParcel(REQUEST_HANGUP, options);
-        Buf.writeInt32(1);
-        Buf.writeInt32(options.callIndex);
-        Buf.sendParcel();
-      });
+      return;
     }
+
+    if (!call.isConference) {
+      let heldCalls = [];
+      for each (let call in this.currentCalls) {
+        if (call.state === CALL_STATE_HOLDING) {
+          heldCalls.push(call);
+        }
+      }
+
+      // Automatic resume another held call.
+      if (heldCalls.length) {
+        this.hangUpForeground(options);
+        return;
+      }
+    }
+
+    this.telephonyRequestQueue.push(REQUEST_HANGUP, () => {
+      let Buf = this.context.Buf;
+      Buf.newParcel(REQUEST_HANGUP, options);
+      Buf.writeInt32(1);
+      Buf.writeInt32(options.callIndex);
+      Buf.sendParcel();
+    });
   },
 
   hangUpForeground: function(options) {
