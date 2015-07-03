@@ -379,6 +379,12 @@ this.PermissionsTable =  { geolocation: {
                              privileged: PROMPT_ACTION,
                              certified: ALLOW_ACTION,
                              substitute: ["firefox-accounts"]
+                           },
+                           "external-app": {
+                             app: DENY_ACTION,
+                             trusted: DENY_ACTION,
+                             privileged: ALLOW_ACTION,
+                             certified: ALLOW_ACTION
                            }
                          };
 

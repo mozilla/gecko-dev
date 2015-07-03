@@ -42,10 +42,10 @@ public:
 
   VideoFrameContainer(dom::HTMLMediaElement* aElement,
                       already_AddRefed<ImageContainer> aContainer);
-  ~VideoFrameContainer();
+  B2G_ACL_EXPORT ~VideoFrameContainer();
 
   // Call on any thread
-  void SetCurrentFrame(const gfxIntSize& aIntrinsicSize, Image* aImage,
+  B2G_ACL_EXPORT void SetCurrentFrame(const gfxIntSize& aIntrinsicSize, Image* aImage,
                        TimeStamp aTargetTime);
   void ClearCurrentFrame(bool aResetSize = false);
   // Reset the VideoFrameContainer
@@ -60,8 +60,8 @@ public:
     INVALIDATE_FORCE
   };
   void Invalidate() { InvalidateWithFlags(INVALIDATE_DEFAULT); }
-  void InvalidateWithFlags(uint32_t aFlags);
-  ImageContainer* GetImageContainer();
+  B2G_ACL_EXPORT void InvalidateWithFlags(uint32_t aFlags);
+  B2G_ACL_EXPORT ImageContainer* GetImageContainer();
   void ForgetElement() { mElement = nullptr; }
 
 protected:
