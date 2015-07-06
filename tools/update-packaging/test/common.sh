@@ -55,7 +55,10 @@ make_add_instruction() {
     forced=
   fi
 
-  is_extension=$(echo "$f" | grep -c 'distribution/extensions/.*/')
+  # TODO HACK - bug 1175063 - temporarily disable conditional add for Thunderbird 38
+  # is_extension=$(echo "$f" | grep -c 'distribution/extensions/.*/')
+  is_extension=0
+
   if [ $is_extension = "1" ]; then
     # Use the subdirectory of the extensions folder as the file to test
     # before performing this add instruction.

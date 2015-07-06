@@ -28,10 +28,11 @@ class TestPatchInfo(unittest.TestCase):
         self.assertEquals(['add "file.test"'], self.patch_info.manifestv2)
         self.assertEquals(['add "file.test"'], self.patch_info.manifestv3)
 
-    def test_append_add_if_instruction(self):
-        self.patch_info.append_add_instruction('distribution/extensions/extension/file.test')
-        self.assertEquals(['add-if "distribution/extensions/extension" "distribution/extensions/extension/file.test"'], self.patch_info.manifestv2)
-        self.assertEquals(['add-if "distribution/extensions/extension" "distribution/extensions/extension/file.test"'], self.patch_info.manifestv3)
+    # TODO HACK - bug 1175063 - temporarily disable conditional add for Thunderbird 38
+    #def test_append_add_if_instruction(self):
+    #    self.patch_info.append_add_instruction('distribution/extensions/extension/file.test')
+    #    self.assertEquals(['add-if "distribution/extensions/extension" "distribution/extensions/extension/file.test"'], self.patch_info.manifestv2)
+    #    self.assertEquals(['add-if "distribution/extensions/extension" "distribution/extensions/extension/file.test"'], self.patch_info.manifestv3)
 
     def test_append_add_if_not_instruction(self):
         self.patch_info.append_add_if_not_instruction('file.test')
