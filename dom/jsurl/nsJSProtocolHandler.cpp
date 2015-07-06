@@ -1212,17 +1212,15 @@ nsJSProtocolHandler::NewChannel2(nsIURI* uri,
                                  nsIChannel** result)
 {
     nsresult rv;
-    nsJSChannel * channel;
-
     NS_ENSURE_ARG_POINTER(uri);
 
-    channel = new nsJSChannel();
+    nsRefPtr<nsJSChannel> channel = new nsJSChannel();
     if (!channel) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
-    NS_ADDREF(channel);
 
     rv = channel->Init(uri);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     // set the loadInfo on the new channel
     rv = channel->SetLoadInfo(aLoadInfo);
@@ -1230,9 +1228,8 @@ nsJSProtocolHandler::NewChannel2(nsIURI* uri,
 
     if (NS_SUCCEEDED(rv)) {
         *result = channel;
-        NS_ADDREF(*result);
+        channel.forget(result);
     }
-    NS_RELEASE(channel);
     return rv;
 }
 
