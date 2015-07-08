@@ -17,7 +17,7 @@
   </project>
   <project name="rilproxy" path="rilproxy" remote="b2g" revision="827214fcf38d6569aeb5c6d6f31cb296d1f09272"/>
   <project name="fake-libdvm" path="dalvik" remote="b2g" revision="d50ae982b19f42f0b66d08b9eb306be81687869f"/>
-  <project name="gaia" path="gaia" remote="mozillaorg" revision="ea11f422b687a982f0a961c9aea7858066561707"/>
+  <project name="gaia" path="gaia" remote="mozillaorg" revision="d6d6a35b9407ffaf3131bc244cabc8ee2b09c4df"/>
   <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="7129207c321e7ac6e59bfa440693669403110e8c"/>
   <project name="moztt" path="external/moztt" remote="b2g" revision="84044f804d943c45ec46c2f244bf263cda245689"/>
   <project name="apitrace" path="external/apitrace" remote="apitrace" revision="34ea6163f9f0e0122fb0bb03607eccdca31ced7a"/>
