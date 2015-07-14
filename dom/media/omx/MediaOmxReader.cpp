@@ -35,10 +35,10 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 #define DECODER_LOG(type, msg)
 #endif
 
-class OmxReaderProcessCachedDataTask : public Task
+class MediaOmxReader::ProcessCachedDataTask : public Task
 {
 public:
-  OmxReaderProcessCachedDataTask(MediaOmxReader* aOmxReader, int64_t aOffset)
+  ProcessCachedDataTask(MediaOmxReader* aOmxReader, int64_t aOffset)
   : mOmxReader(aOmxReader),
     mOffset(aOffset)
   { }
@@ -70,10 +70,10 @@ private:
 // the IO task dispatches a runnable to the main thread for parsing the
 // data. This goes on until all of the MP3 file has been parsed.
 
-class OmxReaderNotifyDataArrivedRunnable : public nsRunnable
+class MediaOmxReader::NotifyDataArrivedRunnable : public nsRunnable
 {
 public:
-  OmxReaderNotifyDataArrivedRunnable(MediaOmxReader* aOmxReader,
+  NotifyDataArrivedRunnable(MediaOmxReader* aOmxReader,
                                      const char* aBuffer, uint64_t aLength,
                                      int64_t aOffset, uint64_t aFullLength)
   : mOmxReader(aOmxReader),
@@ -117,7 +117,7 @@ private:
       // might block for too long. Instead we post an IO task
       // to the IO thread if there is more data available.
       XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-          new OmxReaderProcessCachedDataTask(mOmxReader.get(), mOffset));
+          new ProcessCachedDataTask(mOmxReader.get(), mOffset));
     }
   }
 
@@ -128,16 +128,9 @@ private:
   uint64_t                         mFullLength;
 };
 
-void MediaOmxReader::CancelProcessCachedData()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MutexAutoLock lock(mMutex);
-  mIsShutdown = true;
-}
-
 MediaOmxReader::MediaOmxReader(AbstractMediaDecoder *aDecoder)
   : MediaOmxCommonReader(aDecoder)
-  , mMutex("MediaOmxReader.Data")
+  , mShutdownMutex("MediaOmxReader.Shutdown")
   , mHasVideo(false)
   , mHasAudio(false)
   , mVideoSeekTimeUs(-1)
@@ -166,6 +159,16 @@ nsresult MediaOmxReader::Init(MediaDecoderReader* aCloneDonor)
   return NS_OK;
 }
 
+already_AddRefed<AbstractMediaDecoder>
+MediaOmxReader::SafeGetDecoder() {
+  nsRefPtr<AbstractMediaDecoder> decoder;
+  MutexAutoLock lock(mShutdownMutex);
+  if (!mIsShutdown) {
+    decoder = mDecoder;
+  }
+  return decoder.forget();
+}
+
 void MediaOmxReader::ReleaseDecoder()
 {
   if (mOmxDecoder.get()) {
@@ -177,9 +180,10 @@ void MediaOmxReader::ReleaseDecoder()
 nsRefPtr<ShutdownPromise>
 MediaOmxReader::Shutdown()
 {
-  nsCOMPtr<nsIRunnable> cancelEvent =
-    NS_NewRunnableMethod(this, &MediaOmxReader::CancelProcessCachedData);
-  NS_DispatchToMainThread(cancelEvent);
+  {
+    MutexAutoLock lock(mShutdownMutex);
+    mIsShutdown = true;
+  }
 
   nsRefPtr<ShutdownPromise> p = MediaDecoderReader::Shutdown();
 
@@ -481,7 +485,8 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
 void MediaOmxReader::NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  if (IsShutdown()) {
+  nsRefPtr<AbstractMediaDecoder> decoder = SafeGetDecoder();
+  if (!decoder) { // reader has shut down
     return;
   }
   if (HasVideo()) {
@@ -494,10 +499,10 @@ void MediaOmxReader::NotifyDataArrived(const char* aBuffer, uint32_t aLength, in
 
   mMP3FrameParser.Parse(aBuffer, aLength, aOffset);
   int64_t duration = mMP3FrameParser.GetDuration();
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  ReentrantMonitorAutoEnter mon(decoder->GetReentrantMonitor());
   if (duration != mLastParserDuration) {
     mLastParserDuration = duration;
-    mDecoder->UpdateEstimatedMediaDuration(mLastParserDuration);
+    decoder->UpdateEstimatedMediaDuration(mLastParserDuration);
   }
 }
 
@@ -583,7 +588,8 @@ void MediaOmxReader::EnsureActive() {
 int64_t MediaOmxReader::ProcessCachedData(int64_t aOffset, bool aWaitForCompletion)
 {
   // Could run on decoder thread or IO thread.
-  if (IsShutdown()) {
+  nsRefPtr<AbstractMediaDecoder> decoder = SafeGetDecoder();
+  if (!decoder) { // reader has shut down
     return -1;
   }
   // We read data in chunks of 32 KiB. We can reduce this
@@ -594,8 +600,8 @@ int64_t MediaOmxReader::ProcessCachedData(int64_t aOffset, bool aWaitForCompleti
 
   NS_ASSERTION(!NS_IsMainThread(), "Should not be on main thread.");
 
-  MOZ_ASSERT(mDecoder->GetResource());
-  int64_t resourceLength = mDecoder->GetResource()->GetCachedDataEnd(0);
+  MOZ_ASSERT(decoder->GetResource());
+  int64_t resourceLength = decoder->GetResource()->GetCachedDataEnd(0);
   NS_ENSURE_TRUE(resourceLength >= 0, -1);
 
   if (aOffset >= resourceLength) {
@@ -606,16 +612,13 @@ int64_t MediaOmxReader::ProcessCachedData(int64_t aOffset, bool aWaitForCompleti
 
   nsAutoArrayPtr<char> buffer(new char[bufferLength]);
 
-  nsresult rv = mDecoder->GetResource()->ReadFromCache(buffer.get(),
+  nsresult rv = decoder->GetResource()->ReadFromCache(buffer.get(),
                                                        aOffset, bufferLength);
   NS_ENSURE_SUCCESS(rv, -1);
 
-  nsRefPtr<OmxReaderNotifyDataArrivedRunnable> runnable(
-    new OmxReaderNotifyDataArrivedRunnable(this,
-                                           buffer.forget(),
-                                           bufferLength,
-                                           aOffset,
-                                           resourceLength));
+  nsRefPtr<NotifyDataArrivedRunnable> runnable(
+    new NotifyDataArrivedRunnable(this, buffer.forget(), bufferLength,
+                                  aOffset, resourceLength));
   if (aWaitForCompletion) {
     rv = NS_DispatchToMainThread(runnable.get(), NS_DISPATCH_SYNC);
   } else {
