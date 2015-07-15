@@ -127,7 +127,7 @@
   <project name="device_generic_goldfish" path="device/generic/goldfish" remote="b2g" revision="f390788a00706c06e5248edfd8d27b365387e84a"/>
   <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="57b16fcb790bdf0b53b3c6435a37ccc8ca90ed36"/>
   <project name="platform/external/wpa_supplicant_8" path="external/wpa_supplicant_8" revision="694cecf256122d0cb3b6a1a4efb4b5c7401db223"/>
-  <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="6f668f9265ff71f03a7d9af09c78bac82045a36a"/>
+  <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="cd4fc430da93fad3123f0775791a919568aa0ca2"/>
   <project name="platform/development" path="development" revision="5968ff4e13e0d696ad8d972281fc27ae5a12829b"/>
   <project name="android-sdk" path="sdk" remote="b2g" revision="0951179277915335251c5e11d242e4e1a8c2236f"/>
 </manifest>
