@@ -999,8 +999,13 @@ uint32_t MediaDecoderStateMachine::PlayFromAudioQueue(uint64_t aFrameOffset,
   uint32_t frames = 0;
   VERBOSE_LOG("playing %d frames of data to stream for AudioData at %lld",
               audio->mFrames, audio->mTime);
-  mAudioStream->Write(audio->mAudioData,
-                      audio->mFrames);
+  if (audio->mChannels == aChannels) {
+    mAudioStream->Write(audio->mAudioData, audio->mFrames);
+  } else {
+    VERBOSE_LOG("mismatched sample format mInfo=[%u channels] audio=[%u channels]",
+                 aChannels, audio->mChannels);
+    PlaySilence(audio->mFrames, aChannels, 0);
+  }
 
   aChannels = mAudioStream->GetOutChannels();
 
