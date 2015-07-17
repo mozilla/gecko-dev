@@ -902,7 +902,7 @@ void MediaDecoderStateMachine::AudioLoop()
       framesWritten = PlaySilence(static_cast<uint32_t>(missingFrames.value()),
                                   channels, playedFrames.value());
     } else {
-      framesWritten = PlayFromAudioQueue(sampleTime.value(), channels, rate);
+      framesWritten = PlayFromAudioQueue(sampleTime.value(), channels);
     }
     audioDuration += framesWritten;
     {
@@ -983,8 +983,7 @@ uint32_t MediaDecoderStateMachine::PlaySilence(uint32_t aFrames,
 }
 
 uint32_t MediaDecoderStateMachine::PlayFromAudioQueue(uint64_t aFrameOffset,
-                                                      uint32_t aChannels,
-                                                      uint32_t aRate)
+                                                      uint32_t aChannels)
 {
   NS_ASSERTION(OnAudioThread(), "Only call on audio thread.");
   NS_ASSERTION(!mAudioStream->IsPaused(), "Don't play when paused");
@@ -1000,13 +999,8 @@ uint32_t MediaDecoderStateMachine::PlayFromAudioQueue(uint64_t aFrameOffset,
   uint32_t frames = 0;
   VERBOSE_LOG("playing %d frames of data to stream for AudioData at %lld",
               audio->mFrames, audio->mTime);
-  if (audio->mRate == aRate && audio->mChannels == aChannels) {
-    mAudioStream->Write(audio->mAudioData, audio->mFrames);
-  } else {
-    VERBOSE_LOG("mismatched sample format mInfo=[%uHz/%u channels] audio=[%uHz/%u channels]",
-                 aRate, aChannels, audio->mRate, audio->mChannels);
-    PlaySilence(audio->mFrames, aChannels, 0);
-  }
+  mAudioStream->Write(audio->mAudioData,
+                      audio->mFrames);
 
   aChannels = mAudioStream->GetOutChannels();
 

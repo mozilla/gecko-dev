@@ -504,7 +504,7 @@ protected:
 
   // Pops an audio chunk from the front of the audio queue, and pushes its
   // audio data to the audio hardware.
-  uint32_t PlayFromAudioQueue(uint64_t aFrameOffset, uint32_t aChannels, uint32_t aRate);
+  uint32_t PlayFromAudioQueue(uint64_t aFrameOffset, uint32_t aChannels);
 
   // Stops the audio thread. The decoder monitor must be held with exactly
   // one lock count. Called on the state machine thread.
