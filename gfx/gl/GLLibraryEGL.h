@@ -130,6 +130,7 @@ public:
         KHR_image,
         KHR_fence_sync,
         ANDROID_native_fence_sync,
+        EGL_ANDROID_image_crop,
         Extensions_Max
     };
 
