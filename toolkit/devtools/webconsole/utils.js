@@ -1630,7 +1630,9 @@ exports.WebConsoleCommands = WebConsoleCommands;
  */
 WebConsoleCommands._registerOriginal("$", function JSTH_$(aOwner, aSelector)
 {
-  return aOwner.window.document.querySelector(aSelector);
+
+  return aOwner.window.document.Array.prototype.slice.call(document.querySelectorAll(aSelector))
+
 });
 
 /**
@@ -1671,14 +1673,21 @@ WebConsoleCommands._registerOriginal("$_", {
  *        Context to run the xPath query on. Uses window.document if not set.
  * @return array of nsIDOMNode
  */
-WebConsoleCommands._registerOriginal("$x", function JSTH_$x(aOwner, aXPath, aContext)
+WebConsoleCommands._registerOriginal("$x", function JSTH_$x(aOwner, aXPath,
+aContext, resultType.UNORDERED_NODE_ITERATOR_TYPE) 
 {
   let nodes = new aOwner.window.wrappedJSObject.Array();
   let doc = aOwner.window.document;
   aContext = aContext || doc;
+  
+  if (typeof resultType === "undefined") {
+      let results = doc.evaluate(aXPath, aContext, null,
+                                 Ci.nsIDOMXPathResult.ANY_TYPE, null);
+    } else {
+      let results = doc.evaluate(aXPath, aContext, null, 
+                                 Ci.nsIDOMXPathResult.UNORDERED_NODE_ITERATOR_TYPE, null); 
+    }
 
-  let results = doc.evaluate(aXPath, aContext, null,
-                             Ci.nsIDOMXPathResult.ANY_TYPE, null);
   let node;
   while ((node = results.iterateNext())) {
     nodes.push(node);
