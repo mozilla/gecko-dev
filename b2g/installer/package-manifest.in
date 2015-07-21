@@ -637,6 +637,9 @@
 @BINPATH@/components/EngineeringModeAPI.js
 @BINPATH@/components/EngineeringModeService.js
 
+@BINPATH@/components/SystemUpdate.manifest
+@BINPATH@/components/SystemUpdateManager.js
+
 #ifdef MOZ_DEBUG
 @BINPATH@/components/TestInterfaceJS.js
 @BINPATH@/components/TestInterfaceJS.manifest
