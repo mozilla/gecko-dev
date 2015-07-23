@@ -43,7 +43,7 @@ public:
 
   virtual gfx::SurfaceFormat GetFormat() const;
 
-  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE { return mCropSize; }
+  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE { return mDescriptorSize; }
 
   virtual LayerRenderState GetRenderState() MOZ_OVERRIDE;
 
@@ -64,8 +64,6 @@ public:
 
   virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE;
 
-  virtual void SetCropRect(nsIntRect aCropRect) MOZ_OVERRIDE;
-
   bool IsValid() const;
 
   virtual const char* Name() MOZ_OVERRIDE { return "GrallocTextureHostOGL"; }
@@ -82,7 +80,7 @@ private:
   gfx::IntSize mSize;
   // Size reported by TextureClient, can be different in some cases (video?),
   // used by LayerRenderState.
-  gfx::IntSize mCropSize;
+  gfx::IntSize mDescriptorSize;
   gfx::SurfaceFormat mFormat;
   EGLImage mEGLImage;
   bool mIsOpaque;
