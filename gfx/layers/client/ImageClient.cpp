@@ -242,9 +242,10 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
   }
 
   mFrontBuffer = texture;
-  UpdatePictureRect(image->GetPictureRect());
   GetForwarder()->UpdatedTexture(this, texture, nullptr);
   GetForwarder()->UseTexture(this, texture);
+
+  UpdatePictureRect(image->GetPictureRect());
 
   mLastPaintedImageSerial = image->GetSerial();
   aContainer->NotifyPaintedImage(image);

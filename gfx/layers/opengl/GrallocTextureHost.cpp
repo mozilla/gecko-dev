@@ -101,7 +101,7 @@ GrallocTextureHostOGL::GrallocTextureHostOGL(TextureFlags aFlags,
   : TextureHost(aFlags)
   , mGrallocHandle(aDescriptor)
   , mSize(0, 0)
-  , mCropSize(0, 0)
+  , mDescriptorSize(aDescriptor.size())
   , mFormat(gfx::SurfaceFormat::UNKNOWN)
   , mEGLImage(EGL_NO_IMAGE)
   , mIsOpaque(aDescriptor.isOpaque())
@@ -114,7 +114,6 @@ GrallocTextureHostOGL::GrallocTextureHostOGL(TextureFlags aFlags,
       SurfaceFormatForAndroidPixelFormat(graphicBuffer->getPixelFormat(),
                                          aFlags & TextureFlags::RB_SWAPPED);
     mSize = gfx::IntSize(graphicBuffer->getWidth(), graphicBuffer->getHeight());
-    mCropSize = mSize;
   } else {
     printf_stderr("gralloc buffer is nullptr");
   }
@@ -220,7 +219,7 @@ GrallocTextureHostOGL::GetRenderState()
       flags |= LayerRenderStateFlags::FORMAT_RB_SWAP;
     }
     return LayerRenderState(graphicBuffer,
-                            gfx::ThebesIntSize(mCropSize),
+                            gfx::ThebesIntSize(mDescriptorSize),
                             flags,
                             this);
   }
@@ -348,12 +347,8 @@ GrallocTextureHostOGL::PrepareTextureSource(CompositableTextureSourceRef& aTextu
   }
 
   if (mEGLImage == EGL_NO_IMAGE) {
-    gfx::IntSize cropSize(0, 0);
-    if (mCropSize != mSize) {
-      cropSize = mCropSize;
-    }
     // Should only happen the first time.
-    mEGLImage = EGLImageCreateFromNativeBuffer(gl, graphicBuffer->getNativeBuffer(), cropSize);
+    mEGLImage = EGLImageCreateFromNativeBuffer(gl, graphicBuffer->getNativeBuffer());
   }
 
   GLenum textureTarget = GetTextureTarget(gl, graphicBuffer->getPixelFormat());
@@ -384,23 +379,6 @@ GrallocTextureHostOGL::PrepareTextureSource(CompositableTextureSourceRef& aTextu
     glSource->SetFormat(mFormat);
     mGLTextureSource = glSource;
   }
-}
-
-void
-GrallocTextureHostOGL::SetCropRect(nsIntRect aCropRect)
-{
-  MOZ_ASSERT(aCropRect.TopLeft() == nsIntPoint(0, 0));
-  MOZ_ASSERT(!aCropRect.IsEmpty());
-  MOZ_ASSERT(aCropRect.width <= mSize.width);
-  MOZ_ASSERT(aCropRect.height <= mSize.height);
-
-  gfx::IntSize cropSize(aCropRect.width, aCropRect.height);
-  if (mCropSize == cropSize) {
-    return;
-  }
-
-  mCropSize = cropSize;
-  mGLTextureSource = nullptr;
 }
 
 bool
