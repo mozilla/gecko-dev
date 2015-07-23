@@ -788,7 +788,9 @@ public:
   // @param aOther The array object to copy.
   self_type& operator=(const self_type& aOther)
   {
-    ReplaceElementsAt(0, Length(), aOther.Elements(), aOther.Length());
+    if (this != &aOther) {
+      ReplaceElementsAt(0, Length(), aOther.Elements(), aOther.Length());
+    }
     return *this;
   }
 
