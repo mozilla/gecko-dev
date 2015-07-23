@@ -820,9 +820,7 @@ public:
   // array.  It is optimized to reuse existing storage if possible.
   // @param other  The array object to copy.
   self_type& operator=(const self_type& other) {
-    if (this != &aOther) {
-      ReplaceElementsAt(0, Length(), other.Elements(), other.Length());
-    }
+    ReplaceElementsAt(0, Length(), other.Elements(), other.Length());
     return *this;
   }
 
