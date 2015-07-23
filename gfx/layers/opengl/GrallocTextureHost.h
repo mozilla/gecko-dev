@@ -64,6 +64,8 @@ public:
 
   virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE;
 
+  virtual void SetCropRect(nsIntRect aCropRect) MOZ_OVERRIDE;
+
   bool IsValid() const;
 
   virtual const char* Name() MOZ_OVERRIDE { return "GrallocTextureHostOGL"; }

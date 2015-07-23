@@ -43,6 +43,9 @@ ImageHost::UseTextureHost(TextureHost* aTexture)
   CompositableHost::UseTextureHost(aTexture);
   mFrontBuffer = aTexture;
   if (mFrontBuffer) {
+    // SetCropRect() affects only on a specific platform.
+    // If it is not implemented, it does nothing.
+    mFrontBuffer->SetCropRect(mPictureRect);
     mFrontBuffer->PrepareTextureSource(mTextureSource);
   }
 }
