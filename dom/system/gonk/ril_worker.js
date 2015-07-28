@@ -10767,7 +10767,7 @@ ICCPDUHelperObject.prototype = {
 
   readNumberWithLength: function() {
     let Buf = this.context.Buf;
-    let number;
+    let number = "";
     let numLen = this.context.GsmPDUHelper.readHexOctet();
     if (numLen != 0xff) {
       if (numLen > ADN_MAX_BCD_NUMBER_BYTES) {

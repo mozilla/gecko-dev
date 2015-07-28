@@ -1156,8 +1156,29 @@ BluetoothServiceBluedroid::IsConnected(const nsAString& aRemoteBdAddr)
 // Bluetooth notifications
 //
 
+class BluetoothServiceBluedroid::CleanupResultHandler final
+  : public BluetoothResultHandler
+{
+public:
+  void Cleanup() override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    BluetoothService::AcknowledgeToggleBt(false);
+  }
+
+  void OnError(BluetoothStatus aStatus) override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    BT_LOGR("BluetoothInterface::Cleanup failed: %d", aStatus);
+
+    BluetoothService::AcknowledgeToggleBt(false);
+  }
+};
+
 /* |ProfileDeinitResultHandler| collect the results of all profile
- * result handlers and calls |Proceed| after all results handlers
+ * result handlers and cleans up the Bluedroid driver after all handlers
  * have been run.
  */
 class BluetoothServiceBluedroid::ProfileDeinitResultHandler MOZ_FINAL
@@ -1188,7 +1209,7 @@ private:
   void Proceed() const
   {
     if (!sIsRestart) {
-      sBtInterface->Cleanup(nullptr);
+      sBtInterface->Cleanup(new CleanupResultHandler());
     } else {
       BT_LOGR("ProfileDeinitResultHandler::Proceed cancel cleanup() ");
     }
@@ -1229,7 +1250,8 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
       BluetoothA2dpManager::DeinitA2dpInterface
     };
 
-    // Cleanup bluetooth interfaces after BT state becomes BT_STATE_OFF.
+    // Cleanup Bluetooth interfaces after state becomes BT_STATE_OFF. This
+    // will also stop the Bluetooth daemon and disable the adapter.
     nsRefPtr<ProfileDeinitResultHandler> res =
       new ProfileDeinitResultHandler(MOZ_ARRAY_LENGTH(sDeinitManager));
 
@@ -1238,9 +1260,14 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
     }
   }
 
-  BluetoothService::AcknowledgeToggleBt(isBtEnabled);
-
   if (isBtEnabled) {
+
+    // We enable the Bluetooth adapter here. Disabling is implemented
+    // in |CleanupResultHandler|, which runs at the end of the shutdown
+    // procedure. We cannot disable the adapter immediately, because re-
+    // enabling it might interfere with the shutdown procedure.
+    BluetoothService::AcknowledgeToggleBt(true);
+
     // Bluetooth just enabled, clear profile controllers and runnable arrays.
     sControllerArray.Clear();
     sBondingRunnableArray.Clear();

@@ -469,7 +469,7 @@ add_test(function test_read_number_with_length() {
   do_check_eq(iccHelper.readNumberWithLength(), number);
 
   helper.writeHexOctet(0xff);
-  do_check_eq(iccHelper.readNumberWithLength(), null);
+  do_check_eq(iccHelper.readNumberWithLength(), "");
 
   run_next_test();
 });
