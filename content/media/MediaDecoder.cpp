@@ -873,7 +873,8 @@ bool MediaDecoder::IsSameOriginMedia()
 bool MediaDecoder::IsSeeking() const
 {
   MOZ_ASSERT(NS_IsMainThread());
-  return mPlayState == PLAY_STATE_SEEKING;
+  return !mIsDormant && (mPlayState == PLAY_STATE_SEEKING ||
+    (mPlayState == PLAY_STATE_LOADING && mRequestedSeekTarget.IsValid()));
 }
 
 bool MediaDecoder::IsEnded() const
