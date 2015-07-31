@@ -300,6 +300,11 @@ protected:
     const nsAString&>
     KeyPressedNotification;
 
+  typedef BluetoothNotificationRunnable2<NotificationHandlerWrapper, void,
+    BluetoothHandsfreeWbsConfig, nsString,
+    BluetoothHandsfreeWbsConfig, const nsAString&>
+    WbsNotification;
+
   class ConnectionStateInitOp;
   class AudioStateInitOp;
   class VoiceRecognitionInitOp;
@@ -317,6 +322,7 @@ protected:
   class VolumeInitOp;
   class UnknownAtInitOp;
   class KeyPressedInitOp;
+  class WbsInitOp;
 
   void ConnectionStateNtf(const BluetoothDaemonPDUHeader& aHeader,
                           BluetoothDaemonPDU& aPDU);
@@ -364,6 +370,9 @@ protected:
                     BluetoothDaemonPDU& aPDU);
 
   void KeyPressedNtf(const BluetoothDaemonPDUHeader& aHeader,
+                     BluetoothDaemonPDU& aPDU);
+
+  void WbsNtf(const BluetoothDaemonPDUHeader& aHeader,
                      BluetoothDaemonPDU& aPDU);
 
   void HandleNtf(const BluetoothDaemonPDUHeader& aHeader,

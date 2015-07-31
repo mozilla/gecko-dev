@@ -1412,6 +1412,47 @@ BluetoothDaemonHandsfreeModule::KeyPressedNtf(
     KeyPressedInitOp(aPDU));
 }
 
+// Init operator class for WbsNotification
+class BluetoothDaemonHandsfreeModule::WbsInitOp final
+  : private PDUInitOp
+{
+public:
+  WbsInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (BluetoothHandsfreeWbsConfig& aArg1, nsString& aArg2) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    /* Read state */
+    nsresult rv = UnpackPDU(pdu, aArg1);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    /* Read address */
+    rv = UnpackPDU(
+      pdu, UnpackConversion<BluetoothAddress, nsAString>(aArg2));
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
+
+void
+BluetoothDaemonHandsfreeModule::WbsNtf(
+  const BluetoothDaemonPDUHeader& aHeader, BluetoothDaemonPDU& aPDU)
+{
+  WbsNotification::Dispatch(
+    &BluetoothHandsfreeNotificationHandler::WbsNotification,
+    WbsInitOp(aPDU));
+}
+
 void
 BluetoothDaemonHandsfreeModule::HandleNtf(
   const BluetoothDaemonPDUHeader& aHeader, BluetoothDaemonPDU& aPDU,
@@ -1434,7 +1475,8 @@ BluetoothDaemonHandsfreeModule::HandleNtf(
     INIT_ARRAY_AT(12, &BluetoothDaemonHandsfreeModule::CopsNtf),
     INIT_ARRAY_AT(13, &BluetoothDaemonHandsfreeModule::ClccNtf),
     INIT_ARRAY_AT(14, &BluetoothDaemonHandsfreeModule::UnknownAtNtf),
-    INIT_ARRAY_AT(15, &BluetoothDaemonHandsfreeModule::KeyPressedNtf)
+    INIT_ARRAY_AT(15, &BluetoothDaemonHandsfreeModule::KeyPressedNtf),
+    INIT_ARRAY_AT(16, &BluetoothDaemonHandsfreeModule::WbsNtf)
   };
 
   MOZ_ASSERT(!NS_IsMainThread());

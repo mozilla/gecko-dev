@@ -828,6 +828,9 @@ nsresult
 UnpackPDU(BluetoothDaemonPDU& aPDU, BluetoothHandsfreeNRECState& aOut);
 
 nsresult
+UnpackPDU(BluetoothDaemonPDU& aPDU, BluetoothHandsfreeWbsConfig& aOut);
+
+nsresult
 UnpackPDU(BluetoothDaemonPDU& aPDU,
           BluetoothHandsfreeVoiceRecognitionState& aOut);
 
