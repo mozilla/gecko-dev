@@ -1556,12 +1556,21 @@ nsDocShell::LoadURI(nsIURI * aURI,
 
     if (owner && mItemType != typeChrome) {
         nsCOMPtr<nsIPrincipal> ownerPrincipal = do_QueryInterface(owner);
-        if (nsContentUtils::IsSystemOrExpandedPrincipal(ownerPrincipal)) {
+        if (nsContentUtils::IsSystemPrincipal(ownerPrincipal)) {
             if (ownerIsExplicit) {
                 return NS_ERROR_DOM_SECURITY_ERR;
             }
             owner = nullptr;
             inheritOwner = true;
+        } else if (nsContentUtils::IsExpandedPrincipal(ownerPrincipal)) {
+            if (ownerIsExplicit) {
+                return NS_ERROR_DOM_SECURITY_ERR;
+            }
+            // Don't inherit from the current page.  Just do the safe thing
+            // and pretend that we were loaded by a nullprincipal.
+            owner = do_CreateInstance("@mozilla.org/nullprincipal;1");
+            NS_ENSURE_TRUE(owner, NS_ERROR_FAILURE);
+            inheritOwner = false;
         }
     }
     if (!owner && !inheritOwner && !ownerIsExplicit) {
