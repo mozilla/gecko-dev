@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1449311119308000);
+const PRTime gPreloadListExpirationTime = INT64_C(1449715754180000);
 
 class nsSTSPreload
 {
@@ -102,7 +102,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "alexgaynor.net", true },
   { "alexsexton.com", true },
   { "alexyang.me", true },
-  { "allinonecyprus.com", true },
   { "alocato.com", true },
   { "alza.cz", true },
   { "alza.de", true },
@@ -608,7 +607,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "ducohosting.com", true },
   { "dyeager.org", true },
   { "dylanscott.com.au", true },
-  { "dymersion.com", true },
   { "dynaloop.net", true },
   { "dynamicsnetwork.net", true },
   { "dzlibs.io", true },
@@ -687,7 +685,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "evstatus.com", true },
   { "ewe2.ninja", true },
   { "exceltobarcode.com", true },
-  { "exiahost.com", false },
+  { "exiahost.com", true },
   { "exon.io", true },
   { "expatads.com", true },
   { "experienceoz.com.au", true },
@@ -849,7 +847,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "gocardless.com", true },
   { "gokmenguresci.com", true },
   { "goldendata.io", true },
-  { "golfscape.com", false },
   { "google", true },
   { "googlemail.com", false },
   { "googleplex.com", true },
@@ -862,6 +859,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "gpsfix.cz", true },
   { "gpsvideocanada.com", true },
   { "gra2.com", true },
+  { "gracedays.org", true },
   { "grafitec.ru", true },
   { "grandcapital.id", true },
   { "grandcapital.ru", true },
@@ -970,6 +968,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "i10z.com", true },
   { "i5y.co.uk", true },
   { "iamcarrico.com", true },
+  { "ian.sh", true },
   { "iban.is", true },
   { "icq-project.net", true },
   { "id-co.in", true },
@@ -1020,7 +1019,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "instant-hack.com", true },
   { "instasex.ch", true },
   { "integromat.com", true },
-  { "interasistmen.se", true },
   { "internetbugbounty.org", true },
   { "interserved.com", true },
   { "interviewpipeline.co.uk", true },
@@ -1089,7 +1087,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "johnmichel.org", true },
   { "jonas-keidel.de", true },
   { "jonaswitmer.ch", true },
-  { "jonathan.ir", true },
   { "jondevin.com", true },
   { "jonnybarnes.uk", true },
   { "jonpads.com", true },
@@ -1534,7 +1531,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "null-sec.ru", true },
   { "null.tips", true },
   { "nuos.org", true },
-  { "nutsandboltsmedia.com", true },
   { "nuvini.com", true },
   { "nwa.xyz", true },
   { "nwgh.org", true },
@@ -1804,7 +1800,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "rubecodeberg.com", true },
   { "rubendv.be", true },
   { "rubyshop.nl", true },
-  { "rudloff.pro", true },
   { "rugirlfriend.com", true },
   { "rusadmin.biz", true },
   { "ruudkoot.nl", true },
@@ -1951,6 +1946,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "social-media-strategies.it", true },
   { "socialrank.com", false },
   { "socialspirit.com.br", false },
+  { "sockeye.cc", true },
   { "soia.ca", true },
   { "solihullcarnival.co.uk", true },
   { "solihulllionsclub.org.uk", true },
@@ -2273,7 +2269,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "walnutgaming.com", true },
   { "warrencreative.com", false },
   { "watsonhall.uk", true },
-  { "waze.com", true },
   { "wbg-vs.de", true },
   { "wearvr.com", true },
   { "webandmore.de", false },
