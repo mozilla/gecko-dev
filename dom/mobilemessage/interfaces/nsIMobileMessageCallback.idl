@@ -4,7 +4,7 @@
 
 #include "nsISupports.idl"
 
-[scriptable, uuid(35279dbc-9f1d-419f-b17a-230fcf49f0c7)]
+[scriptable, uuid(846d74cc-4195-11e5-a968-2f4a44d4ba4c)]
 interface nsIMobileMessageCallback : nsISupports
 {
   /**
@@ -24,6 +24,12 @@ interface nsIMobileMessageCallback : nsISupports
   const unsigned short NON_ACTIVE_SIM_CARD_ERROR = 9;
   const unsigned short STORAGE_FULL_ERROR        = 10;
   const unsigned short SIM_NOT_MATCHED_ERROR     = 11;
+  const unsigned short NETWORK_PROBLEMS_ERROR    = 12;
+  const unsigned short GENERAL_PROBLEMS_ERROR    = 13;
+  const unsigned short SERVICE_NOT_AVAILABLE_ERROR          = 14;
+  const unsigned short MESSAGE_TOO_LONG_FOR_NETWORK_ERROR   = 15;
+  const unsigned short SERVICE_NOT_SUPPORTED_ERROR          = 16;
+  const unsigned short RETRY_REQUIRED_ERROR      = 17;
 
   /**
    * |message| can be nsIDOMMoz{Mms,Sms}Message.
