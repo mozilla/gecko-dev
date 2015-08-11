@@ -361,6 +361,7 @@ function TelephonyService() {
   this._currentConferenceState = nsITelephonyService.CALL_STATE_UNKNOWN;
   this._audioStates = [];
   this._ussdSessions = [];
+  this._ussdCallbacks = [];
 
   this._cdmaCallWaitingNumber = null;
 
@@ -375,6 +376,7 @@ function TelephonyService() {
   for (let i = 0; i < this._numClients; ++i) {
     this._audioStates[i] = nsITelephonyAudioService.PHONE_STATE_NORMAL;
     this._ussdSessions[i] = false;
+    this._ussdCallbacks[i] = null;
     this._currentCalls[i] = {};
     this._enumerateCallsForClient(i);
   }
@@ -405,6 +407,7 @@ TelephonyService.prototype = {
    *    b) Receiving a session end unsolicited event.
    */
   _ussdSessions: null,
+  _ussdCallbacks: null,
 
   _acquireCallRingWakeLock: function() {
     if (!this._callRingWakeLock) {
@@ -1064,14 +1067,20 @@ TelephonyService.prototype = {
 
       // Handle unknown MMI code as USSD.
       default:
-        this._sendUSSDInternal(aClientId, aMmi.fullMMI, aResponse => {
-          if (aResponse.errorMsg) {
-            aCallback.notifyDialMMIError(aResponse.errorMsg);
-            return;
-          }
 
-          aCallback.notifyDialMMISuccess("");
-        });
+        // This is coming from dial(), so we cancel any existing session
+        if (this._ussdSessions[aClientId]) {
+          this._cancelUSSDInternal(aClientId, aResponse => {
+            //Response should be null from a cancel, if there was no error
+            if (aResponse) {
+              aCallback.notifyDialMMIError(aResponse.errorMsg);
+              return;
+            }
+            this._sendUSSDInternal(aClientId, aMmi.fullMMI, this._defaultUSSDHandler.bind(this, aCallback));
+          });
+        } else {
+          this._sendUSSDInternal(aClientId, aMmi.fullMMI, this._defaultUSSDHandler.bind(this, aCallback));
+        }
         break;
     }
   },
@@ -1678,6 +1687,15 @@ TelephonyService.prototype = {
     }
   },
 
+  // Does not work if USSDSession was used, because we can't do notifyDialMMIXXX
+  _defaultUSSDHandler: function(aCallback, aResponse, aSession) {
+    if (aResponse.errorMsg) {
+      aCallback.notifyDialMMIError(aResponse.errorMsg);
+    } else {
+      aCallback.notifyDialMMISuccessWithInteger(aResponse, aSession);
+    }
+  },
+
   _getCallsWithState: function(aClientId, aState) {
     let calls = [];
     for (let i in this._currentCalls[aClientId]) {
@@ -2126,43 +2144,27 @@ TelephonyService.prototype = {
     this._switchConference(aClientId, aCallback);
   },
 
+  // Only coming from USSD sessions
   sendUSSD: function(aClientId, aUssd, aCallback) {
     this._sendUSSDInternal(aClientId, aUssd,
-                           this._defaultCallbackHandler.bind(this, aCallback));
+                           this._defaultUSSDHandler.bind(this, aCallback));
   },
 
   _sendUSSDInternal: function(aClientId, aUssd, aCallback) {
-    if (!this._ussdSessions[aClientId]) {
-      this._sendToRilWorker(aClientId, "sendUSSD", { ussd: aUssd }, aResponse => {
-        this._ussdSessions[aClientId] = !aResponse.errorMsg;
-        aCallback(aResponse);
-      });
-      return;
-    }
-
-    // Cancel the previous ussd session first.
-    this._cancelUSSDInternal(aClientId, aResponse => {
-      // Fail to cancel ussd session, report error instead of sending ussd
-      // request.
-      if (aResponse.errorMsg) {
-        aCallback(aResponse);
-        return;
-      }
-
-      this._sendUSSDInternal(aClientId, aUssd, aCallback);
-    });
+    debug("TelephonyService - Sending USSD: " + aUssd);
+    this._ussdCallbacks[aClientId] = aCallback;
+    this._sendToRilWorker(aClientId, "sendUSSD", { ussd: aUssd }, aResponse => {});
   },
 
   cancelUSSD: function(aClientId, aCallback) {
     this._cancelUSSDInternal(aClientId,
-                             this._defaultCallbackHandler.bind(this, aCallback));
+                             this._defaultUSSDHandler.bind(this, aCallback));
   },
 
   _cancelUSSDInternal: function(aClientId, aCallback) {
-    this._sendToRilWorker(aClientId, "cancelUSSD", {}, aResponse => {
-      this._ussdSessions[aClientId] = !!aResponse.errorMsg;
-      aCallback(aResponse);
-    });
+    debug("TelephonyService - Cancelling USSD session");
+    this._ussdCallbacks[aClientId] = aCallback
+    this._sendToRilWorker(aClientId, "cancelUSSD", {}, aResponse => {});
   },
 
   get microphoneMuted() {
@@ -2429,19 +2431,27 @@ TelephonyService.prototype = {
   },
 
   notifyUssdReceived: function(aClientId, aMessage, aSessionEnded) {
-    if (DEBUG) {
-      debug("notifyUssdReceived for " + aClientId + ": " +
+      debug("TelephonyService - received USSD: " +
             aMessage + " (sessionEnded : " + aSessionEnded + ")");
-    }
 
     let oldSession = this._ussdSessions[aClientId];
     this._ussdSessions[aClientId] = !aSessionEnded;
 
+    // Dismiss useless messages
     if (!oldSession && !this._ussdSessions[aClientId] && !aMessage) {
       return;
     }
 
+    if(this._ussdCallbacks[aClientId]) {
+      this._ussdCallbacks[aClientId](aMessage, aSessionEnded ? 0 : 1);
+      this._ussdCallbacks[aClientId] = null;
+    }
+
+    // FOR DEBUG : send the system message anyway
+    // else {
     gTelephonyMessenger.notifyUssdReceived(aClientId, aMessage, aSessionEnded);
+    // }
+    
   },
 
   /**
