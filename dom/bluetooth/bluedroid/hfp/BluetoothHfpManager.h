@@ -94,6 +94,7 @@ public:
 
   bool ConnectSco();
   bool DisconnectSco();
+  bool IsNrecEnabled();
 
   /**
    * @param aSend A boolean indicates whether we need to notify headset or not
@@ -129,6 +130,8 @@ public:
                           const nsAString& aBdAddress) MOZ_OVERRIDE;
   void DtmfNotification(char aDtmf,
                         const nsAString& aBdAddress) MOZ_OVERRIDE;
+  void NRECNotification(BluetoothHandsfreeNRECState aNrec,
+                        const nsAString& aBdAddr) MOZ_OVERRIDE;
   void CallHoldNotification(BluetoothHandsfreeCallHoldType aChld,
                             const nsAString& aBdAddress) MOZ_OVERRIDE;
   void DialCallNotification(const nsAString& aNumber,
@@ -211,6 +214,7 @@ private:
   bool mReceiveVgsFlag;
   // This flag is for HFP only, not for HSP.
   bool mDialingRequestProcessed;
+  bool mNrecEnabled;
   PhoneType mPhoneType;
   nsString mDeviceAddress;
   nsString mMsisdn;

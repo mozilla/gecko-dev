@@ -2056,5 +2056,14 @@ BluetoothHfpManager::OnDisconnect(const nsAString& aErrorStr)
   controller->NotifyCompletion(aErrorStr);
 }
 
+bool
+BluetoothHfpManager::IsNrecEnabled()
+{
+  // Add this function and return default value to avoid build break
+  // since NREC function isn't developed in bluez yet.
+  // Please see Bug 825149 for more information.
+  return HFP_NREC_STARTED;
+}
+
 NS_IMPL_ISUPPORTS(BluetoothHfpManager, nsIObserver)
 
