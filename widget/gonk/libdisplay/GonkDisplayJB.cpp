@@ -105,7 +105,41 @@ GonkDisplayJB::GonkDisplayJB()
 
     mAlloc = new GraphicBufferAlloc();
 
-    status_t error;
+    CreateSurface(mSTClient, mFBSurface);
+
+    mList = (hwc_display_contents_1_t *)malloc(sizeof(*mList) + (sizeof(hwc_layer_1_t)*2));
+    if (mHwc) {
+#if ANDROID_VERSION >= 21
+        if (mHwc->common.version >= HWC_DEVICE_API_VERSION_1_4) {
+            mHwc->setPowerMode(mHwc, HWC_DISPLAY_PRIMARY, HWC_POWER_MODE_NORMAL);
+        } else {
+            mHwc->blank(mHwc, HWC_DISPLAY_PRIMARY, 0);
+        }
+#else
+        mHwc->blank(mHwc, HWC_DISPLAY_PRIMARY, 0);
+        // For devices w/ hwc v1.0 or no hwc, this buffer can not be created,
+        // only create this buffer for devices w/ hwc version > 1.0.
+        CreateSurface(mBootAnimSTClient, mBootAnimSurface);
+#endif
+    }
+
+    ALOGI("Starting bootanimation with (%d) format framebuffer", surfaceformat);
+    StartBootAnimation();
+}
+
+GonkDisplayJB::~GonkDisplayJB()
+{
+    if (mHwc)
+        hwc_close_1(mHwc);
+    if (mFBDevice)
+        framebuffer_close(mFBDevice);
+    free(mList);
+}
+
+void
+GonkDisplayJB::CreateSurface(android::sp<ANativeWindow>& aNativeWindow,
+                             android::sp<android::FramebufferSurface>& aDisplaySurface)
+{
 #if ANDROID_VERSION >= 21
     sp<IGraphicBufferProducer> producer;
     sp<IGraphicBufferConsumer> consumer;
@@ -119,55 +153,23 @@ GonkDisplayJB::GonkDisplayJB()
 #else
     sp<BufferQueue> consumer = new BufferQueue(true, mAlloc);
 #endif
-    mFBSurface = new FramebufferSurface(0, mWidth, mHeight, surfaceformat, consumer);
+
+    aDisplaySurface = new FramebufferSurface(0, mWidth, mHeight, surfaceformat, consumer);
 
 #if ANDROID_VERSION == 17
-    sp<SurfaceTextureClient> stc = new SurfaceTextureClient(
-        static_cast<sp<ISurfaceTexture> >(mFBSurface->getBufferQueue()));
+    aNativeWindow = new SurfaceTextureClient(
+        static_cast<sp<ISurfaceTexture>>(aDisplaySurface->getBufferQueue()));
 #else
-    sp<Surface> stc = new Surface(producer);
+    aNativeWindow = new Surface(producer);
 #endif
-    mSTClient = stc;
-    mSTClient->perform(mSTClient.get(), NATIVE_WINDOW_SET_BUFFER_COUNT, 2);
-    mSTClient->perform(mSTClient.get(), NATIVE_WINDOW_SET_USAGE,
-                                        GRALLOC_USAGE_HW_FB |
-                                        GRALLOC_USAGE_HW_RENDER |
-                                        GRALLOC_USAGE_HW_COMPOSER);
-
-    mList = (hwc_display_contents_1_t *)malloc(sizeof(*mList) + (sizeof(hwc_layer_1_t)*2));
-    if (mHwc) {
-#if ANDROID_VERSION >= 21
-        if (mHwc->common.version >= HWC_DEVICE_API_VERSION_1_4) {
-            mHwc->setPowerMode(mHwc, HWC_DISPLAY_PRIMARY, HWC_POWER_MODE_NORMAL);
-        } else {
-            mHwc->blank(mHwc, HWC_DISPLAY_PRIMARY, 0);
-        }
-#else
-        mHwc->blank(mHwc, HWC_DISPLAY_PRIMARY, 0);
-#endif
-    }
-
-
-    if (error == NO_ERROR) {
-        ALOGI("Starting bootanimation with (%d) format framebuffer", surfaceformat);
-        StartBootAnimation();
-    } else
-        ALOGW("Couldn't show bootanimation (%s)", strerror(-error));
 }
 
-GonkDisplayJB::~GonkDisplayJB()
-{
-    if (mHwc)
-        hwc_close_1(mHwc);
-    if (mFBDevice)
-        framebuffer_close(mFBDevice);
-    free(mList);
-}
 
 ANativeWindow*
 GonkDisplayJB::GetNativeWindow()
 {
-    StopBootAnimation();
+    StopBootAnim();
+
     return mSTClient.get();
 }
 
@@ -233,6 +235,8 @@ GonkDisplayJB::GetFBSurface()
 bool
 GonkDisplayJB::SwapBuffers(EGLDisplay dpy, EGLSurface sur)
 {
+    StopBootAnim();
+
     // Should be called when composition rendering is complete for a frame.
     // Only HWC v1.0 needs this call.
     // HWC > v1.0 case, do not call compositionComplete().
@@ -314,9 +318,13 @@ GonkDisplayJB::Post(buffer_handle_t buf, int fence)
 ANativeWindowBuffer*
 GonkDisplayJB::DequeueBuffer()
 {
+    // Check for bootAnim or normal display flow.
+    sp<ANativeWindow> nativeWindow =
+        !mBootAnimSTClient.get() ? mSTClient : mBootAnimSTClient;
+
     ANativeWindowBuffer *buf;
     int fenceFd = -1;
-    mSTClient->dequeueBuffer(mSTClient.get(), &buf, &fenceFd);
+    nativeWindow->dequeueBuffer(nativeWindow.get(), &buf, &fenceFd);
     sp<Fence> fence(new Fence(fenceFd));
 #if ANDROID_VERSION == 17
     fence->waitForever(1000, "GonkDisplayJB_DequeueBuffer");
@@ -331,8 +339,20 @@ GonkDisplayJB::DequeueBuffer()
 bool
 GonkDisplayJB::QueueBuffer(ANativeWindowBuffer* buf)
 {
-    int error = mSTClient->queueBuffer(mSTClient.get(), buf, -1);
-    bool success = Post(mFBSurface->lastHandle, mFBSurface->GetPrevFBAcquireFd());
+    int error = 0;
+    bool success = false;
+
+    // Check for bootAnim or normal display flow.
+    if (!mBootAnimSTClient.get()) {
+        error = mSTClient->queueBuffer(mSTClient.get(), buf, -1);
+        success = Post(mFBSurface->lastHandle,
+                       mFBSurface->GetPrevFBAcquireFd());
+    } else {
+        error = mBootAnimSTClient->queueBuffer(mBootAnimSTClient.get(), buf, -1);
+        success = Post(mBootAnimSurface->lastHandle,
+                       mBootAnimSurface->GetPrevFBAcquireFd());
+    }
+
     return error == 0 && success;
 }
 
@@ -352,6 +372,17 @@ int
 GonkDisplayJB::GetPrevFBAcquireFd()
 {
     return mFBSurface->GetPrevFBAcquireFd();
+}
+
+void
+GonkDisplayJB::StopBootAnim()
+{
+    StopBootAnimation();
+
+    if (mBootAnimSTClient.get()) {
+        mBootAnimSTClient = nullptr;
+        mBootAnimSurface = nullptr;
+    }
 }
 
 __attribute__ ((visibility ("default")))

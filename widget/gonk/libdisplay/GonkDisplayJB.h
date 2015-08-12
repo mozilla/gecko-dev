@@ -55,6 +55,10 @@ public:
     bool Post(buffer_handle_t buf, int fence);
 
 private:
+    void StopBootAnim();
+    void CreateSurface(android::sp<ANativeWindow>& aNativeWindow,
+                       android::sp<android::FramebufferSurface>& aDisplaySurface);
+
     hw_module_t const*        mModule;
     hw_module_t const*        mFBModule;
     hwc_composer_device_1_t*  mHwc;
@@ -62,6 +66,9 @@ private:
     power_module_t*           mPowerModule;
     android::sp<android::FramebufferSurface> mFBSurface;
     android::sp<ANativeWindow> mSTClient;
+    android::sp<android::FramebufferSurface> mBootAnimSurface;
+    android::sp<ANativeWindow> mBootAnimSTClient;
+
     android::sp<android::IGraphicBufferAlloc> mAlloc;
     hwc_display_contents_1_t* mList;
     uint32_t mWidth;
