@@ -23,6 +23,7 @@ EXPORTS.mozilla.dom.mobileconnection += [
 
 XPIDL_SOURCES += [
     'interfaces/nsICellInfo.idl',
+    'interfaces/nsIImsRegService.idl',
     'interfaces/nsIMobileCallForwardingOptions.idl',
     'interfaces/nsIMobileCellInfo.idl',
     'interfaces/nsIMobileConnectionInfo.idl',
@@ -33,6 +34,7 @@ XPIDL_SOURCES += [
 
 UNIFIED_SOURCES += [
     'Assertions.cpp',
+    'ImsRegCallback.cpp',
     'ipc/MobileConnectionChild.cpp',
     'ipc/MobileConnectionIPCService.cpp',
     'ipc/MobileConnectionParent.cpp',

@@ -1,0 +1,151 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIImsRegHandler;
+
+[scriptable, uuid(897bea30-3cb2-11e5-a78c-db01ac6835ac)]
+interface nsIImsRegListener : nsISupports {
+  /**
+   * Invoked when the enabled state is changed.
+   */
+  void notifyEnabledStateChanged(in boolean aEnabled);
+
+  /**
+   * Invoked when the preferred profile is changed.
+   */
+  void notifyPreferredProfileChanged(in unsigned short aProfile);
+
+  /**
+   * Invoked when IMS capability or registration state changed.
+   *
+   * @param aCapability
+   *        One of nsIImsRegHandler::IMS_CAPABILITY_* values
+   * @param aUnregisteredReason
+   *        The reason why IMS is not registered.
+   */
+  void notifyCapabilityChanged(in short aCapability,
+                               in AString aUnregisteredReason);
+};
+
+[scriptable, uuid(03eade2a-3c22-11e5-a599-979e384a4561)]
+interface nsIImsRegCallback : nsISupports {
+  /**
+   * The success callback without response.
+   */
+  void notifySuccess();
+
+  /**
+   * The error callback when the request is failed.
+   */
+  void notifyError(in AString aRrror);
+};
+
+%{C++
+#define IMS_REG_SERVICE_CID \
+  { 0x80297610, 0x34fa, 0x11e5, \
+    { 0xb6, 0x8f, 0x13, 0x65, 0xa9, 0x17, 0x2f, 0x05 } }
+#define IMS_REG_SERVICE_CONTRACTID \
+  "@mozilla.org/mobileconnection/imsregservice;1"
+%}
+
+[scriptable, uuid(8457c084-3734-11e5-979b-e7d441dc1366)]
+interface nsIImsRegService : nsISupports {
+  /**
+   * @param aServiceId
+   *         The ServiceId of the underlying radio interface.
+   *
+   * @return an instance of nsIImsRegHandler or
+   *         null if IMS is not supported by this serviceId
+   *         according to the device configuration.
+   */
+  nsIImsRegHandler getHandlerByServiceId(in unsigned long aServiceId);
+};
+
+%{C++
+template<typename T> struct already_AddRefed;
+already_AddRefed<nsIImsRegService>
+NS_CreateImsRegService();
+%}
+
+[scriptable, uuid(05183f8e-3c1f-11e5-b80a-978881183a75)]
+interface nsIImsRegHandler : nsISupports {
+  const short IMS_CAPABILITY_UNKNOWN = -1;
+  const short IMS_CAPABILITY_VOICE_OVER_CELLULAR = 0;
+  const short IMS_CAPABILITY_VOICE_OVER_WIFI = 1;
+  const short IMS_CAPABILITY_VIDEO_OVER_CELLULAR = 2;
+  const short IMS_CAPABILITY_VIDEO_OVER_WIFI = 3;
+
+  const unsigned short IMS_PROFILE_CELLULAR_PREFERRED = 0;
+  const unsigned short IMS_PROFILE_CELLULAR_ONLY = 1;
+  const unsigned short IMS_PROFILE_WIFI_PREFERRED = 2;
+  const unsigned short IMS_PROFILE_WIFI_ONLY = 3;
+
+  /**
+   * Called to register/de-register ims status changes.
+   *
+   * Note: 'mobileconnection' permission is required.
+   */
+  void registerListener(in nsIImsRegListener aListener);
+  void unregisterListener(in nsIImsRegListener aListener);
+
+  /**
+   * Set IMS feature enabled/disabled.
+   *
+   * The |enabled| state is changed if response is success.
+   *
+   * @param aEnabled
+   *        True to enable IMS feature.
+   * @param aCallback
+   *        An instance of nsIImsRegCallback:
+   *        nsIImsRegCallback::notifySuccess() if success.
+   *        nsIImsRegCallback::notifyError(), otherwise.
+   *
+   * Important: Before notifySuccess(),
+   *            1. The attribute of |enabled| shall be changed to |aEnabled|.
+   *            2. nsIImsRegListener::notifyEnabledStateChanged must be invoked.
+   */
+  void setEnabled(in boolean aEnabled, in nsIImsRegCallback aCallback);
+
+  /**
+   * Current enabled state of IMS.
+   */
+  readonly attribute boolean enabled;
+
+  /**
+   * Set preferred IMS profile.
+   *
+   * The |preferredProfile| is changed if response is success.
+   *
+   * @param aProfile
+   *        One of IMS_PROFILE_* to be applied.
+   * @param aCallback
+   *        An instance of nsIImsRegCallback:
+   *        nsIImsRegCallback::notifySuccess() if success.
+   *        nsIImsRegCallback::notifyError(), otherwise.
+   *
+   * Important: Before notifySuccess(),
+   *            1. The attribute of |preferredProfile| shall be changed to |aProfile|.
+   *            2. nsIImsRegListener::notifyPreferredProfileChanged must be invoked.
+   */
+  void setPreferredProfile(in unsigned short aProfile, in nsIImsRegCallback aCallback);
+
+  /**
+   * The preferred IMS profile currently applied.
+   */
+  readonly attribute unsigned short preferredProfile;
+
+  /**
+   * One of IMS_CAPABILITY_* values
+   *
+   * Note: Set to IMS_CAPABILITY_UNKNOWN if IMS is not registered.
+   */
+  readonly attribute short capability;
+
+  /**
+   * The error cause if there is no ims capability. Set to null, otherwise.
+   */
+  readonly attribute AString unregisteredReason;
+};
