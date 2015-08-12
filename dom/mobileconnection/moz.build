@@ -7,6 +7,7 @@
 MOCHITEST_MANIFESTS += ['tests/mochitest/mochitest.ini']
 
 EXPORTS.mozilla.dom += [
+    'ImsRegHandler.h',
     'MobileCellInfo.h',
     'MobileConnection.h',
     'MobileConnectionArray.h',
@@ -37,6 +38,7 @@ XPIDL_SOURCES += [
 UNIFIED_SOURCES += [
     'Assertions.cpp',
     'ImsRegCallback.cpp',
+    'ImsRegHandler.cpp',
     'ipc/ImsRegIPCService.cpp',
     'ipc/ImsRegistrationChild.cpp',
     'ipc/ImsRegistrationParent.cpp',

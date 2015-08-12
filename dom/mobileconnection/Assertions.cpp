@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/dom/ImsRegHandlerBinding.h"
 #include "mozilla/dom/MozMobileConnectionBinding.h"
+#include "nsIImsRegService.h"
 #include "nsIMobileConnectionService.h"
 
 namespace mozilla {
@@ -68,6 +70,26 @@ ASSERT_MOBILE_NETWORK_TYPE_EQUALITY(Evdo, MOBILE_NETWORK_TYPE_EVDO);
 ASSERT_MOBILE_NETWORK_TYPE_EQUALITY(Lte, MOBILE_NETWORK_TYPE_LTE);
 
 #undef ASSERT_MOBILE_NETWORK_TYPE_EQUALITY
+
+#define ASSERT_IMS_CAPABILITY(webidlState, xpidlState) \
+  static_assert(static_cast<int32_t>(ImsCapability::webidlState) == nsIImsRegHandler::xpidlState, \
+                "ImsCapability::" #webidlState " should equal to nsIImsRegHandler::" #xpidlState)
+ASSERT_IMS_CAPABILITY(Voice_over_cellular, IMS_CAPABILITY_VOICE_OVER_CELLULAR);
+ASSERT_IMS_CAPABILITY(Voice_over_wifi, IMS_CAPABILITY_VOICE_OVER_WIFI);
+ASSERT_IMS_CAPABILITY(Video_over_cellular, IMS_CAPABILITY_VIDEO_OVER_CELLULAR);
+ASSERT_IMS_CAPABILITY(Video_over_wifi, IMS_CAPABILITY_VIDEO_OVER_WIFI);
+
+#undef ASSERT_IMS_CAPABILITY
+
+#define ASSERT_IMS_PROFILE(webidlState, xpidlState) \
+  static_assert(static_cast<int32_t>(ImsProfile::webidlState) == nsIImsRegHandler::xpidlState, \
+                "ImsProfile::" #webidlState " should equal to nsIImsRegHandler::" #xpidlState)
+ASSERT_IMS_PROFILE(Cellular_preferred, IMS_PROFILE_CELLULAR_PREFERRED);
+ASSERT_IMS_PROFILE(Cellular_only, IMS_PROFILE_CELLULAR_ONLY);
+ASSERT_IMS_PROFILE(Wifi_preferred, IMS_PROFILE_WIFI_PREFERRED);
+ASSERT_IMS_PROFILE(Wifi_only, IMS_PROFILE_WIFI_ONLY);
+
+#undef ASSERT_IMS_PROFILE
 
 } // namespace dom
 } // namespace mozilla

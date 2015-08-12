@@ -21,6 +21,8 @@
 namespace mozilla {
 namespace dom {
 
+class ImsRegHandler;
+
 class MobileConnection MOZ_FINAL : public DOMEventTargetHelper
                                  , private nsIMobileConnectionListener
 #ifdef MOZ_B2G_RIL
@@ -89,6 +91,9 @@ public:
 
   void
   GetSupportedNetworkTypes(nsTArray<MobileNetworkType>& aTypes) const;
+
+  already_AddRefed<ImsRegHandler>
+  GetImsHandler() const;
 
   already_AddRefed<DOMRequest>
   GetNetworks(ErrorResult& aRv);
@@ -175,6 +180,8 @@ private:
   nsRefPtr<Listener> mListener;
   nsRefPtr<MobileConnectionInfo> mVoice;
   nsRefPtr<MobileConnectionInfo> mData;
+  // mutable for lazy initialization in GetImsRegHandler() const.
+  mutable nsRefPtr<ImsRegHandler> mImsHandler;
 
   bool
   CheckPermission(const char* aType) const;

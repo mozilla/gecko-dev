@@ -8,6 +8,7 @@
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/dom/CFStateChangeEvent.h"
 #include "mozilla/dom/DataErrorEvent.h"
+#include "mozilla/dom/ImsRegHandler.h"
 #include "mozilla/dom/MozClirModeEvent.h"
 #include "mozilla/dom/MozEmergencyCbModeEvent.h"
 #include "mozilla/dom/MozOtaStatusEvent.h"
@@ -98,6 +99,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(MobileConnection,
   // down.
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mVoice)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mData)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mImsHandler)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(MobileConnection,
@@ -105,6 +107,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(MobileConnection,
   tmp->Shutdown();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mVoice)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mData)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mImsHandler)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MobileConnection)
@@ -450,6 +453,38 @@ MobileConnection::GetSupportedNetworkTypes(nsTArray<MobileNetworkType>& aTypes) 
   }
 
   nsMemory::Free(types);
+}
+
+already_AddRefed<ImsRegHandler>
+MobileConnection::GetImsHandler() const
+{
+  if (!mMobileConnection) {
+    return nullptr;
+  }
+
+  if (mImsHandler) {
+    nsRefPtr<ImsRegHandler> handler = mImsHandler;
+    return handler.forget();
+  }
+
+  nsCOMPtr<nsIImsRegService> imsService = do_GetService(IMS_REG_SERVICE_CONTRACTID);
+  if (!imsService) {
+    NS_WARNING("Could not acquire nsIImsRegService!");
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIImsRegHandler> internalHandler;
+  imsService->GetHandlerByServiceId(mClientId, getter_AddRefs(internalHandler));
+  // ImsRegHandler is optional, always check even if it was retreived successfully.
+  if (!internalHandler) {
+    NS_WARNING("Could not acquire nsIImsRegHandler!");
+    return nullptr;
+  }
+
+  mImsHandler = new ImsRegHandler(GetOwner(), internalHandler);
+  nsRefPtr<ImsRegHandler> handler = mImsHandler;
+
+  return handler.forget();
 }
 
 already_AddRefed<DOMRequest>

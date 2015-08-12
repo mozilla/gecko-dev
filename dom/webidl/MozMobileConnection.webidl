@@ -113,6 +113,14 @@ interface MozMobileConnection : EventTarget
   readonly attribute sequence<MobileNetworkType> supportedNetworkTypes;
 
   /**
+   * IMS registration handler.
+   *
+   * Only available if supported.
+   */
+  [CheckPermissions="mobileconnection"]
+  readonly attribute ImsRegHandler? imsHandler;
+
+  /**
    * Search for available networks.
    *
    * @return a DOMRequest.

@@ -241,6 +241,7 @@ WEBIDL_FILES = [
     'ImageCapture.webidl',
     'ImageData.webidl',
     'ImageDocument.webidl',
+    'ImsRegHandler.webidl',
     'InputEvent.webidl',
     'InputMethod.webidl',
     'InspectorUtils.webidl',

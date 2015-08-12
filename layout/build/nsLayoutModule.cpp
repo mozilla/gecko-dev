@@ -214,6 +214,7 @@ static void Shutdown();
 #include "mozilla/dom/nsCSPService.h"
 #include "mozilla/dom/nsCSPContext.h"
 #include "nsICellBroadcastService.h"
+#include "nsIImsRegService.h"
 #include "nsISmsService.h"
 #include "nsIMmsService.h"
 #include "nsIMobileConnectionService.h"
@@ -327,6 +328,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsHapticFeedback)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(ThirdPartyUtil, Init)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsICellBroadcastService,
                                          NS_CreateCellBroadcastService)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIImsRegService,
+                                         NS_CreateImsRegService)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsISmsService, NS_CreateSmsService)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIMmsService, NS_CreateMmsService)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIMobileMessageService,
@@ -782,6 +785,7 @@ NS_DEFINE_NAMED_CID(GONK_GPS_GEOLOCATION_PROVIDER_CID);
 #endif
 #endif
 NS_DEFINE_NAMED_CID(CELLBROADCAST_SERVICE_CID);
+NS_DEFINE_NAMED_CID(IMS_REG_SERVICE_CID);
 NS_DEFINE_NAMED_CID(TELEPHONY_SERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_VOICEMAIL_SERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_MOBILE_CONNECTION_SERVICE_CID);
@@ -1074,6 +1078,7 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kTHIRDPARTYUTIL_CID, false, nullptr, ThirdPartyUtilConstructor },
   { &kNS_STRUCTUREDCLONECONTAINER_CID, false, nullptr, nsStructuredCloneContainerConstructor },
   { &kCELLBROADCAST_SERVICE_CID, false, nullptr, nsICellBroadcastServiceConstructor },
+  { &kIMS_REG_SERVICE_CID, false, nullptr, nsIImsRegServiceConstructor },
   { &kSMS_SERVICE_CID, false, nullptr, nsISmsServiceConstructor },
   { &kMMS_SERVICE_CID, false, nullptr, nsIMmsServiceConstructor },
   { &kMOBILE_MESSAGE_SERVICE_CID, false, nullptr, nsIMobileMessageServiceConstructor },
@@ -1232,6 +1237,7 @@ static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
   { THIRDPARTYUTIL_CONTRACTID, &kTHIRDPARTYUTIL_CID },
   { NS_STRUCTUREDCLONECONTAINER_CONTRACTID, &kNS_STRUCTUREDCLONECONTAINER_CID },
   { CELLBROADCAST_SERVICE_CONTRACTID, &kCELLBROADCAST_SERVICE_CID },
+  { IMS_REG_SERVICE_CONTRACTID, &kIMS_REG_SERVICE_CID },
   { SMS_SERVICE_CONTRACTID, &kSMS_SERVICE_CID },
   { MMS_SERVICE_CONTRACTID, &kMMS_SERVICE_CID },
   { MOBILE_MESSAGE_SERVICE_CONTRACTID, &kMOBILE_MESSAGE_SERVICE_CID },
