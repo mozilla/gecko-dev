@@ -22,6 +22,8 @@ include protocol PFMRadio;
 include protocol PFileSystemRequest;
 include protocol PHal;
 include protocol PImageBridge;
+include protocol PImsRegServiceFinder;
+include protocol PImsRegistration;
 include protocol PMemoryReportRequest;
 include protocol PMobileConnection;
 include protocol PNecko;
@@ -363,6 +365,8 @@ prio(normal upto urgent) intr protocol PContent
     manages PFileDescriptorSet;
     manages PFMRadio;
     manages PHal;
+    manages PImsRegServiceFinder;
+    manages PImsRegistration;
     manages PMemoryReportRequest;
     manages PMobileConnection;
     manages PNecko;
@@ -618,6 +622,10 @@ parent:
         returns (bool isSecureURI);
 
     PHal();
+
+    PImsRegServiceFinder();
+
+    PImsRegistration(uint32_t aServiceId);
 
     PMobileConnection(uint32_t clientId);
 

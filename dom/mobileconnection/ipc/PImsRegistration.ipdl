@@ -1,0 +1,62 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include protocol PContent;
+include protocol PImsRegistrationRequest;
+
+namespace mozilla {
+namespace dom {
+namespace mobileconnection {
+
+sync protocol PImsRegistration
+{
+  manager PContent;
+  manages PImsRegistrationRequest;
+
+child:
+  NotifyEnabledStateChanged(bool aEnabled);
+  NotifyPreferredProfileChanged(uint16_t aProfile);
+  NotifyImsCapabilityChanged(int16_t aCapability, nsString aUnregisteredReason);
+
+parent:
+  /**
+   * Send when child no longer needs to use PImsRegistration.
+   */
+  __delete__();
+
+  /**
+   * Sent when the ims child make an asynchronous request to the parent.
+   */
+  PImsRegistrationRequest(ImsRegistrationRequest aRequest);
+
+  /**
+   * Sync call only be called once per child actor for initialization.
+   */
+  sync Init()
+    returns (bool aEnabled, uint16_t aProfile,
+             int16_t aCapability, nsString aUnregisteredReason);
+};
+
+/**
+ * ImsRegistrationRequest
+ */
+struct SetImsEnabledRequest
+{
+  bool enabled;
+};
+
+struct SetImsPreferredProfileRequest
+{
+  uint16_t profile;
+};
+
+union ImsRegistrationRequest
+{
+  SetImsEnabledRequest;
+  SetImsPreferredProfileRequest;
+};
+
+} // namespace mobileconnection
+} // namespace dom
+} // namespace mozilla

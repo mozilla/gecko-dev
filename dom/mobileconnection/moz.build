@@ -54,6 +54,9 @@ if CONFIG['_MSC_VER'] and CONFIG['CPU_ARCH'] == 'x86_64':
     SOURCES['MobileConnection.cpp'].no_pgo = True # VS2013 crashes, bug 1084162
 
 IPDL_SOURCES += [
+    'ipc/PImsRegistration.ipdl',
+    'ipc/PImsRegistrationRequest.ipdl',
+    'ipc/PImsRegServiceFinder.ipdl',
     'ipc/PMobileConnection.ipdl',
     'ipc/PMobileConnectionRequest.ipdl',
     'ipc/PMobileConnectionTypes.ipdlh',

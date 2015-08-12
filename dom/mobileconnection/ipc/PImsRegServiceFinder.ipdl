@@ -1,0 +1,35 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include protocol PContent;
+
+namespace mozilla {
+namespace dom {
+namespace mobileconnection {
+
+/**
+ * ImsRegService is an optional service to be included by vendor.
+ * This protocol is provided to check the availability of ImsRegService before
+ * access ImsRegService via PImsRegistration protocol from child process.
+ */
+sync protocol PImsRegServiceFinder
+{
+  manager PContent;
+
+parent:
+  /**
+   * Sync call to check device capability of IMS.
+   */
+  sync CheckDeviceCapability()
+    returns (bool aIsServiceInstalled, uint32_t[] aEnabledServiceIds);
+
+  /**
+   * Send when the IPC protocol is not required anymore by child.
+   */
+  __delete__();
+};
+
+} // namespace mobileconnection
+} // namespace dom
+} // namespace mozilla
