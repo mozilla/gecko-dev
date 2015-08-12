@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test ImsRegHandler</title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <script type="application/javascript" src="head_ims.js"></script>
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none">
+</div>
+<pre id="test">
+<script type="application/javascript">
+"use strict";
+
+function verifyDefaultAttributes() {
+  return new Promise(function(resolve, reject) {
+    is(imsRegHandler.capability, null, "Check default capability.");
+    is(imsRegHandler.unregisteredReason, null, "Check default reason.");
+    is(imsRegHandler.enabled, false, "Check default enabled state.");
+    is(imsRegHandler.preferredProfile, "cellular-preferred", "Check default profile.");
+    resolve();
+  });
+}
+
+function verifyCapabilityChange() {
+  function verifyCapability(aExpectedCapability, aExpectedReason) {
+    return updateImsCapability(aExpectedCapability, aExpectedReason)
+      .then(() => {
+        is(imsRegHandler.capability, aExpectedCapability, "Check capability.");
+        is(imsRegHandler.unregisteredReason, aExpectedReason, "Check reason.");
+      });
+  }
+
+  return Promise.resolve()
+    .then(() => verifyCapability("voice-over-cellular", null))
+    .then(() => verifyCapability("voice-over-wifi", null))
+    .then(() => verifyCapability("video-over-cellular", null))
+    .then(() => verifyCapability("video-over-wifi", null))
+    .then(() => verifyCapability("voice-over-cellular", null))
+    .then(() => verifyCapability(null, "noNetwork"))
+    .then(() => verifyCapability(null, null));
+}
+
+function verifyImsToggle() {
+  return Promise.resolve()
+    .then(() => setImsEnabled(true))
+    .then(() => is(getImsEnabled(), true, "Enabled state was changed to true."))
+    .then(() => setImsEnabled(false))
+    .then(() => is(getImsEnabled(), false, "Enabled state was changed to false."));
+}
+
+function verifyProfileChange() {
+  return Promise.resolve()
+    .then(() => setPreferredProfile("cellular-only"))
+    .then(() => is(getPreferredProfile(), "cellular-only",
+                   "Profile was changed to cellular-only"))
+    .then(() => setPreferredProfile("wifi-preferred"))
+    .then(() => is(getPreferredProfile(), "wifi-preferred",
+                   "Profile was changed to wifi-preferred"))
+    .then(() => setPreferredProfile("wifi-only"))
+    .then(() => is(getPreferredProfile(), "wifi-only",
+                   "Profile was changed to wifi-only"))
+    .then(() => setPreferredProfile("cellular-preferred"))
+    .then(() => is(getPreferredProfile(), "cellular-preferred",
+                   "Profile was changed to cellular-preferred"));
+}
+
+function verifySetterError() {
+  var currentEnabledState = getImsEnabled();
+  var currentProfile = getPreferredProfile();
+  return mockSetterError()
+    .then(() => setImsEnabled(true))
+    .then(() => ok(false, "error is expected when setEnabled."),
+          (aError) => {
+            is(aError, "setEnabledError", "Expected error of setEnabled()");
+            is(getImsEnabled(), currentEnabledState, "Enabled state is unchanged.");
+          })
+    .then(() => setPreferredProfile("wifi-preferred"))
+    .then(() => ok(false, "error is expected when setEnabled."),
+          (aError) => {
+            is(aError, "setPreferredProfileError",
+               "Expected error of setPreferredProfile()");
+            is(getPreferredProfile(), currentProfile, "Profile is unchanged.");
+          });
+}
+
+startTestCommon(function() {
+  return verifyDefaultAttributes()
+    .then(() => verifyCapabilityChange())
+    .then(() => verifyImsToggle())
+    .then(() => verifyProfileChange())
+    .then(() => verifySetterError());
+});
+</script>
+</pre>
+</body>
+</html>
