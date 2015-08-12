@@ -15,6 +15,8 @@ EXPORTS.mozilla.dom += [
 ]
 
 EXPORTS.mozilla.dom.mobileconnection += [
+    'ipc/ImsRegistrationChild.h',
+    'ipc/ImsRegistrationParent.h',
     'ipc/MobileConnectionChild.h',
     'ipc/MobileConnectionIPCSerializer.h',
     'ipc/MobileConnectionParent.h',
@@ -35,6 +37,9 @@ XPIDL_SOURCES += [
 UNIFIED_SOURCES += [
     'Assertions.cpp',
     'ImsRegCallback.cpp',
+    'ipc/ImsRegIPCService.cpp',
+    'ipc/ImsRegistrationChild.cpp',
+    'ipc/ImsRegistrationParent.cpp',
     'ipc/MobileConnectionChild.cpp',
     'ipc/MobileConnectionIPCService.cpp',
     'ipc/MobileConnectionParent.cpp',

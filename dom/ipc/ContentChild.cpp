@@ -143,6 +143,7 @@
 
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/cellbroadcast/CellBroadcastIPCService.h"
+#include "mozilla/dom/mobileconnection/ImsRegistrationChild.h"
 #include "mozilla/dom/mobileconnection/MobileConnectionChild.h"
 #include "mozilla/dom/mobilemessage/SmsChild.h"
 #include "mozilla/dom/devicestorage/DeviceStorageRequestChild.h"
@@ -1511,6 +1512,44 @@ ContentChild::DeallocPMobileConnectionChild(PMobileConnectionChild* aActor)
 #else
     MOZ_CRASH("No support for mobileconnection on this platform!");
 #endif
+}
+
+PImsRegServiceFinderChild*
+ContentChild::AllocPImsRegServiceFinderChild()
+{
+    return new PImsRegServiceFinderChild();
+}
+
+bool
+ContentChild::DeallocPImsRegServiceFinderChild(PImsRegServiceFinderChild* aActor)
+{
+    delete aActor;
+    return true;
+}
+
+PImsRegistrationChild*
+ContentChild::SendPImsRegistrationConstructor(PImsRegistrationChild* aActor,
+                                              const uint32_t& aServiceId)
+{
+    // Add an extra ref for IPDL. Will be released in
+    // ContentChild::DeallocPImsRegistrationChild().
+    static_cast<ImsRegistrationChild*>(aActor)->AddRef();
+    return PContentChild::SendPImsRegistrationConstructor(aActor, aServiceId);
+}
+
+PImsRegistrationChild*
+ContentChild::AllocPImsRegistrationChild(const uint32_t& aServiceId)
+{
+    NS_NOTREACHED("No one should be allocating PImsRegistrationChild actors");
+    return nullptr;
+}
+
+bool
+ContentChild::DeallocPImsRegistrationChild(PImsRegistrationChild* aActor)
+{
+    // ImsRegistrationChild is refcounted, must not be freed manually.
+    static_cast<ImsRegistrationChild*>(aActor)->Release();
+    return true;
 }
 
 PNeckoChild*

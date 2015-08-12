@@ -528,6 +528,12 @@ private:
     virtual PMobileConnectionParent* AllocPMobileConnectionParent(const uint32_t& aClientId) MOZ_OVERRIDE;
     virtual bool DeallocPMobileConnectionParent(PMobileConnectionParent* aActor) MOZ_OVERRIDE;
 
+    virtual PImsRegServiceFinderParent* AllocPImsRegServiceFinderParent() MOZ_OVERRIDE;
+    virtual bool DeallocPImsRegServiceFinderParent(PImsRegServiceFinderParent* aActor) MOZ_OVERRIDE;
+
+    virtual PImsRegistrationParent* AllocPImsRegistrationParent(const uint32_t& aClientId) MOZ_OVERRIDE;
+    virtual bool DeallocPImsRegistrationParent(PImsRegistrationParent* aActor) MOZ_OVERRIDE;
+
     virtual bool DeallocPNeckoParent(PNeckoParent* necko) MOZ_OVERRIDE;
 
     virtual PExternalHelperAppParent* AllocPExternalHelperAppParent(
@@ -699,7 +705,7 @@ private:
                                   OptionalURIParams* aURI) MOZ_OVERRIDE;
 
     virtual bool RecvNotifyKeywordSearchLoading(const nsString &aProvider,
-                                                const nsString &aKeyword) MOZ_OVERRIDE; 
+                                                const nsString &aKeyword) MOZ_OVERRIDE;
 
     virtual void ProcessingError(Result what) MOZ_OVERRIDE;
 

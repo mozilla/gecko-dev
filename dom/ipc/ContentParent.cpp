@@ -51,6 +51,7 @@
 #include "mozilla/dom/bluetooth/PBluetoothParent.h"
 #include "mozilla/dom/cellbroadcast/CellBroadcastParent.h"
 #include "mozilla/dom/devicestorage/DeviceStorageRequestParent.h"
+#include "mozilla/dom/mobileconnection/ImsRegistrationParent.h"
 #include "mozilla/dom/mobileconnection/MobileConnectionParent.h"
 #include "mozilla/dom/mobilemessage/SmsParent.h"
 #include "mozilla/dom/power/PowerManagerService.h"
@@ -3316,6 +3317,45 @@ ContentParent::DeallocPMobileConnectionParent(PMobileConnectionParent* aActor)
 #else
     MOZ_CRASH("No support for mobileconnection on this platform!");
 #endif
+}
+
+PImsRegServiceFinderParent*
+ContentParent::AllocPImsRegServiceFinderParent()
+{
+    if (!AssertAppProcessPermission(this, "mobileconnection")) {
+        return nullptr;
+    }
+
+    return new ImsRegServiceFinderParent();
+}
+
+bool
+ContentParent::DeallocPImsRegServiceFinderParent(PImsRegServiceFinderParent* aActor)
+{
+    delete aActor;
+    return true;
+}
+
+PImsRegistrationParent*
+ContentParent::AllocPImsRegistrationParent(const uint32_t& aServiceId)
+{
+    if (!AssertAppProcessPermission(this, "mobileconnection")) {
+        return nullptr;
+    }
+
+    nsRefPtr<ImsRegistrationParent> parent = new ImsRegistrationParent(aServiceId);
+    // We release this ref in DeallocPImsRegistrationParent().
+    parent->AddRef();
+
+    return parent;
+}
+
+bool
+ContentParent::DeallocPImsRegistrationParent(PImsRegistrationParent* aActor)
+{
+    // ImsRegistrationParent is refcounted, must not be freed manually.
+    static_cast<ImsRegistrationParent*>(aActor)->Release();
+    return true;
 }
 
 PNeckoParent*
