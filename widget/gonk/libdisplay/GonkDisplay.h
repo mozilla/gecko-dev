@@ -63,6 +63,8 @@ public:
      */
     virtual int GetPrevFBAcquireFd() = 0;
 
+    virtual void NotifyBootAnimationStopped() = 0;
+
     float xdpi;
     int32_t surfaceformat;
 };

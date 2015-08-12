@@ -55,6 +55,8 @@ public:
         return -1;
     }
 
+    virtual void NotifyBootAnimationStopped() {}
+
 private:
     hw_module_t const*        mModule;
     hwc_composer_device_t*    mHwc;

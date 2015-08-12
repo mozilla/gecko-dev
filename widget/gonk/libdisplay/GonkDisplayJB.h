@@ -54,8 +54,9 @@ public:
 
     bool Post(buffer_handle_t buf, int fence);
 
+    virtual void NotifyBootAnimationStopped();
+
 private:
-    void StopBootAnim();
     void CreateSurface(android::sp<ANativeWindow>& aNativeWindow,
                        android::sp<android::FramebufferSurface>& aDisplaySurface);
 

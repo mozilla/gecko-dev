@@ -29,7 +29,6 @@
 #if ANDROID_VERSION == 17
 #include "GraphicBufferAlloc.h"
 #endif
-#include "BootAnimation.h"
 
 using namespace android;
 
@@ -122,9 +121,6 @@ GonkDisplayJB::GonkDisplayJB()
         CreateSurface(mBootAnimSTClient, mBootAnimSurface);
 #endif
     }
-
-    ALOGI("Starting bootanimation with (%d) format framebuffer", surfaceformat);
-    StartBootAnimation();
 }
 
 GonkDisplayJB::~GonkDisplayJB()
@@ -168,8 +164,6 @@ GonkDisplayJB::CreateSurface(android::sp<ANativeWindow>& aNativeWindow,
 ANativeWindow*
 GonkDisplayJB::GetNativeWindow()
 {
-    StopBootAnim();
-
     return mSTClient.get();
 }
 
@@ -235,8 +229,6 @@ GonkDisplayJB::GetFBSurface()
 bool
 GonkDisplayJB::SwapBuffers(EGLDisplay dpy, EGLSurface sur)
 {
-    StopBootAnim();
-
     // Should be called when composition rendering is complete for a frame.
     // Only HWC v1.0 needs this call.
     // HWC > v1.0 case, do not call compositionComplete().
@@ -375,10 +367,8 @@ GonkDisplayJB::GetPrevFBAcquireFd()
 }
 
 void
-GonkDisplayJB::StopBootAnim()
+GonkDisplayJB::NotifyBootAnimationStopped()
 {
-    StopBootAnimation();
-
     if (mBootAnimSTClient.get()) {
         mBootAnimSTClient = nullptr;
         mBootAnimSurface = nullptr;
