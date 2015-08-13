@@ -113,6 +113,34 @@ add_test(function test_telephony_messenger_notify_call_ended() {
     hangUpLocal: true
   });
 
+  /**
+   * Verify RILSystemMessenger.notifyTtyModeChanged()
+   */
+  add_test(function test_telephony_messenger_notify_tty_mode_changed() {
+    const INVALID_VALUE = 4;
+    let messenger = newRILSystemMessenger();
+
+    messenger.notifyTtyModeChanged(Ci.nsITelephonyService.TTY_MODE_OFF);
+    equal_received_system_message("telephony-tty-mode-changed",
+                                  { ttyMode: "off" });
+    messenger.notifyTtyModeChanged(Ci.nsITelephonyService.TTY_MODE_FULL);
+    equal_received_system_message("telephony-tty-mode-changed",
+                                  { ttyMode: "full" });
+    messenger.notifyTtyModeChanged(Ci.nsITelephonyService.TTY_MODE_HCO);
+    equal_received_system_message("telephony-tty-mode-changed",
+                                  { ttyMode: "hco" });
+    messenger.notifyTtyModeChanged(Ci.nsITelephonyService.TTY_MODE_VCO);
+    equal_received_system_message("telephony-tty-mode-changed",
+                                  { ttyMode: "vco" });
+
+    try {
+      messenger.notifyTtyModeChanged(INVALID_VALUE);
+      ok(false, "An invalid TTY mode value doesn't cause an exception.");
+    } catch (e) {}
+
+    run_next_test();
+  });
+
   // Verify 'optional' parameter of secondNumber.
   messenger.notifyCallEnded(1,
                             "+0987654321",

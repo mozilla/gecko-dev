@@ -4,7 +4,7 @@
 
 #include "nsISupports.idl"
 
-[scriptable, uuid(84045b7e-84fb-11e4-a94c-5ba58d0d5932)]
+[scriptable, uuid(cf990745-6710-480e-965d-e1322d9fae48)]
 interface nsITelephonyMessenger : nsISupports
 {
   /**
@@ -51,4 +51,13 @@ interface nsITelephonyMessenger : nsISupports
   void notifyUssdReceived(in unsigned long aServiceId,
                           in DOMString aMessage,
                           in boolean aSessionEnded);
+
+  /**
+   * To broadcast 'telephony-tty-mode-changed' system message.
+   *
+   * @param aMode
+   *        The new TTY mode of the remote party.
+   *        One of nsITelephonyService::TTY_MODE_*.
+   */
+  void notifyTtyModeChanged(in unsigned short aMode);
 };
