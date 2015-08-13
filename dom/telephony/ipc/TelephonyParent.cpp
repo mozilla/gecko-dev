@@ -291,6 +291,30 @@ TelephonyParent::RecvSetSpeakerEnabled(const bool& aEnabled)
   return true;
 }
 
+bool
+TelephonyParent::RecvGetTtyMode(uint16_t* aMode)
+{
+  *aMode = nsITelephonyService::TTY_MODE_OFF;
+
+  nsCOMPtr<nsITelephonyService> service =
+    do_GetService(TELEPHONY_SERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(service, true);
+
+  service->GetTtyMode(aMode);
+  return true;
+}
+
+bool
+TelephonyParent::RecvSetTtyMode(const uint16_t& aMode)
+{
+  nsCOMPtr<nsITelephonyService> service =
+    do_GetService(TELEPHONY_SERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(service, true);
+
+  service->SetTtyMode(aMode);
+  return true;
+}
+
 // nsITelephonyListener
 
 NS_IMETHODIMP

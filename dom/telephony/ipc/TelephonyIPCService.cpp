@@ -383,6 +383,30 @@ TelephonyIPCService::SetSpeakerEnabled(bool aEnabled)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+TelephonyIPCService::GetTtyMode(uint16_t* aMode)
+{
+  if (!mPTelephonyChild) {
+    NS_WARNING("TelephonyService used after shutdown has begun!");
+    return NS_ERROR_FAILURE;
+  }
+
+  mPTelephonyChild->SendGetTtyMode(aMode);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TelephonyIPCService::SetTtyMode(uint16_t aMode)
+{
+  if (!mPTelephonyChild) {
+    NS_WARNING("TelephonyService used after shutdown has begun!");
+    return NS_ERROR_FAILURE;
+  }
+
+  mPTelephonyChild->SendSetTtyMode(aMode);
+  return NS_OK;
+}
+
 // nsITelephonyListener
 
 NS_IMETHODIMP
