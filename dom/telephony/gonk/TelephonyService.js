@@ -1156,6 +1156,14 @@ TelephonyService.prototype = {
     gAudioService.speakerEnabled = aEnabled;
   },
 
+  get ttyMode() {
+    return gAudioService.ttyMode;
+  },
+
+  set ttyMode(aMode) {
+    gAudioService.ttyMode = aMode;
+  },
+
   /**
    * nsIGonkTelephonyService interface.
    */

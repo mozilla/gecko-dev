@@ -174,7 +174,7 @@ interface nsITelephonyDialCallback : nsITelephonyCallback
  * XPCOM component (in the content process) that provides the telephony
  * information.
  */
-[scriptable, uuid(a91fa6be-0acc-4d36-99f1-3e3a88e83ae9)]
+[scriptable, uuid(07d425d3-817b-4440-890a-f0a4de2efe50)]
 interface nsITelephonyService : nsISupports
 {
   const unsigned short CALL_STATE_UNKNOWN = 0;
@@ -196,6 +196,11 @@ interface nsITelephonyService : nsISupports
   const unsigned short CALL_PRESENTATION_RESTRICTED = 1;
   const unsigned short CALL_PRESENTATION_UNKNOWN = 2;
   const unsigned short CALL_PRESENTATION_PAYPHONE = 3;
+
+  const unsigned short TTY_MODE_OFF = 0;
+  const unsigned short TTY_MODE_FULL = 1;
+  const unsigned short TTY_MODE_HCO = 2;
+  const unsigned short TTY_MODE_VCO = 3;
 
   readonly attribute unsigned long defaultServiceId;
 
@@ -269,6 +274,13 @@ interface nsITelephonyService : nsISupports
 
   attribute bool microphoneMuted;
   attribute bool speakerEnabled;
+
+  /**
+   * Current TTY mode.
+   *
+   * One of the nsITelephonyService::TTY_MODE_* values.
+   */
+  attribute unsigned short ttyMode;
 };
 
 %{C++
