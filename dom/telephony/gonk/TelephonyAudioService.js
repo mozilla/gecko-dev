@@ -15,6 +15,7 @@ const nsITelephonyAudioService = Ci.nsITelephonyAudioService;
 
 const NS_PREFBRANCH_PREFCHANGE_TOPIC_ID = "nsPref:changed";
 const kPrefRilDebuggingEnabled = "ril.debugging.enabled";
+const kPrefRilTelephonyTtyMode = "ril.telephony.ttyMode";
 
 const AUDIO_STATE_NAME = [
   "PHONE_STATE_NORMAL",
@@ -64,6 +65,7 @@ XPCOMUtils.defineLazyGetter(this, "gAudioManager", function getAudioManager() {
 function TelephonyAudioService() {
   this._updateDebugFlag();
   Services.prefs.addObserver(kPrefRilDebuggingEnabled, this, false);
+  Services.prefs.addObserver(kPrefRilTelephonyTtyMode, this, false);
 }
 TelephonyAudioService.prototype = {
   classDescription: "TelephonyAudioService",
@@ -77,6 +79,17 @@ TelephonyAudioService.prototype = {
       DEBUG = RIL.DEBUG_RIL ||
               Services.prefs.getBoolPref(kPrefRilDebuggingEnabled);
     } catch (e) {}
+  },
+
+  _updateTtyMode: function() {
+    let mode = Ci.nsITelephonyService.TTY_MODE_OFF;
+    try {
+      mode = Services.prefs.getIntPref(kPrefRilTelephonyTtyMode);
+    } catch (e) {
+      if (DEBUG) debug("Error getting preference: " + kPrefRilTelephonyTtyMode);
+    }
+
+    this._ttyMode = mode;
   },
 
   /**
@@ -106,6 +119,22 @@ TelephonyAudioService.prototype = {
     let force = aEnabled ? nsIAudioManager.FORCE_SPEAKER :
                            nsIAudioManager.FORCE_NONE;
     gAudioManager.setForceForUse(nsIAudioManager.USE_COMMUNICATION, force);
+  },
+
+  get ttyMode() {
+    if (this._ttyMode === undefined) {
+      this._updateTtyMode();
+    }
+
+    return this._ttyMode;
+  },
+
+  set ttyMode(aMode) {
+    try {
+      Services.prefs.setIntPref(kPrefRilTelephonyTtyMode, aMode);
+    } catch (e) {
+      if (DEBUG) debug("Error setting preference: " + kPrefRilTelephonyTtyMode);
+    }
   },
 
   setPhoneState: function(aState) {
@@ -142,6 +171,8 @@ TelephonyAudioService.prototype = {
       case NS_PREFBRANCH_PREFCHANGE_TOPIC_ID:
         if (aData === kPrefRilDebuggingEnabled) {
           this._updateDebugFlag();
+        } else if (aData === kPrefRilTelephonyTtyMode) {
+          this._updateTtyMode();
         }
         break;
     }

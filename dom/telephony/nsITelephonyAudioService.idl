@@ -4,7 +4,7 @@
 
 #include "nsISupports.idl"
 
-[scriptable, uuid(a452c565-fbac-4056-a8f4-feee9b33aa6e)]
+[scriptable, uuid(2f923467-756d-4825-87ad-b38de3e825fe)]
 interface nsITelephonyAudioService : nsISupports
 {
   const long PHONE_STATE_NORMAL   = 0;
@@ -20,6 +20,13 @@ interface nsITelephonyAudioService : nsISupports
    * Speaker enabled?
    */
   attribute boolean speakerEnabled;
+
+  /**
+   * Current TTY mode.
+   *
+   * One of the nsITelephonyService::TTY_MODE_* values.
+   */
+  attribute unsigned short ttyMode;
 
   /**
    * Set the phone's audio mode.
