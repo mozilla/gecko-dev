@@ -219,6 +219,7 @@ BluetoothHfpManager::Cleanup()
   mSignal = 0;
   mNrecEnabled = HFP_NREC_STARTED;
   mWbsEnabled = HFP_WBS_NONE;
+  mVoiceRecognitionStarted = false;
 
   mController = nullptr;
 }
@@ -1410,6 +1411,41 @@ BluetoothHfpManager::AudioStateNotification(
     NotifyConnectionStateChanged(
       NS_LITERAL_STRING(BLUETOOTH_SCO_STATUS_CHANGED_ID));
   }
+}
+
+void
+BluetoothHfpManager::VoiceRecognitionNotification(
+  BluetoothHandsfreeVoiceRecognitionState aState, const nsAString& aBdAddr)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsAutoString name;
+  NS_NAMED_LITERAL_STRING(type, "bluetooth-hfp-voice-recognition");
+
+  BT_LOGR("state %d", aState);
+
+  if (aState == HFP_VOICE_RECOGNITION_STOPPED) {
+    if (mVoiceRecognitionStarted) {
+      mVoiceRecognitionStarted = false;
+      DisconnectSco();
+      name.AssignLiteral("stop");
+    }
+  } else if (aState == HFP_VOICE_RECOGNITION_STARTED) {
+    // If there's no any call is currently CALL_STATE_CONNECTED
+    if ((FindFirstCall(nsITelephonyService::CALL_STATE_CONNECTED) == 0) &&
+        !mVoiceRecognitionStarted) {
+      mVoiceRecognitionStarted = true;
+      ConnectSco();
+      name.AssignLiteral("start");
+    }
+  }
+
+  if (!BroadcastSystemMessage(type, BluetoothValue(name))) {
+    SendResponse(HFP_AT_RESPONSE_ERROR);
+    return;
+  }
+
+  SendResponse(HFP_AT_RESPONSE_OK);
 }
 
 void

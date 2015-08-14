@@ -122,6 +122,8 @@ public:
                                    const nsAString& aBdAddress) MOZ_OVERRIDE;
   void AudioStateNotification(BluetoothHandsfreeAudioState aState,
                               const nsAString& aBdAddress) MOZ_OVERRIDE;
+  void VoiceRecognitionNotification(BluetoothHandsfreeVoiceRecognitionState aState,
+                                    const nsAString& aBdAddr) override;
   void AnswerCallNotification(const nsAString& aBdAddress) MOZ_OVERRIDE;
   void HangupCallNotification(const nsAString& aBdAddress) MOZ_OVERRIDE;
   void VolumeNotification(BluetoothHandsfreeVolumeType aType,
@@ -217,6 +219,7 @@ private:
   bool mDialingRequestProcessed;
   bool mNrecEnabled;
   bool mWbsEnabled;
+  bool mVoiceRecognitionStarted;
   PhoneType mPhoneType;
   nsString mDeviceAddress;
   nsString mMsisdn;

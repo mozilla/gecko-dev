@@ -364,7 +364,7 @@ Convert(uint8_t aIn, BluetoothHandsfreeVoiceRecognitionState& aOut)
 {
   static const BluetoothHandsfreeVoiceRecognitionState sState[] = {
     CONVERT(0x00, HFP_VOICE_RECOGNITION_STOPPED),
-    CONVERT(0x01, HFP_VOICE_RECOGNITION_STOPPED)
+    CONVERT(0x01, HFP_VOICE_RECOGNITION_STARTED)
   };
   if (NS_WARN_IF(aIn >= MOZ_ARRAY_LENGTH(sState))) {
     return NS_ERROR_ILLEGAL_VALUE;
