@@ -724,7 +724,7 @@
                            dashed={true}
                            height={410}
                            summary="Re-sign-in view"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView client={mockClient}
                   dispatcher={dispatcher}
@@ -749,7 +749,7 @@
                            dashed={true}
                            height={410}
                            summary="Room list tab"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView client={mockClient}
                            dispatcher={dispatcher}
@@ -779,7 +779,7 @@
                            dashed={true}
                            height={410}
                            summary="Contact list tab"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView client={mockClient}
                            dispatcher={dispatcher}
@@ -807,7 +807,7 @@
                            dashed={true}
                            height={410}
                            summary="Contact list tab long email"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView client={mockClient}
                            dispatcher={dispatcher}
@@ -821,7 +821,7 @@
                            dashed={true}
                            height={410}
                            summary="Contact list tab (no contacts)"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView client={mockClient}
                            dispatcher={dispatcher}
@@ -835,7 +835,7 @@
                            dashed={true}
                            height={410}
                            summary="Error Notification"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView client={mockClient}
                            dispatcher={dispatcher}
@@ -848,7 +848,7 @@
                            dashed={true}
                            height={410}
                            summary="Error Notification - authenticated"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView client={mockClient}
                            dispatcher={dispatcher}
@@ -861,7 +861,7 @@
                            dashed={true}
                            height={410}
                            summary="Contact import success"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView dispatcher={dispatcher}
                            mozLoop={mockMozLoopLoggedIn}
@@ -874,7 +874,7 @@
                            dashed={true}
                            height={410}
                            summary="Contact import error"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView dispatcher={dispatcher}
                            mozLoop={mockMozLoopLoggedIn}
@@ -887,7 +887,7 @@
                            dashed={true}
                            height={410}
                            summary="Contact Form - Add"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <PanelView client={mockClient}
                            dispatcher={dispatcher}
