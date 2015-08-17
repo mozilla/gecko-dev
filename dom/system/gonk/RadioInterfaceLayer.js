@@ -83,6 +83,7 @@ const NETWORK_TYPE_MOBILE_MMS  = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS;
 const NETWORK_TYPE_MOBILE_SUPL = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL;
 const NETWORK_TYPE_MOBILE_IMS  = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_IMS;
 const NETWORK_TYPE_MOBILE_DUN  = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN;
+const NETWORK_TYPE_MOBILE_FOTA = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_FOTA;
 
 const RIL_IPC_ICCMANAGER_MSG_NAMES = [
   "RIL:GetRilContext",
@@ -965,6 +966,8 @@ DataConnectionHandler.prototype = {
         return NETWORK_TYPE_MOBILE_IMS;
       case "dun":
         return NETWORK_TYPE_MOBILE_DUN;
+      case "fota":
+        return NETWORK_TYPE_MOBILE_FOTA;
       default:
         return NETWORK_TYPE_UNKNOWN;
      }
@@ -1236,7 +1239,8 @@ DataConnectionHandler.prototype = {
         networkType === NETWORK_TYPE_MOBILE_MMS ||
         networkType === NETWORK_TYPE_MOBILE_SUPL ||
         networkType === NETWORK_TYPE_MOBILE_IMS ||
-        networkType === NETWORK_TYPE_MOBILE_DUN) {
+        networkType === NETWORK_TYPE_MOBILE_DUN ||
+        networkType === NETWORK_TYPE_MOBILE_FOTA) {
       return true;
     }
 
