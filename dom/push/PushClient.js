@@ -39,6 +39,19 @@ this.PushClient = function PushClient() {
   this.addListeners();
 };
 
+function dispatchRegistration(request, registration) {
+  if (!registration) {
+    request.onPushEndpoint(Cr.NS_OK, "", 0, null);
+    return;
+  }
+  if (!registration.publicKey) {
+    request.onPushEndpoint(Cr.NS_OK, registration.pushEndpoint, 0, null);
+    return;
+  }
+  let keyBytes = new Uint8Array(registration.publicKey);
+  request.onPushEndpoint(Cr.NS_OK, registration.pushEndpoint, keyBytes.length, keyBytes);
+}
+
 PushClient.prototype = {
   classID: Components.ID("{16042199-bec0-484a-9640-25ecc0c0a149}"),
 
@@ -113,22 +126,19 @@ PushClient.prototype = {
     switch (aMessage.name) {
       case "PushService:Register:OK":
       {
-        request.onPushEndpoint(Cr.NS_OK, json.pushEndpoint);
+        dispatchRegistration(request, json);
         break;
       }
       case "PushService:Register:KO":
-        request.onPushEndpoint(Cr.NS_ERROR_FAILURE, "");
+        request.onPushEndpoint(Cr.NS_ERROR_FAILURE, "", 0, null);
         break;
       case "PushService:Registration:OK":
       {
-        let endpoint = "";
-        if (json.registration)
-          endpoint = json.registration.pushEndpoint;
-        request.onPushEndpoint(Cr.NS_OK, endpoint);
+        dispatchRegistration(request, json.registration);
         break;
       }
       case "PushService:Registration:KO":
-        request.onPushEndpoint(Cr.NS_ERROR_FAILURE, "");
+        request.onPushEndpoint(Cr.NS_ERROR_FAILURE, "", 0, null);
         break;
       case "PushService:Unregister:OK":
         if (typeof json.result !== "boolean") {

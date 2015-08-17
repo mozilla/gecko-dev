@@ -737,7 +737,7 @@ this.PushService = {
     debug("receivedPushMessage()");
 
     let shouldNotify = false;
-    this.getByKeyID(keyID).then(record => {
+    return this.getByKeyID(keyID).then(record => {
       if (!record) {
         throw new Error("No record for key ID " + keyID);
       }
@@ -762,10 +762,11 @@ this.PushService = {
       });
     }).then(record => {
       if (!record) {
-        return null;
+        return Promise.resolve(false);
       }
+      var notified = false;
       if (shouldNotify) {
-        this._notifyApp(record, message);
+        notified = this._notifyApp(record, message);
       }
       if (record.isExpired()) {
         // Drop the registration in the background. If the user returns to the
@@ -775,6 +776,7 @@ this.PushService = {
           debug("receivedPushMessage: Unregister error: " + error);
         });
       }
+      return Promise.resolve(notified);
     }).catch(error => {
       debug("receivedPushMessage: Error notifying app: " + error);
     });
@@ -785,7 +787,7 @@ this.PushService = {
         aPushRecord.originAttributes === undefined) {
       debug("notifyApp() something is undefined.  Dropping notification: " +
         JSON.stringify(aPushRecord) );
-      return;
+      return false;
     }
 
     debug("notifyApp() " + aPushRecord.scope);
@@ -809,7 +811,7 @@ this.PushService = {
     if (Services.perms.testExactPermission(scopeURI, "push") !=
         Ci.nsIPermissionManager.ALLOW_ACTION) {
       debug("Does not have permission for push.");
-      return;
+      return false;
     }
 
     // TODO data.
@@ -820,6 +822,7 @@ this.PushService = {
     };
 
     this._notifyListeners('push', data);
+    return true;
   },
 
   getByKeyID: function(aKeyID) {
