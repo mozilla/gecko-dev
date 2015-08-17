@@ -9,7 +9,7 @@ interface nsIIccInfo;
 interface nsIMobileConnectionInfo;
 interface nsIMobileMessageCallback;
 
-[scriptable, uuid(6e0f45b8-410e-11e3-8c8e-b715b2cd0128)]
+[scriptable, uuid(2bec1b5e-a53f-4343-98e2-64eeebc8e925)]
 interface nsIRilNetworkInterface : nsINetworkInterface
 {
   readonly attribute unsigned long serviceId;
