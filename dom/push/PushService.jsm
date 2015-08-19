@@ -28,6 +28,7 @@ Cu.import("resource://gre/modules/Promise.jsm");
 
 const {PushServiceWebSocket} = Cu.import("resource://gre/modules/PushServiceWebSocket.jsm");
 const {PushServiceHttp2} = Cu.import("resource://gre/modules/PushServiceHttp2.jsm");
+const {PushServiceHttp2Crypto} = Cu.import("resource://gre/modules/PushServiceHttp2Crypto.jsm");
 
 // Currently supported protocols: WebSocket.
 const CONNECTION_PROTOCOLS = [PushServiceWebSocket, PushServiceHttp2];
@@ -733,7 +734,7 @@ this.PushService = {
    *  `PushServiceWebSocket` uses this to drop incoming updates with older
    *  versions.
    */
-  receivedPushMessage: function(keyID, message, updateFunc) {
+  receivedPushMessage: function(keyID, message, cryptoParams, updateFunc) {
     debug("receivedPushMessage()");
 
     let shouldNotify = false;
@@ -764,19 +765,27 @@ this.PushService = {
       if (!record) {
         return Promise.resolve(false);
       }
-      var notified = false;
-      if (shouldNotify) {
-        notified = this._notifyApp(record, message);
-      }
-      if (record.isExpired()) {
-        // Drop the registration in the background. If the user returns to the
-        // site, the service worker will be notified on the next `idle-daily`
-        // event.
-        this._sendRequest("unregister", record).catch(error => {
-          debug("receivedPushMessage: Unregister error: " + error);
-        });
-      }
-      return Promise.resolve(notified);
+      return (cryptoParams ? PushServiceHttp2Crypto.decodeMsg(
+        message,
+        record.privateKey,
+        cryptoParams.dh,
+        cryptoParams.salt,
+        cryptoParams.rs
+      ).then(bytes => new TextDecoder("utf-8").decode(bytes)) : Promise.resolve("")).then(message => {
+        var notified = false;
+        if (shouldNotify) {
+          notified = this._notifyApp(record, message);
+        }
+        if (record.isExpired()) {
+          // Drop the registration in the background. If the user returns to the
+          // site, the service worker will be notified on the next `idle-daily`
+          // event.
+          this._sendRequest("unregister", record).catch(error => {
+            debug("receivedPushMessage: Unregister error: " + error);
+          });
+        }
+        return Promise.resolve(notified);
+      });
     }).catch(error => {
       debug("receivedPushMessage: Error notifying app: " + error);
     });

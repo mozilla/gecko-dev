@@ -176,30 +176,10 @@ PushChannelListener.prototype = {
   }
 };
 
-var parseHeaderFieldParams = (m, v) => {
-  var i = v.indexOf('=');
-  if (i >= 0) {
-    // A quoted string with internal quotes is invalid for all the possible
-    // values of this header field.
-    m[v.substring(0, i).trim()] = v.substring(i + 1).trim()
-                                    .replace(/^"(.*)"$/, '$1');
-  }
-  return m;
-};
-
 function encryptKeyFieldParser(aRequest) {
   try {
     var encryptKeyField = aRequest.getRequestHeader("Encryption-Key");
-
-    var params = encryptKeyField.split(',');
-    return params.reduce((m, p) => {
-      var pmap = p.split(';').reduce(parseHeaderFieldParams, {});
-      if (pmap.keyid && pmap.dh) {
-        m[pmap.keyid] = pmap.dh;
-      }
-      return m;
-    }, {});
-
+    return PushServiceHttp2Crypto.getEncryptionKeyParams(encryptKeyField);
   } catch(e) {
     // getRequestHeader can throw.
     return null;
@@ -208,10 +188,8 @@ function encryptKeyFieldParser(aRequest) {
 
 function encryptFieldParser(aRequest) {
   try {
-    return aRequest.getRequestHeader("Encryption")
-             .split(',', 1)[0]
-             .split(';')
-             .reduce(parseHeaderFieldParams, {});
+    var encryptField = aRequest.getRequestHeader("Encryption");
+    return PushServiceHttp2Crypto.getEncryptionParams(encryptField);
   } catch(e) {
     // getRequestHeader can throw.
     return null;
@@ -840,22 +818,16 @@ this.PushServiceHttp2 = {
   _pushChannelOnStop: function(aUri, aAckUri, aMessage, dh, salt, rs) {
     debug("pushChannelOnStop() ");
 
-    this._mainPushService.getByKeyID(aUri)
-    .then(aPushRecord =>
-      PushServiceHttp2Crypto.decodeMsg(aMessage, aPushRecord.privateKey,
-                                       dh, salt, rs)
-      .then(msg => {
-        var msgString = '';
-        for (var i=0; i<msg.length; i++) {
-          msgString += String.fromCharCode(msg[i]);
-        }
-        return this._mainPushService.receivedPushMessage(aUri,
-                                                         msgString,
-                                                         record => {
-          // Always update the stored record.
-          return record;
-        });
-      })
+    let cryptoParams = {
+      dh: dh,
+      salt: salt,
+      rs: rs,
+    };
+    this._mainPushService.receivedPushMessage(
+      aUri, aMessage, cryptoParams, record => {
+        // Always update the stored record.
+        return record;
+      }
     )
     .then(_ => this._ackMsgRecv(aAckUri))
     .catch(err => {
@@ -872,8 +844,6 @@ function PushRecordHttp2(record) {
   PushRecord.call(this, record);
   this.subscriptionUri = record.subscriptionUri;
   this.pushReceiptEndpoint = record.pushReceiptEndpoint;
-  this.publicKey = record.publicKey;
-  this.privateKey = record.privateKey;
 }
 
 PushRecordHttp2.prototype = Object.create(PushRecord.prototype, {
@@ -887,13 +857,11 @@ PushRecordHttp2.prototype = Object.create(PushRecord.prototype, {
 PushRecordHttp2.prototype.toRegistration = function() {
   let registration = PushRecord.prototype.toRegistration.call(this);
   registration.pushReceiptEndpoint = this.pushReceiptEndpoint;
-  registration.publicKey = this.publicKey;
   return registration;
 };
 
 PushRecordHttp2.prototype.toRegister = function() {
   let register = PushRecord.prototype.toRegister.call(this);
   register.pushReceiptEndpoint = this.pushReceiptEndpoint;
-  register.publicKey = this.publicKey;
   return register;
 };

@@ -4476,6 +4476,9 @@ pref("dom.push.maxQuotaPerSubscription", 16);
 // This preference should be used in UX to enable/disable push.
 pref("dom.push.connection.enabled", true);
 
+// Enable data delivery over the WebSocket connection.
+pref("dom.push.data.enabled", false);
+
 // Exponential back-off start is 5 seconds like in HTTP/1.1.
 // Maximum back-off is pingInterval.
 pref("dom.push.retryBaseInterval", 5000);

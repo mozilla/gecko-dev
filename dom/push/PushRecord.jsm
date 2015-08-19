@@ -42,6 +42,8 @@ function PushRecord(props) {
   this.originAttributes = props.originAttributes;
   this.pushCount = props.pushCount || 0;
   this.lastPush = props.lastPush || 0;
+  this.publicKey = props.publicKey;
+  this.privateKey = props.privateKey;
   this.setQuota(props.quota);
 }
 
@@ -164,12 +166,14 @@ PushRecord.prototype = {
       pushEndpoint: this.pushEndpoint,
       lastPush: this.lastPush,
       pushCount: this.pushCount,
+      publicKey: this.publicKey,
     };
   },
 
   toRegister() {
     return {
       pushEndpoint: this.pushEndpoint,
+      publicKey: this.publicKey,
     };
   },
 };
