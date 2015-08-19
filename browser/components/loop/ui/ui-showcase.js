@@ -764,7 +764,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Room list tab (no rooms)", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 

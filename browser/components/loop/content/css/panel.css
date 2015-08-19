@@ -276,7 +276,7 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 }
 
 .room-list-empty {
-  margin: 5% 15px;
+  margin: 15px 15px;
   background-image: url("../shared/img/empty_conversations.svg");
 }
 
@@ -314,6 +314,7 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 .new-room-view {
   display: flex;
   flex-direction: column;
+  border-top: 1px solid #d8d8d8;
 }
 
 .new-room-view > .context-checkbox-checked {
@@ -323,8 +324,7 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 .new-room-view > .context {
   flex: 1;
   border-radius: 3px 3px 0 0;
-  margin: 1rem 0 .5rem;
-  padding: 1rem 15px;
+  padding: 6px 15px 15px;
 }
 
 .new-room-view > .context > .context-enabled {
