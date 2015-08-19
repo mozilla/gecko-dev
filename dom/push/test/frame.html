@@ -5,12 +5,15 @@
   <script>
 
 
-    function waitOnPushMessage(pushSubscription)
+    function waitOnPushMessage(pushSubscription, text)
     {
       var p = new Promise(function(res, rej) {
         navigator.serviceWorker.onmessage = function(e) {
           if (e.data.type == "finished") {
             parent.ok(e.data.okay == "yes", "Got a push message.");
+            if (typeof text == "string") {
+              parent.is(text, e.data.text, "Wrong push message data");
+            }
             res(pushSubscription);
           }
         };

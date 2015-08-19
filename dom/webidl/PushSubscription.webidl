@@ -10,10 +10,12 @@
 interface Principal;
 
 [Exposed=(Window,Worker), Func="nsContentUtils::PushEnabled",
- ChromeConstructor(DOMString pushEndpoint, DOMString scope)]
+ ChromeConstructor(DOMString pushEndpoint, ArrayBuffer? publicKey, DOMString scope)]
 interface PushSubscription
 {
     readonly attribute USVString endpoint;
+    readonly attribute ArrayBuffer? p256dh;
+
     [Throws]
     Promise<boolean> unsubscribe();
     jsonifier;

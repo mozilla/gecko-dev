@@ -28,6 +28,7 @@ Cu.import("resource://gre/modules/Promise.jsm");
 
 const {PushServiceWebSocket} = Cu.import("resource://gre/modules/PushServiceWebSocket.jsm");
 const {PushServiceHttp2} = Cu.import("resource://gre/modules/PushServiceHttp2.jsm");
+const {PushServiceHttp2Crypto} = Cu.import("resource://gre/modules/PushServiceHttp2Crypto.jsm");
 
 // Currently supported protocols: WebSocket.
 const CONNECTION_PROTOCOLS = [PushServiceWebSocket, PushServiceHttp2];
@@ -733,11 +734,11 @@ this.PushService = {
    *  `PushServiceWebSocket` uses this to drop incoming updates with older
    *  versions.
    */
-  receivedPushMessage: function(keyID, message, updateFunc) {
+  receivedPushMessage: function(keyID, message, cryptoParams, updateFunc) {
     debug("receivedPushMessage()");
 
     let shouldNotify = false;
-    this.getByKeyID(keyID).then(record => {
+    return this.getByKeyID(keyID).then(record => {
       if (!record) {
         throw new Error("No record for key ID " + keyID);
       }
@@ -762,19 +763,29 @@ this.PushService = {
       });
     }).then(record => {
       if (!record) {
-        return null;
+        return Promise.resolve(false);
       }
-      if (shouldNotify) {
-        this._notifyApp(record, message);
-      }
-      if (record.isExpired()) {
-        // Drop the registration in the background. If the user returns to the
-        // site, the service worker will be notified on the next `idle-daily`
-        // event.
-        this._sendRequest("unregister", record).catch(error => {
-          debug("receivedPushMessage: Unregister error: " + error);
-        });
-      }
+      return (cryptoParams ? PushServiceHttp2Crypto.decodeMsg(
+        message,
+        record.privateKey,
+        cryptoParams.dh,
+        cryptoParams.salt,
+        cryptoParams.rs
+      ).then(bytes => new TextDecoder("utf-8").decode(bytes)) : Promise.resolve("")).then(message => {
+        var notified = false;
+        if (shouldNotify) {
+          notified = this._notifyApp(record, message);
+        }
+        if (record.isExpired()) {
+          // Drop the registration in the background. If the user returns to the
+          // site, the service worker will be notified on the next `idle-daily`
+          // event.
+          this._sendRequest("unregister", record).catch(error => {
+            debug("receivedPushMessage: Unregister error: " + error);
+          });
+        }
+        return Promise.resolve(notified);
+      });
     }).catch(error => {
       debug("receivedPushMessage: Error notifying app: " + error);
     });
@@ -785,7 +796,7 @@ this.PushService = {
         aPushRecord.originAttributes === undefined) {
       debug("notifyApp() something is undefined.  Dropping notification: " +
         JSON.stringify(aPushRecord) );
-      return;
+      return false;
     }
 
     debug("notifyApp() " + aPushRecord.scope);
@@ -809,7 +820,7 @@ this.PushService = {
     if (Services.perms.testExactPermission(scopeURI, "push") !=
         Ci.nsIPermissionManager.ALLOW_ACTION) {
       debug("Does not have permission for push.");
-      return;
+      return false;
     }
 
     // TODO data.
@@ -820,6 +831,7 @@ this.PushService = {
     };
 
     this._notifyListeners('push', data);
+    return true;
   },
 
   getByKeyID: function(aKeyID) {

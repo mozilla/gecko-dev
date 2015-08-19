@@ -121,10 +121,13 @@ Push.prototype = {
         () => {
           fn(that._scope, that._principal, {
             QueryInterface: XPCOMUtils.generateQI([Ci.nsIPushEndpointCallback]),
-            onPushEndpoint: function(ok, endpoint) {
+            onPushEndpoint: function(ok, endpoint, keyLength, keyBytes) {
               if (ok === Cr.NS_OK) {
                 if (endpoint) {
-                  let sub = new that._window.PushSubscription(endpoint, that._scope);
+                  let publicKey = new ArrayBuffer(keyLength);
+                  let keyView = new Uint8Array(publicKey);
+                  keyView.set(keyBytes);
+                  let sub = new that._window.PushSubscription(endpoint, publicKey, that._scope);
                   sub.setPrincipal(that._principal);
                   resolve(sub);
                 } else {

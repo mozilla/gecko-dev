@@ -36,6 +36,7 @@
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/TypedArray.h"
 
 #include "nsCOMPtr.h"
 #include "mozilla/nsRefPtr.h"
@@ -63,6 +64,7 @@ public:
 
   explicit PushSubscription(nsIGlobalObject* aGlobal,
                             const nsAString& aEndpoint,
+                            const nsTArray<uint8_t>& aRawPublicKey,
                             const nsAString& aScope);
 
   JSObject*
@@ -81,21 +83,26 @@ public:
   }
 
   static already_AddRefed<PushSubscription>
-  Constructor(GlobalObject& aGlobal, const nsAString& aEndpoint, const nsAString& aScope, ErrorResult& aRv);
+  Constructor(GlobalObject& aGlobal, const nsAString& aEndpoint, const Nullable<ArrayBuffer>& aMaybePublicKey, const nsAString& aScope, ErrorResult& aRv);
 
   void
   SetPrincipal(nsIPrincipal* aPrincipal);
+
+  void
+  GetP256dh(JSContext* aCx, JS::MutableHandle<JSObject*> aPublicKey);
 
   already_AddRefed<Promise>
   Unsubscribe(ErrorResult& aRv);
 
 protected:
   ~PushSubscription();
+  JS::Heap<JSObject*> mPublicKey;
 
 private:
   nsCOMPtr<nsIGlobalObject> mGlobal;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsString mEndpoint;
+  nsTArray<uint8_t> mRawPublicKey;
   nsString mScope;
 };
 
@@ -146,6 +153,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(WorkerPushSubscription)
 
   explicit WorkerPushSubscription(const nsAString& aEndpoint,
+                                  const nsTArray<uint8_t>& aRawPublicKey,
                                   const nsAString& aScope);
 
   nsIGlobalObject*
@@ -158,7 +166,7 @@ public:
   WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<WorkerPushSubscription>
-  Constructor(GlobalObject& aGlobal, const nsAString& aEndpoint, const nsAString& aScope, ErrorResult& aRv);
+  Constructor(GlobalObject& aGlobal, const nsAString& aEndpoint, const Nullable<ArrayBuffer>& aMaybePublicKey, const nsAString& aScope, ErrorResult& aRv);
 
   void
   GetEndpoint(nsAString& aEndpoint) const
@@ -166,14 +174,19 @@ public:
     aEndpoint = mEndpoint;
   }
 
+  void
+  GetP256dh(JSContext* aCx, JS::MutableHandle<JSObject*> aPublicKey);
+
   already_AddRefed<Promise>
   Unsubscribe(ErrorResult& aRv);
 
 protected:
   ~WorkerPushSubscription();
+  JS::Heap<JSObject*> mPublicKey;
 
 private:
   nsString mEndpoint;
+  nsTArray<uint8_t> mRawPublicKey;
   nsString mScope;
 };
 

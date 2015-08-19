@@ -11,6 +11,7 @@
 #include "mozilla/dom/PushManagerBinding.h"
 #include "mozilla/dom/PushSubscriptionBinding.h"
 #include "mozilla/dom/ServiceWorkerGlobalScopeBinding.h"
+#include "mozilla/HoldDropJSObjects.h"
 
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PromiseWorkerProxy.h"
@@ -64,6 +65,18 @@ private:
 
 NS_IMPL_ISUPPORTS(UnsubscribeResultCallback, nsIUnsubscribeResultCallback)
 
+void
+PushSubscription::GetP256dh(JSContext* aCx, JS::MutableHandle<JSObject*> aPublicKey)
+{
+  if (!mPublicKey) {
+    mPublicKey = ArrayBuffer::Create(aCx, mRawPublicKey.Length(), mRawPublicKey.Elements());
+    MOZ_ALWAYS_TRUE(mPublicKey);
+    mRawPublicKey.Clear();
+  }
+  JS::ExposeObjectToActiveJS(mPublicKey);
+  aPublicKey.set(mPublicKey);
+}
+
 already_AddRefed<Promise>
 PushSubscription::Unsubscribe(ErrorResult& aRv)
 {
@@ -89,13 +102,18 @@ PushSubscription::Unsubscribe(ErrorResult& aRv)
 
 PushSubscription::PushSubscription(nsIGlobalObject* aGlobal,
                                    const nsAString& aEndpoint,
+                                   const nsTArray<uint8_t>& aRawPublicKey,
                                    const nsAString& aScope)
-  : mGlobal(aGlobal), mEndpoint(aEndpoint), mScope(aScope)
+  : mGlobal(aGlobal), mEndpoint(aEndpoint), mRawPublicKey(aRawPublicKey), mScope(aScope)
 {
+  mozilla::HoldJSObjects(this);
 }
 
 PushSubscription::~PushSubscription()
-{}
+{
+  mPublicKey = nullptr;
+  mozilla::DropJSObjects(this);
+}
 
 JSObject*
 PushSubscription::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
@@ -112,16 +130,39 @@ PushSubscription::SetPrincipal(nsIPrincipal* aPrincipal)
 
 // static
 already_AddRefed<PushSubscription>
-PushSubscription::Constructor(GlobalObject& aGlobal, const nsAString& aEndpoint, const nsAString& aScope, ErrorResult& aRv)
+PushSubscription::Constructor(GlobalObject& aGlobal, const nsAString& aEndpoint, const Nullable<ArrayBuffer>& aMaybePublicKey, const nsAString& aScope, ErrorResult& aRv)
 {
   MOZ_ASSERT(!aEndpoint.IsEmpty());
   MOZ_ASSERT(!aScope.IsEmpty());
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
-  nsRefPtr<PushSubscription> sub = new PushSubscription(global, aEndpoint, aScope);
+
+  nsTArray<uint8_t> rawPublicKey;
+  if (!aMaybePublicKey.IsNull()) {
+    const ArrayBuffer& aPublicKey = aMaybePublicKey.Value();
+    aPublicKey.ComputeLengthAndData();
+    rawPublicKey.SetLength(aPublicKey.Length());
+    rawPublicKey.ReplaceElementsAt(0, aPublicKey.Length(), aPublicKey.Data(), aPublicKey.Length());
+  }
+
+  nsRefPtr<PushSubscription> sub = new PushSubscription(global, aEndpoint, rawPublicKey, aScope);
   return sub.forget();
 }
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(PushSubscription, mGlobal, mPrincipal)
+NS_IMPL_CYCLE_COLLECTION_CLASS(PushSubscription)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(PushSubscription)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobal, mPrincipal)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+  tmp->mPublicKey = nullptr;
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(PushSubscription)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGlobal, mPrincipal)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(PushSubscription)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mPublicKey)
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
+
 NS_IMPL_CYCLE_COLLECTING_ADDREF(PushSubscription)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(PushSubscription)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PushSubscription)
@@ -187,15 +228,20 @@ NS_INTERFACE_MAP_END
 // WorkerPushSubscription
 
 WorkerPushSubscription::WorkerPushSubscription(const nsAString& aEndpoint,
+                                               const nsTArray<uint8_t>& aRawPublicKey,
                                                const nsAString& aScope)
-  : mEndpoint(aEndpoint), mScope(aScope)
+  : mEndpoint(aEndpoint), mRawPublicKey(aRawPublicKey), mScope(aScope)
 {
   MOZ_ASSERT(!aScope.IsEmpty());
   MOZ_ASSERT(!aEndpoint.IsEmpty());
+  mozilla::HoldJSObjects(this);
 }
 
 WorkerPushSubscription::~WorkerPushSubscription()
-{}
+{
+  mPublicKey = nullptr;
+  mozilla::DropJSObjects(this);
+}
 
 JSObject*
 WorkerPushSubscription::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
@@ -205,13 +251,21 @@ WorkerPushSubscription::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenP
 
 // static
 already_AddRefed<WorkerPushSubscription>
-WorkerPushSubscription::Constructor(GlobalObject& aGlobal, const nsAString& aEndpoint, const nsAString& aScope, ErrorResult& aRv)
+WorkerPushSubscription::Constructor(GlobalObject& aGlobal, const nsAString& aEndpoint, const Nullable<ArrayBuffer>& aMaybePublicKey, const nsAString& aScope, ErrorResult& aRv)
 {
   WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
   MOZ_ASSERT(worker);
   worker->AssertIsOnWorkerThread();
 
-  nsRefPtr<WorkerPushSubscription> sub = new WorkerPushSubscription(aEndpoint, aScope);
+  nsTArray<uint8_t> rawPublicKey;
+  if (!aMaybePublicKey.IsNull()) {
+    const ArrayBuffer& aPublicKey = aMaybePublicKey.Value();
+    aPublicKey.ComputeLengthAndData();
+    rawPublicKey.SetLength(aPublicKey.Length());
+    rawPublicKey.ReplaceElementsAt(0, aPublicKey.Length(), aPublicKey.Data(), aPublicKey.Length());
+  }
+
+  nsRefPtr<WorkerPushSubscription> sub = new WorkerPushSubscription(aEndpoint, rawPublicKey, aScope);
   return sub.forget();
 }
 
@@ -383,6 +437,18 @@ private:
   nsString mScope;
 };
 
+void
+WorkerPushSubscription::GetP256dh(JSContext* aCx, JS::MutableHandle<JSObject*> aPublicKey)
+{
+  if (!mPublicKey) {
+    mPublicKey = ArrayBuffer::Create(aCx, mRawPublicKey.Length(), mRawPublicKey.Elements());
+    MOZ_ALWAYS_TRUE(mPublicKey);
+    mRawPublicKey.Clear();
+  }
+  JS::ExposeObjectToActiveJS(mPublicKey);
+  aPublicKey.set(mPublicKey);
+}
+
 already_AddRefed<Promise>
 WorkerPushSubscription::Unsubscribe(ErrorResult &aRv)
 {
@@ -409,7 +475,19 @@ WorkerPushSubscription::Unsubscribe(ErrorResult &aRv)
   return p.forget();
 }
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WorkerPushSubscription)
+NS_IMPL_CYCLE_COLLECTION_CLASS(WorkerPushSubscription)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(WorkerPushSubscription)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+  tmp->mPublicKey = nullptr;
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WorkerPushSubscription)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(WorkerPushSubscription)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mPublicKey)
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
+
 NS_IMPL_CYCLE_COLLECTING_ADDREF(WorkerPushSubscription)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(WorkerPushSubscription)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WorkerPushSubscription)
@@ -436,11 +514,13 @@ public:
   GetSubscriptionResultRunnable(PromiseWorkerProxy* aProxy,
                                 nsresult aStatus,
                                 const nsAString& aEndpoint,
+                                const nsTArray<uint8_t>& aRawPublicKey,
                                 const nsAString& aScope)
     : WorkerRunnable(aProxy->GetWorkerPrivate(), WorkerThreadModifyBusyCount)
     , mProxy(aProxy)
     , mStatus(aStatus)
     , mEndpoint(aEndpoint)
+    , mRawPublicKey(aRawPublicKey)
     , mScope(aScope)
   { }
 
@@ -454,7 +534,7 @@ public:
         promise->MaybeResolve(JS::NullHandleValue);
       } else {
         nsRefPtr<WorkerPushSubscription> sub =
-          new WorkerPushSubscription(mEndpoint, mScope);
+          new WorkerPushSubscription(mEndpoint, mRawPublicKey, mScope);
         promise->MaybeResolve(sub);
       }
     } else {
@@ -471,6 +551,7 @@ private:
   nsRefPtr<PromiseWorkerProxy> mProxy;
   nsresult mStatus;
   nsString mEndpoint;
+  nsTArray<uint8_t> mRawPublicKey;
   nsString mScope;
 };
 
@@ -486,7 +567,10 @@ public:
   {}
 
   NS_IMETHOD
-  OnPushEndpoint(nsresult aStatus, const nsAString& aEndpoint) override
+  OnPushEndpoint(nsresult aStatus,
+                 const nsAString& aEndpoint,
+                 uint32_t aKeyLength,
+                 uint8_t* aKeyBytes) override
   {
     AssertIsOnMainThread();
 
@@ -502,8 +586,11 @@ public:
     AutoJSAPI jsapi;
     jsapi.Init();
 
+    nsTArray<uint8_t> rawPublicKey(aKeyLength);
+    rawPublicKey.InsertElementsAt(0, aKeyBytes, aKeyLength);
+
     nsRefPtr<GetSubscriptionResultRunnable> r =
-      new GetSubscriptionResultRunnable(mProxy, aStatus, aEndpoint, mScope);
+      new GetSubscriptionResultRunnable(mProxy, aStatus, aEndpoint, rawPublicKey, mScope);
     if (!r->Dispatch(jsapi.cx())) {
       ReleasePromiseWorkerProxy(mProxy.forget());
     }
@@ -559,7 +646,7 @@ public:
     nsCOMPtr<nsIPermissionManager> permManager =
       mozilla::services::GetPermissionManager();
     if (!permManager) {
-      callback->OnPushEndpoint(NS_ERROR_FAILURE, EmptyString());
+      callback->OnPushEndpoint(NS_ERROR_FAILURE, EmptyString(), 0, nullptr);
       return NS_OK;
     }
 
@@ -570,14 +657,14 @@ public:
                     &permission);
 
     if (NS_WARN_IF(NS_FAILED(rv)) || permission != nsIPermissionManager::ALLOW_ACTION) {
-      callback->OnPushEndpoint(NS_ERROR_FAILURE, EmptyString());
+      callback->OnPushEndpoint(NS_ERROR_FAILURE, EmptyString(), 0, nullptr);
       return NS_OK;
     }
 
     nsCOMPtr<nsIPushClient> client =
       do_CreateInstance("@mozilla.org/push/PushClient;1");
     if (!client) {
-      callback->OnPushEndpoint(NS_ERROR_FAILURE, EmptyString());
+      callback->OnPushEndpoint(NS_ERROR_FAILURE, EmptyString(), 0, nullptr);
       return NS_OK;
     }
 
@@ -592,7 +679,7 @@ public:
     }
 
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      callback->OnPushEndpoint(NS_ERROR_FAILURE, EmptyString());
+      callback->OnPushEndpoint(NS_ERROR_FAILURE, EmptyString(), 0, nullptr);
       return rv;
     }
 
