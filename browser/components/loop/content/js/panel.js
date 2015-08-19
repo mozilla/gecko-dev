@@ -811,7 +811,7 @@ loop.panel = (function(_, mozL10n) {
 
     _renderNoRoomsView: function() {
       return (
-        React.createElement("div", {className: "room-list"}, 
+        React.createElement("div", {className: "rooms"}, 
           React.createElement("div", {className: "room-list-empty"}, 
             React.createElement("p", {className: "panel-text-large"}, 
               mozL10n.get("no_conversations_message_heading")

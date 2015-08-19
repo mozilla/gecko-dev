@@ -811,7 +811,7 @@ loop.panel = (function(_, mozL10n) {
 
     _renderNoRoomsView: function() {
       return (
-        <div className="room-list">
+        <div className="rooms">
           <div className="room-list-empty">
             <p className="panel-text-large">
               {mozL10n.get("no_conversations_message_heading")}
