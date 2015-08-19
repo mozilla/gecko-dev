@@ -1,0 +1,138 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+Bug 1185544: Add data delivery to the WebSocket backend.
+
+Any copyright is dedicated to the Public Domain.
+http://creativecommons.org/licenses/publicdomain/
+
+-->
+<head>
+  <title>Test for Bug 1185544</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="/tests/dom/push/test/webpush.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+</head>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1185544">Mozilla Bug 1185544</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+
+</div>
+<pre id="test">
+</pre>
+
+<script class="testbody" type="text/javascript">
+
+  var registration;
+
+  function start() {
+    return navigator.serviceWorker.register("worker.js" + "?" + (Math.random()), {scope: "."})
+    .then(swr => { registration = swr; return swr; });
+  }
+
+  var controlledFrame;
+  function createControlledIFrame(swr) {
+    var p = new Promise(function(res, rej) {
+      var iframe = document.createElement('iframe');
+      iframe.id = "controlledFrame";
+      iframe.src = "http://mochi.test:8888/tests/dom/push/test/frame.html";
+
+      iframe.onload = function() {
+        res(swr)
+      }
+      controlledFrame = iframe;
+      document.body.appendChild(iframe);
+    });
+    return p;
+  }
+
+  function subscribe(swr) {
+    return swr.pushManager.subscribe();
+  }
+
+  function sendRequestToWorker(request) {
+    return new Promise((resolve, reject) => {
+      var channel = new MessageChannel();
+      channel.port1.onmessage = e => {
+        (e.data.error ? reject : resolve)(e.data);
+      };
+      registration.active.postMessage(request, [channel.port2]);
+    });
+  }
+
+  function comparePublicKey(pushSubscription) {
+    return sendRequestToWorker({ type: "publicKey" }).then(data => {
+      return registration.pushManager.getSubscription().then(
+        pushSubscription => {
+          isDeeply(pushSubscription.p256dh, data, "Mismatched key share");
+          return pushSubscription;
+      });
+    });
+  }
+
+  function sendPushMessageFromPage(pushSubscription) {
+    var message = "Push message from page";
+    return Promise.all([
+      controlledFrame.contentWindow.waitOnPushMessage(
+        pushSubscription, message),
+      webpush(pushSubscription, message),
+    ]).then(([, data]) => {
+      return pushSubscription;
+    });
+  }
+
+  function sendPushMessageFromWorker(pushSubscription) {
+    // FIXME(kitcambridge): Enable when Web Crypto is exposed to
+    // workers (bug 842818).
+    return Promise.resolve(pushSubscription);
+    /*
+    return Promise.all([
+      controlledFrame.contentWindow.waitOnPushMessage(
+        pushSubscription, "Push message from worker"
+      ),
+      sendRequestToWorker({ type: "push" }),
+    ]).then(([, data]) => {
+      return pushSubscription;
+    });
+    */
+  }
+
+  function unsubscribe(pushSubscription) {
+    controlledFrame.parentNode.removeChild(controlledFrame);
+    controlledFrame = null;
+    return pushSubscription.unsubscribe();
+  }
+
+  function unregister() {
+    return registration.unregister();
+  }
+
+  function runTest() {
+    start()
+    .then(createControlledIFrame)
+    .then(subscribe)
+    .then(comparePublicKey)
+    .then(sendPushMessageFromPage)
+    .then(sendPushMessageFromWorker)
+    .then(unsubscribe)
+    .then(unregister)
+    .catch(function(e) {
+      ok(false, "Some test failed with error " + e);
+    }).then(SimpleTest.finish);
+  }
+
+  SpecialPowers.pushPrefEnv({"set": [
+    ["dom.push.data.enabled", true],
+    ["dom.push.serverURL", "ws://localhost:8080"],
+    ["dom.push.debug", true],
+    ["dom.push.enabled", true],
+    ["dom.serviceWorkers.exemptFromPerDomainMax", true],
+    ["dom.serviceWorkers.enabled", true],
+    ["dom.serviceWorkers.testing.enabled", true]
+    ]}, runTest);
+  SpecialPowers.addPermission('push', true, document);
+  SimpleTest.waitForExplicitFinish();
+</script>
+</body>
+</html>

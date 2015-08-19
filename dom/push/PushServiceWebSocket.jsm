@@ -219,7 +219,7 @@ this.PushServiceWebSocket = {
       return null;
     }
 
-    if (uri.scheme !== "wss") {
+    if (uri.scheme !== "wss" && uri.scheme != "ws") {
       debug("Unsupported websocket scheme " + uri.scheme);
       return null;
     }
@@ -586,8 +586,16 @@ this.PushServiceWebSocket = {
       debug("Network is offline.");
       return null;
     }
-    let socket = Cc["@mozilla.org/network/protocol;1?name=wss"]
-                   .createInstance(Ci.nsIWebSocketChannel);
+    let socket;
+    if (uri.scheme == "wss") {
+      socket = Cc["@mozilla.org/network/protocol;1?name=wss"]
+                     .createInstance(Ci.nsIWebSocketChannel);
+    } else if (uri.scheme == "ws") {
+      socket = Cc["@mozilla.org/network/protocol;1?name=ws"]
+                     .createInstance(Ci.nsIWebSocketChannel);
+    } else {
+      return null;
+    }
 
     socket.initLoadInfo(null, // aLoadingNode
                         Services.scriptSecurityManager.getSystemPrincipal(),

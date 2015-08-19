@@ -16,5 +16,5 @@ interface PushMessageData
     // ArrayBuffer arrayBuffer();
     // Blob        blob();
     // object      json();
-    // USVString   text();
+    USVString   text();
 };
