@@ -17,6 +17,8 @@ body {
   overflow: hidden;
   font: menu;
   background-color: #fbfbfb;
+  height: 410px;
+  width: 330px;
 }
 
 /* Notifications displayed over tabs */
