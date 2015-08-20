@@ -306,7 +306,7 @@ loop.panel = (function(_, mozL10n) {
       });
 
       return (
-        React.createElement("div", {id: "powered-by-wrapper"}, 
+        React.createElement("div", {className: "powered-by-wrapper", id: "powered-by-wrapper"}, 
           React.createElement("p", {className: "powered-by", id: "powered-by"}, 
             mozL10n.get("powered_by_beforeLogo"), 
             React.createElement("span", {className: locale, id: "powered-by-logo"}), 

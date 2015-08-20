@@ -1015,6 +1015,7 @@ html[dir="rtl"] .settings-menu .dropdown-menu {
 
 .fte-get-started-content + .powered-by-wrapper {
   flex: 0;
+  width: 100%;
 }
 
 .fte-get-started-container {
