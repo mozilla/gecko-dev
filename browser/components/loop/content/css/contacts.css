@@ -435,7 +435,9 @@ html[dir="rtl"] .contacts-gravatar-arrow {
 }
 
 .contact-controls {
-  padding: 0 16px;
+  padding-left: 15px;
+  padding-right: 15px;
+  border-top: 1px solid #D8D8D8;
 }
 
 .contact-controls > .button {

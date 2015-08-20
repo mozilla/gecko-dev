@@ -446,6 +446,12 @@
     callback(null, []);
   };
 
+  var mockMozLoopNoRoomsNoContext = _.cloneDeep(navigator.mozLoop);
+  mockMozLoopNoRoomsNoContext.getSelectedTabMetadata = function(){};
+  mockMozLoopNoRoomsNoContext.rooms.getAll = function(version, callback) {
+    callback(null, []);
+  };
+
   var roomStoreNoRooms = new loop.store.RoomStore(new loop.Dispatcher(), {
     mozLoop: mockMozLoopNoRooms,
     activeRoomStore: new loop.store.ActiveRoomStore(new loop.Dispatcher(), {
@@ -459,6 +465,10 @@
     email: "text@example.com",
     uid: "0354b278a381d3cb408bb46ffc01266"
   };
+
+  var mockMozLoopLoggedInNoContext = _.cloneDeep(navigator.mozLoop);
+  mockMozLoopLoggedInNoContext.getSelectedTabMetadata = function(){};
+  mockMozLoopLoggedInNoContext.userProfile = _.cloneDeep(mockMozLoopLoggedIn.userProfile);
 
   var mockMozLoopLoggedInLongEmail = _.cloneDeep(navigator.mozLoop);
   mockMozLoopLoggedInLongEmail.userProfile = {
@@ -763,12 +773,42 @@
             React.createElement(FramedExample, {cssClass: "fx-embedded-panel", 
                            dashed: true, 
                            height: 410, 
+                           summary: "Room list tab (No Context)", 
+                           width: 330}, 
+              React.createElement("div", {className: "panel"}, 
+                React.createElement(PanelView, {client: mockClient, 
+                           dispatcher: dispatcher, 
+                           mozLoop: mockMozLoopLoggedInNoContext, 
+                           notifications: notifications, 
+                           roomStore: roomStore, 
+                           selectedTab: "rooms"})
+              )
+            ), 
+
+            React.createElement(FramedExample, {cssClass: "fx-embedded-panel", 
+                           dashed: true, 
+                           height: 410, 
                            summary: "Room list tab (no rooms)", 
                            width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 
                            mozLoop: mockMozLoopNoRooms, 
+                           notifications: notifications, 
+                           roomStore: roomStoreNoRooms, 
+                           selectedTab: "rooms"})
+              )
+            ), 
+
+            React.createElement(FramedExample, {cssClass: "fx-embedded-panel", 
+                           dashed: true, 
+                           height: 410, 
+                           summary: "Room list tab (no rooms and no context)", 
+                           width: 330}, 
+              React.createElement("div", {className: "panel"}, 
+                React.createElement(PanelView, {client: mockClient, 
+                           dispatcher: dispatcher, 
+                           mozLoop: mockMozLoopNoRoomsNoContext, 
                            notifications: notifications, 
                            roomStore: roomStoreNoRooms, 
                            selectedTab: "rooms"})

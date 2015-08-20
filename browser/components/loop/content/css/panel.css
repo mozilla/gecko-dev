@@ -324,7 +324,7 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 .new-room-view > .context {
   flex: 1;
   border-radius: 3px 3px 0 0;
-  padding: 6px 15px 15px;
+  padding: 6px 15px 8px;
 }
 
 .new-room-view > .context > .context-enabled {
@@ -361,7 +361,7 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
   height: 3rem;
   display: block;
   font-size: 1.2rem;
-  margin: 0 15px 1rem 15px;
+  margin: 7px 15px 0px;
   padding: .5rem 1rem;
   border-radius: 4px;
 }
@@ -379,7 +379,7 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
   overflow: auto;
 }
 
-.room-list:empty {
+.room-list-empty {
   border-bottom-width: 0;
 }
 
@@ -973,7 +973,8 @@ html[dir="rtl"] .settings-menu .dropdown-menu {
   font-size: 1rem;
   background-color: #fbfbfb;
   color: #666666;
-  padding: .5rem 15px;
+  margin: 10px 15px 5px;
+  height: 24px;
 }
 
 .footer .signin-details {
