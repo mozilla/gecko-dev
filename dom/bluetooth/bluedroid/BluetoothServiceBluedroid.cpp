@@ -21,6 +21,7 @@
 #include "BluetoothA2dpManager.h"
 #include "BluetoothHfpManager.h"
 #include "BluetoothOppManager.h"
+#include "BluetoothPbapManager.h"
 #include "BluetoothProfileController.h"
 #include "BluetoothReplyRunnable.h"
 #include "BluetoothUtils.h"
@@ -1290,10 +1291,15 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
     bs->AdapterAddedReceived();
     bs->TryFiringAdapterAdded();
 
-    // Trigger BluetoothOppManager to listen
+    // Trigger OPP & PBAP managers to listen
     BluetoothOppManager* opp = BluetoothOppManager::Get();
     if (!opp || !opp->Listen()) {
       BT_LOGR("Fail to start BluetoothOppManager listening");
+    }
+
+    BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
+    if (!pbap || !pbap->Listen()) {
+      BT_LOGR("Fail to start BluetoothPbapManager listening");
     }
   }
   // After ProfileManagers deinit and cleanup, now restarts bluetooth daemon
