@@ -4,6 +4,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+/**
+ * The possible values of TTY mode.
+ *
+ * "off"  - indicating TTY mode is disabled.
+ * "full" - indicating both hearing carryover and voice carryover are enabled.
+ * "hco"  - indicating hearing carryover is enabled.
+ * "vco"  - indicating voice carryover is enabled.
+ */
+enum TtyMode { "off", "full", "hco", "vco" };
+
 [Pref="dom.telephony.enabled"]
 interface Telephony : EventTarget {
   /**
@@ -54,6 +64,9 @@ interface Telephony : EventTarget {
 
   [Throws]
   attribute boolean speakerEnabled;
+
+  [Throws]
+  attribute TtyMode ttyMode;
 
   readonly attribute (TelephonyCall or TelephonyCallGroup)? active;
 

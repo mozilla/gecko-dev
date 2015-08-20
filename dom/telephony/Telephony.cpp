@@ -533,6 +533,19 @@ Telephony::SetSpeakerEnabled(bool aEnabled, ErrorResult& aRv)
   aRv = mService->SetSpeakerEnabled(aEnabled);
 }
 
+TtyMode
+Telephony::GetTtyMode(ErrorResult& aRv) const {
+  uint16_t mode;
+  aRv = mService->GetTtyMode(&mode);
+
+  return static_cast<TtyMode>(mode);
+}
+
+void
+Telephony::SetTtyMode(TtyMode aMode, ErrorResult& aRv) {
+  aRv = mService->SetTtyMode(static_cast<uint16_t>(aMode));
+}
+
 void
 Telephony::GetActive(Nullable<OwningTelephonyCallOrTelephonyCallGroup>& aValue)
 {

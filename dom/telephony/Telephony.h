@@ -29,6 +29,7 @@ class TelephonyDialCallback;
 } // namespace telephony
 
 class OwningTelephonyCallOrTelephonyCallGroup;
+enum class TtyMode: uint32_t;
 
 class Telephony MOZ_FINAL : public DOMEventTargetHelper,
                             private nsITelephonyListener
@@ -105,6 +106,12 @@ public:
 
   void
   SetSpeakerEnabled(bool aEnabled, ErrorResult& aRv);
+
+  TtyMode
+  GetTtyMode(ErrorResult& aRv) const;
+
+  void
+  SetTtyMode(TtyMode aMode, ErrorResult& aRv);
 
   void
   GetActive(Nullable<OwningTelephonyCallOrTelephonyCallGroup>& aValue);
