@@ -80,6 +80,7 @@ class BluetoothHfpManager : public BluetoothSocketObserver
 {
 public:
   BT_DECL_HFP_MGR_BASE
+  BT_DECL_SOCKET_OBSERVER
   virtual void GetName(nsACString& aName)
   {
     aName.AssignLiteral("HFP/HSP");
@@ -88,15 +89,8 @@ public:
   static BluetoothHfpManager* Get();
   ~BluetoothHfpManager();
 
-  // The following functions are inherited from BluetoothSocketObserver
-  virtual void ReceiveSocketData(
-    BluetoothSocket* aSocket,
-    nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) MOZ_OVERRIDE;
-  virtual void OnSocketConnectSuccess(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-  virtual void OnSocketConnectError(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-  virtual void OnSocketDisconnect(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-
   bool Listen();
+
   /**
    * This function set up a Synchronous Connection (SCO) link for HFP.
    * Service Level Connection (SLC) should be established before SCO setup

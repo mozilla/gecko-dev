@@ -36,6 +36,7 @@ class BluetoothOppManager : public BluetoothSocketObserver
 {
 public:
   BT_DECL_PROFILE_MGR_BASE
+  BT_DECL_SOCKET_OBSERVER
   virtual void GetName(nsACString& aName)
   {
     aName.AssignLiteral("OPP");
@@ -64,14 +65,6 @@ public:
   void ExtractPacketHeaders(const ObexHeaderSet& aHeader);
   bool ExtractBlobHeaders();
   void CheckPutFinal(uint32_t aNumRead);
-
-  // The following functions are inherited from BluetoothSocketObserver
-  void ReceiveSocketData(
-    BluetoothSocket* aSocket,
-    nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) MOZ_OVERRIDE;
-  virtual void OnSocketConnectSuccess(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-  virtual void OnSocketConnectError(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-  virtual void OnSocketDisconnect(BluetoothSocket* aSocket) MOZ_OVERRIDE;
 
 private:
   BluetoothOppManager();
