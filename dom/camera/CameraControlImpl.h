@@ -45,6 +45,8 @@ public:
   virtual nsresult StartRecording(DeviceStorageFileDescriptor* aFileDescriptor,
                                   const StartRecordingOptions* aOptions) MOZ_OVERRIDE;
   virtual nsresult StopRecording() MOZ_OVERRIDE;
+  virtual nsresult PauseRecording() MOZ_OVERRIDE;
+  virtual nsresult ResumeRecording() MOZ_OVERRIDE;
   virtual nsresult ResumeContinuousFocus() MOZ_OVERRIDE;
 
   // Event handlers called directly from outside this class.
@@ -117,6 +119,8 @@ protected:
   virtual nsresult StartRecordingImpl(DeviceStorageFileDescriptor* aFileDescriptor,
                                       const StartRecordingOptions* aOptions) = 0;
   virtual nsresult StopRecordingImpl() = 0;
+  virtual nsresult PauseRecordingImpl() = 0;
+  virtual nsresult ResumeRecordingImpl() = 0;
   virtual nsresult ResumeContinuousFocusImpl() = 0;
   virtual nsresult PushParametersImpl() = 0;
   virtual nsresult PullParametersImpl() = 0;

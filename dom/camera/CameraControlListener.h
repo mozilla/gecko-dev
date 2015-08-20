@@ -60,6 +60,8 @@ public:
   {
     kRecorderStopped,
     kRecorderStarted,
+    kRecorderPaused,
+    kRecorderResumed,
 #ifdef MOZ_B2G_CAMERA
     kFileSizeLimitReached,
     kVideoLengthLimitReached,
@@ -102,6 +104,8 @@ public:
     kInTakePicture,
     kInStartRecording,
     kInStopRecording,
+    kInPauseRecording,
+    kInResumeRecording,
     kInSetConfiguration,
     kInStartPreview,
     kInStopPreview,

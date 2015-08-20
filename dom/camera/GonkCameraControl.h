@@ -132,6 +132,8 @@ protected:
   virtual nsresult StartRecordingImpl(DeviceStorageFileDescriptor* aFileDescriptor,
                                       const StartRecordingOptions* aOptions = nullptr) MOZ_OVERRIDE;
   virtual nsresult StopRecordingImpl() MOZ_OVERRIDE;
+  virtual nsresult PauseRecordingImpl() MOZ_OVERRIDE;
+  virtual nsresult ResumeRecordingImpl() MOZ_OVERRIDE;
   virtual nsresult ResumeContinuousFocusImpl() MOZ_OVERRIDE;
   virtual nsresult PushParametersImpl() MOZ_OVERRIDE;
   virtual nsresult PullParametersImpl() MOZ_OVERRIDE;

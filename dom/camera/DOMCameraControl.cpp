@@ -830,6 +830,24 @@ nsDOMCameraControl::StopRecording(ErrorResult& aRv)
 }
 
 void
+nsDOMCameraControl::PauseRecording(ErrorResult& aRv)
+{
+  DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
+  THROW_IF_NO_CAMERACONTROL();
+
+  aRv = mCameraControl->PauseRecording();
+}
+
+void
+nsDOMCameraControl::ResumeRecording(ErrorResult& aRv)
+{
+  DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
+  THROW_IF_NO_CAMERACONTROL();
+
+  aRv = mCameraControl->ResumeRecording();
+}
+
+void
 nsDOMCameraControl::ResumePreview(ErrorResult& aRv)
 {
   DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
@@ -1248,6 +1266,14 @@ nsDOMCameraControl::OnRecorderStateChange(CameraControlListener::RecorderState a
       state = NS_LITERAL_STRING("Stopped");
       break;
 
+    case CameraControlListener::kRecorderPaused:
+      state = NS_LITERAL_STRING("Paused");
+      break;
+
+    case CameraControlListener::kRecorderResumed:
+      state = NS_LITERAL_STRING("Resumed");
+      break;
+
 #ifdef MOZ_B2G_CAMERA
     case CameraControlListener::kFileSizeLimitReached:
       state = NS_LITERAL_STRING("FileSizeLimitReached");
@@ -1492,6 +1518,18 @@ nsDOMCameraControl::OnUserError(CameraControlListener::UserContext aContext, nsr
       // This method doesn't have any callbacks, so all we can do is log the
       // failure. This only happens after the hardware has been released.
       NS_WARNING("Failed to stop recording");
+      return;
+
+    case CameraControlListener::kInPauseRecording:
+      // This method doesn't have any callbacks, so all we can do is log the
+      // failure. This only happens after the hardware has been released.
+      NS_WARNING("Failed to pause recording");
+      return;
+
+    case CameraControlListener::kInResumeRecording:
+      // This method doesn't have any callbacks, so all we can do is log the
+      // failure. This only happens after the hardware has been released.
+      NS_WARNING("Failed to resume recording");
       return;
 
     case CameraControlListener::kInStartPreview:
