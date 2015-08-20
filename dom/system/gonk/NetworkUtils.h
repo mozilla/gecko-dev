@@ -294,7 +294,6 @@ private:
   CommandResult addHostRoute(NetworkParams& aOptions);
   CommandResult removeDefaultRoute(NetworkParams& aOptions);
   CommandResult removeHostRoute(NetworkParams& aOptions);
-  CommandResult removeHostRoutes(NetworkParams& aOptions);
   CommandResult removeNetworkRoute(NetworkParams& aOptions);
   CommandResult setDNS(NetworkParams& aOptions);
   CommandResult addSecondaryRoute(NetworkParams& aOptions);
@@ -314,7 +313,6 @@ private:
 
   CommandResult addHostRouteLegacy(NetworkParams& aOptions);
   CommandResult removeHostRouteLegacy(NetworkParams& aOptions);
-  CommandResult removeHostRoutesLegacy(NetworkParams& aOptions);
   CommandResult setDefaultRouteLegacy(NetworkParams& aOptions);
   CommandResult removeDefaultRouteLegacy(NetworkParams& aOptions);
   CommandResult removeNetworkRouteLegacy(NetworkParams& aOptions);
