@@ -128,7 +128,7 @@
   <default remote="caf" revision="refs/tags/android-4.4.2_r1" sync-j="4"/>
   <!-- Emulator specific things -->
   <project name="device/generic/armv7-a-neon" path="device/generic/armv7-a-neon" revision="72ffdf71c68a96309212eb13d63560d66db14c9e"/>
-  <project name="device_generic_goldfish" path="device/generic/goldfish" remote="b2g" revision="dea95f1a539f037db1b00732048a8722532b4d47"/>
+  <project name="device_generic_goldfish" path="device/generic/goldfish" remote="b2g" revision="8d4018ebd33ac3f1a043b2d54bc578028656a659"/>
   <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="96f78964a9a317a6c8b494ab71e10e0276d02490"/>
   <project name="platform_external_wpa_supplicant_8" path="external/wpa_supplicant_8" remote="b2g" revision="0c6a6547cd1fd302fa2b0f6e375654df36bf0ec4"/>
   <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="3453472769d6e9b43c84f98b56f8c63afe2b129e"/>
