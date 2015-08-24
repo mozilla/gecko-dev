@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1185438
+-->
+<head>
+  <title>Test for Bug 1185438</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1185438">Mozilla Bug 1185438</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+
+</div>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+
+"use strict";
+
+const MSG_TTY_MODE_CHANGED = "telephony-tty-mode-changed";
+
+var gTelephonyMessengerHelper = SpecialPowers.loadChromeScript(
+  SimpleTest.getTestFileURL("chrome_telephony_messenger_helper.js")
+);
+
+function setup() {
+  return new Promise((aResolve, aReject) => {
+    SpecialPowers.pushPermissions(
+      [{ type: 'telephony', allow: true, context: document }], function() {
+      info("registerPage");
+
+      const COMPLETE_MSG = "registerPageCompleted";
+      gTelephonyMessengerHelper.addMessageListener(COMPLETE_MSG,
+        function onevent() {
+          gTelephonyMessengerHelper.removeMessageListener(COMPLETE_MSG, onevent);
+          aResolve();
+        });
+
+      gTelephonyMessengerHelper.sendAsyncMessage("registerPage");
+    });
+  });
+}
+
+function notifyTtyModeChanged(aMode) {
+  return new Promise((aResolve, aReject) => {
+    info("notifyTtyModeChanged");
+
+    const COMPLETE_MSG = "notifyTtyModeChangedCompleted";
+    gTelephonyMessengerHelper.addMessageListener(COMPLETE_MSG,
+      function onevent(aMessage) {
+        gTelephonyMessengerHelper.removeMessageListener(COMPLETE_MSG, onevent);
+        aResolve(aMessage);
+      });
+
+    gTelephonyMessengerHelper.sendAsyncMessage("notifyTtyModeChanged", aMode);
+  });
+}
+
+function waitForSystemMessage(aMessage) {
+  return new Promise((aResolve, aReject) => {
+    info("waiting for system message: " + aMessage);
+
+    navigator.mozSetMessageHandler(aMessage, (aMessage) => {
+      info("got system message: " + JSON.stringify(aMessage));
+      navigator.mozSetMessageHandler(aMessage, null);
+      aResolve(aMessage);
+    });
+  });
+}
+
+function testNotifyTtyModeChanged(aMode, aModeString) {
+  var promises = [];
+
+  promises.push(waitForSystemMessage(MSG_TTY_MODE_CHANGED)
+    .then((msg) => is(msg.ttyMode, aModeString)));
+  promises.push(notifyTtyModeChanged(aMode));
+
+  return Promise.all(promises);
+}
+
+function runTest() {
+  SimpleTest.waitForExplicitFinish();
+  Promise.resolve()
+    .then(() => setup())
+    .then(() => testNotifyTtyModeChanged(SpecialPowers.Ci.nsITelephonyService.TTY_MODE_OFF, "off"))
+    .then(() => testNotifyTtyModeChanged(SpecialPowers.Ci.nsITelephonyService.TTY_MODE_FULL, "full"))
+    .then(() => testNotifyTtyModeChanged(SpecialPowers.Ci.nsITelephonyService.TTY_MODE_VCO, "vco"))
+    .then(() => testNotifyTtyModeChanged(SpecialPowers.Ci.nsITelephonyService.TTY_MODE_HCO, "hco"))
+    .then(() => {
+      gTelephonyMessengerHelper.destroy();
+      SimpleTest.finish();
+    });
+}
+
+runTest();
+
+</script>
+</pre>
+</body>
+</html>
