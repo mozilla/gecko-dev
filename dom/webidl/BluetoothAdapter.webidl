@@ -69,6 +69,15 @@ interface BluetoothAdapter : EventTarget {
   // Fired when remote devices query current media play status
            attribute EventHandler   onrequestmediaplaystatus;
 
+  // Fired when PBAP manager requests to pull phonebook
+           attribute EventHandler   onpullphonebookreq;
+
+  // Fired when PBAP manager requests to pull vcard entry
+           attribute EventHandler   onpullvcardentryreq;
+
+  // Fired when PBAP manager requests to pull vcard listing
+           attribute EventHandler   onpullvcardlistingreq;
+
   [NewObject, Throws]
   DOMRequest setName(DOMString name);
   [NewObject, Throws]
