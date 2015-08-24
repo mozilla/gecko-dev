@@ -1037,6 +1037,109 @@ BluetoothServiceBluedroid::IsScoConnected(BluetoothReplyRunnable* aRunnable)
 }
 
 void
+BluetoothServiceBluedroid::ReplyTovCardPulling(
+  BlobParent* aBlobParent,
+  BlobChild* aBlobChild,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
+  if (!pbap) {
+    NS_NAMED_LITERAL_STRING(replyError, "Fail to get PbapManager");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  pbap->ReplyToPullvCardEntry(aBlobParent);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyTovCardPulling(
+  nsIDOMBlob* aBlob,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
+  if (!pbap) {
+    NS_NAMED_LITERAL_STRING(replyError, "Fail to get PbapManager");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  pbap->ReplyToPullvCardEntry(aBlob);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyToPhonebookPulling(
+  BlobParent* aBlobParent,
+  BlobChild* aBlobChild,
+  uint16_t aPhonebookSize,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
+  if (!pbap) {
+    NS_NAMED_LITERAL_STRING(replyError, "Fail to get PbapManager");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  pbap->ReplyToPullPhonebook(aBlobParent, aPhonebookSize);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyToPhonebookPulling(
+  nsIDOMBlob* aBlob,
+  uint16_t aPhonebookSize,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
+  if (!pbap) {
+    NS_NAMED_LITERAL_STRING(replyError, "Fail to get PbapManager");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  pbap->ReplyToPullPhonebook(aBlob, aPhonebookSize);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyTovCardListing(
+  BlobParent* aBlobParent,
+  BlobChild* aBlobChild,
+  uint16_t aPhonebookSize,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
+  if (!pbap) {
+    NS_NAMED_LITERAL_STRING(replyError, "Fail to get PbapManager");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  pbap->ReplyToPullvCardListing(aBlobParent, aPhonebookSize);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyTovCardListing(
+  nsIDOMBlob* aBlob,
+  uint16_t aPhonebookSize,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
+  if (!pbap) {
+    NS_NAMED_LITERAL_STRING(replyError, "Fail to get PbapManager");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  pbap->ReplyToPullvCardListing(aBlob, aPhonebookSize);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
 BluetoothServiceBluedroid::SendMetaData(const nsAString& aTitle,
                                         const nsAString& aArtist,
                                         const nsAString& aAlbum,

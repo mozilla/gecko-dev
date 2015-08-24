@@ -12,6 +12,8 @@
 #include "BluetoothUuid.h"
 #include "ObexBase.h"
 
+#include "mozilla/dom/ipc/BlobParent.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
@@ -722,21 +724,49 @@ BluetoothPbapManager::PackPropertiesMask(uint8_t* aData, int aSize)
 }
 
 void
-BluetoothPbapManager::ReplyToPullPhonebook(Blob* aBlob, uint16_t aPhonebookSize)
+BluetoothPbapManager::ReplyToPullPhonebook(BlobParent* aActor,
+                                           uint16_t aPhonebookSize)
+{
+  nsRefPtr<FileImpl> impl = aActor->GetBlobImpl();
+  nsCOMPtr<nsIDOMBlob> blob = new File(nullptr, impl);
+
+  ReplyToPullPhonebook(blob.get(), aPhonebookSize);
+}
+
+void
+BluetoothPbapManager::ReplyToPullPhonebook(nsIDOMBlob* aBlob, uint16_t aPhonebookSize)
 {
   // TODO: Implement this function (Bug 1180556)
 }
 
 void
-BluetoothPbapManager::ReplyToPullvCardListing(
-  Blob* aBlob,
-  uint16_t aPhonebookSize)
+BluetoothPbapManager::ReplyToPullvCardListing(BlobParent* aActor,
+                                              uint16_t aPhonebookSize)
+{
+  nsRefPtr<FileImpl> impl = aActor->GetBlobImpl();
+  nsCOMPtr<nsIDOMBlob> blob = new File(nullptr, impl);
+
+  ReplyToPullvCardListing(blob.get(), aPhonebookSize);
+}
+
+void
+BluetoothPbapManager::ReplyToPullvCardListing(nsIDOMBlob* aBlob,
+                                              uint16_t aPhonebookSize)
 {
   // TODO: Implement this function (Bug 1180556)
 }
 
 void
-BluetoothPbapManager::ReplyToPullvCardEntry(Blob* aBlob)
+BluetoothPbapManager::ReplyToPullvCardEntry(BlobParent* aActor)
+{
+  nsRefPtr<FileImpl> impl = aActor->GetBlobImpl();
+  nsCOMPtr<nsIDOMBlob> blob = new File(nullptr, impl);
+
+  ReplyToPullvCardEntry(blob.get());
+}
+
+void
+BluetoothPbapManager::ReplyToPullvCardEntry(nsIDOMBlob* aBlob)
 {
   // TODO: Implement this function (Bug 1180556)
 }

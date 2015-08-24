@@ -265,6 +265,37 @@ public:
   virtual void
   IsScoConnected(BluetoothReplyRunnable* aRunnable) = 0;
 
+  virtual void
+  ReplyTovCardPulling(BlobParent* aBlobParent,
+                      BlobChild* aBlobChild,
+                      BluetoothReplyRunnable* aRunnable) = 0;
+
+  virtual void
+  ReplyTovCardPulling(nsIDOMBlob* aBlob,
+                      BluetoothReplyRunnable* aRunnable) = 0;
+
+  virtual void
+  ReplyToPhonebookPulling(BlobParent* aBlobParent,
+                          BlobChild* aBlobChild,
+                          uint16_t aPhonebookSize,
+                          BluetoothReplyRunnable* aRunnable) = 0;
+
+  virtual void
+  ReplyToPhonebookPulling(nsIDOMBlob* aBlob,
+                          uint16_t aPhonebookSize,
+                          BluetoothReplyRunnable* aRunnable) = 0;
+
+  virtual void
+  ReplyTovCardListing(BlobParent* aBlobParent,
+                      BlobChild* aBlobChild,
+                      uint16_t aPhonebookSize,
+                      BluetoothReplyRunnable* aRunnable) = 0;
+
+  virtual void
+  ReplyTovCardListing(nsIDOMBlob* aBlob,
+                      uint16_t aPhonebookSize,
+                      BluetoothReplyRunnable* aRunnable) = 0;
+
 #ifdef MOZ_B2G_RIL
   virtual void
   AnswerWaitingCall(BluetoothReplyRunnable* aRunnable) = 0;
