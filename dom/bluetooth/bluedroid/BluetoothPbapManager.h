@@ -14,6 +14,7 @@
 #include "mozilla/ipc/SocketBase.h"
 
 class nsIDOMBlob;
+class nsIInputStream;
 namespace mozilla {
   namespace dom {
     class Blob;
@@ -70,46 +71,64 @@ public:
    *
    * @param aActor [in]          a blob actor containing the vCard objects
    * @param aPhonebookSize [in]  the number of vCard indexes in the blob
+   *
+   * @return true if the response packet has been packed correctly and started
+   *         to be sent to the remote device; false otherwise.
    */
-  void ReplyToPullPhonebook(BlobParent* aActor, uint16_t aPhonebookSize);
+  bool ReplyToPullPhonebook(BlobParent* aActor, uint16_t aPhonebookSize);
 
   /**
    * Reply vCard object to the *in-process* 'pullphonebook' request.
    *
    * @param aBlob [in]           a blob contained the vCard objects
    * @param aPhonebookSize [in]  the number of vCard indexes in the blob
+   *
+   * @return true if the response packet has been packed correctly and started
+   *         to be sent to the remote device; false otherwise.
    */
-  void ReplyToPullPhonebook(nsIDOMBlob* aBlob, uint16_t aPhonebookSize);
+  bool ReplyToPullPhonebook(nsIDOMBlob* aBlob, uint16_t aPhonebookSize);
 
   /**
    * Reply vCard object to the *IPC* 'pullvcardlisting' request.
    *
    * @param aActor [in]          a blob actor containing the vCard objects
    * @param aPhonebookSize [in]  the number of vCard indexes in the blob
+   *
+   * @return true if the response packet has been packed correctly and started
+   *         to be sent to the remote device; false otherwise.
    */
-  void ReplyToPullvCardListing(BlobParent* aActor, uint16_t aPhonebookSize);
+  bool ReplyToPullvCardListing(BlobParent* aActor, uint16_t aPhonebookSize);
 
   /**
    * Reply vCard object to the *in-process* 'pullvcardlisting' request.
    *
    * @param aBlob [in]           a blob contained the vCard objects
    * @param aPhonebookSize [in]  the number of vCard indexes in the blob
+   *
+   * @return true if the response packet has been packed correctly and started
+   *         to be sent to the remote device; false otherwise.
    */
-  void ReplyToPullvCardListing(nsIDOMBlob* aBlob, uint16_t aPhonebookSize);
+  bool ReplyToPullvCardListing(nsIDOMBlob* aBlob, uint16_t aPhonebookSize);
 
   /**
    * Reply vCard object to the *IPC* 'pullvcardentry' request.
    *
    * @param aActor [in]  a blob actor containing the vCard objects
+   *
+   * @return true if the response packet has been packed correctly and started
+   *         to be sent to the remote device; false otherwise.
    */
-  void ReplyToPullvCardEntry(BlobParent* aActor);
+  bool ReplyToPullvCardEntry(BlobParent* aActor);
 
   /**
    * Reply vCard object to the *in-process* 'pullvcardentry' request.
    *
    * @param aBlob [in]  a blob contained the vCard objects
+   *
+   * @return true if the response packet has been packed correctly and started
+   *         to be sent to the remote device; false otherwise.
    */
-   void ReplyToPullvCardEntry(nsIDOMBlob* aBlob);
+  bool ReplyToPullvCardEntry(nsIDOMBlob* aBlob);
  
 protected:
   virtual ~BluetoothPbapManager();
@@ -122,6 +141,7 @@ private:
   void ReplyToConnect();
   void ReplyToDisconnectOrAbort();
   void ReplyToSetPath();
+  bool ReplyToGet(nsIInputStream* aStream, uint16_t aPhonebookSize = 0);
   void ReplyError(uint8_t aError);
   void SendObexData(uint8_t* aData, uint8_t aOpcode, int aSize);
 
@@ -137,6 +157,7 @@ private:
   InfallibleTArray<uint32_t>  PackPropertiesMask(uint8_t* aData, int aSize);
   bool CompareHeaderTarget(const ObexHeaderSet& aHeader);
   bool IsLegalPath(const nsAString& aPath);
+  bool GetInputStreamFromBlob(nsIInputStream* aStream, nsIDOMBlob* aBlob);
   void AfterPbapConnected();
   void AfterPbapDisconnected();
 
@@ -151,6 +172,11 @@ private:
   bool mConnected;
   nsString mDeviceAddress;
 
+  /**
+   * Maximum packet length that remote device can receive
+   */
+  unsigned int mRemoteMaxPacketLength;
+
   // If a connection has been established, mSocket will be the socket
   // communicating with the remote socket. We maintain the invariant that if
   // mSocket is non-null, mServerSocket must be null (and vice versa).
@@ -160,6 +186,17 @@ private:
   // over the ownership to mSocket, and get a new server socket while Listen()
   // is called.
   nsRefPtr<BluetoothSocket> mServerSocket;
+
+  /**
+   * The data stream of vCards which is used in current processing response.
+   */
+  nsCOMPtr<nsIInputStream> mVCardDataStream;
+
+  /**
+   * A flag to indicate whether 'PhonebookSize' is mandatory for next OBEX
+   * response
+   */
+  bool mRequirePhonebookSize;
 };
 
 END_BLUETOOTH_NAMESPACE
