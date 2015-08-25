@@ -21,10 +21,41 @@ body {
   width: 330px;
 }
 
+/* Panel container flexbox */
+.panel-content {
+  height: 410px;
+  width: 330px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-content: stretch;
+  align-items: flex-start;
+}
+
+.panel > .panel-content > .tab-view-container {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel > .panel-content > .tab-view-container > .tab {
+  flex: 2;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel > .panel-content > .tab-view-container > .tab.selected {
+  display: flex;
+}
+
 /* Notifications displayed over tabs */
 
 .panel .messages {
+  width: 100%;
   margin: 0;
+  /*display: none;*/
 }
 
 .panel .messages .alert {
@@ -69,6 +100,7 @@ body {
 /* Tabs and tab selection buttons */
 
 .tab-view-container {
+  width: 100%;
   background-image: url("../shared/img/beta-ribbon.svg#beta-ribbon");
   background-color: #fbfbfb;
   background-size: 36px 36px;
@@ -267,16 +299,6 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
   font-weight: lighter;
 }
 
-/* Don't show the empty contacts image if we're showing gravatar promo. */
-.contacts-gravatar-promo ~ .contact-list-empty {
-  background-image: none;
-  padding-top: 3%;
-}
-
-.contact-list-empty {
-  padding-top: 27%;
-}
-
 .room-list-empty {
   margin: 15px 15px;
   background-image: url("../shared/img/empty_conversations.svg");
@@ -298,9 +320,6 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 
 /* Rooms */
 .rooms {
-  min-height: 100px;
-  /* To hold the conversation dropdown menu. */
-  position: relative;
   flex: 2;
   display: flex;
   flex-direction: column;
@@ -383,14 +402,11 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
   flex: 2 2 0px;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: 335px; /* XXX better computation needed */
-  /* At least high enough to be able to contain the conversation menu. */
-  min-height: 100px;
-  overflow: auto;
 }
 
 .room-list-empty {
   border-bottom-width: 0;
+  flex: 2;
 }
 
 .room-list > .room-entry {
@@ -917,10 +933,12 @@ html[dir="rtl"] .settings-menu .dropdown-menu {
   align-content: stretch;
   align-items: center;
   font-size: 1rem;
-  background-color: #fbfbfb;
+  /*background-color: #fbfbfb;*/
+  /*background-color: #999; dev test color*/
   color: #666666;
-  margin: 10px 15px 5px;
-  height: 24px;
+  padding: 10px 15px 6px;
+  width: 100%;
+  height: 42px;
 }
 
 .footer .signin-details {

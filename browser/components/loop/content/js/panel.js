@@ -100,7 +100,7 @@ loop.panel = (function(_, mozL10n) {
         React.createElement("div", {className: "tab-view-container"}, 
           React.createElement("ul", {className: "tab-view"}, 
             tabButtons, 
-            React.createElement("div", {className: "slide-bar"})
+              React.createElement("li", {className: "slide-bar"})
           ), 
           tabs
         )

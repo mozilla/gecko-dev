@@ -100,7 +100,7 @@ loop.panel = (function(_, mozL10n) {
         <div className="tab-view-container">
           <ul className="tab-view">
             {tabButtons}
-            <div className="slide-bar" />
+              <li className="slide-bar" />
           </ul>
           {tabs}
         </div>
