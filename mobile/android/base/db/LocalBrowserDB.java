@@ -246,6 +246,9 @@ public class LocalBrowserDB implements BrowserDB {
                 final Field urlField = stringsClass.getField(name.replace("_title_", "_url_"));
                 final int urlID = urlField.getInt(null);
                 final String url = context.getString(urlID);
+                if (url.equals("about:blank")) {
+                    continue;
+                }
 
                 final ContentValues bookmarkValue = createBookmark(now, title, url, pos++, folderID);
                 bookmarkValues.add(bookmarkValue);
