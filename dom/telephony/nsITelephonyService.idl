@@ -244,7 +244,7 @@ interface nsITelephonyService : nsISupports
    * Otherwise, callback.notifyError() will be called.
    */
   void sendUSSD(in unsigned long clientId, in DOMString ussd,
-                in nsITelephonyCallback callback);
+                in nsITelephonyDialCallback callback);
 
   /**
    * Cancel an existing USSD session.
@@ -252,7 +252,7 @@ interface nsITelephonyService : nsISupports
    * If successful, callback.notifySuccess() will be called.
    * Otherwise, callback.notifyError() will be called.
    */
-  void cancelUSSD(in unsigned long cliendId, in nsITelephonyCallback callback);
+  void cancelUSSD(in unsigned long cliendId, in nsITelephonyDialCallback callback);
 
   attribute bool microphoneMuted;
   attribute bool speakerEnabled;

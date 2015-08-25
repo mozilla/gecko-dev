@@ -2143,6 +2143,7 @@ TelephonyService.prototype = {
   },
 
   sendUSSD: function(aClientId, aUssd, aCallback) {
+    aCallback.notifyDialMMI(MMI_KS_SC_USSD);
     this._sendUSSDInternal(aClientId, aUssd,
                            this._defaultCallbackHandler.bind(this, aCallback));
   },
@@ -2155,6 +2156,7 @@ TelephonyService.prototype = {
   },
 
   cancelUSSD: function(aClientId, aCallback) {
+    aCallback.notifyDialMMI(MMI_KS_SC_USSD);
     this._cancelUSSDInternal(aClientId,
                              this._defaultCallbackHandler.bind(this, aCallback));
   },

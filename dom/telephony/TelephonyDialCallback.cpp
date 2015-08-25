@@ -21,7 +21,6 @@ TelephonyDialCallback::TelephonyDialCallback(nsPIDOMWindow* aWindow,
                                              Promise* aPromise)
   : TelephonyCallback(aPromise), mWindow(aWindow), mTelephony(aTelephony)
 {
-  MOZ_ASSERT(mTelephony);
 }
 
 nsresult
