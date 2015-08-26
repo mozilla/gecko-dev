@@ -622,7 +622,7 @@ CanvasRenderingContext2D::ParseColor(const nsAString& aString,
     *aColor = value.GetColorValue();
   } else {
     // otherwise resolve it
-    nsIPresShell* presShell = GetPresShell();
+    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
     nsRefPtr<nsStyleContext> parentContext;
     if (mCanvasElement && mCanvasElement->IsInDoc()) {
       // Inherit from the canvas element.
@@ -2217,6 +2217,13 @@ void
 CanvasRenderingContext2D::SetFont(const nsAString& font,
                                   ErrorResult& error)
 {
+  SetFontInternal(font, error);
+}
+
+bool
+CanvasRenderingContext2D::SetFontInternal(const nsAString& font,
+                                          ErrorResult& error)
+{
   /*
     * If font is defined with relative units (e.g. ems) and the parent
     * style context changes in between calls, setting the font to the
@@ -2228,13 +2235,13 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
   if (!mCanvasElement && !mDocShell) {
     NS_WARNING("Canvas element must be non-null or a docshell must be provided");
     error.Throw(NS_ERROR_FAILURE);
-    return;
+    return false;
   }
 
-  nsIPresShell* presShell = GetPresShell();
+  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
   if (!presShell) {
     error.Throw(NS_ERROR_FAILURE);
-    return;
+    return false;
   }
   nsIDocument* document = presShell->GetDocument();
 
@@ -2242,7 +2249,7 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
   error = CreateFontStyleRule(font, document, getter_AddRefs(rule));
 
   if (error.Failed()) {
-    return;
+    return false;
   }
 
   css::Declaration *declaration = rule->GetDeclaration();
@@ -2258,7 +2265,7 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
                   fsaVal->GetUnit() != eCSSUnit_System_Font)) {
       // We got an all-property value or a syntax error.  The spec says
       // this value must be ignored.
-    return;
+    return false;
   }
 
   nsTArray< nsCOMPtr<nsIStyleRule> > rules;
@@ -2271,11 +2278,11 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
   nsRefPtr<nsStyleContext> parentContext;
 
   if (mCanvasElement && mCanvasElement->IsInDoc()) {
-      // inherit from the canvas element
-      parentContext = nsComputedDOMStyle::GetStyleContextForElement(
-              mCanvasElement,
-              nullptr,
-              presShell);
+    // inherit from the canvas element
+    parentContext = nsComputedDOMStyle::GetStyleContextForElement(
+            mCanvasElement,
+            nullptr,
+            presShell);
   } else {
     // otherwise inherit from default (10px sans-serif)
     nsRefPtr<css::StyleRule> parentRule;
@@ -2284,7 +2291,7 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
                                 getter_AddRefs(parentRule));
 
     if (error.Failed()) {
-      return;
+      return false;
     }
 
     nsTArray< nsCOMPtr<nsIStyleRule> > parentRules;
@@ -2294,7 +2301,7 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
 
   if (!parentContext) {
     error.Throw(NS_ERROR_FAILURE);
-    return;
+    return false;
   }
 
   // add a rule to prevent text zoom from affecting the style
@@ -2304,7 +2311,7 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
       styleSet->ResolveStyleForRules(parentContext, rules);
   if (!sc) {
     error.Throw(NS_ERROR_FAILURE);
-    return;
+    return false;
   }
 
   const nsStyleFont* fontStyle = sc->StyleFont();
@@ -2355,6 +2362,8 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
   // the spec required font sizes be converted to pixels, but that no
   // longer seems to be required.)
   declaration->GetValue(eCSSProperty_font, CurrentState().font);
+
+  return true;
 }
 
 void
@@ -2840,7 +2849,12 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
   }
 
   gfxFontGroup* currentFontStyle = GetCurrentFontStyle();
-  NS_ASSERTION(currentFontStyle, "font group is null");
+  if (!currentFontStyle) {
+    return NS_ERROR_FAILURE;
+  }
+
+  MOZ_ASSERT(!presShell->IsDestroying(),
+             "GetCurrentFontStyle() should have returned null if the presshell is being destroyed");
 
   // ensure user font set is up to date
   currentFontStyle->
@@ -3016,8 +3030,9 @@ gfxFontGroup *CanvasRenderingContext2D::GetCurrentFontStyle()
     ErrorResult err;
     NS_NAMED_LITERAL_STRING(kDefaultFontStyle, "10px sans-serif");
     static float kDefaultFontSize = 10.0;
-    SetFont(kDefaultFontStyle, err);
-    if (err.Failed()) {
+    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+    bool fontUpdated = SetFontInternal(kDefaultFontStyle, err);
+    if (err.Failed() || !fontUpdated) {
       gfxFontStyle style;
       style.size = kDefaultFontSize;
       CurrentState().fontGroup =
@@ -3026,9 +3041,7 @@ gfxFontGroup *CanvasRenderingContext2D::GetCurrentFontStyle()
                                                     nullptr);
       if (CurrentState().fontGroup) {
         CurrentState().font = kDefaultFontStyle;
-
-        nsIPresShell* presShell = GetPresShell();
-        if (presShell) {
+        if (presShell && !presShell->IsDestroying()) {
           CurrentState().fontGroup->SetTextPerfMetrics(
             presShell->GetPresContext()->GetTextPerfMetrics());
         }
@@ -3036,7 +3049,6 @@ gfxFontGroup *CanvasRenderingContext2D::GetCurrentFontStyle()
         NS_ERROR("Default canvas font is invalid");
       }
     }
-
   }
 
   return CurrentState().fontGroup;

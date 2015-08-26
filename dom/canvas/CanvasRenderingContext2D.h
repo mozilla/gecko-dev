@@ -615,6 +615,9 @@ protected:
 
   static void StyleColorToString(const nscolor& aColor, nsAString& aStr);
 
+  // Returns whether the font was successfully updated.
+  bool SetFontInternal(const nsAString& font, mozilla::ErrorResult& error);
+
   /**
    * Creates the error target, if it doesn't exist
    */
