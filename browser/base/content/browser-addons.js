@@ -3,6 +3,32 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+// Removes a doorhanger notification if all of the installs it was notifying
+// about have ended in some way.
+function removeNotificationOnEnd(notification, installs) {
+  let count = installs.length;
+
+  function maybeRemove(install) {
+    install.removeListener(this);
+
+    if (--count == 0) {
+      // Check that the notification is still showing
+      let current = PopupNotifications.getNotification(notification.id, notification.browser);
+      if (current === notification)
+        notification.remove();
+    }
+  }
+
+  for (let install of installs) {
+    install.addListener({
+      onDownloadCancelled: maybeRemove,
+      onDownloadFailed: maybeRemove,
+      onInstallFailed: maybeRemove,
+      onInstallEnded: maybeRemove
+    });
+  }
+}
+
 const gXPInstallObserver = {
   _findChildShell: function (aDocShell, aSoughtShell)
   {
@@ -71,6 +97,25 @@ const gXPInstallObserver = {
       PopupNotifications.show(browser, notificationID, messageString, anchorID,
                               action, null, options);
       break;
+    case "addon-install-origin-blocked": {
+      let originatingHost;
+      try {
+        originatingHost = installInfo.originatingURI.host;
+      } catch (ex) {
+        // Need to deal with missing originatingURI and with about:/data: URIs more gracefully,
+        // see bug 1063418 - but for now, bail:
+        return;
+      }
+      messageString = gNavigatorBundle.getFormattedString("xpinstallPromptWarning",
+                        [brandShortName, originatingHost]);
+
+      let secHistogram = Components.classes["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry).getHistogramById("SECURITY_UI");
+      secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED);
+      let popup = PopupNotifications.show(browser, notificationID,
+                                          messageString, anchorID,
+                                          null, null, options);
+      removeNotificationOnEnd(popup, installInfo.installs);
+      break; }
     case "addon-install-blocked":
       let originatingHost;
       try {
@@ -94,8 +139,9 @@ const gXPInstallObserver = {
       };
 
       secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED);
-      PopupNotifications.show(browser, notificationID, messageString, anchorID,
-                              action, null, options);
+      let popup = PopupNotifications.show(browser, notificationID, messageString,
+                                          anchorID, action, null, options);
+      removeNotificationOnEnd(popup, installInfo.installs);
       break;
     case "addon-install-started":
       var needsDownload = function needsDownload(aInstall) {

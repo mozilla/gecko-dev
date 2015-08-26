@@ -131,8 +131,7 @@ function test_disabled_install() {
       gBrowser.removeTab(gBrowser.selectedTab);
 
       AddonManager.getAllInstalls(function(aInstalls) {
-        is(aInstalls.length, 1, "Should have been one install created");
-        aInstalls[0].cancel();
+        is(aInstalls.length, 0, "Shouldn't be any pending installs");
 
         runNextTest();
       });
@@ -423,8 +422,10 @@ function test_url() {
     });
   });
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.loadURI(TESTROOT + "unsigned.xpi");
+  gBrowser.selectedTab = gBrowser.addTab("about:blank");
+  BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser).then(() => {
+    gBrowser.loadURI(TESTROOT + "unsigned.xpi");
+  });
 },
 
 function test_localfile() {
@@ -452,8 +453,31 @@ function test_localfile() {
   } catch (ex) {
     var path = CHROMEROOT + "corrupt.xpi";
   }
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.loadURI(path);
+  gBrowser.selectedTab = gBrowser.addTab("about:blank");
+  BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser).then(() => {
+    gBrowser.loadURI(path);
+  });
+},
+
+function test_urlbar() {
+  wait_for_notification("addon-install-origin-blocked-notification", function(aPanel) {
+    let notification = aPanel.childNodes[0];
+
+    is(notification.button.label, "", "Button to allow install should be hidden.");
+
+    wait_for_notification_close(() => {
+      runNextTest();
+    });
+
+    gBrowser.removeCurrentTab();
+  });
+
+  gBrowser.selectedTab = gBrowser.addTab("about:blank");
+  BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser).then(() => {
+    gURLBar.value = TESTROOT + "unsigned.xpi";
+    gURLBar.focus();
+    EventUtils.synthesizeKey("VK_RETURN", {});
+  });
 },
 
 function test_wronghost() {
@@ -590,12 +614,16 @@ function test_renotify_blocked() {
       executeSoon(function () {
         wait_for_notification("addon-install-blocked-notification", function(aPanel) {
           AddonManager.getAllInstalls(function(aInstalls) {
-          is(aInstalls.length, 2, "Should be two pending installs");
-            aInstalls[0].cancel();
-            aInstalls[1].cancel();
+            is(aInstalls.length, 2, "Should be two pending installs");
+
+            wait_for_notification_close(() => {
+              AddonManager.getAllInstalls(function(aInstalls) {
+                is(aInstalls.length, 0, "Should have cancelled the installs");
+                runNextTest();
+              });
+            });
 
             info("Closing browser tab");
-            wait_for_notification_close(runNextTest);
             gBrowser.removeTab(gBrowser.selectedTab);
           });
         });
