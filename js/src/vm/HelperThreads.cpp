@@ -879,7 +879,8 @@ GlobalHelperThreadState::finishParseTask(JSContext* maybecx, JSRuntime* rt, void
         !GlobalObject::ensureConstructor(cx, global, JSProto_Array) ||
         !GlobalObject::ensureConstructor(cx, global, JSProto_Function) ||
         !GlobalObject::ensureConstructor(cx, global, JSProto_RegExp) ||
-        !GlobalObject::ensureConstructor(cx, global, JSProto_Iterator))
+        !GlobalObject::EnsureConstructor(cx, global, JSProto_Iterator) ||
+        !GlobalObject::EnsureConstructor(cx, global, JSProto_GeneratorFunction))
     {
         LeaveParseTaskZone(rt, parseTask);
         return nullptr;
@@ -901,11 +902,18 @@ GlobalHelperThreadState::finishParseTask(JSContext* maybecx, JSRuntime* rt, void
             continue;
 
         JSProtoKey key = JS::IdentifyStandardPrototype(proto.toObject());
-        if (key == JSProto_Null)
-            continue;
+        if (key == JSProto_Null) {
+            // Generator functions don't have Function.prototype as prototype
+            // but a different function object, so IdentifyStandardPrototype
+            // doesn't work. Just special-case it here.
+            if (IsStandardPrototype(proto.toObject(), JSProto_GeneratorFunction))
+                key = JSProto_GeneratorFunction;
+            else
+                continue;
+        }
         MOZ_ASSERT(key == JSProto_Object || key == JSProto_Array ||
                    key == JSProto_Function || key == JSProto_RegExp ||
-                   key == JSProto_Iterator);
+                   key == JSProto_Iterator || key == JSProto_GeneratorFunction);
 
         JSObject* newProto = GetBuiltinPrototypePure(global, key);
         MOZ_ASSERT(newProto);
