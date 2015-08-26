@@ -941,9 +941,9 @@
             </FramedExample>
             <FramedExample cssClass="fx-embedded-panel"
                            dashed={true}
-                           height={321}
+                           height={410}
                            summary="Contact Form - Edit"
-                           width={332}>
+                           width={330}>
               <div className="panel">
                 <ContactDetailsForm contactFormData={fakeManyContacts[1]}
                                     mode={"edit"}

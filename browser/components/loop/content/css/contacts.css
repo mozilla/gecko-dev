@@ -374,7 +374,10 @@ html[dir="rtl"] .contact > .dropdown-menu {
 }
 
 .contact-form {
-  padding: 14px; /* Override based on spacing in Mockup */
+  padding: 14px 15px 0px; /* Override based on spacing in Mockup */
+  flex: 2 1 0%;
+  display: flex;
+  flex-direction: column;
 }
 /* This will effect the header displayed at the top of the contact details form
  */
@@ -386,9 +389,7 @@ html[dir="rtl"] .contact > .dropdown-menu {
 }
 
 .contact-form .form-content-container {
-  height: 24.1rem; /* This height is needed to keep the panel height at 400px and
-                      the bottom elements at the bottom of the panel
-                      Can likely go away if we switched this pane to flexbox model */
+  flex: 1;
   padding-top: 4px; /* Based on spacing in Mockup
                     replaced margin-top
                     See http://stackoverflow.com/questions/6204670/css-clean-solution-to-the-margin-collapse-issue-when-floating-an-element
