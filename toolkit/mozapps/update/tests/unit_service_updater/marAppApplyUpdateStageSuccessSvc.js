@@ -22,7 +22,8 @@ function run_test() {
   gTestDirs = gTestDirsCompleteSuccess;
   setupUpdaterTest(FILE_COMPLETE_MAR);
 
-  createUpdaterINI(false);
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  createUpdaterINI(false);
 
   if (IS_WIN) {
     Services.prefs.setBoolPref(PREF_APP_UPDATE_SERVICE_ENABLED, true);
@@ -168,12 +169,14 @@ function checkUpdateApplied() {
  * support launching post update process.
  */
 function checkUpdateFinished() {
-  if (IS_WIN || IS_MACOSX) {
-    gCheckFunc = finishCheckUpdateApplied;
-    checkPostUpdateAppLog();
-  } else {
-    finishCheckUpdateApplied();
-  }
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  if (IS_WIN || IS_MACOSX) {
+//    gCheckFunc = finishCheckUpdateApplied;
+//    checkPostUpdateAppLog();
+//  } else {
+//    finishCheckUpdateApplied();
+//  }
+  do_timeout(TEST_HELPER_TIMEOUT, finishCheckUpdateApplied);
 }
 
 /**
@@ -236,12 +239,13 @@ function finishCheckUpdateApplied() {
     do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
   }
 
-  if (IS_WIN || IS_MACOSX) {
-    let running = getPostUpdateFile(".running");
-    logTestInfo("checking that the post update process running file exists. " +
-                "Path: " + running.path);
-    do_check_true(running.exists());
-  }
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  if (IS_WIN || IS_MACOSX) {
+//    let running = getPostUpdateFile(".running");
+//    logTestInfo("checking that the post update process running file exists. " +
+//                "Path: " + running.path);
+//    do_check_true(running.exists());
+//  }
 
   checkFilesAfterUpdateSuccess(getApplyDirFile, false, true);
   gSwitchApp = true;

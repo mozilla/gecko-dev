@@ -68,6 +68,8 @@
 #define WRITE_ERROR_SHARING_VIOLATION_SIGNALED 46
 #define WRITE_ERROR_SHARING_VIOLATION_NOPROCESSFORPID 47
 #define WRITE_ERROR_SHARING_VIOLATION_NOPID 48
+#define REMOVE_FILE_SPEC_ERROR 71
+#define INVALID_STAGED_PARENT_ERROR 72
 
 // The following error codes are only used by updater.exe
 // when a fallback key exists and XPCShell tests are being run.

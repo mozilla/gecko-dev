@@ -19,7 +19,8 @@ function run_test() {
   gTestDirs = gTestDirsCompleteSuccess;
   setupUpdaterTest(FILE_COMPLETE_MAR);
 
-  createUpdaterINI(false);
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  createUpdaterINI(false);
 
   // For Mac OS X set the last modified time for the root directory to a date in
   // the past to test that the last modified time is updated on a successful
@@ -82,12 +83,14 @@ function checkUpdateFinished() {
  * support launching post update process.
  */
 function checkUpdateApplied() {
-  if (IS_WIN || IS_MACOSX) {
-    gCheckFunc = finishCheckUpdateApplied;
-    checkPostUpdateAppLog();
-  } else {
-    finishCheckUpdateApplied();
-  }
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  if (IS_WIN || IS_MACOSX) {
+//    gCheckFunc = finishCheckUpdateApplied;
+//    checkPostUpdateAppLog();
+//  } else {
+//    finishCheckUpdateApplied();
+//  }
+    do_timeout(TEST_HELPER_TIMEOUT, finishCheckUpdateApplied);
 }
 
 /**
@@ -104,12 +107,13 @@ function finishCheckUpdateApplied() {
     do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
   }
 
-  if (IS_WIN || IS_MACOSX) {
-    let running = getPostUpdateFile(".running");
-    logTestInfo("checking that the post update process running file exists. " +
-                "Path: " + running.path);
-    do_check_true(running.exists());
-  }
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  if (IS_WIN || IS_MACOSX) {
+//    let running = getPostUpdateFile(".running");
+//    logTestInfo("checking that the post update process running file exists. " +
+//                "Path: " + running.path);
+//    do_check_true(running.exists());
+//  }
 
   if (IS_UNIX && !IS_MACOSX) {
     checkSymlink();

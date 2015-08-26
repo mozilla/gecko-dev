@@ -15,7 +15,8 @@ function run_test() {
   gTestDirs = gTestDirsCompleteSuccess;
   setupUpdaterTest(FILE_COMPLETE_MAR);
 
-  createUpdaterINI();
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  createUpdaterINI();
 
   // For Mac OS X set the last modified time for the root directory to a date in
   // the past to test that the last modified time is updated on a successful
@@ -39,12 +40,14 @@ function setupAppFilesFinished() {
  * support launching post update process.
  */
 function checkUpdateFinished() {
-  if (IS_WIN || IS_MACOSX) {
-    gCheckFunc = finishCheckUpdateFinished;
-    checkPostUpdateAppLog();
-  } else {
-    finishCheckUpdateFinished();
-  }
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  if (IS_WIN || IS_MACOSX) {
+//    gCheckFunc = finishCheckUpdateFinished;
+//    checkPostUpdateAppLog();
+//  } else {
+//    finishCheckUpdateFinished();
+//  }
+  do_timeout(TEST_HELPER_TIMEOUT, finishCheckUpdateFinished);
 }
 
 /**

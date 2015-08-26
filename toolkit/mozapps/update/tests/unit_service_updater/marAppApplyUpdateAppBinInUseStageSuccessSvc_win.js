@@ -24,7 +24,8 @@ function run_test() {
   gTestDirs = gTestDirsCompleteSuccess;
   setupUpdaterTest(FILE_COMPLETE_MAR);
 
-  createUpdaterINI(true);
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  createUpdaterINI(true);
 
   if (IS_WIN) {
     Services.prefs.setBoolPref(PREF_APP_UPDATE_SERVICE_ENABLED, true);
@@ -193,12 +194,14 @@ function checkUpdateApplied() {
  * support launching post update process.
  */
 function checkUpdateFinished() {
-  if (IS_WIN || IS_MACOSX) {
-    gCheckFunc = finishCheckUpdateFinished;
-    checkPostUpdateAppLog();
-  } else {
-    finishCheckUpdateFinished();
-  }
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  if (IS_WIN || IS_MACOSX) {
+//    gCheckFunc = finishCheckUpdateFinished;
+//    checkPostUpdateAppLog();
+//  } else {
+//    finishCheckUpdateFinished();
+//  }
+    do_timeout(TEST_HELPER_TIMEOUT, finishCheckUpdateFinished);
 }
 
 /**
@@ -253,6 +256,21 @@ function finishCheckUpdateFinished() {
     }
   }
 
+// Added to make this test pass on esr38
+  if (IS_WIN) {
+    // Don't proceed until the tobedeleted dir no longer exists.
+    let toBeDeletedDir = getApplyDirFile(DIR_TOBEDELETED, true);
+    if (toBeDeletedDir.exists()) {
+      if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
+        do_throw("Exceeded while waiting for the tobedeleted dir to no " +
+                 "longer exist");
+      } else {
+        do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
+        return;
+      }
+    }
+  }
+
   if (IS_MACOSX) {
     logTestInfo("testing last modified time on the apply to directory has " +
                 "changed after a successful update (bug 600098)");
@@ -262,12 +280,13 @@ function finishCheckUpdateFinished() {
     do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
   }
 
-  if (IS_WIN || IS_MACOSX) {
-    let running = getPostUpdateFile(".running");
-    logTestInfo("checking that the post update process running file exists. " +
-                "Path: " + running.path);
-    do_check_true(running.exists());
-  }
+// This is commented out on mozilla-esr38 since it doesn't have the test updater
+//  if (IS_WIN || IS_MACOSX) {
+//    let running = getPostUpdateFile(".running");
+//    logTestInfo("checking that the post update process running file exists. " +
+//                "Path: " + running.path);
+//    do_check_true(running.exists());
+//  }
 
   checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
   checkUpdateLogContents(LOG_COMPLETE_SUCCESS);
