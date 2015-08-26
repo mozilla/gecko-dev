@@ -73,6 +73,7 @@ WindowOpenListener.prototype = {
 var gInstallNotificationObserver = {
   observe: function(aSubject, aTopic, aData) {
     var installInfo = aSubject.QueryInterface(Ci.amIWebInstallInfo);
+    is(installInfo.installs.length, 2, "Should be installing 2 files.")
     if (gTestInWindow)
       is(installInfo.browser, null, "Notification should have a null browser");
     else
