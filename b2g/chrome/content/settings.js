@@ -628,8 +628,7 @@ let settingsToObserve = {
   'ui.touch.radius.bottommm': {
     resetToPref: true
   },
-  'wap.UAProf.tagname': 'x-wap-profile',
-  'wap.UAProf.url': ''
+  'wap.UAProf.tagname': 'x-wap-profile'
 };
 
 for (let key in settingsToObserve) {
