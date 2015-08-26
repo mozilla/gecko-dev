@@ -1299,6 +1299,9 @@ extern bool
 SetClassAndProto(JSContext* cx, HandleObject obj,
                  const Class* clasp, Handle<TaggedProto> proto, bool* succeeded);
 
+extern bool
+IsStandardPrototype(JSObject* obj, JSProtoKey key);
+
 /*
  * Property-lookup-based access to interface and prototype objects for classes.
  * If the class is built-in (hhas a non-null JSProtoKey), these forward to
