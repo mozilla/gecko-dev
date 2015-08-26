@@ -813,12 +813,14 @@ loop.panel = (function(_, mozL10n) {
       return (
         <div className="rooms">
           <div className="room-list-empty">
-            <p className="panel-text-large">
-              {mozL10n.get("no_conversations_message_heading")}
-            </p>
-            <p className="panel-text-medium">
-              {mozL10n.get("no_conversations_start_message")}
-            </p>
+            <div className="no-conversations-message">
+              <p className="panel-text-large">
+                {mozL10n.get("no_conversations_message_heading")}
+              </p>
+              <p className="panel-text-medium">
+                {mozL10n.get("no_conversations_start_message")}
+              </p>
+            </div>
           </div>
           {this._renderNewRoomButton()}
         </div>

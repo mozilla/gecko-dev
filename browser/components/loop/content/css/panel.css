@@ -288,19 +288,23 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 /* Rooms and contacts shared CSS */
 
 .contact-list-empty,
-.room-list-empty {
-  background-image: url("../shared/img/empty_contacts.svg");
+.contact-search-list-empty,
+.no-conversations-message {
   background-repeat: no-repeat;
   background-position: top center;
-  padding-top: 19%;
-  padding-bottom: 3%;
   text-align: center;
   color: #4a4a4a;
   font-weight: lighter;
 }
 
-.room-list-empty {
-  margin: 15px 15px;
+
+
+.no-conversations-message {
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  padding-top: 75px;
+  padding-bottom: 10px;
   background-image: url("../shared/img/empty_conversations.svg");
 }
 

@@ -813,11 +813,13 @@ loop.panel = (function(_, mozL10n) {
       return (
         React.createElement("div", {className: "rooms"}, 
           React.createElement("div", {className: "room-list-empty"}, 
-            React.createElement("p", {className: "panel-text-large"}, 
-              mozL10n.get("no_conversations_message_heading")
-            ), 
-            React.createElement("p", {className: "panel-text-medium"}, 
-              mozL10n.get("no_conversations_start_message")
+            React.createElement("div", {className: "no-conversations-message"}, 
+              React.createElement("p", {className: "panel-text-large"}, 
+                mozL10n.get("no_conversations_message_heading")
+              ), 
+              React.createElement("p", {className: "panel-text-medium"}, 
+                mozL10n.get("no_conversations_start_message")
+              )
             )
           ), 
           this._renderNewRoomButton()
