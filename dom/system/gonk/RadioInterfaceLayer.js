@@ -557,7 +557,8 @@ XPCOMUtils.defineLazyGetter(this, "gRadioEnabledController", function() {
       return function() {
         let deferred = _deactivatingDeferred[clientId] = Promise.defer();
         let dataConnectionHandler = gDataConnectionManager.getConnectionHandler(clientId);
-        dataConnectionHandler.deactivateDataCalls();
+        dataConnectionHandler.deactivateDataCalls(
+          RIL.DATACALL_DEACTIVATE_RADIO_SHUTDOWN);
         return deferred.promise;
       };
     },
@@ -727,7 +728,8 @@ XPCOMUtils.defineLazyGetter(this, "gDataConnectionManager", function () {
         oldSettings.enabled = false;
       }
 
-      if (oldConnHandler.deactivateDataCalls()) {
+      if (oldConnHandler.deactivateDataCalls(
+        RIL.DATACALL_DEACTIVATE_SERVICEID_CHANGED)) {
         this._pendingDataCallRequest = applyPendingDataSettings;
         if (DEBUG) {
           this.debug("_handleDataClientIdChange: existing data call(s) active" +
@@ -1089,8 +1091,7 @@ DataConnectionHandler.prototype = {
   allDataDisconnected: function() {
     for (let i = 0; i < this._dataCalls.length; i++) {
       let dataCall = this._dataCalls[i];
-      if (dataCall.state != RIL.GECKO_NETWORK_STATE_UNKNOWN &&
-          dataCall.state != RIL.GECKO_NETWORK_STATE_DISCONNECTED) {
+      if (dataCall.state != RIL.GECKO_NETWORK_STATE_DISCONNECTED) {
         return false;
       }
     }
@@ -1111,7 +1112,7 @@ DataConnectionHandler.prototype = {
     this.dataNetworkInterfaces.forEach(function(networkInterface) {
       // Clear all existing connections.
       if (networkInterface.state == RIL.GECKO_NETWORK_STATE_CONNECTED) {
-        networkInterface.disconnect();
+        networkInterface.disconnect(RIL.DATACALL_DEACTIVATE_APN_CHANGED);
         isDeactivatingDataCalls = true;
       }
     });
@@ -1302,14 +1303,14 @@ DataConnectionHandler.prototype = {
     networkInterface.disconnect();
   },
 
-  deactivateDataCalls: function() {
+  deactivateDataCalls: function(aReason) {
     let dataDisconnecting = false;
     this.dataNetworkInterfaces.forEach(function(networkInterface) {
       if (networkInterface.enabled) {
         if (networkInterface.state == RIL.GECKO_NETWORK_STATE_CONNECTED) {
           dataDisconnecting = true;
         }
-        networkInterface.disconnect();
+        networkInterface.disconnect(aReason);
       }
     });
 
@@ -2633,7 +2634,7 @@ function DataCall(clientId, apnSetting) {
     dnses: [],
     gateways: []
   };
-  this.state = RIL.GECKO_NETWORK_STATE_UNKNOWN;
+  this.state = RIL.GECKO_NETWORK_STATE_DISCONNECTED;
   this.requestedNetworkIfaces = [];
 }
 
@@ -2749,7 +2750,6 @@ DataCall.prototype = {
         }
         break;
       case RIL.GECKO_NETWORK_STATE_DISCONNECTED:
-      case RIL.GECKO_NETWORK_STATE_UNKNOWN:
         if (this.state == RIL.GECKO_NETWORK_STATE_CONNECTED) {
           // Notify first on unexpected data call disconnection.
           this.state = datacall.state;
@@ -2842,7 +2842,7 @@ DataCall.prototype = {
     this.linkInfo.dnses = [];
     this.linkInfo.gateways = [];
 
-    this.state = RIL.GECKO_NETWORK_STATE_UNKNOWN;
+    this.state = RIL.GECKO_NETWORK_STATE_DISCONNECTED;
 
     this.chappap = null;
     this.pdptype = null;
@@ -2976,8 +2976,7 @@ DataCall.prototype = {
     if (index != -1) {
       this.requestedNetworkIfaces.splice(index, 1);
 
-      if (this.state == RIL.GECKO_NETWORK_STATE_DISCONNECTED ||
-          this.state == RIL.GECKO_NETWORK_STATE_UNKNOWN) {
+      if (this.state == RIL.GECKO_NETWORK_STATE_DISCONNECTED) {
         if (this.timer) {
           this.timer.cancel();
         }
@@ -3045,6 +3044,7 @@ function RILNetworkInterface(dataConnectionHandler, type, apnSetting, dataCall) 
   this.dataCall = dataCall;
 
   this.enabled = false;
+  this.reason = Ci.nsINetworkInterface.REASON_NONE;
 }
 
 RILNetworkInterface.prototype = {
@@ -3086,6 +3086,8 @@ RILNetworkInterface.prototype = {
   get httpProxyPort() {
     return this.apnSetting.port || "";
   },
+
+  reason: null,
 
   getAddresses: function(ips, prefixLengths) {
     let linkInfo = this.dataCall.linkInfo;
@@ -3172,7 +3174,7 @@ RILNetworkInterface.prototype = {
   notifyRILNetworkInterface: function() {
     if (DEBUG) {
       this.debug("notifyRILNetworkInterface type: " + this.type + ", state: " +
-                 this.state);
+                 this.state + ", reason: " + this.reason);
     }
 
     gNetworkManager.updateNetworkInterface(this);
@@ -3180,15 +3182,17 @@ RILNetworkInterface.prototype = {
 
   connect: function() {
     this.enabled = true;
+    this.reason = Ci.nsINetworkInterface.REASON_NONE;
 
     this.dataCall.connect(this);
   },
 
-  disconnect: function() {
+  disconnect: function(aReason = Ci.nsINetworkInterface.REASON_NONE) {
     if (!this.enabled) {
       return;
     }
     this.enabled = false;
+    this.reason = aReason;
 
     this.dataCall.disconnect(this);
   },

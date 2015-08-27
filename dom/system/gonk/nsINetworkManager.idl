@@ -9,7 +9,7 @@ interface nsIWifiTetheringCallback;
 /**
  * Information about networks that is exposed to network manager API consumers.
  */
-[scriptable, uuid(9f336214-68ac-4869-ad50-32812ebe3702)]
+[scriptable, uuid(3b20aecc-1f9e-4b6e-99f5-ce3043ddd5c5)]
 interface nsINetworkInterface : nsISupports
 {
   const long NETWORK_STATE_UNKNOWN = -1;
@@ -17,14 +17,6 @@ interface nsINetworkInterface : nsISupports
   const long NETWORK_STATE_CONNECTED = 1;
   const long NETWORK_STATE_DISCONNECTING = 2;
   const long NETWORK_STATE_DISCONNECTED = 3;
-
-  /**
-   * Current network state, one of the NETWORK_STATE_* constants.
-   *
-   * When this changes, network interface implementations notify with
-   * updateNetworkInterface() API.
-   */
-  readonly attribute long state;
 
   const long NETWORK_TYPE_UNKNOWN     = -1;
   const long NETWORK_TYPE_WIFI        = 0;
@@ -35,6 +27,19 @@ interface nsINetworkInterface : nsISupports
   const long NETWORK_TYPE_MOBILE_IMS  = 5;
   const long NETWORK_TYPE_MOBILE_DUN  = 6;
   const long NETWORK_TYPE_MOBILE_FOTA = 7;
+
+  const long REASON_NONE              = 0;
+  const long REASON_RADIO_SHUTDOWN    = 1;
+  const long REASON_APN_CHANGED       = 2;
+  const long REASON_SERVICEID_CHANGED = 3;
+
+  /**
+   * Current network state, one of the NETWORK_STATE_* constants.
+   *
+   * When this changes, network interface implementations notify with
+   * updateNetworkInterface() API.
+   */
+  readonly attribute long state;
 
   /**
    * Network type. One of the NETWORK_TYPE_* constants.
@@ -55,6 +60,12 @@ interface nsINetworkInterface : nsISupports
    * The port number of the http proxy server.
    */
   readonly attribute long httpProxyPort;
+
+  /*
+   * Additional information to describe the current state, if available. One of
+   * the REASON_* constants.
+   */
+  readonly attribute long reason;
 
   /**
    * Get the list of ip addresses and prefix lengths, ip address could be IPv4
