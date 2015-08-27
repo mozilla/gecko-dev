@@ -141,7 +141,7 @@ private:
   void ReplyToConnect();
   void ReplyToDisconnectOrAbort();
   void ReplyToSetPath();
-  bool ReplyToGet(nsIInputStream* aStream, uint16_t aPhonebookSize = 0);
+  bool ReplyToGet(uint16_t aPhonebookSize = 0);
   void ReplyError(uint8_t aError);
   void SendObexData(uint8_t* aData, uint8_t aOpcode, int aSize);
 
@@ -157,7 +157,7 @@ private:
   InfallibleTArray<uint32_t>  PackPropertiesMask(uint8_t* aData, int aSize);
   bool CompareHeaderTarget(const ObexHeaderSet& aHeader);
   bool IsLegalPath(const nsAString& aPath);
-  bool GetInputStreamFromBlob(nsIInputStream* aStream, nsIDOMBlob* aBlob);
+  bool GetInputStreamFromBlob(nsIDOMBlob* aBlob);
   void AfterPbapConnected();
   void AfterPbapDisconnected();
 

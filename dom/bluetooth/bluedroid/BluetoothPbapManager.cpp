@@ -272,7 +272,7 @@ BluetoothPbapManager::ReceiveSocketData(BluetoothSocket* aSocket,
          * response code 0xA0 Success.
          */
         if (mVCardDataStream) {
-          if (!ReplyToGet(mVCardDataStream)) {
+          if (!ReplyToGet()) {
             BT_WARNING("Failed to reply to PBAP GET request.");
             ReplyError(ObexResponseCode::InternalServerError);
           }
@@ -792,12 +792,12 @@ BluetoothPbapManager::ReplyToPullPhonebook(nsIDOMBlob* aBlob, uint16_t aPhoneboo
     return false;
   }
 
-  if (!GetInputStreamFromBlob(mVCardDataStream, aBlob)) {
+  if (!GetInputStreamFromBlob(aBlob)) {
     ReplyError(ObexResponseCode::InternalServerError);
     return false;
   }
 
-  return ReplyToGet(mVCardDataStream, aPhonebookSize);
+  return ReplyToGet(aPhonebookSize);
 }
 
 bool
@@ -818,12 +818,12 @@ BluetoothPbapManager::ReplyToPullvCardListing(nsIDOMBlob* aBlob,
     return false;
   }
 
-  if (!GetInputStreamFromBlob(mVCardDataStream, aBlob)) {
+  if (!GetInputStreamFromBlob(aBlob)) {
     ReplyError(ObexResponseCode::InternalServerError);
     return false;
   }
 
-  return ReplyToGet(mVCardDataStream, aPhonebookSize);
+  return ReplyToGet(aPhonebookSize);
 }
 
 bool
@@ -842,19 +842,18 @@ BluetoothPbapManager::ReplyToPullvCardEntry(nsIDOMBlob* aBlob)
     return false;
   }
 
-  if (!GetInputStreamFromBlob(mVCardDataStream, aBlob)) {
+  if (!GetInputStreamFromBlob(aBlob)) {
     ReplyError(ObexResponseCode::InternalServerError);
     return false;
   }
 
-  return ReplyToGet(mVCardDataStream);
+  return ReplyToGet();
 }
 
 bool
-BluetoothPbapManager::ReplyToGet(nsIInputStream* aStream,
-                                 uint16_t aPhonebookSize)
+BluetoothPbapManager::ReplyToGet(uint16_t aPhonebookSize)
 {
-  MOZ_ASSERT(aStream);
+  MOZ_ASSERT(mVCardDataStream);
   MOZ_ASSERT(mRemoteMaxPacketLength >= kObexLeastMaxSize);
 
   // This response will be composed by these four parts.
@@ -901,7 +900,7 @@ BluetoothPbapManager::ReplyToGet(nsIInputStream* aStream,
   // Read vCard data from input stream
   uint32_t numRead = 0;
   nsAutoArrayPtr<char> buffer(new char[remainingPacketSize]);
-  nsresult rv = aStream->Read(buffer, remainingPacketSize, &numRead);
+  nsresult rv = mVCardDataStream->Read(buffer, remainingPacketSize, &numRead);
   if (NS_FAILED(rv)) {
     BT_WARNING("Failed to read from input stream.");
     return false;
@@ -924,8 +923,8 @@ BluetoothPbapManager::ReplyToGet(nsIInputStream* aStream,
     opcode = ObexResponseCode::Success;
     index += AppendHeaderEndOfBody(&res[index]);
 
-    aStream->Close();
-    aStream = nullptr;
+    mVCardDataStream->Close();
+    mVCardDataStream = nullptr;
   }
 
   SendObexData(res, opcode, index);
@@ -935,8 +934,7 @@ BluetoothPbapManager::ReplyToGet(nsIInputStream* aStream,
 }
 
 bool
-BluetoothPbapManager::GetInputStreamFromBlob(nsIInputStream* aStream,
-                                             nsIDOMBlob* aBlob)
+BluetoothPbapManager::GetInputStreamFromBlob(nsIDOMBlob* aBlob)
 {
   // PBAP can only handle one OBEX BODY transfer at the same time.
   if (mVCardDataStream) {
