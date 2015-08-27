@@ -2708,7 +2708,9 @@ DataCall.prototype = {
               this.debug("State is connected, but no network interface requested" +
                          " this DataCall");
             }
-            this.deactivate();
+
+            Services.tm.currentThread.dispatch(() => this.deactivate(),
+                                               Ci.nsIThread.DISPATCH_NORMAL);
             return;
           }
 
@@ -2764,7 +2766,11 @@ DataCall.prototype = {
             this.debug("State is disconnected/unknown, but this DataCall is" +
                        " requested.");
           }
-          this.setup();
+
+          // Do it in the next event tick, so that DISCONNECTED event can have
+          // time to propagate before state becomes CONNECTING.
+          Services.tm.currentThread.dispatch(() => this.setup(),
+                                             Ci.nsIThread.DISPATCH_NORMAL);
           return;
         }
         break;
@@ -3062,6 +3068,9 @@ RILNetworkInterface.prototype = {
   // If this RILNetworkInterface type is enabled or not.
   enabled: null,
 
+  // Reference count for non-default mobile data networks.
+  activeUsers: 0,
+
   /**
    * nsINetworkInterface Implementation
    */
@@ -3181,9 +3190,14 @@ RILNetworkInterface.prototype = {
   },
 
   connect: function() {
+    if (this.type != NETWORK_TYPE_MOBILE) {
+      this.activeUsers++;
+    }
     this.enabled = true;
     this.reason = Ci.nsINetworkInterface.REASON_NONE;
 
+    // Call this even if activeUsers > 1, to allow state change event to be
+    // fired in this case.
     this.dataCall.connect(this);
   },
 
@@ -3191,17 +3205,27 @@ RILNetworkInterface.prototype = {
     if (!this.enabled) {
       return;
     }
-    this.enabled = false;
+
+    if (this.type == NETWORK_TYPE_MOBILE) {
+      this.enabled = false;
+    } else {
+      this.activeUsers--;
+      this.enabled = (this.activeUsers > 0 ? true : false);
+    }
     this.reason = aReason;
 
-    this.dataCall.disconnect(this);
+    // Force disconnect if reason is not REASON_NONE.
+    if (!this.enabled || this.reason != Ci.nsINetworkInterface.REASON_NONE) {
+      this.activeUsers = 0;
+      this.enabled = false;
+      this.dataCall.disconnect(this);
+    }
   },
 
   shutdown: function() {
     this.dataCall.shutdown();
     this.dataCall = null;
   }
-
 };
 
 XPCOMUtils.defineLazyServiceGetter(DataCall.prototype, "gRIL",
