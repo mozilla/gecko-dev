@@ -1689,11 +1689,15 @@ TelephonyService.prototype = {
     }
   },
 
-  _defaultMMICallbackHandler: function(aCallback, aResponse) {
+  _defaultMMICallbackHandler: function(aCallback, aResponse, aClientId, aSessionEnded) {
     if (aResponse && aResponse.errorMsg) {
       aCallback.notifyDialMMIError(aResponse.errorMsg);
     } else {
-      aCallback.notifyDialMMISuccess(aResponse);
+      if (aSessionEnded) {
+        aCallback.notifyDialMMISuccessWithSession(aResponse, aClientId);
+      } else {
+        aCallback.notifyDialMMISuccess(aResponse);
+      }
     }
   },
 
@@ -2445,7 +2449,7 @@ TelephonyService.prototype = {
 
     // If there is a callback registered, call it
     if (this._ussdCallbacks[aClientId]) {
-      this._ussdCallbacks[aClientId](aMessage);
+      this._ussdCallbacks[aClientId](aMessage, aClientId, aSessionEnded);
       this._ussdCallbacks[aClientId] = null;
     } else {
       gTelephonyMessenger.notifyUssdReceived(aClientId, aMessage, aSessionEnded);

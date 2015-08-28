@@ -135,6 +135,7 @@ interface nsITelephonyDialCallback : nsITelephonyCallback
   void notifyDialMMISuccess(in AString statusMessage);
   void notifyDialMMISuccessWithInteger(in AString statusMessage,
                                        in unsigned short aAdditionalInformation);
+  void notifyDialMMISuccessWithSession(in AString statusMessage, in unsigned long aAdditionalInformation);
   void notifyDialMMISuccessWithStrings(in AString statusMessage,
                                        in unsigned long aLength,
                                        [array, size_is(aLength)] in wstring aAdditionalInformation);

@@ -485,6 +485,14 @@ TelephonyRequestParent::DialCallback::NotifyDialMMISuccess(const nsAString& aSta
 }
 
 NS_IMETHODIMP
+TelephonyRequestParent::DialCallback::NotifyDialMMISuccessWithSession(const nsAString& aStatusMessage,
+                                                                      uint32_t aAdditionalInformation)
+{
+  return SendResponse(DialResponseMMISuccess(nsAutoString(aStatusMessage),
+                                             AdditionalInformation(aAdditionalInformation)));
+}
+
+NS_IMETHODIMP
 TelephonyRequestParent::DialCallback::NotifyDialMMISuccessWithInteger(const nsAString& aStatusMessage,
                                                                       uint16_t aAdditionalInformation)
 {

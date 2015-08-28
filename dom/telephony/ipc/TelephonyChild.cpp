@@ -214,6 +214,9 @@ TelephonyRequestChild::DoResponse(const DialResponseMMISuccess& aResponse)
     case AdditionalInformation::Tvoid_t:
       callback->NotifyDialMMISuccess(statusMessage);
       break;
+    case AdditionalInformation::Tuint32_t:
+      callback->NotifyDialMMISuccessWithSession(statusMessage, info.get_uint32_t());
+      break;
     case AdditionalInformation::Tuint16_t:
       callback->NotifyDialMMISuccessWithInteger(statusMessage, info.get_uint16_t());
       break;

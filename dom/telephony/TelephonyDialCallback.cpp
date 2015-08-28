@@ -5,7 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "TelephonyDialCallback.h"
-
+#include "mozilla/dom/USSDSession.h"
 #include "mozilla/dom/MozMobileConnectionBinding.h"
 #include "nsIMobileCallForwardingOptions.h"
 #include "nsIMobileConnectionService.h"
@@ -99,6 +99,34 @@ TelephonyDialCallback::NotifyDialMMISuccessWithInteger(const nsAString& aStatusM
   result.mStatusMessage.Assign(aStatusMessage);
   result.mAdditionalInformation.Construct().SetAsUnsignedShort() = aAdditionalInformation;
 
+  return NotifyDialMMISuccess(cx, result);
+}
+
+NS_IMETHODIMP
+TelephonyDialCallback::NotifyDialMMISuccessWithSession(const nsAString& aStatusMessage, uint32_t aServiceId)
+{
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(mWindow))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  JSContext* cx = jsapi.cx();
+
+  RootedDictionary<MozMMIResult> result(cx);
+  result.mSuccess = true;
+  result.mServiceCode.Assign(mServiceCode);
+  result.mStatusMessage.Assign(aStatusMessage);
+
+  nsCOMPtr<nsITelephonyService> service = do_GetService(TELEPHONY_SERVICE_CONTRACTID);
+  nsRefPtr<USSDSession> session = new USSDSession(mWindow, service, aServiceId);
+
+  JS::Rooted<JS::Value> jsAdditionalInformation(cx);
+  if (!ToJSValue(cx, session, &jsAdditionalInformation)) {
+    JS_ClearPendingException(cx);
+    return NS_ERROR_TYPE_ERR;
+  }
+
+  result.mAdditionalInformation.Construct().SetAsObject() = &jsAdditionalInformation.toObject();
   return NotifyDialMMISuccess(cx, result);
 }
 
