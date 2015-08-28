@@ -361,6 +361,7 @@ function TelephonyService() {
   this._currentConferenceState = nsITelephonyService.CALL_STATE_UNKNOWN;
   this._audioStates = [];
   this._ussdSessions = [];
+  this._ussdCallbacks = [];
 
   this._cdmaCallWaitingNumber = null;
 
@@ -375,6 +376,7 @@ function TelephonyService() {
   for (let i = 0; i < this._numClients; ++i) {
     this._audioStates[i] = nsITelephonyAudioService.PHONE_STATE_NORMAL;
     this._ussdSessions[i] = false;
+    this._ussdCallbacks[i] = null;
     this._currentCalls[i] = {};
     this._enumerateCallsForClient(i);
   }
@@ -405,6 +407,7 @@ TelephonyService.prototype = {
    *    b) Receiving a session end unsolicited event.
    */
   _ussdSessions: null,
+  _ussdCallbacks: null,
 
   _acquireCallRingWakeLock: function() {
     if (!this._callRingWakeLock) {
@@ -1679,7 +1682,7 @@ TelephonyService.prototype = {
    *        The response from ril_worker.
    */
   _defaultCallbackHandler: function(aCallback, aResponse) {
-    if (aResponse.errorMsg) {
+    if (aResponse && aResponse.errorMsg) {
       aCallback.notifyError(aResponse.errorMsg);
     } else {
       aCallback.notifySuccess();
@@ -1687,10 +1690,10 @@ TelephonyService.prototype = {
   },
 
   _defaultMMICallbackHandler: function(aCallback, aResponse) {
-    if (aResponse.errorMsg) {
+    if (aResponse && aResponse.errorMsg) {
       aCallback.notifyDialMMIError(aResponse.errorMsg);
     } else {
-      aCallback.notifyDialMMISuccess("");
+      aCallback.notifyDialMMISuccess(aResponse);
     }
   },
 
@@ -2149,10 +2152,8 @@ TelephonyService.prototype = {
   },
 
   _sendUSSDInternal: function(aClientId, aUssd, aCallback) {
-    this._sendToRilWorker(aClientId, "sendUSSD", { ussd: aUssd }, aResponse => {
-      this._ussdSessions[aClientId] = !aResponse.errorMsg;
-      aCallback(aResponse);
-    });
+    this._ussdCallbacks[aClientId] = aCallback;
+    this._sendToRilWorker(aClientId, "sendUSSD", { ussd: aUssd }, aResponse => {});
   },
 
   cancelUSSD: function(aClientId, aCallback) {
@@ -2162,10 +2163,8 @@ TelephonyService.prototype = {
   },
 
   _cancelUSSDInternal: function(aClientId, aCallback) {
-    this._sendToRilWorker(aClientId, "cancelUSSD", {}, aResponse => {
-      this._ussdSessions[aClientId] = !!aResponse.errorMsg;
-      aCallback(aResponse);
-    });
+    this._ussdCallbacks[aClientId] = aCallback;
+    this._sendToRilWorker(aClientId, "cancelUSSD", {}, aResponse => {});
   },
 
   get microphoneMuted() {
@@ -2444,7 +2443,14 @@ TelephonyService.prototype = {
       return;
     }
 
-    gTelephonyMessenger.notifyUssdReceived(aClientId, aMessage, aSessionEnded);
+    // If there is a callback registered, call it
+    if (this._ussdCallbacks[aClientId]) {
+      this._ussdCallbacks[aClientId](aMessage);
+      this._ussdCallbacks[aClientId] = null;
+    } else {
+      gTelephonyMessenger.notifyUssdReceived(aClientId, aMessage, aSessionEnded);
+    }
+    
   },
 
   /**
