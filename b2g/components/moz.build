@@ -16,6 +16,7 @@ EXTRA_COMPONENTS += [
     'FxAccountsUIGlue.js',
     'HelperAppDialog.js',
     'InterAppCommUIGlue.js',
+    'KillSwitch.js',
     'MailtoProtocolHandler.js',
     'MobileIdentityUIGlue.js',
     'OMAContentHandler.js',
@@ -61,6 +62,10 @@ EXTRA_JS_MODULES += [
     'SystemAppProxy.jsm',
     'TelURIParser.jsm',
     'WebappsUpdater.jsm',
+]
+
+EXTRA_PP_JS_MODULES += [
+    'KillSwitchMain.jsm'
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
