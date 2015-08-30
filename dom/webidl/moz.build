@@ -88,6 +88,7 @@ WEBIDL_FILES = [
     'CSSStyleSheet.webidl',
     'CSSValue.webidl',
     'CSSValueList.webidl',
+    'DataCallManager.webidl',
     'DataContainerEvent.webidl',
     'DataStore.webidl',
     'DataStoreImpl.webidl',
