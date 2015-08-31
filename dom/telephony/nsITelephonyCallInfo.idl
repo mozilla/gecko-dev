@@ -4,7 +4,7 @@
 
 #include "nsISupports.idl"
 
-[scriptable, uuid(3ea2d155-8ea2-42be-85d7-bd8ede8afc40)]
+[scriptable, uuid(1aa05f1c-2abe-4fbd-8232-a81b0ee36917)]
 interface nsITelephonyCallInfo : nsISupports
 {
   /**
@@ -21,6 +21,14 @@ interface nsITelephonyCallInfo : nsISupports
    * One of the nsITelephonyService::CALL_STATE_* values.
    */
   readonly attribute unsigned short callState;
+
+  /**
+   * One of the nsITelephonyService::CALL_VOICE_QUALITY_* values.
+   *
+   * Set to CALL_VOICE_QUALITY_HD to indicate the voice quality is high definition.
+   * e.g. AMR-WB is adopted.
+   */
+  readonly attribute unsigned short voiceQuality;
 
   /**
    * Number of the other party.

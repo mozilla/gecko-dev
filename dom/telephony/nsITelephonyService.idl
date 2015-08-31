@@ -114,7 +114,7 @@ interface nsITelephonyCallback : nsISupports
 /**
  * A callback interface for handling asynchronous response for telephony.dial.
  */
-[scriptable, uuid(e16c6e6f-93c6-4e1e-99bf-592b98f67e15)]
+[scriptable, uuid(f0e23b76-476c-4c0c-811d-faf4066bc987)]
 interface nsITelephonyDialCallback : nsITelephonyCallback
 {
   /**
@@ -139,7 +139,8 @@ interface nsITelephonyDialCallback : nsITelephonyCallback
    */
   void notifyDialCallSuccess(in unsigned long cliendId,
                              in unsigned long callIndex,
-                             in AString number);
+                             in AString number,
+                             in unsigned short voiceQuality);
 
   /**
    * Called when a MMI code request succeeds.
@@ -174,7 +175,7 @@ interface nsITelephonyDialCallback : nsITelephonyCallback
  * XPCOM component (in the content process) that provides the telephony
  * information.
  */
-[scriptable, uuid(07d425d3-817b-4440-890a-f0a4de2efe50)]
+[scriptable, uuid(1208c92d-d8d8-475f-96e8-cf20be346520)]
 interface nsITelephonyService : nsISupports
 {
   const unsigned short CALL_STATE_UNKNOWN = 0;
@@ -201,6 +202,9 @@ interface nsITelephonyService : nsISupports
   const unsigned short TTY_MODE_FULL = 1;
   const unsigned short TTY_MODE_HCO = 2;
   const unsigned short TTY_MODE_VCO = 3;
+
+  const unsigned short CALL_VOICE_QUALITY_NORMAL = 0;
+  const unsigned short CALL_VOICE_QUALITY_HD = 1;
 
   readonly attribute unsigned long defaultServiceId;
 

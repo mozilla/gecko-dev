@@ -10,7 +10,7 @@
         "@mozilla.org/telephony/gonktelephonyservice;1"
 %}
 
-[scriptable, uuid(d5c0a405-176b-4153-a9df-c853705893c4)]
+[scriptable, uuid(98fc4f89-85d6-4767-82a2-d507a7069424)]
 interface nsIGonkTelephonyService : nsITelephonyService
 {
   void notifyAudioStateChanged(in unsigned long clientId, in short state);
