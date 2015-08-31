@@ -52,12 +52,14 @@ TelephonyDialCallback::NotifyDialMMI(const nsAString& aServiceCode)
 NS_IMETHODIMP
 TelephonyDialCallback::NotifyDialCallSuccess(uint32_t aClientId,
                                              uint32_t aCallIndex,
-                                             const nsAString& aNumber)
+                                             const nsAString& aNumber,
+                                             uint16_t aVoiceQuality)
 {
   nsRefPtr<TelephonyCallId> id = mTelephony->CreateCallId(aNumber);
   nsRefPtr<TelephonyCall> call =
       mTelephony->CreateCall(id, aClientId, aCallIndex,
-                             nsITelephonyService::CALL_STATE_DIALING);
+                             nsITelephonyService::CALL_STATE_DIALING,
+                             aVoiceQuality);
 
   mPromise->MaybeResolve(call);
   return NS_OK;

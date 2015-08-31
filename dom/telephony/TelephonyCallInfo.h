@@ -19,12 +19,19 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSITELEPHONYCALLINFO
 
-  TelephonyCallInfo(uint32_t aClientId, uint32_t aCallIndex,
-                    uint16_t aCallState, const nsAString& aNumber,
-                    uint16_t aNumberPresentation, const nsAString& aName,
-                    uint16_t aNamePresentation, bool aIsOutgoing,
-                    bool aIsEmergency, bool aIsConference,
-                    bool aIsSwitchable, bool aIsMergeable);
+  TelephonyCallInfo(uint32_t aClientId,
+                    uint32_t aCallIndex,
+                    uint16_t aCallState,
+                    uint16_t aVoiceQuality,
+                    const nsAString& aNumber,
+                    uint16_t aNumberPresentation,
+                    const nsAString& aName,
+                    uint16_t aNamePresentation,
+                    bool aIsOutgoing,
+                    bool aIsEmergency,
+                    bool aIsConference,
+                    bool aIsSwitchable,
+                    bool aIsMergeable);
 
 private:
   // Don't try to use the default constructor.
@@ -35,10 +42,13 @@ private:
   uint32_t mClientId;
   uint32_t mCallIndex;
   uint16_t mCallState;
+  uint16_t mVoiceQuality;
+
   nsString mNumber;
   uint16_t mNumberPresentation;
   nsString mName;
   uint16_t mNamePresentation;
+
   bool mIsOutgoing;
   bool mIsEmergency;
   bool mIsConference;

@@ -198,7 +198,8 @@ private:
 
   already_AddRefed<TelephonyCall>
   CreateCall(TelephonyCallId* aId,
-             uint32_t aServiceId, uint32_t aCallIndex, uint16_t aCallState,
+             uint32_t aServiceId, uint32_t aCallIndex,
+             uint16_t aCallState, uint16_t aVoiceQuality,
              bool aEmergency = false, bool aConference = false,
              bool aSwitchable = true, bool aMergeable = true);
 

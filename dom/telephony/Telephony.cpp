@@ -243,8 +243,9 @@ Telephony::CreateCallId(const nsAString& aNumber, uint16_t aNumberPresentation,
 }
 
 already_AddRefed<TelephonyCall>
-Telephony::CreateCall(TelephonyCallId* aId, uint32_t aServiceId,
-                      uint32_t aCallIndex, uint16_t aCallState,
+Telephony::CreateCall(TelephonyCallId* aId,
+                      uint32_t aServiceId, uint32_t aCallIndex,
+                      uint16_t aCallState, uint16_t aVoiceQuality,
                       bool aEmergency, bool aConference,
                       bool aSwitchable, bool aMergeable)
 {
@@ -253,9 +254,14 @@ Telephony::CreateCall(TelephonyCallId* aId, uint32_t aServiceId,
     return nullptr;
   }
 
+  bool isHD = aVoiceQuality == nsITelephonyService::CALL_VOICE_QUALITY_HD;
+  TelephonyCallVoiceQuality quality = isHD ? TelephonyCallVoiceQuality::HD
+                                           : TelephonyCallVoiceQuality::Normal;
+
   nsRefPtr<TelephonyCall> call =
-    TelephonyCall::Create(this, aId, aServiceId, aCallIndex, aCallState,
-                          aEmergency, aConference, aSwitchable, aMergeable);
+      TelephonyCall::Create(this,
+                            aId, aServiceId, aCallIndex, aCallState, quality,
+                            aEmergency, aConference, aSwitchable, aMergeable);
 
   NS_ASSERTION(call, "This should never fail!");
   NS_ASSERTION(aConference ? mGroup->CallsArray().Contains(call)
@@ -312,6 +318,8 @@ Telephony::HandleCallInfo(nsITelephonyCallInfo* aInfo)
   uint32_t serviceId;
   uint32_t callIndex;
   uint16_t callState;
+  uint16_t voiceQuality;
+
   bool isEmergency;
   bool isConference;
   bool isSwitchable;
@@ -320,6 +328,8 @@ Telephony::HandleCallInfo(nsITelephonyCallInfo* aInfo)
   aInfo->GetClientId(&serviceId);
   aInfo->GetCallIndex(&callIndex);
   aInfo->GetCallState(&callState);
+  aInfo->GetVoiceQuality(&voiceQuality);
+
   aInfo->GetIsEmergency(&isEmergency);
   aInfo->GetIsConference(&isConference);
   aInfo->GetIsSwitchable(&isSwitchable);
@@ -329,8 +339,8 @@ Telephony::HandleCallInfo(nsITelephonyCallInfo* aInfo)
 
   if (!call) {
     nsRefPtr<TelephonyCallId> id = CreateCallId(aInfo);
-    call = CreateCall(id, serviceId, callIndex, callState, isEmergency,
-                      isConference, isSwitchable, isMergeable);
+    call = CreateCall(id, serviceId, callIndex, callState, voiceQuality,
+                      isEmergency, isConference, isSwitchable, isMergeable);
 
     if (call && callState == nsITelephonyService::CALL_STATE_INCOMING) {
       nsresult rv = DispatchCallEvent(NS_LITERAL_STRING("incoming"), call);
@@ -340,6 +350,10 @@ Telephony::HandleCallInfo(nsITelephonyCallInfo* aInfo)
     call->UpdateEmergency(isEmergency);
     call->UpdateSwitchable(isSwitchable);
     call->UpdateMergeable(isMergeable);
+
+    bool isHD = voiceQuality == nsITelephonyService::CALL_VOICE_QUALITY_HD;
+    call->UpdateVoiceQuality(isHD ? TelephonyCallVoiceQuality::HD
+                                  : TelephonyCallVoiceQuality::Normal);
 
     nsAutoString number;
     aInfo->GetNumber(number);

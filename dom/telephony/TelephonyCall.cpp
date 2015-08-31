@@ -6,7 +6,6 @@
 
 #include "TelephonyCall.h"
 #include "mozilla/dom/CallEvent.h"
-#include "mozilla/dom/TelephonyCallBinding.h"
 #include "mozilla/dom/telephony/TelephonyCallback.h"
 
 #include "mozilla/dom/DOMError.h"
@@ -20,10 +19,16 @@ using mozilla::ErrorResult;
 
 // static
 already_AddRefed<TelephonyCall>
-TelephonyCall::Create(Telephony* aTelephony, TelephonyCallId* aId,
-                      uint32_t aServiceId, uint32_t aCallIndex,
-                      uint16_t aCallState, bool aEmergency, bool aConference,
-                      bool aSwitchable, bool aMergeable)
+TelephonyCall::Create(Telephony* aTelephony,
+                      TelephonyCallId* aId,
+                      uint32_t aServiceId,
+                      uint32_t aCallIndex,
+                      uint16_t aCallState,
+                      TelephonyCallVoiceQuality aVoiceQuality,
+                      bool aEmergency,
+                      bool aConference,
+                      bool aSwitchable,
+                      bool aMergeable)
 {
   NS_ASSERTION(aTelephony, "Null aTelephony pointer!");
   NS_ASSERTION(aId, "Null aId pointer!");
@@ -32,9 +37,12 @@ TelephonyCall::Create(Telephony* aTelephony, TelephonyCallId* aId,
   nsRefPtr<TelephonyCall> call = new TelephonyCall(aTelephony->GetOwner());
 
   call->mTelephony = aTelephony;
+
   call->mId = aId;
   call->mServiceId = aServiceId;
   call->mCallIndex = aCallIndex;
+  call->mVoiceQuality = aVoiceQuality;
+
   call->mEmergency = aEmergency;
   call->mGroup = aConference ? aTelephony->ConferenceGroup() : nullptr;
   call->mSwitchable = aSwitchable;
@@ -42,7 +50,6 @@ TelephonyCall::Create(Telephony* aTelephony, TelephonyCallId* aId,
   call->mError = nullptr;
 
   call->ChangeStateInternal(aCallState, false);
-
   return call.forget();
 }
 
