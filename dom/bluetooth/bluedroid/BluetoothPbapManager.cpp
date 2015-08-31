@@ -500,14 +500,13 @@ BluetoothPbapManager::AppendBtNamedValueByTagId(
   const AppParameterTag aTagId)
 {
   uint8_t buf[64];
+  if (!aHeader.GetAppParameter(aTagId, buf, 64)) {
+    return;
+  }
 
   switch (aTagId) {
     case AppParameterTag::Order: {
-      if (!aHeader.GetAppParameter(AppParameterTag::Order, buf, 64)) {
-        break;
-      }
-
-      static const nsString sOrderStr[] = {NS_LITERAL_STRING("alphanumeric"),
+      static const nsString sOrderStr[] = {NS_LITERAL_STRING("alphabetical"),
                                            NS_LITERAL_STRING("indexed"),
                                            NS_LITERAL_STRING("phonetical")};
       uint8_t order = buf[0];
@@ -519,10 +518,6 @@ BluetoothPbapManager::AppendBtNamedValueByTagId(
       break;
     }
     case AppParameterTag::SearchValue: {
-      if (!aHeader.GetAppParameter(AppParameterTag::SearchValue, buf, 64)) {
-        break;
-      }
-
       // Section 5.3.4.3 "SearchValue {<text string>}", PBAP 1.2
       // The UTF-8 character set shall be used for <text string>.
 
@@ -534,10 +529,6 @@ BluetoothPbapManager::AppendBtNamedValueByTagId(
       break;
     }
     case AppParameterTag::SearchProperty: {
-      if (!aHeader.GetAppParameter(AppParameterTag::SearchProperty, buf, 64)) {
-        break;
-      }
-
       static const nsString sSearchKeyStr[] = {NS_LITERAL_STRING("name"),
                                                NS_LITERAL_STRING("number"),
                                                NS_LITERAL_STRING("sound")};
@@ -550,10 +541,6 @@ BluetoothPbapManager::AppendBtNamedValueByTagId(
       break;
     }
     case AppParameterTag::MaxListCount: {
-      if (!aHeader.GetAppParameter(AppParameterTag::MaxListCount, buf, 64)) {
-        break;
-      }
-
       uint16_t maxListCount = *((uint16_t *)buf);
 
       // convert big endian to little endian
@@ -568,10 +555,6 @@ BluetoothPbapManager::AppendBtNamedValueByTagId(
       break;
     }
     case AppParameterTag::ListStartOffset: {
-      if (!aHeader.GetAppParameter(AppParameterTag::ListStartOffset, buf, 64)) {
-        break;
-      }
-
       uint16_t listStartOffset = *((uint16_t *)buf);
 
       // convert big endian to little endian
@@ -582,30 +565,17 @@ BluetoothPbapManager::AppendBtNamedValueByTagId(
       break;
     }
     case AppParameterTag::PropertySelector: {
-      if (!aHeader.GetAppParameter(
-          AppParameterTag::PropertySelector, buf, 64)) {
-        break;
-      }
-
       InfallibleTArray<uint32_t> props = PackPropertiesMask(buf, 64);
 
       BT_APPEND_NAMED_VALUE(aValues, "propSelector", props);
       break;
     }
     case AppParameterTag::Format: {
-      if (!aHeader.GetAppParameter(AppParameterTag::Format, buf, 64)) {
-        break;
-      }
-
       bool usevCard3 = buf[0];
       BT_APPEND_NAMED_VALUE(aValues, "format", usevCard3);
       break;
     }
     case AppParameterTag::vCardSelector: {
-      if (!aHeader.GetAppParameter(AppParameterTag::vCardSelector, buf, 64)) {
-        break;
-      }
-
       InfallibleTArray<uint32_t> props = PackPropertiesMask(buf, 64);
 
       bool hasVCardSelectorOperator = aHeader.GetAppParameter(
