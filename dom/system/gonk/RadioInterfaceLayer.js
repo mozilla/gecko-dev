@@ -2982,14 +2982,6 @@ DataCall.prototype = {
     if (index != -1) {
       this.requestedNetworkIfaces.splice(index, 1);
 
-      if (this.state == RIL.GECKO_NETWORK_STATE_DISCONNECTED) {
-        if (this.timer) {
-          this.timer.cancel();
-        }
-        this.reset();
-        return;
-      }
-
       // Notify the DISCONNECTED event immediately after network interface is
       // removed from requestedNetworkIfaces, to make the DataCall, shared or
       // not, to have the same behavior.
@@ -3000,6 +2992,14 @@ DataCall.prototype = {
           networkInterface.notifyRILNetworkInterface();
         }
       }.bind(null, RIL.GECKO_NETWORK_STATE_DISCONNECTED), Ci.nsIEventTarget.DISPATCH_NORMAL);
+
+      if (this.state == RIL.GECKO_NETWORK_STATE_DISCONNECTED) {
+        if (this.timer) {
+          this.timer.cancel();
+        }
+        this.reset();
+        return;
+      }
     }
 
     // Only deactivate data call if no more network interface needs this
