@@ -125,10 +125,13 @@ function TelephonyCallInfo(aCall) {
   this.clientId = aCall.clientId;
   this.callIndex = aCall.callIndex;
   this.callState = aCall.state;
+  this.voiceQuality = nsITelephonyService.CALL_VOICE_QUALITY_NORMAL;
+
   this.number = aCall.number;
   this.numberPresentation = aCall.numberPresentation;
   this.name = aCall.name;
   this.namePresentation = aCall.namePresentation;
+
   this.isOutgoing = aCall.isOutgoing;
   this.isEmergency = aCall.isEmergency;
   this.isConference = aCall.isConference;
@@ -145,14 +148,16 @@ TelephonyCallInfo.prototype = {
   }),
 
   // nsITelephonyCallInfo
-
   clientId: 0,
   callIndex: 0,
   callState: nsITelephonyService.CALL_STATE_UNKNOWN,
+  voiceQuality: nsITelephonyService.CALL_VOICE_QUALITY_NORMAL,
+
   number: "",
   numberPresentation: nsITelephonyService.CALL_PRESENTATION_ALLOWED,
   name: "",
   namePresentation: nsITelephonyService.CALL_PRESENTATION_ALLOWED,
+
   isOutgoing: true,
   isEmergency: false,
   isConference: false,
@@ -677,8 +682,10 @@ TelephonyService.prototype = {
         Object.keys(this._currentCalls[aClientId])[0];
 
       if (currentCdmaCallIndex == null) {
-        aCallback.notifyDialCallSuccess(aClientId, response.callIndex,
-                                        response.number);
+        aCallback.notifyDialCallSuccess(aClientId,
+                                        response.callIndex,
+                                        response.number,
+                                        nsITelephonyService.CALL_VOICE_QUALITY_NORMAL);
       } else {
         // RIL doesn't hold the 2nd call. We create one by ourselves.
         aCallback.notifyDialCallSuccess(aClientId, CDMA_SECOND_CALL_INDEX,
