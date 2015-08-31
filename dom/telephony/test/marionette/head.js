@@ -425,6 +425,11 @@ let emulator = (function() {
    * @return Promise
    */
   function checkAll(active, calls, conferenceState, conferenceCalls, callList) {
+    // Check qualitey
+    telephony.calls.forEach(call => is(call.voiceQuality, "Normal", "check voice quality"));
+    conference.calls.forEach(call => is(call.voiceQuality, "Normal", "check voice quality"));
+
+    // Check call list
     checkState(active, calls, conferenceState, conferenceCalls);
     return checkEmulatorCallList(callList);
   }
@@ -455,6 +460,7 @@ let emulator = (function() {
         is(outCall.id.number, number);
         is(outCall.state, "dialing");
         is(outCall.serviceId, serviceId);
+        is(outCall.voiceQuality, "Normal", "check voice quality");
       })
       .then(() => waitForNamedStateEvent(outCall, "alerting"));
   }
@@ -620,6 +626,7 @@ let emulator = (function() {
 
         ok(call);
         is(call.state, "incoming");
+        is(call.voiceQuality, "Normal","check voice quality");
         checkCallId(number, numberPresentation, name, namePresentation,
                     call.id.number, call.id.name);
 
