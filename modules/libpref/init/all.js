@@ -4358,6 +4358,13 @@ pref("dom.voicemail.enabled", false);
 // parameter omitted.
 pref("dom.voicemail.defaultServiceId", 0);
 
+// DataCall API
+#ifdef MOZ_B2G_RIL
+pref("dom.datacall.enabled", true);
+#else
+pref("dom.datacall.enabled", false);
+#endif
+
 // DOM Inter-App Communication API.
 pref("dom.inter-app-communication-api.enabled", false);
 

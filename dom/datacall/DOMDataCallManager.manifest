@@ -1,0 +1,6 @@
+#DOMDataCallManager.js
+component {73e0d4e0-bd62-489c-b67a-0140f95a1b24} DOMDataCallManager.js
+contract @mozilla.org/datacallmanager;1 {73e0d4e0-bd62-489c-b67a-0140f95a1b24}
+
+component {b5ff4d17-1fa0-44a0-bc72-0047b5bb13c6} DOMDataCallManager.js
+contract @mozilla.org/datacall;1 {b5ff4d17-1fa0-44a0-bc72-0047b5bb13c6}

@@ -1,0 +1,4 @@
+#DataCallService.js
+component {e29c041d-290d-4e6c-8bca-452f6557de68} DataCallService.js
+contract @mozilla.org/datacallservice;1 {e29c041d-290d-4e6c-8bca-452f6557de68}
+category profile-after-change DataCallService @mozilla.org/datacallservice;1

@@ -464,6 +464,10 @@
 @BINPATH@/components/SmsService.js
 @BINPATH@/components/SmsService.manifest
 #endif
+@BINPATH@/components/DOMDataCallManager.js
+@BINPATH@/components/DOMDataCallManager.manifest
+@BINPATH@/components/DataCallService.js
+@BINPATH@/components/DataCallService.manifest
 @BINPATH@/components/RILContentHelper.js
 @BINPATH@/components/RILContentHelper.manifest
 @BINPATH@/components/RILSystemMessengerHelper.js
