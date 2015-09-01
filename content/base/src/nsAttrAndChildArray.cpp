@@ -10,6 +10,7 @@
 
 #include "nsAttrAndChildArray.h"
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MemoryReporting.h"
 
@@ -21,6 +22,8 @@
 #include "nsUnicharUtils.h"
 #include "nsAutoPtr.h"
 #include "nsContentUtils.h" // nsAutoScriptBlocker
+
+using mozilla::CheckedUint32;
 
 /*
 CACHE_POINTER_SHIFT indicates how many steps to downshift the |this| pointer.
@@ -77,7 +80,7 @@ GetIndexFromCache(const nsAttrAndChildArray* aArray)
 
 /**
  * Due to a compiler bug in VisualAge C++ for AIX, we need to return the 
- * address of the first index into mBuffer here, instead of simply returning 
+ * address of the first index into mBusing mozilla::CheckedUint32;uffer here, instead of simply returning 
  * mBuffer itself.
  *
  * See Bug 231104 for more information.
