@@ -10,7 +10,6 @@
 
 #include "nsAttrAndChildArray.h"
 
-#include "mozilla/CheckedInt.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MemoryReporting.h"
 
