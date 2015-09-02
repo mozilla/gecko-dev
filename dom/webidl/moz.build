@@ -254,7 +254,6 @@ WEBIDL_FILES = [
     'KeyAlgorithm.webidl',
     'KeyboardEvent.webidl',
     'KeyEvent.webidl',
-    'KillSwitch.webidl',
     'LegacyQueryInterface.webidl',
     'LinkStyle.webidl',
     'ListBoxObject.webidl',

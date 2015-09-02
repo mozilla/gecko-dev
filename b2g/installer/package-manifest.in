@@ -894,7 +894,6 @@ bin/components/@DLL_PREFIX@nkgnomevfs@DLL_SUFFIX@
 @BINPATH@/components/InterAppCommUIGlue.js
 @BINPATH@/components/SystemMessageGlue.js
 @BINPATH@/components/B2GAppMigrator.js
-@BINPATH@/components/KillSwitch.js
 
 #ifndef MOZ_WIDGET_GONK
 @BINPATH@/components/SimulatorScreen.js

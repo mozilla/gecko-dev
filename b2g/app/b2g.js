@@ -1125,6 +1125,3 @@ pref("gfx.vsync.compositor", false);
 pref("gfx.touch.resample", false);
 pref("gfx.vsync.refreshdriver", false);
 #endif
-
-// Enable mozKillSwitch API on v2.2r
-pref("dom.mozKillSwitch.enabled", true);
