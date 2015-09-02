@@ -888,7 +888,10 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
   // the noautohide attribute to disable this behaviour. It is expected
   // that the application will hide these popups manually. The tooltip
   // listener will handle closing the tooltip also.
-  if (aPopupFrame->IsNoAutoHide() || popupType == ePopupTypeTooltip) {
+  if (aPopupFrame->IsNoAutoHide() ||
+      popupType == ePopupTypeTooltip ||
+      popupType == ePopupTypeMenu ||
+      popupType == ePopupTypePanel) {
     item->SetParent(mNoHidePanels);
     mNoHidePanels = item;
   }

@@ -446,6 +446,12 @@
     callback(null, []);
   };
 
+  var mockMozLoopNoRoomsNoContext = _.cloneDeep(navigator.mozLoop);
+  mockMozLoopNoRoomsNoContext.getSelectedTabMetadata = function(){};
+  mockMozLoopNoRoomsNoContext.rooms.getAll = function(version, callback) {
+    callback(null, []);
+  };
+
   var roomStoreNoRooms = new loop.store.RoomStore(new loop.Dispatcher(), {
     mozLoop: mockMozLoopNoRooms,
     activeRoomStore: new loop.store.ActiveRoomStore(new loop.Dispatcher(), {
@@ -459,6 +465,10 @@
     email: "text@example.com",
     uid: "0354b278a381d3cb408bb46ffc01266"
   };
+
+  var mockMozLoopLoggedInNoContext = _.cloneDeep(navigator.mozLoop);
+  mockMozLoopLoggedInNoContext.getSelectedTabMetadata = function(){};
+  mockMozLoopLoggedInNoContext.userProfile = _.cloneDeep(mockMozLoopLoggedIn.userProfile);
 
   var mockMozLoopLoggedInLongEmail = _.cloneDeep(navigator.mozLoop);
   mockMozLoopLoggedInLongEmail.userProfile = {
@@ -724,7 +734,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Re-sign-in view", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                   dispatcher: dispatcher, 
@@ -749,7 +759,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Room list tab", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 
@@ -763,8 +773,23 @@
             React.createElement(FramedExample, {cssClass: "fx-embedded-panel", 
                            dashed: true, 
                            height: 410, 
+                           summary: "Room list tab (No Context)", 
+                           width: 330}, 
+              React.createElement("div", {className: "panel"}, 
+                React.createElement(PanelView, {client: mockClient, 
+                           dispatcher: dispatcher, 
+                           mozLoop: mockMozLoopLoggedInNoContext, 
+                           notifications: notifications, 
+                           roomStore: roomStore, 
+                           selectedTab: "rooms"})
+              )
+            ), 
+
+            React.createElement(FramedExample, {cssClass: "fx-embedded-panel", 
+                           dashed: true, 
+                           height: 410, 
                            summary: "Room list tab (no rooms)", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 
@@ -778,8 +803,23 @@
             React.createElement(FramedExample, {cssClass: "fx-embedded-panel", 
                            dashed: true, 
                            height: 410, 
+                           summary: "Room list tab (no rooms and no context)", 
+                           width: 330}, 
+              React.createElement("div", {className: "panel"}, 
+                React.createElement(PanelView, {client: mockClient, 
+                           dispatcher: dispatcher, 
+                           mozLoop: mockMozLoopNoRoomsNoContext, 
+                           notifications: notifications, 
+                           roomStore: roomStoreNoRooms, 
+                           selectedTab: "rooms"})
+              )
+            ), 
+
+            React.createElement(FramedExample, {cssClass: "fx-embedded-panel", 
+                           dashed: true, 
+                           height: 410, 
                            summary: "Contact list tab", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 
@@ -807,7 +847,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Contact list tab long email", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 
@@ -821,7 +861,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Contact list tab (no contacts)", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 
@@ -835,7 +875,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Error Notification", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 
@@ -848,7 +888,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Error Notification - authenticated", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 
@@ -861,7 +901,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Contact import success", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {dispatcher: dispatcher, 
                            mozLoop: mockMozLoopLoggedIn, 
@@ -874,7 +914,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Contact import error", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {dispatcher: dispatcher, 
                            mozLoop: mockMozLoopLoggedIn, 
@@ -887,7 +927,7 @@
                            dashed: true, 
                            height: 410, 
                            summary: "Contact Form - Add", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(PanelView, {client: mockClient, 
                            dispatcher: dispatcher, 
@@ -901,9 +941,9 @@
             ), 
             React.createElement(FramedExample, {cssClass: "fx-embedded-panel", 
                            dashed: true, 
-                           height: 321, 
+                           height: 410, 
                            summary: "Contact Form - Edit", 
-                           width: 332}, 
+                           width: 330}, 
               React.createElement("div", {className: "panel"}, 
                 React.createElement(ContactDetailsForm, {contactFormData: fakeManyContacts[1], 
                                     mode: "edit", 

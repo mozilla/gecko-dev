@@ -65,7 +65,7 @@
       </footer>
     </panelview>
 
-    <panelview id="PanelUI-history" flex="1">
+    <panelview id="PanelUI-history" flex="1" noautohide="true">
       <label value="&appMenuHistory.label;" class="panel-subview-header"/>
       <vbox class="panel-subview-body">
         <toolbarbutton id="appMenuViewHistorySidebar"

@@ -17,12 +17,47 @@ body {
   overflow: hidden;
   font: menu;
   background-color: #fbfbfb;
+  height: 410px;
+  width: 330px;
+}
+
+/* Panel container flexbox */
+.panel-content {
+  height: 410px;
+  width: 330px;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-content: stretch;
+  align-items: flex-start;
+}
+
+.panel > .panel-content > .tab-view-container {
+  /*this is broken because main is in the way*/
+  /*flex: 1;*/
+  /*display: flex;*/
+  /*flex-direction: column;*/
+  /*overflow: hidden;*/
+}
+
+.panel > .panel-content > .tab-view-container > .tab {
+  /*this is broken because main is in the way*/
+  /*flex: 2;*/
+  /*flex-direction: column;*/
+  /*overflow: hidden;*/
+}
+
+.panel > .panel-content > .tab-view-container > .tab.selected {
+  /*this is broken because main is in the way*/
+  /*display: flex;*/
 }
 
 /* Notifications displayed over tabs */
 
 .panel .messages {
+  width: 100%;
   margin: 0;
+  /*display: none;*/
 }
 
 .panel .messages .alert {
@@ -67,10 +102,14 @@ body {
 /* Tabs and tab selection buttons */
 
 .tab-view-container {
+  width: 100%;
   background-image: url("../shared/img/beta-ribbon.svg#beta-ribbon");
   background-color: #fbfbfb;
   background-size: 36px 36px;
   background-repeat: no-repeat;
+  flex: 1;
+  display: flex;
+  flex-flow: column nowrap;
 }
 
 .tab-view {
@@ -190,10 +229,12 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 
 .tab {
   display: none;
+  flex: 1;
 }
 
 .tab.selected {
-  display: block;
+  display: flex;
+  flex-flow: column nowrap;
 }
 
 /* Content area and input fields */
@@ -254,29 +295,23 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 /* Rooms and contacts shared CSS */
 
 .contact-list-empty,
-.room-list-empty {
-  background-image: url("../shared/img/empty_contacts.svg");
+.contact-search-list-empty,
+.no-conversations-message {
   background-repeat: no-repeat;
   background-position: top center;
-  padding-top: 19%;
-  padding-bottom: 3%;
   text-align: center;
   color: #4a4a4a;
   font-weight: lighter;
 }
 
-/* Don't show the empty contacts image if we're showing gravatar promo. */
-.contacts-gravatar-promo ~ .contact-list-empty {
-  background-image: none;
-  padding-top: 3%;
-}
 
-.contact-list-empty {
-  padding-top: 27%;
-}
 
-.room-list-empty {
-  margin: 5% 15px;
+.no-conversations-message {
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  padding-top: 75px;
+  padding-bottom: 10px;
   background-image: url("../shared/img/empty_conversations.svg");
 }
 
@@ -296,9 +331,9 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 
 /* Rooms */
 .rooms {
-  min-height: 100px;
-  /* To hold the conversation dropdown menu. */
-  position: relative;
+  flex: 2;
+  display: flex;
+  flex-direction: column;
 }
 
 .rooms > h1 {
@@ -314,6 +349,7 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 .new-room-view {
   display: flex;
   flex-direction: column;
+  border-top: 1px solid #d8d8d8;
 }
 
 .new-room-view > .context-checkbox-checked {
@@ -323,8 +359,7 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 .new-room-view > .context {
   flex: 1;
   border-radius: 3px 3px 0 0;
-  margin: 1rem 0 .5rem;
-  padding: 1rem 15px;
+  padding: 6px 15px 8px;
 }
 
 .new-room-view > .context > .context-enabled {
@@ -361,7 +396,7 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
   height: 3rem;
   display: block;
   font-size: 1.2rem;
-  margin: 0 15px 1rem 15px;
+  margin: 7px 15px 0px;
   padding: .5rem 1rem;
   border-radius: 4px;
 }
@@ -373,14 +408,16 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 }
 
 .room-list {
-  max-height: 335px; /* XXX better computation needed */
-  /* At least high enough to be able to contain the conversation menu. */
-  min-height: 100px;
-  overflow: auto;
+  /*max-height: 335px; /!* XXX better computation needed *!/*/
+  /*min-height: 7px;*/
+  flex: 2 2 0px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.room-list:empty {
+.room-list-empty {
   border-bottom-width: 0;
+  flex: 2;
 }
 
 .room-list > .room-entry {
@@ -394,9 +431,8 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
   font-size: 1.3rem;
   line-height: 2.4rem;
   color: #000;
-  /* See .room-entry-context-item for the margin/size reductions.
-   * An extra 40px to make space for the call button and chevron. */
-  width: calc(100% - 1rem - 56px);
+  /* See .room-entry-context-item for the margin/size reductions. */
+  width: calc(100% - 1rem - 16px);
 }
 
 .room-list > .room-entry.room-active > h2 {
@@ -491,65 +527,6 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
   background-image: url("../shared/img/icons-14x14.svg#hello-active");
 }
 
-/* Room entry context button (call button + chevron) */
-.room-entry-context-actions {
-  display: none;
-  border-radius: 30px;
-  background: #56b397;
-  vertical-align: top;
-}
-
-.room-entry:hover .room-entry-context-actions {
-  display: inline-block;
-}
-
-.room-entry:hover .room-entry-context-actions:hover {
-  background: #50e3c2;
-}
-
-/* Room entry call button */
-.room-entry-call-btn {
-  border-top-left-radius: 30px;
-  border-bottom-left-radius: 30px;
-  background-color: transparent;
-  background-image: url("../shared/img/icons-14x14.svg#video-white");
-  background-position: right center;
-}
-
-html[dir="rtl"] .room-entry-call-btn {
-  background-position: left center;
-}
-
-/* Room entry context menu */
-.room-entry-context-menu-chevron {
-  display: inline-block;
-  border-top-right-radius: 30px;
-  border-bottom-right-radius: 30px;
-  background-image: url("../shared/img/icons-10x10.svg#dropdown-white");
-  background-position: center;
-  cursor: pointer;
-}
-
-/* Common styles for chevron and call button. */
-.room-entry-context-menu-chevron,
-.room-entry-call-btn {
-  width: 30px;
-  height: 24px;
-  background-size: 12px;
-  background-repeat: no-repeat;
-  vertical-align: middle;
-}
-
-html[dir="rtl"] .room-entry-context-actions > .dropdown-menu {
-  right: auto;
-  left: 45px;
-}
-
-.room-entry-context-actions > .dropdown-menu {
-  right: 45px;
-  bottom: auto;
-  left: auto;
-}
 
 /* Keep ".room-list > .room-entry > h2" in sync with these. */
 .room-entry-context-item {
@@ -557,10 +534,6 @@ html[dir="rtl"] .room-entry-context-actions > .dropdown-menu {
   vertical-align: middle;
   -moz-margin-start: 1rem;
   height: 16px;
-}
-
-.room-entry:hover .room-entry-context-item {
-  display: none;
 }
 
 .room-entry-context-item > a > img {
@@ -971,9 +944,12 @@ html[dir="rtl"] .settings-menu .dropdown-menu {
   align-content: stretch;
   align-items: center;
   font-size: 1rem;
-  background-color: #fbfbfb;
+  /*background-color: #fbfbfb;*/
+  /*background-color: #999; dev test color*/
   color: #666666;
-  padding: .5rem 15px;
+  padding: 10px 15px 6px;
+  width: 100%;
+  height: 42px;
 }
 
 .footer .signin-details {
@@ -1014,6 +990,7 @@ html[dir="rtl"] .settings-menu .dropdown-menu {
 
 .fte-get-started-content + .powered-by-wrapper {
   flex: 0;
+  width: 100%;
 }
 
 .fte-get-started-container {

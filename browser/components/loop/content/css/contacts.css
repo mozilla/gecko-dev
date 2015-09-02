@@ -7,6 +7,46 @@ html {
   font-family: sans-serif; /* XXX will be changed to a system font in bug 1191398 */
 }
 
+.contacts-container {
+  flex: 1;
+  display: flex;
+  flex-flow: column nowrap;
+  /*overflow: hidden;*/
+}
+
+.contact-list-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Don't show the Gravatar if we're showing a contacts list. */
+/*.contact-list-container ~ .contacts-gravatar-promo {*/
+  /*display: none;*/
+/*}*/
+
+
+.contact-list-wrapper {
+  flex: 2;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Don't show the Gravatar if we're showing a contacts list. NOT WORKING hide in code*/
+.contact-search-list-empty ~ .contacts-gravatar-promo {
+  display: block;
+}
+
+/* Don't show the empty contacts image if we're showing gravatar promo. */
+.contacts-gravatar-promo ~ .contact-list-empty {
+  background-image: none;
+  padding-top: 3%;
+}
+
+.contact-list-empty {
+  padding-top: 27%;
+}
+
 .contact-import-spinner {
   display: none;
 }
@@ -35,8 +75,6 @@ html {
   background-repeat: no-repeat;
   color: #999;
   font-size: 1.2rem;
-  flex: 2 1 auto;
-  align-self: stretch;
 }
 
 html[dir="rtl"] .contact-filter {
@@ -65,11 +103,9 @@ html[dir="rtl"] .contact-filter {
 }
 
 .contact-list {
-  overflow-x: hidden;
-  overflow-y: auto;
   /* Space for six contacts, not affected by filtering.  This is enough space
      to show the dropdown menu when there is only one contact. */
-  height: 306px;
+  /*height: 306px;*/
   /* Contact list title goes away when searching, needed for spacing. */
   margin-top: 4px;
 }
@@ -79,7 +115,6 @@ html[dir="rtl"] .contact-filter {
   color: #666;
   font-weight: 500;
   font-size: .9em;
-  margin-top: 1rem;
 }
 
 .contact,
@@ -210,14 +245,13 @@ html[dir="rtl"] .contact-filter {
   width: 100%;
 }
 
+.contact-list-empty {
+  flex: 2;
+}
+
 .contact-list-empty,
 .contact-search-list-empty {
-  background-image: url("../shared/img/empty_contacts.svg");
-  background-repeat: no-repeat;
-  background-position: top center;
-  background-size: 128px;
   margin-top: 4rem;
-  padding-top: 12rem;
   padding-bottom: 5rem;
   text-align: center;
   color: #4a4a4a;
@@ -340,7 +374,10 @@ html[dir="rtl"] .contact > .dropdown-menu {
 }
 
 .contact-form {
-  padding: 14px; /* Override based on spacing in Mockup */
+  padding: 14px 15px 0px; /* Override based on spacing in Mockup */
+  flex: 2 1 0%;
+  display: flex;
+  flex-direction: column;
 }
 /* This will effect the header displayed at the top of the contact details form
  */
@@ -352,9 +389,7 @@ html[dir="rtl"] .contact > .dropdown-menu {
 }
 
 .contact-form .form-content-container {
-  height: 24.1rem; /* This height is needed to keep the panel height at 400px and
-                      the bottom elements at the bottom of the panel
-                      Can likely go away if we switched this pane to flexbox model */
+  flex: 1;
   padding-top: 4px; /* Based on spacing in Mockup
                     replaced margin-top
                     See http://stackoverflow.com/questions/6204670/css-clean-solution-to-the-margin-collapse-issue-when-floating-an-element
@@ -435,7 +470,9 @@ html[dir="rtl"] .contacts-gravatar-arrow {
 }
 
 .contact-controls {
-  padding: 0 16px;
+  padding-left: 15px;
+  padding-right: 15px;
+  border-top: 1px solid #D8D8D8;
 }
 
 .contact-controls > .button {

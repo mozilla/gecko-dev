@@ -655,8 +655,11 @@ loop.contacts = (function(_, mozL10n) {
           this.state.filter) {
         return (
           <div className="contact-search-list-empty">
+            <p className="panel-text-large">
+              {mozL10n.get("no_search_results_message_heading")}
+            </p>
             <p className="panel-text-medium">
-              {mozL10n.get("contacts_no_search_results")}
+              {mozL10n.get("no_search_results_message_subheading")}
             </p>
           </div>
         );
@@ -667,7 +670,7 @@ loop.contacts = (function(_, mozL10n) {
           !this.state.filter) {
         return (
           <div className="contact-list-empty">
-            <p className="panel-text-medium">
+            <p className="panel-text-large">
               {mozL10n.get("no_contacts_message_heading2")}
             </p>
             <p className="panel-text-medium">
@@ -678,22 +681,23 @@ loop.contacts = (function(_, mozL10n) {
       }
 
       return (
-        <div>
+        <div className="contact-list-container">
           {!this.state.filter ? <div className="contact-list-title">
                                   {mozL10n.get("contact_list_title")}
                                 </div> : null}
-          {this._renderGravatarPromoMessage()}
-          <ul className="contact-list">
-            {shownContacts.available ?
-              shownContacts.available.sort(this.sortContacts).map(viewForItem) :
-              null}
-            {shownContacts.blocked && shownContacts.blocked.length > 0 ?
-              <div className="contact-separator">{mozL10n.get("contacts_blocked_contacts")}</div> :
-              null}
-            {shownContacts.blocked ?
-              shownContacts.blocked.sort(this.sortContacts).map(viewForItem) :
-              null}
-          </ul>
+          <div className="contact-list-wrapper">
+            <ul className="contact-list">
+              {shownContacts.available ?
+                shownContacts.available.sort(this.sortContacts).map(viewForItem) :
+                null}
+              {shownContacts.blocked && shownContacts.blocked.length > 0 ?
+                <div className="contact-separator">{mozL10n.get("contacts_blocked_contacts")}</div> :
+                null}
+              {shownContacts.blocked ?
+                shownContacts.blocked.sort(this.sortContacts).map(viewForItem) :
+                null}
+            </ul>
+          </div>
         </div>
       );
     },
@@ -735,8 +739,9 @@ loop.contacts = (function(_, mozL10n) {
 
     render: function() {
       return (
-        <div>
+        <div className="contacts-container">
           {this._renderContactsFilter()}
+          {this._renderGravatarPromoMessage()}
           {this._renderContactsList()}
           {this._renderAddContactButtons()}
         </div>
