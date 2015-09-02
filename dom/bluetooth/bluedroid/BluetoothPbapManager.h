@@ -162,15 +162,20 @@ private:
   void AfterPbapDisconnected();
 
   /**
-   * Current phonebook path
+   * Whether 'PhonebookSize' is required for the OBEX response
    */
-  nsString mCurrentPath;
+  bool mPhonebookSizeRequired;
 
   /**
-   * OBEX session status. Set when OBEX session is established.
+   * OBEX session status. Set when OBEX session is established
    */
   bool mConnected;
   nsString mDeviceAddress;
+
+  /**
+   * Current phonebook path
+   */
+  nsString mCurrentPath;
 
   /**
    * Maximum packet length that remote device can receive
@@ -191,11 +196,6 @@ private:
    * The vCard data stream for current processing response
    */
   nsCOMPtr<nsIInputStream> mVCardDataStream;
-
-  /**
-   * Whether 'PhonebookSize' is mandatory for next OBEX response
-   */
-  bool mPhonebookSizeRequired;
 };
 
 END_BLUETOOTH_NAMESPACE
