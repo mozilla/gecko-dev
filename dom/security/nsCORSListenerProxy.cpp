@@ -948,6 +948,7 @@ nsCORSPreflightListener::AddResultToCache(nsIRequest *aRequest)
 
   // The "Access-Control-Allow-Methods" header contains a comma separated
   // list of method names.
+  headerVal.Truncate();
   http->GetResponseHeader(NS_LITERAL_CSTRING("Access-Control-Allow-Methods"),
                           headerVal);
 
@@ -978,6 +979,7 @@ nsCORSPreflightListener::AddResultToCache(nsIRequest *aRequest)
 
   // The "Access-Control-Allow-Headers" header contains a comma separated
   // list of method names.
+  headerVal.Truncate();
   http->GetResponseHeader(NS_LITERAL_CSTRING("Access-Control-Allow-Headers"),
                           headerVal);
 
