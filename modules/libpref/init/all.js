@@ -4535,3 +4535,5 @@ pref("media.gmp-eme-adobe.hidden", true);
 #ifdef MOZ_SECUREELEMENT
 pref("dom.secureelement.enabled", false);
 #endif
+
+pref("dom.mozKillSwitch.enabled", false);
