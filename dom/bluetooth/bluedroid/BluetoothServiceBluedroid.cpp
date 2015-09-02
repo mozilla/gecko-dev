@@ -419,30 +419,26 @@ BluetoothServiceBluedroid::GetDefaultAdapterPathInternal(
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  // Since Atomic<*> is not acceptable for BT_APPEND_NAMED_VALUE(),
-  // create another variable to store data.
-  bool discoverable = sAdapterDiscoverable;
-  uint32_t discoverableTimeout = sAdapterDiscoverableTimeout;
-
   BluetoothValue v = InfallibleTArray<BluetoothNamedValue>();
 
-  BT_APPEND_NAMED_VALUE(v.get_ArrayOfBluetoothNamedValue(),
-                        "Address", sAdapterBdAddress);
+  AppendNamedValue(v.get_ArrayOfBluetoothNamedValue(),
+                   "Address", sAdapterBdAddress);
 
-  BT_APPEND_NAMED_VALUE(v.get_ArrayOfBluetoothNamedValue(),
-                        "Name", sAdapterBdName);
+  AppendNamedValue(v.get_ArrayOfBluetoothNamedValue(),
+                   "Name", sAdapterBdName);
 
-  BT_APPEND_NAMED_VALUE(v.get_ArrayOfBluetoothNamedValue(),
-                        "Discoverable", discoverable);
+  AppendNamedValue(v.get_ArrayOfBluetoothNamedValue(),
+                   "Discoverable", sAdapterDiscoverable);
 
-  BT_APPEND_NAMED_VALUE(v.get_ArrayOfBluetoothNamedValue(),
-                        "DiscoverableTimeout", discoverableTimeout);
+  AppendNamedValue(v.get_ArrayOfBluetoothNamedValue(),
+                   "DiscoverableTimeout",
+                   sAdapterDiscoverableTimeout);
 
-  BT_APPEND_NAMED_VALUE(v.get_ArrayOfBluetoothNamedValue(),
-                        "Devices", sAdapterBondedAddressArray);
+  AppendNamedValue(v.get_ArrayOfBluetoothNamedValue(),
+                   "Devices", sAdapterBondedAddressArray);
 
-  BT_APPEND_NAMED_VALUE(v.get_ArrayOfBluetoothNamedValue(),
-                        "UUIDs", sAdapterUuidsArray);
+  AppendNamedValue(v.get_ArrayOfBluetoothNamedValue(),
+                   "UUIDs", sAdapterUuidsArray);
 
   DispatchBluetoothReply(aRunnable, v, EmptyString());
 
@@ -1435,12 +1431,12 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
     if (p.mType == PROPERTY_BDADDR) {
       sAdapterBdAddress = p.mString;
       propertyValue = sAdapterBdAddress;
-      BT_APPEND_NAMED_VALUE(props, "Address", propertyValue);
+      AppendNamedValue(props, "Address", propertyValue);
 
     } else if (p.mType == PROPERTY_BDNAME) {
       sAdapterBdName = p.mString;
       propertyValue = sAdapterBdName;
-      BT_APPEND_NAMED_VALUE(props, "Name", propertyValue);
+      AppendNamedValue(props, "Name", propertyValue);
 
     } else if (p.mType == PROPERTY_ADAPTER_SCAN_MODE) {
       BluetoothScanMode newMode = p.mScanMode;
@@ -1451,11 +1447,11 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
         propertyValue = sAdapterDiscoverable = false;
       }
 
-      BT_APPEND_NAMED_VALUE(props, "Discoverable", propertyValue);
+      AppendNamedValue(props, "Discoverable", propertyValue);
 
     } else if (p.mType == PROPERTY_ADAPTER_DISCOVERY_TIMEOUT) {
       propertyValue = sAdapterDiscoverableTimeout = p.mUint32;
-      BT_APPEND_NAMED_VALUE(props, "DiscoverableTimeout", propertyValue);
+      AppendNamedValue(props, "DiscoverableTimeout", propertyValue);
 
     } else if (p.mType == PROPERTY_ADAPTER_BONDED_DEVICES) {
       // We have to cache addresses of bonded devices. Unlike BlueZ,
@@ -1472,7 +1468,7 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
       }
 
       propertyValue = sAdapterBondedAddressArray;
-      BT_APPEND_NAMED_VALUE(props, "Devices", propertyValue);
+      AppendNamedValue(props, "Devices", propertyValue);
 
     } else if (p.mType == PROPERTY_UUIDS) {
       sAdapterUuidsArray.Clear();
@@ -1533,7 +1529,7 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
 
   InfallibleTArray<BluetoothNamedValue> props;
 
-  BT_APPEND_NAMED_VALUE(props, "Address", BluetoothValue(nsString(aBdAddr)));
+  AppendNamedValue(props, "Address", BluetoothValue(nsString(aBdAddr)));
 
   bool isCodInvalid = false;
   for (int i = 0; i < aNumProperties; ++i) {
@@ -1541,15 +1537,15 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
     const BluetoothProperty& p = aProperties[i];
 
     if (p.mType == PROPERTY_BDNAME) {
-      BT_APPEND_NAMED_VALUE(props, "Name", p.mString);
+      AppendNamedValue(props, "Name", p.mString);
     } else if (p.mType == PROPERTY_CLASS_OF_DEVICE) {
       uint32_t cod = p.mUint32;
       nsString icon;
       ClassToIcon(cod, icon);
       if (!icon.IsEmpty()) {
         // Valid CoD
-        BT_APPEND_NAMED_VALUE(props, "Class", cod);
-        BT_APPEND_NAMED_VALUE(props, "Icon", icon);
+        AppendNamedValue(props, "Class", cod);
+        AppendNamedValue(props, "Icon", icon);
       } else {
         // If Cod is invalid, fallback to check UUIDs. It usually happens due to
         // NFC directly trigger pairing. bluedroid sends wrong CoD due to missing
@@ -1584,11 +1580,11 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
       }
 
       if (isCodInvalid) {
-        BT_APPEND_NAMED_VALUE(props, "Class", cod);
+        AppendNamedValue(props, "Class", cod);
         // 'audio-card' refers to 'Audio' device
-        BT_APPEND_NAMED_VALUE(props, "Icon", NS_LITERAL_STRING("audio-card"));
+        AppendNamedValue(props, "Icon", NS_LITERAL_STRING("audio-card"));
       }
-      BT_APPEND_NAMED_VALUE(props, "UUIDS", uuidsArray);
+      AppendNamedValue(props, "UUIDS", uuidsArray);
     } else if (p.mType == PROPERTY_UNKNOWN) {
       /* Bug 1065999: working around unknown properties */
     } else {
@@ -1598,7 +1594,7 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
 
   // BlueDroid wouldn't notify the status of connection, therefore, query the
   // connection state and append to properties array
-  BT_APPEND_NAMED_VALUE(props, "Connected", IsConnected(aBdAddr));
+  AppendNamedValue(props, "Connected", IsConnected(aBdAddr));
 
   if (sRequestedDeviceCountArray.IsEmpty()) {
     /**
@@ -1655,18 +1651,18 @@ BluetoothServiceBluedroid::DeviceFoundNotification(
     if (p.mType == PROPERTY_BDADDR) {
       propertyValue = p.mString;
 
-      BT_APPEND_NAMED_VALUE(propertiesArray, "Address", propertyValue);
+      AppendNamedValue(propertiesArray, "Address", propertyValue);
     } else if (p.mType == PROPERTY_BDNAME) {
-      BT_APPEND_NAMED_VALUE(propertiesArray, "Name", p.mString);
+      AppendNamedValue(propertiesArray, "Name", p.mString);
     } else if (p.mType == PROPERTY_CLASS_OF_DEVICE) {
       uint32_t cod = p.mUint32;
       propertyValue = cod;
-      BT_APPEND_NAMED_VALUE(propertiesArray, "Class", propertyValue);
+      AppendNamedValue(propertiesArray, "Class", propertyValue);
 
       nsString icon;
       ClassToIcon(cod, icon);
       propertyValue = icon;
-      BT_APPEND_NAMED_VALUE(propertiesArray, "Icon", propertyValue);
+      AppendNamedValue(propertiesArray, "Icon", propertyValue);
     } else if (p.mType == PROPERTY_UNKNOWN) {
       /* Bug 1065999: working around unknown properties */
     } else {
@@ -1693,8 +1689,7 @@ BluetoothServiceBluedroid::DiscoveryStateChangedNotification(bool aState)
   // Distribute "PropertyChanged" signal to notice adapter this change since
   // Bluedroid don' treat "discovering" as a property of adapter.
   InfallibleTArray<BluetoothNamedValue> props;
-  BT_APPEND_NAMED_VALUE(props, "Discovering",
-                        BluetoothValue(sAdapterDiscovering));
+  AppendNamedValue(props, "Discovering", BluetoothValue(sAdapterDiscovering));
   DistributeSignal(BluetoothSignal(NS_LITERAL_STRING("PropertyChanged"),
                                    NS_LITERAL_STRING(KEY_ADAPTER),
                                    BluetoothValue(props)));
@@ -1709,10 +1704,9 @@ BluetoothServiceBluedroid::PinRequestNotification(const nsAString& aRemoteBdAddr
 
   InfallibleTArray<BluetoothNamedValue> propertiesArray;
 
-  BT_APPEND_NAMED_VALUE(propertiesArray, "address", nsString(aRemoteBdAddr));
-  BT_APPEND_NAMED_VALUE(propertiesArray, "method",
-                        NS_LITERAL_STRING("pincode"));
-  BT_APPEND_NAMED_VALUE(propertiesArray, "name", nsString(aBdName));
+  AppendNamedValue(propertiesArray, "address", nsString(aRemoteBdAddr));
+  AppendNamedValue(propertiesArray, "method", NS_LITERAL_STRING("pincode"));
+  AppendNamedValue(propertiesArray, "name", nsString(aBdName));
 
   DistributeSignal(BluetoothSignal(NS_LITERAL_STRING("RequestPinCode"),
                                    NS_LITERAL_STRING(KEY_LOCAL_AGENT),
@@ -1728,11 +1722,11 @@ BluetoothServiceBluedroid::SspRequestNotification(
 
   InfallibleTArray<BluetoothNamedValue> propertiesArray;
 
-  BT_APPEND_NAMED_VALUE(propertiesArray, "address", nsString(aRemoteBdAddr));
-  BT_APPEND_NAMED_VALUE(propertiesArray, "method",
-                        NS_LITERAL_STRING("confirmation"));
-  BT_APPEND_NAMED_VALUE(propertiesArray, "name", nsString(aBdName));
-  BT_APPEND_NAMED_VALUE(propertiesArray, "passkey", aPassKey);
+  AppendNamedValue(propertiesArray, "address", nsString(aRemoteBdAddr));
+  AppendNamedValue(propertiesArray, "method",
+                   NS_LITERAL_STRING("confirmation"));
+  AppendNamedValue(propertiesArray, "name", nsString(aBdName));
+  AppendNamedValue(propertiesArray, "passkey", aPassKey);
 
   DistributeSignal(BluetoothSignal(NS_LITERAL_STRING("RequestConfirmation"),
                                    NS_LITERAL_STRING(KEY_LOCAL_AGENT),
@@ -1773,8 +1767,8 @@ BluetoothServiceBluedroid::BondStateChangedNotification(
 
       // Update bonded address list to BluetoothAdapter
       InfallibleTArray<BluetoothNamedValue> propertiesChangeArray;
-      BT_APPEND_NAMED_VALUE(propertiesChangeArray, "Devices",
-                            sAdapterBondedAddressArray);
+      AppendNamedValue(propertiesChangeArray, "Devices",
+                       sAdapterBondedAddressArray);
 
       DistributeSignal(BluetoothSignal(NS_LITERAL_STRING("PropertyChanged"),
                                        NS_LITERAL_STRING(KEY_ADAPTER),
@@ -1794,8 +1788,8 @@ BluetoothServiceBluedroid::BondStateChangedNotification(
 
       // Update bonding status to gaia
       InfallibleTArray<BluetoothNamedValue> propertiesArray;
-      BT_APPEND_NAMED_VALUE(propertiesArray, "address", nsString(aRemoteBdAddr));
-      BT_APPEND_NAMED_VALUE(propertiesArray, "status", bonded);
+      AppendNamedValue(propertiesArray, "address", nsString(aRemoteBdAddr));
+      AppendNamedValue(propertiesArray, "status", bonded);
 
       DistributeSignal(
         BluetoothSignal(NS_LITERAL_STRING(PAIRED_STATUS_CHANGED_ID),
