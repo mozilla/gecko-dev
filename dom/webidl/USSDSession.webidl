@@ -10,8 +10,8 @@
  Constructor(unsigned long serviceId)]
 interface USSDSession {
   [NewObject]
-  Promise<void> send(DOMString ussd);
+  Promise<MMICall> send(DOMString ussd);
 
   [NewObject]
-  Promise<void> cancel();
+  Promise<MMICall> cancel();
 };
