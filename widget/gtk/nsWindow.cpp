@@ -408,6 +408,8 @@ nsWindow::nsWindow()
     mNeedsShow        = false;
     mEnabled          = true;
     mCreated          = false;
+    mIsX11Display     = GDK_IS_X11_DISPLAY(gdk_display_get_default());
+    mHasWindowContainer = !mIsX11Display;
 
     mContainer           = nullptr;
     mGdkWindow           = nullptr;
@@ -1495,7 +1497,7 @@ nsWindow::GetClientOffset()
 {
     PROFILER_LABEL("nsWindow", "GetClientOffset", js::ProfileEntry::Category::GRAPHICS);
 
-    if (!mIsTopLevel || !mShell || !mGdkWindow ||
+    if (!mIsTopLevel || !mShell || !mGdkWindow || !mIsX11Display ||
         gtk_window_get_window_type(GTK_WINDOW(mShell)) == GTK_WINDOW_POPUP) {
         return nsIntPoint(0, 0);
     }
@@ -1904,7 +1906,7 @@ nsWindow::HasPendingInputEvent()
 #ifdef MOZ_X11
     XEvent ev;
     GdkDisplay* gdkDisplay = gdk_display_get_default();
-    if (GDK_IS_X11_DISPLAY(gdkDisplay)) {
+    if (mIsX11Display) {
         Display *display = GDK_DISPLAY_XDISPLAY(gdkDisplay);
         haveEvent =
             XCheckMaskEvent(display,
@@ -2511,8 +2513,7 @@ nsWindow::OnMotionNotifyEvent(GdkEventMotion *aEvent)
 #ifdef MOZ_X11
     XEvent xevent;
 
-    bool isX11Display = GDK_IS_X11_DISPLAY(gdk_display_get_default());
-    if (isX11Display) {
+    if (mIsX11Display) {
         while (XPending (GDK_WINDOW_XDISPLAY(aEvent->window))) {
             XEvent peeked;
             XPeekEvent (GDK_WINDOW_XDISPLAY(aEvent->window), &peeked);
@@ -3611,9 +3612,17 @@ nsWindow::Create(nsIWidget        *aParent,
         // Create a container to hold child windows and child GtkWidgets.
         GtkWidget *container = moz_container_new();
         mContainer = MOZ_CONTAINER(container);
-        // Use mShell's window for drawing and events.
-        gtk_widget_set_has_window(container, FALSE);
-        eventWidget = mShell;
+
+        if (mHasWindowContainer) {
+            // Use container's window for drawing and events.
+            eventWidget = container;
+            gtk_widget_set_has_window(container, TRUE);
+        } else {
+            // Use mShell's (toplevel) window for drawing and events.
+            eventWidget = mShell;
+            gtk_widget_set_has_window(container, FALSE);
+        }
+
         gtk_widget_add_events(eventWidget, kEvents);
         gtk_container_add(GTK_CONTAINER(mShell), container);
         gtk_widget_realize(container);
@@ -3622,8 +3631,7 @@ nsWindow::Create(nsIWidget        *aParent,
         gtk_widget_show(container);
         gtk_widget_grab_focus(container);
 
-        // the drawing window
-        mGdkWindow = gtk_widget_get_window(mShell);
+        mGdkWindow = gtk_widget_get_window(mHasWindowContainer ? container : mShell);
 
         if (mWindowType == eWindowType_popup) {
             // gdk does not automatically set the cursor for "temporary"
@@ -3771,7 +3779,8 @@ nsWindow::Create(nsIWidget        *aParent,
             // Similarly double buffering is controlled by the window's owning
             // widget.  Disable double buffering for painting directly to the
             // X Window.
-            gtk_widget_set_double_buffered(widgets[i], FALSE);
+            if (mIsX11Display)
+                gtk_widget_set_double_buffered(widgets[i], FALSE);
         }
 
         // We create input contexts for all containers, except for
@@ -3830,7 +3839,7 @@ nsWindow::Create(nsIWidget        *aParent,
         Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, false);
 
 #ifdef MOZ_X11
-    if (mGdkWindow) {
+    if (mIsX11Display && mGdkWindow) {
       // force creation of native window via internal call to gdk_window_ensure_native
       // in case it was not created already
       gdk_x11_window_get_xid(mGdkWindow);
@@ -3875,7 +3884,7 @@ nsWindow::SetWindowClass(const nsAString &xulWinType)
 
 #ifdef MOZ_X11
   GdkDisplay *display = gdk_display_get_default();
-  if (GDK_IS_X11_DISPLAY(display)) {
+  if (mIsX11Display) {
       XClassHint *class_hint = XAllocClassHint();
       if (!class_hint) {
         free(res_name);
@@ -5310,16 +5319,16 @@ draw_window_of_widget(GtkWidget *widget, GdkWindow *aWindow, cairo_t *cr)
         if (!window) {
             NS_WARNING("Cannot get nsWindow from GtkWidget");
         }
-        else {      
-            cairo_save(cr);      
-            gtk_cairo_transform_to_window(cr, widget, aWindow);  
+        else {
+            cairo_save(cr);
+            gtk_cairo_transform_to_window(cr, widget, aWindow);
             // TODO - window->OnExposeEvent() can destroy this or other windows,
             // do we need to handle it somehow?
             window->OnExposeEvent(cr);
             cairo_restore(cr);
         }
     }
-    
+ 
     GList *children = gdk_window_get_children(aWindow);
     GList *child = children;
     while (child) {
@@ -6381,7 +6390,10 @@ nsWindow::GetThebesSurface()
     gfxIntSize size(width, height);
 
     GdkVisual *gdkVisual = gdk_window_get_visual(mGdkWindow);
-    Visual* visual = gdk_x11_visual_get_xvisual(gdkVisual);
+    Visual* visual = nullptr;
+    if (mIsX11Display) {
+        visual = gdk_x11_visual_get_xvisual(gdkVisual);
+    }
 
 #  ifdef MOZ_HAVE_SHMIMAGE
     bool usingShm = false;
@@ -6398,11 +6410,21 @@ nsWindow::GetThebesSurface()
     if (!usingShm)
 #  endif  // MOZ_HAVE_SHMIMAGE
     {
-        mThebesSurface = new gfxXlibSurface
-            (GDK_WINDOW_XDISPLAY(mGdkWindow),
-             gdk_x11_window_get_xid(mGdkWindow),
-             visual,
-             size);
+        if (mIsX11Display) {
+            mThebesSurface = new gfxXlibSurface
+                (GDK_WINDOW_XDISPLAY(mGdkWindow),
+                 gdk_x11_window_get_xid(mGdkWindow),
+                 visual,
+                 size);
+        } else {
+            cairo_t *cr = gdk_cairo_create(mGdkWindow);
+            cairo_surface_t *surf = cairo_get_target(cr);
+            if (cairo_surface_status(surf) != CAIRO_STATUS_SUCCESS) {
+                NS_NOTREACHED("Missing cairo target?");
+                return nullptr;
+            }
+            mThebesSurface = gfxASurface::Wrap(surf, size);
+        }
     }
 #endif // MOZ_X11
 

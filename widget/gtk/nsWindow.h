@@ -358,7 +358,11 @@ protected:
     bool                mEnabled;
     // has the native window for this been created yet?
     bool                mCreated;
-
+    // We can't render on toplevel window on Wayland/Broadway
+    bool                mHasWindowContainer;    
+    // Can we access X?
+    bool                mIsX11Display;
+    
 private:
     void               DestroyChildWindows();
     GtkWidget         *GetToplevelWidget();

@@ -169,7 +169,13 @@ gfxASurface::Wrap (cairo_surface_t *csurf, const IntSize& aSize)
     cairo_surface_type_t stype = cairo_surface_get_type(csurf);
 
     if (stype == CAIRO_SURFACE_TYPE_IMAGE) {
-        result = new gfxImageSurface(csurf);
+        if (cairo_image_surface_get_format(csurf) != CAIRO_FORMAT_INVALID) {
+            result = new gfxImageSurface(csurf);
+        } else {
+            // Try to workaround a cairo bug when subsurfaces are reported
+            // as image surfaces but cairo_image_ functions fails.
+            result = new gfxUnknownSurface(csurf, aSize);
+        }
     }
 #ifdef CAIRO_HAS_WIN32_SURFACE
     else if (stype == CAIRO_SURFACE_TYPE_WIN32 ||

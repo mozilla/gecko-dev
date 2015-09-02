@@ -73,6 +73,14 @@ GLXLibrary::EnsureInitialized()
     }
     mTriedInitializing = true;
 
+#ifdef MOZ_WIDGET_GTK
+    if (!GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
+        mGLXMajorVersion = 0;
+        mGLXMinorVersion = 0;
+        return false;
+    }
+#endif
+
     // Force enabling s3 texture compression. (Bug 774134)
     PR_SetEnv("force_s3tc_enable=true");
 

@@ -2977,7 +2977,39 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
   (void) display;
 #endif
 }
-#endif // MOZ_WIDGET_GTK2
+
+static const char *detectDisplay(bool *aIsX11Display)
+{
+  *aIsX11Display = false;
+
+  // Honor user backend selection
+  const char *backend = PR_GetEnv("GDK_BACKEND");
+  if (backend) {
+    if (!strcmp(backend, "wayland")) {
+      return(PR_GetEnv("WAYLAND_DISPLAY"));
+    } else if (!strcmp(backend, "broadway")) {
+      return(PR_GetEnv("BROADWAY_DISPLAY"));
+    } else if (!strcmp(backend, "x11")) {
+      *aIsX11Display = true;
+      return(PR_GetEnv("DISPLAY"));
+    } else {
+      PR_fprintf(PR_STDERR, "Error: unsupported GDK_BACKEND selected\n");
+      return nullptr;
+    }
+  }
+ 
+  // Try wayland first and fallback to X11 
+  const char *display_name;
+  if((display_name = PR_GetEnv("WAYLAND_DISPLAY"))) {
+    return display_name;
+  } else if((display_name = PR_GetEnv("DISPLAY"))) {
+    *aIsX11Display = true;
+    return display_name;
+  }
+
+  return nullptr;
+}
+#endif // MOZ_WIDGET_GTK
 
 /** 
  * NSPR will search for the "nspr_use_zone_allocator" symbol throughout
@@ -3699,8 +3731,6 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
     g_set_prgname(program.get());
   }
 
-  // Initialize GTK here for splash.
-
   // Open the display ourselves instead of using gtk_init, so that we can
   // close it without fear that one day gtk might clean up the display it
   // opens.
@@ -3729,20 +3759,22 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
 #if defined(MOZ_WIDGET_GTK)
   // display_name is owned by gdk.
   const char *display_name = gdk_get_display_arg_name();
-  if (display_name) {
-    SaveWordToEnv("DISPLAY", nsDependentCString(display_name));
-  } else {
-    display_name = PR_GetEnv("DISPLAY");
+  // Wayland TODO - set isX11Display accordingly
+  bool isX11Display = true;
+  if (!display_name) {
+    display_name = detectDisplay(&isX11Display);
     if (!display_name) {
       PR_fprintf(PR_STDERR, "Error: no display specified\n");
       return 1;
     }
   }
-#endif /* MOZ_WIDGET_GTK */
+#endif /* MOZ_WIDGET_GTK*/
 #ifdef MOZ_X11
   // Init X11 in thread-safe mode. Must be called prior to the first call to XOpenDisplay
   // (called inside gdk_display_open). This is a requirement for off main tread compositing.
-  XInitThreads();
+  if (isX11Display) {
+    XInitThreads();
+  }
 #endif
 #if defined(MOZ_WIDGET_GTK)
   {
@@ -3753,9 +3785,10 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
     }
     gdk_display_manager_set_default_display (gdk_display_manager_get(),
                                              mGdkDisplay);
-    if (!GDK_IS_X11_DISPLAY(mGdkDisplay))
-      mDisableRemote = true;
   }
+
+  if (!GDK_IS_X11_DISPLAY(mGdkDisplay))
+    mDisableRemote = true;
 #endif
 #ifdef MOZ_ENABLE_XREMOTE
   // handle --remote now that xpcom is fired up

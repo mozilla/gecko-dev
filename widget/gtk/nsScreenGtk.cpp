@@ -155,7 +155,14 @@ nsScreenGtk :: Init (GdkWindow *aRootWindow)
   // versions of GDK predating the GdkScreen object.  See bug 256646.
   mAvailRect = mRect = nsIntRect(0, 0, width, height);
 
-#ifdef MOZ_X11
+#if (MOZ_WIDGET_GTK >= 3)
+  GdkScreen *screen = gdk_screen_get_default();
+  GdkRectangle rect;
+  gdk_screen_get_monitor_workarea(screen,
+                                  gdk_screen_get_primary_monitor(screen),
+                                  &rect);
+  mAvailRect = nsIntRect(rect.x, rect.x, rect.width, rect.height);
+#elif defined(MOZ_X11)
   // We need to account for the taskbar, etc in the available rect.
   // See http://freedesktop.org/Standards/wm-spec/index.html#id2767771
 

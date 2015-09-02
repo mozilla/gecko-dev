@@ -663,7 +663,14 @@ GfxFormatForCairoSurface(cairo_surface_t* surface)
 {
   cairo_surface_type_t type = cairo_surface_get_type(surface);
   if (type == CAIRO_SURFACE_TYPE_IMAGE) {
-    return CairoFormatToGfxFormat(cairo_image_surface_get_format(surface));
+    cairo_format_t format = cairo_image_surface_get_format(surface);
+    if(format != CAIRO_FORMAT_INVALID) {
+        return CairoFormatToGfxFormat(format);
+    } else {
+        // Try to workaround a cairo bug when subsurfaces are reported
+        // as image surfaces but cairo_image_ functions fails.
+        return CairoContentToGfxFormat(cairo_surface_get_content(surface));
+    }
   }
 #ifdef CAIRO_HAS_XLIB_SURFACE
   // xlib is currently the only Cairo backend that creates 16bpp surfaces

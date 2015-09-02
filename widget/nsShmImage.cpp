@@ -27,7 +27,9 @@ static bool gShmAvailable = true;
 bool nsShmImage::UseShm()
 {
 #ifdef MOZ_WIDGET_GTK
-    return (gShmAvailable && !gfxPlatformGtk::GetPlatform()->UseXRender());
+    return (GDK_IS_X11_DISPLAY(gdk_display_get_default())) ?
+                      (gShmAvailable && !gfxPlatformGtk::GetPlatform()->UseXRender()) :
+                      false;
 #else
     return gShmAvailable;
 #endif
