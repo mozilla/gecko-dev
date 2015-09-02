@@ -102,6 +102,10 @@ public:
 
   bool MozHasAudio() const;
 
+  bool MozUseScreenWakeLock() const;
+
+  void SetMozUseScreenWakeLock(bool aValue);
+
   void NotifyOwnerDocumentActivityChanged() MOZ_OVERRIDE;
 
   already_AddRefed<VideoPlaybackQuality> GetVideoPlaybackQuality();
@@ -115,6 +119,7 @@ protected:
   virtual void WakeLockRelease() MOZ_OVERRIDE;
   void UpdateScreenWakeLock();
 
+  bool mUseScreenWakeLock;
   nsRefPtr<WakeLock> mScreenWakeLock;
 
 private:
