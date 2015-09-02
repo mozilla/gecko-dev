@@ -739,7 +739,7 @@ loop.contacts = (function(_, mozL10n) {
 
     render: function() {
       return (
-        React.createElement("div", null, 
+        React.createElement("div", {className: "contacts-container"}, 
           this._renderContactsFilter(), 
           this._renderGravatarPromoMessage(), 
           this._renderContactsList(), 

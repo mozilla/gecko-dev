@@ -739,7 +739,7 @@ loop.contacts = (function(_, mozL10n) {
 
     render: function() {
       return (
-        <div>
+        <div className="contacts-container">
           {this._renderContactsFilter()}
           {this._renderGravatarPromoMessage()}
           {this._renderContactsList()}

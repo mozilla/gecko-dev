@@ -26,28 +26,30 @@ body {
   height: 410px;
   width: 330px;
   display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
+  flex-flow: column nowrap;
   justify-content: flex-start;
   align-content: stretch;
   align-items: flex-start;
 }
 
 .panel > .panel-content > .tab-view-container {
-  flex: 2;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  /*this is broken because main is in the way*/
+  /*flex: 1;*/
+  /*display: flex;*/
+  /*flex-direction: column;*/
+  /*overflow: hidden;*/
 }
 
 .panel > .panel-content > .tab-view-container > .tab {
-  flex: 2;
-  flex-direction: column;
-  overflow: hidden;
+  /*this is broken because main is in the way*/
+  /*flex: 2;*/
+  /*flex-direction: column;*/
+  /*overflow: hidden;*/
 }
 
 .panel > .panel-content > .tab-view-container > .tab.selected {
-  display: flex;
+  /*this is broken because main is in the way*/
+  /*display: flex;*/
 }
 
 /* Notifications displayed over tabs */
@@ -105,6 +107,9 @@ body {
   background-color: #fbfbfb;
   background-size: 36px 36px;
   background-repeat: no-repeat;
+  flex: 1;
+  display: flex;
+  flex-flow: column nowrap;
 }
 
 .tab-view {
@@ -224,10 +229,12 @@ html[dir="rtl"] .tab-view li:nth-child(2).selected ~ .slide-bar {
 
 .tab {
   display: none;
+  flex: 1;
 }
 
 .tab.selected {
-  display: block;
+  display: flex;
+  flex-flow: column nowrap;
 }
 
 /* Content area and input fields */
