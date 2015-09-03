@@ -2096,5 +2096,14 @@ BluetoothHfpManager::IsNrecEnabled()
   return HFP_NREC_STARTED;
 }
 
+bool
+BluetoothHfpManager::IsWbsEnabled()
+{
+  // Add this function and return default value to avoid build break
+  // since WBS function isn't developed in bluez yet.
+  // Please see Bug 911635 for more information.
+  return HFP_WBS_NONE;
+}
+
 NS_IMPL_ISUPPORTS(BluetoothHfpManager, nsIObserver)
 

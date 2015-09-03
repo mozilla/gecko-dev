@@ -111,6 +111,12 @@ BluetoothHfpManager::IsNrecEnabled()
   return mNrecEnabled;
 }
 
+bool
+BluetoothHfpManager::IsWbsEnabled()
+{
+  return mWbsEnabled;
+}
+
 /**
  * Non-inherited functions
  */

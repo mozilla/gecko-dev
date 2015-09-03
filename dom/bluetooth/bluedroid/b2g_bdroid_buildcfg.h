@@ -35,6 +35,7 @@
                              BTA_AG_FEAT_ECNR | \
                              BTA_AG_FEAT_REJECT | \
                              BTA_AG_FEAT_ECS    | \
+                             BTA_AG_FEAT_CODEC  | \
                              BTA_AG_FEAT_EXTERR)
 
 /* CHLD values */
