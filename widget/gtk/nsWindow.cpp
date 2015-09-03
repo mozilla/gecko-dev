@@ -125,6 +125,7 @@ using namespace mozilla::widget;
 #include "nsWindow.h"
 
 #include <dlfcn.h>
+#include <sys/time.h>
 
 #include "mozilla/layers/APZCTreeManager.h"
 
@@ -276,21 +277,28 @@ namespace mozilla {
 class CurrentX11TimeGetter
 {
 public:
-    explicit CurrentX11TimeGetter(GdkWindow* aWindow)
+    explicit CurrentX11TimeGetter(GdkWindow* aWindow, bool aIsX11Display)
         : mWindow(aWindow)
+        , mIsX11Display(aIsX11Display)
         , mAsyncUpdateStart()
     {
     }
 
     guint32 GetCurrentTime() const
     {
-        return gdk_x11_get_server_time(mWindow);
+        if (mIsX11Display) {
+            return gdk_x11_get_server_time(mWindow);
+        } else {
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+            return (guint32) (tv.tv_sec * 1000 + tv.tv_usec / 1000 ); // microseconds to milliseconds
+        }
     }
 
     void GetTimeAsyncForPossibleBackwardsSkew(const TimeStamp& aNow)
     {
         // Check for in-flight request
-        if (!mAsyncUpdateStart.IsNull()) {
+        if (!mIsX11Display || !mAsyncUpdateStart.IsNull()) {
             return;
         }
         mAsyncUpdateStart = aNow;
@@ -307,6 +315,9 @@ public:
     gboolean PropertyNotifyHandler(GtkWidget* aWidget,
                                    GdkEventProperty* aEvent)
     {
+        if (!mIsX11Display)
+            return FALSE;
+
         if (aEvent->atom !=
             gdk_x11_xatom_to_atom(TimeStampPropAtom())) {
             return FALSE;
@@ -329,6 +340,7 @@ private:
     // This is safe because this class is stored as a member of mWindow and
     // won't outlive it.
     GdkWindow* mWindow;
+    bool       mIsX11Display;
     TimeStamp  mAsyncUpdateStart;
 };
 
@@ -2958,7 +2970,7 @@ mozilla::CurrentX11TimeGetter*
 nsWindow::GetCurrentTimeGetter() {
     MOZ_ASSERT(mGdkWindow, "Expected mGdkWindow to be set");
     if (MOZ_UNLIKELY(!mCurrentTimeGetter)) {
-        mCurrentTimeGetter = new CurrentX11TimeGetter(mGdkWindow);
+        mCurrentTimeGetter = new CurrentX11TimeGetter(mGdkWindow, mIsX11Display);
     }
     return mCurrentTimeGetter;
 }
