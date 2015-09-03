@@ -127,7 +127,7 @@
   <project name="platform_prebuilts_qemu-kernel" path="prebuilts/qemu-kernel" remote="b2g" revision="2c0d193349c55337e37196a7f2d5cef37753ed3e"/>
   <project name="platform/prebuilts/sdk" path="prebuilts/sdk" revision="61a10cbd19d6b7fc052a8cb92dfa1b37b93754f3"/>
   <project name="platform/prebuilts/tools" path="prebuilts/tools" revision="9e892a67a01671f312c76b0880dedaa6ba478148"/>
-  <project name="platform_system_bluetoothd" path="system/bluetoothd" remote="b2g" revision="4b8294f1a07833fefe5f99c92be4b356e783e99e"/>
+  <project name="platform_system_bluetoothd" path="system/bluetoothd" remote="b2g" revision="55665894465a46a82ab15a73883f66b46ed26f70"/>
   <project name="platform/system/extras" path="system/extras" revision="47fa016e2248b80aebd5928402c7409f8e0ca64e"/>
   <project name="platform_system_libfdio" path="system/libfdio" remote="b2g" revision="4f7546c61ce97257d5122fe2021625d21c4f4c60"/>
   <project name="platform/system/media" path="system/media" revision="70bfebc66d9c6a4c614a8c7efde90e8e7e1d8641"/>
