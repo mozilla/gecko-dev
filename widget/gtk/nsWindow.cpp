@@ -289,9 +289,7 @@ public:
         if (mIsX11Display) {
             return gdk_x11_get_server_time(mWindow);
         } else {
-            struct timeval tv;
-            gettimeofday(&tv, NULL);
-            return (guint32) (tv.tv_sec * 1000 + tv.tv_usec / 1000 ); // microseconds to milliseconds
+            return g_get_monotonic_time()/1000;
         }
     }
 
