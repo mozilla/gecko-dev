@@ -1,3 +1,17 @@
+This is an experimental patch set for Wayland in latest Firefox.
+
+Build instruction (Fedora Linux version 22,23,Rawhide):
+
+1) git pull https://github.com/stransky/gecko-dev src
+2) cd src; ./mach build
+3) cd objdir/dist/bin
+4) ./firefox -ProfileManager (create your custom profile)
+5) ./firefox -P your_profile -no-remote
+
+See https://bugzilla.redhat.com/show_bug.cgi?id=1054334 for details.
+
+
+
 An explanation of the Mozilla Source Code Directory Structure and links to
 project pages with documentation can be found at:
 
