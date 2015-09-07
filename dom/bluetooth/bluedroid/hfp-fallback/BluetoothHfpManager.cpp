@@ -105,6 +105,12 @@ BluetoothHfpManager::IsScoConnected()
   return false;
 }
 
+bool
+BluetoothHfpManager::IsNrecEnabled()
+{
+  return mNrecEnabled;
+}
+
 /**
  * Non-inherited functions
  */
