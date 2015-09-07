@@ -1356,6 +1356,10 @@ nsWindow::GetLastUserInputTime()
     // drags, WM_DELETE_WINDOW delete events, but not usually mouse motion nor
     // button and key releases.  Therefore use the most recent of
     // gdk_x11_display_get_user_time and the last time that we have seen.
+    GdkDisplay *display = gdk_display_get_default();
+    if (!GDK_IS_X11_DISPLAY(display))
+        return sLastUserInputTime;
+
     guint32 timestamp =
             gdk_x11_display_get_user_time(gdk_display_get_default());
     if (sLastUserInputTime != GDK_CURRENT_TIME &&
@@ -1915,9 +1919,8 @@ nsWindow::HasPendingInputEvent()
     bool haveEvent = false;
 #ifdef MOZ_X11
     XEvent ev;
-    GdkDisplay* gdkDisplay = gdk_display_get_default();
     if (mIsX11Display) {
-        Display *display = GDK_DISPLAY_XDISPLAY(gdkDisplay);
+        Display *display = GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
         haveEvent =
             XCheckMaskEvent(display,
                             KeyPressMask | KeyReleaseMask | ButtonPressMask |
