@@ -227,15 +227,15 @@ SampleIterator::GetNextKeyframeTime()
   return -1;
 }
 
-Index::Index(const nsTArray<MediaSource::Indice>& aIndex,
+Index::Index(const stagefright::Vector<MediaSource::Indice>& aIndex,
              Stream* aSource, uint32_t aTrackId, bool aIsAudio, Monitor* aMonitor)
   : mSource(aSource)
   , mMonitor(aMonitor)
 {
-  if (aIndex.IsEmpty()) {
+  if (aIndex.isEmpty()) {
     mMoofParser = new MoofParser(aSource, aTrackId, aIsAudio, aMonitor);
   } else {
-    for (size_t i = 0; i < aIndex.Length(); i++) {
+    for (size_t i = 0; i < aIndex.size(); i++) {
       const MediaSource::Indice& indice = aIndex[i];
       Sample sample;
       sample.mByteRange = MediaByteRange(indice.start_offset,
