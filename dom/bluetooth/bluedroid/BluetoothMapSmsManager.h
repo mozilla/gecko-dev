@@ -12,6 +12,7 @@
 #include "BluetoothProfileManagerBase.h"
 #include "BluetoothSocketObserver.h"
 #include "mozilla/ipc/SocketBase.h"
+#include "mozilla/dom/bluetooth/BluetoothTypes.h"
 
 BEGIN_BLUETOOTH_NAMESPACE
 
@@ -96,6 +97,10 @@ private:
   void HandleEventReport(const ObexHeaderSet& aHeader);
   void HandleMessageStatus(const ObexHeaderSet& aHeader);
   void HandleSmsMmsFolderListing(const ObexHeaderSet& aHeader);
+  void HandleSmsMmsMsgListing(const ObexHeaderSet& aHeader);
+  void AppendBtNamedValueByTagId(const ObexHeaderSet& aHeader,
+    InfallibleTArray<BluetoothNamedValue>& aValues,
+    const Map::AppParametersTagId aTagId);
   void SendMasObexData(uint8_t* aData, uint8_t aOpcode, int aSize);
   void SendMnsObexData(uint8_t* aData, uint8_t aOpcode, int aSize);
 
