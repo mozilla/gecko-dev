@@ -348,8 +348,8 @@ BluetoothMapSmsManager::MasDataHandler(UnixSocketRawData* aMessage)
           HandleSmsMmsFolderListing(pktHeaders);
         } else if (type.EqualsLiteral("x-bt/MAP-msg-listing")) {
           HandleSmsMmsMsgListing(pktHeaders);
-        } else if (type.EqualsLiteral("x-bt/message"))  {
-          // TODO: Implement this feature in Bug 1166679
+        } else if (type.EqualsLiteral("x-bt/message")) {
+          HandleSmsMmsGetMessage(pktHeaders);
         } else {
           BT_LOGR("Unknown MAP request type: %s",
             NS_ConvertUTF16toUTF8(type).get());
@@ -763,7 +763,8 @@ BluetoothMapSmsManager::AppendBtNamedValueByTagId(
       // convert big endian to little endian
       filterReadStatus = (filterReadStatus >> 8) | (filterReadStatus << 8);
       BT_LOGR("msg filter read status : %d", filterReadStatus);
-      AppendNamedValue(aValues, "filterReadStatus", static_cast<uint32_t>(filterReadStatus));
+      AppendNamedValue(aValues, "filterReadStatus",
+                       static_cast<uint32_t>(filterReadStatus));
       break;
     }
     case Map::AppParametersTagId::FilterRecipient: {
@@ -783,7 +784,25 @@ BluetoothMapSmsManager::AppendBtNamedValueByTagId(
       // convert big endian to little endian
       filterPriority = (filterPriority >> 8) | (filterPriority << 8);
       BT_LOGR("msg filter priority: %d", filterPriority);
-      AppendNamedValue(aValues, "filterPriority", static_cast<uint32_t>(filterPriority));
+      AppendNamedValue(aValues, "filterPriority",
+                       static_cast<uint32_t>(filterPriority));
+      break;
+    }
+    case Map::AppParametersTagId::Attachment: {
+      uint8_t attachment = *((uint8_t *)buf);
+      // convert big endian to little endian
+      attachment = (attachment >> 8) | (attachment << 8);
+      BT_LOGR("msg filter attachment: %d", attachment);
+      AppendNamedValue(aValues, "attachment",
+                       static_cast<uint32_t>(attachment));
+      break;
+    }
+    case Map::AppParametersTagId::Charset: {
+      uint8_t charset = *((uint8_t *)buf);
+      // convert big endian to little endian
+      charset = (charset >> 8) | (charset << 8);
+      BT_LOGR("msg filter charset: %d", charset);
+      AppendNamedValue(aValues, "charset", static_cast<uint32_t>(charset));
       break;
     }
     default:
@@ -821,6 +840,30 @@ BluetoothMapSmsManager::HandleSmsMmsMsgListing(const ObexHeaderSet& aHeader)
 
   bs->DistributeSignal(
     BluetoothSignal(NS_LITERAL_STRING(MAP_MESSAGES_LISTING_REQ_ID),
+                    NS_LITERAL_STRING(KEY_ADAPTER),
+                    data));
+}
+
+void
+BluetoothMapSmsManager::HandleSmsMmsGetMessage(const ObexHeaderSet& aHeader)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  BluetoothService* bs = BluetoothService::Get();
+  NS_ENSURE_TRUE_VOID(bs);
+
+  InfallibleTArray<BluetoothNamedValue> data;
+  nsString name;
+  aHeader.GetName(name);
+  AppendNamedValue(data, "handle", name);
+
+  AppendBtNamedValueByTagId(aHeader, data,
+                            Map::AppParametersTagId::Attachment);
+  AppendBtNamedValueByTagId(aHeader, data,
+                            Map::AppParametersTagId::Charset);
+
+  bs->DistributeSignal(
+    BluetoothSignal(NS_LITERAL_STRING(MAP_GET_MESSAGE_REQ_ID),
                     NS_LITERAL_STRING(KEY_ADAPTER),
                     data));
 }
