@@ -331,7 +331,7 @@ BluetoothMapSmsManager::MasDataHandler(UnixSocketRawData* aMessage)
         } else if (type.EqualsLiteral("x-bt/MAP-event-report")) {
           HandleEventReport(pktHeaders);
         } else if (type.EqualsLiteral("x-bt/messageStatus")) {
-          HandleMessageStatus(pktHeaders);
+          HandleSetMessageStatus(pktHeaders);
         }
       }
       break;
@@ -805,6 +805,24 @@ BluetoothMapSmsManager::AppendBtNamedValueByTagId(
       AppendNamedValue(aValues, "charset", static_cast<uint32_t>(charset));
       break;
     }
+    case Map::AppParametersTagId::StatusIndicator: {
+      uint8_t statusIndicator = *((uint8_t *)buf);
+      // convert big endian to little endian
+      statusIndicator = (statusIndicator >> 8) | (statusIndicator << 8);
+      BT_LOGR("msg filter statusIndicator: %d", statusIndicator);
+      AppendNamedValue(aValues, "statusIndicator",
+                       static_cast<uint32_t>(statusIndicator));
+      break;
+    }
+    case Map::AppParametersTagId::StatusValue: {
+      uint8_t statusValue = *((uint8_t *)buf);
+      // convert big endian to little endian
+      statusValue = (statusValue >> 8) | (statusValue << 8);
+      BT_LOGR("msg filter statusvalue: %d", statusValue);
+      AppendNamedValue(aValues, "statusValue",
+                       static_cast<uint32_t>(statusValue));
+      break;
+    }
     default:
       BT_LOGR("Unsupported AppParameterTag: %x", aTagId);
       break;
@@ -943,9 +961,30 @@ BluetoothMapSmsManager::HandleEventReport(const ObexHeaderSet& aHeader)
 }
 
 void
-BluetoothMapSmsManager::HandleMessageStatus(const ObexHeaderSet& aHeader)
+BluetoothMapSmsManager::HandleSetMessageStatus(const ObexHeaderSet& aHeader)
 {
-  // TODO: Handle MessageStatus update in Bug 1186836
+  MOZ_ASSERT(NS_IsMainThread());
+
+  BluetoothService* bs = BluetoothService::Get();
+  NS_ENSURE_TRUE_VOID(bs);
+
+  InfallibleTArray<BluetoothNamedValue> data;
+  nsString name;
+  aHeader.GetName(name);
+  /* The Name header shall contain the handle of the message the status of which
+   * shall be modified. The handle shall be represented by a null-terminated
+   * Unicode text string with 16 hexadecimal digits.
+   */
+  AppendNamedValue(data, "handle", name);
+
+  AppendBtNamedValueByTagId(aHeader, data,
+                            Map::AppParametersTagId::StatusIndicator);
+  AppendBtNamedValueByTagId(aHeader, data,
+                            Map::AppParametersTagId::StatusValue);
+
+  bs->DistributeSignal(
+    BluetoothSignal(NS_LITERAL_STRING(MAP_SET_MESSAGE_STATUS_REQ_ID),
+                    NS_LITERAL_STRING(KEY_ADAPTER), data));
 }
 
 void
