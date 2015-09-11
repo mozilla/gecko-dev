@@ -60,6 +60,8 @@ if CONFIG['MOZ_B2G_BT']:
                 'bluedroid/BluetoothHALHelpers.cpp',
                 'bluedroid/BluetoothHALInterface.cpp',
                 'bluedroid/BluetoothHandsfreeHALInterface.cpp',
+                'bluedroid/BluetoothMapFolder.cpp',
+                'bluedroid/BluetoothMapSmsManager.cpp',
                 'bluedroid/BluetoothOppManager.cpp',
                 'bluedroid/BluetoothPbapManager.cpp',
                 'bluedroid/BluetoothServiceBluedroid.cpp',

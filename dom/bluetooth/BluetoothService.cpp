@@ -17,6 +17,7 @@
 #include "BluetoothParent.h"
 #if defined(MOZ_B2G_BT_BLUEDROID)
 #include "BluetoothPbapManager.h"
+#include "BluetoothMapSmsManager.h"
 #endif
 #include "BluetoothReplyRunnable.h"
 #include "BluetoothServiceChildProcess.h"
@@ -414,6 +415,7 @@ BluetoothService::StopBluetooth(bool aIsStartup)
     BluetoothOppManager::Get(),
 #if defined(MOZ_B2G_BT_BLUEDROID)
     BluetoothPbapManager::Get(),
+    BluetoothMapSmsManager::Get(),
 #endif
     BluetoothHidManager::Get()
   };
@@ -431,7 +433,8 @@ BluetoothService::StopBluetooth(bool aIsStartup)
     if (sProfiles[i]->IsConnected()) {
       sProfiles[i]->Disconnect(nullptr);
     } else if (!profileName.EqualsLiteral("OPP") &&
-               !profileName.EqualsLiteral("PBAP")) {
+               !profileName.EqualsLiteral("PBAP") &&
+               !profileName.EqualsLiteral("MapSms")) {
       sProfiles[i]->Reset();
     }
   }

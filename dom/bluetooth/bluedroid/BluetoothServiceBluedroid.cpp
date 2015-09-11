@@ -20,6 +20,7 @@
 
 #include "BluetoothA2dpManager.h"
 #include "BluetoothHfpManager.h"
+#include "BluetoothMapSmsManager.h"
 #include "BluetoothOppManager.h"
 #include "BluetoothPbapManager.h"
 #include "BluetoothProfileController.h"
@@ -1399,6 +1400,11 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
     BluetoothPbapManager* pbap = BluetoothPbapManager::Get();
     if (!pbap || !pbap->Listen()) {
       BT_LOGR("Fail to start BluetoothPbapManager listening");
+    }
+
+    BluetoothMapSmsManager* map = BluetoothMapSmsManager::Get();
+    if (!map || !map->Listen()) {
+      BT_LOGR("Fail to start BluetoothMapSmsManager listening");
     }
   }
   // After ProfileManagers deinit and cleanup, now restarts bluetooth daemon
