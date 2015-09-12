@@ -3928,7 +3928,7 @@ void
 nsDocument::DeleteShell()
 {
   mExternalResourceMap.HideViewers();
-  if (IsEventHandlingEnabled()) {
+  if (IsEventHandlingEnabled() && !AnimationsPaused()) {
     RevokeAnimationFrameNotifications();
   }
 
@@ -4687,7 +4687,7 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
     // our layout history state now.
     mLayoutHistoryState = GetLayoutHistoryState();
 
-    if (mPresShell && !EventHandlingSuppressed()) {
+    if (mPresShell && !EventHandlingSuppressed() && !AnimationsPaused()) {
       RevokeAnimationFrameNotifications();
     }
 
@@ -10276,7 +10276,8 @@ nsIDocument::ScheduleFrameRequestCallback(const FrameRequestCallbackHolder& aCal
   DebugOnly<FrameRequest*> request =
     mFrameRequestCallbacks.AppendElement(FrameRequest(aCallback, newHandle));
   NS_ASSERTION(request, "This is supposed to be infallible!");
-  if (!alreadyRegistered && mPresShell && IsEventHandlingEnabled()) {
+  if (!alreadyRegistered && mPresShell && IsEventHandlingEnabled() &&
+      !AnimationsPaused()) {
     mPresShell->GetPresContext()->RefreshDriver()->
       ScheduleFrameRequestCallbacks(this);
   }
