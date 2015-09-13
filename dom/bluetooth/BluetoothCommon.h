@@ -125,22 +125,12 @@ extern bool gBluetoothDebugFlag;
 #define PULL_VCARD_LISTING_REQ_ID            "pullvcardlistingreq"
 
 /**
- * When receiving a MAP request of 'messages listing' from a remote device,
- * we'll dispatch an event.
+ * When receiving a MAP request from a remote device, we'll dispatch an event.
  */
 #define MAP_MESSAGES_LISTING_REQ_ID          "mapmessageslistingreq"
-
-/**
- * When receiving a MAP request of 'get message' from a remote device,
- * we'll dispatch an event.
- */
 #define MAP_GET_MESSAGE_REQ_ID               "mapgetmessagereq"
-
-/**
- * When receiving a MAP request of 'set message' from a remote device,
- * we'll dispatch an event.
- */
 #define MAP_SET_MESSAGE_STATUS_REQ_ID        "mapsetmessagestatusreq"
+#define MAP_PUSH_MESSAGE_REQ_ID              "mappushmessagereq"
 
 // Bluetooth address format: xx:xx:xx:xx:xx:xx (or xx_xx_xx_xx_xx_xx)
 #define BLUETOOTH_ADDRESS_LENGTH 17
