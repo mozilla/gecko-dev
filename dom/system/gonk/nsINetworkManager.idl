@@ -9,7 +9,7 @@ interface nsIWifiTetheringCallback;
 /**
  * Information about networks that is exposed to network manager API consumers.
  */
-[scriptable, uuid(3b20aecc-1f9e-4b6e-99f5-ce3043ddd5c5)]
+[scriptable, uuid(68d47322-347f-4a24-baa6-9bffddf1de90)]
 interface nsINetworkInterface : nsISupports
 {
   const long NETWORK_STATE_UNKNOWN = -1;
@@ -32,6 +32,8 @@ interface nsINetworkInterface : nsISupports
   const long REASON_RADIO_SHUTDOWN    = 1;
   const long REASON_APN_CHANGED       = 2;
   const long REASON_SERVICEID_CHANGED = 3;
+  const long REASON_RETRY_FAILED      = 4;
+  const long REASON_PERMANENT_FAILURE = 5;
 
   /**
    * Current network state, one of the NETWORK_STATE_* constants.

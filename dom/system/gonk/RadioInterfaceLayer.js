@@ -1235,6 +1235,13 @@ DataConnectionHandler.prototype = {
     networkInterface.connect();
   },
 
+  handleDataRegistrationChange: function() {
+    for (let i = 0; i < this._dataCalls.length; i++) {
+      let datacall = this._dataCalls[i];
+      datacall.dataRegistrationChanged();
+    }
+  },
+
   _isMobileNetworkType: function(networkType) {
     if (networkType === NETWORK_TYPE_MOBILE ||
         networkType === NETWORK_TYPE_MOBILE_MMS ||
@@ -1878,6 +1885,7 @@ RadioInterface.prototype = {
                                                           message);
         if (message[RIL.NETWORK_INFO_DATA_REGISTRATION_STATE]) {
           connHandler.updateRILNetworkInterface();
+          connHandler.handleDataRegistrationChange();
         }
         break;
       case "networkselectionmodechange":
@@ -1890,6 +1898,7 @@ RadioInterface.prototype = {
       case "dataregistrationstatechange":
         gMobileConnectionService.notifyDataInfoChanged(this.clientId, message);
         connHandler.updateRILNetworkInterface();
+        connHandler.handleDataRegistrationChange();
         break;
       case "signalstrengthchange":
         gMobileConnectionService.notifySignalStrengthChanged(this.clientId,
@@ -2662,6 +2671,20 @@ DataCall.prototype = {
   // Holds the authentication type sent to ril worker.
   chappap: null,
 
+  dataRegistrationChanged: function() {
+    if (this.requestedNetworkIfaces.length === 0 ||
+        this.state != RIL.GECKO_NETWORK_STATE_DISCONNECTED) {
+      return;
+    }
+
+    if (this.timer) {
+      this.timer.cancel();
+    }
+
+    if (DEBUG) this.debug("Setup data call on dataRegistrationChanged.")
+    this.setup();
+  },
+
   dataCallError: function(message) {
     if (DEBUG) {
       this.debug("Data call error on APN " + message.apn + ": " +
@@ -2679,6 +2702,12 @@ DataCall.prototype = {
     if (message.suggestedRetryTime === INT32_MAX ||
         this.isPermanentFail(message.status, message.errorMsg)) {
       if (DEBUG) this.debug("Data call error: no retry needed.");
+
+      for (let i = 0; i < this.requestedNetworkIfaces.length; i++) {
+        let networkInterface = this.requestedNetworkIfaces[i];
+        networkInterface.setReason(RIL.DATACALL_PERMANENT_FAILURE);
+        networkInterface.notifyRILNetworkInterface();
+      }
       return;
     }
 
@@ -2951,6 +2980,12 @@ DataCall.prototype = {
       this.apnRetryCounter = 0;
       this.timer = null;
       if (DEBUG) this.debug("Too many APN Connection retries - STOP retrying");
+
+      for (let i = 0; i < this.requestedNetworkIfaces.length; i++) {
+        let networkInterface = this.requestedNetworkIfaces[i];
+        networkInterface.setReason(RIL.DATACALL_RETRY_FAILED);
+        networkInterface.notifyRILNetworkInterface();
+      }
       return;
     }
 
@@ -3178,6 +3213,10 @@ RILNetworkInterface.prototype = {
 
   get connected() {
     return this.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
+  },
+
+  setReason: function(aReason) {
+    this.reason = aReason;
   },
 
   notifyRILNetworkInterface: function() {
