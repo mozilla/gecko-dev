@@ -331,9 +331,7 @@ BluetoothMapSmsManager::MasDataHandler(UnixSocketRawData* aMessage)
         } else if (type.EqualsLiteral("x-bt/MAP-event-report")) {
           HandleEventReport(pktHeaders);
         } else if (type.EqualsLiteral("x-bt/messageStatus")) {
-          HandleSetMessageStatus(pktHeaders);
-        } else if (type.EqualsLiteral("x-bt/message")) {
-          HandleSmsMmsPushMessage(pktHeaders);
+          HandleMessageStatus(pktHeaders);
         }
       }
       break;
@@ -350,8 +348,8 @@ BluetoothMapSmsManager::MasDataHandler(UnixSocketRawData* aMessage)
           HandleSmsMmsFolderListing(pktHeaders);
         } else if (type.EqualsLiteral("x-bt/MAP-msg-listing")) {
           HandleSmsMmsMsgListing(pktHeaders);
-        } else if (type.EqualsLiteral("x-bt/message")) {
-          HandleSmsMmsGetMessage(pktHeaders);
+        } else if (type.EqualsLiteral("x-bt/message"))  {
+          // TODO: Implement this feature in Bug 1166679
         } else {
           BT_LOGR("Unknown MAP request type: %s",
             NS_ConvertUTF16toUTF8(type).get());
@@ -765,8 +763,7 @@ BluetoothMapSmsManager::AppendBtNamedValueByTagId(
       // convert big endian to little endian
       filterReadStatus = (filterReadStatus >> 8) | (filterReadStatus << 8);
       BT_LOGR("msg filter read status : %d", filterReadStatus);
-      AppendNamedValue(aValues, "filterReadStatus",
-                       static_cast<uint32_t>(filterReadStatus));
+      AppendNamedValue(aValues, "filterReadStatus", static_cast<uint32_t>(filterReadStatus));
       break;
     }
     case Map::AppParametersTagId::FilterRecipient: {
@@ -786,60 +783,7 @@ BluetoothMapSmsManager::AppendBtNamedValueByTagId(
       // convert big endian to little endian
       filterPriority = (filterPriority >> 8) | (filterPriority << 8);
       BT_LOGR("msg filter priority: %d", filterPriority);
-      AppendNamedValue(aValues, "filterPriority",
-                       static_cast<uint32_t>(filterPriority));
-      break;
-    }
-    case Map::AppParametersTagId::Attachment: {
-      uint8_t attachment = *((uint8_t *)buf);
-      // convert big endian to little endian
-      attachment = (attachment >> 8) | (attachment << 8);
-      BT_LOGR("msg filter attachment: %d", attachment);
-      AppendNamedValue(aValues, "attachment",
-                       static_cast<uint32_t>(attachment));
-      break;
-    }
-    case Map::AppParametersTagId::Charset: {
-      uint8_t charset = *((uint8_t *)buf);
-      // convert big endian to little endian
-      charset = (charset >> 8) | (charset << 8);
-      BT_LOGR("msg filter charset: %d", charset);
-      AppendNamedValue(aValues, "charset", static_cast<uint32_t>(charset));
-      break;
-    }
-    case Map::AppParametersTagId::StatusIndicator: {
-      uint8_t statusIndicator = *((uint8_t *)buf);
-      // convert big endian to little endian
-      statusIndicator = (statusIndicator >> 8) | (statusIndicator << 8);
-      BT_LOGR("msg filter statusIndicator: %d", statusIndicator);
-      AppendNamedValue(aValues, "statusIndicator",
-                       static_cast<uint32_t>(statusIndicator));
-      break;
-    }
-    case Map::AppParametersTagId::StatusValue: {
-      uint8_t statusValue = *((uint8_t *)buf);
-      // convert big endian to little endian
-      statusValue = (statusValue >> 8) | (statusValue << 8);
-      BT_LOGR("msg filter statusvalue: %d", statusValue);
-      AppendNamedValue(aValues, "statusValue",
-                       static_cast<uint32_t>(statusValue));
-      break;
-    }
-    case Map::AppParametersTagId::Transparent: {
-      uint8_t transparent = *((uint8_t *)buf);
-      // convert big endian to little endian
-      transparent = (transparent >> 8) | (transparent << 8);
-      BT_LOGR("msg filter statusvalue: %d", transparent);
-      AppendNamedValue(aValues, "transparent",
-                       static_cast<uint32_t>(transparent));
-      break;
-    }
-    case Map::AppParametersTagId::Retry: {
-      uint8_t retry = *((uint8_t *)buf);
-      // convert big endian to little endian
-      retry = (retry >> 8) | (retry << 8);
-      BT_LOGR("msg filter retry: %d", retry);
-      AppendNamedValue(aValues, "retry", static_cast<uint32_t>(retry));
+      AppendNamedValue(aValues, "filterPriority", static_cast<uint32_t>(filterPriority));
       break;
     }
     default:
@@ -877,30 +821,6 @@ BluetoothMapSmsManager::HandleSmsMmsMsgListing(const ObexHeaderSet& aHeader)
 
   bs->DistributeSignal(
     BluetoothSignal(NS_LITERAL_STRING(MAP_MESSAGES_LISTING_REQ_ID),
-                    NS_LITERAL_STRING(KEY_ADAPTER),
-                    data));
-}
-
-void
-BluetoothMapSmsManager::HandleSmsMmsGetMessage(const ObexHeaderSet& aHeader)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
-  InfallibleTArray<BluetoothNamedValue> data;
-  nsString name;
-  aHeader.GetName(name);
-  AppendNamedValue(data, "handle", name);
-
-  AppendBtNamedValueByTagId(aHeader, data,
-                            Map::AppParametersTagId::Attachment);
-  AppendBtNamedValueByTagId(aHeader, data,
-                            Map::AppParametersTagId::Charset);
-
-  bs->DistributeSignal(
-    BluetoothSignal(NS_LITERAL_STRING(MAP_GET_MESSAGE_REQ_ID),
                     NS_LITERAL_STRING(KEY_ADAPTER),
                     data));
 }
@@ -980,52 +900,9 @@ BluetoothMapSmsManager::HandleEventReport(const ObexHeaderSet& aHeader)
 }
 
 void
-BluetoothMapSmsManager::HandleSetMessageStatus(const ObexHeaderSet& aHeader)
+BluetoothMapSmsManager::HandleMessageStatus(const ObexHeaderSet& aHeader)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
-  InfallibleTArray<BluetoothNamedValue> data;
-  nsString name;
-  aHeader.GetName(name);
-  /* The Name header shall contain the handle of the message the status of which
-   * shall be modified. The handle shall be represented by a null-terminated
-   * Unicode text string with 16 hexadecimal digits.
-   */
-  AppendNamedValue(data, "handle", name);
-
-  AppendBtNamedValueByTagId(aHeader, data,
-                            Map::AppParametersTagId::StatusIndicator);
-  AppendBtNamedValueByTagId(aHeader, data,
-                            Map::AppParametersTagId::StatusValue);
-
-  bs->DistributeSignal(
-    BluetoothSignal(NS_LITERAL_STRING(MAP_SET_MESSAGE_STATUS_REQ_ID),
-                    NS_LITERAL_STRING(KEY_ADAPTER), data));
-}
-
-void
-BluetoothMapSmsManager::HandleSmsMmsPushMessage(const ObexHeaderSet& aHeader)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
-  InfallibleTArray<BluetoothNamedValue> data;
-  nsString name;
-  aHeader.GetName(name);
-  AppendNamedValue(data, "folderName", name);
-
-  AppendBtNamedValueByTagId(aHeader, data,
-                            Map::AppParametersTagId::Transparent);
-  AppendBtNamedValueByTagId(aHeader, data, Map::AppParametersTagId::Retry);
-  AppendBtNamedValueByTagId(aHeader, data, Map::AppParametersTagId::Charset);
-
-  bs->DistributeSignal(NS_LITERAL_STRING(MAP_PUSH_MESSAGE_REQ_ID),
-                       NS_LITERAL_STRING(KEY_ADAPTER), data);
+  // TODO: Handle MessageStatus update in Bug 1186836
 }
 
 void
