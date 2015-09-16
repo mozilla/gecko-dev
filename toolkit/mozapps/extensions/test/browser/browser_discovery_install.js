@@ -4,23 +4,23 @@
 
 // Tests that the discovery view can install add-ons correctly
 
-const MAIN_URL = "https://example.com/" + RELATIVE_DIR + "discovery_install.html";
-const GOOD_FRAMED_URL = "https://example.com/" + RELATIVE_DIR + "discovery_frame.html";
-const BAD_FRAMED_URL = "https://example.org/" + RELATIVE_DIR + "discovery_frame.html";
+const MAIN_URL = "https://test1.example.com/" + RELATIVE_DIR + "discovery_install.html";
+const GOOD_FRAMED_URL = "https://test1.example.com/" + RELATIVE_DIR + "discovery_frame.html";
+const BAD_FRAMED_URL = "https://test2.example.com/" + RELATIVE_DIR + "discovery_frame.html";
 
 // Temporarily enable caching
 Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
 // Allow SSL from non-built-in certs
 Services.prefs.setBoolPref("extensions.install.requireBuiltInCerts", false);
 // Allow installs from the test site
-Services.perms.add(NetUtil.newURI("https://example.com/"), "install",
+Services.perms.add(NetUtil.newURI("https://test1.example.com/"), "install",
                    Ci.nsIPermissionManager.ALLOW_ACTION);
-Services.perms.add(NetUtil.newURI("https://example.org/"), "install",
+Services.perms.add(NetUtil.newURI("https://test2.example.com/"), "install",
                    Ci.nsIPermissionManager.ALLOW_ACTION);
 
 registerCleanupFunction(() => {
-  Services.perms.remove("example.com", "install");
-  Services.perms.remove("example.org", "install");
+  Services.perms.remove("test1.example.com", "install");
+  Services.perms.remove("test2.example.com", "install");
 });
 
 function clickLink(frameLoader, id) {
