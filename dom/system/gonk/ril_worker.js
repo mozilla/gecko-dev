@@ -1455,6 +1455,17 @@ RilObject.prototype = {
   },
 
   /**
+   * Set TTY mode
+   */
+  setTtyMode: function(options) {
+    let Buf = this.context.Buf;
+    Buf.newParcel(REQUEST_SET_TTY_MODE, options);
+    Buf.writeInt32(1);
+    Buf.writeInt32(options.mode);
+    Buf.sendParcel();
+  },
+
+  /**
    * Set the voice privacy mode
    */
   setVoicePrivacyMode: function(options) {
@@ -6611,7 +6622,15 @@ RilObject.prototype[REQUEST_CDMA_QUERY_ROAMING_PREFERENCE] = function REQUEST_CD
   }
   this.sendChromeMessage(options);
 };
-RilObject.prototype[REQUEST_SET_TTY_MODE] = null;
+RilObject.prototype[REQUEST_SET_TTY_MODE] = function REQUEST_SET_TTY_MODE(length, options) {
+  if (options.rilRequestError) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+    this.sendChromeMessage(options);
+    return;
+  }
+
+  this.sendChromeMessage(options);
+};
 RilObject.prototype[REQUEST_QUERY_TTY_MODE] = null;
 RilObject.prototype[REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE] = function REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE(length, options) {
   if (options.rilRequestError) {

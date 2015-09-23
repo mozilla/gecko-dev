@@ -516,6 +516,11 @@ this.CALL_PRESENTATION_PAYPHONE = 3;
 // Call forwarding actions, see TS 27.007 7.11 "mode"
 this.CALL_FORWARD_ACTION_QUERY_STATUS = 2;
 
+this.TTY_MODE_OFF = 0;
+this.TTY_MODE_FULL = 1;
+this.TTY_MODE_HCO = 2;
+this.TTY_MODE_VCO = 3;
+
 // ICC commands, see TS 27.007 +CRSM commands
 this.ICC_COMMAND_SEEK = 0xa2;
 this.ICC_COMMAND_READ_BINARY = 0xb0;
