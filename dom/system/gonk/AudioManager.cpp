@@ -729,6 +729,44 @@ AudioManager::SetPhoneState(int32_t aState)
 }
 
 NS_IMETHODIMP
+AudioManager::GetHeadsetState(int32_t *aHeadsetState)
+{
+  MOZ_ASSERT(aHeadsetState);
+
+  SwitchState state = GetCurrentSwitchState(SWITCH_HEADPHONES);
+  if (state == SWITCH_STATE_HEADSET) {
+    *aHeadsetState = nsIAudioManager::HEADSET_STATE_HEADSET;
+  } else if (state == SWITCH_STATE_HEADPHONE) {
+    *aHeadsetState = nsIAudioManager::HEADSET_STATE_HEADPHONE;
+  } else if (state == SWITCH_STATE_OFF) {
+    *aHeadsetState = nsIAudioManager::HEADSET_STATE_OFF;
+  } else {
+    *aHeadsetState = nsIAudioManager::HEADSET_STATE_UNKNOWN;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+AudioManager::SetTtyMode(uint16_t aTtyMode)
+{
+  String8 cmd;
+  if (aTtyMode == nsIAudioManager::TTY_MODE_FULL) {
+    cmd.setTo("tty_mode=tty_full");
+  } else if (aTtyMode == nsIAudioManager::TTY_MODE_HCO) {
+    cmd.setTo("tty_mode=tty_hco");
+  } else if (aTtyMode == nsIAudioManager::TTY_MODE_VCO) {
+    cmd.setTo("tty_mode=tty_vco");
+  } else {
+    cmd.setTo("tty_mode=tty_off");
+  }
+
+  AudioSystem::setParameters(0, cmd);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 AudioManager::SetForceForUse(int32_t aUsage, int32_t aForce)
 {
   if (static_cast<

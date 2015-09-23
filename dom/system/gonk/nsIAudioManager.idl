@@ -4,7 +4,7 @@
 
 #include "nsISupports.idl"
 
-[scriptable, builtinclass, uuid(df31c280-1ef1-11e5-867f-0800200c9a66)]
+[scriptable, builtinclass, uuid(1e14fa20-61d8-11e5-b0e4-87f6222bf81c)]
 interface nsIAudioManager : nsISupports
 {
   /**
@@ -28,6 +28,33 @@ interface nsIAudioManager : nsISupports
   const long PHONE_STATE_IN_COMMUNICATION = 3;
 
   attribute long phoneState;
+
+  /**
+   * The state of wired headset.
+   */
+  const long HEADSET_STATE_UNKNOWN = -1;
+  const long HEADSET_STATE_OFF = 0;
+  const long HEADSET_STATE_HEADSET = 1;
+  const long HEADSET_STATE_HEADPHONE = 2;
+
+  readonly attribute long headsetState;
+
+  /**
+   * Apply specified TTY mode to Audio System.
+   *
+   * TTY(teletypewriter) is an external commnunication accessary for the
+   * deaf-blind, where
+   * "OFF"  - indicating TTY mode is disabled.
+   * "FULL" - indicating both hearing carryover and voice carryover are enabled.
+   * "HCO"  - indicating hearing carryover is enabled.
+   * "VCO"  - indicating voice carryover is enabled.
+   */
+  const unsigned short TTY_MODE_OFF = 0;
+  const unsigned short TTY_MODE_FULL = 1;
+  const unsigned short TTY_MODE_HCO = 2;
+  const unsigned short TTY_MODE_VCO = 3;
+
+  void setTtyMode(in unsigned short aTtyMode);
 
   /**
    * Configure a particular device ("force") to be used for one of the uses
