@@ -178,6 +178,10 @@ function TelephonyService() {
 
   this._cdmaCallWaitingNumber = null;
 
+  this._headsetState = gAudioService.headsetState;
+  gAudioService.registerListener(this);
+  this._applyTtyMode();
+
   this._updateDebugFlag();
   this.defaultServiceId = this._getDefaultServiceId();
 
@@ -201,6 +205,7 @@ TelephonyService.prototype = {
                                     flags: Ci.nsIClassInfo.SINGLETON}),
   QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephonyService,
                                          Ci.nsIGonkTelephonyService,
+                                         Ci.nsITelephonyAudioListener,
                                          Ci.nsIObserver]),
 
   // The following attributes/functions are used for acquiring/releasing the
@@ -398,6 +403,34 @@ TelephonyService.prototype = {
         return RIL.CLIR_INVOCATION;
       default:
         return RIL.CLIR_DEFAULT;
+    }
+  },
+
+  _appliedTtyMode: nsITelephonyService.TTY_MODE_OFF,
+  _applyTtyMode: function() {
+    // Apply TTY mode preference only if headset is available.
+    // Otherwise, set to OFF.
+    let ttyMode = (this._headsetState == nsITelephonyAudioService.HEADSET_STATE_HEADSET
+                   || this._headsetState == nsITelephonyAudioService.HEADSET_STATE_HEADPHONE)
+      ? gAudioService.ttyMode
+      : nsITelephonyService.TTY_MODE_OFF;
+
+    // Apply only if it's different from what has been applied.
+    if (this._appliedTtyMode == ttyMode) {
+      return;
+    }
+
+    this._appliedTtyMode = ttyMode;
+    gAudioService.applyTtyMode(ttyMode);
+
+    for (let clientId = 0; clientId < this._numClients; clientId++) {
+      this._sendToRilWorker(clientId, "setTtyMode",
+                            { mode: ttyMode }, aResponse => {
+        if (aResponse.errorMsg) {
+          debug("Failed to set TTY Mode, error: " + aResponse.errorMsg);
+          return;
+        }
+      });
     }
   },
 
@@ -1169,6 +1202,7 @@ TelephonyService.prototype = {
 
   set ttyMode(aMode) {
     gAudioService.ttyMode = aMode;
+    this._applyTtyMode();
   },
 
   /**
@@ -1360,6 +1394,16 @@ TelephonyService.prototype = {
   },
 
   /**
+   * nsITelephonyAudioListener interface.
+   */
+
+  _headsetState: nsITelephonyAudioService.HEADSET_STATE_OFF,
+  notifyHeadsetStateChanged: function(aState) {
+    this._headsetState = aState;
+    this._applyTtyMode();
+  },
+
+  /**
    * nsIObserver interface.
    */
 
@@ -1376,7 +1420,7 @@ TelephonyService.prototype = {
       case NS_XPCOM_SHUTDOWN_OBSERVER_ID:
         // Release the CPU wake lock for handling the incoming call.
         this._releaseCallRingWakeLock();
-
+        gAudioService.unregisterListener(this);
         Services.obs.removeObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
         break;
     }
