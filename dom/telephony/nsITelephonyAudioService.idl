@@ -4,12 +4,29 @@
 
 #include "nsISupports.idl"
 
-[scriptable, uuid(2f923467-756d-4825-87ad-b38de3e825fe)]
+[scriptable, uuid(06ee30be-6110-11e5-aec1-0b89ed822adb)]
+interface nsITelephonyAudioListener: nsISupports
+{
+  /**
+   * Notified when the wired headset state changed.
+   *
+   * @param aState
+   *        One of the nsITelephonyAudioService::HEADPHONES_STATE_* values.
+   */
+  void notifyHeadsetStateChanged(in long aState);
+};
+
+[scriptable, uuid(34b9fbe2-61e0-11e5-b0bd-c3cc84fb0d2b)]
 interface nsITelephonyAudioService : nsISupports
 {
   const long PHONE_STATE_NORMAL   = 0;
   const long PHONE_STATE_RINGTONE = 1;
   const long PHONE_STATE_IN_CALL  = 2;
+
+  const long HEADSET_STATE_UNKNOWN = -1;
+  const long HEADSET_STATE_OFF = 0;
+  const long HEADSET_STATE_HEADSET = 1;
+  const long HEADSET_STATE_HEADPHONE = 2;
 
   /**
    * Microphone muted?
@@ -22,11 +39,22 @@ interface nsITelephonyAudioService : nsISupports
   attribute boolean speakerEnabled;
 
   /**
-   * Current TTY mode.
+   * TTY mode preference.
    *
    * One of the nsITelephonyService::TTY_MODE_* values.
    */
   attribute unsigned short ttyMode;
+
+  /**
+   * Current wired headset state.
+   */
+  readonly attribute long headsetState;
+
+  /**
+   * Register/unregister TelephonyAudioService-related updates.
+   */
+  void registerListener(in nsITelephonyAudioListener aListener);
+  void unregisterListener(in nsITelephonyAudioListener aListener);
 
   /**
    * Set the phone's audio mode.
@@ -35,4 +63,12 @@ interface nsITelephonyAudioService : nsISupports
    *        One of the nsITelephonyAudioService::PHONE_STATE_* values.
    */
   void setPhoneState(in long state);
+
+  /**
+   * Apply TTY mode to Audio System.
+   *
+   * @param state
+   *        One of the nsITelephonyService::TTY_MODE_* values.
+   */
+  void applyTtyMode(in unsigned short aMode);
 };

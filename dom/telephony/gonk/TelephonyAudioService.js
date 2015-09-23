@@ -13,7 +13,9 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 const nsIAudioManager = Ci.nsIAudioManager;
 const nsITelephonyAudioService = Ci.nsITelephonyAudioService;
 
+const NS_XPCOM_SHUTDOWN_OBSERVER_ID      = "xpcom-shutdown";
 const NS_PREFBRANCH_PREFCHANGE_TOPIC_ID = "nsPref:changed";
+const HEADSET_STATUS_CHANGED_TOPIC = "headphones-status-changed";
 const kPrefRilDebuggingEnabled = "ril.debugging.enabled";
 const kPrefRilTelephonyTtyMode = "ril.telephony.ttyMode";
 
@@ -63,9 +65,11 @@ XPCOMUtils.defineLazyGetter(this, "gAudioManager", function getAudioManager() {
 });
 
 function TelephonyAudioService() {
+  this._listeners = [];
   this._updateDebugFlag();
   Services.prefs.addObserver(kPrefRilDebuggingEnabled, this, false);
-  Services.prefs.addObserver(kPrefRilTelephonyTtyMode, this, false);
+  Services.obs.addObserver(this, HEADSET_STATUS_CHANGED_TOPIC, false);
+  Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
 }
 TelephonyAudioService.prototype = {
   classDescription: "TelephonyAudioService",
@@ -74,6 +78,11 @@ TelephonyAudioService.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephonyAudioService,
                                          Ci.nsIObserver]),
 
+  _shutdown: function() {
+    Services.obs.removeObserver(this, HEADSET_STATUS_CHANGED_TOPIC);
+    Services.obs.removeObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
+  },
+
   _updateDebugFlag: function() {
     try {
       DEBUG = RIL.DEBUG_RIL ||
@@ -81,15 +90,22 @@ TelephonyAudioService.prototype = {
     } catch (e) {}
   },
 
-  _updateTtyMode: function() {
-    let mode = Ci.nsITelephonyService.TTY_MODE_OFF;
-    try {
-      mode = Services.prefs.getIntPref(kPrefRilTelephonyTtyMode);
-    } catch (e) {
-      if (DEBUG) debug("Error getting preference: " + kPrefRilTelephonyTtyMode);
-    }
+  _listeners: null,
+  _notifyAllListeners: function(aMethodName, aArgs) {
+    let listeners = this._listeners.slice();
+    for (let listener of listeners) {
+      if (this._listeners.indexOf(listener) == -1) {
+        // Listener has been unregistered in previous run.
+        continue;
+      }
 
-    this._ttyMode = mode;
+      let handler = listener[aMethodName];
+      try {
+        handler.apply(listener, aArgs);
+      } catch (e) {
+        debug("listener for " + aMethodName + " threw an exception: " + e);
+      }
+    }
   },
 
   /**
@@ -123,7 +139,12 @@ TelephonyAudioService.prototype = {
 
   get ttyMode() {
     if (this._ttyMode === undefined) {
-      this._updateTtyMode();
+      try {
+        this._ttyMode = Services.prefs.getIntPref(kPrefRilTelephonyTtyMode);
+      } catch (e) {
+        if (DEBUG) debug("Error getting preference: " + kPrefRilTelephonyTtyMode);
+        this._ttyMode = Ci.nsITelephonyService.TTY_MODE_OFF;
+      }
     }
 
     return this._ttyMode;
@@ -132,9 +153,31 @@ TelephonyAudioService.prototype = {
   set ttyMode(aMode) {
     try {
       Services.prefs.setIntPref(kPrefRilTelephonyTtyMode, aMode);
+      this._ttyMode = aMode;
     } catch (e) {
       if (DEBUG) debug("Error setting preference: " + kPrefRilTelephonyTtyMode);
     }
+  },
+
+  get headsetState() {
+    return gAudioManager.headsetState;
+  },
+
+  registerListener: function(aListener) {
+    if (this._listeners.indexOf(aListener) >= 0) {
+      throw Cr.NS_ERROR_UNEXPECTED;
+    }
+
+    this._listeners.push(aListener);
+  },
+
+  unregisterListener: function(aListener) {
+    let index = this._listeners.indexOf(aListener);
+    if (index < 0) {
+      throw Cr.NS_ERROR_UNEXPECTED;
+    }
+
+    this._listeners.splice(index, 1);
   },
 
   setPhoneState: function(aState) {
@@ -162,6 +205,10 @@ TelephonyAudioService.prototype = {
     }
   },
 
+  applyTtyMode: function(aMode) {
+    gAudioManager.setTtyMode(aMode);
+  },
+
   /**
    * nsIObserver interface.
    */
@@ -171,9 +218,26 @@ TelephonyAudioService.prototype = {
       case NS_PREFBRANCH_PREFCHANGE_TOPIC_ID:
         if (aData === kPrefRilDebuggingEnabled) {
           this._updateDebugFlag();
-        } else if (aData === kPrefRilTelephonyTtyMode) {
-          this._updateTtyMode();
         }
+        break;
+      case HEADSET_STATUS_CHANGED_TOPIC: {
+        let headsetState = {
+          unknown: nsITelephonyAudioService.HEADSET_STATE_UNKNOWN,
+          off: nsITelephonyAudioService.HEADSET_STATE_OFF,
+          headset: nsITelephonyAudioService.HEADSET_STATE_HEADSET,
+          headphone: nsITelephonyAudioService.HEADSET_STATE_HEADPHONE
+        }[aData];
+
+        if (headsetState === undefined) {
+          debug("Invalid headsetState: " + aData);
+          break;
+        }
+
+        this._notifyAllListeners("notifyHeadsetStateChanged", [headsetState]);
+        break;
+      }
+      case NS_XPCOM_SHUTDOWN_OBSERVER_ID:
+        this._shutdown();
         break;
     }
   }
