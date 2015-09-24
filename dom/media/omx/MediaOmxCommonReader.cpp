@@ -11,6 +11,7 @@
 #include "AbstractMediaDecoder.h"
 #include "AudioChannelService.h"
 #include "MediaStreamSource.h"
+#include "gfxPrefs.h"
 
 #ifdef MOZ_AUDIO_OFFLOAD
 #include <stagefright/Utils.h>
@@ -39,6 +40,11 @@ MediaOmxCommonReader::MediaOmxCommonReader(AbstractMediaDecoder *aDecoder)
 #endif
 
   mAudioChannel = dom::AudioChannelService::GetDefaultAudioChannel();
+}
+
+bool MediaOmxCommonReader::IsMonoAudioEnabled()
+{
+  return gfxPrefs::MonoAudio();
 }
 
 #ifdef MOZ_AUDIO_OFFLOAD
@@ -71,7 +77,8 @@ void MediaOmxCommonReader::CheckAudioOffload()
       isNotStreaming, mAudioChannel));
 
   if ((meta.get()) && hasNoVideo && isNotStreaming && isTypeMusic &&
-      canOffloadStream(meta, false, false, AUDIO_STREAM_MUSIC)) {
+      canOffloadStream(meta, false, false, AUDIO_STREAM_MUSIC) &&
+      !IsMonoAudioEnabled()) {
     DECODER_LOG(PR_LOG_DEBUG, ("Can offload this audio stream"));
     mDecoder->SetPlatformCanOffloadAudio(true);
   }

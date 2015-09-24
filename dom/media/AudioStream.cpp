@@ -21,6 +21,7 @@
 #ifdef XP_MACOSX
 #include <sys/sysctl.h>
 #endif
+#include "gfxPrefs.h"
 
 namespace mozilla {
 
@@ -142,6 +143,7 @@ AudioStream::AudioStream()
   , mShouldDropFrames(false)
   , mPendingAudioInitTask(false)
   , mLastGoodPosition(0)
+  , mIsMonoAudioEnabled(gfxPrefs::MonoAudio())
 {
   // keep a ref in case we shut down later than nsLayoutStatics
   mLatencyLog = AsyncLatencyLogger::Get(true);
@@ -606,9 +608,12 @@ AudioStream::Write(const AudioDataValue* aBuf, uint32_t aFrames, TimeStamp *aTim
   // Downmix to Stereo.
   if (mChannels > 2 && mChannels <= 8) {
     DownmixAudioToStereo(const_cast<AudioDataValue*> (aBuf), mChannels, aFrames);
-  }
-  else if (mChannels > 8) {
+  } else if (mChannels > 8) {
     return NS_ERROR_FAILURE;
+  }
+
+  if (mChannels >= 2 && mIsMonoAudioEnabled) {
+    DownmixStereoToMono(const_cast<AudioDataValue*> (aBuf), aFrames);
   }
 
   const uint8_t* src = reinterpret_cast<const uint8_t*>(aBuf);

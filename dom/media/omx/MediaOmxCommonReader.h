@@ -41,6 +41,8 @@ public:
 
 protected:
   dom::AudioChannel mAudioChannel;
+  // Get value from the preferece, if true, we stop the audio offload.
+  bool IsMonoAudioEnabled();
 };
 
 } // namespace mozilla
