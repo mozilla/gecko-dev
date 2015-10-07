@@ -22,6 +22,7 @@ struct IPCCdmaWaitingCallData
 union AdditionalInformation {
   void_t;
   uint16_t;
+  uint32_t;
   nsString[];
   nsMobileCallForwardingOptions[];
 };

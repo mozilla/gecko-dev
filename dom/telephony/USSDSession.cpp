@@ -7,7 +7,7 @@
 #include "mozilla/dom/USSDSession.h"
 
 #include "mozilla/dom/USSDSessionBinding.h"
-#include "mozilla/dom/telephony/TelephonyCallback.h"
+#include "mozilla/dom/telephony/TelephonyDialCallback.h"
 #include "nsIGlobalObject.h"
 #include "nsServiceManagerUtils.h"
 
@@ -98,7 +98,7 @@ USSDSession::Send(const nsAString& aUssd, ErrorResult& aRv)
     return nullptr;
   }
 
-  nsCOMPtr<nsITelephonyCallback> callback = new TelephonyCallback(promise);
+  nsCOMPtr<nsITelephonyDialCallback> callback = new TelephonyDialCallback(mWindow, nullptr, promise);
 
   nsresult rv = mService->SendUSSD(mServiceId, aUssd, callback);
   if (NS_FAILED(rv)) {
@@ -116,7 +116,7 @@ USSDSession::Cancel(ErrorResult& aRv)
     return nullptr;
   }
 
-  nsCOMPtr<nsITelephonyCallback> callback = new TelephonyCallback(promise);
+  nsCOMPtr<nsITelephonyDialCallback> callback = new TelephonyDialCallback(mWindow, nullptr, promise);
 
   nsresult rv = mService->CancelUSSD(mServiceId, callback);
   if (NS_FAILED(rv)) {

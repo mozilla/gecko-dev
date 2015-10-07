@@ -304,7 +304,7 @@ TelephonyIPCService::StopTone(uint32_t aClientId)
 
 NS_IMETHODIMP
 TelephonyIPCService::SendUSSD(uint32_t aClientId, const nsAString& aUssd,
-                              nsITelephonyCallback *aCallback)
+                              nsITelephonyDialCallback *aCallback)
 {
   return SendRequest(nullptr, aCallback,
                      SendUSSDRequest(aClientId, nsString(aUssd)));
@@ -312,7 +312,7 @@ TelephonyIPCService::SendUSSD(uint32_t aClientId, const nsAString& aUssd,
 
 NS_IMETHODIMP
 TelephonyIPCService::CancelUSSD(uint32_t aClientId,
-                                nsITelephonyCallback *aCallback)
+                                nsITelephonyDialCallback *aCallback)
 {
   return SendRequest(nullptr, aCallback, CancelUSSDRequest(aClientId));
 }

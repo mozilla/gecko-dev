@@ -63,13 +63,13 @@ TelephonyParent::RecvPTelephonyRequestConstructor(PTelephonyRequestParent* aActo
 
     case IPCTelephonyRequest::TSendUSSDRequest: {
       const SendUSSDRequest& request = aRequest.get_SendUSSDRequest();
-      service->SendUSSD(request.clientId(), request.ussd(), actor->GetCallback());
+      service->SendUSSD(request.clientId(), request.ussd(), actor->GetDialCallback());
       return true;
     }
 
     case IPCTelephonyRequest::TCancelUSSDRequest: {
       const CancelUSSDRequest& request = aRequest.get_CancelUSSDRequest();
-      service->CancelUSSD(request.clientId(), actor->GetCallback());
+      service->CancelUSSD(request.clientId(), actor->GetDialCallback());
       return true;
     }
 
@@ -482,6 +482,14 @@ TelephonyRequestParent::DialCallback::NotifyDialMMISuccess(const nsAString& aSta
 {
   return SendResponse(DialResponseMMISuccess(nsAutoString(aStatusMessage),
                                              AdditionalInformation(mozilla::void_t())));
+}
+
+NS_IMETHODIMP
+TelephonyRequestParent::DialCallback::NotifyDialMMISuccessWithSession(const nsAString& aStatusMessage,
+                                                                      uint32_t aAdditionalInformation)
+{
+  return SendResponse(DialResponseMMISuccess(nsAutoString(aStatusMessage),
+                                             AdditionalInformation(aAdditionalInformation)));
 }
 
 NS_IMETHODIMP
