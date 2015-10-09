@@ -2658,7 +2658,7 @@ js::array_concat(JSContext* cx, unsigned argc, Value* vp)
         argc--;
         p++;
     } else {
-        narr = NewFullyAllocatedArrayTryReuseGroup(cx, aobj, 0);
+        narr = NewDenseEmptyArray(cx);
         if (!narr)
             return false;
         args.rval().setObject(*narr);
