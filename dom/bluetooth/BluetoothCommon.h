@@ -131,6 +131,9 @@ extern bool gBluetoothDebugFlag;
 #define MAP_GET_MESSAGE_REQ_ID               "mapgetmessagereq"
 #define MAP_SET_MESSAGE_STATUS_REQ_ID        "mapsetmessagestatusreq"
 #define MAP_PUSH_MESSAGE_REQ_ID              "mappushmessagereq"
+#define MAP_FOLDER_LISTING_REQ_ID            "mapfolderlistingreq"
+#define MAP_MESSAGE_UPDATE_REQ_ID            "mapmessageupdatereq"
+
 
 // Bluetooth address format: xx:xx:xx:xx:xx:xx (or xx_xx_xx_xx_xx_xx)
 #define BLUETOOTH_ADDRESS_LENGTH 17

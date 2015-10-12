@@ -12,6 +12,7 @@ if CONFIG['MOZ_B2G_BT']:
         'BluetoothInterface.cpp',
         'BluetoothInterfaceHelpers.cpp',
         'BluetoothManager.cpp',
+        'BluetoothMapRequestHandle.cpp',
         'BluetoothPbapRequestHandle.cpp',
         'BluetoothProfileController.cpp',
         'BluetoothPropertyContainer.cpp',
@@ -122,6 +123,7 @@ EXPORTS.mozilla.dom.bluetooth += [
     'BluetoothCommon.h',
     'BluetoothDevice.h',
     'BluetoothManager.h',
+    'BluetoothMapRequestHandle.h',
     'BluetoothPbapRequestHandle.h',
 ]
 
