@@ -240,22 +240,22 @@ BluetoothPbapManager::ReceiveSocketData(BluetoothSocket* aSocket,
       AfterPbapDisconnected();
       break;
     case ObexRequestCode::SetPath: {
-        // Section 3.3.6 "SetPath", IrOBEX 1.2
-        // [opcode:1][length:2][flags:1][contants:1][Headers:var]
-        if (!ParseHeaders(&data[5], receivedLength - 5, &pktHeaders)) {
-          ReplyError(ObexResponseCode::BadRequest);
-          return;
-        }
-
-        uint8_t response = SetPhoneBookPath(data[3], pktHeaders);
-        if (response != ObexResponseCode::Success) {
-          ReplyError(response);
-          return;
-        }
-
-        ReplyToSetPath();
+      // Section 3.3.6 "SetPath", IrOBEX 1.2
+      // [opcode:1][length:2][flags:1][contants:1][Headers:var]
+      if (!ParseHeaders(&data[5], receivedLength - 5, &pktHeaders)) {
+        ReplyError(ObexResponseCode::BadRequest);
+        return;
       }
+
+      uint8_t response = SetPhoneBookPath(data[3], pktHeaders);
+      if (response != ObexResponseCode::Success) {
+        ReplyError(response);
+        return;
+      }
+
+      ReplyToSetPath();
       break;
+    }
     case ObexRequestCode::Get:
       /**
        * Section 6.2.2 "OBEX Headers in Multi-Packet Responses", IrOBEX 1.2
@@ -267,53 +267,53 @@ BluetoothPbapManager::ReceiveSocketData(BluetoothSocket* aSocket,
 
       // no break. Treat 'Get' as 'GetFinal' for error tolerance.
     case ObexRequestCode::GetFinal: {
-        /**
-         * When |mVCardDataStream| requires multiple response packets to complete,
-         * the client should continue to issue GET requests until the final body
-         * information (i.e., End-of-Body header) arrives, along with
-         * ObexResponseCode::Success
-         */
-        if (mVCardDataStream) {
-          if (!ReplyToGet()) {
-            BT_LOGR("Failed to reply to PBAP GET request.");
-            ReplyError(ObexResponseCode::InternalServerError);
-          }
-          return;
+      /**
+       * When |mVCardDataStream| requires multiple response packets to complete,
+       * the client should continue to issue GET requests until the final body
+       * information (i.e., End-of-Body header) arrives, along with
+       * ObexResponseCode::Success
+       */
+      if (mVCardDataStream) {
+        if (!ReplyToGet()) {
+          BT_LOGR("Failed to reply to PBAP GET request.");
+          ReplyError(ObexResponseCode::InternalServerError);
         }
+        return;
+      }
 
-        // Section 3.1 "Request format", IrOBEX 1.2
-        // The format of an OBEX request is
-        // [opcode:1][length:2][Headers:var]
-        if (receivedLength < 3 ||
-            !ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
-          ReplyError(ObexResponseCode::BadRequest);
-          return;
-        }
+      // Section 3.1 "Request format", IrOBEX 1.2
+      // The format of an OBEX request is
+      // [opcode:1][length:2][Headers:var]
+      if (receivedLength < 3 ||
+          !ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
+        ReplyError(ObexResponseCode::BadRequest);
+        return;
+      }
 
-        nsString type;
-        pktHeaders.GetContentType(type);
+      nsString type;
+      pktHeaders.GetContentType(type);
 
-        uint8_t response;
-        if (type.EqualsLiteral("x-bt/vcard-listing")) {
-          response = PullvCardListing(pktHeaders);
-        } else if (type.EqualsLiteral("x-bt/vcard")) {
-          response = PullvCardEntry(pktHeaders);
-        } else if (type.EqualsLiteral("x-bt/phonebook")) {
-          response = PullPhonebook(pktHeaders);
-        } else {
-          response = ObexResponseCode::BadRequest;
-          BT_LOGR("Unknown PBAP request type: %s",
-                  NS_ConvertUTF16toUTF8(type).get());
-        }
+      uint8_t response;
+      if (type.EqualsLiteral("x-bt/vcard-listing")) {
+        response = PullvCardListing(pktHeaders);
+      } else if (type.EqualsLiteral("x-bt/vcard")) {
+        response = PullvCardEntry(pktHeaders);
+      } else if (type.EqualsLiteral("x-bt/phonebook")) {
+        response = PullPhonebook(pktHeaders);
+      } else {
+        response = ObexResponseCode::BadRequest;
+        BT_LOGR("Unknown PBAP request type: %s",
+                NS_ConvertUTF16toUTF8(type).get());
+      }
 
-        // The OBEX success response will be sent after Gaia replies the PBAP
-        // request.
-        if (response != ObexResponseCode::Success) {
-          ReplyError(response);
-          return;
-        }
+      // The OBEX success response will be sent after Gaia replies the PBAP
+      // request.
+      if (response != ObexResponseCode::Success) {
+        ReplyError(response);
+        return;
       }
       break;
+    }
     case ObexRequestCode::Put:
     case ObexRequestCode::PutFinal:
       ReplyError(ObexResponseCode::BadRequest);
@@ -533,78 +533,55 @@ BluetoothPbapManager::AppendNamedValueByTagId(
   switch (aTagId) {
     case AppParameterTag::Order: {
       using namespace mozilla::dom::vCardOrderTypeValues;
-      uint32_t order = buf[0] < ArrayLength(strings)
-                         ? static_cast<uint32_t>(buf[0])
-                         : 0; // default: indexed
+      uint32_t order =
+        buf[0] < ArrayLength(strings) ? static_cast<uint32_t>(buf[0])
+                                      : 0; // default: indexed
       AppendNamedValue(aValues, "order", order);
       break;
     }
     case AppParameterTag::SearchProperty: {
       using namespace mozilla::dom::vCardSearchKeyTypeValues;
-      uint32_t searchKey = buf[0] < ArrayLength(strings)
-                             ? static_cast<uint32_t>(buf[0])
-                             : 0; // default: name
+      uint32_t searchKey =
+        buf[0] < ArrayLength(strings) ? static_cast<uint32_t>(buf[0])
+                                      : 0; // default: name
       AppendNamedValue(aValues, "searchKey", searchKey);
       break;
     }
-    case AppParameterTag::SearchValue: {
+    case AppParameterTag::SearchValue:
       // Section 5.3.4.3 "SearchValue {<text string>}", PBAP 1.2
       // The UTF-8 character set shall be used for <text string>.
 
-      // Use nsCString to store UTF-8 string here to follow the suggestion of
-      // 'MDN:Internal_strings'.
-      nsCString text((char *) buf);
-
-      AppendNamedValue(aValues, "searchText", text);
+      // Store UTF-8 string with nsCString to follow MDN:Internal_strings
+      AppendNamedValue(aValues, "searchText", nsCString((char *) buf));
       break;
-    }
     case AppParameterTag::MaxListCount: {
-      uint16_t maxListCount = *((uint16_t *)buf);
-
-      // convert big endian to little endian
-      maxListCount = (maxListCount >> 8) | (maxListCount << 8);
+      uint16_t maxListCount = ReadLittleEndianUInt16(buf);
+      AppendNamedValue(aValues, "maxListCount",
+                       static_cast<uint32_t>(maxListCount));
 
       // Section 5 "Phone Book Access Profile Functions", PBAP 1.2
-      // Replying 'PhonebookSize' is mandatory if 'MaxListCount' parameter is
-      // present in the request with a value of 0, else it is excluded.
+      // Replying 'PhonebookSize' is mandatory if 'MaxListCount' parameter
+      // is present in the request with a value of 0, else it is excluded.
       mPhonebookSizeRequired = !maxListCount;
-
-      AppendNamedValue(aValues, "maxListCount", (uint32_t) maxListCount);
       break;
     }
-    case AppParameterTag::ListStartOffset: {
-      uint16_t listStartOffset = *((uint16_t *)buf);
-
-      // convert big endian to little endian
-      listStartOffset = (listStartOffset >> 8) | (listStartOffset << 8);
-
-      AppendNamedValue(aValues, "listStartOffset", (uint32_t) listStartOffset);
+    case AppParameterTag::ListStartOffset:
+      AppendNamedValue(aValues, "listStartOffset",
+                       static_cast<uint32_t>(ReadLittleEndianUInt16(buf)));
       break;
-    }
-    case AppParameterTag::PropertySelector: {
-      InfallibleTArray<uint32_t> props = PackPropertiesMask(buf, 64);
-
-      AppendNamedValue(aValues, "propSelector", props);
+    case AppParameterTag::PropertySelector:
+      AppendNamedValue(aValues, "propSelector", PackPropertiesMask(buf, 64));
       break;
-    }
-    case AppParameterTag::Format: {
-      bool usevCard3 = buf[0];
-      AppendNamedValue(aValues, "format", usevCard3);
+    case AppParameterTag::Format:
+      AppendNamedValue(aValues, "format", static_cast<bool>(buf[0]));
       break;
-    }
     case AppParameterTag::vCardSelector: {
-      InfallibleTArray<uint32_t> props = PackPropertiesMask(buf, 64);
-
-      bool hasVCardSelectorOperator = aHeader.GetAppParameter(
+      bool hasSelectorOperator = aHeader.GetAppParameter(
         AppParameterTag::vCardSelectorOperator, buf, 64);
-
-      if (hasVCardSelectorOperator && buf[0]) {
-        AppendNamedValue(aValues, "vCardSelector_AND",
-                         BluetoothValue(props));
-      } else {
-        AppendNamedValue(aValues, "vCardSelector_OR",
-                         BluetoothValue(props));
-      }
+      AppendNamedValue(aValues,
+                       hasSelectorOperator && buf[0] ? "vCardSelector_AND"
+                                                     : "vCardSelector_OR",
+                       PackPropertiesMask(buf, 64));
       break;
     }
     default:
@@ -887,8 +864,9 @@ BluetoothPbapManager::ReplyToGet(uint16_t aPhonebookSize)
    * - Part 2: [headerId:1][length:2][PhonebookSize:4]
    * - Part 3: [headerId:1][length:2][EndOfBody:0]
    * Otherwise,
-   * - Part 2: [headerId:1][length:2][Body:var]
-   * - (optional) Part 3: [headerId:1][length:2][EndOfBody:0]
+   * - Part 2a: [headerId:1][length:2][EndOfBody:0]
+   *   or
+   * - Part 2b: [headerId:1][length:2][Body:var]
    */
   uint8_t* res = new uint8_t[mRemoteMaxPacketLength];
   uint8_t opcode;
@@ -900,10 +878,7 @@ BluetoothPbapManager::ReplyToGet(uint16_t aPhonebookSize)
 
   if (mPhonebookSizeRequired) {
     // ---- Part 2: [headerId:1][length:2][PhonebookSize:4] ---- //
-    // convert little endian to big endian
-    uint8_t phonebookSize[2];
-    phonebookSize[0] = (aPhonebookSize & 0xFF00) >> 8;
-    phonebookSize[1] = aPhonebookSize & 0x00FF;
+    uint16_t pbSizeBigEndian = ConvertEndiannessUInt16(aPhonebookSize);
 
     // Section 6.2.1 "Application Parameters Header", PBAP 1.2
     // appParameters: [headerId:1][length:2][PhonebookSize:4], where
@@ -911,9 +886,9 @@ BluetoothPbapManager::ReplyToGet(uint16_t aPhonebookSize)
     uint8_t appParameters[4];
     AppendAppParameter(appParameters,
                        sizeof(appParameters),
-                       (uint8_t) AppParameterTag::PhonebookSize,
-                       phonebookSize,
-                       sizeof(phonebookSize));
+                       static_cast<uint8_t>(AppParameterTag::PhonebookSize),
+                       (uint8_t*) &pbSizeBigEndian,
+                       sizeof(pbSizeBigEndian));
 
     index += AppendHeaderAppParameters(&res[index],
                                        mRemoteMaxPacketLength,
