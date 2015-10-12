@@ -157,6 +157,7 @@ private:
   InfallibleTArray<uint32_t>  PackPropertiesMask(uint8_t* aData, int aSize);
   bool CompareHeaderTarget(const ObexHeaderSet& aHeader);
   bool IsLegalPath(const nsAString& aPath);
+  bool IsLegalPhonebookName(const nsAString& aName);
   bool GetInputStreamFromBlob(nsIDOMBlob* aBlob);
   void AfterPbapConnected();
   void AfterPbapDisconnected();
