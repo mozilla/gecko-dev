@@ -1301,6 +1301,15 @@ KEY_MAP_QT      (ZoomToggle, Qt::Key_Zoom)
 // HomeScreen
 KEY_MAP_ANDROID (HomeScreen, AKEYCODE_HOME)
 
+// PhoneCall
+KEY_MAP_ANDROID (PhoneCall, AKEYCODE_CALL)
+
+// SoftLeft
+KEY_MAP_ANDROID (SoftLeft, AKEYCODE_SOFT_LEFT)
+
+// SoftRight
+KEY_MAP_ANDROID (SoftRight, AKEYCODE_SOFT_RIGHT)
+
 #undef KEY_MAP_WIN
 #undef KEY_MAP_WIN_JPN
 #undef KEY_MAP_WIN_KOR
