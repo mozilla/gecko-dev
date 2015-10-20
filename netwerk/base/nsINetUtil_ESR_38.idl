@@ -1,0 +1,14 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+[scriptable, uuid(e82f2b9d-8bac-48bb-ade7-26a7cd4fb894)]
+interface nsINetUtil_ESR_38 : nsISupports
+{
+  AUTF8String parseRequestContentType(in AUTF8String aTypeHeader,
+                                      out AUTF8String aCharset,
+                                      out boolean aHadCharset);
+};

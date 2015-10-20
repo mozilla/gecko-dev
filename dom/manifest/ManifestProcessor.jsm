@@ -31,7 +31,7 @@ const imports = {};
 Cu.import('resource://gre/modules/Services.jsm', imports);
 Cu.importGlobalProperties(['URL']);
 const securityManager = imports.Services.scriptSecurityManager;
-const netutil = Cc['@mozilla.org/network/util;1'].getService(Ci.nsINetUtil);
+const netutil = Cc['@mozilla.org/network/util;1'].getService(Ci.nsINetUtil_ESR_38);
 const defaultDisplayMode = 'browser';
 const displayModes = new Set([
   'fullscreen',
@@ -258,7 +258,7 @@ this.ManifestProcessor.prototype.process = function({
         };
       let value = extractValue(obj),
         isParsable = (typeof value === 'string' && value.length > 0);
-      value = (isParsable) ? netutil.parseContentType(value.trim(), charset, hadCharset) : undefined;
+      value = (isParsable) ? netutil.parseRequestContentType(value.trim(), charset, hadCharset) : undefined;
       return (value === '') ? undefined : value;
     }
 
