@@ -1590,7 +1590,7 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
         // 'audio-card' refers to 'Audio' device
         AppendNamedValue(props, "Icon", NS_LITERAL_STRING("audio-card"));
       }
-      AppendNamedValue(props, "UUIDS", uuidsArray);
+      AppendNamedValue(props, "UUIDs", uuidsArray);
     } else if (p.mType == PROPERTY_UNKNOWN) {
       /* Bug 1065999: working around unknown properties */
     } else {
