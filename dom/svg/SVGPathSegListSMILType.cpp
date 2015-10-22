@@ -232,7 +232,7 @@ AddWeightedPathSegs(double aCoeff1,
  *                         identity, in which case we'll grow it to the right
  *                         size. Also allowed to be the same list as aList1.
  */
-static nsresult
+static void
 AddWeightedPathSegLists(double aCoeff1, const SVGPathDataAndInfo& aList1,
                         double aCoeff2, const SVGPathDataAndInfo& aList2,
                         SVGPathDataAndInfo& aResult)
@@ -263,9 +263,8 @@ AddWeightedPathSegLists(double aCoeff1, const SVGPathDataAndInfo& aList1,
   // because in that case, we will have already set iter1 to nullptr above, to
   // record that our first operand is an identity value.)
   if (aResult.IsIdentity()) {
-    if (!aResult.SetLength(aList2.Length())) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+    DebugOnly<bool> success = aResult.SetLength(aList2.Length());
+    NS_ABORT_IF_FALSE(success, "infallible nsTArray::SetLength should succeed");
     aResult.SetElement(aList2.Element()); // propagate target element info!
   }
 
@@ -281,7 +280,6 @@ AddWeightedPathSegLists(double aCoeff1, const SVGPathDataAndInfo& aList1,
                     iter2 == end2 &&
                     resultIter == aResult.end(),
                     "Very, very bad - path data corrupt");
-  return NS_OK;
 }
 
 static void
@@ -431,7 +429,9 @@ SVGPathSegListSMILType::Add(nsSMILValue& aDest,
     }
   }
 
-  return AddWeightedPathSegLists(1.0, dest, aCount, valueToAdd, dest);
+  AddWeightedPathSegLists(1.0, dest, aCount, valueToAdd, dest);
+
+  return NS_OK;
 }
 
 nsresult
@@ -482,9 +482,8 @@ SVGPathSegListSMILType::Interpolate(const nsSMILValue& aStartVal,
   if (check == eRequiresConversion) {
     // Can't convert |start| in-place, since it's const. Instead, we copy it
     // into |result|, converting the types as we go, and use that as our start.
-    if (!result.SetLength(end.Length())) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+    DebugOnly<bool> success = result.SetLength(end.Length());
+    NS_ABORT_IF_FALSE(success, "infallible nsTArray::SetLength should succeed");
     result.SetElement(end.Element()); // propagate target element info!
 
     ConvertAllPathSegmentData(start.begin(), start.end(),
@@ -493,8 +492,10 @@ SVGPathSegListSMILType::Interpolate(const nsSMILValue& aStartVal,
     startListToUse = &result;
   }
 
-  return AddWeightedPathSegLists(1.0 - aUnitDistance, *startListToUse,
-                                 aUnitDistance, end, result);
+  AddWeightedPathSegLists(1.0 - aUnitDistance, *startListToUse,
+                          aUnitDistance, end, result);
+
+  return NS_OK;
 }
 
 } // namespace mozilla
