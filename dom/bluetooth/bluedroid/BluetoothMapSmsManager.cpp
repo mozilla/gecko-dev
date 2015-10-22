@@ -253,7 +253,7 @@ BluetoothMapSmsManager::MasDataHandler(UnixSocketRawData* aMessage)
 
   const uint8_t* data = aMessage->GetData();
   uint8_t opCode = data[0];
-  ObexHeaderSet pktHeaders(opCode);
+  ObexHeaderSet pktHeaders;
   nsString type;
   switch (opCode) {
     case ObexRequestCode::Connect:
