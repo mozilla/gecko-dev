@@ -753,6 +753,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "aus4.mozilla.org", true, true, true, 3, &kPinset_mozilla },
   { "blog.torproject.org", true, false, false, -1, &kPinset_tor },
   { "blogger.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "blogspot.com", true, false, false, -1, &kPinset_google_root_pems },
   { "business.facebook.com", true, false, false, -1, &kPinset_facebook },
   { "business.twitter.com", true, false, false, -1, &kPinset_twitterCom },
   { "cdn.mozilla.net", true, false, true, -1, &kPinset_mozilla },
@@ -779,10 +780,15 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "doubleclick.net", true, false, false, -1, &kPinset_google_root_pems },
   { "drive.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "dropbox.com", false, false, false, -1, &kPinset_dropbox },
+  { "dropboxstatic.com", false, true, false, -1, &kPinset_dropbox },
+  { "dropboxusercontent.com", false, true, false, -1, &kPinset_dropbox },
   { "encrypted.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "exclude-subdomains.pinning.example.com", false, false, false, 0, &kPinset_mozilla_test },
   { "facebook.com", false, false, false, -1, &kPinset_facebook },
+  { "fi.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "g.co", true, false, false, -1, &kPinset_google_root_pems },
+  { "g4w.co", true, false, false, -1, &kPinset_google_root_pems },
+  { "ggpht.com", true, false, false, -1, &kPinset_google_root_pems },
   { "glass.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "gmail.com", false, false, false, -1, &kPinset_google_root_pems },
   { "goo.gl", true, false, false, -1, &kPinset_google_root_pems },
@@ -1039,6 +1045,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "passwords.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "pinningtest.appspot.com", true, false, false, -1, &kPinset_test },
   { "pixel.facebook.com", true, false, false, -1, &kPinset_facebook },
+  { "pixel.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "platform.twitter.com", true, false, false, -1, &kPinset_twitterCDN },
   { "play.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "plus.google.com", true, false, false, -1, &kPinset_google_root_pems },
@@ -1080,6 +1087,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "wf-training-hrd.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
   { "wf-training-master.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
   { "wf-trial-hrd.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "withgoogle.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "withyoutube.com", true, false, false, -1, &kPinset_google_root_pems },
   { "www.dropbox.com", true, false, false, -1, &kPinset_dropbox },
   { "www.facebook.com", true, false, false, -1, &kPinset_facebook },
   { "www.gmail.com", false, false, false, -1, &kPinset_google_root_pems },
@@ -1087,14 +1096,15 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "www.torproject.org", true, false, false, -1, &kPinset_tor },
   { "www.twitter.com", true, false, false, -1, &kPinset_twitterCom },
   { "xbrlsuccess.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "xn--7xa.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "youtu.be", true, false, false, -1, &kPinset_google_root_pems },
   { "youtube-nocookie.com", true, false, false, -1, &kPinset_google_root_pems },
   { "youtube.com", true, false, false, -1, &kPinset_google_root_pems },
   { "ytimg.com", true, false, false, -1, &kPinset_google_root_pems },
 };
 
-// Pinning Preload List Length = 354;
+// Pinning Preload List Length = 364;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1445077481295000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1453545118462000);

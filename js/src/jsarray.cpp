@@ -2658,6 +2658,7 @@ js::array_concat(JSContext* cx, unsigned argc, Value* vp)
         narr = NewDenseEmptyArray(cx);
         if (!narr)
             return false;
+        TryReuseArrayType(aobj, narr);
         args.rval().setObject(*narr);
         length = 0;
     }
