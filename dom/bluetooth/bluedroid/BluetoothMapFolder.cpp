@@ -55,7 +55,7 @@ GetFolderName(const nsAString& aKey, BluetoothMapFolder* aUserData, void* aData)
   nsACString* data = static_cast<nsACString*>(aData);
   data->Append("<folder name=\"");
   data->Append(NS_ConvertUTF16toUTF8(aKey).get());
-  data->Append("\">");
+  data->Append("\"/>");
 
   return PL_DHASH_NEXT;
 }
