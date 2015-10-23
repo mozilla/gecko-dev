@@ -1137,6 +1137,144 @@ BluetoothServiceBluedroid::ReplyTovCardListing(
 }
 
 void
+BluetoothServiceBluedroid::ReplyToMapFolderListing(
+  long aMasId,
+  const nsAString& aFolderlists,
+  BluetoothReplyRunnable* aRunnable)
+{
+  // TODO: Implement for future Email support
+}
+
+void
+BluetoothServiceBluedroid::ReplyToMapMessagesListing(
+  BlobParent* aBlobParent,
+  BlobChild* aBlobChild,
+  long aMasId,
+  bool aNewMessage,
+  const nsAString& aTimestamp,
+  int aSize,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothMapSmsManager* map = BluetoothMapSmsManager::Get();
+  if (!map) {
+    NS_NAMED_LITERAL_STRING(replyError, "Reply to Messages Listing failed");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  map->ReplyToMessagesListing(aBlobParent, aMasId, aNewMessage, aTimestamp,
+                              aSize);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyToMapMessagesListing(
+  long aMasId,
+  nsIDOMBlob* aBlob,
+  bool aNewMessage,
+  const nsAString& aTimestamp,
+  int aSize,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothMapSmsManager* map = BluetoothMapSmsManager::Get();
+  if (!map) {
+    NS_NAMED_LITERAL_STRING(replyError, "Reply to Messages Listing failed");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  map->ReplyToMessagesListing(aBlob, aMasId, aNewMessage, aTimestamp, aSize);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid:: ReplyToMapGetMessage(
+  BlobParent* aBlobParent,
+  BlobChild* aBlobChild,
+  long aMasId,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothMapSmsManager* map = BluetoothMapSmsManager::Get();
+  if (!map) {
+    NS_NAMED_LITERAL_STRING(replyError, "Reply to GetMessage failed");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  map->ReplyToGetMessage(aBlobParent, aMasId);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyToMapGetMessage(
+  nsIDOMBlob* aBlob,
+  long aMasId,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothMapSmsManager* map = BluetoothMapSmsManager::Get();
+  if (!map) {
+    NS_NAMED_LITERAL_STRING(replyError, "Reply to GetMessage failed");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  map->ReplyToGetMessage(aBlob, aMasId);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyToMapSetMessageStatus(
+  long aMasId,
+  bool aStatus,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothMapSmsManager* map = BluetoothMapSmsManager::Get();
+  if (!map) {
+    NS_NAMED_LITERAL_STRING(replyError, "Reply to SetMessage failed");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  map->ReplyToSetMessageStatus(aMasId, aStatus);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyToMapSendMessage(
+  long aMasId,
+  bool aStatus,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothMapSmsManager* map = BluetoothMapSmsManager::Get();
+  if (!map) {
+    NS_NAMED_LITERAL_STRING(replyError, "Reply to SendMessage failed");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  map->ReplyToSendMessage(aMasId, aStatus);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+void
+BluetoothServiceBluedroid::ReplyToMapMessageUpdate(
+  long aMasId,
+  bool aStatus,
+  BluetoothReplyRunnable* aRunnable)
+{
+  BluetoothMapSmsManager* map = BluetoothMapSmsManager::Get();
+  if (!map) {
+    NS_NAMED_LITERAL_STRING(replyError, "Reply to MessageUpdate failed");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
+    return;
+  }
+
+  map->ReplyToMessageUpdate(aMasId, aStatus);
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
+}
+
+
+void
 BluetoothServiceBluedroid::SendMetaData(const nsAString& aTitle,
                                         const nsAString& aArtist,
                                         const nsAString& aAlbum,

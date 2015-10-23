@@ -167,6 +167,52 @@ public:
                       uint16_t aPhonebookSize,
                       BluetoothReplyRunnable* aRunnable);
 
+   virtual void
+  ReplyToMapFolderListing(long aMasId,
+                          const nsAString& aFolderlists,
+                          BluetoothReplyRunnable* aRunnable);
+
+  virtual void
+  ReplyToMapMessagesListing(BlobParent* aBlobParent,
+                            BlobChild* aBlobChild,
+                            long aMasId,
+                            bool aNewMessage,
+                            const nsAString& aTimestamp,
+                            int aSize,
+                            BluetoothReplyRunnable* aRunnable);
+
+  virtual void
+  ReplyToMapMessagesListing(long aMasId,
+                            nsIDOMBlob* aBlob,
+                            bool aNewMessage,
+                            const nsAString& aTimestamp,
+                            int aSize,
+                            BluetoothReplyRunnable* aRunnable);
+
+  virtual void
+  ReplyToMapGetMessage(BlobParent* aBlobParent,
+                       BlobChild* aBlobChild,
+                       long aMasId,
+                       BluetoothReplyRunnable* aRunnable);
+
+  virtual void
+  ReplyToMapGetMessage(nsIDOMBlob* aBlob,
+                       long aMasId,
+                       BluetoothReplyRunnable* aRunnable);
+
+  virtual void
+  ReplyToMapSetMessageStatus(long aMasId,
+                             bool aStatus,
+                             BluetoothReplyRunnable* aRunnable);
+
+  virtual void
+  ReplyToMapSendMessage(
+    long aMasId, bool aStatus, BluetoothReplyRunnable* aRunnable);
+
+  virtual void
+  ReplyToMapMessageUpdate(
+    long aMasId, bool aStatus, BluetoothReplyRunnable* aRunnable);
+
   virtual void
   AnswerWaitingCall(BluetoothReplyRunnable* aRunnable);
 

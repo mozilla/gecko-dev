@@ -175,6 +175,52 @@ public:
                       uint16_t aPhonebookSize,
                       BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
 
+  virtual void
+  ReplyToMapFolderListing(long aMasId,
+                          const nsAString& aFolderlists,
+                          BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual void
+  ReplyToMapMessagesListing(BlobParent* aBlobParent,
+                            BlobChild* aBlobChild,
+                            long aMasId,
+                            bool aNewMessage,
+                            const nsAString& aTimestamp,
+                            int aSize,
+                            BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual void
+  ReplyToMapMessagesListing(long aMasId,
+                            nsIDOMBlob* aBlob,
+                            bool aNewMessage,
+                            const nsAString& aTimestamp,
+                            int aSize,
+                            BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual void
+  ReplyToMapGetMessage(BlobParent* aBlobParent,
+                       BlobChild* aBlobChild,
+                       long aMasId,
+                       BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual void
+  ReplyToMapGetMessage(nsIDOMBlob* aBlob,
+                       long aMasId,
+                       BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual void
+  ReplyToMapSetMessageStatus(long aMasId,
+                             bool aStatus,
+                             BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual void
+  ReplyToMapSendMessage(
+    long aMasId, bool aStatus, BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual void
+  ReplyToMapMessageUpdate(
+    long aMasId, bool aStatus, BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
 #ifdef MOZ_B2G_RIL
   virtual void
   AnswerWaitingCall(BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
