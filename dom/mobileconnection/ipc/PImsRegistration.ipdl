@@ -35,7 +35,8 @@ parent:
    */
   sync Init()
     returns (bool aEnabled, uint16_t aProfile,
-             int16_t aCapability, nsString aUnregisteredReason);
+             int16_t aCapability, nsString aUnregisteredReason,
+             uint16_t[] aSupportedBearers);
 };
 
 /**

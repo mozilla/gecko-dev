@@ -77,6 +77,7 @@ private:
   uint16_t mPreferredProfile;
   int16_t mCapability;
   nsString mUnregisteredReason;
+  nsTArray<uint16_t> mSupportedBearers;
 };
 
 /******************************************************************************

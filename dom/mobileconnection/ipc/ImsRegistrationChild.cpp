@@ -26,7 +26,8 @@ ImsRegistrationChild::ImsRegistrationChild(uint32_t aServiceId)
 void
 ImsRegistrationChild::Init()
 {
-  SendInit(&mEnabled, &mPreferredProfile, &mCapability, &mUnregisteredReason);
+  SendInit(&mEnabled, &mPreferredProfile, &mCapability, &mUnregisteredReason,
+           &mSupportedBearers);
 }
 
 void
@@ -128,6 +129,24 @@ ImsRegistrationChild::UnregisterListener(nsIImsRegListener* aListener)
   NS_ENSURE_TRUE(mListeners.Contains(aListener), NS_ERROR_UNEXPECTED);
 
   mListeners.RemoveObject(aListener);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ImsRegistrationChild::GetSupportedBearers(uint32_t *aCount, uint16_t **aBearers)
+{
+  NS_ENSURE_ARG(aCount);
+  NS_ENSURE_ARG(aBearers);
+
+  *aCount = mSupportedBearers.Length();
+  *aBearers =
+    static_cast<uint16_t*>(nsMemory::Alloc((*aCount) * sizeof(uint16_t)));
+  NS_ENSURE_TRUE(*aBearers, NS_ERROR_OUT_OF_MEMORY);
+
+  for (uint32_t i = 0; i < *aCount; i++) {
+    (*aBearers)[i] = mSupportedBearers[i];
+  }
+
   return NS_OK;
 }
 

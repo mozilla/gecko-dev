@@ -123,7 +123,8 @@ ImsRegistrationParent::DeallocPImsRegistrationRequestParent(PImsRegistrationRequ
 
 bool
 ImsRegistrationParent::RecvInit(bool* aEnabled, uint16_t* aProfile,
-                                int16_t* aCapability, nsString* aUnregisteredReason)
+                                int16_t* aCapability, nsString* aUnregisteredReason,
+                                nsTArray<uint16_t>* aSupportedBearers)
 {
   NS_ENSURE_TRUE(mHandler, false);
 
@@ -131,6 +132,16 @@ ImsRegistrationParent::RecvInit(bool* aEnabled, uint16_t* aProfile,
   NS_ENSURE_SUCCESS(mHandler->GetPreferredProfile(aProfile), false);
   NS_ENSURE_SUCCESS(mHandler->GetCapability(aCapability), false);
   NS_ENSURE_SUCCESS(mHandler->GetUnregisteredReason(*aUnregisteredReason), false);
+
+  // GetSupportedBearers
+  uint16_t* bearers = nullptr;
+  uint32_t count = 0;
+  nsresult rv = mHandler->GetSupportedBearers(&count, &bearers);
+  NS_ENSURE_SUCCESS(rv, false);
+  for (uint32_t i = 0; i < count; ++i) {
+    aSupportedBearers->AppendElement(bearers[i]);
+  }
+  nsMemory::Free(bearers);
 
   return true;
 }

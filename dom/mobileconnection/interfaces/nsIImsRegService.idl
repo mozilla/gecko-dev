@@ -70,7 +70,7 @@ already_AddRefed<nsIImsRegService>
 NS_CreateImsRegService();
 %}
 
-[scriptable, uuid(05183f8e-3c1f-11e5-b80a-978881183a75)]
+[scriptable, uuid(3e39360c-8133-11e5-9ce9-7f3effdb14fe)]
 interface nsIImsRegHandler : nsISupports {
   const short IMS_CAPABILITY_UNKNOWN = -1;
   const short IMS_CAPABILITY_VOICE_OVER_CELLULAR = 0;
@@ -83,6 +83,9 @@ interface nsIImsRegHandler : nsISupports {
   const unsigned short IMS_PROFILE_WIFI_PREFERRED = 2;
   const unsigned short IMS_PROFILE_WIFI_ONLY = 3;
 
+  const unsigned short IMS_BEARER_CELLULAR = 0;
+  const unsigned short IMS_BEARER_WIFI = 1;
+
   /**
    * Called to register/de-register ims status changes.
    *
@@ -90,6 +93,20 @@ interface nsIImsRegHandler : nsISupports {
    */
   void registerListener(in nsIImsRegListener aListener);
   void unregisterListener(in nsIImsRegListener aListener);
+
+  /**
+   * Get the bearers supported in device configuration.
+   *
+   * @param aCount
+   *        The number of supported bearers.
+   * @param aBearers
+   *        The array of supported bearers.
+   *
+   * Note: The result has been set in device configuration at built-time and
+   *       will never be changed at run-time.
+   */
+  void getSupportedBearers([optional] out unsigned long aCount,
+                           [array, size_is(aCount), retval] out unsigned short aBearers);
 
   /**
    * Set IMS feature enabled/disabled.
@@ -129,6 +146,9 @@ interface nsIImsRegHandler : nsISupports {
    * Important: Before notifySuccess(),
    *            1. The attribute of |preferredProfile| shall be changed to |aProfile|.
    *            2. nsIImsRegListener::notifyPreferredProfileChanged must be invoked.
+   *
+   * Note: notifyError() with "RequestNotSupported" is expected if the bearer of
+   *       |aProfile| is not available in the response of getSupportedBearers().
    */
   void setPreferredProfile(in unsigned short aProfile, in nsIImsRegCallback aCallback);
 

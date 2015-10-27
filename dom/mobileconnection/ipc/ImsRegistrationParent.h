@@ -59,7 +59,8 @@ protected:
 
   virtual bool
   RecvInit(bool* aEnabled, uint16_t* aProfile,
-           int16_t* aCapability, nsString* aUnregisteredReason) MOZ_OVERRIDE;
+           int16_t* aCapability, nsString* aUnregisteredReason,
+           nsTArray<uint16_t>* aSupportedBearers) MOZ_OVERRIDE;
 
 private:
   bool mLive;
