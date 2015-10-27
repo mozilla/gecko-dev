@@ -16,8 +16,29 @@ enum ImsCapability {
   "video-over-wifi"
 };
 
+enum ImsBearer {
+  "cellular",
+  "wifi"
+};
+
+[Pref="dom.mobileconnection.enabled"]
+interface ImsDeviceConfiguration {
+  [Constant, Cached] readonly attribute sequence<ImsBearer> supportedBearers;
+};
+
 [Pref="dom.mobileconnection.enabled"]
 interface ImsRegHandler : EventTarget {
+  /**
+   * Returns the IMS capabilities enabled in device configuration at built-time.
+   *
+   * This provides the possibility to display the UI options according
+   * to the capability of the device.
+   * For example, the |wifi-preferred| and |wifi-only| of the preferred profiles
+   * will be available in the UI only if |ImsBearer::wifi| is available in
+   * |ImsDeviceConfiguration::supportedBearers|.
+   */
+  readonly attribute ImsDeviceConfiguration deviceConfig;
+
   /**
    * Set IMS feature enabled/disabled.
    *

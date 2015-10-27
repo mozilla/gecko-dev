@@ -91,5 +91,13 @@ ASSERT_IMS_PROFILE(Wifi_only, IMS_PROFILE_WIFI_ONLY);
 
 #undef ASSERT_IMS_PROFILE
 
+#define ASSERT_IMS_BEARER(webidlState, xpidlState) \
+  static_assert(static_cast<int32_t>(ImsBearer::webidlState) == nsIImsRegHandler::xpidlState, \
+                "ImsBearer::" #webidlState " should equal to nsIImsRegHandler::" #xpidlState)
+ASSERT_IMS_BEARER(Cellular, IMS_BEARER_CELLULAR);
+ASSERT_IMS_BEARER(Wifi, IMS_BEARER_WIFI);
+
+#undef ASSERT_IMS_BEARER
+
 } // namespace dom
 } // namespace mozilla

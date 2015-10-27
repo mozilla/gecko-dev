@@ -20,12 +20,14 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(ImsRegHandler)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(ImsRegHandler, DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mHandler)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDeviceConfig)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(ImsRegHandler,
                                                 DOMEventTargetHelper)
   tmp->Shutdown();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mHandler)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDeviceConfig)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(ImsRegHandler)
@@ -45,6 +47,20 @@ ImsRegHandler::ImsRegHandler(nsPIDOMWindow *aWindow, nsIImsRegHandler *aHandler)
   mHandler->GetUnregisteredReason(reason);
 
   UpdateCapability(capability, reason);
+
+  // GetSupportedBearers
+  uint16_t* bearers = nullptr;
+  uint32_t count = 0;
+  nsTArray<ImsBearer> supportedBearers;
+  nsresult rv = mHandler->GetSupportedBearers(&count, &bearers);
+  NS_ENSURE_SUCCESS_VOID(rv);
+  for (uint32_t i = 0; i < count; ++i) {
+    uint16_t bearer = bearers[i];
+    MOZ_ASSERT(bearer < static_cast<uint16_t>(ImsBearer::EndGuard_));
+    supportedBearers.AppendElement(static_cast<ImsBearer>(bearer));
+  }
+  nsMemory::Free(bearers);
+  mDeviceConfig = new ImsDeviceConfiguration(GetOwner(), supportedBearers);
 
   mHandler->RegisterListener(this);
 }
@@ -84,6 +100,13 @@ JSObject*
 ImsRegHandler::WrapObject(JSContext* aCx)
 {
   return ImsRegHandlerBinding::Wrap(aCx, this);
+}
+
+already_AddRefed<ImsDeviceConfiguration>
+ImsRegHandler::DeviceConfig() const
+{
+  nsRefPtr<ImsDeviceConfiguration> result = mDeviceConfig;
+  return result.forget();
 }
 
 already_AddRefed<Promise>

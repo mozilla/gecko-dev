@@ -34,6 +34,9 @@ public:
   WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // WebIDL APIs
+  already_AddRefed<ImsDeviceConfiguration>
+  DeviceConfig() const;
+
   already_AddRefed<Promise>
   SetEnabled(bool aEnabled, ErrorResult& aRv);
 
@@ -65,6 +68,7 @@ private:
 
   nsCOMPtr<nsIImsRegHandler> mHandler;
 
+  nsRefPtr<ImsDeviceConfiguration> mDeviceConfig;
   Nullable<ImsCapability> mCapability;
   nsString mUnregisteredReason;
 };
