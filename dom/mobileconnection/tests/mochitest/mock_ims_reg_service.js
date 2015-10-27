@@ -122,6 +122,19 @@ ImsRegHandler.prototype = {
     }
   },
 
+  getSupportedBearers: function(aCount) {
+    let bearers = [
+      Ci.nsIImsRegHandler.IMS_BEARER_CELLULAR,
+      Ci.nsIImsRegHandler.IMS_BEARER_WIFI
+    ];
+
+    if (aCount) {
+      aCount.value = bearers.length;
+    }
+
+    return bearers.slice();
+  },
+
   setEnabled: function(aEnabled, aCallback) {
     try {
       if (this._mockSetterError) {

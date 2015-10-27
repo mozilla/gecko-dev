@@ -20,6 +20,8 @@ function verifyDefaultAttributes() {
     is(imsRegHandler.unregisteredReason, null, "Check default reason.");
     is(imsRegHandler.enabled, false, "Check default enabled state.");
     is(imsRegHandler.preferredProfile, "cellular-preferred", "Check default profile.");
+    ok(imsRegHandler.deviceConfig.supportedBearers.indexOf("cellular") != -1, "Check bearer: cellular.");
+    ok(imsRegHandler.deviceConfig.supportedBearers.indexOf("wifi") != -1, "Check bearer: wifi.");
     resolve();
   });
 }
