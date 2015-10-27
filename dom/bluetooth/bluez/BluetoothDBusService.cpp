@@ -4456,7 +4456,7 @@ BluetoothDBusService::ReplyToMapMessagesListing(BlobParent* aBlobParent,
 
 void
 BluetoothDBusService::ReplyToMapMessagesListing(long aMasId,
-  Blob* aBlob,
+  nsIDOMBlob* aBlob,
   bool aNewMessage,
   const nsAString& aTimestamp,
   int aSize,
@@ -4473,7 +4473,7 @@ BluetoothDBusService::ReplyToMapGetMessage(BlobParent* aBlobParent,
 }
 
 void
-BluetoothDBusService::ReplyToMapGetMessage(Blob* aBlob,
+BluetoothDBusService::ReplyToMapGetMessage(nsIDOMBlob* aBlob,
   long aMasId,
   BluetoothReplyRunnable* aRunnable)
 {
