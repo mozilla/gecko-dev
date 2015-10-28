@@ -132,6 +132,14 @@ MediaEncoder::CreateEncoder(const nsAString& aMIMEType, uint8_t aTrackTypes)
     writer = new ISOMediaWriter(aTrackTypes, ISOMediaWriter::TYPE_FRAG_3GP);
     NS_ENSURE_TRUE(writer, nullptr);
     mimeType = NS_LITERAL_STRING(AUDIO_3GPP);
+  } else if (MediaEncoder::IsOMXEncoderEnabled() &&
+            (aMIMEType.EqualsLiteral(AUDIO_3GPP2))) {
+    audioEncoder = new OmxEVRCAudioTrackEncoder();
+    NS_ENSURE_TRUE(audioEncoder, nullptr);
+
+    writer = new ISOMediaWriter(aTrackTypes, ISOMediaWriter::TYPE_FRAG_3G2);
+    NS_ENSURE_TRUE(writer, nullptr);
+    mimeType = NS_LITERAL_STRING(AUDIO_3GPP2) ;
   }
 #endif // MOZ_OMX_ENCODER
   else if (MediaDecoder::IsOggEnabled() && MediaDecoder::IsOpusEnabled() &&

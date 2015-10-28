@@ -80,6 +80,7 @@
 #define AUDIO_MP4                           "audio/mp4"
 #define AUDIO_AMR                           "audio/amr"
 #define AUDIO_3GPP                          "audio/3gpp"
+#define AUDIO_3GPP2                         "audio/3gpp2"
 #define AUDIO_MIDI                          "audio/x-midi"
 #define AUDIO_MATROSKA                      "audio/x-matroska"
 

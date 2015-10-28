@@ -584,6 +584,8 @@ private:
     // Make sure the application has permission to assign AUDIO_3GPP
     if (mRecorder->mMimeType.EqualsLiteral(AUDIO_3GPP) && Check3gppPermission()) {
       mEncoder = MediaEncoder::CreateEncoder(NS_LITERAL_STRING(AUDIO_3GPP), aTrackTypes);
+    } else if (mRecorder->mMimeType.EqualsLiteral(AUDIO_3GPP2)) {
+      mEncoder = MediaEncoder::CreateEncoder(NS_LITERAL_STRING(AUDIO_3GPP2), aTrackTypes);
     } else {
       mEncoder = MediaEncoder::CreateEncoder(NS_LITERAL_STRING(""), aTrackTypes);
     }
