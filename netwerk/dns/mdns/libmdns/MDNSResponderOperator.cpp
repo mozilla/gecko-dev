@@ -7,6 +7,7 @@
 #include "MDNSResponderReply.h"
 #include "mozilla/Endian.h"
 #include "mozilla/Logging.h"
+#include "mozilla/ScopeExit.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
@@ -93,9 +94,11 @@ public:
   virtual uint64_t ByteCountSent() override { return 0; }
   virtual uint64_t ByteCountReceived() override { return 0; }
 
-  explicit ServiceWatcher(DNSServiceRef aService)
+  explicit ServiceWatcher(DNSServiceRef aService,
+                          MDNSResponderOperator* aOperator)
     : mThread(nullptr)
     , mSts(nullptr)
+    , mOperatorHolder(aOperator)
     , mService(aService)
     , mFD(nullptr)
     , mAttached(false)
@@ -151,6 +154,7 @@ private:
       DNSServiceRefDeallocate(mService);
       mService = nullptr;
     }
+    mOperatorHolder = nullptr;
   }
 
   nsresult PostEvent(void(ServiceWatcher::*func)(void))
@@ -248,6 +252,7 @@ private:
 
   nsCOMPtr<nsIThread> mThread;
   RefPtr<nsSocketTransportService> mSts;
+  RefPtr<MDNSResponderOperator> mOperatorHolder;
   DNSServiceRef mService;
   PRFileDesc* mFD;
   bool mAttached;
@@ -285,7 +290,6 @@ MDNSResponderOperator::Start()
 nsresult
 MDNSResponderOperator::Stop()
 {
-  mThread = nullptr;
   return ResetService(nullptr);
 }
 
@@ -301,7 +305,7 @@ MDNSResponderOperator::ResetService(DNSServiceRef aService)
     }
 
     if (aService) {
-      RefPtr<ServiceWatcher> watcher = new ServiceWatcher(aService);
+      RefPtr<ServiceWatcher> watcher = new ServiceWatcher(aService, this);
       if (NS_WARN_IF(NS_FAILED(rv = watcher->Init()))) {
         return rv;
       }
@@ -546,7 +550,17 @@ RegisterOperator::Reply(DNSServiceRef aSdRef,
   if (NS_WARN_IF(NS_FAILED(info->SetDomainName(aDomain)))) { return; }
 
   if (kDNSServiceErr_NoError == aErrorCode) {
-    mListener->OnServiceRegistered(info);
+    if (aFlags & kDNSServiceFlagsAdd) {
+      mListener->OnServiceRegistered(info);
+    } else {
+      // If a successfully-registered name later suffers a name conflict
+      // or similar problem and has to be deregistered, the callback will
+      // be invoked with the kDNSServiceFlagsAdd flag not set.
+      LOG_E("RegisterOperator::Reply: deregister");
+      if (NS_WARN_IF(NS_FAILED(Stop()))) {
+        return;
+      }
+    }
   } else {
     mListener->OnRegistrationFailed(info, aErrorCode);
   }
@@ -557,7 +571,6 @@ ResolveOperator::ResolveOperator(nsIDNSServiceInfo* aServiceInfo,
   : MDNSResponderOperator()
   , mServiceInfo(aServiceInfo)
   , mListener(aListener)
-  , mDeleteProtector()
 {
 }
 
@@ -596,15 +609,7 @@ ResolveOperator::Start()
     return NS_ERROR_FAILURE;
   }
 
-  mDeleteProtector = this;
   return ResetService(service);
-}
-
-nsresult
-ResolveOperator::Stop()
-{
-  nsresult rv = MDNSResponderOperator::Stop();
-  return rv;
 }
 
 void
@@ -620,7 +625,9 @@ ResolveOperator::Reply(DNSServiceRef aSdRef,
 {
   MOZ_ASSERT(GetThread() == NS_GetCurrentThread());
 
-  mDeleteProtector = nullptr;
+  auto guard = MakeScopeExit([this] {
+    NS_WARN_IF(NS_FAILED(Stop()));
+  });
 
   if (NS_WARN_IF(kDNSServiceErr_NoError != aErrorCode)) {
     LOG_E("ResolveOperator::Reply (%d)", aErrorCode);
@@ -689,7 +696,6 @@ GetAddrInfoOperator::GetAddrInfoOperator(nsIDNSServiceInfo* aServiceInfo,
   : MDNSResponderOperator()
   , mServiceInfo(aServiceInfo)
   , mListener(aListener)
-  , mDeleteProtector()
 {
 }
 
@@ -723,15 +729,7 @@ GetAddrInfoOperator::Start()
     return NS_ERROR_FAILURE;
   }
 
-  mDeleteProtector = this;
   return ResetService(service);
-}
-
-nsresult
-GetAddrInfoOperator::Stop()
-{
-  nsresult rv = MDNSResponderOperator::Stop();
-  return rv;
 }
 
 void
@@ -745,7 +743,9 @@ GetAddrInfoOperator::Reply(DNSServiceRef aSdRef,
 {
   MOZ_ASSERT(GetThread() == NS_GetCurrentThread());
 
-  mDeleteProtector = nullptr;
+  auto guard = MakeScopeExit([this] {
+    NS_WARN_IF(NS_FAILED(Stop()));
+  });
 
   if (NS_WARN_IF(kDNSServiceErr_NoError != aErrorCode)) {
     LOG_E("GetAddrInfoOperator::Reply (%d)", aErrorCode);
@@ -762,13 +762,20 @@ GetAddrInfoOperator::Reply(DNSServiceRef aSdRef,
   nsCOMPtr<nsIDNSServiceInfo> info = new nsDNSServiceInfo(mServiceInfo);
   if (NS_WARN_IF(NS_FAILED(info->SetAddress(addressStr)))) { return; }
 
+  /**
+   * |kDNSServiceFlagsMoreComing| means this callback will be one or more
+   * callback events later, so this instance should be kept alive until all
+   * follow-up events are processed.
+   */
+  if (aFlags & kDNSServiceFlagsMoreComing) {
+    guard.release();
+  }
+
   if (kDNSServiceErr_NoError == aErrorCode) {
     mListener->OnServiceResolved(info);
   } else {
     mListener->OnResolveFailed(info, aErrorCode);
   }
-
-  NS_WARN_IF(NS_FAILED(Stop()));
 }
 
 } // namespace net
