@@ -17,6 +17,9 @@ function verifyDataCellLocationInfo(aLac, aCid) {
      "data.cell.cdmaBaseStationLongitude");
   is(cell.cdmaSystemId, -1, "data.cell.cdmaSystemId");
   is(cell.cdmaNetworkId, -1, "data.cell.cdmaNetworkId");
+  is(cell.cdmaRoamingIndicator, -1, "data.cell.cdmaRoamingIndicator");
+  is(cell.cdmaDefaultRoamingIndicator, -1, "data.cell.cdmaDefaultRoamingIndicator");
+  is(cell.cdmaSystemIsInPRL, false, "data.cell.cdmaSystemIsInPRL");
 }
 
 /* Test Data Cell Location Info Change */

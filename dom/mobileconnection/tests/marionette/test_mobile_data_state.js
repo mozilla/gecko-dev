@@ -20,6 +20,9 @@ const INITIAL_STATES = {
     cdmaBaseStationLongitude: -2147483648,
     cdmaSystemId: -1,
     cdmaNetworkId: -1,
+    cdmaRoamingIndicator: -1,
+    cdmaDefaultRoamingIndicator: -1,
+    cdmaSystemIsInPRL: false
   }
 };
 

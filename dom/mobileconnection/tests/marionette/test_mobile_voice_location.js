@@ -17,6 +17,9 @@ function verifyVoiceCellLocationInfo(aLac, aCid) {
      "check voice.cell.cdmaBaseStationLongitude");
   is(cell.cdmaSystemId, -1, "check voice.cell.cdmaSystemId");
   is(cell.cdmaNetworkId, -1, "check voice.cell.cdmaNetworkId");
+  is(cell.cdmaRoamingIndicator, -1, "data.cell.cdmaRoamingIndicator");
+  is(cell.cdmaDefaultRoamingIndicator, -1, "data.cell.cdmaDefaultRoamingIndicator");
+  is(cell.cdmaSystemIsInPRL, false, "data.cell.cdmaSystemIsInPRL");
 }
 
 /* Test Voice Cell Location Info Change */
