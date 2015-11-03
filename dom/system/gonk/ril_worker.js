@@ -3939,22 +3939,28 @@ RilObject.prototype = {
       // let cssIndicator = this.parseInt(state[7]);
       let cdmaSystemId = this.parseInt(state[8], -1);
       let cdmaNetworkId = this.parseInt(state[9], -1);
-      // let roamingIndicator = this.parseInt(state[10]);
-      // let systemIsInPRL = this.parseInt(state[11]);
-      // let defaultRoamingIndicator = this.parseInt(state[12]);
+      let cdmaRoamingIndicator = this.parseInt(state[10], -1);
+      let cdmaSystemIsInPRL = !!this.parseInt(state[11], false);
+      let cdmaDefaultRoamingIndicator = this.parseInt(state[12], -1);
       // let reasonForDenial = this.parseInt(state[13]);
 
       if (cell.cdmaBaseStationId !== cdmaBaseStationId ||
           cell.cdmaBaseStationLatitude !== cdmaBaseStationLatitude ||
           cell.cdmaBaseStationLongitude !== cdmaBaseStationLongitude ||
           cell.cdmaSystemId !== cdmaSystemId ||
-          cell.cdmaNetworkId !== cdmaNetworkId) {
+          cell.cdmaNetworkId !== cdmaNetworkId ||
+          cell.cdmaRoamingIndicator !== cdmaRoamingIndicator ||
+          cell.cdmaSystemIsInPRL !== cdmaSystemIsInPRL ||
+          cell.cdmaDefaultRoamingIndicator !== cdmaDefaultRoamingIndicator) {
         stateChanged = true;
         cell.cdmaBaseStationId = cdmaBaseStationId;
         cell.cdmaBaseStationLatitude = cdmaBaseStationLatitude;
         cell.cdmaBaseStationLongitude = cdmaBaseStationLongitude;
         cell.cdmaSystemId = cdmaSystemId;
         cell.cdmaNetworkId = cdmaNetworkId;
+        cell.cdmaRoamingIndicator = cdmaRoamingIndicator;
+        cell.cdmaSystemIsInPRL = cdmaSystemIsInPRL;
+        cell.cdmaDefaultRoamingIndicator = cdmaDefaultRoamingIndicator;
       }
     }
 

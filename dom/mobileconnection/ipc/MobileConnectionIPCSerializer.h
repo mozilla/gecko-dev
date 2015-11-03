@@ -234,6 +234,8 @@ struct ParamTraits<nsIMobileCellInfo*>
 
     int32_t pLong;
     int64_t pLongLong;
+    int16_t pShort;
+    bool pBool;
 
     aParam->GetGsmLocationAreaCode(&pLong);
     WriteParam(aMsg, pLong);
@@ -255,6 +257,15 @@ struct ParamTraits<nsIMobileCellInfo*>
 
     aParam->GetCdmaNetworkId(&pLong);
     WriteParam(aMsg, pLong);
+
+    aParam->GetCdmaRoamingIndicator(&pShort);
+    WriteParam(aMsg, pShort);
+
+    aParam->GetCdmaDefaultRoamingIndicator(&pShort);
+    WriteParam(aMsg, pShort);
+
+    aParam->GetCdmaSystemIsInPRL(&pBool);
+    WriteParam(aMsg, pBool);
 
     // We release the ref here given that ipdl won't handle reference counting.
     aParam->Release();
@@ -281,6 +292,9 @@ struct ParamTraits<nsIMobileCellInfo*>
     int32_t cdmaBsLong;
     int32_t cdmaSystemId;
     int32_t cdmaNetworkId;
+    int16_t cdmaRoamingIndicator;
+    int16_t cdmaDefaultRoamingIndicator;
+    bool cdmaSystemIsInPRL;
 
     // It's not important to us where it fails, but rather if it fails
     if (!(ReadParam(aMsg, aIter, &gsmLac) &&
@@ -289,12 +303,17 @@ struct ParamTraits<nsIMobileCellInfo*>
           ReadParam(aMsg, aIter, &cdmaBsLat) &&
           ReadParam(aMsg, aIter, &cdmaBsLong) &&
           ReadParam(aMsg, aIter, &cdmaSystemId) &&
-          ReadParam(aMsg, aIter, &cdmaNetworkId))) {
+          ReadParam(aMsg, aIter, &cdmaNetworkId) &&
+          ReadParam(aMsg, aIter, &cdmaRoamingIndicator) &&
+          ReadParam(aMsg, aIter, &cdmaDefaultRoamingIndicator) &&
+          ReadParam(aMsg, aIter, &cdmaSystemIsInPRL))) {
       return false;
     }
 
     *aResult = new MobileCellInfo(gsmLac, gsmCellId, cdmaBsId, cdmaBsLat,
-                                  cdmaBsLong, cdmaSystemId, cdmaNetworkId);
+                                  cdmaBsLong, cdmaSystemId, cdmaNetworkId,
+                                  cdmaRoamingIndicator, cdmaDefaultRoamingIndicator,
+                                  cdmaSystemIsInPRL);
     // We release this ref after receiver finishes processing.
     NS_ADDREF(*aResult);
 

@@ -98,6 +98,9 @@ function MobileCellInfo() {
   this.cdmaBaseStationLongitude = -2147483648;
   this.cdmaSystemId = -1;
   this.cdmaNetworkId = -1;
+  this.cdmaRoamingIndicator = -1;
+  this.cdmaSystemIsInPRL = false;
+  this.cdmaDefaultRoamingIndicator = -1;
 }
 MobileCellInfo.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileCellInfo]),
