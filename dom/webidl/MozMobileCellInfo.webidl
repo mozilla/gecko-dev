@@ -64,4 +64,28 @@ interface MozMobileCellInfo
    * -1 if the network id is unknown.
    */
   readonly attribute long cdmaNetworkId;
+
+  /**
+   * The TSB-58 Roaming Indicator on a registered CDMA or EVDO system.
+   *
+   * Possible ranges from 0 to 255.
+   * -1 if the indicator is unknown.
+   *
+   * @see 3GPP2 C.R1001-D v1.0.
+   */
+  readonly attribute short cdmaRoamingIndicator;
+
+  /**
+   * The default Roaming Indicator from PRL if registered on a CDMA or EVDO system.
+   *
+   * Possible ranges from 0 to 255.
+   * -1 if the indicator is unknown.
+   */
+  readonly attribute short cdmaDefaultRoamingIndicator;
+
+  /**
+   * The indicator of whether the current system is in the PRL
+   * if registered on a CDMA or EVDO system.
+   */
+  readonly attribute boolean cdmaSystemIsInPRL;
 };

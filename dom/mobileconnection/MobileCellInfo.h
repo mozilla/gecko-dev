@@ -27,7 +27,8 @@ public:
   MobileCellInfo(int32_t aGsmLocationAreaCode, int64_t aGsmCellId,
                  int32_t aCdmaBaseStationId, int32_t aCdmaBaseStationLatitude,
                  int32_t aCdmaBaseStationLongitude, int32_t aCdmaSystemId,
-                 int32_t aCdmaNetworkId);
+                 int32_t aCdmaNetworkId, int16_t aCdmaRoamingIndicator,
+                 int16_t aCdmaDefaultRoamingIndicator, bool aCdmaSystemIsInPRL);
 
   void
   Update(nsIMobileCellInfo* aInfo);
@@ -84,6 +85,24 @@ public:
     return mCdmaNetworkId;
   }
 
+  int16_t
+  CdmaRoamingIndicator() const
+  {
+    return mCdmaRoamingIndicator;
+  }
+
+  int16_t
+  CdmaDefaultRoamingIndicator() const
+  {
+    return mCdmaDefaultRoamingIndicator;
+  }
+
+  bool
+  CdmaSystemIsInPRL() const
+  {
+    return mCdmaSystemIsInPRL;
+  }
+
 private:
   ~MobileCellInfo() {}
 
@@ -96,6 +115,9 @@ private:
   int32_t mCdmaBaseStationLongitude;
   int32_t mCdmaSystemId;
   int32_t mCdmaNetworkId;
+  int16_t mCdmaRoamingIndicator;
+  int16_t mCdmaDefaultRoamingIndicator;
+  bool mCdmaSystemIsInPRL;
 };
 
 } // namespace dom

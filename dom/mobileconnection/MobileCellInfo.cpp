@@ -29,6 +29,9 @@ MobileCellInfo::MobileCellInfo(nsPIDOMWindow* aWindow)
   , mCdmaBaseStationLongitude(-1)
   , mCdmaSystemId(-1)
   , mCdmaNetworkId(-1)
+  , mCdmaRoamingIndicator(-1)
+  , mCdmaDefaultRoamingIndicator(-1)
+  , mCdmaSystemIsInPRL(false)
 {
 }
 
@@ -38,7 +41,10 @@ MobileCellInfo::MobileCellInfo(int32_t aGsmLocationAreaCode,
                                int32_t aCdmaBaseStationLatitude,
                                int32_t aCdmaBaseStationLongitude,
                                int32_t aCdmaSystemId,
-                               int32_t aCdmaNetworkId)
+                               int32_t aCdmaNetworkId,
+                               int16_t aCdmaRoamingIndicator,
+                               int16_t aCdmaDefaultRoamingIndicator,
+                               bool aCdmaSystemIsInPRL)
   : mGsmLocationAreaCode(aGsmLocationAreaCode)
   , mGsmCellId(aGsmCellId)
   , mCdmaBaseStationId(aCdmaBaseStationId)
@@ -46,6 +52,9 @@ MobileCellInfo::MobileCellInfo(int32_t aGsmLocationAreaCode,
   , mCdmaBaseStationLongitude(aCdmaBaseStationLongitude)
   , mCdmaSystemId(aCdmaSystemId)
   , mCdmaNetworkId(aCdmaNetworkId)
+  , mCdmaRoamingIndicator(aCdmaRoamingIndicator)
+  , mCdmaDefaultRoamingIndicator(aCdmaDefaultRoamingIndicator)
+  , mCdmaSystemIsInPRL(aCdmaSystemIsInPRL)
 {
   // The instance created by this way is only used for IPC stuff. It won't be
   // exposed to JS directly, we will clone this instance to the one that is
@@ -66,6 +75,9 @@ MobileCellInfo::Update(nsIMobileCellInfo* aInfo)
   aInfo->GetCdmaBaseStationLongitude(&mCdmaBaseStationLongitude);
   aInfo->GetCdmaSystemId(&mCdmaSystemId);
   aInfo->GetCdmaNetworkId(&mCdmaNetworkId);
+  aInfo->GetCdmaRoamingIndicator(&mCdmaRoamingIndicator);
+  aInfo->GetCdmaDefaultRoamingIndicator(&mCdmaDefaultRoamingIndicator);
+  aInfo->GetCdmaSystemIsInPRL(&mCdmaSystemIsInPRL);
 }
 
 JSObject*
@@ -122,5 +134,26 @@ NS_IMETHODIMP
 MobileCellInfo::GetCdmaNetworkId(int32_t* aCdmaNetworkId)
 {
   *aCdmaNetworkId = CdmaNetworkId();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MobileCellInfo::GetCdmaRoamingIndicator(int16_t* aCdmaRoamingIndicator)
+{
+  *aCdmaRoamingIndicator = CdmaRoamingIndicator();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MobileCellInfo::GetCdmaDefaultRoamingIndicator(int16_t* aCdmaDefaultRoamingIndicator)
+{
+  *aCdmaDefaultRoamingIndicator = CdmaDefaultRoamingIndicator();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MobileCellInfo::GetCdmaSystemIsInPRL(bool* aCdmaSystemIsInPRL)
+{
+  *aCdmaSystemIsInPRL = CdmaSystemIsInPRL();
   return NS_OK;
 }
