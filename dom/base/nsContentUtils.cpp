@@ -36,6 +36,7 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/LoadInfo.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/Element.h"
@@ -188,6 +189,7 @@
 #include "nsViewManager.h"
 #include "nsViewportInfo.h"
 #include "nsWidgetsCID.h"
+#include "nsIWindowProvider.h"
 #include "nsWrapperCacheInlines.h"
 #include "nsXULPopupManager.h"
 #include "xpcprivate.h" // nsXPConnect
@@ -3126,7 +3128,8 @@ nsContentUtils::IsImageInCache(nsIURI* aURI, nsIDocument* aDocument)
     // If something unexpected happened we return false, otherwise if props
     // is set, the image is cached and we return true
     nsCOMPtr<nsIProperties> props;
-    nsresult rv = cache->FindEntryProperties(aURI, getter_AddRefs(props));
+    nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(aDocument);
+    nsresult rv = cache->FindEntryProperties(aURI, domDoc, getter_AddRefs(props));
     return (NS_SUCCEEDED(rv) && props);
 }
 
@@ -3475,42 +3478,6 @@ nsContentUtils::ReportToConsole(uint32_t aErrorFlags,
   return ReportToConsoleNonLocalized(errorText, aErrorFlags, aCategory,
                                      aDocument, aURI, aSourceLine,
                                      aLineNumber, aColumnNumber);
-}
-
-/* static */ nsresult
-nsContentUtils::MaybeReportInterceptionErrorToConsole(nsIDocument* aDocument,
-                                                      nsresult aError)
-{
-  const char* messageName = nullptr;
-  if (aError == NS_ERROR_INTERCEPTION_FAILED) {
-    messageName = "InterceptionFailed";
-  } else if (aError == NS_ERROR_OPAQUE_INTERCEPTION_DISABLED) {
-    messageName = "OpaqueInterceptionDisabled";
-  } else if (aError == NS_ERROR_BAD_OPAQUE_INTERCEPTION_REQUEST_MODE) {
-    messageName = "BadOpaqueInterceptionRequestMode";
-  } else if (aError == NS_ERROR_INTERCEPTED_ERROR_RESPONSE) {
-    messageName = "InterceptedErrorResponse";
-  } else if (aError == NS_ERROR_INTERCEPTED_USED_RESPONSE) {
-    messageName = "InterceptedUsedResponse";
-  } else if (aError == NS_ERROR_CLIENT_REQUEST_OPAQUE_INTERCEPTION) {
-    messageName = "ClientRequestOpaqueInterception";
-  } else if (aError == NS_ERROR_BAD_OPAQUE_REDIRECT_INTERCEPTION) {
-    messageName = "BadOpaqueRedirectInterception";
-  } else if (aError == NS_ERROR_INTERCEPTION_CANCELED) {
-    messageName = "InterceptionCanceled";
-  } else if (aError == NS_ERROR_REJECTED_RESPONSE_INTERCEPTION) {
-    messageName = "InterceptionRejectedResponse";
-  }
-
-  if (messageName) {
-    return ReportToConsole(nsIScriptError::warningFlag,
-                           NS_LITERAL_CSTRING("Service Worker Interception"),
-                           aDocument,
-                           nsContentUtils::eDOM_PROPERTIES,
-                           messageName);
-  }
-
-  return NS_OK;
 }
 
 
@@ -5204,6 +5171,14 @@ nsContentUtils::RemoveScriptBlocker()
   sRemovingScriptBlockers = true;
 #endif
   sBlockedScriptRunners->RemoveElementsAt(originalFirstBlocker, blockersCount);
+}
+
+/* static */
+nsIWindowProvider*
+nsContentUtils::GetWindowProviderForContentProcess()
+{
+  MOZ_ASSERT(XRE_IsContentProcess());
+  return ContentChild::GetSingleton();
 }
 
 /* static */

@@ -138,7 +138,9 @@ static const PhaseInfo phases[] = {
             { PHASE_SWEEP_MARK_INCOMING_GRAY, "Mark Incoming Gray Pointers", PHASE_SWEEP_MARK, 14 },
             { PHASE_SWEEP_MARK_GRAY, "Mark Gray", PHASE_SWEEP_MARK, 15 },
             { PHASE_SWEEP_MARK_GRAY_WEAK, "Mark Gray and Weak", PHASE_SWEEP_MARK, 16 },
-        { PHASE_FINALIZE_START, "Finalize Start Callback", PHASE_SWEEP, 17 },
+        { PHASE_FINALIZE_START, "Finalize Start Callbacks", PHASE_SWEEP, 17 },
+            { PHASE_WEAK_ZONEGROUP_CALLBACK, "Per-Slice Weak Callback", PHASE_FINALIZE_START, 56 },
+            { PHASE_WEAK_COMPARTMENT_CALLBACK, "Per-Compartment Weak Callback", PHASE_FINALIZE_START, 57 },
         { PHASE_SWEEP_ATOMS, "Sweep Atoms", PHASE_SWEEP, 18 },
         { PHASE_SWEEP_SYMBOL_REGISTRY, "Sweep Symbol Registry", PHASE_SWEEP, 19 },
         { PHASE_SWEEP_COMPARTMENTS, "Sweep Compartments", PHASE_SWEEP, 20 },
@@ -1017,11 +1019,16 @@ Statistics::endSlice()
     MOZ_ASSERT(gcDepth >= 0);
 }
 
-void
+bool
 Statistics::startTimingMutator()
 {
-    // Should only be called from outside of GC
-    MOZ_ASSERT(phaseNestingDepth == 0);
+    if (phaseNestingDepth != 0) {
+        // Should only be called from outside of GC.
+        MOZ_ASSERT(phaseNestingDepth == 1);
+        MOZ_ASSERT(phaseNesting[0] == PHASE_MUTATOR);
+        return false;
+    }
+
     MOZ_ASSERT(suspendedPhaseNestingDepth == 0);
 
     timedGCTime = 0;
@@ -1030,6 +1037,7 @@ Statistics::startTimingMutator()
     timedGCStart = 0;
 
     beginPhase(PHASE_MUTATOR);
+    return true;
 }
 
 bool

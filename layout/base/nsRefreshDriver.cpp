@@ -361,6 +361,11 @@ private:
 
       if (XRE_IsParentProcess()) {
         MonitorAutoLock lock(mRefreshTickLock);
+        #ifndef ANDROID  /* bug 1142079 */
+          TimeDuration vsyncLatency = TimeStamp::Now() - aVsyncTimestamp;
+          Telemetry::Accumulate(Telemetry::FX_REFRESH_DRIVER_CHROME_FRAME_DELAY_MS,
+                                vsyncLatency.ToMilliseconds());
+        #endif
         aVsyncTimestamp = mRecentVsync;
         mProcessedVsync = true;
       }
@@ -393,7 +398,7 @@ private:
       // send the unobserveVsync message to disable vsync event. We don't need
       // to handle the cleanup stuff of this actor. PVsyncChild::ActorDestroy()
       // will be called and clean up this actor.
-      unused << mVsyncChild->SendUnobserve();
+      Unused << mVsyncChild->SendUnobserve();
       mVsyncChild->SetVsyncObserver(nullptr);
       mVsyncChild = nullptr;
     }
@@ -412,7 +417,7 @@ private:
     if (XRE_IsParentProcess()) {
       mVsyncDispatcher->SetParentRefreshTimer(mVsyncObserver);
     } else {
-      unused << mVsyncChild->SendObserve();
+      Unused << mVsyncChild->SendObserve();
     }
   }
 
@@ -421,7 +426,7 @@ private:
     if (XRE_IsParentProcess()) {
       mVsyncDispatcher->SetParentRefreshTimer(nullptr);
     } else {
-      unused << mVsyncChild->SendUnobserve();
+      Unused << mVsyncChild->SendUnobserve();
     }
   }
 

@@ -321,7 +321,11 @@ if test -n "$gonkdir" ; then
     direct_nspr_config=1
     android_cxx_stl=mozstlport
 else
-    MOZ_ANDROID_NDK
+    if test "$COMPILE_ENVIRONMENT"; then
+        MOZ_ANDROID_NDK
+    else
+        AC_DEFINE(ANDROID)
+    fi # COMPILE_ENVIRONMENT
 
     case "$target" in
     *-android*|*-linuxandroid*)
@@ -1197,7 +1201,14 @@ esac
 
 dnl Configure platform-specific CPU architecture compiler options.
 dnl ==============================================================
-MOZ_ARCH_OPTS
+if test "$COMPILE_ENVIRONMENT"; then
+    MOZ_ARCH_OPTS
+else
+    if test "$OS_TARGET" = Android -a x"$MOZ_WIDGET_TOOLKIT" != x"gonk"; then
+        dnl Default Android builds to ARMv7.
+        MOZ_ARCH=armv7-a
+    fi
+fi # COMPILE_ENVIRONMENT
 
 dnl =================================================================
 dnl Set up and test static assertion macros used to avoid AC_TRY_RUN,
@@ -1246,7 +1257,10 @@ dnl Android libstdc++, placed here so it can use MOZ_ARCH
 dnl computed above.
 dnl ========================================================
 
-MOZ_ANDROID_STLPORT
+MOZ_ANDROID_CPU_ARCH
+if test "$COMPILE_ENVIRONMENT"; then
+    MOZ_ANDROID_STLPORT
+fi # COMPILE_ENVIRONMENT
 
 dnl ========================================================
 dnl Suppress Clang Argument Warnings
@@ -2532,6 +2546,7 @@ esac
 if test -z "$COMPILE_ENVIRONMENT"; then
     SKIP_COMPILER_CHECKS=1
     SKIP_LIBRARY_CHECKS=1
+    PKG_SKIP_STRIP=1
 else
     MOZ_COMPILER_OPTS
 fi # COMPILE_ENVIRONMENT
@@ -4030,6 +4045,13 @@ if test -n "$MOZ_B2GDROID"; then
     AC_DEFINE(MOZ_B2GDROID)
 fi
 
+# Propagate feature switches for code written in rust from confvars.sh
+if test -n "$MOZ_RUST"; then
+    if test -n "$MOZ_RUST_MP4PARSE"; then
+        AC_DEFINE(MOZ_RUST_MP4PARSE)
+    fi
+fi
+
 AC_SUBST(MOZ_BUILD_APP)
 AC_SUBST(MOZ_PHOENIX)
 AC_SUBST(MOZ_XULRUNNER)
@@ -4979,7 +5001,7 @@ AC_SUBST(MOZ_WEBRTC_HAVE_ETHTOOL_SPEED_HI)
 
 # target_arch is from {ia32|x64|arm|ppc}
 case "$CPU_ARCH" in
-x86_64 | arm | x86 | ppc* | ia64)
+x86_64 | arm | aarch64 | x86 | ppc* | ia64)
     :
     ;;
 *)
@@ -7047,18 +7069,10 @@ elif test "$GNU_CC"; then
 fi
 
 dnl ========================================================
-dnl = Disable runtime logging checks
+dnl = Enable runtime logging
 dnl ========================================================
-MOZ_ARG_DISABLE_BOOL(logging,
-[  --disable-logging       Disable logging facilities],
-    NS_DISABLE_LOGGING=1,
-    NS_DISABLE_LOGGING= )
-if test "$NS_DISABLE_LOGGING"; then
-    AC_DEFINE(NS_DISABLE_LOGGING)
-else
-    AC_DEFINE(MOZ_LOGGING)
-    AC_DEFINE(FORCE_PR_LOG)
-fi
+AC_DEFINE(MOZ_LOGGING)
+AC_DEFINE(FORCE_PR_LOG)
 
 dnl ========================================================
 dnl = This will enable logging of addref, release, ctor, dtor.
@@ -7255,9 +7269,6 @@ if test -z "$MOZ_MEMORY"; then
   esac
 else
   AC_DEFINE(MOZ_MEMORY)
-  if test -n "$NIGHTLY_BUILD"; then
-    MOZ_JEMALLOC4=1
-  fi
   if test -n "$MOZ_JEMALLOC4"; then
     AC_DEFINE(MOZ_JEMALLOC4)
   fi

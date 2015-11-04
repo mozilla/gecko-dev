@@ -35,6 +35,7 @@
 #include "mozIThirdPartyUtil.h"
 #include "nsContentSecurityManager.h"
 #include "nsIDeprecationWarner.h"
+#include "nsICompressConvStats.h"
 
 #ifdef OS_POSIX
 #include "chrome/common/file_descriptor_set_posix.h"
@@ -503,6 +504,7 @@ HttpChannelChild::DoOnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   if (mDivertingToParent) {
     mListener = nullptr;
     mListenerContext = nullptr;
+    mCompressListener = nullptr;
     if (mLoadGroup) {
       mLoadGroup->RemoveRequest(this, nullptr, mStatus);
     }
@@ -516,6 +518,7 @@ HttpChannelChild::DoOnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
     Cancel(rv);
   } else if (listener) {
     mListener = listener;
+    mCompressListener = listener;
   }
 }
 
@@ -840,6 +843,11 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus,
       new MaybeDivertOnStopHttpEvent(this, channelStatus));
   }
 
+  nsCOMPtr<nsICompressConvStats> conv = do_QueryInterface(mCompressListener);
+  if (conv) {
+      conv->GetDecodedDataLength(&mDecodedBodySize);
+  }
+
   mTransactionTimings.domainLookupStart = timing.domainLookupStart;
   mTransactionTimings.domainLookupEnd = timing.domainLookupEnd;
   mTransactionTimings.connectStart = timing.connectStart;
@@ -850,6 +858,8 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus,
   mAsyncOpenTime = timing.fetchStart;
   mRedirectStartTimeStamp = timing.redirectStart;
   mRedirectEndTimeStamp = timing.redirectEnd;
+  mTransferSize = timing.transferSize;
+  mEncodedBodySize = timing.encodedBodySize;
 
   nsPerformance* documentPerformance = GetPerformance();
   if (documentPerformance) {
@@ -1162,6 +1172,7 @@ HttpChannelChild::RecvRedirect1Begin(const uint32_t& newChannelId,
 nsresult
 HttpChannelChild::SetupRedirect(nsIURI* uri,
                                 const nsHttpResponseHead* responseHead,
+                                const uint32_t& redirectFlags,
                                 nsIChannel** outChannel)
 {
   LOG(("HttpChannelChild::SetupRedirect [this=%p]\n", this));
@@ -1187,7 +1198,7 @@ HttpChannelChild::SetupRedirect(nsIURI* uri,
   bool rewriteToGET = HttpBaseChannel::ShouldRewriteRedirectToGET(mResponseHead->Status(),
                                                                   mRequestHead.ParsedMethod());
 
-  rv = SetupReplacementChannel(uri, newChannel, !rewriteToGET);
+  rv = SetupReplacementChannel(uri, newChannel, !rewriteToGET, redirectFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIHttpChannelChild> httpChannelChild = do_QueryInterface(newChannel);
@@ -1223,6 +1234,7 @@ HttpChannelChild::Redirect1Begin(const uint32_t& newChannelId,
   nsCOMPtr<nsIChannel> newChannel;
   nsresult rv = SetupRedirect(uri,
                               &responseHead,
+                              redirectFlags,
                               getter_AddRefs(newChannel));
 
   if (NS_SUCCEEDED(rv)) {
@@ -1251,6 +1263,7 @@ HttpChannelChild::BeginNonIPCRedirect(nsIURI* responseURI,
   nsCOMPtr<nsIChannel> newChannel;
   nsresult rv = SetupRedirect(responseURI,
                               responseHead,
+                              nsIChannelEventSink::REDIRECT_INTERNAL,
                               getter_AddRefs(newChannel));
 
   if (NS_SUCCEEDED(rv)) {
@@ -1365,7 +1378,7 @@ HttpChannelChild::Redirect3Complete()
 
   if (NS_SUCCEEDED(rv)) {
     if (mLoadInfo) {
-      mLoadInfo->AppendRedirectedPrincipal(GetURIPrincipal());
+      mLoadInfo->AppendRedirectedPrincipal(GetURIPrincipal(), false);
     }
   }
   else {
@@ -1822,7 +1835,7 @@ HttpChannelChild::ContinueAsyncOpen()
     PFileDescriptorSetChild* fdSet =
       gNeckoChild->Manager()->SendPFileDescriptorSetConstructor(fds[0]);
     for (uint32_t i = 1; i < fds.Length(); ++i) {
-      unused << fdSet->SendAddFileDescriptor(fds[i]);
+      Unused << fdSet->SendAddFileDescriptor(fds[i]);
     }
 
     optionalFDs = fdSet;
@@ -2364,6 +2377,12 @@ HttpChannelChild::DivertToParent(ChannelDiverterChild **aChild)
   MOZ_RELEASE_ASSERT(aChild);
   MOZ_RELEASE_ASSERT(gNeckoChild);
   MOZ_RELEASE_ASSERT(!mDivertingToParent);
+
+  // If we have a synthesized response, then there is no parent actor.  We
+  // need to make this work somehow, but for now avoid crashing.  (bug 1220681)
+  if (mSynthesizedResponse) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   // We must fail DivertToParent() if there's no parent end of the channel (and
   // won't be!) due to early failure.

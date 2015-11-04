@@ -2322,9 +2322,9 @@ nsWindow::UpdateAlpha(gfxPattern* aPattern, nsIntRect aBoundsRect)
     int32_t stride = GetAlignedStride<4>(BytesPerPixel(SurfaceFormat::A8) *
                                          aBoundsRect.width);
     int32_t bufferSize = stride * aBoundsRect.height;
-    nsAutoArrayPtr<uint8_t> imageBuffer(new (std::nothrow) uint8_t[bufferSize]);
+    UniquePtr<uint8_t[]> imageBuffer(new (std::nothrow) uint8_t[bufferSize]);
     RefPtr<DrawTarget> drawTarget = gfxPlatform::GetPlatform()->
-        CreateDrawTargetForData(imageBuffer, aBoundsRect.Size(),
+        CreateDrawTargetForData(imageBuffer.get(), aBoundsRect.Size(),
                                 stride, SurfaceFormat::A8);
 
     if (drawTarget) {
@@ -2335,7 +2335,7 @@ nsWindow::UpdateAlpha(gfxPattern* aPattern, nsIntRect aBoundsRect)
                              *aPattern->GetPattern(drawTarget),
                              DrawOptions(1.0, CompositionOp::OP_SOURCE));
     }
-    UpdateTranslucentWindowAlphaInternal(aBoundsRect, imageBuffer, stride);
+    UpdateTranslucentWindowAlphaInternal(aBoundsRect, imageBuffer.get(), stride);
 }
 
 gboolean
@@ -2668,7 +2668,7 @@ nsWindow::DispatchMissedButtonReleases(GdkEventCrossing *aGdkEvent)
             WidgetMouseEvent synthEvent(true, eMouseUp, this,
                                         WidgetMouseEvent::eSynthesized);
             synthEvent.button = buttonType;
-            DispatchInputEvent(&synthEvent);
+            DispatchAPZAwareEvent(&synthEvent);
         }
     }
 }
@@ -2788,7 +2788,7 @@ nsWindow::OnButtonPressEvent(GdkEventButton *aEvent)
     InitButtonEvent(event, aEvent);
     event.pressure = mLastMotionPressure;
 
-    DispatchInputEvent(&event);
+    DispatchAPZAwareEvent(&event);
 
     // right menu click on linux should also pop up a context menu
     if (domButton == WidgetMouseEvent::eRightButton &&
@@ -2831,7 +2831,7 @@ nsWindow::OnButtonReleaseEvent(GdkEventButton *aEvent)
     gdk_event_get_axis ((GdkEvent*)aEvent, GDK_AXIS_PRESSURE, &pressure);
     event.pressure = pressure ? pressure : mLastMotionPressure;
 
-    DispatchInputEvent(&event);
+    DispatchAPZAwareEvent(&event);
     mLastMotionPressure = pressure;
 }
 

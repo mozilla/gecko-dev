@@ -261,11 +261,10 @@ public:
     nscoord      mDeltaWidth;
   };
   TrimOutput TrimTrailingWhiteSpace(nsRenderingContext* aRC);
-  virtual nsresult GetRenderedText(nsAString* aString = nullptr,
-                                   gfxSkipChars* aSkipChars = nullptr,
-                                   gfxSkipCharsIterator* aSkipIter = nullptr,
-                                   uint32_t aSkippedStartOffset = 0,
-                                   uint32_t aSkippedMaxLength = UINT32_MAX) override;
+  virtual RenderedText GetRenderedText(uint32_t aStartOffset = 0,
+                                       uint32_t aEndOffset = UINT32_MAX,
+                                       TextOffsetType aOffsetType =
+                                           TextOffsetType::OFFSETS_IN_CONTENT_TEXT) override;
 
   nsOverflowAreas RecomputeOverflow(nsIFrame* aBlockFrame);
 
@@ -393,7 +392,8 @@ public:
   void PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
                  const nsRect& aDirtyRect, const nsCharClipDisplayItem& aItem,
                  gfxTextContextPaint* aContextPaint = nullptr,
-                 DrawPathCallbacks* aCallbacks = nullptr);
+                 DrawPathCallbacks* aCallbacks = nullptr,
+                 float aOpacity = 1.0f);
   // helper: paint text frame when we're impacted by at least one selection.
   // Return false if the text was not painted and we should continue with
   // the fast path.

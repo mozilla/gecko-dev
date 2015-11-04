@@ -168,6 +168,7 @@
 #include "mozilla/Telemetry.h"
 #include "nsCanvasFrame.h"
 #include "nsIImageLoadingContent.h"
+#include "nsImageFrame.h"
 #include "nsIScreen.h"
 #include "nsIScreenManager.h"
 #include "nsPlaceholderFrame.h"
@@ -1005,7 +1006,7 @@ LogTextPerfStats(gfxTextPerfMetrics* aTextPerf,
                  const gfxTextPerfMetrics::TextCounts& aCounts,
                  float aTime, TextPerfLogType aLogType, const char* aURL)
 {
-  PRLogModuleInfo* tpLog = gfxPlatform::GetLog(eGfxLog_textperf);
+  LogModule* tpLog = gfxPlatform::GetLog(eGfxLog_textperf);
 
   // ignore XUL contexts unless at debug level
   mozilla::LogLevel logLevel = LogLevel::Warning;
@@ -7314,8 +7315,6 @@ PresShell::HandleEvent(nsIFrame* aFrame,
         nsCOMPtr<nsIContent> anyTarget;
         if (TouchManager::gCaptureTouchList->Count() > 0 && touchEvent->touches.Length() > 1) {
           TouchManager::gCaptureTouchList->Enumerate(&FindAnyTarget, &anyTarget);
-        } else {
-          TouchManager::gPreventMouseEvents = false;
         }
 
         for (int32_t i = touchEvent->touches.Length(); i; ) {
@@ -8135,14 +8134,7 @@ PresShell::DispatchTouchEventToDOM(WidgetEvent* aEvent,
     }
   }
 
-  // if preventDefault was called on any of the events dispatched
-  // and this is touchstart, or the first touchmove, widget should consume
-  // other events that would be associated with this touch session
   if (preventDefault && canPrevent) {
-    TouchManager::gPreventMouseEvents = true;
-  }
-
-  if (TouchManager::gPreventMouseEvents) {
     *aStatus = nsEventStatus_eConsumeNoDefault;
   } else {
     *aStatus = nsEventStatus_eIgnore;
@@ -10701,7 +10693,23 @@ nsresult
 PresShell::UpdateImageLockingState()
 {
   // We're locked if we're both thawed and active.
-  return mDocument->SetImageLockingState(!mFrozen && mIsActive);
+  bool locked = !mFrozen && mIsActive;
+
+  nsresult rv = mDocument->SetImageLockingState(locked);
+
+  if (locked) {
+    // Request decodes for visible images; we want to start decoding as
+    // quickly as possible when we get foregrounded to minimize flashing.
+    for (auto iter = mVisibleImages.Iter(); !iter.Done(); iter.Next()) {
+      nsCOMPtr<nsIContent> content = do_QueryInterface(iter.Get()->GetKey());
+      nsImageFrame* imageFrame = do_QueryFrame(content->GetPrimaryFrame());
+      if (imageFrame) {
+        imageFrame->MaybeDecodeForPredictedSize();
+      }
+    }
+  }
+
+  return rv;
 }
 
 PresShell*

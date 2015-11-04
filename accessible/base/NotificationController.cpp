@@ -54,6 +54,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(NotificationController)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mHangingChildDocuments)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContentInsertions)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mEvents)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRelocations)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(NotificationController, AddRef)
@@ -86,6 +87,7 @@ NotificationController::Shutdown()
   mContentInsertions.Clear();
   mNotifications.Clear();
   mEvents.Clear();
+  mRelocations.Clear();
 }
 
 void
@@ -228,12 +230,11 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
     nsIContent* containerElm = containerNode->IsElement() ?
       containerNode->AsElement() : nullptr;
 
-    nsAutoString text;
-    textFrame->GetRenderedText(&text);
+    nsIFrame::RenderedText text = textFrame->GetRenderedText();
 
     // Remove text accessible if rendered text is empty.
     if (textAcc) {
-      if (text.IsEmpty()) {
+      if (text.mString.IsEmpty()) {
   #ifdef A11Y_LOG
         if (logging::IsEnabled(logging::eTree | logging::eText)) {
           logging::MsgBegin("TREE", "text node lost its content");
@@ -256,17 +257,17 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
         logging::MsgEntry("old text '%s'",
                           NS_ConvertUTF16toUTF8(textAcc->AsTextLeaf()->Text()).get());
         logging::MsgEntry("new text: '%s'",
-                          NS_ConvertUTF16toUTF8(text).get());
+                          NS_ConvertUTF16toUTF8(text.mString).get());
         logging::MsgEnd();
       }
   #endif
 
-      TextUpdater::Run(mDocument, textAcc->AsTextLeaf(), text);
+      TextUpdater::Run(mDocument, textAcc->AsTextLeaf(), text.mString);
       continue;
     }
 
     // Append an accessible if rendered text is not empty.
-    if (!text.IsEmpty()) {
+    if (!text.mString.IsEmpty()) {
   #ifdef A11Y_LOG
       if (logging::IsEnabled(logging::eTree | logging::eText)) {
         logging::MsgBegin("TREE", "text node gains new content");
@@ -350,6 +351,16 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   // Process invalidation list of the document after all accessible tree
   // modification are done.
   mDocument->ProcessInvalidationList();
+
+  // We cannot rely on DOM tree to keep aria-owns relations updated. Make
+  // a validation to remove dead links.
+  mDocument->ValidateARIAOwned();
+
+  // Process relocation list.
+  for (uint32_t idx = 0; idx < mRelocations.Length(); idx++) {
+    mDocument->DoARIAOwnsRelocation(mRelocations[idx]);
+  }
+  mRelocations.Clear();
 
   // If a generic notification occurs after this point then we may be allowed to
   // process it synchronously.  However we do not want to reenter if fireing

@@ -268,10 +268,18 @@ loop.roomViews = (function(mozL10n) {
 
       var roomData = this.props.roomData;
       var contextURL = roomData.roomContextUrls && roomData.roomContextUrls[0];
+      if (contextURL) {
+        if (contextURL.location === null) {
+          contextURL = undefined;
+        } else {
+          contextURL = sharedUtils.formatURL(contextURL.location).hostname;
+        }
+      }
+
       this.props.dispatcher.dispatch(
         new sharedActions.EmailRoomUrl({
           roomUrl: roomData.roomUrl,
-          roomDescription: contextURL && contextURL.description,
+          roomDescription: contextURL,
           from: "conversation"
         }));
     },
@@ -815,7 +823,7 @@ loop.roomViews = (function(mozL10n) {
                 renderRemoteVideo={this.shouldRenderRemoteVideo()}
                 screenShareMediaElement={this.state.screenShareMediaElement}
                 screenSharePosterUrl={null}
-                showContextRoomName={false}
+                showInitialContext={false}
                 useDesktopPaths={true}>
                 <sharedViews.ConversationToolbar
                   audio={{ enabled: !this.state.audioMuted, visible: true }}

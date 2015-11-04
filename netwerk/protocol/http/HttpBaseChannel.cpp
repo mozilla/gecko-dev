@@ -16,6 +16,7 @@
 #include "nsNetUtil.h"
 
 #include "nsICachingChannel.h"
+#include "nsIDOMDocument.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptError.h"
 #include "nsISeekableStream.h"
@@ -41,7 +42,10 @@
 #include "mozIThirdPartyUtil.h"
 #include "nsStreamUtils.h"
 #include "nsContentSecurityManager.h"
+#include "nsIChannelEventSink.h"
 #include "nsILoadGroupChild.h"
+#include "mozilla/ConsoleReportCollector.h"
+#include "LoadInfo.h"
 
 #include <algorithm>
 
@@ -91,8 +95,12 @@ HttpBaseChannel::HttpBaseChannel()
   , mCorsMode(nsIHttpChannelInternal::CORS_MODE_NO_CORS)
   , mRedirectMode(nsIHttpChannelInternal::REDIRECT_MODE_FOLLOW)
   , mOnStartRequestCalled(false)
+  , mTransferSize(0)
+  , mDecodedBodySize(0)
+  , mEncodedBodySize(0)
   , mRequireCORSPreflight(false)
   , mWithCredentials(false)
+  , mReportCollector(new ConsoleReportCollector())
   , mForceMainDocumentChannel(false)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
@@ -203,6 +211,7 @@ NS_INTERFACE_MAP_BEGIN(HttpBaseChannel)
   NS_INTERFACE_MAP_ENTRY(nsITraceableChannel)
   NS_INTERFACE_MAP_ENTRY(nsIPrivateBrowsingChannel)
   NS_INTERFACE_MAP_ENTRY(nsITimedChannel)
+  NS_INTERFACE_MAP_ENTRY(nsIConsoleReportCollector)
 NS_INTERFACE_MAP_END_INHERITING(nsHashPropertyBag)
 
 //-----------------------------------------------------------------------------
@@ -1087,6 +1096,27 @@ HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
 //-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
+HttpBaseChannel::GetTransferSize(uint64_t *aTransferSize)
+{
+  *aTransferSize = mTransferSize;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetDecodedBodySize(uint64_t *aDecodedBodySize)
+{
+  *aDecodedBodySize = mDecodedBodySize;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetEncodedBodySize(uint64_t *aEncodedBodySize)
+{
+  *aEncodedBodySize = mEncodedBodySize;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetRequestMethod(nsACString& aMethod)
 {
   aMethod = mRequestHead.Method();
@@ -1745,6 +1775,30 @@ HttpBaseChannel::SetIsMainDocumentChannel(bool aValue)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::GetProtocolVersion(nsACString& aProtocolVersion)
+{
+  nsresult rv;
+  nsCOMPtr<nsISSLSocketControl> ssl = do_QueryInterface(mSecurityInfo, &rv);
+  nsAutoCString protocol;
+  if (NS_SUCCEEDED(rv) && ssl &&
+      NS_SUCCEEDED(ssl->GetNegotiatedNPN(protocol)) &&
+      !protocol.IsEmpty()) {
+    // The negotiated protocol was not empty so we can use it.
+    aProtocolVersion = protocol;
+    return NS_OK;
+  }
+
+  if (mResponseHead) {
+    uint32_t version = mResponseHead->Version();
+    aProtocolVersion.Assign(nsHttp::GetProtocolVersion(version));
+    return NS_OK;
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+
 //-----------------------------------------------------------------------------
 // HttpBaseChannel::nsIHttpChannelInternal
 //-----------------------------------------------------------------------------
@@ -2278,6 +2332,37 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID)
   return NS_OK;
 }
 
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIConsoleReportCollector
+//-----------------------------------------------------------------------------
+
+void
+HttpBaseChannel::AddConsoleReport(uint32_t aErrorFlags,
+                                  const nsACString& aCategory,
+                                  nsContentUtils::PropertiesFile aPropertiesFile,
+                                  const nsACString& aSourceFileURI,
+                                  uint32_t aLineNumber, uint32_t aColumnNumber,
+                                  const nsACString& aMessageName,
+                                  const nsTArray<nsString>& aStringParams)
+{
+  mReportCollector->AddConsoleReport(aErrorFlags, aCategory, aPropertiesFile,
+                                     aSourceFileURI, aLineNumber,
+                                     aColumnNumber, aMessageName,
+                                     aStringParams);
+}
+
+void
+HttpBaseChannel::FlushConsoleReports(nsIDocument* aDocument)
+{
+  mReportCollector->FlushConsoleReports(aDocument);
+}
+
+void
+HttpBaseChannel::FlushConsoleReports(nsIConsoleReportCollector* aCollector)
+{
+  mReportCollector->FlushConsoleReports(aCollector);
+}
+
 nsIPrincipal *
 HttpBaseChannel::GetURIPrincipal()
 {
@@ -2365,6 +2450,7 @@ HttpBaseChannel::ReleaseListeners()
   mListenerContext = nullptr;
   mCallbacks = nullptr;
   mProgressSink = nullptr;
+  mCompressListener = nullptr;
 }
 
 void
@@ -2395,6 +2481,18 @@ HttpBaseChannel::DoNotifyListener()
   ReleaseListeners();
 
   DoNotifyListenerCleanup();
+
+  // If this is a navigation, then we must let the docshell flush the reports
+  // to the console later.  The LoadDocument() is pointing at the detached
+  // document that started the navigation.  We want to show the reports on the
+  // new document.  Otherwise the console is wiped and the user never sees
+  // the information.
+  if (!IsNavigation() && mLoadInfo) {
+    nsCOMPtr<nsIDOMDocument> dommyDoc;
+    mLoadInfo->GetLoadingDocument(getter_AddRefs(dommyDoc));
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(dommyDoc);
+    FlushConsoleReports(doc);
+  }
 }
 
 void
@@ -2460,11 +2558,13 @@ HttpBaseChannel::ShouldRewriteRedirectToGET(uint32_t httpStatus,
 nsresult
 HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
                                          nsIChannel   *newChannel,
-                                         bool          preserveMethod)
+                                         bool          preserveMethod,
+                                         uint32_t      redirectFlags)
 {
   LOG(("HttpBaseChannel::SetupReplacementChannel "
      "[this=%p newChannel=%p preserveMethod=%d]",
      this, newChannel, preserveMethod));
+
   uint32_t newLoadFlags = mLoadFlags | LOAD_REPLACE;
   // if the original channel was using SSL and this channel is not using
   // SSL, then no need to inhibit persistent caching.  however, if the
@@ -2493,8 +2593,22 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     }
   }
 
-  // Propagate our loadinfo if needed.
-  newChannel->SetLoadInfo(mLoadInfo);
+  // make a copy of the loadinfo, append to the redirectchain
+  // and set it on the new channel
+  if (mLoadInfo) {
+    nsCOMPtr<nsILoadInfo> newLoadInfo =
+      static_cast<mozilla::LoadInfo*>(mLoadInfo.get())->Clone();
+    bool isInternalRedirect =
+      (redirectFlags & (nsIChannelEventSink::REDIRECT_INTERNAL |
+                        nsIChannelEventSink::REDIRECT_STS_UPGRADE));
+    newLoadInfo->AppendRedirectedPrincipal(GetURIPrincipal(), isInternalRedirect);
+    newChannel->SetLoadInfo(newLoadInfo);
+  }
+  else {
+    // the newChannel was created with a dummy loadInfo, we should clear
+    // it in case the original channel does not have a loadInfo
+    newChannel->SetLoadInfo(nullptr);
+  }
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
   if (!httpChannel)

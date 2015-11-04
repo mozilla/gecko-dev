@@ -99,7 +99,7 @@ var handleContentContextMenu = function (event) {
   Services.obs.notifyObservers(subject, "content-contextmenu", null);
 
   let doc = event.target.ownerDocument;
-  let docLocation = doc.location.href;
+  let docLocation = doc.location ? doc.location.href : undefined;
   let charSet = doc.characterSet;
   let baseURI = doc.baseURI;
   let referrer = doc.referrer;
@@ -134,7 +134,7 @@ var handleContentContextMenu = function (event) {
         Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
                                         .getImgCacheForDocument(doc);
       let props =
-        imageCache.findEntryProperties(event.target.currentURI);
+        imageCache.findEntryProperties(event.target.currentURI, doc);
       try {
         contentType = props.get("type", Ci.nsISupportsCString).data;
       } catch(e) {}

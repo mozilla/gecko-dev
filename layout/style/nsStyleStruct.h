@@ -396,9 +396,10 @@ struct nsStyleBackground {
 
   nsChangeHint CalcDifference(const nsStyleBackground& aOther) const;
   static nsChangeHint MaxDifference() {
-    return NS_CombineHint(nsChangeHint_UpdateEffects,
-                          NS_CombineHint(nsChangeHint_RepaintFrame,
-                                         nsChangeHint_NeutralChange));
+    return nsChangeHint_UpdateEffects |
+           nsChangeHint_RepaintFrame |
+           nsChangeHint_SchedulePaint |
+           nsChangeHint_NeutralChange;
   }
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     // CalcDifference never returns the reflow hints that are sometimes
@@ -551,6 +552,9 @@ struct nsStyleBackground {
     // the size of the positioning area.  It's also true for SVG images
     // whose root <svg> node has a viewBox.
     bool RenderingMightDependOnPositioningAreaSizeChange() const;
+
+    // Compute the change hint required by changes in just this layer.
+    nsChangeHint CalcDifference(const Layer& aOther) const;
 
     // An equality operator that compares the images using URL-equality
     // rather than pointer-equality.
@@ -961,9 +965,6 @@ struct nsStyleBorder {
   {
     return mBorderImageSource.IsLoaded();
   }
-
-  // Defined in nsStyleStructInlines.h
-  inline nsresult RequestDecode();
 
   void GetBorderColor(mozilla::css::Side aSide, nscolor& aColor,
                       bool& aForeground) const
@@ -1395,6 +1396,45 @@ struct nsStylePosition {
   // different scope, since we're now using it in multiple style structs.
   typedef nsStyleBackground::Position Position;
 
+  /**
+   * Return the computed value for 'align-content' given our 'display' value in
+   * aDisplay.
+   */
+  uint16_t ComputedAlignContent(const nsStyleDisplay* aDisplay) const;
+
+  /**
+   * Return the computed value for 'align-items' given our 'display' value in
+   * aDisplay.
+   */
+  uint8_t ComputedAlignItems(const nsStyleDisplay* aDisplay) const;
+
+  /**
+   * Return the computed value for 'align-self' given our 'display' value in
+   * aDisplay and the parent StyleContext aParent (or null for the root).
+   */
+  uint8_t ComputedAlignSelf(const nsStyleDisplay* aDisplay,
+                            nsStyleContext* aParent) const;
+
+  /**
+   * Return the computed value for 'justify-content' given our 'display' value
+   * in aDisplay.
+   */
+  uint16_t ComputedJustifyContent(const nsStyleDisplay* aDisplay) const;
+
+  /**
+   * Return the computed value for 'justify-items' given our 'display' value in
+   * aDisplay and the parent StyleContext aParent (or null for the root).
+   */
+  uint8_t ComputedJustifyItems(const nsStyleDisplay* aDisplay,
+                               nsStyleContext* aParent) const;
+
+  /**
+   * Return the computed value for 'justify-self' given our 'display' value in
+   * aDisplay and the parent StyleContext aParent (or null for the root).
+   */
+  uint8_t ComputedJustifySelf(const nsStyleDisplay* aDisplay,
+                              nsStyleContext* aParent) const;
+
   Position      mObjectPosition;        // [reset]
   nsStyleSides  mOffset;                // [reset] coord, percent, calc, auto
   nsStyleCoord  mWidth;                 // [reset] coord, percent, enum, calc, auto
@@ -1410,12 +1450,21 @@ struct nsStylePosition {
   nsStyleCoord  mGridAutoRowsMax;       // [reset] coord, percent, enum, calc, flex
   uint8_t       mGridAutoFlow;          // [reset] enumerated. See nsStyleConsts.h
   uint8_t       mBoxSizing;             // [reset] see nsStyleConsts.h
-  uint8_t       mAlignContent;          // [reset] see nsStyleConsts.h
+private:
+  friend class nsRuleNode;
+  // Helper for the ComputedAlign/Justify* methods.
+  uint8_t MapLeftRightToStart(uint8_t aAlign, mozilla::LogicalAxis aAxis,
+                              const nsStyleDisplay* aDisplay) const;
+
+  uint16_t      mAlignContent;          // [reset] fallback value in the high byte
   uint8_t       mAlignItems;            // [reset] see nsStyleConsts.h
   uint8_t       mAlignSelf;             // [reset] see nsStyleConsts.h
+  uint16_t      mJustifyContent;        // [reset] fallback value in the high byte
+  uint8_t       mJustifyItems;          // [reset] see nsStyleConsts.h
+  uint8_t       mJustifySelf;           // [reset] see nsStyleConsts.h
+public:
   uint8_t       mFlexDirection;         // [reset] see nsStyleConsts.h
   uint8_t       mFlexWrap;              // [reset] see nsStyleConsts.h
-  uint8_t       mJustifyContent;        // [reset] see nsStyleConsts.h
   uint8_t       mObjectFit;             // [reset] see nsStyleConsts.h
   int32_t       mOrder;                 // [reset] integer
   float         mFlexGrow;              // [reset] float

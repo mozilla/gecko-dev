@@ -30,9 +30,10 @@ PrintingParent::RecvShowProgress(PBrowserParent* parent,
                                  PPrintProgressDialogParent* printProgressDialog,
                                  const bool& isForPrinting,
                                  bool* notifyOnOpen,
-                                 bool* success)
+                                 nsresult* result)
 {
-  *success = false;
+  *result = NS_ERROR_FAILURE;
+  *notifyOnOpen = false;
 
   nsCOMPtr<nsIDOMWindow> parentWin = DOMWindowFromBrowserParent(parent);
   if (!parentWin) {
@@ -52,17 +53,16 @@ PrintingParent::RecvShowProgress(PBrowserParent* parent,
   nsCOMPtr<nsIWebProgressListener> printProgressListener;
   nsCOMPtr<nsIPrintProgressParams> printProgressParams;
 
-  nsresult rv = pps->ShowProgress(parentWin, nullptr, nullptr, observer,
-                                  isForPrinting,
-                                  getter_AddRefs(printProgressListener),
-                                  getter_AddRefs(printProgressParams),
-                                  notifyOnOpen);
-  NS_ENSURE_SUCCESS(rv, true);
+  *result = pps->ShowProgress(parentWin, nullptr, nullptr, observer,
+                              isForPrinting,
+                              getter_AddRefs(printProgressListener),
+                              getter_AddRefs(printProgressParams),
+                              notifyOnOpen);
+  NS_ENSURE_SUCCESS(*result, true);
 
   dialogParent->SetWebProgressListener(printProgressListener);
   dialogParent->SetPrintProgressParams(printProgressParams);
 
-  *success = true;
   return true;
 }
 
@@ -118,9 +118,9 @@ PrintingParent::RecvShowPrintDialog(PPrintSettingsDialogParent* aDialog,
   // with an async message which frees the child process from
   // its nested event loop.
   if (NS_FAILED(rv)) {
-    mozilla::unused << aDialog->Send__delete__(aDialog, rv);
+    mozilla::Unused << aDialog->Send__delete__(aDialog, rv);
   } else {
-    mozilla::unused << aDialog->Send__delete__(aDialog, resultData);
+    mozilla::Unused << aDialog->Send__delete__(aDialog, resultData);
   }
   return true;
 }

@@ -12,6 +12,7 @@ import signal
 import sys
 import telnetlib
 import time
+import urlparse
 import urllib2
 from distutils.spawn import find_executable
 
@@ -24,7 +25,7 @@ TOOLTOOL_URL = 'https://raw.githubusercontent.com/mozilla/build-tooltool/master/
 
 TRY_URL = 'https://hg.mozilla.org/try/raw-file/default'
 
-MANIFEST_URL = '%s/testing/config/tooltool-manifests' % TRY_URL
+MANIFEST_PATH = 'testing/config/tooltool-manifests'
 
 verbose_logging = False
 
@@ -170,8 +171,8 @@ def verify_android_device(build_obj, install=False, xre=False):
                     plat = None
                     _log_warning("Unable to install host utilities -- your platform is not supported!")
                 if plat:
-                    url = '%s/%s/hostutils.manifest' % (MANIFEST_URL, plat)
-                    _download_file(url, 'releng.manifest', EMULATOR_HOME_DIR)
+                    path = os.path.join(MANIFEST_PATH, plat, 'hostutils.manifest')
+                    _get_tooltool_manifest(build_obj.substs, path, EMULATOR_HOME_DIR, 'releng.manifest')
                     _tooltool_fetch()
                     xre_path = glob.glob(os.path.join(EMULATOR_HOME_DIR, 'host-utils*'))
                     for path in xre_path:
@@ -184,6 +185,38 @@ def verify_android_device(build_obj, install=False, xre=False):
 
     return device_verified
 
+def run_firefox_for_android(build_obj, params):
+    """
+       Launch Firefox for Android on the connected device.
+       Optional 'params' allow parameters to be passed to Firefox.
+    """
+    adb_path = _find_sdk_exe(build_obj.substs, 'adb', False)
+    if not adb_path:
+        adb_path = 'adb'
+    dm = DeviceManagerADB(autoconnect=False, adbPath=adb_path, retryLimit=1)
+    try:
+        #
+        # Construct an adb command similar to:
+        #
+        #   adb shell am start -a android.activity.MAIN -n org.mozilla.fennec_$USER -d <url param> --es args "<params>"
+        #
+        app = "%s/.App" % build_obj.substs['ANDROID_PACKAGE_NAME']
+        cmd = ['am', 'start', '-a', 'android.activity.MAIN', '-n', app]
+        if params:
+            for p in params:
+                if urlparse.urlparse(p).scheme != "":
+                    cmd.extend(['-d', p])
+                    params.remove(p)
+                    break
+        if params:
+            cmd.extend(['--es', 'args', '"%s"' % ' '.join(params)])
+        _log_debug(cmd)
+        output = dm.shellCheckOutput(cmd, timeout=10)
+        _log_info(output)
+    except DMError:
+        _log_warning("unable to launch Firefox for Android")
+        return 1
+    return 0
 
 class AndroidEmulator(object):
 
@@ -210,7 +243,7 @@ class AndroidEmulator(object):
         self.substs = substs
         self.avd_type = self._get_avd_type(avd_type)
         self.avd_info = AVD_DICT[self.avd_type]
-        adb_path = self._find_sdk_exe('adb', False)
+        adb_path = _find_sdk_exe(substs, 'adb', False)
         if not adb_path:
             adb_path = 'adb'
         self.dm = DeviceManagerADB(autoconnect=False, adbPath=adb_path, retryLimit=1)
@@ -238,7 +271,7 @@ class AndroidEmulator(object):
            Returns True if an emulator executable is found.
         """
         found = False
-        emulator_path = self._find_sdk_exe('emulator', True)
+        emulator_path = _find_sdk_exe(self.substs, 'emulator', True)
         if emulator_path:
             self.emulator_path = emulator_path
             found = True
@@ -482,79 +515,65 @@ class AndroidEmulator(object):
                 return '2.3'
         return '4.3'
 
-    def _find_sdk_exe(self, exe, tools):
-        if tools:
-            subdir = 'tools'
-        else:
-            subdir = 'platform-tools'
+def _find_sdk_exe(substs, exe, tools):
+    if tools:
+        subdir = 'tools'
+    else:
+        subdir = 'platform-tools'
 
-        found = False
-        if not found and self.substs:
-            # It's best to use the tool specified by the build, rather
-            # than something we find on the PATH or crawl for.
-            try:
-                exe_path = self.substs[exe.upper()]
-                if os.path.exists(exe_path):
-                    found = True
-                else:
-                    self._log_debug(
-                        "Unable to find executable at %s" % exe_path)
-            except KeyError:
-                self._log_debug("%s not set" % exe.upper())
-
-        # Can exe be found in the Android SDK?
-        if not found:
-            try:
-                android_sdk_root = os.environ['ANDROID_SDK_ROOT']
-                exe_path = os.path.join(
-                    android_sdk_root, subdir, exe)
-                if os.path.exists(exe_path):
-                    found = True
-                else:
-                    _log_debug(
-                        "Unable to find executable at %s" % exe_path)
-            except KeyError:
-                _log_debug("ANDROID_SDK_ROOT not set")
-
-        if not found:
-            # Can exe be found in the Android SDK?
-            try:
-                android_sdk_root = os.environ['ANDROID_SDK_ROOT']
-                exe_path = os.path.join(
-                    android_sdk_root, subdir, exe)
-                if os.path.exists(exe_path):
-                    found = True
-                else:
-                    _log_debug(
-                        "Unable to find executable at %s" % exe_path)
-            except KeyError:
-                _log_debug("ANDROID_SDK_ROOT not set")
-
-        if not found:
-            # Can exe be found in the default bootstrap location?
-            mozbuild_path = os.environ.get('MOZBUILD_STATE_PATH',
-                os.path.expanduser(os.path.join('~', '.mozbuild')))
-            exe_path = os.path.join(
-                mozbuild_path, 'android-sdk-linux', subdir, exe)
+    found = False
+    if not found and substs:
+        # It's best to use the tool specified by the build, rather
+        # than something we find on the PATH or crawl for.
+        try:
+            exe_path = substs[exe.upper()]
             if os.path.exists(exe_path):
                 found = True
             else:
                 _log_debug(
                     "Unable to find executable at %s" % exe_path)
+        except KeyError:
+            _log_debug("%s not set" % exe.upper())
 
-        if not found:
-            # Is exe on PATH?
-            exe_path = find_executable(exe)
-            if exe_path:
+    if not found:
+        # Can exe be found in the Android SDK?
+        try:
+            android_sdk_root = os.environ['ANDROID_SDK_ROOT']
+            exe_path = os.path.join(
+                android_sdk_root, subdir, exe)
+            if os.path.exists(exe_path):
                 found = True
             else:
-                _log_debug("Unable to find executable on PATH")
+                _log_debug(
+                    "Unable to find executable at %s" % exe_path)
+        except KeyError:
+            _log_debug("ANDROID_SDK_ROOT not set")
 
-        if found:
-            _log_debug("%s found at %s" % (exe, exe_path))
+    if not found:
+        # Can exe be found in the default bootstrap location?
+        mozbuild_path = os.environ.get('MOZBUILD_STATE_PATH',
+            os.path.expanduser(os.path.join('~', '.mozbuild')))
+        exe_path = os.path.join(
+            mozbuild_path, 'android-sdk-linux', subdir, exe)
+        if os.path.exists(exe_path):
+            found = True
         else:
-            exe_path = None
-        return exe_path
+            _log_debug(
+                "Unable to find executable at %s" % exe_path)
+
+    if not found:
+        # Is exe on PATH?
+        exe_path = find_executable(exe)
+        if exe_path:
+            found = True
+        else:
+            _log_debug("Unable to find executable on PATH")
+
+    if found:
+        _log_debug("%s found at %s" % (exe, exe_path))
+    else:
+        exe_path = None
+    return exe_path
 
 def _log_debug(text):
     if verbose_logging:
@@ -579,6 +598,19 @@ def _download_file(url, filename, path):
     local_file.close()
     _log_debug("Downloaded %s to %s/%s" % (url, path, filename))
     return True
+
+def _get_tooltool_manifest(substs, src_path, dst_path, filename):
+    copied = False
+    if substs and 'top_srcdir' in substs:
+        src = os.path.join(substs['top_srcdir'], src_path)
+        if os.path.exists(src):
+            dst = os.path.join(dst_path, filename)
+            shutil.copy(src, dst)
+            copied = True
+            _log_debug("Copied tooltool manifest %s to %s" % (src, dst))
+    if not copied:
+        url = os.path.join(TRY_URL, src_path)
+        _download_file(url, filename, dst_path)
 
 def _tooltool_fetch():
     def outputHandler(line):

@@ -72,6 +72,9 @@ const MESSAGES = [
   // A crashed tab was revived by navigating to a different page. Remove its
   // browser from the list of crashed browsers to stop ignoring its messages.
   "SessionStore:crashedTabRevived",
+
+  // The content script encountered an error.
+  "SessionStore:error",
 ];
 
 // The list of messages we accept from <xul:browser>s that have no tab
@@ -85,6 +88,9 @@ const NOTAB_MESSAGES = new Set([
 
   // For a description see above.
   "SessionStore:update",
+
+  // For a description see above.
+  "SessionStore:error",
 ]);
 
 // The list of messages we accept without an "epoch" parameter.
@@ -95,6 +101,9 @@ const NOEPOCH_MESSAGES = new Set([
 
   // For a description see above.
   "SessionStore:crashedTabRevived",
+
+  // For a description see above.
+  "SessionStore:error",
 ]);
 
 // The list of messages we want to receive even during the short period after a
@@ -106,6 +115,9 @@ const CLOSED_MESSAGES = new Set([
 
   // For a description see above.
   "SessionStore:update",
+
+  // For a description see above.
+  "SessionStore:error",
 ]);
 
 // These are tab events that we listen to.
@@ -807,6 +819,9 @@ var SessionStoreInternal = {
         break;
       case "SessionStore:crashedTabRevived":
         this._crashedBrowsers.delete(browser.permanentKey);
+        break;
+      case "SessionStore:error":
+        this.reportInternalError(data);
         break;
       default:
         throw new Error(`received unknown message '${aMessage.name}'`);
@@ -2919,8 +2934,8 @@ var SessionStoreInternal = {
     // In case we didn't collect/receive data for any tabs yet we'll have to
     // fill the array with at least empty tabData objects until |_tPos| or
     // we'll end up with |null| entries.
-    for (let tab of Array.slice(tabbrowser.tabs, 0, tab._tPos)) {
-      let emptyState = {entries: [], lastAccessed: tab.lastAccessed};
+    for (let otherTab of Array.slice(tabbrowser.tabs, 0, tab._tPos)) {
+      let emptyState = {entries: [], lastAccessed: otherTab.lastAccessed};
       this._windows[window.__SSi].tabs.push(emptyState);
     }
 
@@ -3848,6 +3863,19 @@ var SessionStoreInternal = {
    */
   resetEpoch(browser) {
     this._browserEpochs.delete(browser.permanentKey);
+  },
+
+  /**
+   * Handle an error report from a content process.
+   */
+  reportInternalError(data) {
+    // For the moment, we only report errors through Telemetry.
+    if (data.telemetry) {
+      for (let key of Object.keys(data.telemetry)) {
+        let histogram = Telemetry.getHistogramById(key);
+        histogram.add(data.telemetry[key]);
+      }
+    }
   }
 };
 

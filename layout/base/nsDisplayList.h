@@ -260,7 +260,7 @@ public:
    * Returns the nearest ancestor frame to aFrame that is considered to have
    * (or will have) animated geometry. This can return aFrame.
    */
-  nsIFrame* FindAnimatedGeometryRootFor(nsIFrame* aFrame, const nsIFrame* aStopAtAncestor = nullptr);
+  nsIFrame* FindAnimatedGeometryRootFor(nsIFrame* aFrame);
 
   /**
    * @return the root of the display list's frame (sub)tree, whose origin
@@ -644,11 +644,11 @@ public:
           aBuilder->mCurrentAnimatedGeometryRoot = aForChild;
         }
       } else {
-        // Stop at the previous animated geometry root to help cases that
-        // aren't immediate descendents.
         aBuilder->mCurrentAnimatedGeometryRoot =
-          aBuilder->FindAnimatedGeometryRootFor(aForChild, aBuilder->mCurrentAnimatedGeometryRoot);
+          aBuilder->FindAnimatedGeometryRootFor(aForChild);
       }
+      MOZ_ASSERT(nsLayoutUtils::IsAncestorFrameCrossDoc(aBuilder->RootReferenceFrame(),
+          aBuilder->mCurrentAnimatedGeometryRoot));
       aBuilder->mCurrentFrame = aForChild;
       aBuilder->mDirtyRect = aDirtyRect;
       aBuilder->mIsAtRootOfPseudoStackingContext = aIsRoot;
@@ -976,12 +976,11 @@ public:
   bool IsInWillChangeBudget(nsIFrame* aFrame, const nsSize& aSize);
 
   /**
-   * Look up the cached animated geometry root for aFrame subject to
-   * aStopAtAncestor. Store the nsIFrame* result into *aOutResult, and return
-   * true if the cache was hit. Return false if the cache was not hit.
+   * Look up the cached animated geometry root for aFrame subject Store the
+   * nsIFrame* result into *aOutResult, and return true if the cache was hit.
+   * Return false if the cache was not hit.
    */
   bool GetCachedAnimatedGeometryRoot(const nsIFrame* aFrame,
-                                     const nsIFrame* aStopAtAncestor,
                                      nsIFrame** aOutResult);
 
   void SetCommittedScrollInfoItemList(nsDisplayList* aScrollInfoItemStorage) {
@@ -1113,27 +1112,8 @@ private:
   // The animated geometry root for mCurrentFrame.
   nsIFrame*                      mCurrentAnimatedGeometryRoot;
 
-  struct AnimatedGeometryRootLookup {
-    const nsIFrame* mFrame;
-    const nsIFrame* mStopAtFrame;
-
-    AnimatedGeometryRootLookup(const nsIFrame* aFrame, const nsIFrame* aStopAtFrame)
-      : mFrame(aFrame)
-      , mStopAtFrame(aStopAtFrame)
-    {
-    }
-
-    PLDHashNumber Hash() const {
-      return mozilla::HashBytes(this, sizeof(*this));
-    }
-
-    bool operator==(const AnimatedGeometryRootLookup& aOther) const {
-      return mFrame == aOther.mFrame && mStopAtFrame == aOther.mStopAtFrame;
-    }
-  };
   // Cache for storing animated geometry roots for arbitrary frames
-  nsDataHashtable<nsGenericHashKey<AnimatedGeometryRootLookup>, nsIFrame*>
-                                 mAnimatedGeometryRootCache;
+  nsDataHashtable<nsPtrHashKey<nsIFrame>, nsIFrame*> mAnimatedGeometryRootCache;
   // will-change budget tracker
   nsDataHashtable<nsPtrHashKey<nsPresContext>, DocumentWillChangeBudget>
                                  mWillChangeBudget;
@@ -2576,6 +2556,11 @@ public:
   nsRect GetPositioningArea();
 
   /**
+   * Return the destination area of one instance of the image.
+   */
+  nsRect GetDestArea() const { return mDestArea; }
+
+  /**
    * Returns true if existing rendered pixels of this display item may need
    * to be redrawn if the positioning area size changes but its position does
    * not.
@@ -2615,18 +2600,30 @@ protected:
                                   gfxRect* aDestRect);
   bool IsNonEmptyFixedImage() const;
   nsRect GetBoundsInternal(nsDisplayListBuilder* aBuilder);
+  nsRect GetDestAreaInternal(nsDisplayListBuilder* aBuilder);
 
   void PaintInternal(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx,
                      const nsRect& aBounds, nsRect* aClipRect);
+
+  // Determine whether we want to be separated into our own layer, independent
+  // of whether this item can actually be layerized.
+  enum ImageLayerization {
+    WHENEVER_POSSIBLE,
+    ONLY_FOR_SCALING,
+    NO_LAYER_NEEDED
+  };
+  ImageLayerization ShouldCreateOwnLayer(nsDisplayListBuilder* aBuilder,
+                                         LayerManager* aManager);
 
   // Cache the result of nsCSSRendering::FindBackground. Always null if
   // mIsThemed is true or if FindBackground returned false.
   const nsStyleBackground* mBackgroundStyle;
   nsCOMPtr<imgIContainer> mImage;
   RefPtr<ImageContainer> mImageContainer;
-  LayoutDeviceRect mDestRect;
+  LayoutDeviceRect mImageLayerDestRect;
   /* Bounds of this display item */
   nsRect mBounds;
+  nsRect mDestArea;
   uint32_t mLayer;
 };
 
@@ -3940,6 +3937,15 @@ public:
     return (IsTransformSeparator() ||
             (!mFrame->Extend3DContext() &&
              mFrame->Combines3DTransformWithAncestors()));
+  }
+
+  /**
+   * Whether this transform item forms a reference frame boundary.
+   * In other words, the reference frame of the contained items is our frame,
+   * and the reference frame of this item is some ancestor of our frame.
+   */
+  bool IsReferenceFrameBoundary() {
+    return !mTransformGetter && !mIsTransformSeparator;
   }
 
 private:

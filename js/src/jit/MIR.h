@@ -688,7 +688,7 @@ class MDefinition : public MNode
         uses_.remove(use);
     }
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(JS_JITSPEW)
     // Number of uses of this instruction. This function is only available
     // in DEBUG mode since it requires traversing the list. Most users should
     // use hasUses() or hasOneUse() instead.
@@ -6740,8 +6740,7 @@ class MComputeThis
         return true;
     }
 
-    // Note: don't override getAliasSet: the thisObject hook can be
-    // effectful.
+    // Note: don't override getAliasSet: the thisValue hook can be effectful.
 };
 
 // Load an arrow function's |this| value.

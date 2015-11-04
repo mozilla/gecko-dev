@@ -67,6 +67,7 @@
 #include "jit/OptimizationTracking.h"
 #include "js/Debug.h"
 #include "js/GCAPI.h"
+#include "js/Initialization.h"
 #include "js/StructuredClone.h"
 #include "js/TrackedOptimizationInfo.h"
 #include "perf/jsperf.h"
@@ -1629,7 +1630,11 @@ StartTimingMutator(JSContext* cx, unsigned argc, Value* vp)
         return false;
     }
 
-    cx->runtime()->gc.stats.startTimingMutator();
+    if (!cx->runtime()->gc.stats.startTimingMutator()) {
+        JS_ReportError(cx, "StartTimingMutator should only be called from outside of GC");
+        return false;
+    }
+
     args.rval().setUndefined();
     return true;
 }

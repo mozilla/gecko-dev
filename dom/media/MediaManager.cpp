@@ -1691,7 +1691,7 @@ MediaManager::NotifyRecordingStatusChange(nsPIDOMWindow* aWindow,
   // Forward recording events to parent process.
   // The events are gathered in chrome process and used for recording indicator
   if (!XRE_IsParentProcess()) {
-    unused <<
+    Unused <<
       dom::ContentChild::GetSingleton()->SendRecordingDeviceEvents(aMsg,
                                                                    requestURL,
                                                                    aIsAudio,
@@ -1878,6 +1878,15 @@ MediaManager::GetUserMedia(nsPIDOMWindow* aWindow,
         break;
 
       case dom::MediaSourceEnum::Browser:
+        // If no window id is passed in then default to the caller's window.
+        // Functional defaults are helpful in tests, but also a natural outcome
+        // of the constraints API's limited semantics for requiring input.
+        if (!vc.mBrowserWindow.WasPassed()) {
+          nsPIDOMWindow *outer = aWindow->GetOuterWindow();
+          vc.mBrowserWindow.Construct(outer->WindowID());
+        }
+        // | Fall through
+        // V
       case dom::MediaSourceEnum::Screen:
       case dom::MediaSourceEnum::Application:
       case dom::MediaSourceEnum::Window:

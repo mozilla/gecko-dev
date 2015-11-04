@@ -4099,7 +4099,7 @@ CodeGenerator::generateBody()
         if (current->isTrivial())
             continue;
 
-#ifdef DEBUG
+#ifdef JS_JITSPEW
         const char* filename = nullptr;
         size_t lineNumber = 0;
         unsigned columnNumber = 0;
@@ -4109,8 +4109,10 @@ CodeGenerator::generateBody()
                 lineNumber = PCToLineNumber(current->mir()->info().script(), current->mir()->pc(),
                                             &columnNumber);
         } else {
+#ifdef DEBUG
             lineNumber = current->mir()->lineno();
             columnNumber = current->mir()->columnIndex();
+#endif
         }
         JitSpew(JitSpew_Codegen, "# block%" PRIuSIZE " %s:%" PRIuSIZE ":%u%s:",
                 i, filename ? filename : "?", lineNumber, columnNumber,
@@ -4131,7 +4133,7 @@ CodeGenerator::generateBody()
 #endif
 
         for (LInstructionIterator iter = current->begin(); iter != current->end(); iter++) {
-#ifdef DEBUG
+#ifdef JS_JITSPEW
             JitSpewStart(JitSpew_Codegen, "instruction %s", iter->opName());
             if (const char* extra = iter->extraName())
                 JitSpewCont(JitSpew_Codegen, ":%s", extra);
@@ -9295,49 +9297,6 @@ CodeGenerator::visitAtomicIsLockFree(LAtomicIsLockFree* lir)
         masm.bind(&Lfailed);
     masm.move32(Imm32(0), output);
     masm.bind(&Ldone);
-}
-
-void
-CodeGenerator::visitCompareExchangeTypedArrayElement(LCompareExchangeTypedArrayElement* lir)
-{
-    Register elements = ToRegister(lir->elements());
-    AnyRegister output = ToAnyRegister(lir->output());
-    Register temp = lir->temp()->isBogusTemp() ? InvalidReg : ToRegister(lir->temp());
-
-    Register oldval = ToRegister(lir->oldval());
-    Register newval = ToRegister(lir->newval());
-
-    Scalar::Type arrayType = lir->mir()->arrayType();
-    int width = Scalar::byteSize(arrayType);
-
-    if (lir->index()->isConstant()) {
-        Address dest(elements, ToInt32(lir->index()) * width);
-        masm.compareExchangeToTypedIntArray(arrayType, dest, oldval, newval, temp, output);
-    } else {
-        BaseIndex dest(elements, ToRegister(lir->index()), ScaleFromElemWidth(width));
-        masm.compareExchangeToTypedIntArray(arrayType, dest, oldval, newval, temp, output);
-    }
-}
-
-void
-CodeGenerator::visitAtomicExchangeTypedArrayElement(LAtomicExchangeTypedArrayElement* lir)
-{
-    Register elements = ToRegister(lir->elements());
-    AnyRegister output = ToAnyRegister(lir->output());
-    Register temp = lir->temp()->isBogusTemp() ? InvalidReg : ToRegister(lir->temp());
-
-    Register value = ToRegister(lir->value());
-
-    Scalar::Type arrayType = lir->mir()->arrayType();
-    int width = Scalar::byteSize(arrayType);
-
-    if (lir->index()->isConstant()) {
-        Address dest(elements, ToInt32(lir->index()) * width);
-        masm.atomicExchangeToTypedIntArray(arrayType, dest, value, temp, output);
-    } else {
-        BaseIndex dest(elements, ToRegister(lir->index()), ScaleFromElemWidth(width));
-        masm.atomicExchangeToTypedIntArray(arrayType, dest, value, temp, output);
-    }
 }
 
 void

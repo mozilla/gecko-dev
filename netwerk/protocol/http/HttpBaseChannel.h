@@ -15,6 +15,7 @@
 #include "nsHttpRequestHead.h"
 #include "nsHttpResponseHead.h"
 #include "nsHttpConnectionInfo.h"
+#include "nsIConsoleReportCollector.h"
 #include "nsIEncodedChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsHttpHandler.h"
@@ -42,13 +43,16 @@
 #include "nsISecurityConsoleMessage.h"
 #include "nsCOMArray.h"
 
-extern PRLogModuleInfo *gHttpLog;
 class nsPerformance;
 class nsISecurityConsoleMessage;
 class nsIPrincipal;
 
 namespace mozilla {
+
+class LogCollector;
+
 namespace net {
+extern mozilla::LazyLogModule gHttpLog;
 
 /*
  * This class is a partial implementation of nsIHttpChannel.  It contains code
@@ -70,6 +74,7 @@ class HttpBaseChannel : public nsHashPropertyBag
                       , public PrivateBrowsingChannel<HttpBaseChannel>
                       , public nsITimedChannel
                       , public nsIForcePendingChannel
+                      , public nsIConsoleReportCollector
 {
 protected:
   virtual ~HttpBaseChannel();
@@ -159,9 +164,13 @@ public:
   NS_IMETHOD GetRequestSucceeded(bool *aValue) override;
   NS_IMETHOD RedirectTo(nsIURI *newURI) override;
   NS_IMETHOD GetSchedulingContextID(nsID *aSCID) override;
+  NS_IMETHOD GetTransferSize(uint64_t *aTransferSize) override;
+  NS_IMETHOD GetDecodedBodySize(uint64_t *aDecodedBodySize) override;
+  NS_IMETHOD GetEncodedBodySize(uint64_t *aEncodedBodySize) override;
   NS_IMETHOD SetSchedulingContextID(const nsID aSCID) override;
   NS_IMETHOD GetIsMainDocumentChannel(bool* aValue) override;
   NS_IMETHOD SetIsMainDocumentChannel(bool aValue) override;
+  NS_IMETHOD GetProtocolVersion(nsACString & aProtocolVersion) override;
 
   // nsIHttpChannelInternal
   NS_IMETHOD GetDocumentURI(nsIURI **aDocumentURI) override;
@@ -224,6 +233,22 @@ public:
 
   // nsIResumableChannel
   NS_IMETHOD GetEntityID(nsACString& aEntityID) override;
+
+
+  // nsIConsoleReportCollector
+  void
+  AddConsoleReport(uint32_t aErrorFlags, const nsACString& aCategory,
+                   nsContentUtils::PropertiesFile aPropertiesFile,
+                   const nsACString& aSourceFileURI,
+                   uint32_t aLineNumber, uint32_t aColumnNumber,
+                   const nsACString& aMessageName,
+                   const nsTArray<nsString>& aStringParams) override;
+
+  void
+  FlushConsoleReports(nsIDocument* aDocument) override;
+
+  void
+  FlushConsoleReports(nsIConsoleReportCollector* aCollector) override;
 
   class nsContentEncodings : public nsIUTF8StringEnumerator
     {
@@ -290,7 +315,8 @@ protected:
   void AddCookiesToRequest();
   virtual nsresult SetupReplacementChannel(nsIURI *,
                                            nsIChannel *,
-                                           bool preserveMethod);
+                                           bool preserveMethod,
+                                           uint32_t redirectFlags);
 
   // bundle calling OMR observers and marking flag into one function
   inline void CallOnModifyRequestObservers() {
@@ -335,6 +361,9 @@ protected:
   nsCOMPtr<nsIProgressEventSink>    mProgressSink;
   nsCOMPtr<nsIURI>                  mReferrer;
   nsCOMPtr<nsIApplicationCache>     mApplicationCache;
+
+  // An instance of nsHTTPCompressConv
+  nsCOMPtr<nsIStreamListener>       mCompressListener;
 
   nsHttpRequestHead                 mRequestHead;
   nsCOMPtr<nsIInputStream>          mUploadStream;
@@ -452,6 +481,10 @@ protected:
   // than once.
   bool mOnStartRequestCalled;
 
+  uint64_t mTransferSize;
+  uint64_t mDecodedBodySize;
+  uint64_t mEncodedBodySize;
+
   // The network interface id that's associated with this channel.
   nsCString mNetworkInterfaceId;
 
@@ -462,6 +495,8 @@ protected:
   bool                              mWithCredentials;
   nsTArray<nsCString>               mUnsafeHeaders;
   nsCOMPtr<nsIPrincipal>            mPreflightPrincipal;
+
+  nsCOMPtr<nsIConsoleReportCollector> mReportCollector;
 
   bool mForceMainDocumentChannel;
 };

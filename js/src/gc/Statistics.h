@@ -44,6 +44,8 @@ enum Phase : uint8_t {
     PHASE_SWEEP_MARK_GRAY,
     PHASE_SWEEP_MARK_GRAY_WEAK,
     PHASE_FINALIZE_START,
+    PHASE_WEAK_ZONEGROUP_CALLBACK,
+    PHASE_WEAK_COMPARTMENT_CALLBACK,
     PHASE_SWEEP_ATOMS,
     PHASE_SWEEP_SYMBOL_REGISTRY,
     PHASE_SWEEP_COMPARTMENTS,
@@ -169,7 +171,7 @@ struct Statistics
                     SliceBudget budget, JS::gcreason::Reason reason);
     void endSlice();
 
-    void startTimingMutator();
+    bool startTimingMutator();
     bool stopTimingMutator(double& mutator_ms, double& gc_ms);
 
     void reset(const char* reason) {

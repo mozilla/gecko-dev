@@ -253,7 +253,7 @@ public class GeckoEvent {
                 return null;
             }
 
-            event.mPoints[0] = new Point(Math.round(geckoPoint.x), Math.round(geckoPoint.y));
+            event.mPoints[0] = new Point((int)Math.floor(geckoPoint.x), (int)Math.floor(geckoPoint.y));
 
             event.mX = size;
             event.mTime = System.currentTimeMillis();
@@ -334,7 +334,7 @@ public class GeckoEvent {
                 geckoPoint = GeckoAppShell.getLayerView().convertViewPointToLayerPoint(geckoPoint);
             }
 
-            mPoints[index] = new Point(Math.round(geckoPoint.x), Math.round(geckoPoint.y));
+            mPoints[index] = new Point((int)Math.floor(geckoPoint.x), (int)Math.floor(geckoPoint.y));
             mPointIndicies[index] = event.getPointerId(eventIndex);
 
             double radians = event.getOrientation(eventIndex);
@@ -602,6 +602,8 @@ public class GeckoEvent {
                                                               int value) {
         GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.TELEMETRY_HISTOGRAM_ADD);
         event.mCharacters = histogram;
+        // Set the extras with null so that it cannot be mistaken with a keyed histogram.
+        event.mCharactersExtra = null;
         event.mCount = value;
         return event;
     }

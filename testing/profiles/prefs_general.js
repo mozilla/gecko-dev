@@ -115,6 +115,10 @@ user_pref("network.sntp.pools", "%(server)s");
 // at least once will mean that codepath is still tested in automation.
 user_pref("network.sntp.maxRetryCount", 1);
 
+// Make sure the notification permission migration test doesn't hit the network.
+user_pref("browser.push.warning.infoURL", "http://%(server)s/alerts-dummy/infoURL");
+user_pref("browser.push.warning.migrationURL", "http://%(server)s/alerts-dummy/migrationURL");
+
 // Existing tests don't wait for the notification button security delay
 user_pref("security.notification_enable_delay", 0);
 
@@ -332,9 +336,6 @@ user_pref("network.proxy.pac_generator", false);
 // Make tests run consistently on DevEdition (which has a lightweight theme
 // selected by default).
 user_pref("lightweightThemes.selectedThemeID", "");
-
-// Disable periodic updates of service workers.
-user_pref("dom.serviceWorkers.periodic-updates.enabled", false);
 
 // Enable speech synth test service, and disable built in platform services.
 user_pref("media.webspeech.synth.test", true);

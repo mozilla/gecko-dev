@@ -241,6 +241,16 @@ public:
 
 public:
     /**
+     * Create a new TabChild object.
+     */
+    TabChild(nsIContentChild* aManager,
+             const TabId& aTabId,
+             const TabContext& aContext,
+             uint32_t aChromeFlags);
+
+    nsresult Init();
+
+    /**
      * This is expected to be called off the critical path to content
      * startup.  This is an opportunity to load things that are slow
      * on the critical path.
@@ -289,7 +299,8 @@ public:
                                          const ViewID& aViewId,
                                          const Maybe<ZoomConstraints>& aConstraints) override;
     virtual bool RecvLoadURL(const nsCString& aURI,
-                             const BrowserConfiguration& aConfiguration) override;
+                             const BrowserConfiguration& aConfiguration,
+                             const ShowInfo& aInfo) override;
     virtual bool RecvCacheFileDescriptor(const nsString& aPath,
                                          const FileDescriptor& aFileDescriptor)
                                          override;
@@ -510,6 +521,12 @@ public:
 
     virtual ScreenIntSize GetInnerSize() override;
 
+    // Call RecvShow(nsIntSize(0, 0)) and block future calls to RecvShow().
+    void DoFakeShow(const TextureFactoryIdentifier& aTextureFactoryIdentifier,
+                    const uint64_t& aLayersId,
+                    PRenderFrameChild* aRenderFrame,
+                    const ShowInfo& aShowInfo);
+
 protected:
     virtual ~TabChild();
 
@@ -535,18 +552,6 @@ protected:
 #endif
 
 private:
-    /**
-     * Create a new TabChild object.
-     */
-    TabChild(nsIContentChild* aManager,
-             const TabId& aTabId,
-             const TabContext& aContext,
-             uint32_t aChromeFlags);
-
-    nsresult Init();
-
-    class DelayedFireContextMenuEvent;
-
     // Notify others that our TabContext has been updated.  (At the moment, this
     // sets the appropriate app-id and is-browser flags on our docshell.)
     //
@@ -564,35 +569,7 @@ private:
     void DestroyWindow();
     void SetProcessNameToAppName();
 
-    // Call RecvShow(nsIntSize(0, 0)) and block future calls to RecvShow().
-    void DoFakeShow(const TextureFactoryIdentifier& aTextureFactoryIdentifier,
-                    const uint64_t& aLayersId,
-                    PRenderFrameChild* aRenderFrame);
-
     void ApplyShowInfo(const ShowInfo& aInfo);
-
-    // These methods are used for tracking synthetic mouse events
-    // dispatched for compatibility.  On each touch event, we
-    // UpdateTapState().  If we've detected that the current gesture
-    // isn't a tap, then we CancelTapTracking().  In the meantime, we
-    // may detect a context-menu event, and if so we
-    // FireContextMenuEvent().
-    void FireContextMenuEvent();
-    void CancelTapTracking();
-    void UpdateTapState(const WidgetTouchEvent& aEvent, nsEventStatus aStatus);
-
-    nsresult
-    ProvideWindowCommon(nsIDOMWindow* aOpener,
-                        bool aIframeMoz,
-                        uint32_t aChromeFlags,
-                        bool aCalledFromJS,
-                        bool aPositionSpecified,
-                        bool aSizeSpecified,
-                        nsIURI* aURI,
-                        const nsAString& aName,
-                        const nsACString& aFeatures,
-                        bool* aWindowIsNew,
-                        nsIDOMWindow** aReturn);
 
     bool HasValidInnerSize();
 
@@ -618,15 +595,6 @@ private:
     int32_t mActiveSuppressDisplayport;
     uint64_t mLayersId;
     CSSRect mUnscaledOuterRect;
-    // When we're tracking a possible tap gesture, this is the "down"
-    // point of the touchstart.
-    LayoutDevicePoint mGestureDownPoint;
-    // The touch identifier of the active gesture.
-    int32_t mActivePointerId;
-    // A timer task that fires if the tap-hold timeout is exceeded by
-    // the touch we're tracking.  That is, if touchend or a touchmove
-    // that exceeds the gesture threshold doesn't happen.
-    nsCOMPtr<nsITimer> mTapHoldTimer;
     // Whether we have already received a FileDescriptor for the app package.
     bool mAppPackageFileDescriptorRecved;
     // At present only 1 of these is really expected.
@@ -647,12 +615,16 @@ private:
     // Position of tab, relative to parent widget (typically the window)
     LayoutDeviceIntPoint mChromeDisp;
     TabId mUniqueId;
+
+    friend class ContentChild;
     float mDPI;
     double mDefaultScale;
+
     bool mIPCOpen;
     bool mParentIsActive;
     bool mAsyncPanZoomEnabled;
     CSSSize mUnscaledInnerSize;
+    bool mDidSetRealShowInfo;
 
     nsAutoTArray<bool, NUMBER_OF_AUDIO_CHANNELS> mAudioChannelsActive;
 

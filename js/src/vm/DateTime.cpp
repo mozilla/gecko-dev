@@ -6,11 +6,27 @@
 
 #include "vm/DateTime.h"
 
+#include "mozilla/Atomics.h"
+
 #include <time.h>
 
 #include "jsutil.h"
 
+#include "js/Date.h"
+#if ENABLE_INTL_API
+#include "unicode/timezone.h"
+#endif
+
 using mozilla::UnspecifiedNaN;
+
+/* static */ js::DateTimeInfo
+js::DateTimeInfo::instance;
+
+/* static */ mozilla::Atomic<bool, mozilla::ReleaseAcquire>
+js::DateTimeInfo::AcquireLock::spinLock;
+
+/* extern */ mozilla::Atomic<js::IcuTimeZoneStatus, mozilla::ReleaseAcquire>
+js::DefaultTimeZoneStatus;
 
 static bool
 ComputeLocalTime(time_t local, struct tm* ptm)
@@ -131,7 +147,7 @@ UTCToLocalStandardOffsetSeconds()
 }
 
 void
-js::DateTimeInfo::updateTimeZoneAdjustment()
+js::DateTimeInfo::internalUpdateTimeZoneAdjustment()
 {
     /*
      * The difference between local standard time and UTC will never change for
@@ -164,12 +180,19 @@ js::DateTimeInfo::updateTimeZoneAdjustment()
  * negative numbers to ensure the first computation is always a cache miss and
  * doesn't return a bogus offset.
  */
-js::DateTimeInfo::DateTimeInfo()
+/* static */ void
+js::DateTimeInfo::init()
 {
+    DateTimeInfo* dtInfo = &DateTimeInfo::instance;
+
+    MOZ_ASSERT(dtInfo->localTZA_ == 0,
+               "we should be initializing only once, and the static instance "
+               "should have started out zeroed");
+
     // Set to a totally impossible TZA so that the comparison above will fail
     // and all fields will be properly initialized.
-    localTZA_ = UnspecifiedNaN<double>();
-    updateTimeZoneAdjustment();
+    dtInfo->localTZA_ = UnspecifiedNaN<double>();
+    dtInfo->internalUpdateTimeZoneAdjustment();
 }
 
 int64_t
@@ -201,7 +224,7 @@ js::DateTimeInfo::computeDSTOffsetMilliseconds(int64_t utcSeconds)
 }
 
 int64_t
-js::DateTimeInfo::getDSTOffsetMilliseconds(int64_t utcMilliseconds)
+js::DateTimeInfo::internalGetDSTOffsetMilliseconds(int64_t utcMilliseconds)
 {
     sanityCheck();
 
@@ -287,4 +310,18 @@ js::DateTimeInfo::sanityCheck()
                   rangeStartSeconds >= 0 && rangeEndSeconds >= 0);
     MOZ_ASSERT_IF(rangeStartSeconds != INT64_MIN,
                   rangeStartSeconds <= MaxUnixTimeT && rangeEndSeconds <= MaxUnixTimeT);
+}
+
+JS_PUBLIC_API(void)
+JS::ResetTimeZone()
+{
+    js::DateTimeInfo::updateTimeZoneAdjustment();
+
+    // Trigger lazy recreation of ICU's default time zone, if needed and not
+    // already being performed.  (If it's already being performed, behavior
+    // will be safe but racy.)  See also Intl.cpp:NewUDateFormat which performs
+    // the recreation.  Note that if new places observing ICU's default time
+    // zone are added, they'll need to do the same things NewUDateFormat does.
+    js::DefaultTimeZoneStatus.compareExchange(js::IcuTimeZoneStatus::Valid,
+                                              js::IcuTimeZoneStatus::NeedsUpdate);
 }

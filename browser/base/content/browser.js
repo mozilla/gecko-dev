@@ -6927,6 +6927,13 @@ var gIdentityHandler = {
     return this._state & Ci.nsIWebProgressListener.STATE_LOADED_MIXED_DISPLAY_CONTENT;
   },
 
+  get _hasInsecureLoginForms() {
+    // checks if the page has been flagged for an insecure login. Also checks
+    // if the pref to degrade the UI is set to true
+    return LoginManagerParent.hasInsecureLoginForms(gBrowser.selectedBrowser) &&
+           Services.prefs.getBoolPref("security.insecure_password.ui.enabled");
+  },
+
   // smart getters
   get _identityPopup () {
     delete this._identityPopup;
@@ -6960,6 +6967,11 @@ var gIdentityHandler = {
     delete this._identityPopupMixedContentLearnMore;
     return this._identityPopupMixedContentLearnMore =
       document.getElementById("identity-popup-mcb-learn-more");
+  },
+  get _identityPopupInsecureLoginFormsLearnMore () {
+    delete this._identityPopupInsecureLoginFormsLearnMore;
+    return this._identityPopupInsecureLoginFormsLearnMore =
+      document.getElementById("identity-popup-insecure-login-forms-learn-more");
   },
   get _identityIconLabel () {
     delete this._identityIconLabel;
@@ -7257,7 +7269,7 @@ var gIdentityHandler = {
           this._identityBox.classList.add("weakCipher");
         }
       }
-      if (LoginManagerParent.hasInsecureLoginForms(gBrowser.selectedBrowser)) {
+      if (this._hasInsecureLoginForms) {
         // Insecure login forms can only be present on "unknown identity"
         // pages, either already insecure or with mixed active content loaded.
         this._identityBox.classList.add("insecureLoginForms");
@@ -7282,10 +7294,12 @@ var gIdentityHandler = {
    * applicable
    */
   refreshIdentityPopup() {
-    // Update the "Learn More" hrefs for Mixed Content Blocking.
+    // Update "Learn More" for Mixed Content Blocking and Insecure Login Forms.
     let baseURL = Services.urlFormatter.formatURLPref("app.support.baseURL");
-    let learnMoreHref = `${baseURL}mixed-content`;
-    this._identityPopupMixedContentLearnMore.setAttribute("href", learnMoreHref);
+    this._identityPopupMixedContentLearnMore
+        .setAttribute("href", baseURL + "mixed-content");
+    this._identityPopupInsecureLoginFormsLearnMore
+        .setAttribute("href", baseURL + "insecure-password");
 
     // Determine connection security information.
     let connection = "not-secure";
@@ -7301,7 +7315,7 @@ var gIdentityHandler = {
 
     // Determine if there are insecure login forms.
     let loginforms = "secure";
-    if (LoginManagerParent.hasInsecureLoginForms(gBrowser.selectedBrowser)) {
+    if (this._hasInsecureLoginForms) {
       loginforms = "insecure";
     }
 

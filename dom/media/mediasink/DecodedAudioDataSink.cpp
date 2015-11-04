@@ -143,8 +143,12 @@ DecodedAudioDataSink::GetPosition()
   int64_t pos;
   if (mAudioStream &&
       (pos = mAudioStream->GetPosition()) >= 0) {
+    NS_ASSERTION(pos >= mLastGoodPosition,
+                 "AudioStream position shouldn't go backward");
     // Update the last good position when we got a good one.
-    mLastGoodPosition = pos;
+    if (pos >= mLastGoodPosition) {
+      mLastGoodPosition = pos;
+    }
   }
 
   return mStartTime + mLastGoodPosition;
@@ -469,7 +473,7 @@ DecodedAudioDataSink::PlayFromAudioQueue()
   SINK_LOG_V("playing %u frames of audio at time %lld",
              audio->mFrames, audio->mTime);
   if (audio->mRate == mInfo.mRate && audio->mChannels == mInfo.mChannels) {
-    mAudioStream->Write(audio->mAudioData, audio->mFrames);
+    mAudioStream->Write(audio->mAudioData.get(), audio->mFrames);
   } else {
     SINK_LOG_V("mismatched sample format mInfo=[%uHz/%u channels] audio=[%uHz/%u channels]",
                mInfo.mRate, mInfo.mChannels, audio->mRate, audio->mChannels);

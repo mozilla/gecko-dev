@@ -492,8 +492,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     // Push the return address and make a call. On platforms where this function
     // is not defined, push the link register (pushReturnAddress) at the entry
     // point of the callee.
-    void callAndPushReturnAddress(Register reg) DEFINED_ON(mips32, x86_shared);
-    void callAndPushReturnAddress(Label* label) DEFINED_ON(mips32, x86_shared);
+    void callAndPushReturnAddress(Register reg) DEFINED_ON(mips_shared, x86_shared);
+    void callAndPushReturnAddress(Label* label) DEFINED_ON(mips_shared, x86_shared);
 
     void pushReturnAddress() DEFINED_ON(arm, arm64);
 
@@ -1073,14 +1073,6 @@ class MacroAssembler : public MacroAssemblerSpecific
             MOZ_CRASH("Invalid typed array type");
         }
     }
-
-    template<typename T>
-    void compareExchangeToTypedIntArray(Scalar::Type arrayType, const T& mem, Register oldval, Register newval,
-                                        Register temp, AnyRegister output);
-
-    template<typename T>
-    void atomicExchangeToTypedIntArray(Scalar::Type arrayType, const T& mem, Register value,
-                                       Register temp, AnyRegister output);
 
     void storeToTypedFloatArray(Scalar::Type arrayType, FloatRegister value, const BaseIndex& dest,
                                 unsigned numElems = 0);

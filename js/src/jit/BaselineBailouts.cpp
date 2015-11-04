@@ -971,7 +971,9 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
             }
         }
     }
+#endif
 
+#ifdef JS_JITSPEW
     JitSpew(JitSpew_BaselineBailouts, "      Resuming %s pc offset %d (op %s) (line %d) of %s:%" PRIuSIZE,
                 resumeAfter ? "after" : "at", (int) pcOff, js_CodeName[op],
                 PCToLineNumber(script, pc), script->filename(), script->lineno());
@@ -1420,12 +1422,14 @@ jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation, JitFrameIter
     //      Entry - Interpreter or other calling into Ion.
     //      Rectifier - Arguments rectifier calling into Ion.
     MOZ_ASSERT(iter.isBailoutJS());
-    mozilla::DebugOnly<FrameType> prevFrameType = iter.prevType();
+#if defined(DEBUG) || defined(JS_JITSPEW)
+    FrameType prevFrameType = iter.prevType();
     MOZ_ASSERT(prevFrameType == JitFrame_IonJS ||
                prevFrameType == JitFrame_BaselineStub ||
                prevFrameType == JitFrame_Entry ||
                prevFrameType == JitFrame_Rectifier ||
                prevFrameType == JitFrame_IonAccessorIC);
+#endif
 
     // All incoming frames are going to look like this:
     //

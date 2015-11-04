@@ -410,6 +410,12 @@ union GamepadChangeEvent {
     GamepadButtonInformation;
 };
 
+struct FrameScriptInfo
+{
+    nsString url;
+    bool runInGlobalScope;
+};
+
 prio(normal upto urgent) sync protocol PContent
 {
     parent spawns PPluginModule;
@@ -514,8 +520,6 @@ child:
      * BidiKeyboard hosted by the parent
      */
     async BidiKeyboardNotify(bool isLangRTL);
-
-    async UpdateServiceWorkerRegistrations();
 
     async DataStoreNotify(uint32_t aAppId, nsString aName,
                           nsString aManifestURL);
@@ -676,6 +680,11 @@ child:
      * cleaned up.
      */
     async NotifyPresentationReceiverCleanUp(nsString aSessionId);
+
+    /**
+     * Notify the child that the Gecko Media Plugins installed changed.
+     */
+    async NotifyGMPsChanged();
 
 parent:
     /**
@@ -1106,6 +1115,21 @@ parent:
      */
     sync GetGraphicsDeviceInitData()
         returns (DeviceInitData aData);
+
+    sync CreateWindow(nullable PBrowser aThisTab,
+                      PBrowser aNewTab,
+                      uint32_t aChromeFlags,
+                      bool aCalledFromJS,
+                      bool aPositionSpecified,
+                      bool aSizeSpecified,
+                      nsCString aURI,
+                      nsString aName,
+                      nsCString aFeatures,
+                      nsCString aBaseURI)
+      returns (nsresult rv,
+               bool windowOpened,
+               FrameScriptInfo[] frameScripts,
+               nsCString urlToLoad);
 
     sync GetDeviceStorageLocation(nsString type)
         returns (nsString path);

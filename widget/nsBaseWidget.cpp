@@ -692,16 +692,16 @@ nsBaseWidget::IsWindowClipRegionEqual(const nsTArray<nsIntRect>& aRects)
 {
   return mClipRects &&
          mClipRectCount == aRects.Length() &&
-         memcmp(mClipRects, aRects.Elements(), sizeof(nsIntRect)*mClipRectCount) == 0;
+         memcmp(mClipRects.get(), aRects.Elements(), sizeof(nsIntRect)*mClipRectCount) == 0;
 }
 
 void
 nsBaseWidget::StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects)
 {
   mClipRectCount = aRects.Length();
-  mClipRects = new nsIntRect[mClipRectCount];
+  mClipRects = MakeUnique<nsIntRect[]>(mClipRectCount);
   if (mClipRects) {
-    memcpy(mClipRects, aRects.Elements(), sizeof(nsIntRect)*mClipRectCount);
+    memcpy(mClipRects.get(), aRects.Elements(), sizeof(nsIntRect)*mClipRectCount);
   }
 }
 
@@ -1006,7 +1006,8 @@ nsBaseWidget::ProcessUntransformedAPZEvent(WidgetInputEvent* aEvent,
         APZCCallbackHelper::SendSetTargetAPZCNotification(this, GetDocument(), *aEvent,
             aGuid, aInputBlockId);
       }
-      mAPZEventState->ProcessTouchEvent(*touchEvent, aGuid, aInputBlockId, aApzResponse);
+      mAPZEventState->ProcessTouchEvent(*touchEvent, aGuid, aInputBlockId,
+          aApzResponse, status);
     } else if (WidgetWheelEvent* wheelEvent = aEvent->AsWheelEvent()) {
       if (wheelEvent->mFlags.mHandledByAPZ) {
         APZCCallbackHelper::SendSetTargetAPZCNotification(this, GetDocument(), *aEvent,
@@ -1016,6 +1017,8 @@ nsBaseWidget::ProcessUntransformedAPZEvent(WidgetInputEvent* aEvent,
         }
         mAPZEventState->ProcessWheelEvent(*wheelEvent, aGuid, aInputBlockId);
       }
+    } else if (WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent()) {
+      mAPZEventState->ProcessMouseEvent(*mouseEvent, aGuid, aInputBlockId);
     }
   }
 
