@@ -1,0 +1,53 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+DIRS += [
+    'interfaces',
+    'fuse',
+]
+
+EXPORTS.mozilla.dom += [
+    'FileSystemProvider.h',
+    'FileSystemProviderAbortEvent.h',
+    'FileSystemProviderCloseFileEvent.h',
+    'FileSystemProviderEvent.h',
+    'FileSystemProviderGetMetadataEvent.h',
+    'FileSystemProviderOpenFileEvent.h',
+    'FileSystemProviderReadDirectoryEvent.h',
+    'FileSystemProviderReadFileEvent.h',
+    'FileSystemProviderUnmountEvent.h',
+]
+
+UNIFIED_SOURCES += [
+    'FileSystemProvider.cpp',
+    'FileSystemProviderAbortEvent.cpp',
+    'FileSystemProviderCloseFileEvent.cpp',
+    'FileSystemProviderEvent.cpp',
+    'FileSystemProviderGetMetadataEvent.cpp',
+    'FileSystemProviderOpenFileEvent.cpp',
+    'FileSystemProviderReadDirectoryEvent.cpp',
+    'FileSystemProviderReadFileEvent.cpp',
+    'FileSystemProviderUnmountEvent.cpp',
+    'nsVirtualFileSystem.cpp',
+    'nsVirtualFileSystemCallback.cpp',
+    'nsVirtualFileSystemData.cpp',
+    'nsVirtualFileSystemRequestManager.cpp',
+    'nsVirtualFileSystemRequestValue.cpp',
+    'nsVirtualFileSystemService.cpp',
+    'VirtualFileSystemModule.cpp',
+]
+
+LOCAL_INCLUDES += [
+    '/dom/virtualfilesystem/fuse',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+MOCHITEST_MANIFESTS += ['test/mochitest/mochitest.ini']
+
+XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell/xpcshell.ini']
+
+FINAL_LIBRARY = 'xul'

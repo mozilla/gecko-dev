@@ -1,0 +1,71 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIArray;
+interface nsIEntryMetadata;
+interface nsIVirtualFileSystemRequestValue;
+
+/**
+ * XPCOM component which represents an opened file.
+ * This is the same as OpenedFile defined in FileSystemProvider.webidl.
+ */
+[scriptable, uuid(11b1380b-08ad-456b-a906-44687c0e8c75)]
+interface nsIVirtualFileSystemOpenedFileInfo : nsISupports
+{
+  attribute unsigned long openRequestId;
+
+  attribute DOMString filePath;
+
+  attribute unsigned short mode;
+};
+
+/**
+ * XPCOM component which represents a file system.
+ * This is the same as FileSystemInfo defined in FileSystemProvider.webidl.
+ */
+[scriptable, uuid(851c97c5-a46d-47a4-97f9-33707f6392ef)]
+interface nsIVirtualFileSystemInfo : nsISupports
+{
+  attribute DOMString fileSystemId;
+
+  attribute DOMString displayName;
+
+  attribute boolean writable;
+
+  attribute unsigned long openedFilesLimit;
+
+  attribute nsIArray openedFiles;
+};
+
+/**
+ * XPCOM component which provides file system implementation.
+ * Create and forward requests between providers and clients.
+ */
+[scriptable, uuid(aedc71ab-cb17-40dd-a2ee-09a2b47e4011)]
+interface nsIVirtualFileSystem : nsISupports
+{
+  readonly attribute nsIVirtualFileSystemInfo info;
+
+  unsigned long abort(in unsigned long aOperationId);
+  unsigned long openFile(in DOMString aPath, in unsigned short aMode);
+  unsigned long closeFile(in unsigned long aOpenFileId);
+  unsigned long getMetadata(in DOMString aEntryPath);
+  unsigned long readDirectory(in DOMString aDirPath);
+  unsigned long readFile(in unsigned long aOpenFileId,
+                         in unsigned long long aOffset,
+                         in unsigned long long aLength);
+  unsigned long unmount();
+
+  void onRequestSuccess(in unsigned long aRequestId,
+                        in nsIVirtualFileSystemRequestValue aValue);
+  void onOpenFileSuccess(in unsigned long aRequestId,
+                         in nsIVirtualFileSystemRequestValue aValue,
+                         in nsIVirtualFileSystemOpenedFileInfo aFileInfo);
+  void onCloseFileSuccess(in unsigned long aRequestId,
+                          in nsIVirtualFileSystemRequestValue aValue,
+                          in unsigned long aOpenedFileId);
+  void onRequestError(in unsigned long aRequestId, in unsigned long aError);
+};

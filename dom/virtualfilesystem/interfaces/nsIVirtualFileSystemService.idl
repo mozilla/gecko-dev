@@ -1,0 +1,65 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIArray;
+interface nsIFileSystemProviderEventDispatcher;
+interface nsIVirtualFileSystemCallback;
+interface nsIVirtualFileSystemInfo;
+interface nsIVirtualFileSystemRequestManager;
+
+/**
+ * XPCOM component which represents the options for unmount method.
+ */
+[scriptable, uuid(819efda8-1d61-4522-b2e0-232981b9ddde)]
+interface nsIVirtualFileSystemUnmountOptions : nsISupports
+{
+  attribute unsigned long requestId;
+
+  attribute DOMString fileSystemId;
+};
+
+/**
+ * XPCOM component which represents the options for mount method.
+ */
+[scriptable, uuid(104d2635-d9cc-4269-bc63-fe77cde82d70)]
+interface nsIVirtualFileSystemMountOptions : nsIVirtualFileSystemUnmountOptions
+{
+  attribute DOMString displayName;
+
+  attribute boolean writable;
+
+  attribute unsigned long openedFilesLimit;
+};
+
+
+/**
+ * A service used by FileSystemProvider to manage all cloud storages.
+ */
+[scriptable, uuid(75d68ad9-5a27-4adc-887b-3c6ffef319e9)]
+interface nsIVirtualFileSystemService : nsISupports
+{
+  // Create cloud storage with the specified name.
+  void mount(in nsIVirtualFileSystemMountOptions option,
+             in nsIVirtualFileSystemRequestManager requestManager,
+             in nsIVirtualFileSystemCallback callback);
+
+  // Remove cloud storage with the specified file system identify.
+  void unmount(in nsIVirtualFileSystemUnmountOptions option,
+               in nsIVirtualFileSystemCallback callback);
+
+  // Get cloud storage instance with the file system identify.
+  nsIVirtualFileSystemInfo getVirtualFileSystemById(in DOMString fileSystemId);
+
+  // Get the total number of cloud storages
+  nsIArray getAllVirtualFileSystemIds();
+};
+
+%{C++
+#define VIRTUALFILESYSTEMSERVICE_CID \
+  {0xd3abe44a, 0x4098, 0x11e5, {0x8f, 0xd7, 0xdb, 0x52, 0x1d, 0x5d, 0x46, 0xb0}}
+#define VIRTUAL_FILE_SYSTEM_SERVICE_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/virtualfilesystem-service;1"
+%}
