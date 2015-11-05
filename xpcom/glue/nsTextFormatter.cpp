@@ -351,14 +351,14 @@ cvt_f(SprintfState* aState, double aDouble, int aWidth, int aPrec,
       break;
     case 'E':
       exp = 'E';
-      MOZ_FALLTHROUGH;
+    // no break
     case 'e':
       numdigits = aPrec + 1;
       mode = 2;
       break;
     case 'G':
       exp = 'E';
-      MOZ_FALLTHROUGH;
+    // no break
     case 'g':
       if (aPrec == 0) {
         aPrec = 1;

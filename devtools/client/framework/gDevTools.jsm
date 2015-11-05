@@ -23,8 +23,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
 loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/main", true);
 
-const {defaultTools: DefaultTools, defaultThemes: DefaultThemes} =
-  require("devtools/client/definitions");
+const DefaultTools = require("devtools/client/definitions").defaultTools;
 const EventEmitter = require("devtools/shared/event-emitter");
 const Telemetry = require("devtools/client/shared/telemetry");
 const {JsonView} = require("devtools/client/jsonview/main");
@@ -287,17 +286,10 @@ DevTools.prototype = {
 
     let currTheme = Services.prefs.getCharPref("devtools.theme");
 
-    // Note that we can't check if `theme` is an item
-    // of `DefaultThemes` as we end up reloading definitions
-    // module and end up with different theme objects
-    let isCoreTheme = DefaultThemes.some(t => t.id === themeId);
-
-    // Reset the theme if an extension theme that's currently applied
-    // is being removed.
-    // Ignore shutdown since addons get disabled during that time.
-    if (!Services.startup.shuttingDown &&
-        !isCoreTheme &&
-        theme.id == currTheme) {
+    // Change the current theme if it's being dynamically removed together
+    // with the owner (bootstrapped) extension.
+    // But, do not change it if the application is just shutting down.
+    if (!Services.startup.shuttingDown && theme.id == currTheme) {
       Services.prefs.setCharPref("devtools.theme", "light");
 
       let data = {

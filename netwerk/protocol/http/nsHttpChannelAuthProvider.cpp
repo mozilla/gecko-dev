@@ -41,16 +41,19 @@ namespace net {
 #define HTTP_AUTH_DIALOG_CROSS_ORIGIN_SUBRESOURCE 2
 
 static void
-GetOriginAttributesSuffix(nsIChannel* aChan, nsACString &aSuffix)
+GetAppIdAndBrowserStatus(nsIChannel* aChan, uint32_t* aAppId, bool* aInBrowserElem)
 {
-    OriginAttributes oa;
-
-    // Deliberately ignoring the result and going with defaults
+    nsCOMPtr<nsILoadContext> loadContext;
     if (aChan) {
-        NS_GetOriginAttributes(aChan, oa);
+        NS_QueryNotificationCallbacks(aChan, loadContext);
     }
-
-    oa.CreateSuffix(aSuffix);
+    if (!loadContext) {
+        *aAppId = NECKO_NO_APP_ID;
+        *aInBrowserElem = false;
+    } else {
+        loadContext->GetAppId(aAppId);
+        loadContext->GetIsInBrowserElement(aInBrowserElem);
+    }
 }
 
 nsHttpChannelAuthProvider::nsHttpChannelAuthProvider()
@@ -399,8 +402,9 @@ nsHttpChannelAuthProvider::GenCredsAndSetEntry(nsIHttpAuthenticator *auth,
     nsHttpAuthCache *authCache = gHttpHandler->AuthCache(mIsPrivate);
 
     nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
-    nsAutoCString suffix;
-    GetOriginAttributesSuffix(chan, suffix);
+    uint32_t appId;
+    bool isInBrowserElement;
+    GetAppIdAndBrowserStatus(chan, &appId, &isInBrowserElement);
 
     // create a cache entry.  we do this even though we don't yet know that
     // these credentials are valid b/c we need to avoid prompting the user
@@ -411,7 +415,7 @@ nsHttpChannelAuthProvider::GenCredsAndSetEntry(nsIHttpAuthenticator *auth,
     rv = authCache->SetAuthEntry(scheme, host, port, directory, realm,
                                  saveCreds ? *result : nullptr,
                                  saveChallenge ? challenge : nullptr,
-                                 suffix,
+                                 appId, isInBrowserElement,
                                  saveIdentity ? &ident : nullptr,
                                  sessionState);
     return rv;
@@ -674,8 +678,9 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
     }
 
     nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
-    nsAutoCString suffix;
-    GetOriginAttributesSuffix(chan, suffix);
+    uint32_t appId;
+    bool isInBrowserElement;
+    GetAppIdAndBrowserStatus(chan, &appId, &isInBrowserElement);
 
     //
     // if we already tried some credentials for this transaction, then
@@ -685,7 +690,8 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
     //
     nsHttpAuthEntry *entry = nullptr;
     authCache->GetAuthEntryForDomain(scheme.get(), host, port,
-                                     realm.get(), suffix, &entry);
+                                     realm.get(), appId,
+                                     isInBrowserElement, &entry);
 
     // hold reference to the auth session state (in case we clear our
     // reference to the entry).
@@ -716,7 +722,7 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
                     // corresponding entry from the auth cache.
                     authCache->ClearAuthEntry(scheme.get(), host,
                                               port, realm.get(),
-                                              suffix);
+                                              appId, isInBrowserElement);
                     entry = nullptr;
                     ident->Clear();
                 }
@@ -1119,13 +1125,15 @@ NS_IMETHODIMP nsHttpChannelAuthProvider::OnAuthAvailable(nsISupports *aContext,
     ParseRealm(mCurrentChallenge.get(), realm);
 
     nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
-    nsAutoCString suffix;
-    GetOriginAttributesSuffix(chan, suffix);
+    uint32_t appId;
+    bool isInBrowserElement;
+    GetAppIdAndBrowserStatus(chan, &appId, &isInBrowserElement);
 
     nsHttpAuthCache *authCache = gHttpHandler->AuthCache(mIsPrivate);
     nsHttpAuthEntry *entry = nullptr;
     authCache->GetAuthEntryForDomain(scheme.get(), host, port,
-                                     realm.get(), suffix,
+                                     realm.get(), appId,
+                                     isInBrowserElement,
                                      &entry);
 
     nsCOMPtr<nsISupports> sessionStateGrip;
@@ -1348,11 +1356,12 @@ nsHttpChannelAuthProvider::SetAuthorizationHeader(nsHttpAuthCache    *authCache,
     }
 
     nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
-    nsAutoCString suffix;
-    GetOriginAttributesSuffix(chan, suffix);
+    uint32_t appId;
+    bool isInBrowserElement;
+    GetAppIdAndBrowserStatus(chan, &appId, &isInBrowserElement);
 
     rv = authCache->GetAuthEntryForPath(scheme, host, port, path,
-                                        suffix, &entry);
+                                        appId, isInBrowserElement, &entry);
     if (NS_SUCCEEDED(rv)) {
         // if we are trying to add a header for origin server auth and if the
         // URL contains an explicit username, then try the given username first.

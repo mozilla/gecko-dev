@@ -183,7 +183,7 @@ DataStruct::ReadCache(nsISupports** aData, uint32_t* aDataLen)
 
     uint32_t size = uint32_t(fileSize);
     // create new memory for the large clipboard data
-    auto data = MakeUnique<char[]>(size);
+    nsAutoArrayPtr<char> data(new char[size]);
     if ( !data )
       return NS_ERROR_OUT_OF_MEMORY;
       
@@ -194,12 +194,11 @@ DataStruct::ReadCache(nsISupports** aData, uint32_t* aDataLen)
     
     if (!cacheFile) return NS_ERROR_FAILURE;
 
-    nsresult rv = inStr->Read(data.get(), fileSize, aDataLen);
+    nsresult rv = inStr->Read(data, fileSize, aDataLen);
 
     // make sure we got all the data ok
     if (NS_SUCCEEDED(rv) && *aDataLen == size) {
-      nsPrimitiveHelpers::CreatePrimitiveForData(mFlavor.get(), data.get(),
-                                                 fileSize, aData);
+      nsPrimitiveHelpers::CreatePrimitiveForData ( mFlavor.get(), data, fileSize, aData );
       return *aData ? NS_OK : NS_ERROR_FAILURE;
     }
 

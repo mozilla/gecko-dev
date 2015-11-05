@@ -517,7 +517,8 @@ MediaCodecReader::HasVideo()
 }
 
 void
-MediaCodecReader::NotifyDataArrivedInternal()
+MediaCodecReader::NotifyDataArrivedInternal(uint32_t aLength,
+                                            int64_t aOffset)
 {
   AutoPinned<MediaResource> resource(mDecoder->GetResource());
   nsTArray<MediaByteRange> byteRanges;

@@ -70,8 +70,7 @@
 #include "mozilla/dom/TreeWalker.h"
 
 #include "nsIServiceManager.h"
-#include "mozilla/dom/workers/ServiceWorkerManager.h"
-#include "imgLoader.h"
+#include "nsIServiceWorkerManager.h"
 
 #include "nsCanvasFrame.h"
 #include "nsContentCID.h"
@@ -2118,11 +2117,19 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   tmp->mInUnlinkOrDeletion = false;
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
+static bool sPrefsInitialized = false;
+static uint32_t sOnloadDecodeLimit = 0;
+
 nsresult
 nsDocument::Init()
 {
   if (mCSSLoader || mStyleImageLoader || mNodeInfoManager || mScriptLoader) {
     return NS_ERROR_ALREADY_INITIALIZED;
+  }
+
+  if (!sPrefsInitialized) {
+    sPrefsInitialized = true;
+    Preferences::AddUintVarCache(&sOnloadDecodeLimit, "image.onload.decode.limit", 0);
   }
 
   // Force initialization.
@@ -8894,13 +8901,8 @@ nsDocument::Destroy()
 
   mRegistry = nullptr;
 
-  using mozilla::dom::workers::ServiceWorkerManager;
-  RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+  nsCOMPtr<nsIServiceWorkerManager> swm = mozilla::services::GetServiceWorkerManager();
   if (swm) {
-    ErrorResult error;
-    if (swm->IsControlled(this, error)) {
-      nsContentUtils::GetImgLoaderForDocument(this)->ClearCacheForControlledDocument(this);
-    }
     swm->MaybeStopControlling(this);
   }
 
@@ -10520,8 +10522,12 @@ nsDocument::AddImage(imgIRequest* aImage)
 
   // If this is the first insertion and we're locking images, lock this image
   // too.
-  if (oldCount == 0 && mLockingImages) {
-    rv = aImage->LockImage();
+  if (oldCount == 0) {
+    if (mLockingImages)
+      rv = aImage->LockImage();
+    if (NS_SUCCEEDED(rv) && (!sOnloadDecodeLimit ||
+                             mImageTracker.Count() < sOnloadDecodeLimit))
+      rv = aImage->StartDecoding();
   }
 
   // If this is the first insertion and we're animating images, request
@@ -10652,6 +10658,7 @@ PLDHashOperator LockEnumerator(imgIRequest* aKey,
                                void*    userArg)
 {
   aKey->LockImage();
+  aKey->RequestDecode();
   return PL_DHASH_NEXT;
 }
 

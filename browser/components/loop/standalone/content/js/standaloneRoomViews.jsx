@@ -122,7 +122,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
               }
             </div>
             <ToSView dispatcher={this.props.dispatcher} />
-            <img className="mozilla-logo" src="img/mozilla-logo.svg#logo" />
+            <p className="mozilla-logo" />
           </div>
         </div>
       );
@@ -619,7 +619,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
             renderRemoteVideo={this.shouldRenderRemoteVideo()}
             screenShareMediaElement={this.state.screenShareMediaElement}
             screenSharePosterUrl={this.props.screenSharePosterUrl}
-            showInitialContext={true}
+            showContextRoomName={true}
             useDesktopPaths={false}>
             <StandaloneOverlayWrapper dispatcher={this.props.dispatcher} />
             <StandaloneRoomInfoArea activeRoomStore={this.props.activeRoomStore}
@@ -654,7 +654,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
         <div className="standalone-overlay-wrapper">
           <div className="hello-logo"></div>
           <GeneralSupportURL dispatcher={this.props.dispatcher} />
-          <img className="standalone-moz-logo" src="img/mozilla-logo.svg#logo-white" />
+          <div className="standalone-moz-logo" />
         </div>
       );
     }

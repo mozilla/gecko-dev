@@ -12,7 +12,6 @@
 #include "CSSVariableDeclarations.h"
 #include "CSSVariableValues.h"
 #include "mozilla/PodOperations.h"
-#include "mozilla/UniquePtr.h"
 #include <algorithm>
 
 namespace mozilla {
@@ -26,7 +25,7 @@ class EnumerateVariableReferencesData
 public:
   explicit EnumerateVariableReferencesData(CSSVariableResolver& aResolver)
     : mResolver(aResolver)
-    , mReferences(MakeUnique<bool[]>(aResolver.mVariables.Length()))
+    , mReferences(new bool[aResolver.mVariables.Length()])
   {
   }
 
@@ -67,7 +66,7 @@ private:
   // true, it indicates that the variable we have called
   // EnumerateVariableReferences for has a reference to the variable with
   // that ID.
-  const UniquePtr<bool[]> mReferences;
+  nsAutoArrayPtr<bool> mReferences;
 
   // Whether the variable we have called EnumerateVariableReferences for
   // references a variable that does not exist in the resolver.

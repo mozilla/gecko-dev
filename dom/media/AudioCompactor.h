@@ -41,10 +41,10 @@ public:
 
     while (aFrames > 0) {
       uint32_t samples = GetChunkSamples(aFrames, aChannels, maxSlop);
-      auto buffer = MakeUnique<AudioDataValue[]>(samples);
+      nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[samples]);
 
       // Copy audio data to buffer using caller-provided functor.
-      uint32_t framesCopied = aCopyFunc(buffer.get(), samples);
+      uint32_t framesCopied = aCopyFunc(buffer, samples);
 
       NS_ASSERTION(framesCopied <= aFrames, "functor copied too many frames");
 
@@ -57,7 +57,7 @@ public:
                                 aTime,
                                 duration.value(),
                                 framesCopied,
-                                Move(buffer),
+                                buffer.forget(),
                                 aChannels,
                                 aSampleRate));
 

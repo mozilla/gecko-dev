@@ -1479,9 +1479,8 @@ nsObjectLoadingContent::IsYoutubeEmbed()
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   NS_ASSERTION(thisContent, "Must be an instance of content");
 
-  // We're only interested in switching out embed and object tags
-  if (!thisContent->NodeInfo()->Equals(nsGkAtoms::embed) &&
-      !thisContent->NodeInfo()->Equals(nsGkAtoms::object)) {
+  // We're only interested in switching out embed tags
+  if (!thisContent->NodeInfo()->Equals(nsGkAtoms::embed)) {
     return false;
   }
   nsCOMPtr<nsIEffectiveTLDService> tldService =
@@ -1497,18 +1496,11 @@ nsObjectLoadingContent::IsYoutubeEmbed()
     // Data URIs won't parse correctly, so just fail silently here.
     return false;
   }
-  // See if URL is referencing youtube
   nsAutoCString domain("youtube.com");
-  if (!StringEndsWith(domain, currentBaseDomain)) {
-    return false;
+  if (StringEndsWith(domain, currentBaseDomain)) {
+    return true;
   }
-  // See if requester is planning on using the JS API.
-  nsAutoCString uri;
-  mURI->GetSpec(uri);
-  if (uri.Find("enablejsapi=1", true, 0, -1) == kNotFound) {
-    return false;
-  }
-  return true;
+  return false;
 }
 
 bool

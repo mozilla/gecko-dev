@@ -122,7 +122,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
               
             ), 
             React.createElement(ToSView, {dispatcher: this.props.dispatcher}), 
-            React.createElement("img", {className: "mozilla-logo", src: "img/mozilla-logo.svg#logo"})
+            React.createElement("p", {className: "mozilla-logo"})
           )
         )
       );
@@ -619,7 +619,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
             renderRemoteVideo: this.shouldRenderRemoteVideo(), 
             screenShareMediaElement: this.state.screenShareMediaElement, 
             screenSharePosterUrl: this.props.screenSharePosterUrl, 
-            showInitialContext: true, 
+            showContextRoomName: true, 
             useDesktopPaths: false}, 
             React.createElement(StandaloneOverlayWrapper, {dispatcher: this.props.dispatcher}), 
             React.createElement(StandaloneRoomInfoArea, {activeRoomStore: this.props.activeRoomStore, 
@@ -654,7 +654,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
         React.createElement("div", {className: "standalone-overlay-wrapper"}, 
           React.createElement("div", {className: "hello-logo"}), 
           React.createElement(GeneralSupportURL, {dispatcher: this.props.dispatcher}), 
-          React.createElement("img", {className: "standalone-moz-logo", src: "img/mozilla-logo.svg#logo-white"})
+          React.createElement("div", {className: "standalone-moz-logo"})
         )
       );
     }

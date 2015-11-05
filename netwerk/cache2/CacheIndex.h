@@ -148,7 +148,7 @@ public:
     mRec->mFlags = 0;
   }
 
-  void Init(uint32_t aAppId, bool aAnonymous, bool aInBrowser, bool aPinned)
+  void Init(uint32_t aAppId, bool aAnonymous, bool aInBrowser)
   {
     MOZ_ASSERT(mRec->mFrecency == 0);
     MOZ_ASSERT(mRec->mExpirationTime == nsICacheEntry::NO_EXPIRATION_TIME);
@@ -163,9 +163,6 @@ public:
     }
     if (aInBrowser) {
       mRec->mFlags |= kInBrowserMask;
-    }
-    if (aPinned) {
-      mRec->mFlags |= kPinnedMask;
     }
   }
 
@@ -186,8 +183,6 @@ public:
 
   bool IsFresh() const { return !!(mRec->mFlags & kFreshMask); }
   void MarkFresh() { mRec->mFlags |= kFreshMask; }
-
-  bool IsPinned() const { return !!(mRec->mFlags & kPinnedMask); }
 
   void     SetFrecency(uint32_t aFrecency) { mRec->mFrecency = aFrecency; }
   uint32_t GetFrecency() const { return mRec->mFrecency; }
@@ -214,10 +209,6 @@ public:
   static uint32_t GetFileSize(CacheIndexRecord *aRec)
   {
     return aRec->mFlags & kFileSizeMask;
-  }
-  static uint32_t IsPinned(CacheIndexRecord *aRec)
-  {
-    return aRec->mFlags & kPinnedMask;
   }
   bool     IsFileEmpty() const { return GetFileSize() == 0; }
 
@@ -310,10 +301,7 @@ private:
   // this entry during update or build process.
   static const uint32_t kFreshMask       = 0x04000000;
 
-  // Indicates a pinned entry.
-  static const uint32_t kPinnedMask      = 0x02000000;
-
-  static const uint32_t kReservedMask    = 0x01000000;
+  static const uint32_t kReservedMask    = 0x03000000;
 
   // FileSize in kilobytes
   static const uint32_t kFileSizeMask    = 0x00FFFFFF;
@@ -622,8 +610,7 @@ public:
   static nsresult InitEntry(const SHA1Sum::Hash *aHash,
                             uint32_t             aAppId,
                             bool                 aAnonymous,
-                            bool                 aInBrowser,
-                            bool                 aPinned);
+                            bool                 aInBrowser);
 
   // Remove entry from index. The entry should be present in index.
   static nsresult RemoveEntry(const SHA1Sum::Hash *aHash);
@@ -648,16 +635,12 @@ public:
 
   // Returns status of the entry in index for the given key. It can be called
   // on any thread.
-  // If _pinned is non-null, it's filled with pinning status of the entry.
-  static nsresult HasEntry(const nsACString &aKey, EntryStatus *_retval,
-                           bool *_pinned = nullptr);
-  static nsresult HasEntry(const SHA1Sum::Hash &hash, EntryStatus *_retval,
-                           bool *_pinned = nullptr);
+  static nsresult HasEntry(const nsACString &aKey, EntryStatus *_retval);
 
   // Returns a hash of the least important entry that should be evicted if the
   // cache size is over limit and also returns a total number of all entries in
-  // the index minus the number of forced valid entries and unpinned entries
-  // that we encounter when searching (see below)
+  // the index minus the number of forced valid entries that we encounter
+  // when searching (see below)
   static nsresult GetEntryForEviction(bool aIgnoreEmptyEntries, SHA1Sum::Hash *aHash, uint32_t *aCnt);
 
   // Checks if a cache entry is currently forced valid. Used to prevent an entry
@@ -986,7 +969,7 @@ private:
   char                     *mRWBuf;
   uint32_t                  mRWBufSize;
   uint32_t                  mRWBufPos;
-  RefPtr<CacheHash>         mRWHash;
+  RefPtr<CacheHash>       mRWHash;
 
   // Reading of journal succeeded if true.
   bool                      mJournalReadSuccessfully;
@@ -998,9 +981,9 @@ private:
   // Used to check the existence of the file during reading process.
   RefPtr<CacheFileHandle> mTmpHandle;
 
-  RefPtr<FileOpenHelper>    mIndexFileOpener;
-  RefPtr<FileOpenHelper>    mJournalFileOpener;
-  RefPtr<FileOpenHelper>    mTmpFileOpener;
+  RefPtr<FileOpenHelper>  mIndexFileOpener;
+  RefPtr<FileOpenHelper>  mJournalFileOpener;
+  RefPtr<FileOpenHelper>  mTmpFileOpener;
 
   // Directory enumerator used when building and updating index.
   nsCOMPtr<nsIDirectoryEnumerator> mDirEnumerator;

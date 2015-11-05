@@ -108,7 +108,7 @@ NfcConsumer::Start()
   // If we could not cleanup properly before and an old
   // instance of the daemon is still running, we kill it
   // here.
-  Unused << NS_WARN_IF(property_set("ctl.stop", "nfcd") < 0);
+  unused << NS_WARN_IF(property_set("ctl.stop", "nfcd") < 0);
 
   mHandler = new NfcMessageHandler();
 
@@ -592,8 +592,8 @@ NfcService::Shutdown()
   }
 
   // |CleanupRunnable| will take care of these pointers
-  Unused << mNfcConsumer.forget();
-  Unused << mThread.forget();
+  unused << mNfcConsumer.forget();
+  unused << mThread.forget();
 
   return NS_OK;
 }

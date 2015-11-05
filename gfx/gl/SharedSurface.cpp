@@ -369,7 +369,7 @@ SurfaceFactory::StartRecycling(layers::SharedSurfaceTextureClient* tc)
 
     bool didInsert = mRecycleTotalPool.insert(tc);
     MOZ_RELEASE_ASSERT(didInsert);
-    mozilla::Unused << didInsert;
+    mozilla::unused << didInsert;
 }
 
 void
@@ -381,7 +381,7 @@ SurfaceFactory::StopRecycling(layers::SharedSurfaceTextureClient* tc)
 
     bool didErase = mRecycleTotalPool.erase(tc);
     MOZ_RELEASE_ASSERT(didErase);
-    mozilla::Unused << didErase;
+    mozilla::unused << didErase;
 }
 
 /*static*/ void

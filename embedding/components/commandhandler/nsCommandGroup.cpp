@@ -27,12 +27,14 @@ public:
 protected:
   virtual ~nsGroupsEnumerator();
 
+  static PLDHashOperator HashEnum(const nsACString& aKey,
+                                  nsTArray<nsCString>* aData, void* aClosure);
   nsresult Initialize();
 
 protected:
   nsControllerCommandGroup::GroupsHashtable& mHashTable;
   int32_t mIndex;
-  const char** mGroupNames;  // array of pointers to char16_t* in the hash table
+  char** mGroupNames;  // array of pointers to char16_t* in the hash table
   bool mInitted;
 };
 
@@ -90,7 +92,7 @@ nsGroupsEnumerator::GetNext(nsISupports** aResult)
     return NS_ERROR_FAILURE;
   }
 
-  const char* thisGroupName = mGroupNames[mIndex];
+  char* thisGroupName = mGroupNames[mIndex];
 
   nsCOMPtr<nsISupportsCString> supportsString =
     do_CreateInstance(NS_SUPPORTS_CSTRING_CONTRACTID, &rv);
@@ -102,6 +104,18 @@ nsGroupsEnumerator::GetNext(nsISupports** aResult)
   return CallQueryInterface(supportsString, aResult);
 }
 
+/* static */
+/* return false to stop */
+PLDHashOperator
+nsGroupsEnumerator::HashEnum(const nsACString& aKey, nsTArray<nsCString>* aData,
+                             void* aClosure)
+{
+  nsGroupsEnumerator* groupsEnum = static_cast<nsGroupsEnumerator*>(aClosure);
+  groupsEnum->mGroupNames[groupsEnum->mIndex] = (char*)aKey.Data();
+  groupsEnum->mIndex++;
+  return PL_DHASH_NEXT;
+}
+
 nsresult
 nsGroupsEnumerator::Initialize()
 {
@@ -109,16 +123,13 @@ nsGroupsEnumerator::Initialize()
     return NS_OK;
   }
 
-  mGroupNames = new const char*[mHashTable.Count()];
+  mGroupNames = new char*[mHashTable.Count()];
   if (!mGroupNames) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   mIndex = 0;
-  for (auto iter = mHashTable.Iter(); !iter.Done(); iter.Next()) {
-    mGroupNames[mIndex] = iter.Key().Data();
-    mIndex++;
-  }
+  mHashTable.EnumerateRead(HashEnum, this);
 
   mIndex = -1;
   mInitted = true;

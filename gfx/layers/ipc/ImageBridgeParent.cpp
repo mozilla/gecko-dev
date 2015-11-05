@@ -286,7 +286,7 @@ ImageBridgeParent::DeallocPImageContainerParent(PImageContainerParent* actor)
 void
 ImageBridgeParent::SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage)
 {
-  mozilla::Unused << SendParentAsyncMessages(aMessage);
+  mozilla::unused << SendParentAsyncMessages(aMessage);
 }
 
 bool

@@ -20,7 +20,7 @@
 
 using namespace mozilla;
 
-LazyLogModule gWifiMonitorLog("WifiMonitor");
+PRLogModuleInfo *gWifiMonitorLog;
 
 NS_IMPL_ISUPPORTS(nsWifiMonitor,
                   nsIRunnable,
@@ -32,6 +32,8 @@ nsWifiMonitor::nsWifiMonitor()
 , mThreadComplete(false)
 , mReentrantMonitor("nsWifiMonitor.mReentrantMonitor")
 {
+  gWifiMonitorLog = PR_NewLogModule("WifiMonitor");
+
   nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
   if (obsSvc)
     obsSvc->AddObserver(this, "xpcom-shutdown", false);

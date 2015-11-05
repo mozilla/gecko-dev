@@ -79,7 +79,7 @@ MallocHook::Initialize()
   mMallocHook.malloc_hook = SampleNative;
   ReplaceMallocBridge* bridge = ReplaceMallocBridge::Get(3);
   if (bridge) {
-    mozilla::Unused << bridge->RegisterHook("memory-profiler", nullptr, nullptr);
+    mozilla::unused << bridge->RegisterHook("memory-profiler", nullptr, nullptr);
   }
   if (!mEnabledTLS.initialized()) {
     bool success = mEnabledTLS.init();

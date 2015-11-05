@@ -44,7 +44,8 @@ public:
                              UInt32 *aFlags);
 
 protected:
-  virtual void NotifyDataArrivedInternal() override;
+  virtual void NotifyDataArrivedInternal(uint32_t aLength,
+                                         int64_t aOffset) override;
 public:
 
   virtual bool IsMediaSeekable() override;

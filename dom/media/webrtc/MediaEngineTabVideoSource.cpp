@@ -31,17 +31,9 @@ using namespace mozilla::gfx;
 NS_IMPL_ISUPPORTS(MediaEngineTabVideoSource, nsIDOMEventListener, nsITimerCallback)
 
 MediaEngineTabVideoSource::MediaEngineTabVideoSource()
-  : mBufWidthMax(0)
-  , mBufHeightMax(0)
-  , mWindowId(0)
-  , mScrollWithPage(false)
-  , mViewportOffsetX(0)
-  , mViewportOffsetY(0)
-  , mViewportWidth(0)
-  , mViewportHeight(0)
-  , mTimePerFrame(0)
-  , mDataSize(0)
-  , mMonitor("MediaEngineTabVideoSource") {}
+: mData(NULL), mDataSize(0), mMonitor("MediaEngineTabVideoSource"), mTabSource(nullptr)
+{
+}
 
 nsresult
 MediaEngineTabVideoSource::StartRunnable::Run()
@@ -131,39 +123,23 @@ MediaEngineTabVideoSource::Allocate(const dom::MediaTrackConstraints& aConstrain
                                     const MediaEnginePrefs& aPrefs,
                                     const nsString& aDeviceId)
 {
-  // windowId is not a proper constraint, so just read it.
-  // It has no well-defined behavior in advanced, so ignore it there.
+  // windowId and scrollWithPage are not proper constraints, so just read them.
+  // They have no well-defined behavior in advanced, so ignore them there.
 
   mWindowId = aConstraints.mBrowserWindow.WasPassed() ?
               aConstraints.mBrowserWindow.Value() : -1;
-
-  return Restart(aConstraints, aPrefs, aDeviceId);
-}
-
-nsresult
-MediaEngineTabVideoSource::Restart(const dom::MediaTrackConstraints& aConstraints,
-                                   const mozilla::MediaEnginePrefs& aPrefs,
-                                   const nsString& aDeviceId)
-{
-  // scrollWithPage is not proper a constraint, so just read it.
-  // It has no well-defined behavior in advanced, so ignore it there.
-
   mScrollWithPage = aConstraints.mScrollWithPage.WasPassed() ?
-                    aConstraints.mScrollWithPage.Value() : false;
+                    aConstraints.mScrollWithPage.Value() : true;
 
   FlattenedConstraints c(aConstraints);
 
-  mBufWidthMax = c.mWidth.Get(DEFAULT_TABSHARE_VIDEO_MAX_WIDTH);
-  mBufHeightMax = c.mHeight.Get(DEFAULT_TABSHARE_VIDEO_MAX_HEIGHT);
-  double frameRate = c.mFrameRate.Get(DEFAULT_TABSHARE_VIDEO_FRAMERATE);
+  mBufWidthMax = c.mWidth.Clamp(c.mWidth.mIdeal.WasPassed() ?
+    c.mWidth.mIdeal.Value() : DEFAULT_TABSHARE_VIDEO_MAX_WIDTH);
+  mBufHeightMax = c.mHeight.Clamp(c.mHeight.mIdeal.WasPassed() ?
+    c.mHeight.mIdeal.Value() : DEFAULT_TABSHARE_VIDEO_MAX_HEIGHT);
+  double frameRate = c.mFrameRate.Clamp(c.mFrameRate.mIdeal.WasPassed() ?
+    c.mFrameRate.mIdeal.Value() : DEFAULT_TABSHARE_VIDEO_FRAMERATE);
   mTimePerFrame = std::max(10, int(1000.0 / (frameRate > 0? frameRate : 1)));
-
-  if (!mScrollWithPage) {
-    mViewportOffsetX = c.mViewportOffsetX.Get(0);
-    mViewportOffsetY = c.mViewportOffsetY.Get(0);
-    mViewportWidth = c.mViewportWidth.Get(INT32_MAX);
-    mViewportHeight = c.mViewportHeight.Get(INT32_MAX);
-  }
   return NS_OK;
 }
 
@@ -216,32 +192,30 @@ MediaEngineTabVideoSource::Draw() {
     return;
   }
 
-  if (mScrollWithPage || mViewportWidth == INT32_MAX) {
-    win->GetInnerWidth(&mViewportWidth);
-  }
-  if (mScrollWithPage || mViewportHeight == INT32_MAX) {
-    win->GetInnerHeight(&mViewportHeight);
-  }
-  if (!mViewportWidth || !mViewportHeight) {
+  int32_t innerWidth, innerHeight;
+  win->GetInnerWidth(&innerWidth);
+  win->GetInnerHeight(&innerHeight);
+
+  if (innerWidth == 0 || innerHeight == 0) {
     return;
   }
 
+  float pixelRatio;
+  win->GetDevicePixelRatio(&pixelRatio);
+  const int deviceInnerWidth = (int)(pixelRatio * innerWidth);
+  const int deviceInnerHeight = (int)(pixelRatio * innerHeight);
+
   IntSize size;
-  {
-    float pixelRatio;
-    win->GetDevicePixelRatio(&pixelRatio);
-    const int32_t deviceWidth = (int32_t)(pixelRatio * mViewportWidth);
-    const int32_t deviceHeight = (int32_t)(pixelRatio * mViewportHeight);
 
-    if ((deviceWidth <= mBufWidthMax) && (deviceHeight <= mBufHeightMax)) {
-      size = IntSize(deviceWidth, deviceHeight);
-    } else {
-      const float scaleWidth = (float)mBufWidthMax / (float)deviceWidth;
-      const float scaleHeight = (float)mBufHeightMax / (float)deviceHeight;
-      const float scale = scaleWidth < scaleHeight ? scaleWidth : scaleHeight;
+  if ((deviceInnerWidth <= mBufWidthMax) && (deviceInnerHeight <= mBufHeightMax)) {
+    size = IntSize(deviceInnerWidth, deviceInnerHeight);
+  } else {
 
-      size = IntSize((int)(scale * deviceWidth), (int)(scale * deviceHeight));
-    }
+    const float scaleWidth = (float)mBufWidthMax / (float)deviceInnerWidth;
+    const float scaleHeight = (float)mBufHeightMax / (float)deviceInnerHeight;
+    const float scale = scaleWidth < scaleHeight ? scaleWidth : scaleHeight;
+
+    size = IntSize((int)(scale * deviceInnerWidth), (int)(scale * deviceInnerHeight));
   }
 
   gfxImageFormat format = gfxImageFormat::RGB24;
@@ -251,31 +225,28 @@ MediaEngineTabVideoSource::Draw() {
     mDataSize = stride * size.height;
     mData = static_cast<unsigned char*>(malloc(mDataSize));
   }
+
   if (!mData) {
     return;
   }
 
-  nsCOMPtr<nsIPresShell> presShell;
-  {
-    RefPtr<nsPresContext> presContext;
-    nsIDocShell* docshell = win->GetDocShell();
-    if (docshell) {
-      docshell->GetPresContext(getter_AddRefs(presContext));
-    }
-    if (!presContext) {
-      return;
-    }
-    presShell = presContext->PresShell();
+  RefPtr<nsPresContext> presContext;
+  nsIDocShell* docshell = win->GetDocShell();
+  if (docshell) {
+    docshell->GetPresContext(getter_AddRefs(presContext));
+  }
+  if (!presContext) {
+    return;
   }
 
   nscolor bgColor = NS_RGB(255, 255, 255);
-  uint32_t renderDocFlags = mScrollWithPage? 0 :
-      (nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING |
-       nsIPresShell::RENDER_DOCUMENT_RELATIVE);
-  nsRect r(nsPresContext::CSSPixelsToAppUnits((float)mViewportOffsetX),
-           nsPresContext::CSSPixelsToAppUnits((float)mViewportOffsetY),
-           nsPresContext::CSSPixelsToAppUnits((float)mViewportWidth),
-           nsPresContext::CSSPixelsToAppUnits((float)mViewportHeight));
+  nsCOMPtr<nsIPresShell> presShell = presContext->PresShell();
+  uint32_t renderDocFlags = 0;
+  if (!mScrollWithPage) {
+    renderDocFlags |= nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
+  }
+  nsRect r(0, 0, nsPresContext::CSSPixelsToAppUnits((float)innerWidth),
+           nsPresContext::CSSPixelsToAppUnits((float)innerHeight));
 
   RefPtr<layers::ImageContainer> container = layers::LayerManager::CreateImageContainer();
   RefPtr<DrawTarget> dt =
@@ -288,8 +259,8 @@ MediaEngineTabVideoSource::Draw() {
     return;
   }
   RefPtr<gfxContext> context = new gfxContext(dt);
-  context->SetMatrix(context->CurrentMatrix().Scale((((float) size.width)/mViewportWidth),
-                                                    (((float) size.height)/mViewportHeight)));
+  context->SetMatrix(context->CurrentMatrix().Scale((((float) size.width)/innerWidth),
+                                                    (((float) size.height)/innerHeight)));
 
   NS_ENSURE_SUCCESS_VOID(presShell->RenderDocument(r, renderDocFlags, bgColor, context));
 
@@ -317,6 +288,15 @@ MediaEngineTabVideoSource::Stop(mozilla::SourceMediaStream*, mozilla::TrackID)
     return NS_OK;
 
   NS_DispatchToMainThread(new StopRunnable(this));
+  return NS_OK;
+}
+
+nsresult
+MediaEngineTabVideoSource::Restart(const dom::MediaTrackConstraints& aConstraints,
+                                   const mozilla::MediaEnginePrefs& aPrefs,
+                                   const nsString& aDeviceId)
+{
+  // TODO
   return NS_OK;
 }
 

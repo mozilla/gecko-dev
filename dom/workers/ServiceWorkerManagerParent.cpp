@@ -297,7 +297,7 @@ ServiceWorkerManagerParent::RecvShutdown()
   mService->UnregisterActor(this);
   mService = nullptr;
 
-  Unused << Send__delete__(this);
+  unused << Send__delete__(this);
   return true;
 }
 

@@ -558,7 +558,10 @@ function checkTheme(data) {
 }
 
 function checkActiveGMPlugin(data) {
-  Assert.equal(typeof data.version, "string");
+  // GMP plugin version defaults to null until GMPDownloader runs to update it.
+  if (data.version) {
+    Assert.equal(typeof data.version, "string");
+  }
   Assert.equal(typeof data.userDisabled, "boolean");
   Assert.equal(typeof data.applyBackgroundUpdates, "number");
 }
@@ -1104,8 +1107,7 @@ add_task(function* test_defaultSearchEngine() {
   Assert.equal(data.settings.defaultSearchEngine, "telemetrySearchIdentifier");
   let expectedSearchEngineData = {
     name: "telemetrySearchIdentifier",
-    loadPath: "jar:[other]/searchTest.jar!testsearchplugin/telemetrySearchIdentifier.xml",
-    submissionURL: "http://ar.wikipedia.org/wiki/%D8%AE%D8%A7%D8%B5:%D8%A8%D8%AD%D8%AB?search=&sourceid=Mozilla-search"
+    loadPath: "jar:[other]/searchTest.jar!testsearchplugin/telemetrySearchIdentifier.xml"
   };
   Assert.deepEqual(data.settings.defaultSearchEngineData, expectedSearchEngineData);
 
@@ -1145,7 +1147,7 @@ add_task(function* test_defaultSearchEngine() {
 
   const EXPECTED_SEARCH_ENGINE_DATA = {
     name: "telemetry_default",
-    loadPath: null
+    loadPath: "[profile]/searchplugins/telemetrydefault.xml"
   };
   Assert.deepEqual(data.settings.defaultSearchEngineData, EXPECTED_SEARCH_ENGINE_DATA);
   TelemetryEnvironment.unregisterChangeListener("testWatch_SearchDefault");

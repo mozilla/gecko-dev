@@ -834,9 +834,9 @@ public:
   bool ArePointerEventsConsumable(TouchBlockState* aBlock, uint32_t aTouchPoints);
 
   /**
-   * Clear internal state relating to touch input handling.
+   * Clear internal state relating to input handling.
    */
-  void ResetTouchInputState();
+  void ResetInputState();
 
 private:
   void CancelAnimationAndGestureState();

@@ -319,10 +319,8 @@ int main()
 
     printf("\nTesting casts and equality tests.\n");
 
-    // This comparison is always false, as it should be. The extra parens
-    // suppress a -Wunreachable-code warning about printf being unreachable.
-    if (((void*)(TestObject*)0x1000) ==
-        ((void*)(TestObjectBaseB*)(TestObject*)0x1000))
+    if ((void*)(TestObject*)0x1000 ==
+        (void*)(TestObjectBaseB*)(TestObject*)0x1000)
         printf("\n\nAll these tests are meaningless!\n\n\n");
 
     {
@@ -396,6 +394,7 @@ int main()
         RefPtr<TestRefObject> pobj2( pobj.forget() );
         printf("Should destroy one |TestRefObject|:\n");
     }
+
 
     printf("\nTesting construction.\n");
 

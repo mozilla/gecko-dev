@@ -17,7 +17,6 @@
 #include "GLScreenBuffer.h"
 
 #include "gfxCrashReporterUtils.h"
-#include "gfxEnv.h"
 #include "gfxUtils.h"
 #include "GLContextProvider.h"
 #include "GLTextureImage.h"
@@ -638,16 +637,16 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 
 
 #ifdef MOZ_GL_DEBUG
-    if (gfxEnv::GlDebug())
+    if (PR_GetEnv("MOZ_GL_DEBUG"))
         sDebugMode |= DebugEnabled;
 
     // enables extra verbose output, informing of the start and finish of every GL call.
     // useful e.g. to record information to investigate graphics system crashes/lockups
-    if (gfxEnv::GlDebugVerbose())
+    if (PR_GetEnv("MOZ_GL_DEBUG_VERBOSE"))
         sDebugMode |= DebugTrace;
 
     // aborts on GL error. Can be useful to debug quicker code that is known not to generate any GL error in principle.
-    if (gfxEnv::GlDebugAbortOnError())
+    if (PR_GetEnv("MOZ_GL_DEBUG_ABORT_ON_ERROR"))
         sDebugMode |= DebugAbortOnError;
 #endif
 
@@ -2583,7 +2582,8 @@ GLContext::FlushIfHeavyGLCallsSinceLastFlush()
 /*static*/ bool
 GLContext::ShouldDumpExts()
 {
-    return gfxEnv::GlDumpExtensions();
+    static bool ret = PR_GetEnv("MOZ_GL_DUMP_EXTS");
+    return ret;
 }
 
 bool
@@ -2613,7 +2613,8 @@ DoesStringMatch(const char* aString, const char *aWantedString)
 /*static*/ bool
 GLContext::ShouldSpew()
 {
-    return gfxEnv::GlSpew();
+    static bool ret = PR_GetEnv("MOZ_GL_SPEW");
+    return ret;
 }
 
 void

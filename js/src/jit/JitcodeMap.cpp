@@ -1272,7 +1272,7 @@ JitcodeRegionEntry::ExpectedRunLength(const CodeGeneratorShared::NativeToBytecod
 
 struct JitcodeMapBufferWriteSpewer
 {
-#ifdef JS_JITSPEW
+#ifdef DEBUG
     CompactBufferWriter* writer;
     uint32_t startPos;
 
@@ -1305,10 +1305,10 @@ struct JitcodeMapBufferWriteSpewer
         // Move to the end of the current buffer.
         startPos = writer->length();
     }
-#else // !JS_JITSPEW
+#else // !DEBUG
     explicit JitcodeMapBufferWriteSpewer(CompactBufferWriter& w) {}
     void spewAndAdvance(const char* name) {}
-#endif // JS_JITSPEW
+#endif // DEBUG
 };
 
 // Write a run, starting at the given NativeToBytecode entry, into the given buffer writer.
@@ -1390,10 +1390,8 @@ JitcodeRegionEntry::WriteRun(CompactBufferWriter& writer,
             uint32_t curBc = curBytecodeOffset;
             while (curBc < nextBytecodeOffset) {
                 jsbytecode* pc = entry[i].tree->script()->offsetToPC(curBc);
-#ifdef JS_JITSPEW
-                JSOp op = JSOp(*pc);
+                mozilla::DebugOnly<JSOp> op = JSOp(*pc);
                 JitSpewCont(JitSpew_Profiling, "%s ", js_CodeName[op]);
-#endif
                 curBc += GetBytecodeLength(pc);
             }
             JitSpewFin(JitSpew_Profiling);

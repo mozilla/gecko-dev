@@ -21,16 +21,10 @@ using namespace dom;
 using namespace gfx;
 
 struct ImageCacheKey {
-  ImageCacheKey(Element* aImage,
-                HTMLCanvasElement* aCanvas,
-                bool aIsAccelerated)
-    : mImage(aImage)
-    , mCanvas(aCanvas)
-    , mIsAccelerated(aIsAccelerated)
-  {}
+  ImageCacheKey(Element* aImage, HTMLCanvasElement* aCanvas)
+    : mImage(aImage), mCanvas(aCanvas) {}
   Element* mImage;
   HTMLCanvasElement* mCanvas;
-  bool mIsAccelerated;
 };
 
 struct ImageCacheEntryData {
@@ -38,7 +32,6 @@ struct ImageCacheEntryData {
     : mImage(aOther.mImage)
     , mILC(aOther.mILC)
     , mCanvas(aOther.mCanvas)
-    , mIsAccelerated(aOther.mIsAccelerated)
     , mRequest(aOther.mRequest)
     , mSourceSurface(aOther.mSourceSurface)
     , mSize(aOther.mSize)
@@ -47,7 +40,6 @@ struct ImageCacheEntryData {
     : mImage(aKey.mImage)
     , mILC(nullptr)
     , mCanvas(aKey.mCanvas)
-    , mIsAccelerated(aKey.mIsAccelerated)
   {}
 
   nsExpirationState* GetExpirationState() { return &mState; }
@@ -58,7 +50,6 @@ struct ImageCacheEntryData {
   RefPtr<Element> mImage;
   nsIImageLoadingContent* mILC;
   RefPtr<HTMLCanvasElement> mCanvas;
-  bool mIsAccelerated;
   // Value
   nsCOMPtr<imgIRequest> mRequest;
   RefPtr<SourceSurface> mSourceSurface;
@@ -79,61 +70,46 @@ public:
 
   bool KeyEquals(KeyTypePointer key) const
   {
-    return mData->mImage == key->mImage &&
-           mData->mCanvas == key->mCanvas &&
-           mData->mIsAccelerated == key->mIsAccelerated;
+    return mData->mImage == key->mImage && mData->mCanvas == key->mCanvas;
   }
 
   static KeyTypePointer KeyToPointer(KeyType& key) { return &key; }
   static PLDHashNumber HashKey(KeyTypePointer key)
   {
-    return HashGeneric(key->mImage, key->mCanvas, key->mIsAccelerated);
+    return HashGeneric(key->mImage, key->mCanvas);
   }
   enum { ALLOW_MEMMOVE = true };
 
   nsAutoPtr<ImageCacheEntryData> mData;
 };
 
-struct SimpleImageCacheKey {
-  SimpleImageCacheKey(const imgIRequest* aImage,
-                      bool aIsAccelerated)
-    : mImage(aImage)
-    , mIsAccelerated(aIsAccelerated)
-  {}
-  const imgIRequest* mImage;
-  bool mIsAccelerated;
-};
-
 class SimpleImageCacheEntry : public PLDHashEntryHdr {
 public:
-  typedef SimpleImageCacheKey KeyType;
-  typedef const SimpleImageCacheKey* KeyTypePointer;
+  typedef imgIRequest& KeyType;
+  typedef const imgIRequest* KeyTypePointer;
 
   explicit SimpleImageCacheEntry(KeyTypePointer aKey)
-    : mRequest(const_cast<imgIRequest*>(aKey->mImage))
-    , mIsAccelerated(aKey->mIsAccelerated)
+    : mRequest(const_cast<imgIRequest*>(aKey))
   {}
   SimpleImageCacheEntry(const SimpleImageCacheEntry &toCopy)
     : mRequest(toCopy.mRequest)
-    , mIsAccelerated(toCopy.mIsAccelerated)
     , mSourceSurface(toCopy.mSourceSurface)
   {}
   ~SimpleImageCacheEntry() {}
 
   bool KeyEquals(KeyTypePointer key) const
   {
-    return key->mImage == mRequest && key->mIsAccelerated == mIsAccelerated;
+    return key == mRequest;
   }
 
-  static KeyTypePointer KeyToPointer(KeyType& key) { return &key; }
+  static KeyTypePointer KeyToPointer(KeyType key) { return &key; }
   static PLDHashNumber HashKey(KeyTypePointer key)
   {
-    return HashGeneric(key->mImage, key->mIsAccelerated);
+    return NS_PTR_TO_UINT32(key) >> 2;
   }
   enum { ALLOW_MEMMOVE = true };
 
   nsCOMPtr<imgIRequest> mRequest;
-  bool mIsAccelerated;
   RefPtr<SourceSurface> mSourceSurface;
 };
 
@@ -154,8 +130,8 @@ public:
     mTotal -= aObject->SizeInBytes();
     RemoveObject(aObject);
     // Deleting the entry will delete aObject since the entry owns aObject
-    mSimpleCache.RemoveEntry(SimpleImageCacheKey(aObject->mRequest, aObject->mIsAccelerated));
-    mCache.RemoveEntry(ImageCacheKey(aObject->mImage, aObject->mCanvas, aObject->mIsAccelerated));
+    mSimpleCache.RemoveEntry(*aObject->mRequest);
+    mCache.RemoveEntry(ImageCacheKey(aObject->mImage, aObject->mCanvas));
   }
 
   nsTHashtable<ImageCacheEntry> mCache;
@@ -261,22 +237,20 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
                                   HTMLCanvasElement* aCanvas,
                                   imgIRequest* aRequest,
                                   SourceSurface* aSource,
-                                  const IntSize& aSize,
-                                  bool aIsAccelerated)
+                                  const IntSize& aSize)
 {
   if (!gImageCache) {
     gImageCache = new ImageCache();
     nsContentUtils::RegisterShutdownObserver(new CanvasImageCacheShutdownObserver());
   }
 
-  ImageCacheEntry* entry =
-    gImageCache->mCache.PutEntry(ImageCacheKey(aImage, aCanvas, aIsAccelerated));
+  ImageCacheEntry* entry = gImageCache->mCache.PutEntry(ImageCacheKey(aImage, aCanvas));
   if (entry) {
     if (entry->mData->mSourceSurface) {
       // We are overwriting an existing entry.
       gImageCache->mTotal -= entry->mData->SizeInBytes();
       gImageCache->RemoveObject(entry->mData);
-      gImageCache->mSimpleCache.RemoveEntry(SimpleImageCacheKey(entry->mData->mRequest, entry->mData->mIsAccelerated));
+      gImageCache->mSimpleCache.RemoveEntry(*entry->mData->mRequest);
     }
     gImageCache->AddObject(entry->mData);
 
@@ -293,7 +267,7 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
 
     if (entry->mData->mRequest) {
       SimpleImageCacheEntry* simpleentry =
-        gImageCache->mSimpleCache.PutEntry(SimpleImageCacheKey(entry->mData->mRequest, aIsAccelerated));
+        gImageCache->mSimpleCache.PutEntry(*entry->mData->mRequest);
       simpleentry->mSourceSurface = aSource;
     }
   }
@@ -309,14 +283,12 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
 SourceSurface*
 CanvasImageCache::Lookup(Element* aImage,
                          HTMLCanvasElement* aCanvas,
-                         gfx::IntSize* aSize,
-                         bool aIsAccelerated)
+                         gfx::IntSize* aSize)
 {
   if (!gImageCache)
     return nullptr;
 
-  ImageCacheEntry* entry =
-    gImageCache->mCache.GetEntry(ImageCacheKey(aImage, aCanvas, aIsAccelerated));
+  ImageCacheEntry* entry = gImageCache->mCache.GetEntry(ImageCacheKey(aImage, aCanvas));
   if (!entry || !entry->mData->mILC)
     return nullptr;
 
@@ -332,8 +304,7 @@ CanvasImageCache::Lookup(Element* aImage,
 }
 
 SourceSurface*
-CanvasImageCache::SimpleLookup(Element* aImage,
-                               bool aIsAccelerated)
+CanvasImageCache::SimpleLookup(Element* aImage)
 {
   if (!gImageCache)
     return nullptr;
@@ -348,7 +319,7 @@ CanvasImageCache::SimpleLookup(Element* aImage,
   if (!request)
     return nullptr;
 
-  SimpleImageCacheEntry* entry = gImageCache->mSimpleCache.GetEntry(SimpleImageCacheKey(request, aIsAccelerated));
+  SimpleImageCacheEntry* entry = gImageCache->mSimpleCache.GetEntry(*request);
   if (!entry)
     return nullptr;
 

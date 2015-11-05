@@ -47,12 +47,11 @@
 #include "NetStatistics.h"
 #endif
 
-using namespace mozilla;
-using namespace mozilla::net;
-
-extern LazyLogModule gFTPLog;
+extern PRLogModuleInfo* gFTPLog;
 #define LOG(args)         MOZ_LOG(gFTPLog, mozilla::LogLevel::Debug, args)
 #define LOG_INFO(args)  MOZ_LOG(gFTPLog, mozilla::LogLevel::Info, args)
+
+using namespace mozilla::net;
 
 // remove FTP parameters (starting with ";") from the path
 static void

@@ -26,7 +26,7 @@ class nsIOutputStream;
 class nsIProgressEventSink;
 class nsIURI;
 
-extern mozilla::LazyLogModule gWyciwygLog;
+extern PRLogModuleInfo * gWyciwygLog;
 
 //-----------------------------------------------------------------------------
 

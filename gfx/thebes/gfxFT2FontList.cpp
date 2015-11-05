@@ -49,11 +49,18 @@
 
 using namespace mozilla;
 
-static LazyLogModule sFontInfoLog("fontInfoLog");
+static PRLogModuleInfo *
+GetFontInfoLog()
+{
+    static PRLogModuleInfo *sLog;
+    if (!sLog)
+        sLog = PR_NewLogModule("fontInfoLog");
+    return sLog;
+}
 
 #undef LOG
-#define LOG(args) MOZ_LOG(sFontInfoLog, mozilla::LogLevel::Debug, args)
-#define LOG_ENABLED() MOZ_LOG_TEST(sFontInfoLog, mozilla::LogLevel::Debug)
+#define LOG(args) MOZ_LOG(GetFontInfoLog(), mozilla::LogLevel::Debug, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(GetFontInfoLog(), mozilla::LogLevel::Debug)
 
 static cairo_user_data_key_t sFTUserFontDataKey;
 

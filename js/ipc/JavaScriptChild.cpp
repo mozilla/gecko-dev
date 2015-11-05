@@ -21,7 +21,7 @@ using namespace mozilla::jsipc;
 using mozilla::AutoSafeJSContext;
 
 static void
-UpdateChildWeakPointersBeforeSweepingZoneGroup(JSRuntime* rt, void* data)
+UpdateChildWeakPointersAfterGC(JSRuntime* rt, void* data)
 {
     static_cast<JavaScriptChild*>(data)->updateWeakPointers();
 }
@@ -34,7 +34,7 @@ JavaScriptChild::JavaScriptChild(JSRuntime* rt)
 
 JavaScriptChild::~JavaScriptChild()
 {
-    JS_RemoveWeakPointerZoneGroupCallback(rt_, UpdateChildWeakPointersBeforeSweepingZoneGroup);
+    JS_RemoveWeakPointerCallback(rt_, UpdateChildWeakPointersAfterGC);
 }
 
 bool
@@ -45,7 +45,7 @@ JavaScriptChild::init()
     if (!WrapperAnswer::init())
         return false;
 
-    JS_AddWeakPointerZoneGroupCallback(rt_, UpdateChildWeakPointersBeforeSweepingZoneGroup, this);
+    JS_AddWeakPointerCallback(rt_, UpdateChildWeakPointersAfterGC, this);
     return true;
 }
 

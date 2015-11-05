@@ -724,7 +724,7 @@ PluginScriptableObjectParent::Unprotect()
 
   if (mType == LocalObject) {
     if (--mProtectCount == 0) {
-      Unused << PluginScriptableObjectParent::Send__delete__(this);
+      unused << PluginScriptableObjectParent::Send__delete__(this);
     }
   }
 }
@@ -744,7 +744,7 @@ PluginScriptableObjectParent::DropNPObject()
   instance->UnregisterNPObject(mObject);
   mObject = nullptr;
 
-  Unused << SendUnprotect();
+  unused << SendUnprotect();
 }
 
 void

@@ -74,10 +74,6 @@ var gContentPane = {
     setEventListener("notificationsDoNotDisturb", "command",
       gContentPane.toggleDoNotDisturbNotifications);
 
-    let notificationInfoURL = Services.urlFormatter.formatURLPref("browser.push.warning.infoURL");
-    document.getElementById("notificationsPolicyLearnMore").setAttribute("href",
-                                                                         notificationInfoURL);
-
     let drmInfoURL =
       Services.urlFormatter.formatURLPref("app.support.baseURL") + "drm-content";
     document.getElementById("playDRMContentLink").setAttribute("href", drmInfoURL);
@@ -127,7 +123,7 @@ var gContentPane = {
     let bundlePreferences = document.getElementById("bundlePreferences");
     let params = { permissionType: "desktop-notification" };
     params.windowTitle = bundlePreferences.getString("notificationspermissionstitle");
-    params.introText = bundlePreferences.getString("notificationspermissionstext4");
+    params.introText = bundlePreferences.getString("notificationspermissionstext3");
 
     gSubDialog.open("chrome://browser/content/preferences/permissions.xul",
                     "resizable=yes", params);

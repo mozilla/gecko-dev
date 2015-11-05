@@ -5,9 +5,9 @@
 #include <windows.h>
 #include <sddl.h>  // For ConvertSidToStringSidW.
 #include <string>
-#include <vector>
 
 #include "base/memory/scoped_ptr.h"
+#include "base/string16.h"
 #include "rlz/lib/assert.h"
 
 namespace rlz_lib {
@@ -67,7 +67,7 @@ bool GetComputerSid(const wchar_t* account_name, SID* sid, DWORD sid_size) {
   return success != FALSE;
 }
 
-std::vector<uint8_t> ConvertSidToBytes(SID* sid) {
+std::wstring ConvertSidToString(SID* sid) {
   std::wstring sid_string;
 #if _WIN32_WINNT >= 0x500
   wchar_t* sid_buffer = NULL;
@@ -98,15 +98,12 @@ std::vector<uint8_t> ConvertSidToBytes(SID* sid) {
     base::StringAppendF(&sid_string, L"-%lu", *::GetSidSubAuthority(sid, i));
 #endif
 
-  // Get the contents of the string as a bunch of bytes.
-  return std::vector<uint8_t>(
-           reinterpret_cast<uint8_t*>(&sid_string[0]),
-           reinterpret_cast<uint8_t*>(&sid_string[sid_string.size()]));
+  return sid_string;
 }
 
 }  // namespace
 
-bool GetRawMachineId(std::vector<uint8_t>* sid_bytes, int* volume_id) {
+bool GetRawMachineId(string16* sid_string, int* volume_id) {
   // Calculate the Windows SID.
 
   wchar_t computer_name[MAX_COMPUTERNAME_LENGTH + 1] = {0};
@@ -118,7 +115,7 @@ bool GetRawMachineId(std::vector<uint8_t>* sid_bytes, int* volume_id) {
   char sid_buffer[SECURITY_MAX_SID_SIZE];
   SID* sid = reinterpret_cast<SID*>(sid_buffer);
   if (GetComputerSid(computer_name, sid, SECURITY_MAX_SID_SIZE)) {
-    *sid_bytes = ConvertSidToBytes(sid);
+    *sid_string = ConvertSidToString(sid);
   }
 
   // Get the system drive volume serial number.

@@ -3244,6 +3244,19 @@ XULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, bool* aBlock)
         }
     }
 
+    // Allow security manager and content policies to veto the load. Note that
+    // at this point we already lost context information of the script.
+    rv = nsScriptLoader::ShouldLoadScript(
+                            this,
+                            static_cast<nsIDocument*>(this),
+                            aScriptProto->mSrcURI,
+                            NS_LITERAL_STRING("application/x-javascript"),
+                            false);
+    if (NS_FAILED(rv)) {
+      *aBlock = false;
+      return rv;
+    }
+
     // Release script objects from FastLoad since we decided against using them
     aScriptProto->UnlinkJSObjects();
 
@@ -3253,7 +3266,7 @@ XULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, bool* aBlock)
                  "still loading a script when starting another load?");
     mCurrentScriptProto = aScriptProto;
 
-    if (isChromeDoc && aScriptProto->mSrcLoading) {
+    if (aScriptProto->mSrcLoading) {
         // Another XULDocument load has started, which is still in progress.
         // Remember to ResumeWalk this document when the load completes.
         mNextSrcLoadWaiter = aScriptProto->mSrcLoadWaiters;
@@ -3269,8 +3282,9 @@ XULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, bool* aBlock)
                                 aScriptProto->mSrcURI,
                                 this, // aObserver
                                 this, // aRequestingContext
-                                nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS,
-                                nsIContentPolicy::TYPE_INTERNAL_SCRIPT,
+                                nsILoadInfo::SEC_NORMAL,
+                                nsIContentPolicy::TYPE_OTHER,
+                                nullptr, // aContext
                                 group);
 
         if (NS_FAILED(rv)) {

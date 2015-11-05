@@ -20,6 +20,11 @@ from MozZipFile import ZipFile
 from cStringIO import StringIO
 from collections import defaultdict
 
+from mozbuild.util import (
+    ensureParentDir,
+    lock_file,
+)
+
 from mozbuild.preprocessor import Preprocessor
 from mozbuild.action.buildlist import addEntriesToListFile
 from mozpack.files import FileFinder
@@ -315,9 +320,28 @@ class JarMaker(object):
         '''updateManifest replaces the % in the chrome registration entries
         with the given chrome base path, and updates the given manifest file.
         '''
-        myregister = dict.fromkeys(map(lambda s: s.replace('%',
-            chromebasepath), register))
-        addEntriesToListFile(manifestPath, myregister.iterkeys())
+
+        ensureParentDir(manifestPath)
+        lock = lock_file(manifestPath + '.lck')
+        try:
+            myregister = dict.fromkeys(map(lambda s: s.replace('%',
+                    chromebasepath), register))
+            manifestExists = os.path.isfile(manifestPath)
+            mode = manifestExists and 'r+b' or 'wb'
+            mf = open(manifestPath, mode)
+            if manifestExists:
+                # import previous content into hash, ignoring empty ones and comments
+                imf = re.compile('(#.*)?$')
+                for l in re.split('[\r\n]+', mf.read()):
+                    if imf.match(l):
+                        continue
+                    myregister[l] = None
+                mf.seek(0)
+            for k in sorted(myregister.iterkeys()):
+                mf.write(k + os.linesep)
+            mf.close()
+        finally:
+            lock = None
 
     def makeJar(self, infile, jardir):
         '''makeJar is the main entry point to JarMaker.

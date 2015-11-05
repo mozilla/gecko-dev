@@ -78,7 +78,11 @@ var outer = "OUTER V IGNORE";
 var save;
 for (let outer = (save = function() { return outer; }); ; )
   break;
-assertEq(save(), save);
+assertEq(save(), "OUTER V IGNORE",
+         "this is actually a bug: fix for(;;) loops to evaluate init RHSes " +
+         "in the block scope containing all the LHS bindings!");
+
+
 
 var funcs = [];
 function t(i, name, expect)

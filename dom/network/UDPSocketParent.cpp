@@ -25,7 +25,7 @@
 //
 // set NSPR_LOG_MODULES=UDPSocket:5
 //
-extern mozilla::LazyLogModule gUDPSocketLog;
+extern PRLogModuleInfo *gUDPSocketLog;
 #define UDPSOCKET_LOG(args)     MOZ_LOG(gUDPSocketLog, mozilla::LogLevel::Debug, args)
 #define UDPSOCKET_LOG_ENABLED() MOZ_LOG_TEST(gUDPSocketLog, mozilla::LogLevel::Debug)
 
@@ -99,7 +99,7 @@ UDPSocketParent::Init(const IPC::Principal& aPrincipal,
   MOZ_ASSERT_IF(mBackgroundManager, !aPrincipal);
   // will be used once we move all UDPSocket to PBackground, or
   // if we add in Principal checking for mtransport
-  Unused << mBackgroundManager;
+  unused << mBackgroundManager;
   
   mPrincipal = aPrincipal;
   if (net::UsingNeckoIPCSecurity() &&
@@ -185,7 +185,7 @@ UDPSocketParent::RecvBind(const UDPAddressInfo& aAddressInfo,
   }
 
   UDPSOCKET_LOG(("%s: SendCallbackOpened: %s:%u", __FUNCTION__, addr.get(), port));
-  mozilla::Unused << SendCallbackOpened(UDPAddressInfo(addr, port));
+  mozilla::unused << SendCallbackOpened(UDPAddressInfo(addr, port));
 
   return true;
 }
@@ -386,7 +386,7 @@ UDPSocketParent::RecvClose()
   nsresult rv = mSocket->Close();
   mSocket = nullptr;
 
-  mozilla::Unused << NS_WARN_IF(NS_FAILED(rv));
+  mozilla::unused << NS_WARN_IF(NS_FAILED(rv));
 
   return true;
 }
@@ -394,7 +394,7 @@ UDPSocketParent::RecvClose()
 bool
 UDPSocketParent::RecvRequestDelete()
 {
-  mozilla::Unused << Send__delete__(this);
+  mozilla::unused << Send__delete__(this);
   return true;
 }
 
@@ -459,7 +459,7 @@ UDPSocketParent::OnPacketReceived(nsIUDPSocket* aSocket, nsIUDPMessage* aMessage
   infallibleArray.SwapElements(fallibleArray);
 
   // compose callback
-  mozilla::Unused << SendCallbackReceivedData(UDPAddressInfo(ip, port), infallibleArray);
+  mozilla::unused << SendCallbackReceivedData(UDPAddressInfo(ip, port), infallibleArray);
 
   return NS_OK;
 }
@@ -469,7 +469,7 @@ UDPSocketParent::OnStopListening(nsIUDPSocket* aSocket, nsresult aStatus)
 {
   // underlying socket is dead, send state update to child process
   if (mIPCOpen) {
-    mozilla::Unused << SendCallbackClosed();
+    mozilla::unused << SendCallbackClosed();
   }
   return NS_OK;
 }
@@ -481,7 +481,7 @@ UDPSocketParent::FireInternalError(uint32_t aLineNo)
     return;
   }
 
-  mozilla::Unused << SendCallbackError(NS_LITERAL_CSTRING("Internal error"),
+  mozilla::unused << SendCallbackError(NS_LITERAL_CSTRING("Internal error"),
                                        NS_LITERAL_CSTRING(__FILE__), aLineNo);
 }
 

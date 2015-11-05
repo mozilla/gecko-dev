@@ -90,21 +90,5 @@ protected:
   nsresult Init(int aChannels, int aSamplingRate) override;
 };
 
-class OmxEVRCAudioTrackEncoder final : public OmxAudioTrackEncoder
-{
-public:
-  OmxEVRCAudioTrackEncoder()
-    : OmxAudioTrackEncoder()
-  {}
-
-  enum {
-    EVRC_SAMPLERATE = 8000,
-  };
-  already_AddRefed<TrackMetadataBase> GetMetadata() override;
-
-protected:
-  nsresult Init(int aChannels, int aSamplingRate) override;
-};
-
 }
 #endif

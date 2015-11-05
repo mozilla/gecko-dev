@@ -1002,8 +1002,7 @@ function serverClosed() {
   Assert.equal(listener.devices.length, 1);
 
   let serverListener = provider.QueryInterface(Ci.nsITCPPresentationServerListener);
-  let randomPort = 9527;
-  serverListener.onPortChange(randomPort);
+  serverListener.onClose(Cr.NS_ERROR_UNEXPECTED);
 
   Assert.equal(mockObj.serviceRegistered, 2);
   Assert.equal(mockObj.serviceUnregistered, 1);

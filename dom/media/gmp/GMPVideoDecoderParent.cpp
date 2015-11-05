@@ -264,7 +264,7 @@ GMPVideoDecoderParent::Shutdown()
 
   mIsOpen = false;
   if (!mActorDestroyed) {
-    Unused << SendDecodingComplete();
+    unused << SendDecodingComplete();
   }
 
   return NS_OK;

@@ -177,7 +177,9 @@ nsHTMLFramesetFrame::nsHTMLFramesetFrame(nsStyleContext* aContext)
   : nsContainerFrame(aContext)
 {
   mNumRows             = 0;
+  mRowSizes            = nullptr;
   mNumCols             = 0;
+  mColSizes            = nullptr;
   mEdgeVisibility      = 0;
   mParentFrameborder   = eFrameborder_Yes; // default
   mParentBorderWidth   = -1; // default not set
@@ -190,10 +192,20 @@ nsHTMLFramesetFrame::nsHTMLFramesetFrame(nsStyleContext* aContext)
   mChildCount          = 0;
   mTopLevelFrameset    = nullptr;
   mEdgeColors.Set(NO_COLOR);
+  mVerBorders          = nullptr;
+  mHorBorders          = nullptr;
+  mChildFrameborder    = nullptr;
+  mChildBorderColors   = nullptr;
 }
 
 nsHTMLFramesetFrame::~nsHTMLFramesetFrame()
 {
+  delete[] mRowSizes;
+  delete[] mColSizes;
+  delete[] mVerBorders;
+  delete[] mHorBorders;
+  delete[] mChildFrameborder;
+  delete[] mChildBorderColors;
 }
 
 NS_QUERYFRAME_HEAD(nsHTMLFramesetFrame)
@@ -238,20 +250,20 @@ nsHTMLFramesetFrame::Init(nsIContent*       aContent,
 
   // Maximum value of mNumRows and mNumCols is NS_MAX_FRAMESET_SPEC_COUNT
   PR_STATIC_ASSERT(NS_MAX_FRAMESET_SPEC_COUNT < UINT_MAX / sizeof(nscoord));
-  mRowSizes  = MakeUnique<nscoord[]>(mNumRows);
-  mColSizes  = MakeUnique<nscoord[]>(mNumCols);
+  mRowSizes  = new nscoord[mNumRows];
+  mColSizes  = new nscoord[mNumCols];
 
   // Ensure we can't overflow numCells
   PR_STATIC_ASSERT(NS_MAX_FRAMESET_SPEC_COUNT < INT32_MAX / NS_MAX_FRAMESET_SPEC_COUNT);
   int32_t numCells = mNumRows*mNumCols;
 
   PR_STATIC_ASSERT(NS_MAX_FRAMESET_SPEC_COUNT < UINT_MAX / sizeof(nsHTMLFramesetBorderFrame*));
-  mVerBorders    = MakeUnique<nsHTMLFramesetBorderFrame*[]>(mNumCols);  // 1 more than number of ver borders
+  mVerBorders    = new nsHTMLFramesetBorderFrame*[mNumCols];  // 1 more than number of ver borders
 
   for (int verX  = 0; verX < mNumCols; verX++)
     mVerBorders[verX]    = nullptr;
 
-  mHorBorders    = MakeUnique<nsHTMLFramesetBorderFrame*[]>(mNumRows);  // 1 more than number of hor borders
+  mHorBorders    = new nsHTMLFramesetBorderFrame*[mNumRows];  // 1 more than number of hor borders
 
   for (int horX = 0; horX < mNumRows; horX++)
     mHorBorders[horX]    = nullptr;
@@ -262,8 +274,8 @@ nsHTMLFramesetFrame::Init(nsIContent*       aContent,
                    < UINT_MAX / sizeof(nsFrameborder) / NS_MAX_FRAMESET_SPEC_COUNT);
   PR_STATIC_ASSERT(NS_MAX_FRAMESET_SPEC_COUNT
                    < UINT_MAX / sizeof(nsBorderColor) / NS_MAX_FRAMESET_SPEC_COUNT);
-  mChildFrameborder  = MakeUnique<nsFrameborder[]>(numCells);
-  mChildBorderColors  = MakeUnique<nsBorderColor[]>(numCells);
+  mChildFrameborder  = new nsFrameborder[numCells];
+  mChildBorderColors  = new nsBorderColor[numCells];
 
   // create the children frames; skip content which isn't <frameset> or <frame>
   mChildCount = 0; // number of <frame> or <frameset> children
@@ -430,12 +442,12 @@ void nsHTMLFramesetFrame::CalculateRowCol(nsPresContext*        aPresContext,
 
   int32_t  fixedTotal = 0;
   int32_t  numFixed = 0;
-  auto fixed = MakeUnique<int32_t[]>(aNumSpecs);
+  nsAutoArrayPtr<int32_t> fixed(new int32_t[aNumSpecs]);
   int32_t  numPercent = 0;
-  auto percent = MakeUnique<int32_t[]>(aNumSpecs);
+  nsAutoArrayPtr<int32_t> percent(new int32_t[aNumSpecs]);
   int32_t  relativeSums = 0;
   int32_t  numRelative = 0;
-  auto relative = MakeUnique<int32_t[]>(aNumSpecs);
+  nsAutoArrayPtr<int32_t> relative(new int32_t[aNumSpecs]);
 
   if (MOZ_UNLIKELY(!fixed || !percent || !relative)) {
     return; // NS_ERROR_OUT_OF_MEMORY
@@ -467,7 +479,7 @@ void nsHTMLFramesetFrame::CalculateRowCol(nsPresContext*        aPresContext,
 
   // scale the fixed sizes if they total too much (or too little and there aren't any percent or relative)
   if ((fixedTotal > aSize) || ((fixedTotal < aSize) && (0 == numPercent) && (0 == numRelative))) {
-    Scale(aSize, numFixed, fixed.get(), aNumSpecs, aValues);
+    Scale(aSize, numFixed, fixed, aNumSpecs, aValues);
     return;
   }
 
@@ -482,7 +494,7 @@ void nsHTMLFramesetFrame::CalculateRowCol(nsPresContext*        aPresContext,
 
   // scale the percent sizes if they total too much (or too little and there aren't any relative)
   if ((percentTotal > percentMax) || ((percentTotal < percentMax) && (0 == numRelative))) {
-    Scale(percentMax, numPercent, percent.get(), aNumSpecs, aValues);
+    Scale(percentMax, numPercent, percent, aNumSpecs, aValues);
     return;
   }
 
@@ -497,7 +509,7 @@ void nsHTMLFramesetFrame::CalculateRowCol(nsPresContext*        aPresContext,
 
   // scale the relative sizes if they take up too much or too little
   if (relativeTotal != relativeMax) {
-    Scale(relativeMax, numRelative, relative.get(), aNumSpecs, aValues);
+    Scale(relativeMax, numRelative, relative, aNumSpecs, aValues);
   }
 }
 
@@ -849,13 +861,13 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
     return;
   }
 
-  CalculateRowCol(aPresContext, width, mNumCols, colSpecs, mColSizes.get());
-  CalculateRowCol(aPresContext, height, mNumRows, rowSpecs, mRowSizes.get());
+  CalculateRowCol(aPresContext, width, mNumCols, colSpecs, mColSizes);
+  CalculateRowCol(aPresContext, height, mNumRows, rowSpecs, mRowSizes);
 
-  UniquePtr<bool[]>  verBordersVis; // vertical borders visibility
-  UniquePtr<nscolor[]> verBorderColors;
-  UniquePtr<bool[]>  horBordersVis; // horizontal borders visibility
-  UniquePtr<nscolor[]> horBorderColors;
+  nsAutoArrayPtr<bool>  verBordersVis; // vertical borders visibility
+  nsAutoArrayPtr<nscolor> verBorderColors;
+  nsAutoArrayPtr<bool>  horBordersVis; // horizontal borders visibility
+  nsAutoArrayPtr<nscolor> horBorderColors;
   nscolor                 borderColor = GetBorderColor();
   nsFrameborder           frameborder = GetFrameBorder();
 
@@ -865,15 +877,15 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
     PR_STATIC_ASSERT(NS_MAX_FRAMESET_SPEC_COUNT < UINT_MAX / sizeof(bool));
     PR_STATIC_ASSERT(NS_MAX_FRAMESET_SPEC_COUNT < UINT_MAX / sizeof(nscolor));
 
-    verBordersVis = MakeUnique<bool[]>(mNumCols);
-    verBorderColors = MakeUnique<nscolor[]>(mNumCols);
+    verBordersVis = new bool[mNumCols];
+    verBorderColors = new nscolor[mNumCols];
     for (int verX  = 0; verX < mNumCols; verX++) {
       verBordersVis[verX] = false;
       verBorderColors[verX] = NO_COLOR;
     }
 
-    horBordersVis = MakeUnique<bool[]>(mNumRows);
-    horBorderColors = MakeUnique<nscolor[]>(mNumRows);
+    horBordersVis = new bool[mNumRows];
+    horBorderColors = new nscolor[mNumRows];
     for (int horX = 0; horX < mNumRows; horX++) {
       horBordersVis[horX] = false;
       horBorderColors[horX] = NO_COLOR;
@@ -1070,8 +1082,11 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
       }
     }
 
-    mChildFrameborder.reset();
-    mChildBorderColors.reset();
+    delete[] mChildFrameborder;
+    delete[] mChildBorderColors;
+
+    mChildFrameborder = nullptr;
+    mChildBorderColors = nullptr;
   }
 
   aStatus = NS_FRAME_COMPLETE;
@@ -1263,7 +1278,7 @@ nsHTMLFramesetFrame::MouseDrag(nsPresContext* aPresContext,
       const nsFramesetSpec* colSpecs = nullptr;
       ourContent->GetColSpec(&mNumCols, &colSpecs);
       nsAutoString newColAttr;
-      GenerateRowCol(aPresContext, width, mNumCols, colSpecs, mColSizes.get(),
+      GenerateRowCol(aPresContext, width, mNumCols, colSpecs, mColSizes,
                      newColAttr);
       // Setting the attr will trigger a reflow
       mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::cols, newColAttr, true);
@@ -1286,7 +1301,7 @@ nsHTMLFramesetFrame::MouseDrag(nsPresContext* aPresContext,
       const nsFramesetSpec* rowSpecs = nullptr;
       ourContent->GetRowSpec(&mNumRows, &rowSpecs);
       nsAutoString newRowAttr;
-      GenerateRowCol(aPresContext, height, mNumRows, rowSpecs, mRowSizes.get(),
+      GenerateRowCol(aPresContext, height, mNumRows, rowSpecs, mRowSizes,
                      newRowAttr);
       // Setting the attr will trigger a reflow
       mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::rows, newRowAttr, true);

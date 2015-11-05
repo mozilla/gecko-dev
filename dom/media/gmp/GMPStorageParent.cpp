@@ -620,21 +620,21 @@ GMPStorageParent::RecvOpen(const nsCString& aRecordName)
     // or shared across origin.
     LOGD(("GMPStorageParent[%p]::RecvOpen(record='%s') failed; null nodeId",
           this, aRecordName.get()));
-    Unused << SendOpenComplete(aRecordName, GMPGenericErr);
+    unused << SendOpenComplete(aRecordName, GMPGenericErr);
     return true;
   }
 
   if (aRecordName.IsEmpty()) {
     LOGD(("GMPStorageParent[%p]::RecvOpen(record='%s') failed; record name empty",
           this, aRecordName.get()));
-    Unused << SendOpenComplete(aRecordName, GMPGenericErr);
+    unused << SendOpenComplete(aRecordName, GMPGenericErr);
     return true;
   }
 
   if (mStorage->IsOpen(aRecordName)) {
     LOGD(("GMPStorageParent[%p]::RecvOpen(record='%s') failed; record in use",
           this, aRecordName.get()));
-    Unused << SendOpenComplete(aRecordName, GMPRecordInUse);
+    unused << SendOpenComplete(aRecordName, GMPRecordInUse);
     return true;
   }
 
@@ -642,7 +642,7 @@ GMPStorageParent::RecvOpen(const nsCString& aRecordName)
   MOZ_ASSERT(GMP_FAILED(err) || mStorage->IsOpen(aRecordName));
   LOGD(("GMPStorageParent[%p]::RecvOpen(record='%s') complete; rv=%d",
         this, aRecordName.get(), err));
-  Unused << SendOpenComplete(aRecordName, err);
+  unused << SendOpenComplete(aRecordName, err);
 
   return true;
 }
@@ -661,12 +661,12 @@ GMPStorageParent::RecvRead(const nsCString& aRecordName)
   if (!mStorage->IsOpen(aRecordName)) {
     LOGD(("GMPStorageParent[%p]::RecvRead(record='%s') failed; record not open",
          this, aRecordName.get()));
-    Unused << SendReadComplete(aRecordName, GMPClosedErr, data);
+    unused << SendReadComplete(aRecordName, GMPClosedErr, data);
   } else {
     GMPErr rv = mStorage->Read(aRecordName, data);
     LOGD(("GMPStorageParent[%p]::RecvRead(record='%s') read %d bytes rv=%d",
       this, aRecordName.get(), data.Length(), rv));
-    Unused << SendReadComplete(aRecordName, rv, data);
+    unused << SendReadComplete(aRecordName, rv, data);
   }
 
   return true;
@@ -686,14 +686,14 @@ GMPStorageParent::RecvWrite(const nsCString& aRecordName,
   if (!mStorage->IsOpen(aRecordName)) {
     LOGD(("GMPStorageParent[%p]::RecvWrite(record='%s') failed record not open",
           this, aRecordName.get()));
-    Unused << SendWriteComplete(aRecordName, GMPClosedErr);
+    unused << SendWriteComplete(aRecordName, GMPClosedErr);
     return true;
   }
 
   if (aBytes.Length() > GMP_MAX_RECORD_SIZE) {
     LOGD(("GMPStorageParent[%p]::RecvWrite(record='%s') failed record too big",
           this, aRecordName.get()));
-    Unused << SendWriteComplete(aRecordName, GMPQuotaExceededErr);
+    unused << SendWriteComplete(aRecordName, GMPQuotaExceededErr);
     return true;
   }
 
@@ -701,7 +701,7 @@ GMPStorageParent::RecvWrite(const nsCString& aRecordName,
   LOGD(("GMPStorageParent[%p]::RecvWrite(record='%s') write complete rv=%d",
         this, aRecordName.get(), rv));
 
-  Unused << SendWriteComplete(aRecordName, rv);
+  unused << SendWriteComplete(aRecordName, rv);
 
   return true;
 }
@@ -719,7 +719,7 @@ GMPStorageParent::RecvGetRecordNames()
   LOGD(("GMPStorageParent[%p]::RecvGetRecordNames() status=%d numRecords=%d",
         this, status, recordNames.Length()));
 
-  Unused << SendRecordNames(recordNames, status);
+  unused << SendRecordNames(recordNames, status);
 
   return true;
 }
@@ -755,7 +755,7 @@ GMPStorageParent::Shutdown()
     return;
   }
   mShutdown = true;
-  Unused << SendShutdown();
+  unused << SendShutdown();
 
   mStorage = nullptr;
 

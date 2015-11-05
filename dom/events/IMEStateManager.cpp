@@ -417,7 +417,7 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
       ("ISM:   IMEStateManager::OnChangeFocusInternal(), notifying previous "
        "focused child process of parent process or another child process "
        "getting focus"));
-    Unused << sActiveTabParent->SendStopIMEStateManagement();
+    unused << sActiveTabParent->SendStopIMEStateManagement();
   }
 
   nsCOMPtr<nsIWidget> widget =
@@ -445,7 +445,7 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
       //     to be restored by the child process asynchronously.  Therefore,
       //     some key events which are fired immediately after closing menu
       //     may not be handled by IME.
-      Unused << newTabParent->
+      unused << newTabParent->
         SendMenuKeyboardListenerInstalled(sInstalledMenuKeyboardListener);
       setIMEState = sInstalledMenuKeyboardListener;
     } else if (focusActuallyChanging) {

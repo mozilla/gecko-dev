@@ -329,12 +329,6 @@ JSObject* GetDefaultScopeFromJSContext(JSContext *cx)
 
 bool nsAutoJSString::init(const JS::Value &v)
 {
-  JSContext* cx = nsContentUtils::RootingCxForThread();
-  if (!init(nsContentUtils::RootingCxForThread(), v)) {
-    JS_ClearPendingException(cx);
-    return false;
-  }
-
-  return true;
+  return init(nsContentUtils::RootingCxForThread(), v);
 }
 

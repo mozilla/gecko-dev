@@ -892,7 +892,7 @@ WrapperOwner::drop(JSObject* obj)
 
     cpows_.remove(objId);
     if (active())
-        Unused << SendDropObject(objId);
+        unused << SendDropObject(objId);
     decref();
 }
 

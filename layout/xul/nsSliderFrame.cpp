@@ -74,8 +74,7 @@ nsSliderFrame::nsSliderFrame(nsStyleContext* aContext):
   mCurPos(0),
   mChange(0),
   mDragFinished(true),
-  mUserChanged(false),
-  mScrollingWithAPZ(false)
+  mUserChanged(false)
 {
 }
 
@@ -486,9 +485,6 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
     switch (aEvent->mMessage) {
     case eTouchMove:
     case eMouseMove: {
-      if (mScrollingWithAPZ) {
-        break;
-      }
       nsPoint eventPoint;
       if (!GetEventPoint(aEvent, eventPoint)) {
         break;
@@ -1016,7 +1012,7 @@ nsSliderFrame::StartDrag(nsIDOMEvent* aEvent)
 
   mDragStart = pos - mThumbStart;
 
-  mScrollingWithAPZ = StartAPZDrag(event);
+  StartAPZDrag(event);
 
 #ifdef DEBUG_SLIDER
   printf("Pressed mDragStart=%d\n",mDragStart);
@@ -1030,8 +1026,6 @@ nsSliderFrame::StopDrag()
 {
   AddListener();
   DragThumb(false);
-
-  mScrollingWithAPZ = false;
 
 #ifdef MOZ_WIDGET_GTK
   nsIFrame* thumbFrame = mFrames.FirstChild();

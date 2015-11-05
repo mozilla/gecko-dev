@@ -38,22 +38,34 @@ using namespace mozilla::ipc;
 
 namespace {
   // UUID of Map Mas
-  static const BluetoothUuid kMapMas(MAP_MAS);
-
+  static const BluetoothUuid kMapMas = {
+    {
+      0x00, 0x00, 0x11, 0x32, 0x00, 0x00, 0x10, 0x00,
+      0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB
+    }
+  };
   // UUID of Map Mns
-  static const BluetoothUuid kMapMns(MAP_MNS);
-
+  static const BluetoothUuid kMapMns = {
+    {
+      0x00, 0x00, 0x11, 0x33, 0x00, 0x00, 0x10, 0x00,
+      0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB
+    }
+  };
   // UUID used in Map OBEX MAS target header
-  static const BluetoothUuid kMapMasObexTarget(0xBB, 0x58, 0x2B, 0x40,
-                                               0x42, 0x0C, 0x11, 0xDB,
-                                               0xB0, 0xDE, 0x08, 0x00,
-                                               0x20, 0x0C, 0x9A, 0x66);
+  static const BluetoothUuid kMapMasObexTarget = {
+    {
+      0xBB, 0x58, 0x2B, 0x40, 0x42, 0x0C, 0x11, 0xDB,
+      0xB0, 0xDE, 0x08, 0x00, 0x20, 0x0C, 0x9A, 0x66
+    }
+  };
 
   // UUID used in Map OBEX MNS target header
-  static const BluetoothUuid kMapMnsObexTarget(0xBB, 0x58, 0x2B, 0x41,
-                                               0x42, 0x0C, 0x11, 0xDB,
-                                               0xB0, 0xDE, 0x08, 0x00,
-                                               0x20, 0x0C, 0x9A, 0x66);
+  static const BluetoothUuid kMapMnsObexTarget = {
+    {
+      0xBB, 0x58, 0x2B, 0x41, 0x42, 0x0C, 0x11, 0xDB,
+      0xB0, 0xDE, 0x08, 0x00, 0x20, 0x0C, 0x9A, 0x66
+    }
+  };
 
   StaticRefPtr<BluetoothMapSmsManager> sMapSmsManager;
   static bool sInShutdown = false;
@@ -91,6 +103,7 @@ BluetoothMapSmsManager::BluetoothMapSmsManager() : mMasConnected(false),
                                                    mMnsConnected(false),
                                                    mNtfRequired(false)
 {
+  mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
   BuildDefaultFolderStructure();
 }
 
@@ -482,7 +495,7 @@ BluetoothMapSmsManager::IsConnected()
 }
 
 void
-BluetoothMapSmsManager::GetAddress(BluetoothAddress& aDeviceAddress)
+BluetoothMapSmsManager::GetAddress(nsAString& aDeviceAddress)
 {
   return mMasSocket->GetAddress(aDeviceAddress);
 }
@@ -1234,7 +1247,7 @@ BluetoothMapSmsManager::OnSocketDisconnect(BluetoothSocket* aSocket)
 
   // MAS socket is disconnected
   AfterMapSmsDisconnected();
-  mDeviceAddress.Clear();
+  mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
   mMasSocket = nullptr;
 
   Listen();
@@ -1254,23 +1267,22 @@ BluetoothMapSmsManager::Disconnect(BluetoothProfileController* aController)
 NS_IMPL_ISUPPORTS(BluetoothMapSmsManager, nsIObserver)
 
 void
-BluetoothMapSmsManager::Connect(const BluetoothAddress& aDeviceAddress,
+BluetoothMapSmsManager::Connect(const nsAString& aDeviceAddress,
                                 BluetoothProfileController* aController)
 {
   MOZ_ASSERT(false);
 }
 
 void
-BluetoothMapSmsManager::OnGetServiceChannel(
-  const BluetoothAddress& aDeviceAddress,
-  const BluetoothUuid& aServiceUuid,
-  int aChannel)
+BluetoothMapSmsManager::OnGetServiceChannel(const nsAString& aDeviceAddress,
+                                            const nsAString& aServiceUuid,
+                                            int aChannel)
 {
   MOZ_ASSERT(false);
 }
 
 void
-BluetoothMapSmsManager::OnUpdateSdpRecords(const BluetoothAddress& aDeviceAddress)
+BluetoothMapSmsManager::OnUpdateSdpRecords(const nsAString& aDeviceAddress)
 {
   MOZ_ASSERT(false);
 }

@@ -34,7 +34,7 @@ FMRadioRequestParent::Run()
   MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
 
   if (!mActorDestroyed) {
-    Unused << Send__delete__(this, mResponseType);
+    unused << Send__delete__(this, mResponseType);
   }
 
   return NS_OK;

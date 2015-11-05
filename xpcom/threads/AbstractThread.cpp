@@ -60,7 +60,7 @@ public:
 
     nsresult rv = mTarget->Dispatch(r, NS_DISPATCH_NORMAL);
     MOZ_DIAGNOSTIC_ASSERT(aFailureHandling == DontAssertDispatchSuccess || NS_SUCCEEDED(rv));
-    Unused << rv;
+    unused << rv;
   }
 
   virtual bool IsCurrentThreadIn() override

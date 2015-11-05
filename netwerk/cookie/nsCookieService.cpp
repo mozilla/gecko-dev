@@ -51,7 +51,6 @@
 #include "mozIApplication.h"
 #include "mozIApplicationClearPrivateDataParams.h"
 #include "nsIConsoleService.h"
-#include "nsVariant.h"
 
 using namespace mozilla;
 using namespace mozilla::net;
@@ -75,7 +74,7 @@ static nsCookieService *gCookieService;
 #define HTTP_ONLY_PREFIX "#HttpOnly_"
 
 #define COOKIES_FILE "cookies.sqlite"
-#define COOKIES_SCHEMA_VERSION 7
+#define COOKIES_SCHEMA_VERSION 6
 
 // parameter indexes; see EnsureReadDomain, EnsureReadComplete and
 // ReadCookieDBListener::HandleResult
@@ -185,48 +184,55 @@ struct nsListIter
 #define SET_COOKIE true
 #define GET_COOKIE false
 
-static LazyLogModule gCookieLog("cookie");
+static PRLogModuleInfo *
+GetCookieLog()
+{
+  static PRLogModuleInfo *sCookieLog;
+  if (!sCookieLog)
+    sCookieLog = PR_NewLogModule("cookie");
+  return sCookieLog;
+}
 
 #define COOKIE_LOGFAILURE(a, b, c, d)    LogFailure(a, b, c, d)
 #define COOKIE_LOGSUCCESS(a, b, c, d, e) LogSuccess(a, b, c, d, e)
 
 #define COOKIE_LOGEVICTED(a, details)          \
   PR_BEGIN_MACRO                               \
-  if (MOZ_LOG_TEST(gCookieLog, LogLevel::Debug))  \
+  if (MOZ_LOG_TEST(GetCookieLog(), LogLevel::Debug))  \
       LogEvicted(a, details);                  \
   PR_END_MACRO
 
 #define COOKIE_LOGSTRING(lvl, fmt)   \
   PR_BEGIN_MACRO                     \
-    MOZ_LOG(gCookieLog, lvl, fmt);  \
-    MOZ_LOG(gCookieLog, lvl, ("\n")); \
+    MOZ_LOG(GetCookieLog(), lvl, fmt);  \
+    MOZ_LOG(GetCookieLog(), lvl, ("\n")); \
   PR_END_MACRO
 
 static void
 LogFailure(bool aSetCookie, nsIURI *aHostURI, const char *aCookieString, const char *aReason)
 {
   // if logging isn't enabled, return now to save cycles
-  if (!MOZ_LOG_TEST(gCookieLog, LogLevel::Warning))
+  if (!MOZ_LOG_TEST(GetCookieLog(), LogLevel::Warning))
     return;
 
   nsAutoCString spec;
   if (aHostURI)
     aHostURI->GetAsciiSpec(spec);
 
-  MOZ_LOG(gCookieLog, LogLevel::Warning,
+  MOZ_LOG(GetCookieLog(), LogLevel::Warning,
     ("===== %s =====\n", aSetCookie ? "COOKIE NOT ACCEPTED" : "COOKIE NOT SENT"));
-  MOZ_LOG(gCookieLog, LogLevel::Warning,("request URL: %s\n", spec.get()));
+  MOZ_LOG(GetCookieLog(), LogLevel::Warning,("request URL: %s\n", spec.get()));
   if (aSetCookie)
-    MOZ_LOG(gCookieLog, LogLevel::Warning,("cookie string: %s\n", aCookieString));
+    MOZ_LOG(GetCookieLog(), LogLevel::Warning,("cookie string: %s\n", aCookieString));
 
   PRExplodedTime explodedTime;
   PR_ExplodeTime(PR_Now(), PR_GMTParameters, &explodedTime);
   char timeString[40];
   PR_FormatTimeUSEnglish(timeString, 40, "%c GMT", &explodedTime);
 
-  MOZ_LOG(gCookieLog, LogLevel::Warning,("current time: %s", timeString));
-  MOZ_LOG(gCookieLog, LogLevel::Warning,("rejected because %s\n", aReason));
-  MOZ_LOG(gCookieLog, LogLevel::Warning,("\n"));
+  MOZ_LOG(GetCookieLog(), LogLevel::Warning,("current time: %s", timeString));
+  MOZ_LOG(GetCookieLog(), LogLevel::Warning,("rejected because %s\n", aReason));
+  MOZ_LOG(GetCookieLog(), LogLevel::Warning,("\n"));
 }
 
 static void
@@ -237,27 +243,27 @@ LogCookie(nsCookie *aCookie)
   char timeString[40];
   PR_FormatTimeUSEnglish(timeString, 40, "%c GMT", &explodedTime);
 
-  MOZ_LOG(gCookieLog, LogLevel::Debug,("current time: %s", timeString));
+  MOZ_LOG(GetCookieLog(), LogLevel::Debug,("current time: %s", timeString));
 
   if (aCookie) {
-    MOZ_LOG(gCookieLog, LogLevel::Debug,("----------------\n"));
-    MOZ_LOG(gCookieLog, LogLevel::Debug,("name: %s\n", aCookie->Name().get()));
-    MOZ_LOG(gCookieLog, LogLevel::Debug,("value: %s\n", aCookie->Value().get()));
-    MOZ_LOG(gCookieLog, LogLevel::Debug,("%s: %s\n", aCookie->IsDomain() ? "domain" : "host", aCookie->Host().get()));
-    MOZ_LOG(gCookieLog, LogLevel::Debug,("path: %s\n", aCookie->Path().get()));
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,("----------------\n"));
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,("name: %s\n", aCookie->Name().get()));
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,("value: %s\n", aCookie->Value().get()));
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,("%s: %s\n", aCookie->IsDomain() ? "domain" : "host", aCookie->Host().get()));
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,("path: %s\n", aCookie->Path().get()));
 
     PR_ExplodeTime(aCookie->Expiry() * int64_t(PR_USEC_PER_SEC),
                    PR_GMTParameters, &explodedTime);
     PR_FormatTimeUSEnglish(timeString, 40, "%c GMT", &explodedTime);
-    MOZ_LOG(gCookieLog, LogLevel::Debug,
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,
       ("expires: %s%s", timeString, aCookie->IsSession() ? " (at end of session)" : ""));
 
     PR_ExplodeTime(aCookie->CreationTime(), PR_GMTParameters, &explodedTime);
     PR_FormatTimeUSEnglish(timeString, 40, "%c GMT", &explodedTime);
-    MOZ_LOG(gCookieLog, LogLevel::Debug,("created: %s", timeString));
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,("created: %s", timeString));
 
-    MOZ_LOG(gCookieLog, LogLevel::Debug,("is secure: %s\n", aCookie->IsSecure() ? "true" : "false"));
-    MOZ_LOG(gCookieLog, LogLevel::Debug,("is httpOnly: %s\n", aCookie->IsHttpOnly() ? "true" : "false"));
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,("is secure: %s\n", aCookie->IsSecure() ? "true" : "false"));
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,("is httpOnly: %s\n", aCookie->IsHttpOnly() ? "true" : "false"));
   }
 }
 
@@ -265,7 +271,7 @@ static void
 LogSuccess(bool aSetCookie, nsIURI *aHostURI, const char *aCookieString, nsCookie *aCookie, bool aReplacing)
 {
   // if logging isn't enabled, return now to save cycles
-  if (!MOZ_LOG_TEST(gCookieLog, LogLevel::Debug)) {
+  if (!MOZ_LOG_TEST(GetCookieLog(), LogLevel::Debug)) {
     return;
   }
 
@@ -273,27 +279,27 @@ LogSuccess(bool aSetCookie, nsIURI *aHostURI, const char *aCookieString, nsCooki
   if (aHostURI)
     aHostURI->GetAsciiSpec(spec);
 
-  MOZ_LOG(gCookieLog, LogLevel::Debug,
+  MOZ_LOG(GetCookieLog(), LogLevel::Debug,
     ("===== %s =====\n", aSetCookie ? "COOKIE ACCEPTED" : "COOKIE SENT"));
-  MOZ_LOG(gCookieLog, LogLevel::Debug,("request URL: %s\n", spec.get()));
-  MOZ_LOG(gCookieLog, LogLevel::Debug,("cookie string: %s\n", aCookieString));
+  MOZ_LOG(GetCookieLog(), LogLevel::Debug,("request URL: %s\n", spec.get()));
+  MOZ_LOG(GetCookieLog(), LogLevel::Debug,("cookie string: %s\n", aCookieString));
   if (aSetCookie)
-    MOZ_LOG(gCookieLog, LogLevel::Debug,("replaces existing cookie: %s\n", aReplacing ? "true" : "false"));
+    MOZ_LOG(GetCookieLog(), LogLevel::Debug,("replaces existing cookie: %s\n", aReplacing ? "true" : "false"));
 
   LogCookie(aCookie);
 
-  MOZ_LOG(gCookieLog, LogLevel::Debug,("\n"));
+  MOZ_LOG(GetCookieLog(), LogLevel::Debug,("\n"));
 }
 
 static void
 LogEvicted(nsCookie *aCookie, const char* details)
 {
-  MOZ_LOG(gCookieLog, LogLevel::Debug,("===== COOKIE EVICTED =====\n"));
-  MOZ_LOG(gCookieLog, LogLevel::Debug,("%s\n", details));
+  MOZ_LOG(GetCookieLog(), LogLevel::Debug,("===== COOKIE EVICTED =====\n"));
+  MOZ_LOG(GetCookieLog(), LogLevel::Debug,("%s\n", details));
 
   LogCookie(aCookie);
 
-  MOZ_LOG(gCookieLog, LogLevel::Debug,("\n"));
+  MOZ_LOG(GetCookieLog(), LogLevel::Debug,("\n"));
 }
 
 // inline wrappers to make passing in nsAFlatCStrings easier
@@ -339,7 +345,7 @@ protected:
 public:
   NS_IMETHOD HandleError(mozIStorageError* aError) override
   {
-    if (MOZ_LOG_TEST(gCookieLog, LogLevel::Warning)) {
+    if (MOZ_LOG_TEST(GetCookieLog(), LogLevel::Warning)) {
       int32_t result = -1;
       aError->GetResult(&result);
 
@@ -821,7 +827,7 @@ NS_IMPL_ISUPPORTS(ConvertAppIdToOriginAttrsSQLFunction, mozIStorageFunction);
 
 NS_IMETHODIMP
 ConvertAppIdToOriginAttrsSQLFunction::OnFunctionCall(
-  mozIStorageValueArray* aFunctionArguments, nsIVariant** aResult)
+    mozIStorageValueArray* aFunctionArguments, nsIVariant** aResult)
 {
   nsresult rv;
   int32_t appId, inBrowser;
@@ -837,70 +843,11 @@ ConvertAppIdToOriginAttrsSQLFunction::OnFunctionCall(
   nsAutoCString suffix;
   attrs.CreateSuffix(suffix);
 
-  RefPtr<nsVariant> outVar(new nsVariant());
+  nsCOMPtr<nsIWritableVariant> outVar(do_CreateInstance(
+    NS_VARIANT_CONTRACTID, &rv));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rv = outVar->SetAsAUTF8String(suffix);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  outVar.forget(aResult);
-  return NS_OK;
-}
-
-class SetAppIdFromOriginAttributesSQLFunction final : public mozIStorageFunction
-{
-  ~SetAppIdFromOriginAttributesSQLFunction() {}
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_MOZISTORAGEFUNCTION
-};
-
-NS_IMPL_ISUPPORTS(SetAppIdFromOriginAttributesSQLFunction, mozIStorageFunction);
-
-NS_IMETHODIMP
-SetAppIdFromOriginAttributesSQLFunction::OnFunctionCall(
-  mozIStorageValueArray* aFunctionArguments, nsIVariant** aResult)
-{
-  nsresult rv;
-  nsAutoCString suffix;
-  OriginAttributes attrs;
-
-  rv = aFunctionArguments->GetUTF8String(0, suffix);
-  NS_ENSURE_SUCCESS(rv, rv);
-  attrs.PopulateFromSuffix(suffix);
-
-  RefPtr<nsVariant> outVar(new nsVariant());
-  rv = outVar->SetAsInt32(attrs.mAppId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  outVar.forget(aResult);
-  return NS_OK;
-}
-
-class SetInBrowserFromOriginAttributesSQLFunction final :
-  public mozIStorageFunction
-{
-  ~SetInBrowserFromOriginAttributesSQLFunction() {}
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_MOZISTORAGEFUNCTION
-};
-
-NS_IMPL_ISUPPORTS(SetInBrowserFromOriginAttributesSQLFunction,
-                  mozIStorageFunction);
-
-NS_IMETHODIMP
-SetInBrowserFromOriginAttributesSQLFunction::OnFunctionCall(
-  mozIStorageValueArray* aFunctionArguments, nsIVariant** aResult)
-{
-  nsresult rv;
-  nsAutoCString suffix;
-  OriginAttributes attrs;
-
-  rv = aFunctionArguments->GetUTF8String(0, suffix);
-  NS_ENSURE_SUCCESS(rv, rv);
-  attrs.PopulateFromSuffix(suffix);
-
-  RefPtr<nsVariant> outVar(new nsVariant());
-  rv = outVar->SetAsInt32(attrs.mInBrowser);
   NS_ENSURE_SUCCESS(rv, rv);
 
   outVar.forget(aResult);
@@ -1200,7 +1147,7 @@ nsCookieService::TryInitDB(bool aRecreateDB)
     case 5:
       {
         // Change in the version: Replace the columns |appId| and
-        // |inBrowserElement| by a single column |originAttributes|.
+        // |isBrowserElement| by a single column |originAttributes|.
         //
         // Why we made this change: FxOS new security model (NSec) encapsulates
         // "appId/inBrowser" in nsIPrincipal::originAttributes to make it easier
@@ -1232,11 +1179,9 @@ nsCookieService::TryInitDB(bool aRecreateDB)
           convertToOriginAttrs(new ConvertAppIdToOriginAttrsSQLFunction());
         NS_ENSURE_TRUE(convertToOriginAttrs, RESULT_RETRY);
 
-        NS_NAMED_LITERAL_CSTRING(convertToOriginAttrsName,
-                                 "CONVERT_TO_ORIGIN_ATTRIBUTES");
-
-        rv = mDefaultDBState->dbConn->CreateFunction(convertToOriginAttrsName,
-                                                     2, convertToOriginAttrs);
+        rv = mDefaultDBState->dbConn->CreateFunction(
+             NS_LITERAL_CSTRING("CONVERT_TO_ORIGIN_ATTRIBUTES"), 2,
+             convertToOriginAttrs);
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
 
         rv = mDefaultDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
@@ -1250,9 +1195,6 @@ nsCookieService::TryInitDB(bool aRecreateDB)
           "FROM moz_cookies_old"));
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
 
-        rv = mDefaultDBState->dbConn->RemoveFunction(convertToOriginAttrsName);
-        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
-
         // Drop old table
         rv = mDefaultDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
              "DROP TABLE moz_cookies_old"));
@@ -1260,58 +1202,6 @@ nsCookieService::TryInitDB(bool aRecreateDB)
 
         COOKIE_LOGSTRING(LogLevel::Debug,
           ("Upgraded database to schema version 6"));
-      }
-
-    case 6:
-      {
-        // We made a mistake in schema version 6. We cannot remove expected
-        // columns of any version (checked in the default case) from cookie
-        // database, because doing this would destroy the possibility of
-        // downgrading database.
-        //
-        // This version simply restores appId and inBrowserElement columns in
-        // order to fix downgrading issue even though these two columns are no
-        // longer used in the latest schema.
-        rv = mDefaultDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-          "ALTER TABLE moz_cookies ADD appId INTEGER DEFAULT 0;"));
-        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
-
-        rv = mDefaultDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-          "ALTER TABLE moz_cookies ADD inBrowserElement INTEGER DEFAULT 0;"));
-        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
-
-        // Compute and populate the values of appId and inBrwoserElement from
-        // originAttributes.
-        nsCOMPtr<mozIStorageFunction>
-          setAppId(new SetAppIdFromOriginAttributesSQLFunction());
-        NS_ENSURE_TRUE(setAppId, RESULT_RETRY);
-
-        NS_NAMED_LITERAL_CSTRING(setAppIdName, "SET_APP_ID");
-
-        rv = mDefaultDBState->dbConn->CreateFunction(setAppIdName, 1, setAppId);
-        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
-
-        nsCOMPtr<mozIStorageFunction>
-          setInBrowser(new SetInBrowserFromOriginAttributesSQLFunction());
-        NS_ENSURE_TRUE(setInBrowser, RESULT_RETRY);
-
-        NS_NAMED_LITERAL_CSTRING(setInBrowserName, "SET_IN_BROWSER");
-
-        rv = mDefaultDBState->dbConn->CreateFunction(setInBrowserName, 1,
-                                                     setInBrowser);
-        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
-
-        rv = mDefaultDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-          "UPDATE moz_cookies SET appId = SET_APP_ID(originAttributes), "
-          "inBrowserElement = SET_IN_BROWSER(originAttributes);"
-        ));
-        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
-
-        rv = mDefaultDBState->dbConn->RemoveFunction(setAppIdName);
-        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
-
-        rv = mDefaultDBState->dbConn->RemoveFunction(setInBrowserName);
-        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
       }
 
       // No more upgrades. Update the schema version.

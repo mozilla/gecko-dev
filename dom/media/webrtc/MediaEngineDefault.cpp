@@ -250,15 +250,9 @@ MediaEngineDefaultVideoSource::Notify(nsITimer* aTimer)
 		     0, 0);
 #endif
 
-  bool setData = ycbcr_image->SetData(data);
-  MOZ_ASSERT(setData);
-
+  ycbcr_image->SetData(data);
   // SetData copies data, so we can free the frame
   ReleaseFrame(data);
-
-  if (!setData) {
-    return NS_ERROR_FAILURE;
-  }
 
   MonitorAutoLock lock(mMonitor);
 

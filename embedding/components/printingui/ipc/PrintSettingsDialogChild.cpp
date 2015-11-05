@@ -4,7 +4,7 @@
 
 #include "PrintSettingsDialogChild.h"
 
-using mozilla::Unused;
+using mozilla::unused;
 
 namespace mozilla {
 namespace embedding {

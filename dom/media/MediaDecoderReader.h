@@ -248,7 +248,7 @@ public:
   {
     MOZ_ASSERT(OnTaskQueue());
     NS_ENSURE_TRUE_VOID(!mShutdown);
-    NotifyDataArrivedInternal();
+    NotifyDataArrivedInternal(aInfo.Length(), aInfo.mStart);
     UpdateBuffered();
   }
 
@@ -418,7 +418,7 @@ private:
   // Recomputes mBuffered.
   virtual void UpdateBuffered();
 
-  virtual void NotifyDataArrivedInternal() {}
+  virtual void NotifyDataArrivedInternal(uint32_t aLength, int64_t aOffset) {}
 
   // Invokes NotifyDataArrived while throttling the calls to occur
   // at most every mThrottleDuration ms.

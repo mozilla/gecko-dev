@@ -1026,7 +1026,7 @@ CanvasRenderingContext2D::ParseColor(const nsAString& aString,
         mCanvasElement, nullptr, presShell);
     }
 
-    Unused << nsRuleNode::ComputeColor(
+    unused << nsRuleNode::ComputeColor(
       value, presShell ? presShell->GetPresContext() : nullptr, parentContext,
       *aColor);
   }
@@ -4312,8 +4312,7 @@ CanvasRenderingContext2D::CachedSurfaceFromElement(Element* aElement)
     return res;
   }
 
-  res.mSourceSurface =
-    CanvasImageCache::SimpleLookup(aElement, mIsSkiaGL);
+  res.mSourceSurface = CanvasImageCache::SimpleLookup(aElement);
   if (!res.mSourceSurface) {
     return res;
   }
@@ -4419,7 +4418,7 @@ CanvasRenderingContext2D::DrawImage(const CanvasImageSource& image,
     }
 
     srcSurf =
-      CanvasImageCache::Lookup(element, mCanvasElement, &imgSize, mIsSkiaGL);
+      CanvasImageCache::Lookup(element, mCanvasElement, &imgSize);
   }
 
   nsLayoutUtils::DirectDrawInfo drawInfo;
@@ -4567,7 +4566,7 @@ CanvasRenderingContext2D::DrawImage(const CanvasImageSource& image,
     if (res.mSourceSurface) {
       if (res.mImageRequest) {
         CanvasImageCache::NotifyDrawImage(element, mCanvasElement, res.mImageRequest,
-                                          res.mSourceSurface, imgSize, mIsSkiaGL);
+                                          res.mSourceSurface, imgSize);
       }
 
       srcSurf = res.mSourceSurface;
@@ -4889,7 +4888,7 @@ CanvasRenderingContext2D::DrawWindow(nsGlobalWindow& window, double x,
   }
 
   nsCOMPtr<nsIPresShell> shell = presContext->PresShell();
-  Unused << shell->RenderDocument(r, renderDocFlags, backgroundColor, thebes);
+  unused << shell->RenderDocument(r, renderDocFlags, backgroundColor, thebes);
   if (drawDT) {
     RefPtr<SourceSurface> snapshot = drawDT->Snapshot();
     RefPtr<DataSourceSurface> data = snapshot->GetDataSurface();

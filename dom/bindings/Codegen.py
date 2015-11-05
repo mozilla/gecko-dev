@@ -743,7 +743,7 @@ class CGInterfaceObjectJSClass(CGThing):
                   nullptr, /* unwatch */
                   nullptr, /* getElements */
                   nullptr, /* enumerate */
-                  nullptr, /* thisValue */
+                  nullptr, /* thisObject */
                   InterfaceObjectToString, /* funToString */
                 }
               },

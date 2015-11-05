@@ -14,6 +14,8 @@
 #include "mozilla/Logging.h"
 #include "ARefBase.h"
 
+extern PRLogModuleInfo *gHttpLog;
+
 //-----------------------------------------------------------------------------
 // nsHttpConnectionInfo - holds the properties of a connection
 //-----------------------------------------------------------------------------
@@ -28,8 +30,6 @@
 // special wildcard CI that accepts all origins through that proxy.
 
 namespace mozilla { namespace net {
-
-extern LazyLogModule gHttpLog;
 
 class nsHttpConnectionInfo: public ARefBase
 {

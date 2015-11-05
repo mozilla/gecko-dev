@@ -177,7 +177,7 @@ public:
   // this method always sets Event.defaultPrevented true for web contents.
   // If default action handler calls this, web applications meet wrong
   // defaultPrevented value.
-  virtual void PreventDefault(JSContext* aCx);
+  void PreventDefault(JSContext* aCx);
 
   // You MUST NOT call DefaultPrevented(JSContext*) from C++ code.  This may
   // return false even if PreventDefault() has been called.
@@ -298,8 +298,7 @@ private:
 } // namespace mozilla
 
 #define NS_FORWARD_TO_EVENT \
-  NS_FORWARD_NSIDOMEVENT(Event::) \
-  virtual void PreventDefault(JSContext* aCx) override { Event::PreventDefault(aCx); }
+  NS_FORWARD_NSIDOMEVENT(Event::)
 
 #define NS_FORWARD_NSIDOMEVENT_NO_SERIALIZATION_NO_DUPLICATION(_to) \
   NS_IMETHOD GetType(nsAString& aType) override { return _to GetType(aType); } \
@@ -327,8 +326,7 @@ private:
   NS_IMETHOD_(Event*) InternalDOMEvent() override { return _to InternalDOMEvent(); }
 
 #define NS_FORWARD_TO_EVENT_NO_SERIALIZATION_NO_DUPLICATION \
-  NS_FORWARD_NSIDOMEVENT_NO_SERIALIZATION_NO_DUPLICATION(Event::) \
-  virtual void PreventDefault(JSContext* aCx) override { Event::PreventDefault(aCx); }
+  NS_FORWARD_NSIDOMEVENT_NO_SERIALIZATION_NO_DUPLICATION(Event::)
 
 inline nsISupports*
 ToSupports(mozilla::dom::Event* e)

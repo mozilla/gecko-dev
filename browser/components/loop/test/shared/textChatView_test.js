@@ -46,7 +46,6 @@ describe("loop.shared.views.TextChatView", function() {
       var basicProps = {
         dispatcher: dispatcher,
         messageList: [],
-        showInitialContext: true,
         useDesktopPaths: false
       };
 
@@ -59,7 +58,6 @@ describe("loop.shared.views.TextChatView", function() {
       var basicProps = {
         dispatcher: dispatcher,
         messageList: [],
-        showInitialContext: true,
         useDesktopPaths: false
       };
 
@@ -398,7 +396,7 @@ describe("loop.shared.views.TextChatView", function() {
     function mountTestComponent(extraProps) {
       var props = _.extend({
         dispatcher: dispatcher,
-        showInitialContext: true,
+        showRoomName: false,
         useDesktopPaths: false,
         showAlways: true
       }, extraProps);
@@ -453,6 +451,40 @@ describe("loop.shared.views.TextChatView", function() {
       });
 
       expect(view.getDOMNode().classList.contains("text-chat-entries-empty")).eql(false);
+    });
+
+    it("should add a showing room name class when the view shows room names and it has a room name", function() {
+      view = mountTestComponent({
+        showRoomName: true
+      });
+
+      store.updateRoomInfo(new sharedActions.UpdateRoomInfo({
+        roomName: "Study",
+        roomUrl: "Fake"
+      }));
+
+      expect(view.getDOMNode().classList.contains("showing-room-name")).eql(true);
+    });
+
+    it("shouldn't add a showing room name class when the view doesn't show room names", function() {
+      view = mountTestComponent({
+        showRoomName: false
+      });
+
+      store.updateRoomInfo(new sharedActions.UpdateRoomInfo({
+        roomName: "Study",
+        roomUrl: "Fake"
+      }));
+
+      expect(view.getDOMNode().classList.contains("showing-room-name")).eql(false);
+    });
+
+    it("shouldn't add a showing room name class when the view doesn't have a name", function() {
+      view = mountTestComponent({
+        showRoomName: true
+      });
+
+      expect(view.getDOMNode().classList.contains("showing-room-name")).eql(false);
     });
 
     it("should show timestamps from msgs sent more than 1 min apart", function() {
@@ -537,7 +569,7 @@ describe("loop.shared.views.TextChatView", function() {
 
     it("should render a room name special entry", function() {
       view = mountTestComponent({
-        showInitialContext: true
+        showRoomName: true
       });
 
       store.updateRoomInfo(new sharedActions.UpdateRoomInfo({
@@ -571,27 +603,6 @@ describe("loop.shared.views.TextChatView", function() {
       expect(node.querySelector(".text-chat-entries")).to.not.eql(null);
 
       expect(node.querySelector(".context-url-view-wrapper")).to.not.eql(null);
-    });
-
-    it("should not render a room title and context url when show initial context is false", function() {
-      view = mountTestComponent({
-        showInitialContext: false
-      });
-
-      store.updateRoomInfo(new sharedActions.UpdateRoomInfo({
-        roomName: "A Very Long Conversation Name",
-        roomUrl: "http://showcase",
-        roomContextUrls: [{
-          description: "A wonderful page!",
-          location: "http://wonderful.invalid"
-          // use the fallback thumbnail
-        }]
-      }));
-
-      var node = view.getDOMNode();
-
-      expect(node.querySelector(".showing-room-name")).to.eql(null);
-      expect(node.querySelector(".context-url-view-wrapper")).to.eql(null);
     });
 
     it("should dispatch SendTextChatMessage action when enter is pressed", function() {

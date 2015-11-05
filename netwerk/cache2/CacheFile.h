@@ -58,7 +58,6 @@ public:
                 bool aMemoryOnly,
                 bool aSkipSizeCheck,
                 bool aPriority,
-                bool aPinned,
                 CacheFileListener *aCallback);
 
   NS_IMETHOD OnChunkRead(nsresult aResult, CacheFileChunk *aChunk) override;
@@ -104,7 +103,6 @@ public:
   bool DataSize(int64_t* aSize);
   void Key(nsACString& aKey) { aKey = mKey; }
   bool IsDoomed();
-  bool IsPinned() const { return mPinned; }
   bool IsWriteInProgress();
 
   // Memory reporting
@@ -198,7 +196,6 @@ private:
   bool           mMemoryOnly;
   bool           mSkipSizeCheck;
   bool           mOpenAsMemoryOnly;
-  bool           mPinned;
   bool           mPriority;
   bool           mDataAccessed;
   bool           mDataIsDirty;
@@ -209,8 +206,8 @@ private:
   int64_t        mDataSize;
   nsCString      mKey;
 
-  RefPtr<CacheFileHandle>      mHandle;
-  RefPtr<CacheFileMetadata>    mMetadata;
+  RefPtr<CacheFileHandle>    mHandle;
+  RefPtr<CacheFileMetadata>  mMetadata;
   nsCOMPtr<CacheFileListener>  mListener;
   nsCOMPtr<CacheFileIOListener>   mDoomAfterOpenListener;
 

@@ -79,7 +79,7 @@ bool
 CachePushStreamParent::RecvClose(const nsresult& aRv)
 {
   mWriter->CloseWithStatus(aRv);
-  Unused << Send__delete__(this);
+  unused << Send__delete__(this);
   return true;
 }
 

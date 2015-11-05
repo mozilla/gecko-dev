@@ -42,11 +42,12 @@ using mozilla::UniquePtr;
 struct KeywordInfo {
     const char* chars;         // C string with keyword text
     TokenKind   tokentype;
+    JSVersion   version;
 };
 
 static const KeywordInfo keywords[] = {
-#define KEYWORD_INFO(keyword, name, type) \
-    {js_##keyword##_str, type},
+#define KEYWORD_INFO(keyword, name, type, version) \
+    {js_##keyword##_str, type, version},
     FOR_EACH_JAVASCRIPT_KEYWORD(KEYWORD_INFO)
 #undef KEYWORD_INFO
 };
@@ -996,21 +997,24 @@ TokenStream::checkForKeyword(const KeywordInfo* kw, TokenKind* ttp)
         return reportError(JSMSG_RESERVED_ID, kw->chars);
     }
 
-    if (kw->tokentype == TOK_STRICT_RESERVED)
-        return reportStrictModeError(JSMSG_RESERVED_ID, kw->chars);
+    if (kw->tokentype != TOK_STRICT_RESERVED) {
+        if (kw->version <= versionNumber()) {
+            // Treat 'let' as an identifier and contextually a keyword in
+            // sloppy mode. It is always a keyword in strict mode.
+            if (kw->tokentype == TOK_LET && !strictMode())
+                return true;
 
-    // Treat 'let' as an identifier and contextually a keyword in sloppy mode.
-    // It is always a keyword in strict mode.
-    if (kw->tokentype == TOK_LET && !strictMode())
-        return true;
-
-    // Working keyword.
-    if (ttp) {
-        *ttp = kw->tokentype;
-        return true;
+            // Working keyword.
+            if (ttp) {
+                *ttp = kw->tokentype;
+                return true;
+            }
+            return reportError(JSMSG_RESERVED_ID, kw->chars);
+        }
     }
 
-    return reportError(JSMSG_RESERVED_ID, kw->chars);
+    // Strict reserved word.
+    return reportStrictModeError(JSMSG_RESERVED_ID, kw->chars);
 }
 
 bool

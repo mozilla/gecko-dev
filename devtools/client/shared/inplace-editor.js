@@ -832,13 +832,7 @@ InplaceEditor.prototype = {
       let input = this.input;
       let pre = "";
 
-      // CSS_MIXED needs special treatment here to make it so that
-      // multiple presses of tab will cycle through completions, but
-      // without selecting the completed text.  However, this same
-      // special treatment will do the wrong thing for other editing
-      // styles.
-      if (input.selectionStart < input.selectionEnd ||
-          this.contentType !== CONTENT_TYPES.CSS_MIXED) {
+      if (input.selectionStart < input.selectionEnd) {
         pre = input.value.slice(0, input.selectionStart);
       } else {
         pre = input.value.slice(0, input.selectionStart - label.length +

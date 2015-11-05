@@ -433,7 +433,6 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
       nsTraceRefcnt::WalkTheStack(stderr);
 #endif // !defined(MOZILLA_XPCOMRT_API)
       // Fall through to abort
-      MOZ_FALLTHROUGH;
 
     case NS_ASSERT_ABORT:
       Abort(buf.buffer);
@@ -608,3 +607,4 @@ NS_ABORT_OOM(size_t aSize)
 #endif
   MOZ_CRASH();
 }
+

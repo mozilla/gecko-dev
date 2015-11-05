@@ -745,9 +745,6 @@ MediaDecoder::NotifyDataEnded(nsresult aStatus)
 {
   RefPtr<MediaDecoder> self = this;
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([=] () {
-    if (self->mShuttingDown) {
-      return;
-    }
     self->NotifyDownloadEnded(aStatus);
     if (NS_SUCCEEDED(aStatus)) {
       HTMLMediaElement* element = self->mOwner->GetMediaElement();
@@ -1235,6 +1232,12 @@ MediaDecoder::SetLoadInBackground(bool aLoadInBackground)
   }
 }
 
+bool
+MediaDecoder::OnStateMachineTaskQueue() const
+{
+  return mDecoderStateMachine->OnTaskQueue();
+}
+
 void
 MediaDecoder::SetPlaybackRate(double aPlaybackRate)
 {
@@ -1597,8 +1600,7 @@ MediaDecoderOwner*
 MediaDecoder::GetOwner()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  // mOwner is valid until shutdown.
-  return !mShuttingDown ? mOwner : nullptr;
+  return mOwner;
 }
 
 void

@@ -55,9 +55,9 @@ function init() {
   }
 
   for (let i = 0; i < length; ++i) {
-    let info = data.queryElementAt(i, Ci.nsIServiceWorkerRegistrationInfo);
+    let info = data.queryElementAt(i, Ci.nsIServiceWorkerInfo);
     if (!info) {
-      dump("AboutServiceWorkers: Invalid nsIServiceWorkerRegistrationInfo interface.\n");
+      dump("AboutServiceWorkers: Invalid nsIServiceWorkerInfo interface.\n");
       continue;
     }
 

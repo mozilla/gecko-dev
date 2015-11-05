@@ -574,7 +574,7 @@ ModuleObject::create(ExclusiveContext* cx, HandleObject enclosingStaticScope)
 ModuleObject::finalize(js::FreeOp* fop, JSObject* obj)
 {
     ModuleObject* self = &obj->as<ModuleObject>();
-    if (self->hasImportBindings())
+    if (!self->getReservedSlot(ImportBindingsSlot).isUndefined())
         fop->delete_(&self->importBindings());
     if (IndirectBindingMap* bindings = self->namespaceBindings())
         fop->delete_(bindings);
@@ -590,13 +590,6 @@ ModuleObject::environment() const
         return nullptr;
 
     return &value.toObject().as<ModuleEnvironmentObject>();
-}
-
-bool
-ModuleObject::hasImportBindings() const
-{
-    // Import bindings may not be present if we hit OOM in initialization.
-    return !getReservedSlot(ImportBindingsSlot).isUndefined();
 }
 
 IndirectBindingMap&
@@ -726,8 +719,7 @@ ModuleObject::trace(JSTracer* trc, JSObject* obj)
         module.setReservedSlot(ScriptSlot, PrivateValue(script));
     }
 
-    if (module.hasImportBindings())
-        TraceBindings(trc, module.importBindings());
+    TraceBindings(trc, module.importBindings());
     if (IndirectBindingMap* bindings = module.namespaceBindings())
         TraceBindings(trc, *bindings);
 
@@ -793,10 +785,7 @@ ModuleObject::evaluate(JSContext* cx, HandleModuleObject self, MutableHandleValu
 {
     RootedScript script(cx, self->script());
     RootedModuleEnvironmentObject scope(cx, self->environment());
-    if (!scope) {
-        JS_ReportError(cx, "Module declarations have not yet been instantiated");
-        return false;
-    }
+    MOZ_ASSERT(scope);
 
     return Execute(cx, script, *scope, rval.address());
 }

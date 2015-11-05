@@ -1501,10 +1501,7 @@ void MediaPipelineReceiveVideo::PipelineListener::RenderVideoFrame(
     yuvData.mPicSize = IntSize(width_, height_);
     yuvData.mStereoMode = StereoMode::MONO;
 
-    if (!yuvImage->SetData(yuvData)) {
-      MOZ_ASSERT(false);
-      return;
-    }
+    yuvImage->SetData(yuvData);
 
     image_ = image.forget();
   }

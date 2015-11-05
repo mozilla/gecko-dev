@@ -106,7 +106,8 @@ static const nsString GetKind(const nsCString& aRole)
   return EmptyString();
 }
 
-static void InitTrack(MessageField* aMsgInfo,
+static void InitTrack(TrackInfo::TrackType aTrackType,
+                      MessageField* aMsgInfo,
                       TrackInfo* aInfo,
                       bool aEnable)
 {
@@ -117,7 +118,8 @@ static void InitTrack(MessageField* aMsgInfo,
   nsCString* sRole = aMsgInfo->mValuesStore.Get(eRole);
   nsCString* sTitle = aMsgInfo->mValuesStore.Get(eTitle);
   nsCString* sLanguage = aMsgInfo->mValuesStore.Get(eLanguage);
-  aInfo->Init(sName? NS_ConvertUTF8toUTF16(*sName):EmptyString(),
+  aInfo->Init(aTrackType,
+              sName? NS_ConvertUTF8toUTF16(*sName):EmptyString(),
               sRole? GetKind(*sRole):EmptyString(),
               sTitle? NS_ConvertUTF8toUTF16(*sTitle):EmptyString(),
               sLanguage? NS_ConvertUTF8toUTF16(*sLanguage):EmptyString(),
@@ -317,7 +319,8 @@ void OggReader::SetupMediaTracksInfo(const nsTArray<uint32_t>& aSerials)
       }
 
       if (msgInfo) {
-        InitTrack(msgInfo,
+        InitTrack(TrackInfo::kVideoTrack,
+                  msgInfo,
                   &mInfo.mVideo,
                   mTheoraState == theoraState);
       }
@@ -341,7 +344,8 @@ void OggReader::SetupMediaTracksInfo(const nsTArray<uint32_t>& aSerials)
       }
 
       if (msgInfo) {
-        InitTrack(msgInfo,
+        InitTrack(TrackInfo::kAudioTrack,
+                  msgInfo,
                   &mInfo.mAudio,
                   mVorbisState == vorbisState);
       }
@@ -355,7 +359,8 @@ void OggReader::SetupMediaTracksInfo(const nsTArray<uint32_t>& aSerials)
       }
 
       if (msgInfo) {
-        InitTrack(msgInfo,
+        InitTrack(TrackInfo::kAudioTrack,
+                  msgInfo,
                   &mInfo.mAudio,
                   mOpusState == opusState);
       }
@@ -515,7 +520,7 @@ nsresult OggReader::DecodeVorbis(ogg_packet* aPacket) {
   ogg_int64_t endFrame = aPacket->granulepos;
   while ((frames = vorbis_synthesis_pcmout(&mVorbisState->mDsp, &pcm)) > 0) {
     mVorbisState->ValidateVorbisPacketSamples(aPacket, frames);
-    auto buffer = MakeUnique<AudioDataValue[]>(frames * channels);
+    nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[frames * channels]);
     for (uint32_t j = 0; j < channels; ++j) {
       VorbisPCMValue* channel = pcm[j];
       for (uint32_t i = 0; i < uint32_t(frames); ++i) {
@@ -534,7 +539,7 @@ nsresult OggReader::DecodeVorbis(ogg_packet* aPacket) {
                                    startTime,
                                    duration,
                                    frames,
-                                   Move(buffer),
+                                   buffer.forget(),
                                    channels,
                                    mVorbisState->mInfo.rate));
 
@@ -564,17 +569,17 @@ nsresult OggReader::DecodeOpus(ogg_packet* aPacket) {
   if (frames < 120 || frames > 5760)
     return NS_ERROR_FAILURE;
   uint32_t channels = mOpusState->mChannels;
-  auto buffer = MakeUnique<AudioDataValue[]>(frames * channels);
+  nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[frames * channels]);
 
   // Decode to the appropriate sample type.
 #ifdef MOZ_SAMPLE_TYPE_FLOAT32
   int ret = opus_multistream_decode_float(mOpusState->mDecoder,
                                           aPacket->packet, aPacket->bytes,
-                                          buffer.get(), frames, false);
+                                          buffer, frames, false);
 #else
   int ret = opus_multistream_decode(mOpusState->mDecoder,
                                     aPacket->packet, aPacket->bytes,
-                                    buffer.get(), frames, false);
+                                    buffer, frames, false);
 #endif
   if (ret < 0)
     return NS_ERROR_FAILURE;
@@ -604,13 +609,13 @@ nsresult OggReader::DecodeOpus(ogg_packet* aPacket) {
     }
     int32_t keepFrames = frames - skipFrames;
     int samples = keepFrames * channels;
-    auto trimBuffer = MakeUnique<AudioDataValue[]>(samples);
+    nsAutoArrayPtr<AudioDataValue> trimBuffer(new AudioDataValue[samples]);
     for (int i = 0; i < samples; i++)
       trimBuffer[i] = buffer[skipFrames*channels + i];
 
     startFrame = endFrame - keepFrames;
     frames = keepFrames;
-    buffer = Move(trimBuffer);
+    buffer = trimBuffer;
 
     mOpusState->mSkip -= skipFrames;
     LOG(LogLevel::Debug, ("Opus decoder skipping %d frames", skipFrames));
@@ -651,7 +656,7 @@ nsresult OggReader::DecodeOpus(ogg_packet* aPacket) {
                                  startTime,
                                  endTime - startTime,
                                  frames,
-                                 Move(buffer),
+                                 buffer.forget(),
                                  channels,
                                  mOpusState->mRate));
 
@@ -772,7 +777,7 @@ bool OggReader::ReadOggChain()
     LOG(LogLevel::Debug, ("New vorbis ogg link, serial=%d\n", mVorbisSerial));
 
     if (msgInfo) {
-      InitTrack(msgInfo, &mInfo.mAudio, true);
+      InitTrack(TrackInfo::kAudioTrack, msgInfo, &mInfo.mAudio, true);
     }
     mInfo.mAudio.mRate = newVorbisState->mInfo.rate;
     mInfo.mAudio.mChannels = newVorbisState->mInfo.channels;
@@ -788,7 +793,7 @@ bool OggReader::ReadOggChain()
     SetupTargetOpus(newOpusState);
 
     if (msgInfo) {
-      InitTrack(msgInfo, &mInfo.mAudio, true);
+      InitTrack(TrackInfo::kAudioTrack, msgInfo, &mInfo.mAudio, true);
     }
     mInfo.mAudio.mRate = newOpusState->mRate;
     mInfo.mAudio.mChannels = newOpusState->mChannels;
@@ -1016,7 +1021,7 @@ struct nsAutoOggSyncState {
 
 int64_t OggReader::RangeEndTime(int64_t aEndOffset)
 {
-  MOZ_ASSERT(OnTaskQueue());
+  MOZ_ASSERT(OnTaskQueue() || mDecoder->OnStateMachineTaskQueue());
 
   int64_t position = mResource.Tell();
   int64_t endTime = RangeEndTime(0, aEndOffset, false);
@@ -1934,7 +1939,7 @@ media::TimeIntervals OggReader::GetBuffered()
 
 VideoData* OggReader::FindStartTime(int64_t& aOutStartTime)
 {
-  MOZ_ASSERT(OnTaskQueue());
+  MOZ_ASSERT(OnTaskQueue() || mDecoder->OnStateMachineTaskQueue());
 
   // Extract the start times of the bitstreams in order to calculate
   // the duration.

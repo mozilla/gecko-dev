@@ -207,7 +207,7 @@ MessagePortService::DisentanglePort(
     return false;
   }
 
-  Unused << data->mParent->Entangled(array);
+  unused << data->mParent->Entangled(array);
   return true;
 }
 
@@ -325,7 +325,7 @@ MessagePortService::PostMessages(
     }
 
     data->mMessages.Clear();
-    Unused << data->mParent->SendReceiveData(messages);
+    unused << data->mParent->SendReceiveData(messages);
   }
 
   return true;

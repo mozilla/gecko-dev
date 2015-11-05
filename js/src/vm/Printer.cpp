@@ -385,15 +385,13 @@ QuoteString(ExclusiveContext* cx, JSString* str, char16_t quote)
 }
 
 Fprinter::Fprinter(FILE* fp)
-  : file_(nullptr),
-    init_(false)
+  : file_(nullptr)
 {
     init(fp);
 }
 
 Fprinter::Fprinter()
-  : file_(nullptr),
-    init_(false)
+  : file_(nullptr)
 { }
 
 Fprinter::~Fprinter()

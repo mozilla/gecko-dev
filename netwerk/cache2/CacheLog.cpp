@@ -16,7 +16,13 @@ namespace net {
 //
 // this enables LogLevel::Debug level information and places all output in
 // the file nspr.log
-LazyLogModule gCache2Log("cache2");
+PRLogModuleInfo* GetCache2Log()
+{
+  static PRLogModuleInfo *sLog;
+  if (!sLog)
+    sLog = PR_NewLogModule("cache2");
+  return sLog;
+}
 
 } // namespace net
 } // namespace mozilla

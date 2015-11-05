@@ -831,7 +831,7 @@ ScriptPrecompiler::OnStreamComplete(nsIStreamLoader* aLoader,
         return NS_OK;
     }
 
-    Unused << runnable.forget();
+    unused << runnable.forget();
     notifier.Disarm();
 
     return NS_OK;

@@ -175,7 +175,7 @@ class CodeGeneratorMIPSShared : public CodeGeneratorShared
     virtual void visitTruncateFToInt32(LTruncateFToInt32* ins);
 
     // Out of line visitors.
-    virtual void visitOutOfLineBailout(OutOfLineBailout* ool) = 0;
+    void visitOutOfLineBailout(OutOfLineBailout* ool);
   protected:
     virtual ValueOperand ToOutValue(LInstruction* ins) = 0;
     void memoryBarrier(MemoryBarrierBits barrier);

@@ -8,6 +8,7 @@
 #include "TouchManager.h"
 #include "nsPresShell.h"
 
+bool TouchManager::gPreventMouseEvents = false;
 nsRefPtrHashtable<nsUint32HashKey, dom::Touch>* TouchManager::gCaptureTouchList;
 
 /*static*/ void
@@ -181,6 +182,9 @@ TouchManager::PreHandleEvent(WidgetEvent* aEvent,
             }
           }
         } else {
+          if (gPreventMouseEvents) {
+            *aStatus = nsEventStatus_eConsumeNoDefault;
+          }
           return false;
         }
       }

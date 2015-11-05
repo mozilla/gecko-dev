@@ -210,7 +210,7 @@ public:
     rv = NS_DispatchToMainThread(mEncodingCompleteEvent);
     if (NS_FAILED(rv)) {
       // Better to leak than to crash.
-      Unused << mEncodingCompleteEvent.forget();
+      unused << mEncodingCompleteEvent.forget();
       return rv;
     }
 

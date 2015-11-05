@@ -18,8 +18,6 @@ import android.view.View;
 
 import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.Telemetry;
-import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.util.ColorUtils;
 import org.mozilla.gecko.widget.RecyclerViewClickSupport;
@@ -133,7 +131,6 @@ public class SearchEngineBar extends RecyclerView
             final Intent settingsIntent = new Intent(getContext(), GeckoPreferences.class);
             GeckoPreferences.setResourceToOpen(settingsIntent, "preferences_search");
             getContext().startActivity(settingsIntent);
-            Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.BUTTON, "searchenginebar-settings");
             return;
         }
 

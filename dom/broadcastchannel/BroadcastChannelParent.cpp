@@ -60,7 +60,7 @@ BroadcastChannelParent::RecvClose()
   mService->UnregisterActor(this);
   mService = nullptr;
 
-  Unused << Send__delete__(this);
+  unused << Send__delete__(this);
 
   return true;
 }
@@ -105,7 +105,7 @@ BroadcastChannelParent::CheckAndDeliver(const ClonedMessageData& aData,
       newData.blobsParent()[i] = blobParent;
     }
 
-    Unused << SendNotify(newData);
+    unused << SendNotify(newData);
   }
 }
 

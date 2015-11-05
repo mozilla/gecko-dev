@@ -28,14 +28,14 @@ struct PRPollDesc;
 //
 // set NSPR_LOG_MODULES=nsSocketTransport:5
 //
-extern mozilla::LazyLogModule gSocketTransportLog;
+extern PRLogModuleInfo *gSocketTransportLog;
 #define SOCKET_LOG(args)     MOZ_LOG(gSocketTransportLog, mozilla::LogLevel::Debug, args)
 #define SOCKET_LOG_ENABLED() MOZ_LOG_TEST(gSocketTransportLog, mozilla::LogLevel::Debug)
 
 //
 // set NSPR_LOG_MODULES=UDPSocket:5
 //
-extern mozilla::LazyLogModule gUDPSocketLog;
+extern PRLogModuleInfo *gUDPSocketLog;
 #define UDPSOCKET_LOG(args)     MOZ_LOG(gUDPSocketLog, mozilla::LogLevel::Debug, args)
 #define UDPSOCKET_LOG_ENABLED() MOZ_LOG_TEST(gUDPSocketLog, mozilla::LogLevel::Debug)
 

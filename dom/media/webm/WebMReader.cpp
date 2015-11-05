@@ -787,7 +787,7 @@ media::TimeIntervals WebMReader::GetBuffered()
   return buffered;
 }
 
-void WebMReader::NotifyDataArrivedInternal()
+void WebMReader::NotifyDataArrivedInternal(uint32_t aLength, int64_t aOffset)
 {
   MOZ_ASSERT(OnTaskQueue());
   AutoPinned<MediaResource> resource(mDecoder->GetResource());
@@ -802,7 +802,7 @@ void WebMReader::NotifyDataArrivedInternal()
     RefPtr<MediaByteBuffer> bytes =
       resource->MediaReadAt(range.mStart, range.Length());
     NS_ENSURE_TRUE_VOID(bytes);
-    mBufferedState->NotifyDataArrived(bytes->Elements(), bytes->Length(), range.mStart);
+    mBufferedState->NotifyDataArrived(bytes->Elements(), aLength, aOffset);
   }
 }
 

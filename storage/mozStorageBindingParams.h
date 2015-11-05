@@ -105,6 +105,17 @@ public:
 
 private:
   nsInterfaceHashtable<nsCStringHashKey, nsIVariant> mNamedParameters;
+
+  struct NamedParameterIterationClosureThunk
+  {
+    AsyncBindingParams *self;
+    sqlite3_stmt *statement;
+    nsCOMPtr<mozIStorageError> err;
+  };
+
+  static PLDHashOperator iterateOverNamedParameters(const nsACString &aName,
+                                                    nsIVariant *aValue,
+                                                    void *voidClosureThunk);
 };
 
 } // namespace storage

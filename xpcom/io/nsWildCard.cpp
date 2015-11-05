@@ -81,7 +81,7 @@ _valid_subexp(const T* aExpr, T aStop1, T aStop2)
           return INVALID_SXP;
         }
         ++tld;
-        MOZ_FALLTHROUGH;
+      /* fall through */
       case '*':
       case '?':
       case '$':
@@ -397,7 +397,7 @@ _shexp_match(const T* aStr, const T* aExpr, bool aCaseInsensitive,
         return ABORTED;
       case '\\':
         ++y;
-        MOZ_FALLTHROUGH;
+      /* fall through */
       default:
         if (aCaseInsensitive) {
           if (::upper(aStr[x]) != ::upper(aExpr[y])) {
@@ -413,6 +413,7 @@ _shexp_match(const T* aStr, const T* aExpr, bool aCaseInsensitive,
   }
   return (aStr[x] ? NOMATCH : MATCH);
 }
+
 
 template<class T>
 static int

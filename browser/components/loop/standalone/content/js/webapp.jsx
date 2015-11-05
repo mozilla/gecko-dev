@@ -246,10 +246,3 @@ loop.webapp = (function(_, OT, mozL10n) {
     WebappRootView: WebappRootView
   };
 })(_, window.OT, navigator.mozL10n);
-
-// This should only be available when this file is loaded into index.html,
-// where it's used to actually start the app.
-/* global initIfReady */
-if (typeof initIfReady === "function") {
-  initIfReady();
-}

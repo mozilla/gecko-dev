@@ -53,8 +53,7 @@ public:
   CacheStorage(nsILoadContextInfo* aInfo,
                bool aAllowDisk,
                bool aLookupAppCache,
-               bool aSkipSizeCheck,
-               bool aPinning);
+               bool aSkipSizeCheck);
 
 protected:
   virtual ~CacheStorage();
@@ -65,14 +64,12 @@ protected:
   bool mWriteToDisk : 1;
   bool mLookupAppCache : 1;
   bool mSkipSizeCheck: 1;
-  bool mPinning : 1;
 
 public:
   nsILoadContextInfo* LoadInfo() const { return mLoadContextInfo; }
   bool WriteToDisk() const { return mWriteToDisk && !mLoadContextInfo->IsPrivate(); }
   bool LookupAppCache() const { return mLookupAppCache; }
   bool SkipSizeCheck() const { return mSkipSizeCheck; }
-  bool Pinning() const { return mPinning; }
 };
 
 } // namespace net

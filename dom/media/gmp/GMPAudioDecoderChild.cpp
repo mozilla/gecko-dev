@@ -52,7 +52,7 @@ GMPAudioDecoderChild::Decoded(GMPAudioSamples* aDecodedSamples)
   samples.mChannelCount() = aDecodedSamples->Channels();
   samples.mSamplesPerSecond() = aDecodedSamples->Rate();
 
-  Unused << SendDecoded(samples);
+  unused << SendDecoded(samples);
 
   aDecodedSamples->Destroy();
 }
@@ -62,7 +62,7 @@ GMPAudioDecoderChild::InputDataExhausted()
 {
   MOZ_ASSERT(mPlugin->GMPMessageLoop() == MessageLoop::current());
 
-  Unused << SendInputDataExhausted();
+  unused << SendInputDataExhausted();
 }
 
 void
@@ -70,7 +70,7 @@ GMPAudioDecoderChild::DrainComplete()
 {
   MOZ_ASSERT(mPlugin->GMPMessageLoop() == MessageLoop::current());
 
-  Unused << SendDrainComplete();
+  unused << SendDrainComplete();
 }
 
 void
@@ -78,7 +78,7 @@ GMPAudioDecoderChild::ResetComplete()
 {
   MOZ_ASSERT(mPlugin->GMPMessageLoop() == MessageLoop::current());
 
-  Unused << SendResetComplete();
+  unused << SendResetComplete();
 }
 
 void
@@ -86,7 +86,7 @@ GMPAudioDecoderChild::Error(GMPErr aError)
 {
   MOZ_ASSERT(mPlugin->GMPMessageLoop() == MessageLoop::current());
 
-  Unused << SendError(aError);
+  unused << SendError(aError);
 }
 
 bool
@@ -163,7 +163,7 @@ GMPAudioDecoderChild::RecvDecodingComplete()
 
   mPlugin = nullptr;
 
-  Unused << Send__delete__(this);
+  unused << Send__delete__(this);
 
   return true;
 }

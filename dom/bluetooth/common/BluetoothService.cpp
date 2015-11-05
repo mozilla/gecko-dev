@@ -454,7 +454,7 @@ BluetoothService::SetEnabled(bool aEnabled)
   GetAllBluetoothActors(childActors);
 
   for (uint32_t index = 0; index < childActors.Length(); index++) {
-    Unused << childActors[index]->SendEnabled(aEnabled);
+    unused << childActors[index]->SendEnabled(aEnabled);
   }
 
   /**

@@ -440,15 +440,27 @@ public:
   void DumpTrackInfo() { return mBuffer.DumpTrackInfo(); }
 #endif
   void SetAudioOutputVolumeImpl(void* aKey, float aVolume);
-  void AddAudioOutputImpl(void* aKey);
+  void AddAudioOutputImpl(void* aKey)
+  {
+    mAudioOutputs.AppendElement(AudioOutput(aKey));
+  }
   // Returns true if this stream has an audio output.
   bool HasAudioOutput()
   {
     return !mAudioOutputs.IsEmpty();
   }
   void RemoveAudioOutputImpl(void* aKey);
-  void AddVideoOutputImpl(already_AddRefed<VideoFrameContainer> aContainer);
-  void RemoveVideoOutputImpl(VideoFrameContainer* aContainer);
+  void AddVideoOutputImpl(already_AddRefed<VideoFrameContainer> aContainer)
+  {
+    *mVideoOutputs.AppendElement() = aContainer;
+  }
+  void RemoveVideoOutputImpl(VideoFrameContainer* aContainer)
+  {
+    // Ensure that any frames currently queued for playback by the compositor
+    // are removed.
+    aContainer->ClearFutureFrames();
+    mVideoOutputs.RemoveElement(aContainer);
+  }
   void AddListenerImpl(already_AddRefed<MediaStreamListener> aListener);
   void RemoveListenerImpl(MediaStreamListener* aListener);
   void RemoveAllListenersImpl();

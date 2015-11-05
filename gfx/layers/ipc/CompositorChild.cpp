@@ -29,7 +29,7 @@
 
 using mozilla::layers::LayerTransactionChild;
 using mozilla::dom::TabChildBase;
-using mozilla::Unused;
+using mozilla::unused;
 
 namespace mozilla {
 namespace layers {
@@ -510,7 +510,7 @@ CompositorChild::RecvRemotePaintIsReady()
   TabChildBase* tabChildBase = static_cast<TabChildBase*>(iTabChildBase.get());
   TabChild* tabChild = static_cast<TabChild*>(tabChildBase);
   MOZ_ASSERT(tabChild);
-  Unused << tabChild->SendRemotePaintIsReady();
+  unused << tabChild->SendRemotePaintIsReady();
   mWeakTabChild = nullptr;
   return true;
 }
@@ -521,7 +521,7 @@ CompositorChild::RequestNotifyAfterRemotePaint(TabChild* aTabChild)
 {
   MOZ_ASSERT(aTabChild, "NULL TabChild not allowed in CompositorChild::RequestNotifyAfterRemotePaint");
   mWeakTabChild = do_GetWeakReference( static_cast<dom::TabChildBase*>(aTabChild) );
-  Unused << SendRequestNotifyAfterRemotePaint();
+  unused << SendRequestNotifyAfterRemotePaint();
 }
 
 void

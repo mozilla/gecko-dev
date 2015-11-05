@@ -100,8 +100,7 @@ this.SitePermissions = {
    * used in a UI for managing permissions.
    */
   getPermissionLabel: function (aPermissionID) {
-    let labelID = gPermissionObject[aPermissionID].labelID || aPermissionID;
-    return gStringBundle.GetStringFromName("permission." + labelID + ".label");
+    return gStringBundle.GetStringFromName("permission." + aPermissionID + ".label");
   },
 
   /* Returns the localized label for the given permission state, to be used in
@@ -137,10 +136,6 @@ var gPermissionObject = {
    *    Defaults to UNKNOWN, indicating that the user will be asked each time
    *    a page asks for that permissions.
    *
-   *  - labelID
-   *    Use the given ID instead of the permission name for looking up strings.
-   *    e.g. "desktop-notification2" to use permission.desktop-notification2.label
-   *
    *  - states
    *    Array of permission states to be exposed to the user.
    *    Defaults to ALLOW, BLOCK and the default state (see getDefault).
@@ -167,8 +162,7 @@ var gPermissionObject = {
   },
 
   "desktop-notification": {
-    exactHostMatch: true,
-    labelID: "desktop-notification2",
+    exactHostMatch: true
   },
 
   "camera": {},

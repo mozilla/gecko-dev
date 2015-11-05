@@ -996,7 +996,6 @@ pref("urlclassifier.downloadAllowTable", "goog-downloadwhite-digest256");
 
 pref("browser.geolocation.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/geolocation/");
 pref("browser.push.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/push/");
-pref("browser.push.warning.migrationURL", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/push#w_upgraded-notifications");
 
 pref("browser.EULA.version", 3);
 pref("browser.rights.version", 3);
@@ -1431,13 +1430,6 @@ pref("dom.identity.enabled", false);
 // Block insecure active content on https pages
 pref("security.mixed_content.block_active_content", true);
 
-// Show degraded UI for http pages with password fields
-#ifdef NIGHTLY_BUILD
-pref("security.insecure_password.ui.enabled", true);
-#else
-pref("security.insecure_password.ui.enabled", false);
-#endif
-
 // 1 = allow MITM for certificate pinning checks.
 pref("security.cert_pinning.enforcement_level", 1);
 
@@ -1531,13 +1523,8 @@ pref("ui.key.menuAccessKeyFocuses", true);
 pref("media.eme.enabled", true);
 pref("media.eme.apiVisible", true);
 
-// Decode using Gecko Media Plugins in <video>, if a system decoder is not
-// availble and the preferred GMP is available.
-pref("media.gmp.decoder.enabled", true);
-
-// If decoding-via-GMP is turned on for <video>, use Adobe's GMP for decoding,
-// if it's available. Note: We won't fallback to another GMP if Adobe's is not
-// installed.
+// If decoding-via-gmp is turned on for <video>, default to using
+// Adobe's GMP for decoding.
 pref("media.gmp.decoder.aac", 2);
 pref("media.gmp.decoder.h264", 2);
 

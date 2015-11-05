@@ -63,7 +63,7 @@ ServiceWorkerManagerChild::RecvNotifyUnregister(const PrincipalInfo& aPrincipalI
   }
 
   nsresult rv = swm->Unregister(principal, nullptr, aScope);
-  Unused << NS_WARN_IF(NS_FAILED(rv));
+  unused << NS_WARN_IF(NS_FAILED(rv));
   return true;
 }
 

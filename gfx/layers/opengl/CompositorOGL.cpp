@@ -13,11 +13,10 @@
 #include "Layers.h"                     // for WriteSnapshotToDumpFile
 #include "LayerScope.h"                 // for LayerScope
 #include "gfxCrashReporterUtils.h"      // for ScopedGfxFeatureReporter
-#include "gfxEnv.h"                     // for gfxEnv
 #include "gfxPlatform.h"                // for gfxPlatform
 #include "gfxPrefs.h"                   // for gfxPrefs
 #include "gfxRect.h"                    // for gfxRect
-#include "gfxUtils.h"                   // for gfxUtils, etc
+#include "gfxUtils.h"                   // for NextPowerOfTwo, gfxUtils, etc
 #include "mozilla/ArrayUtils.h"         // for ArrayLength
 #include "mozilla/Preferences.h"        // for Preferences
 #include "mozilla/gfx/BasePoint.h"      // for BasePoint
@@ -105,14 +104,14 @@ CompositorOGL::CreateContext()
   }
 
 #ifdef XP_WIN
-  if (gfxEnv::LayersPreferEGL()) {
+  if (PR_GetEnv("MOZ_LAYERS_PREFER_EGL")) {
     printf_stderr("Trying GL layers...\n");
     context = gl::GLContextProviderEGL::CreateForWindow(mWidget);
   }
 #endif
 
   // Allow to create offscreen GL context for main Layer Manager
-  if (!context && gfxEnv::LayersPreferOffscreen()) {
+  if (!context && PR_GetEnv("MOZ_LAYERS_PREFER_OFFSCREEN")) {
     SurfaceCaps caps = SurfaceCaps::ForRGB();
     caps.preserve = false;
     caps.bpp16 = gfxPlatform::GetPlatform()->GetOffscreenFormat() == gfxImageFormat::RGB16_565;
@@ -1389,7 +1388,7 @@ CompositorOGL::EndFrame()
   MOZ_ASSERT(mCurrentRenderTarget == mWindowRenderTarget, "Rendering target not properly restored");
 
 #ifdef MOZ_DUMP_PAINTING
-  if (gfxEnv::DumpCompositorTextures()) {
+  if (gfxUtils::sDumpCompositorTextures) {
     IntRect rect;
     if (mUseExternalSurfaceSize) {
       rect = IntRect(0, 0, mSurfaceSize.width, mSurfaceSize.height);

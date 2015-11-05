@@ -494,7 +494,6 @@ nsDownloadManager::InitFileDB()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     // Fallthrough to the next upgrade
-    MOZ_FALLTHROUGH;
 
   case 2: // Add referrer column to the database
     {
@@ -509,7 +508,6 @@ nsDownloadManager::InitFileDB()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     // Fallthrough to the next upgrade
-    MOZ_FALLTHROUGH;
 
   case 3: // This version adds a column to the database (entityID)
     {
@@ -524,7 +522,6 @@ nsDownloadManager::InitFileDB()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     // Fallthrough to the next upgrade
-    MOZ_FALLTHROUGH;
 
   case 4: // This version adds a column to the database (tempPath)
     {
@@ -539,7 +536,6 @@ nsDownloadManager::InitFileDB()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     // Fallthrough to the next upgrade
-    MOZ_FALLTHROUGH;
 
   case 5: // This version adds two columns for tracking transfer progress
     {
@@ -559,7 +555,6 @@ nsDownloadManager::InitFileDB()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     // Fallthrough to the next upgrade
-    MOZ_FALLTHROUGH;
 
   case 6: // This version adds three columns to DB (MIME type related info)
     {
@@ -584,7 +579,6 @@ nsDownloadManager::InitFileDB()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     // Fallthrough to next upgrade
-    MOZ_FALLTHROUGH;
 
   case 7: // This version adds a column to remember to auto-resume downloads
     {
@@ -599,7 +593,6 @@ nsDownloadManager::InitFileDB()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     // Fallthrough to the next upgrade
-    MOZ_FALLTHROUGH;
 
     // Warning: schema versions >=8 must take into account that they can
     // be operating on schemas from unknown, future versions that have
@@ -634,7 +627,6 @@ nsDownloadManager::InitFileDB()
 
   // Extra sanity checking for developers
 #ifndef DEBUG
-    MOZ_FALLTHROUGH;
   case DM_SCHEMA_VERSION:
 #endif
     break;
@@ -651,7 +643,6 @@ nsDownloadManager::InitFileDB()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     // Fallthrough to downgrade check
-    MOZ_FALLTHROUGH;
 
   // Downgrading
   // If columns have been added to the table, we can still use the ones we
@@ -1274,17 +1265,17 @@ nsDownloadManager::GetDownloadFromDB(mozIStorageConnection* aDBConn,
   if (dl->mGUID.IsEmpty()) {
     rv = GenerateGUID(dl->mGUID);
     NS_ENSURE_SUCCESS(rv, rv);
-    nsCOMPtr<mozIStorageStatement> updateStmt;
+    nsCOMPtr<mozIStorageStatement> stmt;
     rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
                                     "UPDATE moz_downloads SET guid = :guid "
                                     "WHERE id = :id"),
-                                  getter_AddRefs(updateStmt));
+                                  getter_AddRefs(stmt));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = updateStmt->BindUTF8StringByName(NS_LITERAL_CSTRING("guid"), dl->mGUID);
+    rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("guid"), dl->mGUID);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = updateStmt->BindInt64ByName(NS_LITERAL_CSTRING("id"), dl->mID);
+    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("id"), dl->mID);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = updateStmt->Execute();
+    rv = stmt->Execute();
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1489,6 +1480,9 @@ nsDownloadManager::GetUserDownloadsDirectory(nsIFile **aResult)
     case 0: // Desktop
       {
         nsCOMPtr<nsIFile> downloadDir;
+        nsCOMPtr<nsIProperties> dirService =
+           do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv);
+        NS_ENSURE_SUCCESS(rv, rv);
         rv = dirService->Get(NS_OS_DESKTOP_DIR,
                              NS_GET_IID(nsIFile),
                              getter_AddRefs(downloadDir));
@@ -1809,6 +1803,7 @@ nsDownloadManager::RetryDownload(const nsACString& aGUID)
 
   return RetryDownload(dl);
 }
+
 
 NS_IMETHODIMP
 nsDownloadManager::RetryDownload(uint32_t aID)

@@ -162,8 +162,6 @@ public:
     mozilla::TimeStamp GetResponseStart();
     mozilla::TimeStamp GetResponseEnd();
 
-    int64_t GetTransferSize() { return mTransferSize; }
-
 private:
     friend class DeleteHttpTransaction;
     virtual ~nsHttpTransaction();
@@ -244,7 +242,6 @@ private:
 
     int64_t                         mContentLength;   // equals -1 if unknown
     int64_t                         mContentRead;     // count of consumed content bytes
-    int64_t                         mTransferSize; // count of received bytes
 
     // After a 304/204 or other "no-content" style response we will skip over
     // up to MAX_INVALID_RESPONSE_BODY_SZ bytes when looking for the next

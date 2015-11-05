@@ -24,7 +24,7 @@
 
 namespace {
 
-using mozilla::Unused;
+using mozilla::unused;
 using mozilla::dom::cache::CachePushStreamChild;
 using mozilla::dom::cache::CacheReadStream;
 using mozilla::dom::cache::CacheReadStreamOrVoid;
@@ -54,7 +54,7 @@ CleanupChildFds(CacheReadStream& aReadStream, CleanupAction aAction)
   MOZ_ASSERT(fdSetActor);
 
   if (aAction == Delete) {
-    Unused << fdSetActor->Send__delete__(fdSetActor);
+    unused << fdSetActor->Send__delete__(fdSetActor);
   }
 
   // FileDescriptorSet doesn't clear its fds in its ActorDestroy, so we
@@ -114,7 +114,7 @@ CleanupParentFds(CacheReadStream& aReadStream, CleanupAction aAction)
   MOZ_ASSERT(fdSetActor);
 
   if (aAction == Delete) {
-    Unused << fdSetActor->Send__delete__(fdSetActor);
+    unused << fdSetActor->Send__delete__(fdSetActor);
   }
 
   // FileDescriptorSet doesn't clear its fds in its ActorDestroy, so we
@@ -482,7 +482,7 @@ AutoParentOpResult::~AutoParentOpResult()
       if (action == Forget || result.actorParent() == nullptr) {
         break;
       }
-      Unused << PCacheParent::Send__delete__(result.actorParent());
+      unused << PCacheParent::Send__delete__(result.actorParent());
     }
     default:
       // other types do not need clean up
@@ -490,7 +490,7 @@ AutoParentOpResult::~AutoParentOpResult()
   }
 
   if (action == Delete && mStreamControl) {
-    Unused << PCacheStreamControlParent::Send__delete__(mStreamControl);
+    unused << PCacheStreamControlParent::Send__delete__(mStreamControl);
   }
 }
 

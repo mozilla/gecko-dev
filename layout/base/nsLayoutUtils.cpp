@@ -73,7 +73,6 @@
 #include "mozilla/dom/Element.h"
 #include "nsCanvasFrame.h"
 #include "gfxDrawable.h"
-#include "gfxEnv.h"
 #include "gfxUtils.h"
 #include "nsDataHashtable.h"
 #include "nsTextFrame.h"
@@ -883,8 +882,7 @@ GetDisplayPortFromMarginsData(nsIContent* aContent,
   if (nsRect* baseData = static_cast<nsRect*>(aContent->GetProperty(nsGkAtoms::DisplayPortBase))) {
     base = *baseData;
   } else {
-    // In theory we shouldn't get here, but we do sometimes (see bug 1212136).
-    // Fall through for graceful handling.
+    NS_WARNING("Attempting to get a margins-based displayport with no base data!");
   }
 
   nsIFrame* frame = aContent->GetPrimaryFrame();
@@ -1157,9 +1155,9 @@ nsLayoutUtils::SetDisplayPortMargins(nsIContent* aContent,
   }
 
   if (aRepaintMode == RepaintMode::Repaint) {
-    nsIFrame* frame = aContent->GetPrimaryFrame();
-    if (frame) {
-      frame->SchedulePaint();
+    nsIFrame* rootFrame = aPresShell->FrameManager()->GetRootFrame();
+    if (rootFrame) {
+      rootFrame->SchedulePaint();
     }
   }
 
@@ -1391,16 +1389,11 @@ nsLayoutUtils::GetAfterFrame(nsIFrame* aFrame)
 
 // static
 nsIFrame*
-nsLayoutUtils::GetClosestFrameOfType(nsIFrame* aFrame,
-                                     nsIAtom* aFrameType,
-                                     nsIFrame* aStopAt)
+nsLayoutUtils::GetClosestFrameOfType(nsIFrame* aFrame, nsIAtom* aFrameType)
 {
   for (nsIFrame* frame = aFrame; frame; frame = frame->GetParent()) {
     if (frame->GetType() == aFrameType) {
       return frame;
-    }
-    if (frame == aStopAt) {
-      break;
     }
   }
   return nullptr;
@@ -1871,38 +1864,29 @@ nsLayoutUtils::IsScrollbarThumbLayerized(nsIFrame* aThumbFrame)
 
 nsIFrame*
 nsLayoutUtils::GetAnimatedGeometryRootForFrame(nsDisplayListBuilder* aBuilder,
-                                               nsIFrame* aFrame)
+                                               nsIFrame* aFrame,
+                                               const nsIFrame* aStopAtAncestor)
 {
-  return aBuilder->FindAnimatedGeometryRootFor(aFrame);
+  return aBuilder->FindAnimatedGeometryRootFor(aFrame, aStopAtAncestor);
 }
 
 nsIFrame*
 nsLayoutUtils::GetAnimatedGeometryRootFor(nsDisplayItem* aItem,
-                                          nsDisplayListBuilder* aBuilder,
-                                          uint32_t aFlags)
+                                          nsDisplayListBuilder* aBuilder)
 {
   nsIFrame* f = aItem->Frame();
-  if (!(aFlags & AGR_IGNORE_BACKGROUND_ATTACHMENT_FIXED) &&
-      aItem->ShouldFixToViewport(aBuilder)) {
+  if (aItem->ShouldFixToViewport(aBuilder)) {
     // Make its active scrolled root be the active scrolled root of
     // the enclosing viewport, since it shouldn't be scrolled by scrolled
     // frames in its document. InvalidateFixedBackgroundFramesFromList in
     // nsGfxScrollFrame will not repaint this item when scrolling occurs.
     nsIFrame* viewportFrame =
-      nsLayoutUtils::GetClosestFrameOfType(f, nsGkAtoms::viewportFrame, aBuilder->RootReferenceFrame());
-    if (viewportFrame) {
-      return GetAnimatedGeometryRootForFrame(aBuilder, viewportFrame);
-    }
+      nsLayoutUtils::GetClosestFrameOfType(f, nsGkAtoms::viewportFrame);
+    NS_ASSERTION(viewportFrame, "no viewport???");
+    return GetAnimatedGeometryRootForFrame(aBuilder, viewportFrame,
+        aBuilder->FindReferenceFrameFor(viewportFrame));
   }
-  if (aItem->GetType() == nsDisplayItem::TYPE_TRANSFORM &&
-      static_cast<nsDisplayTransform*>(aItem)->IsReferenceFrameBoundary() &&
-      f != aBuilder->RootReferenceFrame()) {
-    nsIFrame* parent = nsLayoutUtils::GetCrossDocParentFrame(f);
-    if (parent) {
-      return GetAnimatedGeometryRootForFrame(aBuilder, parent);
-    }
-  }
-  return GetAnimatedGeometryRootForFrame(aBuilder, f);
+  return GetAnimatedGeometryRootForFrame(aBuilder, f, aItem->ReferenceFrame());
 }
 
 // static
@@ -3314,7 +3298,7 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
                                  startBuildDisplayList);
 
   bool profilerNeedsDisplayList = profiler_feature_active("displaylistdump");
-  bool consoleNeedsDisplayList = gfxUtils::DumpDisplayList() || gfxEnv::DumpPaint();
+  bool consoleNeedsDisplayList = gfxUtils::DumpDisplayList() || gfxUtils::sDumpPainting;
 #ifdef MOZ_DUMP_PAINTING
   FILE* savedDumpFile = gfxUtils::sDumpPaintFile;
 #endif
@@ -3323,7 +3307,7 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   if (consoleNeedsDisplayList || profilerNeedsDisplayList) {
     ss = MakeUnique<std::stringstream>();
 #ifdef MOZ_DUMP_PAINTING
-    if (gfxEnv::DumpPaintToFile()) {
+    if (gfxUtils::sDumpPaintingToFile) {
       nsCString string("dump-");
       // Include the process ID in the dump file name, to make sure that in an
       // e10s setup different processes don't clobber each other's dump files.
@@ -3337,7 +3321,7 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
     } else {
       gfxUtils::sDumpPaintFile = stderr;
     }
-    if (gfxEnv::DumpPaintToFile()) {
+    if (gfxUtils::sDumpPaintingToFile) {
       *ss << "<html><head><script>\n"
              "var array = {};\n"
              "function ViewImage(index) { \n"
@@ -3352,9 +3336,9 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
 #endif
     *ss << nsPrintfCString("Painting --- before optimization (dirty %d,%d,%d,%d):\n",
             dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height).get();
-    nsFrame::PrintDisplayList(&builder, list, *ss, gfxEnv::DumpPaintToFile());
+    nsFrame::PrintDisplayList(&builder, list, *ss, gfxUtils::sDumpPaintingToFile);
 
-    if (gfxEnv::DumpPaint() || gfxEnv::DumpPaintItems()) {
+    if (gfxUtils::sDumpPainting || gfxUtils::sDumpPaintItems) {
       // Flush stream now to avoid reordering dump output relative to
       // messages dumped by PaintRoot below.
       if (profilerNeedsDisplayList && !consoleNeedsDisplayList) {
@@ -3397,12 +3381,12 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
 
   if (consoleNeedsDisplayList || profilerNeedsDisplayList) {
     *ss << "Painting --- after optimization:\n";
-    nsFrame::PrintDisplayList(&builder, list, *ss, gfxEnv::DumpPaintToFile());
+    nsFrame::PrintDisplayList(&builder, list, *ss, gfxUtils::sDumpPaintingToFile);
 
     *ss << "Painting --- layer tree:\n";
     if (layerManager) {
       FrameLayerBuilder::DumpRetainedLayerTree(layerManager, *ss,
-                                               gfxEnv::DumpPaintToFile());
+                                               gfxUtils::sDumpPaintingToFile);
     }
 
     if (profilerNeedsDisplayList && !consoleNeedsDisplayList) {
@@ -3413,10 +3397,10 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
     }
 
 #ifdef MOZ_DUMP_PAINTING
-    if (gfxEnv::DumpPaintToFile()) {
+    if (gfxUtils::sDumpPaintingToFile) {
       *ss << "</body></html>";
     }
-    if (gfxEnv::DumpPaintToFile()) {
+    if (gfxUtils::sDumpPaintingToFile) {
       fclose(gfxUtils::sDumpPaintFile);
     }
     gfxUtils::sDumpPaintFile = savedDumpFile;
@@ -8675,16 +8659,4 @@ nsLayoutUtils::GetSelectionBoundingRect(Selection* aSel)
   }
 
   return res;
-}
-
-/* static */ bool
-nsLayoutUtils::IsScrollFrameWithSnapping(nsIFrame* aFrame)
-{
-  nsIScrollableFrame* sf = do_QueryFrame(aFrame);
-  if (!sf) {
-    return false;
-  }
-  ScrollbarStyles styles = sf->GetScrollbarStyles();
-  return styles.mScrollSnapTypeY != NS_STYLE_SCROLL_SNAP_TYPE_NONE ||
-         styles.mScrollSnapTypeX != NS_STYLE_SCROLL_SNAP_TYPE_NONE;
 }

@@ -208,7 +208,7 @@ AppleMP3Reader::AudioSampleCallback(UInt32 aNumBytes,
 
   do {
     // Decompressed audio buffer
-    auto decoded = MakeUnique<uint8_t[]>(decodedSize);
+    nsAutoArrayPtr<uint8_t> decoded(new uint8_t[decodedSize]);
 
     AudioBufferList decBuffer;
     decBuffer.mNumberBuffers = 1;
@@ -246,11 +246,9 @@ AppleMP3Reader::AudioSampleCallback(UInt32 aNumBytes,
     LOGD("pushed audio at time %lfs; duration %lfs\n",
          (double)time / USECS_PER_S, (double)duration / USECS_PER_S);
 
-    auto samples = UniquePtr<AudioDataValue[]>(reinterpret_cast<AudioDataValue*>
-					       (decoded.release()));
     AudioData *audio = new AudioData(mResource.Tell(),
                                      time, duration, numFrames,
-                                     Move(samples),
+                                     reinterpret_cast<AudioDataValue *>(decoded.forget()),
                                      mAudioChannels, mAudioSampleRate);
     mAudioQueue.Push(audio);
 
@@ -502,7 +500,7 @@ AppleMP3Reader::Seek(int64_t aTime, int64_t aEndTime)
 }
 
 void
-AppleMP3Reader::NotifyDataArrivedInternal()
+AppleMP3Reader::NotifyDataArrivedInternal(uint32_t aLength, int64_t aOffset)
 {
   MOZ_ASSERT(OnTaskQueue());
   if (!mMP3FrameParser.NeedsData()) {

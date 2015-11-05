@@ -212,7 +212,7 @@ NS_IMETHODIMP nsSound::Play(nsIURL *aURL)
                           aURL,
                           this, // aObserver
                           nsContentUtils::GetSystemPrincipal(),
-                          nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                          nsILoadInfo::SEC_NORMAL,
                           nsIContentPolicy::TYPE_OTHER);
   return rv;
 }

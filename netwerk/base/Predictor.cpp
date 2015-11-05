@@ -56,8 +56,7 @@ namespace net {
 
 Predictor *Predictor::sSelf = nullptr;
 
-static LazyLogModule gPredictorLog("NetworkPredictor");
-
+static PRLogModuleInfo *gPredictorLog = nullptr;
 #define PREDICTOR_LOG(args) MOZ_LOG(gPredictorLog, mozilla::LogLevel::Debug, args)
 
 #define RETURN_IF_FAILED(_rv) \
@@ -323,6 +322,8 @@ Predictor::Predictor()
   ,mStartupCount(1)
   ,mMaxURILength(PREDICTOR_MAX_URI_LENGTH_DEFAULT)
 {
+  gPredictorLog = PR_NewLogModule("NetworkPredictor");
+
   MOZ_ASSERT(!sSelf, "multiple Predictor instances!");
   sSelf = this;
 }
@@ -1856,8 +1857,7 @@ Predictor::Resetter::OnCacheStorageInfo(uint32_t entryCount, uint64_t consumptio
 NS_IMETHODIMP
 Predictor::Resetter::OnCacheEntryInfo(nsIURI *uri, const nsACString &idEnhance,
                                       int64_t dataSize, int32_t fetchCount,
-                                      uint32_t lastModifiedTime, uint32_t expirationTime,
-                                      bool aPinned)
+                                      uint32_t lastModifiedTime, uint32_t expirationTime)
 {
   MOZ_ASSERT(NS_IsMainThread());
 

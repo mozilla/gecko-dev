@@ -559,22 +559,19 @@ public:
   {
     MOZ_ASSERT(aWorkerPrivate);
 
-    RefPtr<EventTarget> target = aWorkerPrivate->GlobalScope();
+    WorkerGlobalScope* globalScope = aWorkerPrivate->GlobalScope();
 
-    ExtendableEventInit init;
-    init.mBubbles = false;
-    init.mCancelable = false;
+    RefPtr<Event> event = NS_NewDOMEvent(globalScope, nullptr, nullptr);
 
-    RefPtr<ExtendableEvent> event =
-      ExtendableEvent::Constructor(target,
-                                   NS_LITERAL_STRING("pushsubscriptionchange"),
-                                   init);
+    nsresult rv = event->InitEvent(NS_LITERAL_STRING("pushsubscriptionchange"),
+                                   false, false);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return false;
+    }
 
     event->SetTrusted(true);
 
-    DispatchExtendableEventOnWorkerScope(aCx, aWorkerPrivate->GlobalScope(),
-                                         event, nullptr);
-
+    globalScope->DispatchDOMEvent(nullptr, event, nullptr, nullptr);
     return true;
   }
 };
@@ -1170,9 +1167,7 @@ private:
     if (NS_WARN_IF(NS_FAILED(rv2)) || !event->WaitToRespond()) {
       nsCOMPtr<nsIRunnable> runnable;
       if (event->DefaultPrevented(aCx)) {
-        event->ReportCanceled();
-        runnable = new CancelChannelRunnable(mInterceptedChannel,
-                                             NS_ERROR_INTERCEPTION_FAILED);
+        runnable = new CancelChannelRunnable(mInterceptedChannel, NS_ERROR_INTERCEPTION_CANCELED);
       } else {
         runnable = new ResumeRequest(mInterceptedChannel);
       }

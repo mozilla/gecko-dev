@@ -95,7 +95,7 @@ ServiceWorkerManagerService::PropagateRegistration(
     MOZ_ASSERT(parent);
 
     if (parent->ID() != aParentID) {
-      Unused << parent->SendNotifyRegister(aData);
+      unused << parent->SendNotifyRegister(aData);
 #ifdef DEBUG
     } else {
       parentFound = true;
@@ -122,7 +122,7 @@ ServiceWorkerManagerService::PropagateSoftUpdate(
     MOZ_ASSERT(parent);
 
     nsString scope(aScope);
-    Unused << parent->SendNotifySoftUpdate(aOriginAttributes,
+    unused << parent->SendNotifySoftUpdate(aOriginAttributes,
                                            scope);
 #ifdef DEBUG
     if (parent->ID() == aParentID) {
@@ -160,7 +160,7 @@ ServiceWorkerManagerService::PropagateUnregister(
 
     if (parent->ID() != aParentID) {
       nsString scope(aScope);
-      Unused << parent->SendNotifyUnregister(aPrincipalInfo, scope);
+      unused << parent->SendNotifyUnregister(aPrincipalInfo, scope);
 #ifdef DEBUG
     } else {
       parentFound = true;
@@ -186,7 +186,7 @@ ServiceWorkerManagerService::PropagateRemove(uint64_t aParentID,
 
     if (parent->ID() != aParentID) {
       nsCString host(aHost);
-      Unused << parent->SendNotifyRemove(host);
+      unused << parent->SendNotifyRemove(host);
 #ifdef DEBUG
     } else {
       parentFound = true;
@@ -216,7 +216,7 @@ ServiceWorkerManagerService::PropagateRemoveAll(uint64_t aParentID)
     MOZ_ASSERT(parent);
 
     if (parent->ID() != aParentID) {
-      Unused << parent->SendNotifyRemoveAll();
+      unused << parent->SendNotifyRemoveAll();
 #ifdef DEBUG
     } else {
       parentFound = true;

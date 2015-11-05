@@ -7,7 +7,7 @@
 // Note code is not run, so the only issue here is whether it compiles
 // properly as asm.js.
 
-if (!this.SharedArrayBuffer || !isAsmJSCompilationAvailable())
+if (!isAsmJSCompilationAvailable())
     quit(0);
 
 function module_a(stdlib, foreign, heap) {

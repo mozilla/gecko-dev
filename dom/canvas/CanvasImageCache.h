@@ -33,8 +33,7 @@ public:
                               dom::HTMLCanvasElement* aCanvas,
                               imgIRequest* aRequest,
                               SourceSurface* aSource,
-                              const gfx::IntSize& aSize,
-                              bool aIsAccelerated);
+                              const gfx::IntSize& aSize);
 
   /**
    * Check whether aImage has recently been drawn into aCanvas. If we return
@@ -44,16 +43,14 @@ public:
    */
   static SourceSurface* Lookup(dom::Element* aImage,
                                dom::HTMLCanvasElement* aCanvas,
-                               gfx::IntSize* aSize,
-                               bool aIsAccelerated);
+                               gfx::IntSize* aSize);
 
   /**
    * This is the same as Lookup, except it works on any image recently drawn
    * into any canvas. Security checks need to be done again if using the
    * results from this.
    */
-  static SourceSurface* SimpleLookup(dom::Element* aImage,
-                                     bool aIsAccelerated);
+  static SourceSurface* SimpleLookup(dom::Element* aImage);
 };
 
 } // namespace mozilla

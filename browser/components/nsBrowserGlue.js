@@ -29,6 +29,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "NewTabUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "RemoteAboutNewTab",
                                   "resource:///modules/RemoteAboutNewTab.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "RemoteDirectoryLinksProvider",
+                                  "resource:///modules/RemoteDirectoryLinksProvider.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "RemoteNewTabUtils",
                                   "resource:///modules/RemoteNewTabUtils.jsm");
 
@@ -183,9 +186,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
 
 XPCOMUtils.defineLazyServiceGetter(this, "WindowsUIUtils",
                                    "@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils");
-
-XPCOMUtils.defineLazyServiceGetter(this, "AlertsService",
-                                   "@mozilla.org/alerts-service;1", "nsIAlertsService");
 
 const ABOUT_NEWTAB = "about:newtab";
 
@@ -644,7 +644,6 @@ BrowserGlue.prototype = {
     ExtensionManagement.registerScript("chrome://browser/content/ext-bookmarks.js");
 
     this._flashHangCount = 0;
-    this._firstWindowReady = new Promise(resolve => this._firstWindowLoaded = resolve);
   },
 
   // cleanup (called on application shutdown)
@@ -840,14 +839,15 @@ BrowserGlue.prototype = {
     webrtcUI.init();
     AboutHome.init();
 
+    RemoteDirectoryLinksProvider.init();
+    RemoteNewTabUtils.init();
+    RemoteNewTabUtils.links.addProvider(RemoteDirectoryLinksProvider);
+    RemoteAboutNewTab.init();
+
     DirectoryLinksProvider.init();
     NewTabUtils.init();
     NewTabUtils.links.addProvider(DirectoryLinksProvider);
     AboutNewTab.init();
-
-    RemoteNewTabUtils.init();
-    RemoteNewTabUtils.links.addProvider(DirectoryLinksProvider);
-    RemoteAboutNewTab.init();
 
     SessionStore.init();
     BrowserUITelemetry.init();
@@ -1142,7 +1142,6 @@ BrowserGlue.prototype = {
     this._checkForOldBuildUpdates();
 
     this._firstWindowTelemetry(aWindow);
-    this._firstWindowLoaded();
   },
 
   /**
@@ -1565,6 +1564,16 @@ BrowserGlue.prototype = {
     if (actions.indexOf("showAlert") == -1)
       return;
 
+    let notifier;
+    try {
+      notifier = Cc["@mozilla.org/alerts-service;1"].
+                 getService(Ci.nsIAlertsService);
+    }
+    catch (e) {
+      // nsIAlertsService is not available for this platform
+      return;
+    }
+
     let title = getNotifyString({propName: "alertTitle",
                                  stringName: "puAlertTitle",
                                  stringParams: [appName]});
@@ -1585,11 +1594,10 @@ BrowserGlue.prototype = {
     try {
       // This will throw NS_ERROR_NOT_AVAILABLE if the notification cannot
       // be displayed per the idl.
-      AlertsService.showAlertNotification(null, title, text,
-                                          true, url, clickCallback);
+      notifier.showAlertNotification(null, title, text,
+                                     true, url, clickCallback);
     }
     catch (e) {
-      Cu.reportError(e);
     }
   },
 
@@ -1869,7 +1877,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 32;
+    const UI_VERSION = 31;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul";
     let currentUIVersion = 0;
     try {
@@ -2210,44 +2218,9 @@ BrowserGlue.prototype = {
       xulStore.removeValue(BROWSER_DOCURL, "home-button", "class");
     }
 
-    if (currentUIVersion < 32) {
-      this._notifyNotificationsUpgrade().catch(Cu.reportError);
-    }
-
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
-
-  _hasExistingNotificationPermission: function BG__hasExistingNotificationPermission() {
-    let enumerator = Services.perms.enumerator;
-    while (enumerator.hasMoreElements()) {
-      let permission = enumerator.getNext().QueryInterface(Ci.nsIPermission);
-      if (permission.type == "desktop-notification") {
-        return true;
-      }
-    }
-    return false;
-  },
-
-  _notifyNotificationsUpgrade: Task.async(function* () {
-    if (!this._hasExistingNotificationPermission()) {
-      return;
-    }
-    yield this._firstWindowReady;
-    function clickCallback(subject, topic, data) {
-      if (topic != "alertclickcallback")
-        return;
-      let win = RecentWindow.getMostRecentBrowserWindow();
-      win.openUILinkIn(data, "tab");
-    }
-    let imageURL = "chrome://browser/skin/web-notifications-icon.svg";
-    let title = gBrowserBundle.GetStringFromName("webNotifications.upgradeTitle");
-    let text = gBrowserBundle.GetStringFromName("webNotifications.upgradeBody");
-    let url = Services.urlFormatter.formatURLPref("browser.push.warning.migrationURL");
-
-    AlertsService.showAlertNotification(imageURL, title, text,
-                                        true, url, clickCallback);
-  }),
 
   // ------------------------------
   // public nsIBrowserGlue members

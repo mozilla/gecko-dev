@@ -46,7 +46,7 @@ DNSRequestParent::DoAsyncResolve(const nsACString &hostname, uint32_t flags,
 
   if (NS_FAILED(rv) && !mIPCClosed) {
     mIPCClosed = true;
-    Unused << SendLookupCompleted(DNSRequestResponse(rv));
+    unused << SendLookupCompleted(DNSRequestResponse(rv));
   }
 }
 
@@ -116,9 +116,9 @@ DNSRequestParent::OnLookupComplete(nsICancelable *request,
       array.AppendElement(addr);
     }
 
-    Unused << SendLookupCompleted(DNSRequestResponse(DNSRecord(cname, array)));
+    unused << SendLookupCompleted(DNSRequestResponse(DNSRecord(cname, array)));
   } else {
-    Unused << SendLookupCompleted(DNSRequestResponse(status));
+    unused << SendLookupCompleted(DNSRequestResponse(status));
   }
 
   mIPCClosed = true;

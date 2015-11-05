@@ -6,9 +6,5 @@
 const { actions } = require("../constants");
 
 module.exports = function (inverted = false, action) {
-  if (action.type === actions.TOGGLE_INVERTED) {
-    return !inverted;
-  } else {
-    return inverted;
-  }
+  return action.type === actions.TOGGLE_INVERTED ? !inverted : inverted;
 };

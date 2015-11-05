@@ -752,7 +752,7 @@ private:
   {
     if (mTransport) {
       CRASH_IN_CHILD_PROCESS("Leaking transport!");
-      Unused << mTransport.forget();
+      unused << mTransport.forget();
     }
   }
 
@@ -1957,7 +1957,7 @@ ChildImpl::OpenMainProcessActorRunnable::Run()
   parentActor->SetOtherProcessId(base::GetCurrentProcId());
 
   // Now that Open() has succeeded transfer the ownership of the actors to IPDL.
-  Unused << parentActor.forget();
+  unused << parentActor.forget();
 
   auto threadLocalInfo =
     static_cast<ThreadLocalInfo*>(PR_GetThreadPrivate(sThreadLocalIndex));

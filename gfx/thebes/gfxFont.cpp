@@ -467,14 +467,9 @@ gfxFontShaper::MergeFontFeatures(
     // petite caps cases can fallback to appropriate smallcaps
     uint32_t variantCaps = aStyle->variantCaps;
     switch (variantCaps) {
-        case NS_FONT_VARIANT_CAPS_NORMAL:
-            break;
-
         case NS_FONT_VARIANT_CAPS_ALLSMALL:
             mergedFeatures.Put(HB_TAG('c','2','s','c'), 1);
             // fall through to the small-caps case
-            MOZ_FALLTHROUGH;
-
         case NS_FONT_VARIANT_CAPS_SMALLCAPS:
             mergedFeatures.Put(HB_TAG('s','m','c','p'), 1);
             break;
@@ -482,13 +477,11 @@ gfxFontShaper::MergeFontFeatures(
         case NS_FONT_VARIANT_CAPS_ALLPETITE:
             mergedFeatures.Put(aAddSmallCaps ? HB_TAG('c','2','s','c') :
                                                HB_TAG('c','2','p','c'), 1);
-            // fall through to the petite-caps case
-            MOZ_FALLTHROUGH;
-
+        // fall through to the petite-caps case
         case NS_FONT_VARIANT_CAPS_PETITECAPS:
             mergedFeatures.Put(aAddSmallCaps ? HB_TAG('s','m','c','p') :
                                                HB_TAG('p','c','a','p'), 1);
-            break;
+        break;
 
         case NS_FONT_VARIANT_CAPS_TITLING:
             mergedFeatures.Put(HB_TAG('t','i','t','l'), 1);
@@ -499,14 +492,11 @@ gfxFontShaper::MergeFontFeatures(
             break;
 
         default:
-            MOZ_ASSERT_UNREACHABLE("Unexpected variantCaps");
             break;
     }
 
     // font-variant-position - handled here due to the need for fallback
     switch (aStyle->variantSubSuper) {
-        case NS_FONT_VARIANT_POSITION_NORMAL:
-            break;
         case NS_FONT_VARIANT_POSITION_SUPER:
             mergedFeatures.Put(HB_TAG('s','u','p','s'), 1);
             break;
@@ -514,7 +504,6 @@ gfxFontShaper::MergeFontFeatures(
             mergedFeatures.Put(HB_TAG('s','u','b','s'), 1);
             break;
         default:
-            MOZ_ASSERT_UNREACHABLE("Unexpected variantSubSuper");
             break;
     }
 
@@ -748,7 +737,7 @@ gfxFont::gfxFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle,
     mApplySyntheticBold(false),
     mStyle(*aFontStyle),
     mAdjustedSize(0.0),
-    mFUnitsConvFactor(-1.0f), // negative to indicate "not yet initialized"
+    mFUnitsConvFactor(0.0f),
     mAntialiasOption(anAAOption)
 {
 #ifdef DEBUG_TEXT_RUN_STORAGE_METRICS
@@ -785,10 +774,10 @@ gfxFont::GetGlyphHAdvance(gfxContext *aCtx, uint16_t aGID)
     if (ProvidesGlyphWidths()) {
         return GetGlyphWidth(*aCtx->GetDrawTarget(), aGID) / 65536.0;
     }
-    if (mFUnitsConvFactor < 0.0f) {
+    if (mFUnitsConvFactor == 0.0f) {
         GetMetrics(eHorizontal);
     }
-    NS_ASSERTION(mFUnitsConvFactor >= 0.0f,
+    NS_ASSERTION(mFUnitsConvFactor > 0.0f,
                  "missing font unit conversion factor");
     if (!mHarfBuzzShaper) {
         mHarfBuzzShaper = new gfxHarfBuzzShaper(this);
@@ -3015,7 +3004,6 @@ gfxFont::InitFakeSmallCapsRun(gfxContext     *aContext,
             case kUppercaseReduce:
                 // use reduced-size font, then fall through to uppercase the text
                 f = smallCapsFont;
-                MOZ_FALLTHROUGH;
 
             case kUppercase:
                 // apply uppercase transform to the string
@@ -3215,7 +3203,7 @@ gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics)
 
     uint32_t len;
 
-    if (mFUnitsConvFactor < 0.0) {
+    if (mFUnitsConvFactor == 0.0) {
         // If the conversion factor from FUnits is not yet set,
         // get the unitsPerEm from the 'head' table via the font entry
         uint16_t unitsPerEm = GetFontEntry()->UnitsPerEm();
@@ -3451,7 +3439,7 @@ gfxFont::CreateVerticalMetrics()
     const float UNINITIALIZED_LEADING = -10000.0f;
     metrics->externalLeading = UNINITIALIZED_LEADING;
 
-    if (mFUnitsConvFactor < 0.0) {
+    if (mFUnitsConvFactor == 0.0) {
         uint16_t upem = GetFontEntry()->UnitsPerEm();
         if (upem != gfxFontEntry::kInvalidUPEM) {
             mFUnitsConvFactor = GetAdjustedSize() / upem;
@@ -3462,7 +3450,7 @@ gfxFont::CreateVerticalMetrics()
 #define SET_SIGNED(field,src)   metrics->field = int16_t(src) * mFUnitsConvFactor
 
     gfxFontEntry::AutoTable os2Table(mFontEntry, kOS_2TableTag);
-    if (os2Table && mFUnitsConvFactor >= 0.0) {
+    if (os2Table && mFUnitsConvFactor > 0.0) {
         const OS2Table *os2 =
             reinterpret_cast<const OS2Table*>(hb_blob_get_data(os2Table, &len));
         // These fields should always be present in any valid OS/2 table
@@ -3488,7 +3476,7 @@ gfxFont::CreateVerticalMetrics()
     // and use the line height from its ascent/descent.
     if (!metrics->aveCharWidth) {
         gfxFontEntry::AutoTable hheaTable(mFontEntry, kHheaTableTag);
-        if (hheaTable && mFUnitsConvFactor >= 0.0) {
+        if (hheaTable && mFUnitsConvFactor > 0.0) {
             const MetricsHeader* hhea =
                 reinterpret_cast<const MetricsHeader*>
                     (hb_blob_get_data(hheaTable, &len));
@@ -3504,7 +3492,7 @@ gfxFont::CreateVerticalMetrics()
 
     // Read real vertical metrics if available.
     gfxFontEntry::AutoTable vheaTable(mFontEntry, kVheaTableTag);
-    if (vheaTable && mFUnitsConvFactor >= 0.0) {
+    if (vheaTable && mFUnitsConvFactor > 0.0) {
         const MetricsHeader* vhea =
             reinterpret_cast<const MetricsHeader*>
                 (hb_blob_get_data(vheaTable, &len));

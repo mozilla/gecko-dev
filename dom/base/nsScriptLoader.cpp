@@ -819,8 +819,8 @@ NotifyOffThreadScriptLoadCompletedRunnable::~NotifyOffThreadScriptLoadCompletedR
     } else {
       MOZ_ASSERT(false, "We really shouldn't leak!");
       // Better to leak than crash.
-      Unused << mRequest.forget();
-      Unused << mLoader.forget();
+      unused << mRequest.forget();
+      unused << mLoader.forget();
     }
   }
 }
@@ -890,7 +890,7 @@ nsScriptLoader::AttemptAsyncScriptCompile(nsScriptLoadRequest* aRequest)
   mDocument->BlockOnload();
   aRequest->mProgress = nsScriptLoadRequest::Progress_Compiling;
 
-  Unused << runnable.forget();
+  unused << runnable.forget();
   return NS_OK;
 }
 

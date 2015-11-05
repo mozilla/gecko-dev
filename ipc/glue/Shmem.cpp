@@ -323,8 +323,8 @@ Shmem::AssertInvariants() const
   char checkMappingBack = *(reinterpret_cast<char*>(mData) + mSize - 1);
 
   // avoid "unused" warnings for these variables:
-  Unused << checkMappingFront;
-  Unused << checkMappingBack;
+  unused << checkMappingFront;
+  unused << checkMappingBack;
 }
 
 void

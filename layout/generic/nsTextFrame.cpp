@@ -3975,8 +3975,9 @@ a11y::AccType
 nsTextFrame::AccessibleType()
 {
   if (IsEmpty()) {
-    RenderedText text = GetRenderedText();
-    if (text.mString.IsEmpty()) {
+    nsAutoString renderedWhitespace;
+    GetRenderedText(&renderedWhitespace, nullptr, nullptr, 0, 1);
+    if (renderedWhitespace.IsEmpty()) {
       return a11y::eNoType;
     }
   }
@@ -4089,6 +4090,13 @@ public:
   virtual void AddInlinePrefISize(nsRenderingContext *aRenderingContext,
                                   InlinePrefISizeData *aData) override;
   
+  virtual nsresult GetRenderedText(nsAString* aString = nullptr,
+                                   gfxSkipChars* aSkipChars = nullptr,
+                                   gfxSkipCharsIterator* aSkipIter = nullptr,
+                                   uint32_t aSkippedStartOffset = 0,
+                                   uint32_t aSkippedMaxLength = UINT32_MAX) override
+  { return NS_ERROR_NOT_IMPLEMENTED; } // Call on a primary text frame only
+
 protected:
   explicit nsContinuingTextFrame(nsStyleContext* aContext) : nsTextFrame(aContext) {}
   nsIFrame* mPrevContinuation;
@@ -4570,11 +4578,28 @@ nsTextFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
   return NS_OK;
 }
 
+class nsDisplayTextGeometry : public nsCharClipGeometry
+{
+public:
+  nsDisplayTextGeometry(nsCharClipDisplayItem* aItem, nsDisplayListBuilder* aBuilder)
+    : nsCharClipGeometry(aItem, aBuilder)
+  {
+    nsTextFrame* f = static_cast<nsTextFrame*>(aItem->Frame());
+    f->GetTextDecorations(f->PresContext(), nsTextFrame::eResolvedColors, mDecorations);
+  }
+ 
+  /**
+   * We store the computed text decorations here since they are
+   * computed using style data from parent frames. Any changes to these
+   * styles will only invalidate the parent frame and not this frame.
+   */
+  nsTextFrame::TextDecorations mDecorations;
+};
+
 class nsDisplayText : public nsCharClipDisplayItem {
 public:
   nsDisplayText(nsDisplayListBuilder* aBuilder, nsTextFrame* aFrame) :
     nsCharClipDisplayItem(aBuilder, aFrame),
-    mOpacity(1.0f),
     mDisableSubpixelAA(false) {
     MOZ_COUNT_CTOR(nsDisplayText);
   }
@@ -4609,101 +4634,39 @@ public:
     return GetBounds(aBuilder, &snap);
   }
 
-  virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) override;
+  virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) override
+  {
+    return new nsDisplayTextGeometry(this, aBuilder);
+  }
 
   virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                          const nsDisplayItemGeometry* aGeometry,
-                                         nsRegion *aInvalidRegion) override;
+                                         nsRegion *aInvalidRegion) override
+  {
+    const nsDisplayTextGeometry* geometry = static_cast<const nsDisplayTextGeometry*>(aGeometry);
+    nsTextFrame* f = static_cast<nsTextFrame*>(mFrame);
+
+    nsTextFrame::TextDecorations decorations;
+    f->GetTextDecorations(f->PresContext(), nsTextFrame::eResolvedColors, decorations);
+
+    bool snap;
+    nsRect newRect = geometry->mBounds;
+    nsRect oldRect = GetBounds(aBuilder, &snap);
+    if (decorations != geometry->mDecorations ||
+        mVisIStartEdge != geometry->mVisIStartEdge ||
+        mVisIEndEdge != geometry->mVisIEndEdge ||
+        !oldRect.IsEqualInterior(newRect) ||
+        !geometry->mBorderRect.IsEqualInterior(GetBorderRect())) {
+      aInvalidRegion->Or(oldRect, newRect);
+    }
+  }
 
   virtual void DisableComponentAlpha() override {
     mDisableSubpixelAA = true;
   }
 
-  bool CanApplyOpacity() const override
-  {
-    nsTextFrame* f = static_cast<nsTextFrame*>(mFrame);
-    if (f->IsSelected()) {
-      return false;
-    }
-
-    const nsStyleText* textStyle = f->StyleText();
-    if (textStyle->mTextShadow) {
-      return false;
-    }
-
-    nsTextFrame::TextDecorations decorations;
-    f->GetTextDecorations(f->PresContext(), nsTextFrame::eResolvedColors, decorations);
-    if (decorations.HasDecorationLines()) {
-      return false;
-    }
-
-    return true;
-  }
-
-  void ApplyOpacity(nsDisplayListBuilder* aBuilder,
-                    float aOpacity,
-                    const DisplayItemClip* aClip) override
-  {
-    NS_ASSERTION(CanApplyOpacity(), "ApplyOpacity should be allowed");
-    mOpacity = aOpacity;
-    if (aClip) {
-      IntersectClip(aBuilder, *aClip);
-    }
-  }
-
-  float mOpacity;
   bool mDisableSubpixelAA;
 };
-
-class nsDisplayTextGeometry : public nsCharClipGeometry
-{
-public:
-  nsDisplayTextGeometry(nsDisplayText* aItem, nsDisplayListBuilder* aBuilder)
-    : nsCharClipGeometry(aItem, aBuilder)
-    , mOpacity(aItem->mOpacity)
-  {
-    nsTextFrame* f = static_cast<nsTextFrame*>(aItem->Frame());
-    f->GetTextDecorations(f->PresContext(), nsTextFrame::eResolvedColors, mDecorations);
-  }
-
-  /**
-   * We store the computed text decorations here since they are
-   * computed using style data from parent frames. Any changes to these
-   * styles will only invalidate the parent frame and not this frame.
-   */
-  nsTextFrame::TextDecorations mDecorations;
-  float mOpacity;
-};
-
-nsDisplayItemGeometry*
-nsDisplayText::AllocateGeometry(nsDisplayListBuilder* aBuilder)
-{
-  return new nsDisplayTextGeometry(this, aBuilder);
-}
-
-void
-nsDisplayText::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
-                                         const nsDisplayItemGeometry* aGeometry,
-                                         nsRegion *aInvalidRegion)
-{
-  const nsDisplayTextGeometry* geometry = static_cast<const nsDisplayTextGeometry*>(aGeometry);
-  nsTextFrame* f = static_cast<nsTextFrame*>(mFrame);
-
-  nsTextFrame::TextDecorations decorations;
-  f->GetTextDecorations(f->PresContext(), nsTextFrame::eResolvedColors, decorations);
-
-  bool snap;
-  nsRect newRect = geometry->mBounds;
-  nsRect oldRect = GetBounds(aBuilder, &snap);
-  if (decorations != geometry->mDecorations ||
-      mVisIStartEdge != geometry->mVisIStartEdge ||
-      mVisIEndEdge != geometry->mVisIEndEdge ||
-      !oldRect.IsEqualInterior(newRect) ||
-      !geometry->mBorderRect.IsEqualInterior(GetBorderRect()) ||
-      mOpacity != geometry->mOpacity) {
-    aInvalidRegion->Or(oldRect, newRect);
-  }
-}
 
 void
 nsDisplayText::Paint(nsDisplayListBuilder* aBuilder,
@@ -4735,8 +4698,7 @@ nsDisplayText::Paint(nsDisplayListBuilder* aBuilder,
 
   NS_ASSERTION(mVisIStartEdge >= 0, "illegal start edge");
   NS_ASSERTION(mVisIEndEdge >= 0, "illegal end edge");
-  f->PaintText(aCtx, ToReferenceFrame(), extraVisible, *this,
-               nullptr, nullptr, mOpacity);
+  f->PaintText(aCtx, ToReferenceFrame(), extraVisible, *this);
 }
 
 void
@@ -5407,8 +5369,8 @@ nsTextFrame::DrawSelectionDecorations(gfxContext* aContext,
         // If underline color is defined and that doesn't depend on the
         // foreground color, we should use the color directly.
         if (aRangeStyle.IsUnderlineColorDefined() &&
-            (!aRangeStyle.IsForegroundColorDefined() ||
-             aRangeStyle.mUnderlineColor != aRangeStyle.mForegroundColor)) {
+            aRangeStyle.IsForegroundColorDefined() &&
+            aRangeStyle.mUnderlineColor != aRangeStyle.mForegroundColor) {
           color = aRangeStyle.mUnderlineColor;
         }
         // If foreground color or background color is defined, the both colors
@@ -6272,8 +6234,7 @@ nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
                        const nsRect& aDirtyRect,
                        const nsCharClipDisplayItem& aItem,
                        gfxTextContextPaint* aContextPaint,
-                       nsTextFrame::DrawPathCallbacks* aCallbacks,
-                       float aOpacity /* = 1.0f */)
+                       nsTextFrame::DrawPathCallbacks* aCallbacks)
 {
   // Don't pass in aRenderingContext here, because we need a *reference*
   // context and aRenderingContext might have some transform in it
@@ -6330,7 +6291,6 @@ nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
                     aDirtyRect.width, aDirtyRect.height);
   // Fork off to the (slower) paint-with-selection path if necessary.
   if (IsSelected()) {
-    MOZ_ASSERT(aOpacity == 1.0f, "We don't support opacity with selections!");
     gfxSkipCharsIterator tmp(provider.GetStart());
     int32_t contentOffset = tmp.ConvertSkippedToOriginal(startOffset);
     int32_t contentLength =
@@ -6344,12 +6304,6 @@ nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
   }
 
   nscolor foregroundColor = textPaintStyle.GetTextColor();
-  if (aOpacity != 1.0f) {
-    gfx::Color gfxColor = gfx::Color::FromABGR(foregroundColor);
-    gfxColor.a *= aOpacity;
-    foregroundColor = gfxColor.ToABGR();
-  }
-
   if (!aCallbacks) {
     const nsStyleText* textStyle = StyleText();
     PaintShadows(textStyle->mTextShadow, startOffset, maxLength,
@@ -8948,190 +8902,107 @@ nsTextFrame::RecomputeOverflow(nsIFrame* aBlockFrame)
   return result;
 }
 
-static void TransformChars(nsTextFrame* aFrame, const nsStyleText* aStyle,
-                           gfxTextRun* aTextRun, uint32_t aSkippedOffset,
-                           const nsTextFragment* aFrag, int32_t aFragOffset,
-                           int32_t aFragLen, nsAString& aOut)
+static char16_t TransformChar(nsTextFrame* aFrame, const nsStyleText* aStyle,
+                              gfxTextRun* aTextRun, uint32_t aSkippedOffset,
+                              char16_t aChar)
 {
-  aOut.SetLength(aOut.Length() + aFragLen);
-  char16_t* out = aOut.EndWriting() - aFragLen;
-  for (int32_t i = 0; i < aFragLen; ++i) {
-    char16_t ch = aFrag->CharAt(aFragOffset + i);
-    if ((ch == '\n' && !aStyle->NewlineIsSignificant(aFrame)) ||
-        (ch == '\t' && !aStyle->TabIsSignificant())) {
-      ch = ' ';
-    }
-    out[i] = ch;
+  if (aChar == '\n') {
+    return aStyle->NewlineIsSignificant(aFrame) ? aChar : ' ';
   }
-
+  if (aChar == '\t') {
+    return aStyle->TabIsSignificant() ? aChar : ' ';
+  }
   switch (aStyle->mTextTransform) {
   case NS_STYLE_TEXT_TRANSFORM_LOWERCASE:
-    ToLowerCase(out, out, aFragLen);
+    aChar = ToLowerCase(aChar);
     break;
   case NS_STYLE_TEXT_TRANSFORM_UPPERCASE:
-    ToUpperCase(out, out, aFragLen);
+    aChar = ToUpperCase(aChar);
     break;
   case NS_STYLE_TEXT_TRANSFORM_CAPITALIZE:
-    for (int32_t i = 0; i < aFragLen; ++i) {
-      if (aTextRun->CanBreakLineBefore(aSkippedOffset + i)) {
-        out[i] = ToTitleCase(out[i]);
-      }
+    if (aTextRun->CanBreakLineBefore(aSkippedOffset)) {
+      aChar = ToTitleCase(aChar);
     }
     break;
   }
+
+  return aChar;
 }
 
-static bool
-LineEndsInHardLineBreak(nsTextFrame* aFrame)
+nsresult nsTextFrame::GetRenderedText(nsAString* aAppendToString,
+                                      gfxSkipChars* aSkipChars,
+                                      gfxSkipCharsIterator* aSkipIter,
+                                      uint32_t aSkippedStartOffset,
+                                      uint32_t aSkippedMaxLength)
 {
-  nsIFrame* lineContainer = FindLineContainer(aFrame);
-  nsBlockFrame* block = do_QueryFrame(lineContainer);
-  if (!block) {
-    // Weird situation where we have a line layout without a block.
-    // No soft breaks occur in this situation.
-    return true;
-  }
-  bool foundValidLine;
-  nsBlockInFlowLineIterator iter(block, aFrame, &foundValidLine);
-  if (!foundValidLine) {
-    NS_ERROR("Invalid line!");
-    return true;
-  }
-  return !iter.GetLine()->IsLineWrapped();
-}
-
-nsIFrame::RenderedText
-nsTextFrame::GetRenderedText(uint32_t aStartOffset,
-                             uint32_t aEndOffset,
-                             TextOffsetType aOffsetType)
-{
-  NS_ASSERTION(!GetPrevContinuation(), "Must be called on first-in-flow");
-
-  // The handling of offsets could be more efficient...
-  RenderedText result;
+  // The handling of aSkippedStartOffset and aSkippedMaxLength could be more efficient...
+  gfxSkipChars skipChars;
   nsTextFrame* textFrame;
   const nsTextFragment* textFrag = mContent->GetText();
-  uint32_t offsetInRenderedString = 0;
-  bool haveOffsets = false;
+  uint32_t keptCharsLength = 0;
+  uint32_t validCharsLength = 0;
 
+  // Build skipChars and copy text, for each text frame in this continuation block
   for (textFrame = this; textFrame;
        textFrame = static_cast<nsTextFrame*>(textFrame->GetNextContinuation())) {
+    // For each text frame continuation in this block ...
+
     if (textFrame->GetStateBits() & NS_FRAME_IS_DIRTY) {
-      // We don't trust dirty frames, especially when computing rendered text.
+      // We don't trust dirty frames, expecially when computing rendered text.
       break;
     }
 
     // Ensure the text run and grab the gfxSkipCharsIterator for it
     gfxSkipCharsIterator iter =
       textFrame->EnsureTextRun(nsTextFrame::eInflated);
-    if (!textFrame->mTextRun) {
-      break;
-    }
-    gfxSkipCharsIterator tmpIter = iter;
+    if (!textFrame->mTextRun)
+      return NS_ERROR_FAILURE;
 
     // Skip to the start of the text run, past ignored chars at start of line
-    TrimmedOffsets trimmedOffsets = textFrame->GetTrimmedOffsets(textFrag,
-       textFrame->IsAtEndOfLine() && LineEndsInHardLineBreak(textFrame));
-    bool trimmedSignificantNewline =
-        trimmedOffsets.GetEnd() < GetContentEnd() &&
-        HasSignificantTerminalNewline();
-    uint32_t skippedToRenderedStringOffset = offsetInRenderedString -
-        tmpIter.ConvertOriginalToSkipped(trimmedOffsets.mStart);
-    uint32_t nextOffsetInRenderedString =
-        tmpIter.ConvertOriginalToSkipped(trimmedOffsets.GetEnd()) +
-        (trimmedSignificantNewline ? 1 : 0) + skippedToRenderedStringOffset;
-
-    if (aOffsetType == TextOffsetType::OFFSETS_IN_RENDERED_TEXT) {
-      if (nextOffsetInRenderedString <= aStartOffset) {
-        offsetInRenderedString = nextOffsetInRenderedString;
-        continue;
-      }
-      if (!haveOffsets) {
-        result.mOffsetWithinNodeText =
-            tmpIter.ConvertSkippedToOriginal(aStartOffset - skippedToRenderedStringOffset);
-        result.mOffsetWithinNodeRenderedText = aStartOffset;
-        haveOffsets = true;
-      }
-      if (offsetInRenderedString >= aEndOffset) {
-        break;
-      }
-    } else {
-      if (uint32_t(textFrame->GetContentEnd()) <= aStartOffset) {
-        offsetInRenderedString = nextOffsetInRenderedString;
-        continue;
-      }
-      if (!haveOffsets) {
-        result.mOffsetWithinNodeText = aStartOffset;
-        // Skip trimmed space when computed the rendered text offset.
-        int32_t clamped = std::max<int32_t>(aStartOffset, trimmedOffsets.mStart);
-        result.mOffsetWithinNodeRenderedText =
-            tmpIter.ConvertOriginalToSkipped(clamped) + skippedToRenderedStringOffset;
-        MOZ_ASSERT(result.mOffsetWithinNodeRenderedText >= offsetInRenderedString &&
-                   result.mOffsetWithinNodeRenderedText <= INT32_MAX,
-                   "Bad offset within rendered text");
-        haveOffsets = true;
-      }
-      if (uint32_t(textFrame->mContentOffset) >= aEndOffset) {
-        break;
-      }
+    // XXX In the future we may decide to trim extra spaces before a hard line
+    // break, in which case we need to accurately detect those sitations and 
+    // call GetTrimmedOffsets() with true to trim whitespace at the line's end
+    TrimmedOffsets trimmedContentOffsets = textFrame->GetTrimmedOffsets(textFrag, false);
+    int32_t startOfLineSkipChars = trimmedContentOffsets.mStart - textFrame->mContentOffset;
+    if (startOfLineSkipChars > 0) {
+      skipChars.SkipChars(startOfLineSkipChars);
+      iter.SetOriginalOffset(trimmedContentOffsets.mStart);
     }
 
-    int32_t startOffset;
-    int32_t endOffset;
-    if (aOffsetType == TextOffsetType::OFFSETS_IN_RENDERED_TEXT) {
-      startOffset =
-        tmpIter.ConvertSkippedToOriginal(aStartOffset - skippedToRenderedStringOffset);
-      endOffset =
-        tmpIter.ConvertSkippedToOriginal(aEndOffset - skippedToRenderedStringOffset);
-    } else {
-      startOffset = aStartOffset;
-      endOffset = std::min<uint32_t>(INT32_MAX, aEndOffset);
-    }
-    trimmedOffsets.mStart = std::max<uint32_t>(trimmedOffsets.mStart,
-        startOffset);
-    trimmedOffsets.mLength = std::min<uint32_t>(trimmedOffsets.GetEnd(),
-        endOffset) - trimmedOffsets.mStart;
-    if (trimmedOffsets.mLength <= 0) {
-      offsetInRenderedString = nextOffsetInRenderedString;
-      continue;
-    }
-
+    // Keep and copy the appropriate chars withing the caller's requested range
     const nsStyleText* textStyle = textFrame->StyleText();
-    iter.SetOriginalOffset(trimmedOffsets.mStart);
-    while (iter.GetOriginalOffset() < trimmedOffsets.GetEnd()) {
-      int32_t runLength;
-      bool isSkipped = iter.IsOriginalCharSkipped(&runLength);
-      runLength = std::min(runLength,
-                           trimmedOffsets.GetEnd() - iter.GetOriginalOffset());
-      if (isSkipped) {
-        for (int32_t i = 0; i < runLength; ++i) {
-          char16_t ch = textFrag->CharAt(iter.GetOriginalOffset() + i);
-          if (ch == CH_SHY) {
-            // We should preserve soft hyphens. They can't be transformed.
-            result.mString.Append(ch);
-          }
-        }
+    while (iter.GetOriginalOffset() < trimmedContentOffsets.GetEnd() &&
+           keptCharsLength < aSkippedMaxLength) {
+      // For each original char from content text
+      if (iter.IsOriginalCharSkipped() || ++validCharsLength <= aSkippedStartOffset) {
+        skipChars.SkipChar();
       } else {
-        TransformChars(textFrame, textStyle, textFrame->mTextRun,
-                       iter.GetSkippedOffset(), textFrag,
-                       iter.GetOriginalOffset(), runLength, result.mString);
+        ++keptCharsLength;
+        skipChars.KeepChar();
+        if (aAppendToString) {
+          aAppendToString->Append(
+              TransformChar(textFrame, textStyle, textFrame->mTextRun,
+                            iter.GetSkippedOffset(),
+                            textFrag->CharAt(iter.GetOriginalOffset())));
+        }
       }
-      iter.AdvanceOriginal(runLength);
+      iter.AdvanceOriginal(1);
     }
-
-    if (trimmedSignificantNewline && GetContentEnd() <= endOffset) {
-      // A significant newline was trimmed off (we must be
-      // white-space:pre-line). Put it back.
-      result.mString.Append('\n');
+    if (keptCharsLength >= aSkippedMaxLength) {
+      break; // Already past the end, don't build string or gfxSkipCharsIter anymore
     }
-    offsetInRenderedString = nextOffsetInRenderedString;
+  }
+  
+  if (aSkipChars) {
+    aSkipChars->TakeFrom(&skipChars); // Copy skipChars into aSkipChars
+    if (aSkipIter) {
+      // Caller must provide both pointers in order to retrieve a gfxSkipCharsIterator,
+      // because the gfxSkipCharsIterator holds a weak pointer to the gfxSkipChars.
+      *aSkipIter = gfxSkipCharsIterator(*aSkipChars, GetContentLength());
+    }
   }
 
-  if (!haveOffsets) {
-    result.mOffsetWithinNodeText = textFrag->GetLength();
-    result.mOffsetWithinNodeRenderedText = offsetInRenderedString;
-  }
-  return result;
+  return NS_OK;
 }
 
 nsIAtom*

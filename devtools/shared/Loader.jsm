@@ -87,7 +87,9 @@ BuiltinProvider.prototype = {
         // ⚠ DISCUSSION ON DEV-DEVELOPER-TOOLS REQUIRED BEFORE MODIFYING ⚠
         "devtools": "resource://devtools",
         // ⚠ DISCUSSION ON DEV-DEVELOPER-TOOLS REQUIRED BEFORE MODIFYING ⚠
-        "gcli": "resource://devtools/shared/gcli/source/lib/gcli",
+        "devtools/client": "resource://devtools/client",
+        // ⚠ DISCUSSION ON DEV-DEVELOPER-TOOLS REQUIRED BEFORE MODIFYING ⚠
+        "gcli": "resource://devtools/gcli",
         // ⚠ DISCUSSION ON DEV-DEVELOPER-TOOLS REQUIRED BEFORE MODIFYING ⚠
         "promise": "resource://gre/modules/Promise-backend.js",
         // ⚠ DISCUSSION ON DEV-DEVELOPER-TOOLS REQUIRED BEFORE MODIFYING ⚠
@@ -426,22 +428,12 @@ DevToolsLoader.prototype = {
     this._chooseProvider();
     this.main("devtools/client/main");
 
-    let window = Services.wm.getMostRecentWindow(null);
-    let location = window.location.href;
-    if (location.includes("/browser.xul") && showToolbox) {
-      // Reopen the toolbox automatically if we are reloading from toolbox shortcut
-      // and are on a browser window.
-      // Wait for a second before opening the toolbox to avoid races
-      // between the old and the new one.
-      let {setTimeout} = Cu.import("resource://gre/modules/Timer.jsm", {});
-      setTimeout(() => {
-        let { gBrowser } = window;
-        let target = this.TargetFactory.forTab(gBrowser.selectedTab);
-        const { gDevTools } = this.require("resource://devtools/client/framework/gDevTools.jsm");
-        gDevTools.showToolbox(target);
-      }, 1000);
-    } else if (location.includes("/webide.xul")) {
-      window.location.reload();
+    // Reopen the toolbox automatically if requested
+    if (showToolbox) {
+      let { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+      let target = this.TargetFactory.forTab(gBrowser.selectedTab);
+      const { gDevTools } = this.require("resource://devtools/client/framework/gDevTools.jsm");
+      gDevTools.showToolbox(target);
     }
   },
 

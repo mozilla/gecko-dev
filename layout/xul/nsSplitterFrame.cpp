@@ -36,7 +36,6 @@
 #include "nsContentUtils.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/MouseEvents.h"
-#include "mozilla/UniquePtr.h"
 
 using namespace mozilla;
 
@@ -105,7 +104,7 @@ public:
   ResizeType GetResizeAfter();
   State GetState();
 
-  void Reverse(UniquePtr<nsSplitterInfo[]>& aIndexes, int32_t aCount);
+  void Reverse(nsSplitterInfo*& aIndexes, int32_t aCount);
   bool SupportsCollapseDirection(CollapseDirection aDirection);
 
   void EnsureOrient();
@@ -117,8 +116,8 @@ public:
   nscoord mCurrentPos;
   nsIFrame* mParentBox;
   bool mPressed;
-  UniquePtr<nsSplitterInfo[]> mChildInfosBefore;
-  UniquePtr<nsSplitterInfo[]> mChildInfosAfter;
+  nsSplitterInfo* mChildInfosBefore;
+  nsSplitterInfo* mChildInfosAfter;
   int32_t mChildInfosBeforeCount;
   int32_t mChildInfosAfterCount;
   State mState;
@@ -145,6 +144,8 @@ nsSplitterFrameInner::GetResizeBefore()
 
 nsSplitterFrameInner::~nsSplitterFrameInner() 
 {
+  delete[] mChildInfosBefore;
+  delete[] mChildInfosAfter;
 }
 
 nsSplitterFrameInner::ResizeType
@@ -271,6 +272,8 @@ nsSplitterFrame::Init(nsIContent*       aContent,
   mInner = new nsSplitterFrameInner(this);
 
   mInner->AddRef();
+  mInner->mChildInfosAfter = nullptr;
+  mInner->mChildInfosBefore = nullptr;
   mInner->mState = nsSplitterFrameInner::Open;
   mInner->mDragging = false;
 
@@ -429,6 +432,8 @@ nsSplitterFrameInner::MouseUp(nsPresContext* aPresContext,
     //printf("MouseUp\n");
   }
 
+  delete[] mChildInfosBefore;
+  delete[] mChildInfosAfter;
   mChildInfosBefore = nullptr;
   mChildInfosAfter = nullptr;
   mChildInfosBeforeCount = 0;
@@ -475,9 +480,7 @@ nsSplitterFrameInner::MouseDrag(nsPresContext* aPresContext,
 
     nscoord oldPos = pos;
 
-    ResizeChildTo(aPresContext, pos,
-                  mChildInfosBefore.get(), mChildInfosAfter.get(),
-                  mChildInfosBeforeCount, mChildInfosAfterCount, bounded);
+    ResizeChildTo(aPresContext, pos, mChildInfosBefore, mChildInfosAfter, mChildInfosBeforeCount, mChildInfosAfterCount, bounded);
 
     State currentState = GetState();
     bool supportsBefore = SupportsCollapseDirection(Before);
@@ -648,8 +651,10 @@ nsSplitterFrameInner::MouseDown(nsIDOMEvent* aMouseEvent)
   ResizeType resizeBefore = GetResizeBefore();
   ResizeType resizeAfter  = GetResizeAfter();
 
-  mChildInfosBefore = MakeUnique<nsSplitterInfo[]>(childCount);
-  mChildInfosAfter  = MakeUnique<nsSplitterInfo[]>(childCount);
+  delete[] mChildInfosBefore;
+  delete[] mChildInfosAfter;
+  mChildInfosBefore = new nsSplitterInfo[childCount];
+  mChildInfosAfter  = new nsSplitterInfo[childCount];
 
   // create info 2 lists. One of the children before us and one after.
   int32_t count = 0;
@@ -722,8 +727,12 @@ nsSplitterFrameInner::MouseDown(nsIDOMEvent* aMouseEvent)
     Reverse(mChildInfosAfter, mChildInfosAfterCount);
 
     // Now swap the two arrays.
-    Swap(mChildInfosBeforeCount, mChildInfosAfterCount);
-    Swap(mChildInfosBefore, mChildInfosAfter);
+    nscoord newAfterCount = mChildInfosBeforeCount;
+    mChildInfosBeforeCount = mChildInfosAfterCount;
+    mChildInfosAfterCount = newAfterCount;
+    nsSplitterInfo* temp = mChildInfosAfter;
+    mChildInfosAfter = mChildInfosBefore;
+    mChildInfosBefore = temp;
   }
 
   // if resizebefore is not Farthest, reverse the list because the first child
@@ -782,14 +791,15 @@ nsSplitterFrameInner::MouseMove(nsIDOMEvent* aMouseEvent)
 }
 
 void
-nsSplitterFrameInner::Reverse(UniquePtr<nsSplitterInfo[]>& aChildInfos, int32_t aCount)
+nsSplitterFrameInner::Reverse(nsSplitterInfo*& aChildInfos, int32_t aCount)
 {
-    UniquePtr<nsSplitterInfo[]> infos(new nsSplitterInfo[aCount]);
+    nsSplitterInfo* infos = new nsSplitterInfo[aCount];
 
     for (int i=0; i < aCount; i++)
        infos[i] = aChildInfos[aCount - 1 - i];
 
-    aChildInfos = Move(infos);
+    delete[] aChildInfos;
+    aChildInfos = infos;
 }
 
 bool
@@ -888,10 +898,8 @@ nsSplitterFrameInner::AdjustChildren(nsPresContext* aPresContext)
   EnsureOrient();
   bool isHorizontal = !mOuter->IsHorizontal();
 
-  AdjustChildren(aPresContext, mChildInfosBefore.get(),
-                 mChildInfosBeforeCount, isHorizontal);
-  AdjustChildren(aPresContext, mChildInfosAfter.get(),
-                 mChildInfosAfterCount, isHorizontal);
+  AdjustChildren(aPresContext, mChildInfosBefore, mChildInfosBeforeCount, isHorizontal);
+  AdjustChildren(aPresContext, mChildInfosAfter, mChildInfosAfterCount, isHorizontal);
 }
 
 static nsIFrame* GetChildBoxForContent(nsIFrame* aParentBox, nsIContent* aContent)

@@ -6,9 +6,8 @@ import os
 import re
 import time
 
-import version_codes
-
 from adb import ADBDevice, ADBError
+from distutils.version import StrictVersion
 
 
 class ADBAndroid(ADBDevice):
@@ -79,13 +78,7 @@ class ADBAndroid(ADBDevice):
         :raises: * ADBTimeoutError
                  * ADBError
         """
-        # command_output automatically inserts a 'wait-for-device'
-        # argument to adb. Issuing an empty command is the same as adb
-        # -s <device> wait-for-device. We don't send an explicit
-        # 'wait-for-device' since that would add duplicate
-        # 'wait-for-device' arguments which is an error in newer
-        # versions of adb.
-        self.command_output([], timeout=timeout)
+        self.command_output(["wait-for-device"], timeout=timeout)
         pm_error_string = "Error: Could not access the Package Manager"
         pm_list_commands = ["packages", "permission-groups", "permissions",
                             "instrumentation", "features", "libraries"]
@@ -138,9 +131,7 @@ class ADBAndroid(ADBDevice):
                  * ADBError
         """
         try:
-            self.shell_output('svc power stayon true',
-                              timeout=timeout,
-                              root=True)
+            self.shell_output('svc power stayon true', timeout=timeout)
         except ADBError, e:
             # Executing this via adb shell errors, but not interactively.
             # Any other exitcode is a real error.
@@ -316,9 +307,9 @@ class ADBAndroid(ADBDevice):
         :raises: * ADBTimeoutError
                  * ADBError
         """
-        version = self.shell_output("getprop ro.build.version.sdk",
+        version = self.shell_output("getprop ro.build.version.release",
                                     timeout=timeout, root=root)
-        if int(version) >= version_codes.HONEYCOMB:
+        if StrictVersion(version) >= StrictVersion('3.0'):
             self.shell_output("am force-stop %s" % app_name,
                               timeout=timeout, root=root)
         else:

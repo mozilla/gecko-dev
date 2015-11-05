@@ -53,7 +53,7 @@ function isWindowInTab(window) {
   if (isChildLoader) {
     let { frames } = require('../remote/child');
     let frame = frames.getFrameForWindow(window.top);
-    return frame && frame.isTab;
+    return frame.isTab;
   }
   else {
     // The deprecated sync worker API still does everything in the main process

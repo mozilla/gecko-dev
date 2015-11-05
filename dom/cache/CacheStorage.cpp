@@ -32,7 +32,7 @@ namespace mozilla {
 namespace dom {
 namespace cache {
 
-using mozilla::Unused;
+using mozilla::unused;
 using mozilla::ErrorResult;
 using mozilla::dom::workers::WorkerPrivate;
 using mozilla::ipc::BackgroundChild;

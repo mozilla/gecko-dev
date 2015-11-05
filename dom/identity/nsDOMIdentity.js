@@ -28,8 +28,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "checkRenamed",
                                   "resource://gre/modules/identity/IdentityUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "objectCopy",
                                   "resource://gre/modules/identity/IdentityUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "makeMessageObject",
-                                  "resource://gre/modules/identity/IdentityUtils.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
                                    "@mozilla.org/uuid-generator;1",
@@ -641,7 +639,7 @@ nsDOMIdentity.prototype = {
 
     this._log("DOMIdentityMessage: " + JSON.stringify(message));
 
-    return makeMessageObject(message);
+    return message;
   },
 
  /**

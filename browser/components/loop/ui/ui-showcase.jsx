@@ -1288,7 +1288,7 @@
                            width={298}>
               <div className="fx-embedded">
                 <TextChatView dispatcher={dispatcher}
-                              showInitialContext={false}
+                              showRoomName={false}
                               useDesktopPaths={false} />
               </div>
             </FramedExample>
@@ -1302,7 +1302,7 @@
                 <div className="media-wrapper">
                   <TextChatView
                     dispatcher={dispatcher}
-                    showInitialContext={true}
+                    showRoomName={true}
                     useDesktopPaths={false} />
                 </div>
               </div>

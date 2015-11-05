@@ -13,9 +13,16 @@
 #include "nsIHttpChannelInternal.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 
-static mozilla::LazyLogModule gRedirectLog("nsRedirect");
 #undef LOG
-#define LOG(args) MOZ_LOG(gRedirectLog, mozilla::LogLevel::Debug, args)
+static PRLogModuleInfo *
+GetRedirectLog()
+{
+    static PRLogModuleInfo *sLog;
+    if (!sLog)
+        sLog = PR_NewLogModule("nsRedirect");
+    return sLog;
+}
+#define LOG(args) MOZ_LOG(GetRedirectLog(), mozilla::LogLevel::Debug, args)
 
 NS_IMPL_ISUPPORTS(nsAsyncRedirectVerifyHelper,
                   nsIAsyncVerifyRedirectCallback,

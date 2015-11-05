@@ -22,7 +22,6 @@
 #include "UnitTransforms.h"
 #include "Units.h"
 #include "gfx2DGlue.h"
-#include "gfxEnv.h"
 #include "gfxUtils.h"
 #include "nsDisplayList.h"
 #include "nsDocShell.h"
@@ -1062,9 +1061,8 @@ public:
     mContainerAnimatedGeometryRoot = isAtRoot
       ? mContainerReferenceFrame
       : nsLayoutUtils::GetAnimatedGeometryRootFor(aContainerItem, aBuilder);
-    MOZ_ASSERT(!mBuilder->IsPaintingToWindow() ||
-      nsLayoutUtils::IsAncestorFrameCrossDoc(mBuilder->RootReferenceFrame(),
-                                             mContainerAnimatedGeometryRoot));
+    MOZ_ASSERT(nsLayoutUtils::IsAncestorFrameCrossDoc(mBuilder->RootReferenceFrame(),
+                                                      mContainerAnimatedGeometryRoot));
     NS_ASSERTION(!aContainerItem || !aContainerItem->ShouldFixToViewport(mBuilder),
                  "Container items never return true for ShouldFixToViewport");
     mContainerFixedPosFrame =
@@ -2120,7 +2118,8 @@ ContainerState::GetLayerCreationHint(const nsIFrame* aAnimatedGeometryRoot)
   nsIFrame* fParent;
   for (const nsIFrame* f = aAnimatedGeometryRoot;
        f != mContainerAnimatedGeometryRoot;
-       f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(mBuilder, fParent)) {
+       f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(mBuilder,
+           fParent, mContainerAnimatedGeometryRoot)) {
     fParent = nsLayoutUtils::GetCrossDocParentFrame(f);
     if (!fParent) {
       break;
@@ -2385,7 +2384,7 @@ ContainerState::PreparePaintedLayerForUse(PaintedLayer* aLayer,
     aData->mAnimatedGeometryRootPosition = animatedGeometryRootTopLeft;
   }
 #else
-  Unused << didResetScrollPositionForLayerPixelAlignment;
+  unused << didResetScrollPositionForLayerPixelAlignment;
 #endif
 }
 
@@ -2801,7 +2800,7 @@ PaintedLayerDataTree::GetParentAnimatedGeometryRoot(const nsIFrame* aAnimatedGeo
   }
 
   nsIFrame* agr = Builder()->FindAnimatedGeometryRootFor(
-    const_cast<nsIFrame*>(aAnimatedGeometryRoot));
+    const_cast<nsIFrame*>(aAnimatedGeometryRoot), Builder()->RootReferenceFrame());
   MOZ_ASSERT_IF(agr, nsLayoutUtils::IsAncestorFrameCrossDoc(Builder()->RootReferenceFrame(), agr));
   if (agr != aAnimatedGeometryRoot) {
     return agr;
@@ -2812,7 +2811,7 @@ PaintedLayerDataTree::GetParentAnimatedGeometryRoot(const nsIFrame* aAnimatedGeo
   if (!parent) {
     return nullptr;
   }
-  return Builder()->FindAnimatedGeometryRootFor(parent);
+  return Builder()->FindAnimatedGeometryRootFor(parent, Builder()->RootReferenceFrame());
 }
 
 void
@@ -3654,7 +3653,7 @@ PaintInactiveLayer(nsDisplayListBuilder* aBuilder,
     aItem->GetVisibleRect().ToOutsidePixels(appUnitsPerDevPixel);
 
   RefPtr<DrawTarget> tempDT;
-  if (gfxEnv::DumpPaint()) {
+  if (gfxUtils::sDumpPainting) {
     tempDT = gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(
                                       itemVisibleRect.Size(),
                                       SurfaceFormat::B8G8R8A8);
@@ -3684,7 +3683,7 @@ PaintInactiveLayer(nsDisplayListBuilder* aBuilder,
   basic->SetTarget(nullptr);
 
 #ifdef MOZ_DUMP_PAINTING
-  if (gfxEnv::DumpPaint() && tempDT) {
+  if (gfxUtils::sDumpPainting && tempDT) {
     RefPtr<SourceSurface> surface = tempDT->Snapshot();
     DumpPaintedImage(aItem, surface);
 
@@ -3791,7 +3790,8 @@ GetScrollClipIntersection(nsDisplayListBuilder* aBuilder, const nsIFrame* aAnima
   nsIFrame* fParent;
   for (const nsIFrame* f = aAnimatedGeometryRoot;
        f != aStopAtAnimatedGeometryRoot;
-       f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(aBuilder, fParent)) {
+       f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(aBuilder,
+           fParent, aStopAtAnimatedGeometryRoot)) {
     fParent = nsLayoutUtils::GetCrossDocParentFrame(f);
     if (!fParent) {
       // This means aStopAtAnimatedGeometryRoot was not an ancestor
@@ -3904,8 +3904,8 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
         // Unlike GetAnimatedGeometryRootFor(), GetAnimatedGeometryRootForFrame() does not
         // take ShouldFixToViewport() into account, so it will return something different
         // for fixed background items.
-        animatedGeometryRootForScrollMetadata = nsLayoutUtils::GetAnimatedGeometryRootFor(
-          item, mBuilder, nsLayoutUtils::AGR_IGNORE_BACKGROUND_ATTACHMENT_FIXED);
+        animatedGeometryRootForScrollMetadata = nsLayoutUtils::GetAnimatedGeometryRootForFrame(
+            mBuilder, item->Frame(), item->ReferenceFrame());
       } else {
         // For inactive layer subtrees, splitting content into PaintedLayers
         // based on animated geometry roots is pointless. It's more efficient
@@ -4044,14 +4044,9 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
       nscolor uniformColor = NS_RGBA(0,0,0,0);
       nscolor* uniformColorPtr = !mayDrawOutOfOrder ? &uniformColor : nullptr;
       nsIntRect clipRectUntyped;
-      const DisplayItemClip& layerClip = shouldFixToViewport ? fixedToViewportClip : itemClip;
-      ParentLayerIntRect layerClipRect;
-      nsIntRect* clipPtr = nullptr;
-      if (layerClip.HasClip()) {
-        layerClipRect = ViewAs<ParentLayerPixel>(
-          ScaleToNearestPixels(layerClip.GetClipRect()) + mParameters.mOffset);
-        clipRectUntyped = ParentLayerIntRect::ToUntyped(layerClipRect);
-        clipPtr = &clipRectUntyped;
+      nsIntRect* clipPtr = itemClip.HasClip() ? &clipRectUntyped : nullptr;
+      if (clipPtr) {
+	      clipRectUntyped = ParentLayerIntRect::ToUntyped(clipRect);
       }
       if (animatedGeometryRoot == item->Frame() &&
           animatedGeometryRoot != mBuilder->RootReferenceFrame()) {
@@ -4123,20 +4118,20 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
       NS_ASSERTION(ownLayer->Manager() == mManager, "Wrong manager");
       NS_ASSERTION(!ownLayer->HasUserData(&gLayerManagerUserData),
                    "We shouldn't have a FrameLayerBuilder-managed layer here!");
-      NS_ASSERTION(layerClip.HasClip() ||
-                   layerClip.GetRoundedRectCount() == 0,
+      NS_ASSERTION(itemClip.HasClip() ||
+                   itemClip.GetRoundedRectCount() == 0,
                    "If we have rounded rects, we must have a clip rect");
       // It has its own layer. Update that layer's clip and visible rects.
-      if (layerClip.HasClip()) {
-        ownLayer->SetClipRect(Some(layerClipRect));
+      if (itemClip.HasClip()) {
+        ownLayer->SetClipRect(Some(clipRect));
       } else {
         ownLayer->SetClipRect(Nothing());
       }
 
       // rounded rectangle clipping using mask layers
       // (must be done after visible rect is set on layer)
-      if (layerClip.IsRectClippedByRoundedCorner(itemContent)) {
-        SetupMaskLayer(ownLayer, layerClip, itemVisibleRect);
+      if (itemClip.IsRectClippedByRoundedCorner(itemContent)) {
+        SetupMaskLayer(ownLayer, itemClip, itemVisibleRect);
       }
 
       ContainerLayer* oldContainer = ownLayer->GetParent();
@@ -4179,7 +4174,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
           newLayerEntry->mVisibleRegion = itemVisibleRect;
         }
         newLayerEntry->mOpaqueRegion = ComputeOpaqueRect(item,
-          animatedGeometryRoot, fixedPosFrame, layerClip, aList,
+          animatedGeometryRoot, fixedPosFrame, itemClip, aList,
           &newLayerEntry->mHideAllLayersBelow,
           &newLayerEntry->mOpaqueForAnimatedGeometryRootParent);
       } else {
@@ -4508,10 +4503,10 @@ FrameLayerBuilder::AddPaintedDisplayItem(PaintedLayerData* aLayerData,
       tempManager->AbortTransaction();
 
 #ifdef MOZ_DUMP_PAINTING
-      if (gfxUtils::DumpDisplayList() || gfxEnv::DumpPaint()) {
+      if (gfxUtils::DumpDisplayList() || gfxUtils::sDumpPainting) {
         fprintf_stderr(gfxUtils::sDumpPaintFile, "Basic layer tree for painting contents of display item %s(%p):\n", aItem->Name(), aItem->Frame());
         std::stringstream stream;
-        tempManager->Dump(stream, "", gfxEnv::DumpPaintToFile());
+        tempManager->Dump(stream, "", gfxUtils::sDumpPaintingToFile);
         fprint_stderr(gfxUtils::sDumpPaintFile, stream);  // not a typo, fprint_stderr declared in LayersLogging.h
       }
 #endif
@@ -4742,12 +4737,6 @@ ContainerState::SetupScrollingMetadata(NewLayerEntry* aEntry)
     return;
   }
 
-  if (!mBuilder->IsPaintingToWindow()) {
-    // async scrolling not possible, and async scrolling info not computed
-    // for this paint.
-    return;
-  }
-
   nsAutoTArray<FrameMetrics,2> metricsArray;
   if (aEntry->mBaseFrameMetrics) {
     metricsArray.AppendElement(*aEntry->mBaseFrameMetrics);
@@ -4764,7 +4753,8 @@ ContainerState::SetupScrollingMetadata(NewLayerEntry* aEntry)
   nsIFrame* fParent;
   for (const nsIFrame* f = aEntry->mAnimatedGeometryRootForScrollMetadata;
        f != mContainerAnimatedGeometryRoot;
-       f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(this->mBuilder, fParent)) {
+       f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(this->mBuilder,
+           fParent, mContainerAnimatedGeometryRoot)) {
     fParent = nsLayoutUtils::GetCrossDocParentFrame(f);
     if (!fParent) {
       // This means mContainerAnimatedGeometryRoot was not an ancestor
@@ -4908,7 +4898,8 @@ ContainerState::PostprocessRetainedLayers(nsIntRegion* aOpaqueRegionForContainer
     if (!e->mOpaqueRegion.IsEmpty()) {
       const nsIFrame* animatedGeometryRootToCover = animatedGeometryRootForOpaqueness;
       if (e->mOpaqueForAnimatedGeometryRootParent &&
-          nsLayoutUtils::GetAnimatedGeometryRootForFrame(mBuilder, e->mAnimatedGeometryRoot->GetParent())
+          nsLayoutUtils::GetAnimatedGeometryRootForFrame(mBuilder, e->mAnimatedGeometryRoot->GetParent(),
+                                                         mContainerAnimatedGeometryRoot)
             == mContainerAnimatedGeometryRoot) {
         animatedGeometryRootToCover = mContainerAnimatedGeometryRoot;
         data = FindOpaqueRegionEntry(opaqueRegions,
@@ -5728,7 +5719,7 @@ FrameLayerBuilder::PaintItems(nsTArray<ClippedDisplayItem>& aItems,
       nsIFrame* frame = cdi->mItem->Frame();
       frame->AddStateBits(NS_FRAME_PAINTED_THEBES);
 #ifdef MOZ_DUMP_PAINTING
-      if (gfxEnv::DumpPaintItems()) {
+      if (gfxUtils::sDumpPaintItems) {
         DebugPaintItem(aDrawTarget, aPresContext, cdi->mItem, aBuilder);
       } else {
 #else

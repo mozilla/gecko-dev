@@ -189,16 +189,12 @@ bool
 IonBuilder::abort(const char* message, ...)
 {
     // Don't call PCToLineNumber in release builds.
-#ifdef JS_JITSPEW
+#ifdef DEBUG
     va_list ap;
     va_start(ap, message);
     abortFmt(message, ap);
     va_end(ap);
-# ifdef DEBUG
     JitSpew(JitSpew_IonAbort, "aborted @ %s:%d", script()->filename(), PCToLineNumber(script(), pc));
-# else
-    JitSpew(JitSpew_IonAbort, "aborted @ %s", script()->filename());
-# endif
 #endif
     trackActionableAbort(message);
     return false;
@@ -807,7 +803,7 @@ IonBuilder::build()
     if (!current)
         return false;
 
-#ifdef JS_JITSPEW
+#ifdef DEBUG
     if (info().isAnalysis()) {
         JitSpew(JitSpew_IonScripts, "Analyzing script %s:%" PRIuSIZE " (%p) %s",
                 script()->filename(), script()->lineno(), (void*)script(),
@@ -10586,7 +10582,7 @@ IonBuilder::annotateGetPropertyCache(MDefinition* obj, PropertyName* name,
         return true;
     }
 
-#ifdef JS_JITSPEW
+#ifdef DEBUG
     if (inlinePropTable->numEntries() > 0)
         JitSpew(JitSpew_Inlining, "Annotated GetPropertyCache with %d/%d inline cases",
                                     (int) inlinePropTable->numEntries(), (int) objCount);
@@ -11869,11 +11865,6 @@ IonBuilder::getPropTryInnerize(bool* emitted, MDefinition* obj, PropertyName* na
 {
     // See the comment in tryInnerizeWindow for how this works.
 
-    // Note that it's important that we do this _before_ we'd try to
-    // do the optimizations below on obj normally, since some of those
-    // optimizations have fallback paths that are slower than the path
-    // we'd produce here.
-
     MOZ_ASSERT(*emitted == false);
 
     MDefinition* inner = tryInnerizeWindow(obj);
@@ -11881,6 +11872,15 @@ IonBuilder::getPropTryInnerize(bool* emitted, MDefinition* obj, PropertyName* na
         return true;
 
     if (!forceInlineCaches()) {
+        // Note: the Baseline ICs don't know about this optimization, so it's
+        // possible the global property's HeapTypeSet has not been initialized
+        // yet. In this case we'll fall back to getPropTryCache for now.
+
+        // Note that it's important that we do this _before_ we'd try to
+        // do the optimizations below on obj normally, since some of those
+        // optimizations have fallback paths that are slower than the path
+        // we'd produce here.
+
         trackOptimizationAttempt(TrackedStrategy::GetProp_Constant);
         if (!getPropTryConstant(emitted, inner, NameToId(name), types) || *emitted)
             return *emitted;

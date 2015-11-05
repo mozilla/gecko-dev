@@ -46,7 +46,7 @@
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
-using mozilla::Unused;
+using mozilla::unused;
 
 namespace mozilla {
 namespace places {
@@ -1985,7 +1985,7 @@ History::NotifyVisited(nsIURI* aURI)
       URIParams uri;
       SerializeURI(aURI, uri);
       for (uint32_t i = 0; i < cplist.Length(); ++i) {
-        Unused << cplist[i]->SendNotifyVisited(uri);
+        unused << cplist[i]->SendNotifyVisited(uri);
       }
     }
   }

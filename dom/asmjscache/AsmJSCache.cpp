@@ -56,7 +56,7 @@ using mozilla::ipc::BackgroundChild;
 using mozilla::ipc::IsOnBackgroundThread;
 using mozilla::ipc::PBackgroundChild;
 using mozilla::ipc::PrincipalInfo;
-using mozilla::Unused;
+using mozilla::unused;
 using mozilla::HashString;
 
 namespace mozilla {
@@ -478,7 +478,7 @@ private:
     FinishOnOwningThread();
 
     if (!mActorDestroyed) {
-      Unused << Send__delete__(this, mResult);
+      unused << Send__delete__(this, mResult);
     }
   }
 
@@ -993,7 +993,7 @@ ParentRunnable::Run()
 
       // Metadata is now open.
       if (!SendOnOpenMetadataForRead(mMetadata)) {
-        Unused << Send__delete__(this, JS::AsmJSCache_InternalError);
+        unused << Send__delete__(this, JS::AsmJSCache_InternalError);
       }
 
       return NS_OK;
@@ -1035,7 +1035,7 @@ ParentRunnable::Run()
       FileDescriptor::PlatformHandleType handle =
         FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(mFileDesc));
       if (!SendOnOpenCacheFile(mFileSize, FileDescriptor(handle))) {
-        Unused << Send__delete__(this, JS::AsmJSCache_InternalError);
+        unused << Send__delete__(this, JS::AsmJSCache_InternalError);
       }
 
       return NS_OK;
@@ -1451,7 +1451,7 @@ ChildRunnable::Run()
       Release();
 
       if (!mActorDestroyed) {
-        Unused << Send__delete__(this, JS::AsmJSCache_Success);
+        unused << Send__delete__(this, JS::AsmJSCache_Success);
       }
 
       mState = eFinished;

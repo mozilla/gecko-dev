@@ -522,10 +522,9 @@ var Output = {
 
   stop: function stop() {
     if (this.highlightBox) {
-      let highlightBox = this.highlightBox.get();
-      if (highlightBox) {
-        highlightBox.remove();
-      }
+      let doc = Utils.win.document;
+      (doc.body || doc.documentElement).documentElement.removeChild(
+        this.highlightBox.get());
       delete this.highlightBox;
     }
   },

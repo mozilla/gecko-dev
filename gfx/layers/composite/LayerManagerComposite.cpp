@@ -121,7 +121,6 @@ LayerManagerComposite::LayerManagerComposite(Compositor* aCompositor)
 , mDebugOverlayWantsNextFrame(false)
 , mGeometryChanged(true)
 , mLastFrameMissedHWC(false)
-, mWindowOverlayChanged(false)
 {
   mTextRenderer = new TextRenderer(aCompositor);
   MOZ_ASSERT(aCompositor);
@@ -340,7 +339,7 @@ LayerManagerComposite::UpdateAndRender()
   // Update cached layer tree information.
   mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
 
-  if (invalid.IsEmpty() && !mWindowOverlayChanged) {
+  if (invalid.IsEmpty()) {
     // Composition requested, but nothing has changed. Don't do any work.
     return;
   }
@@ -361,7 +360,6 @@ LayerManagerComposite::UpdateAndRender()
   RenderToPresentationSurface();
 #endif
   mGeometryChanged = false;
-  mWindowOverlayChanged = false;
 }
 
 already_AddRefed<DrawTarget>

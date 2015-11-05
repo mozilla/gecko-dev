@@ -52,7 +52,6 @@
 #include "nsIHttpChannelInternal.h"
 #include "nsILoadContext.h"
 #include "nsILoadGroupChild.h"
-#include "nsIDOMDocument.h"
 
 using namespace mozilla;
 using namespace mozilla::image;
@@ -1336,13 +1335,21 @@ imgLoader::ClearCache(bool chrome)
 }
 
 NS_IMETHODIMP
-imgLoader::FindEntryProperties(nsIURI* uri,
-                               nsIDOMDocument* doc,
-                               nsIProperties** _retval)
+imgLoader::RemoveEntry(nsIURI* aURI)
+{
+  if (aURI && RemoveFromCache(ImageCacheKey(aURI))) {
+    return NS_OK;
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+imgLoader::FindEntryProperties(nsIURI* uri, nsIProperties** _retval)
 {
   *_retval = nullptr;
 
-  ImageCacheKey key(uri, doc);
+  ImageCacheKey key(uri);
   imgCacheTable& cache = GetCache(key);
 
   RefPtr<imgCacheEntry> entry;
@@ -1359,25 +1366,6 @@ imgLoader::FindEntryProperties(nsIURI* uri,
   }
 
   return NS_OK;
-}
-
-NS_IMETHODIMP_(void)
-imgLoader::ClearCacheForControlledDocument(nsIDocument* aDoc)
-{
-  MOZ_ASSERT(aDoc);
-  nsAutoTArray<RefPtr<imgCacheEntry>, 128> entriesToBeRemoved;
-  imgCacheTable& cache = GetCache(false);
-  for (auto iter = cache.Iter(); !iter.Done(); iter.Next()) {
-    auto& key = iter.Key();
-    if (key.ControlledDocument() == aDoc) {
-      entriesToBeRemoved.AppendElement(iter.Data());
-    }
-  }
-  for (auto& entry : entriesToBeRemoved) {
-    if (!RemoveFromCache(entry)) {
-      NS_WARNING("Couldn't remove an entry from the cache in ClearCacheForControlledDocument()\n");
-    }
-  }
 }
 
 void
@@ -1602,7 +1590,7 @@ imgLoader::ValidateRequestWithNewChannel(imgRequest* request,
       // We will send notifications from imgCacheValidator::OnStartRequest().
       // In the mean time, we must defer notifications because we are added to
       // the imgRequest's proxy list, and we can get extra notifications
-      // resulting from methods such as StartDecoding(). See bug 579122.
+      // resulting from methods such as RequestDecode(). See bug 579122.
       proxy->SetNotificationsDeferred(true);
 
       // Attach the proxy without notifying
@@ -1678,7 +1666,7 @@ imgLoader::ValidateRequestWithNewChannel(imgRequest* request,
     // We will send notifications from imgCacheValidator::OnStartRequest().
     // In the mean time, we must defer notifications because we are added to
     // the imgRequest's proxy list, and we can get extra notifications
-    // resulting from methods such as StartDecoding(). See bug 579122.
+    // resulting from methods such as RequestDecode(). See bug 579122.
     req->SetNotificationsDeferred(true);
 
     // Add the proxy without notifying
@@ -2107,8 +2095,7 @@ imgLoader::LoadImage(nsIURI* aURI,
   // XXX For now ignore aCacheKey. We will need it in the future
   // for correctly dealing with image load requests that are a result
   // of post data.
-  nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aCX);
-  ImageCacheKey key(aURI, doc);
+  ImageCacheKey key(aURI);
   imgCacheTable& cache = GetCache(key);
 
   if (cache.Get(key, getter_AddRefs(entry)) && entry) {
@@ -2332,8 +2319,7 @@ imgLoader::LoadImageWithChannel(nsIChannel* channel,
 
   nsCOMPtr<nsIURI> uri;
   channel->GetURI(getter_AddRefs(uri));
-  nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aCX);
-  ImageCacheKey key(uri, doc);
+  ImageCacheKey key(uri);
 
   nsLoadFlags requestFlags = nsIRequest::LOAD_NORMAL;
   channel->GetLoadFlags(&requestFlags);
@@ -2427,7 +2413,7 @@ imgLoader::LoadImageWithChannel(nsIChannel* channel,
     // constructed above with the *current URI* and not the *original URI*. I'm
     // pretty sure this is a bug, and it's preventing us from ever getting a
     // cache hit in LoadImageWithChannel when redirects are involved.
-    ImageCacheKey originalURIKey(originalURI, doc);
+    ImageCacheKey originalURIKey(originalURI);
 
     // Default to doing a principal check because we don't know who
     // started that load and whether their principal ended up being

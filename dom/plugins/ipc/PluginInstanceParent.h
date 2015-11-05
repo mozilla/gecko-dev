@@ -307,7 +307,7 @@ public:
                                    gfxContext** aCtx);
     nsresult EndUpdateBackground(gfxContext* aCtx,
                                  const nsIntRect& aRect);
-    void DidComposite() { Unused << SendNPP_DidComposite(); }
+    void DidComposite() { unused << SendNPP_DidComposite(); }
 
     virtual PluginAsyncSurrogate* GetAsyncSurrogate() override;
 

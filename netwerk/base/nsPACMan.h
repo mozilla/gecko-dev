@@ -241,7 +241,7 @@ private:
 
 namespace mozilla {
 namespace net {
-extern LazyLogModule gProxyLog;
+PRLogModuleInfo* GetProxyLog();
 } // namespace net
 } // namespace mozilla
 

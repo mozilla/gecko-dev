@@ -24,8 +24,25 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace image {
 
-static LazyLogModule sPNGLog("PNGDecoder");
-static LazyLogModule sPNGDecoderAccountingLog("PNGDecoderAccounting");
+static PRLogModuleInfo*
+GetPNGLog()
+{
+  static PRLogModuleInfo* sPNGLog;
+  if (!sPNGLog) {
+    sPNGLog = PR_NewLogModule("PNGDecoder");
+  }
+  return sPNGLog;
+}
+
+static PRLogModuleInfo*
+GetPNGDecoderAccountingLog()
+{
+  static PRLogModuleInfo* sPNGDecoderAccountingLog;
+  if (!sPNGDecoderAccountingLog) {
+    sPNGDecoderAccountingLog = PR_NewLogModule("PNGDecoderAccounting");
+  }
+  return sPNGDecoderAccountingLog;
+}
 
 // Limit image dimensions (bug #251381, #591822, and #967656)
 #ifndef MOZ_PNG_MAX_DIMENSION
@@ -173,7 +190,7 @@ nsPNGDecoder::CreateFrame(png_uint_32 aXOffset, png_uint_32 aYOffset,
 
   mFrameRect = frameRect;
 
-  MOZ_LOG(sPNGDecoderAccountingLog, LogLevel::Debug,
+  MOZ_LOG(GetPNGDecoderAccountingLog(), LogLevel::Debug,
          ("PNGDecoderAccounting: nsPNGDecoder::CreateFrame -- created "
           "image frame with %dx%d pixels for decoder %p",
           aWidth, aHeight, this));
@@ -896,7 +913,7 @@ nsPNGDecoder::end_callback(png_structp png_ptr, png_infop info_ptr)
 void
 nsPNGDecoder::error_callback(png_structp png_ptr, png_const_charp error_msg)
 {
-  MOZ_LOG(sPNGLog, LogLevel::Error, ("libpng error: %s\n", error_msg));
+  MOZ_LOG(GetPNGLog(), LogLevel::Error, ("libpng error: %s\n", error_msg));
   png_longjmp(png_ptr, 1);
 }
 
@@ -904,7 +921,7 @@ nsPNGDecoder::error_callback(png_structp png_ptr, png_const_charp error_msg)
 void
 nsPNGDecoder::warning_callback(png_structp png_ptr, png_const_charp warning_msg)
 {
-  MOZ_LOG(sPNGLog, LogLevel::Warning, ("libpng warning: %s\n", warning_msg));
+  MOZ_LOG(GetPNGLog(), LogLevel::Warning, ("libpng warning: %s\n", warning_msg));
 }
 
 Telemetry::ID

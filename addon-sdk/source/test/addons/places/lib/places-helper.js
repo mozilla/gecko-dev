@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
  'use strict'
 
-const { Cc, Ci, Cu } = require('chrome');
+const { Cc, Ci } = require('chrome');
 const bmsrv = Cc['@mozilla.org/browser/nav-bookmarks-service;1'].
                     getService(Ci.nsINavBookmarksService);
 const hsrv = Cc['@mozilla.org/browser/nav-history-service;1'].
@@ -26,11 +26,6 @@ const {
   MENU, TOOLBAR, UNSORTED
 } = require('sdk/places/bookmarks');
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-  "resource://gre/modules/PlacesUtils.jsm");
-
 function invalidResolve (assert) {
   return function (e) {
     assert.fail('Resolve state should not be called: ' + e);
@@ -50,7 +45,8 @@ function clearAllBookmarks () {
 }
 
 function clearHistory (done) {
-  PlacesUtils.history.clear().catch(Cu.reportError).then(done);
+  hsrv.removeAllPages();
+  once('places-expiration-finished', done);
 }
 
 // Cleans bookmarks and history and disables maintanance

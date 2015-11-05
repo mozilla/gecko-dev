@@ -949,12 +949,12 @@ nsHTTPIndex::FireTimer(nsITimer* aTimer, void* aClosure)
             rv = NS_NewChannel(getter_AddRefs(channel),
                                url,
                                nsContentUtils::GetSystemPrincipal(),
-                               nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                               nsILoadInfo::SEC_NORMAL,
                                nsIContentPolicy::TYPE_OTHER);
           }
           if (NS_SUCCEEDED(rv) && (channel)) {
             channel->SetNotificationCallbacks(httpIndex);
-            rv = channel->AsyncOpen2(httpIndex);
+            rv = channel->AsyncOpen(httpIndex, aSource);
           }
         }
   }
@@ -1307,7 +1307,7 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
     rv = NS_NewChannel(getter_AddRefs(channel),
                        uri,
                        nsContentUtils::GetSystemPrincipal(),
-                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                       nsILoadInfo::SEC_NORMAL,
                        nsIContentPolicy::TYPE_OTHER,
                        aLoadGroup);
     if (NS_FAILED(rv)) return rv;
@@ -1319,7 +1319,7 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
                                  aDocViewerResult);
     if (NS_FAILED(rv)) return rv;
 
-    rv = channel->AsyncOpen2(listener);
+    rv = channel->AsyncOpen(listener, nullptr);
     if (NS_FAILED(rv)) return rv;
     
     // Create an HTTPIndex object so that we can stuff it into the script context

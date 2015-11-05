@@ -256,7 +256,7 @@ OnStatsReport_m(WebrtcGlobalChild* aThisChild,
       }
     }
 
-    Unused << aThisChild->SendGetStatsResult(aRequestId, stats);
+    unused << aThisChild->SendGetStatsResult(aRequestId, stats);
     return;
   }
 
@@ -327,7 +327,7 @@ static void OnGetLogging_m(WebrtcGlobalChild* aThisChild,
       nsLogs.AppendElement(NS_LITERAL_STRING("+++++++ END ++++++++"), fallible);
     }
 
-    Unused << aThisChild->SendGetLogResult(aRequestId, nsLogs);
+    unused << aThisChild->SendGetLogResult(aRequestId, nsLogs);
     return;
   }
 
@@ -585,7 +585,7 @@ WebrtcGlobalInformation::SetDebugLevel(const GlobalObject& aGlobal, int32_t aLev
   sLastSetLevel = aLevel;
 
   for (auto& cp : WebrtcContentParents::GetAll()){
-    Unused << cp->SendSetDebugMode(aLevel);
+    unused << cp->SendSetDebugMode(aLevel);
   }
 }
 
@@ -603,7 +603,7 @@ WebrtcGlobalInformation::SetAecDebug(const GlobalObject& aGlobal, bool aEnable)
   sLastAECDebug = aEnable;
 
   for (auto& cp : WebrtcContentParents::GetAll()){
-    Unused << cp->SendSetAecLogging(aEnable);
+    unused << cp->SendSetAecLogging(aEnable);
   }
 }
 
@@ -1066,7 +1066,7 @@ static void StoreLongTermICEStatisticsImpl_m(
 
 static void GetStatsForLongTermStorage_s(
     nsAutoPtr<RTCStatsQuery> query,
-    const bool aIsLoop) {
+    bool aIsLoop) {
 
   MOZ_ASSERT(query);
 

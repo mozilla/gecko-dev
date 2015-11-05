@@ -53,7 +53,8 @@ public:
   virtual media::TimeIntervals GetBuffered() override;
 
 protected:
-  virtual void NotifyDataArrivedInternal() override;
+  virtual void NotifyDataArrivedInternal(uint32_t aLength,
+                                         int64_t aOffset) override;
 public:
   layers::ImageContainer* GetImageContainer() { return mDecoder->GetImageContainer(); }
 

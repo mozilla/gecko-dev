@@ -7,12 +7,10 @@
 #include "nsIContentPolicyBase.idl"
 
 interface nsIChannel;
-interface nsIConsoleReportCollector;
 interface nsIOutputStream;
 interface nsIURI;
 
 %{C++
-#include "nsIConsoleReportCollector.h"
 namespace mozilla {
 namespace dom {
 class ChannelInfo;
@@ -29,7 +27,7 @@ class ChannelInfo;
  * which do not implement nsIChannel.
  */
 
-[scriptable, uuid(231bb567-90e1-4973-9728-7dab93ab29a8)]
+[scriptable, uuid(afe6aae6-a80d-405b-856e-df36c19bf3c8)]
 interface nsIInterceptedChannel : nsISupports
 {
     /**
@@ -87,19 +85,6 @@ interface nsIInterceptedChannel : nsISupports
      */
     [noscript]
     readonly attribute nsContentPolicyType internalContentPolicyType;
-
-    [noscript]
-    readonly attribute nsIConsoleReportCollector consoleReportCollector;
-
-%{C++
-    already_AddRefed<nsIConsoleReportCollector>
-    GetConsoleReportCollector()
-    {
-      nsCOMPtr<nsIConsoleReportCollector> reporter;
-      GetConsoleReportCollector(getter_AddRefs(reporter));
-      return reporter.forget();
-    }
-%}
 };
 
 /**

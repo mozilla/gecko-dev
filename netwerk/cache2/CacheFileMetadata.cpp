@@ -35,6 +35,8 @@ namespace net {
 // Max size of elements in bytes.
 #define kMaxElementsSize 64*1024
 
+#define kCacheEntryVersion 1
+
 #define NOW_SECONDS() (uint32_t(PR_Now() / PR_USEC_PER_SEC))
 
 NS_IMPL_ISUPPORTS(CacheFileMetadata, CacheFileIOListener)
@@ -69,7 +71,7 @@ CacheFileMetadata::CacheFileMetadata(CacheFileHandle *aHandle, const nsACString 
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 }
 
-CacheFileMetadata::CacheFileMetadata(bool aMemoryOnly, bool aPinned, const nsACString &aKey)
+CacheFileMetadata::CacheFileMetadata(bool aMemoryOnly, const nsACString &aKey)
   : CacheMemoryConsumer(aMemoryOnly ? MEMORY_ONLY : NORMAL)
   , mHandle(nullptr)
   , mHashArray(nullptr)
@@ -91,9 +93,6 @@ CacheFileMetadata::CacheFileMetadata(bool aMemoryOnly, bool aPinned, const nsACS
   MOZ_COUNT_CTOR(CacheFileMetadata);
   memset(&mMetaHdr, 0, sizeof(CacheFileMetadataHeader));
   mMetaHdr.mVersion = kCacheEntryVersion;
-  if (aPinned) {
-    AddFlags(kCacheEntryIsPinned);
-  }
   mMetaHdr.mExpirationTime = nsICacheEntry::NO_EXPIRATION_TIME;
   mKey = aKey;
   mMetaHdr.mKeySize = mKey.Length();
@@ -536,29 +535,6 @@ CacheFileMetadata::SetHash(uint32_t aIndex, CacheHash::Hash16_t aHash)
 }
 
 nsresult
-CacheFileMetadata::AddFlags(uint32_t aFlags)
-{
-  MarkDirty(false);
-  mMetaHdr.mFlags |= aFlags;
-  return NS_OK;
-}
-
-nsresult
-CacheFileMetadata::RemoveFlags(uint32_t aFlags)
-{
-  MarkDirty(false);
-  mMetaHdr.mFlags &= ~aFlags;
-  return NS_OK;
-}
-
-nsresult
-CacheFileMetadata::GetFlags(uint32_t *_retval)
-{
-  *_retval = mMetaHdr.mFlags;
-  return NS_OK;
-}
-
-nsresult
 CacheFileMetadata::SetExpirationTime(uint32_t aExpirationTime)
 {
   LOG(("CacheFileMetadata::SetExpirationTime() [this=%p, expirationTime=%d]",
@@ -838,16 +814,11 @@ CacheFileMetadata::InitEmptyMetadata()
   mMetaHdr.mExpirationTime = nsICacheEntry::NO_EXPIRATION_TIME;
   mMetaHdr.mKeySize = mKey.Length();
 
-  // Deliberately not touching the "kCacheEntryIsPinned" flag.
-
   DoMemoryReport(MemoryUsage());
 
   // We're creating a new entry. If there is any old data truncate it.
-  if (mHandle) {
-    mHandle->SetPinned(Pinned());
-    if (mHandle->FileExists() && mHandle->FileSize()) {
-      CacheFileIOManager::TruncateSeekSetEOF(mHandle, 0, 0, nullptr);
-    }
+  if (mHandle && mHandle->FileExists() && mHandle->FileSize()) {
+    CacheFileIOManager::TruncateSeekSetEOF(mHandle, 0, 0, nullptr);
   }
 }
 
@@ -882,18 +853,11 @@ CacheFileMetadata::ParseMetadata(uint32_t aMetaOffset, uint32_t aBufOffset,
 
   mMetaHdr.ReadFromBuf(mBuf + hdrOffset);
 
-  if (mMetaHdr.mVersion == 1) {
-    // Backward compatibility before we've added flags to the header
-    keyOffset -= sizeof(uint32_t);
-  } else if (mMetaHdr.mVersion != kCacheEntryVersion) {
+  if (mMetaHdr.mVersion != kCacheEntryVersion) {
     LOG(("CacheFileMetadata::ParseMetadata() - Not a version we understand to. "
          "[version=0x%x, this=%p]", mMetaHdr.mVersion, this));
     return NS_ERROR_UNEXPECTED;
   }
-
-  // Update the version stored in the header to make writes
-  // store the header in the current version form.
-  mMetaHdr.mVersion = kCacheEntryVersion;
 
   uint32_t elementsOffset = mMetaHdr.mKeySize + keyOffset + 1;
 
@@ -952,14 +916,6 @@ CacheFileMetadata::ParseMetadata(uint32_t aMetaOffset, uint32_t aBufOffset,
   rv = CheckElements(mBuf + elementsOffset, metaposOffset - elementsOffset);
   if (NS_FAILED(rv))
     return rv;
-
-  if (mHandle) {
-    if (!mHandle->SetPinned(Pinned())) {
-      LOG(("CacheFileMetadata::ParseMetadata() - handle was doomed for this "
-           "pinning state, truncate the file [this=%p, pinned=%d]", this, Pinned()));
-      return NS_ERROR_FILE_CORRUPTED;
-    }
-  }
 
   mHashArraySize = hashesLen;
   mHashCount = hashCount;

@@ -2023,15 +2023,12 @@
     macro(JSOP_REST,          224, "rest",         NULL,  1,  0,  1,  JOF_BYTE|JOF_TYPESET) \
     \
     /*
-     * First, throw a TypeError if baseValue is null or undefined. Then,
-     * replace the top-of-stack value propertyNameValue with
-     * ToPropertyKey(propertyNameValue). This opcode implements ES6 12.3.2.1
-     * steps 7-10.  It is also used to implement computed property names; in
-     * that case, baseValue is always an object, so the first step is a no-op.
+     * Pops the top of stack value, converts it into a jsid (int or string), and
+     * pushes it onto the stack.
      *   Category: Literals
      *   Type: Object
      *   Operands:
-     *   Stack: baseValue, propertyNameValue => baseValue, propertyKey
+     *   Stack: obj, id => obj, (jsid of id)
      */ \
     macro(JSOP_TOID,          225, "toid",         NULL,  1,  1,  1,  JOF_BYTE) \
     \

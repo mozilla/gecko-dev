@@ -344,7 +344,7 @@ nsSynthVoiceRegistry::RemoveVoice(nsISpeechService* aService,
   GetAllSpeechSynthActors(ssplist);
 
   for (uint32_t i = 0; i < ssplist.Length(); ++i)
-    Unused << ssplist[i]->SendVoiceRemoved(nsString(aUri));
+    unused << ssplist[i]->SendVoiceRemoved(nsString(aUri));
 
   return NS_OK;
 }
@@ -374,7 +374,7 @@ nsSynthVoiceRegistry::SetDefaultVoice(const nsAString& aUri,
     GetAllSpeechSynthActors(ssplist);
 
     for (uint32_t i = 0; i < ssplist.Length(); ++i) {
-      Unused << ssplist[i]->SendSetDefaultVoice(nsString(aUri), aIsDefault);
+      unused << ssplist[i]->SendSetDefaultVoice(nsString(aUri), aIsDefault);
     }
   }
 
@@ -494,7 +494,7 @@ nsSynthVoiceRegistry::AddVoiceImpl(nsISpeechService* aService,
                                       aQueuesUtterances);
 
     for (uint32_t i = 0; i < ssplist.Length(); ++i) {
-      Unused << ssplist[i]->SendVoiceAdded(ssvoice);
+      unused << ssplist[i]->SendVoiceAdded(ssvoice);
     }
   }
 
@@ -744,7 +744,7 @@ nsSynthVoiceRegistry::SetIsSpeaking(bool aIsSpeaking)
   nsTArray<SpeechSynthesisParent*> ssplist;
   GetAllSpeechSynthActors(ssplist);
   for (uint32_t i = 0; i < ssplist.Length(); ++i) {
-    Unused << ssplist[i]->SendIsSpeakingChanged(aIsSpeaking);
+    unused << ssplist[i]->SendIsSpeakingChanged(aIsSpeaking);
   }
 }
 

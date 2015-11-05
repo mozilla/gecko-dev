@@ -6,9 +6,10 @@ const { DOM: dom, createClass, PropTypes, createFactory } = require("devtools/cl
 const { safeErrorString } = require("devtools/shared/DevToolsUtils");
 const Tree = createFactory(require("./tree"));
 const TreeItem = createFactory(require("./tree-item"));
-const { getSnapshotStatusTextFull, getSnapshotTotals, L10N } = require("../utils");
+const { getSnapshotStatusTextFull } = require("../utils");
 const { snapshotState: states } = require("../constants");
 const { snapshot: snapshotModel } = require("../models");
+const TAKE_SNAPSHOT_TEXT = "Take snapshot";
 // If HEAP_TREE_ROW_HEIGHT changes, be sure to change `var(--heap-tree-row-height)`
 // in `devtools/client/themes/memory.css`
 const HEAP_TREE_ROW_HEIGHT = 14;
@@ -36,27 +37,13 @@ function createParentMap (node, aggregator=Object.create(null)) {
  * @param {CensusTreeNode} census
  * @return {Object}
  */
-function createTreeProperties (snapshot, toolbox) {
-  const census = snapshot.census;
+function createTreeProperties (census, toolbox) {
   let map = createParentMap(census);
-  const totals = getSnapshotTotals(snapshot);
 
   return {
-    getParent: node => {
-      const parent = map[node.id];
-      return parent === census ? null : parent;
-    },
+    getParent: node => map[node.id],
     getChildren: node => node.children || [],
-    renderItem: (item, depth, focused, arrow) =>
-      new TreeItem({
-        toolbox,
-        item,
-        depth,
-        focused,
-        arrow,
-        getPercentBytes: bytes => bytes / totals.bytes * 100,
-        getPercentCount: count => count / totals.count * 100,
-      }),
+    renderItem: (item, depth, focused, arrow) => new TreeItem({ toolbox, item, depth, focused, arrow }),
     getRoots: () => census.children,
     getKey: node => node.id,
     itemHeight: HEAP_TREE_ROW_HEIGHT,
@@ -96,12 +83,12 @@ const Heap = module.exports = createClass({
           // but React hates that evidently
           "data-standalone": true,
           "data-text-only": true,
-        }, L10N.getStr("take-snapshot"))];
+        }, TAKE_SNAPSHOT_TEXT)];
         break;
       case states.ERROR:
         content = [
           dom.span({ className: "snapshot-status error" }, statusText),
-          dom.pre({}, safeErrorString(snapshot.error))
+          dom.pre({}, safeErrorString(snapshot.error || new Error("blahblah"))),
         ];
         break;
       case states.SAVING:
@@ -112,25 +99,16 @@ const Heap = module.exports = createClass({
         content = [dom.span({ className: "snapshot-status devtools-throbber" }, statusText)];
         break;
       case states.SAVED_CENSUS:
-        content = [];
-
-        if (snapshot.breakdown.by === "allocationStack"
-            && census.children.length === 1
-            && census.children[0].name === "noStack") {
-          content.push(dom.div({ className: "error no-allocation-stacks" },
-                               L10N.getStr("heapview.noAllocationStacks")));
-        }
-
-        content.push(
+        content = [
           dom.div({ className: "header" },
-            dom.span({ className: "heap-tree-item-bytes" }, L10N.getStr("heapview.field.bytes")),
-            dom.span({ className: "heap-tree-item-count" }, L10N.getStr("heapview.field.count")),
-            dom.span({ className: "heap-tree-item-total-bytes" }, L10N.getStr("heapview.field.totalbytes")),
-            dom.span({ className: "heap-tree-item-total-count" }, L10N.getStr("heapview.field.totalcount")),
-            dom.span({ className: "heap-tree-item-name" }, L10N.getStr("heapview.field.name"))
+            dom.span({ className: "heap-tree-item-bytes" }, "Bytes"),
+            dom.span({ className: "heap-tree-item-count" }, "Count"),
+            dom.span({ className: "heap-tree-item-total-bytes" }, "Total Bytes"),
+            dom.span({ className: "heap-tree-item-total-count" }, "Total Count"),
+            dom.span({ className: "heap-tree-item-name" }, "Name")
           ),
-          Tree(createTreeProperties(snapshot, toolbox))
-        );
+          Tree(createTreeProperties(snapshot.census, toolbox))
+        ];
         break;
     }
     let pane = dom.div({ className: "heap-view-panel", "data-state": state }, ...content);

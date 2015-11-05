@@ -46,7 +46,9 @@ nsNativeTheme::GetPresShell(nsIFrame* aFrame)
   if (!aFrame)
     return nullptr;
 
-  nsPresContext* context = aFrame->PresContext();
+  // this is a workaround for the egcs 1.1.2 not inlining
+  // aFrame->PresContext(), which causes an undefined symbol
+  nsPresContext *context = aFrame->StyleContext()->RuleNode()->PresContext();
   return context ? context->GetPresShell() : nullptr;
 }
 

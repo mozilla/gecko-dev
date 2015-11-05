@@ -113,6 +113,8 @@ GonkDecoderManager::Flush()
     mQueuedSamples.Clear();
   }
 
+  mLastTime = 0;
+
   MonitorAutoLock lock(mFlushMonitor);
   mIsFlushing = true;
   sp<AMessage> flush = new AMessage(kNotifyProcessFlush, id());
@@ -137,8 +139,8 @@ GonkDecoderManager::Shutdown()
   return NS_OK;
 }
 
-size_t
-GonkDecoderManager::NumQueuedSamples()
+bool
+GonkDecoderManager::HasQueuedSample()
 {
   MutexAutoLock lock(mMutex);
   return mQueuedSamples.Length();
@@ -159,8 +161,6 @@ GonkDecoderManager::ProcessInput(bool aEndOfStream)
         mToDo->setInt32("input-eos", 1);
       }
       mDecoder->requestActivityNotification(mToDo);
-    } else if (aEndOfStream) {
-      mToDo->setInt32("input-eos", 1);
     }
   } else {
     GMDD_LOG("input processed: error#%d", rv);
@@ -171,7 +171,6 @@ GonkDecoderManager::ProcessInput(bool aEndOfStream)
 void
 GonkDecoderManager::ProcessFlush()
 {
-  mLastTime = 0;
   MonitorAutoLock lock(mFlushMonitor);
   mWaitOutput.Clear();
   if (mDecoder->flush() != OK) {
@@ -188,9 +187,15 @@ GonkDecoderManager::ProcessToDo(bool aEndOfStream)
   MOZ_ASSERT(mToDo.get() != nullptr);
   mToDo.clear();
 
-  if (NumQueuedSamples() > 0 && ProcessQueuedSamples() < 0) {
-    mDecodeCallback->Error();
-    return;
+  if (HasQueuedSample()) {
+    status_t pendingInput = ProcessQueuedSamples();
+    if (pendingInput < 0) {
+      mDecodeCallback->Error();
+      return;
+    }
+    if (!aEndOfStream && pendingInput <= MIN_QUEUED_SAMPLES) {
+      mDecodeCallback->InputExhausted();
+    }
   }
 
   nsresult rv = NS_OK;
@@ -222,18 +227,8 @@ GonkDecoderManager::ProcessToDo(bool aEndOfStream)
     }
   }
 
-  if (!aEndOfStream && NumQueuedSamples() <= MIN_QUEUED_SAMPLES) {
-    mDecodeCallback->InputExhausted();
-    // No need to shedule todo task this time because InputExhausted() will
-    // cause Input() to be invoked and do it for us.
-    return;
-  }
-
-  if (NumQueuedSamples() || mWaitOutput.Length() > 0) {
+  if (HasQueuedSample() || mWaitOutput.Length() > 0) {
     mToDo = new AMessage(kNotifyDecoderActivity, id());
-    if (aEndOfStream) {
-      mToDo->setInt32("input-eos", 1);
-    }
     mDecoder->requestActivityNotification(mToDo);
   }
 }
@@ -270,7 +265,8 @@ GonkDecoderManager::onMessageReceived(const sp<AMessage> &aMessage)
 GonkMediaDataDecoder::GonkMediaDataDecoder(GonkDecoderManager* aManager,
                                            FlushableTaskQueue* aTaskQueue,
                                            MediaDataDecoderCallback* aCallback)
-  : mManager(aManager)
+  : mTaskQueue(aTaskQueue)
+  , mManager(aManager)
 {
   MOZ_COUNT_CTOR(GonkMediaDataDecoder);
   mManager->SetDecodeCallback(aCallback);
@@ -309,6 +305,11 @@ GonkMediaDataDecoder::Input(MediaRawData* aSample)
 nsresult
 GonkMediaDataDecoder::Flush()
 {
+  // Flush the input task queue. This cancels all pending Decode() calls.
+  // Note this blocks until the task queue finishes its current job, if
+  // it's executing at all. Note the MP4Reader ignores all output while
+  // flushing.
+  mTaskQueue->Flush();
   return mManager->Flush();
 }
 

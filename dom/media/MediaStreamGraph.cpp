@@ -580,12 +580,9 @@ MediaStreamGraphImpl::CreateOrDestroyAudioStreams(MediaStream* aStream)
     return;
   }
 
-  if (!aStream->GetStreamBuffer().GetAndResetTracksDirty() &&
-      !aStream->mAudioOutputStreams.IsEmpty()) {
+  if (!aStream->GetStreamBuffer().GetAndResetTracksDirty()) {
     return;
   }
-
-  STREAM_LOG(LogLevel::Debug, ("Updating AudioOutputStreams for MediaStream %p", aStream));
 
   nsAutoTArray<bool,2> audioOutputStreamsFound;
   for (uint32_t i = 0; i < aStream->mAudioOutputStreams.Length(); ++i) {
@@ -1808,18 +1805,8 @@ MediaStream::SetAudioOutputVolume(void* aKey, float aVolume)
 }
 
 void
-MediaStream::AddAudioOutputImpl(void* aKey)
-{
-  STREAM_LOG(LogLevel::Info, ("MediaStream %p Adding AudioOutput for key %p",
-                              this, aKey));
-  mAudioOutputs.AppendElement(AudioOutput(aKey));
-}
-
-void
 MediaStream::RemoveAudioOutputImpl(void* aKey)
 {
-  STREAM_LOG(LogLevel::Info, ("MediaStream %p Removing AudioOutput for key %p",
-                              this, aKey));
   for (uint32_t i = 0; i < mAudioOutputs.Length(); ++i) {
     if (mAudioOutputs[i].mKey == aKey) {
       mAudioOutputs.RemoveElementAt(i);
@@ -1843,26 +1830,6 @@ MediaStream::RemoveAudioOutput(void* aKey)
     void* mKey;
   };
   GraphImpl()->AppendMessage(new Message(this, aKey));
-}
-
-void
-MediaStream::AddVideoOutputImpl(already_AddRefed<VideoFrameContainer> aContainer)
-{
-  RefPtr<VideoFrameContainer> container = aContainer;
-  STREAM_LOG(LogLevel::Info, ("MediaStream %p Adding VideoFrameContainer %p as output",
-                              this, container.get()));
-  *mVideoOutputs.AppendElement() = container.forget();
-}
-
-void
-MediaStream::RemoveVideoOutputImpl(VideoFrameContainer* aContainer)
-{
-  STREAM_LOG(LogLevel::Info, ("MediaStream %p Removing VideoFrameContainer %p as output",
-                              this, aContainer));
-  // Ensure that any frames currently queued for playback by the compositor
-  // are removed.
-  aContainer->ClearFutureFrames();
-  mVideoOutputs.RemoveElement(aContainer);
 }
 
 void
@@ -2510,7 +2477,7 @@ ProcessedMediaStream::AllocateInputPort(MediaStream* aStream, TrackID aTrackID,
       mPort->Init();
       // The graph holds its reference implicitly
       mPort->GraphImpl()->SetStreamOrderDirty();
-      Unused << mPort.forget();
+      unused << mPort.forget();
     }
     virtual void RunDuringShutdown()
     {

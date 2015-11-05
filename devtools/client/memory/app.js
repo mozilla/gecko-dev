@@ -22,7 +22,10 @@ const App = createClass({
   propTypes: appModel,
 
   getDefaultProps() {
-    return {};
+    return {
+      breakdown: breakdowns.coarseType.breakdown,
+      inverted: false,
+    };
   },
 
   childContextTypes: {
@@ -92,7 +95,10 @@ const App = createClass({
  * and passed to components.
  */
 function mapStateToProps (state) {
-  return state;
+  return {
+    allocations: state.allocations,
+    snapshots: state.snapshots
+  };
 }
 
 module.exports = connect(mapStateToProps)(App);

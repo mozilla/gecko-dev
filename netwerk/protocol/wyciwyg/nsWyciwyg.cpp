@@ -5,6 +5,5 @@
 #include "nsWyciwyg.h"
 #include "nscore.h"
 
-mozilla::LazyLogModule gWyciwygLog("nsWyciwygChannel");
-
+PRLogModuleInfo *gWyciwygLog = nullptr;
 

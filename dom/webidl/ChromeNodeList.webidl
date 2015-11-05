@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-[Constructor, Func="IsChromeOrXBL"]
+[ChromeOnly, Constructor]
 interface ChromeNodeList : NodeList {
   [Throws]
   void append(Node aNode);

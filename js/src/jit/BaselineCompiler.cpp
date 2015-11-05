@@ -2436,10 +2436,7 @@ BaselineCompiler::emit_JSOP_BINDNAME()
 {
     frame.syncStack(0);
 
-    if (*pc == JSOP_BINDGNAME && !script->hasNonSyntacticScope())
-        masm.movePtr(ImmGCPtr(&script->global().lexicalScope()), R0.scratchReg());
-    else
-        masm.loadPtr(frame.addressOfScopeChain(), R0.scratchReg());
+    masm.loadPtr(frame.addressOfScopeChain(), R0.scratchReg());
 
     // Call IC.
     ICBindName_Fallback::Compiler stubCompiler(cx);

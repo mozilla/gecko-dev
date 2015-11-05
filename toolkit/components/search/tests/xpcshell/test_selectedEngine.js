@@ -5,6 +5,9 @@ Components.utils.import("resource://gre/modules/osfile.jsm");
 
 const kSelectedEnginePref = "browser.search.selectedEngine";
 
+// waitForSearchNotification is in head_search.js
+var waitForNotification = waitForSearchNotification;
+
 // Check that the default engine matches the defaultenginename pref
 add_task(function* test_defaultEngine() {
   yield asyncInit();
@@ -37,11 +40,13 @@ add_task(function* test_persistAcrossRestarts() {
   // Set the engine through the API.
   Services.search.currentEngine = Services.search.getEngineByName(kTestEngineName);
   do_check_eq(Services.search.currentEngine.name, kTestEngineName);
-  yield promiseAfterCache();
+  yield waitForNotification("write-metadata-to-disk-complete");
 
   // Check that the a hash was saved.
-  let metadata = yield promiseGlobalMetadata();
-  do_check_eq(metadata.hash.length, 44);
+  let path = OS.Path.join(OS.Constants.Path.profileDir, "search-metadata.json");
+  let bytes = yield OS.File.read(path);
+  let json = JSON.parse(new TextDecoder().decode(bytes));
+  do_check_eq(json["[global]"].hash.length, 44);
 
   // Re-init and check the engine is still the same.
   yield asyncReInit();
@@ -60,12 +65,18 @@ add_task(function* test_ignoreInvalidHash() {
   // Set the engine through the API.
   Services.search.currentEngine = Services.search.getEngineByName(kTestEngineName);
   do_check_eq(Services.search.currentEngine.name, kTestEngineName);
-  yield promiseAfterCache();
+  yield waitForNotification("write-metadata-to-disk-complete");
 
-  // Then mess with the file (make the hash invalid).
-  let metadata = yield promiseGlobalMetadata();
-  metadata.hash = "invalid";
-  yield promiseSaveGlobalMetadata(metadata);
+  // Then mess with the file.
+  let path = OS.Path.join(OS.Constants.Path.profileDir, "search-metadata.json");
+  let bytes = yield OS.File.read(path);
+  let json = JSON.parse(new TextDecoder().decode(bytes));
+
+  // Make the hask invalid.
+  json["[global]"].hash = "invalid";
+
+  let data = new TextEncoder().encode(JSON.stringify(json));
+  yield OS.File.writeAtomic(path, data);//, { tmpPath: path + ".tmp" });
 
   // Re-init the search service, and check that the json file is ignored.
   yield asyncReInit();
@@ -77,20 +88,23 @@ add_task(function* test_settingToDefault() {
   // Set the engine through the API.
   Services.search.currentEngine = Services.search.getEngineByName(kTestEngineName);
   do_check_eq(Services.search.currentEngine.name, kTestEngineName);
-  yield promiseAfterCache();
+  yield waitForNotification("write-metadata-to-disk-complete");
 
   // Check that the current engine was saved.
-  let metadata = yield promiseGlobalMetadata();
-  do_check_eq(metadata.current, kTestEngineName);
+  let path = OS.Path.join(OS.Constants.Path.profileDir, "search-metadata.json");
+  let bytes = yield OS.File.read(path);
+  let json = JSON.parse(new TextDecoder().decode(bytes));
+  do_check_eq(json["[global]"].current, kTestEngineName);
 
   // Then set the engine back to the default through the API.
   Services.search.currentEngine =
     Services.search.getEngineByName(getDefaultEngineName());
-  yield promiseAfterCache();
+  yield waitForNotification("write-metadata-to-disk-complete");
 
   // Check that the current engine is no longer saved in the JSON file.
-  metadata = yield promiseGlobalMetadata();
-  do_check_eq(metadata.current, "");
+  bytes = yield OS.File.read(path);
+  json = JSON.parse(new TextDecoder().decode(bytes));
+  do_check_eq(json["[global]"].current, "");
 });
 
 

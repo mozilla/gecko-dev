@@ -16,9 +16,6 @@
 class nsCString;
 
 namespace mozilla {
-
-class OriginAttributesPattern;
-
 namespace net {
 
 struct nsHttpAuthPath {
@@ -184,7 +181,8 @@ public:
                                  const char *host,
                                  int32_t     port,
                                  const char *path,
-                                 nsACString const &originSuffix,
+                                 uint32_t    appId,
+                                 bool        inBrowserElement,
                                  nsHttpAuthEntry **entry);
 
     // |scheme|, |host|, and |port| are required
@@ -194,7 +192,8 @@ public:
                                    const char *host,
                                    int32_t     port,
                                    const char *realm,
-                                   nsACString const &originSuffix,
+                                   uint32_t    appId,
+                                   bool        inBrowserElement,
                                    nsHttpAuthEntry **entry);
 
     // |scheme|, |host|, and |port| are required
@@ -209,7 +208,8 @@ public:
                           const char *realm,
                           const char *credentials,
                           const char *challenge,
-                          nsACString const &originSuffix,
+                          uint32_t    appId,
+                          bool        inBrowserElement,
                           const nsHttpAuthIdentity *ident,
                           nsISupports *metadata);
 
@@ -217,7 +217,8 @@ public:
                         const char *host,
                         int32_t     port,
                         const char *realm,
-                        nsACString const &originSuffix);
+                        uint32_t    appId,
+                        bool        inBrowserElement);
 
     // expire all existing auth list entries including proxy auths.
     nsresult ClearAll();
@@ -226,7 +227,8 @@ private:
     nsHttpAuthNode *LookupAuthNode(const char *scheme,
                                    const char *host,
                                    int32_t     port,
-                                   nsACString const &originSuffix,
+                                   uint32_t    appId,
+                                   bool        inBrowserElement,
                                    nsCString  &key);
 
     // hash table allocation functions
@@ -237,20 +239,20 @@ private:
 
     static PLHashAllocOps gHashAllocOps;
 
-    class OriginClearObserver : public nsIObserver {
-      virtual ~OriginClearObserver() {}
+    class AppDataClearObserver : public nsIObserver {
+      virtual ~AppDataClearObserver() {}
     public:
       NS_DECL_ISUPPORTS
       NS_DECL_NSIOBSERVER
-      explicit OriginClearObserver(nsHttpAuthCache* aOwner) : mOwner(aOwner) {}
+      explicit AppDataClearObserver(nsHttpAuthCache* aOwner) : mOwner(aOwner) {}
       nsHttpAuthCache* mOwner;
     };
 
-    void ClearOriginData(OriginAttributesPattern const &pattern);
+    void ClearAppData(uint32_t appId, bool browserOnly);
 
 private:
     PLHashTable *mDB; // "host:port" --> nsHttpAuthNode
-    RefPtr<OriginClearObserver> mObserver;
+    RefPtr<AppDataClearObserver> mObserver;
 };
 
 } // namespace net

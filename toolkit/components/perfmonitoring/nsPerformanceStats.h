@@ -46,11 +46,6 @@ protected:
   friend nsPerformanceGroup;
 
   /**
-   * `false` until `Init()` and after `Dispose()`, `true` inbetween.
-   */
-  bool mIsAvailable;
-
-  /**
    * A unique identifier for the process.
    *
    * Process HANDLE under Windows, pid under Unix.

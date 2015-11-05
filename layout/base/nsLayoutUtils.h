@@ -273,13 +273,10 @@ public:
    *
    * @param aFrame the frame to start at
    * @param aFrameType the frame type to look for
-   * @param aStopAt a frame to stop at after we checked it
    * @return a frame of the given type or nullptr if no
    *         such ancestor exists
    */
-  static nsIFrame* GetClosestFrameOfType(nsIFrame* aFrame,
-                                         nsIAtom* aFrameType,
-                                         nsIFrame* aStopAt = nullptr);
+  static nsIFrame* GetClosestFrameOfType(nsIFrame* aFrame, nsIAtom* aFrameType);
 
   /**
    * Given a frame, search up the frame tree until we find an
@@ -552,24 +549,17 @@ public:
    * returning aItem->ReferenceFrame() when we can't find another animated
    * geometry root.
    */
-  enum {
-    /**
-     * If the AGR_IGNORE_BACKGROUND_ATTACHMENT_FIXED flag is set, then we
-     * do not do any special processing for background attachment fixed items,
-     * instead treating them like any other frame.
-     */
-    AGR_IGNORE_BACKGROUND_ATTACHMENT_FIXED = 0x01
-  };
   static nsIFrame* GetAnimatedGeometryRootFor(nsDisplayItem* aItem,
-                                              nsDisplayListBuilder* aBuilder,
-                                              uint32_t aFlags = 0);
+                                              nsDisplayListBuilder* aBuilder);
 
   /**
    * Finds the nearest ancestor frame to aFrame that is considered to have (or
-   * will have) "animated geometry". This could be aFrame.
+   * will have) "animated geometry". This could be aFrame. Returns
+   * aStopAtAncestor if no closer ancestor is found.
    */
   static nsIFrame* GetAnimatedGeometryRootForFrame(nsDisplayListBuilder* aBuilder,
-                                                   nsIFrame* aFrame);
+                                                   nsIFrame* aFrame,
+                                                   const nsIFrame* aStopAtAncestor);
 
   /**
     * GetScrollableFrameFor returns the scrollable frame for a scrolled frame
@@ -2773,12 +2763,6 @@ public:
    * @param aSel      Selection to check
    */
   static nsRect GetSelectionBoundingRect(mozilla::dom::Selection* aSel);
-
-  /**
-   * Returns true if the given frame is a scrollframe and it has snap points.
-   */
-  static bool IsScrollFrameWithSnapping(nsIFrame* aFrame);
-
 private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;

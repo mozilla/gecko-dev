@@ -22,7 +22,7 @@ namespace mozilla {
 
 // Log module for Substituting Protocol logging. We keep the pre-existing module
 // name of "nsResProtocol" to avoid disruption.
-static LazyLogModule gResLog("nsResProtocol");
+static PRLogModuleInfo *gResLog;
 
 static NS_DEFINE_CID(kSubstitutingURLCID, NS_SUBSTITUTINGURL_CID);
 
@@ -105,6 +105,10 @@ SubstitutingProtocolHandler::ConstructInternal()
   nsresult rv;
   mIOService = do_GetIOService(&rv);
   MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv) && mIOService);
+
+  if (!gResLog) {
+    gResLog = PR_NewLogModule("nsResProtocol");
+  }
 }
 
 //
@@ -165,7 +169,7 @@ SubstitutingProtocolHandler::SendSubstitution(const nsACString& aRoot, nsIURI* a
   }
 
   for (uint32_t i = 0; i < parents.Length(); i++) {
-    Unused << parents[i]->SendRegisterChromeItem(mapping);
+    unused << parents[i]->SendRegisterChromeItem(mapping);
   }
 }
 

@@ -76,15 +76,11 @@ protected:
     ~MediaEngineTabVideoSource() {}
 
 private:
-    int32_t mBufWidthMax;
-    int32_t mBufHeightMax;
+    int mBufWidthMax;
+    int mBufHeightMax;
     int64_t mWindowId;
     bool mScrollWithPage;
-    int32_t mViewportOffsetX;
-    int32_t mViewportOffsetY;
-    int32_t mViewportWidth;
-    int32_t mViewportHeight;
-    int32_t mTimePerFrame;
+    int mTimePerFrame;
     ScopedFreePtr<unsigned char> mData;
     size_t mDataSize;
     nsCOMPtr<nsIDOMWindow> mWindow;

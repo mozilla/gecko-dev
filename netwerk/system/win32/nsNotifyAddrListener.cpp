@@ -35,7 +35,7 @@
 
 using namespace mozilla;
 
-static LazyLogModule gNotifyAddrLog("nsNotifyAddr");
+static PRLogModuleInfo *gNotifyAddrLog = nullptr;
 #define LOG(args) MOZ_LOG(gNotifyAddrLog, mozilla::LogLevel::Debug, args)
 
 static HMODULE sNetshell;
@@ -248,6 +248,9 @@ nsNotifyAddrListener::Observe(nsISupports *subject,
 nsresult
 nsNotifyAddrListener::Init(void)
 {
+    if (!gNotifyAddrLog)
+        gNotifyAddrLog = PR_NewLogModule("nsNotifyAddr");
+
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
     if (!observerService)

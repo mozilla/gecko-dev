@@ -253,14 +253,14 @@ void
 APZEventState::ProcessTouchEvent(const WidgetTouchEvent& aEvent,
                                  const ScrollableLayerGuid& aGuid,
                                  uint64_t aInputBlockId,
-                                 nsEventStatus aApzResponse,
-                                 nsEventStatus aContentResponse)
+                                 nsEventStatus aApzResponse)
 {
   if (aEvent.mMessage == eTouchStart && aEvent.touches.Length() > 0) {
     mActiveElementManager->SetTargetElement(aEvent.touches[0]->GetTarget());
   }
 
-  bool isTouchPrevented = aContentResponse == nsEventStatus_eConsumeNoDefault;
+  bool isTouchPrevented = TouchManager::gPreventMouseEvents ||
+      aEvent.mFlags.mMultipleActionsPrevented;
   bool sentContentResponse = false;
   APZES_LOG("Handling event type %d\n", aEvent.mMessage);
   switch (aEvent.mMessage) {
@@ -336,17 +336,6 @@ APZEventState::ProcessWheelEvent(const WidgetWheelEvent& aEvent,
   // scroll by setting defaultPrevented to true.
   bool defaultPrevented =
     aEvent.mFlags.mDefaultPrevented || aEvent.TriggersSwipe();
-  mContentReceivedInputBlockCallback(aGuid, aInputBlockId, defaultPrevented);
-}
-
-void
-APZEventState::ProcessMouseEvent(const WidgetMouseEvent& aEvent,
-                                 const ScrollableLayerGuid& aGuid,
-                                 uint64_t aInputBlockId)
-{
-  // If we get here and the input block has not been confirmed then
-  // no scrollbar reacted to the event thus APZC should ignore this block.
-  bool defaultPrevented = false;
   mContentReceivedInputBlockCallback(aGuid, aInputBlockId, defaultPrevented);
 }
 

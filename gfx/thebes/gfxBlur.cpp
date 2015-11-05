@@ -952,8 +952,7 @@ gfxAlphaBoxBlur::GetInsetBlur(IntMargin& aExtendDestBy,
                                                 ToRect(innerRect), aHasBorderRadius,
                                                 aInnerClipRadii);
 
-  Color black(0.f, 0.f, 0.f, 1.f);
-  minGfxContext->SetColor(black);
+  minGfxContext->SetColor(aShadowColor);
   minGfxContext->SetPath(maskPath);
   minGfxContext->Fill();
 

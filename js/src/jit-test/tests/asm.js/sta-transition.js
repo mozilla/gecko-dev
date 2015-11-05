@@ -6,7 +6,7 @@
 //
 // These should not run with --no-asmjs.
 
-if (!this.SharedArrayBuffer || !isAsmJSCompilationAvailable())
+if (!isAsmJSCompilationAvailable())
     quit(0);
 
 //////////////////////////////////////////////////////////////////////

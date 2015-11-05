@@ -87,29 +87,11 @@ CacheEntry::Callback::Callback(CacheEntry* aEntry,
 , mRecheckAfterWrite(false)
 , mNotWanted(false)
 , mSecret(aSecret)
-, mDoomWhenFoundPinned(false)
-, mDoomWhenFoundNonPinned(false)
 {
   MOZ_COUNT_CTOR(CacheEntry::Callback);
 
   // The counter may go from zero to non-null only under the service lock
   // but here we expect it to be already positive.
-  MOZ_ASSERT(mEntry->HandlesCount());
-  mEntry->AddHandleRef();
-}
-
-CacheEntry::Callback::Callback(CacheEntry* aEntry, bool aDoomWhenFoundInPinStatus)
-: mEntry(aEntry)
-, mReadOnly(false)
-, mRevalidating(false)
-, mCheckOnAnyThread(true)
-, mRecheckAfterWrite(false)
-, mNotWanted(false)
-, mSecret(false)
-, mDoomWhenFoundPinned(aDoomWhenFoundInPinStatus == true)
-, mDoomWhenFoundNonPinned(aDoomWhenFoundInPinStatus == false)
-{
-  MOZ_COUNT_CTOR(CacheEntry::Callback);
   MOZ_ASSERT(mEntry->HandlesCount());
   mEntry->AddHandleRef();
 }
@@ -124,8 +106,6 @@ CacheEntry::Callback::Callback(CacheEntry::Callback const &aThat)
 , mRecheckAfterWrite(aThat.mRecheckAfterWrite)
 , mNotWanted(aThat.mNotWanted)
 , mSecret(aThat.mSecret)
-, mDoomWhenFoundPinned(aThat.mDoomWhenFoundPinned)
-, mDoomWhenFoundNonPinned(aThat.mDoomWhenFoundNonPinned)
 {
   MOZ_COUNT_CTOR(CacheEntry::Callback);
 
@@ -156,20 +136,6 @@ void CacheEntry::Callback::ExchangeEntry(CacheEntry* aEntry)
   mEntry = aEntry;
 }
 
-bool CacheEntry::Callback::DeferDoom(bool *aDoom) const
-{
-  MOZ_ASSERT(mEntry->mPinningKnown);
-
-  if (MOZ_UNLIKELY(mDoomWhenFoundNonPinned) || MOZ_UNLIKELY(mDoomWhenFoundPinned)) {
-    *aDoom = (MOZ_UNLIKELY(mDoomWhenFoundNonPinned) && MOZ_LIKELY(!mEntry->mPinned)) ||
-             (MOZ_UNLIKELY(mDoomWhenFoundPinned) && MOZ_UNLIKELY(mEntry->mPinned));
-
-    return true;
-  }
-
-  return false;
-}
-
 nsresult CacheEntry::Callback::OnCheckThread(bool *aOnCheckThread) const
 {
   if (!mCheckOnAnyThread) {
@@ -198,8 +164,7 @@ CacheEntry::CacheEntry(const nsACString& aStorageID,
                        nsIURI* aURI,
                        const nsACString& aEnhanceID,
                        bool aUseDisk,
-                       bool aSkipSizeCheck,
-                       bool aPin)
+                       bool aSkipSizeCheck)
 : mFrecency(0)
 , mSortingExpirationTime(uint32_t(-1))
 , mLock("CacheEntry")
@@ -209,12 +174,10 @@ CacheEntry::CacheEntry(const nsACString& aStorageID,
 , mStorageID(aStorageID)
 , mUseDisk(aUseDisk)
 , mSkipSizeCheck(aSkipSizeCheck)
+, mIsDoomed(false)
 , mSecurityInfoLoaded(false)
 , mPreventCallbacks(false)
 , mHasData(false)
-, mPinned(aPin)
-, mPinningKnown(false)
-, mIsDoomed(false)
 , mState(NOTLOADED)
 , mRegistration(NEVERREGISTERED)
 , mWriter(nullptr)
@@ -387,18 +350,16 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
     if (NS_SUCCEEDED(CacheIndex::HasEntry(fileKey, &status))) {
       switch (status) {
       case CacheIndex::DOES_NOT_EXIST:
-        // Doesn't apply to memory-only entries, Load() is called only once for them
-        // and never again for their session lifetime.
+        LOG(("  entry doesn't exist according information from the index, truncating"));
         if (!aTruncate && mUseDisk) {
-          LOG(("  entry doesn't exist according information from the index, truncating"));
           reportMiss = true;
-          aTruncate = true;
         }
+        aTruncate = true;
         break;
       case CacheIndex::EXISTS:
       case CacheIndex::DO_NOT_KNOW:
         if (!mUseDisk) {
-          LOG(("  entry open as memory-only, but there is a file, status=%d, dooming it", status));
+          LOG(("  entry open as memory-only, but there is (status=%d) a file, dooming it", status));
           CacheFileIOManager::DoomFileByKey(fileKey, nullptr);
         }
         break;
@@ -415,7 +376,6 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
     // mLoadStart will be used to calculate telemetry of life-time of this entry.
     // Low resulution is then enough.
     mLoadStart = TimeStamp::NowLoRes();
-    mPinningKnown = true;
   } else {
     mLoadStart = TimeStamp::Now();
   }
@@ -435,7 +395,6 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
                        !mUseDisk,
                        mSkipSizeCheck,
                        aPriority,
-                       mPinned,
                        directLoad ? nullptr : this);
     }
 
@@ -473,10 +432,9 @@ NS_IMETHODIMP CacheEntry::OnFileReady(nsresult aResult, bool aIsNew)
   }
 
   // OnFileReady, that is the only code that can transit from LOADING
-  // to any follow-on state and can only be invoked ones on an entry.
-  // Until this moment there is no consumer that could manipulate
-  // the entry state.
-
+  // to any follow-on state, can only be invoked ones on an entry,
+  // thus no need to lock.  Until this moment there is no consumer that
+  // could manipulate the entry state.
   mozilla::MutexAutoLock lock(mLock);
 
   MOZ_ASSERT(mState == LOADING);
@@ -486,10 +444,6 @@ NS_IMETHODIMP CacheEntry::OnFileReady(nsresult aResult, bool aIsNew)
     : READY;
 
   mFileStatus = aResult;
-
-  mPinned = mFile->IsPinned();;
-  mPinningKnown = true;
-  LOG(("  pinning=%d", mPinned));
 
   if (mState == READY) {
     mHasData = true;
@@ -502,7 +456,6 @@ NS_IMETHODIMP CacheEntry::OnFileReady(nsresult aResult, bool aIsNew)
   }
 
   InvokeCallbacks();
-
   return NS_OK;
 }
 
@@ -530,13 +483,6 @@ already_AddRefed<CacheEntryHandle> CacheEntry::ReopenTruncated(bool aMemoryOnly,
   RefPtr<CacheEntryHandle> handle;
   RefPtr<CacheEntry> newEntry;
   {
-    if (mPinned) {
-      MOZ_ASSERT(mUseDisk);
-      // We want to pin even no-store entries (the case we recreate a disk entry as
-      // a memory-only entry.)
-      aMemoryOnly = false;
-    }
-
     mozilla::MutexAutoUnlock unlock(mLock);
 
     // The following call dooms this entry (calls DoomAlreadyRemoved on us)
@@ -544,7 +490,6 @@ already_AddRefed<CacheEntryHandle> CacheEntry::ReopenTruncated(bool aMemoryOnly,
       GetStorageID(), GetURI(), GetEnhanceID(),
       mUseDisk && !aMemoryOnly,
       mSkipSizeCheck,
-      mPinned,
       true, // always create
       true, // truncate existing (this one)
       getter_AddRefs(handle));
@@ -632,8 +577,6 @@ bool CacheEntry::InvokeCallbacks(bool aReadOnly)
 {
   mLock.AssertCurrentThreadOwns();
 
-  RefPtr<CacheEntryHandle> recreatedHandle;
-
   uint32_t i = 0;
   while (i < mCallbacks.Length()) {
     if (mPreventCallbacks) {
@@ -644,18 +587,6 @@ bool CacheEntry::InvokeCallbacks(bool aReadOnly)
     if (!mIsDoomed && (mState == WRITING || mState == REVALIDATING)) {
       LOG(("  entry is being written/revalidated"));
       return false;
-    }
-
-    bool recreate;
-    if (mCallbacks[i].DeferDoom(&recreate)) {
-      mCallbacks.RemoveElementAt(i);
-      if (!recreate) {
-        continue;
-      }
-
-      LOG(("  defer doom marker callback hit positive, recreating"));
-      recreatedHandle = ReopenTruncated(!mUseDisk, nullptr);
-      break;
     }
 
     if (mCallbacks[i].mReadOnly != aReadOnly) {
@@ -692,12 +623,6 @@ bool CacheEntry::InvokeCallbacks(bool aReadOnly)
       mCallbacks.InsertElementAt(pos, callback);
       ++i;
     }
-  }
-
-  if (recreatedHandle) {
-    // Must be released outside of the lock, enters InvokeCallback on the new entry
-    mozilla::MutexAutoUnlock unlock(mLock);
-    recreatedHandle = nullptr;
   }
 
   return true;
@@ -1065,13 +990,6 @@ NS_IMETHODIMP CacheEntry::GetExpirationTime(uint32_t *aExpirationTime)
 NS_IMETHODIMP CacheEntry::GetIsForcedValid(bool *aIsForcedValid)
 {
   NS_ENSURE_ARG(aIsForcedValid);
-
-  MOZ_ASSERT(mState > LOADING);
-
-  if (mPinned) {
-    *aIsForcedValid = true;
-    return NS_OK;
-  }
 
   nsAutoCString key;
 
@@ -1524,28 +1442,6 @@ void CacheEntry::SetRegistered(bool aRegistered)
   }
 }
 
-bool CacheEntry::DeferOrBypassRemovalOnPinStatus(bool aPinned)
-{
-  LOG(("CacheEntry::DeferOrBypassRemovalOnPinStatus [this=%p]", this));
-
-  mozilla::MutexAutoLock lock(mLock);
-
-  if (mPinningKnown) {
-    LOG(("  pinned=%d, caller=%d", mPinned, aPinned));
-    // Bypass when the pin status of this entry doesn't match the pin status
-    // caller wants to remove
-    return mPinned != aPinned;
-  }
-
-  LOG(("  pinning unknown, caller=%d", aPinned));
-  // Oterwise, remember to doom after the status is determined for any
-  // callback opening the entry after this point...
-  Callback c(this, aPinned);
-  RememberCallback(c);
-  // ...and always bypass
-  return true;
-}
-
 bool CacheEntry::Purge(uint32_t aWhat)
 {
   LOG(("CacheEntry::Purge [this=%p, what=%d]", this, aWhat));
@@ -1626,10 +1522,6 @@ void CacheEntry::DoomAlreadyRemoved()
   mozilla::MutexAutoLock lock(mLock);
 
   mIsDoomed = true;
-
-  // Pretend pinning is know.  This entry is now doomed for good, so don't
-  // bother with defering doom because of unknown pinning state any more.
-  mPinningKnown = true;
 
   // This schedules dooming of the file, dooming is ensured to happen
   // sooner than demand to open the same file made after this point

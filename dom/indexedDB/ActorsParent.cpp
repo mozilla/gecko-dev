@@ -5313,7 +5313,7 @@ public:
   void
   CloseDatabaseWhenIdle(const nsACString& aDatabaseId)
   {
-    Unused << CloseDatabaseWhenIdleInternal(aDatabaseId);
+    unused << CloseDatabaseWhenIdleInternal(aDatabaseId);
   }
 
   void
@@ -9592,7 +9592,7 @@ RecvPIndexedDBPermissionRequestConstructor(
   }
 
   if (permission != PermissionRequestBase::kPermissionPrompt) {
-    Unused <<
+    unused <<
       PIndexedDBPermissionRequestParent::Send__delete__(actor, permission);
   }
 
@@ -9850,7 +9850,7 @@ DatabaseConnection::RollbackWriteTransaction()
 
   // This may fail if SQLite already rolled back the transaction so ignore any
   // errors.
-  Unused << stmt->Execute();
+  unused << stmt->Execute();
 
   mInWriteTransaction = false;
 }
@@ -9978,7 +9978,7 @@ DatabaseConnection::RollbackSavepoint()
 
   // This may fail if SQLite already rolled back the savepoint so ignore any
   // errors.
-  Unused << stmt->Execute();
+  unused << stmt->Execute();
 
   return NS_OK;
 }
@@ -10068,7 +10068,7 @@ DatabaseConnection::DoIdleProcessing(bool aNeedsCheckpoint)
 
     // Release the connection's normal transaction. It's possible that it could
     // fail, but that isn't a problem here.
-    Unused << rollbackStmt->Execute();
+    unused << rollbackStmt->Execute();
 
     mInReadTransaction = false;
   }
@@ -10093,7 +10093,7 @@ DatabaseConnection::DoIdleProcessing(bool aNeedsCheckpoint)
   // Truncate the WAL if we were asked to or if we managed to free some space.
   if (aNeedsCheckpoint || freedSomePages) {
     rv = CheckpointInternal(CheckpointMode::Truncate);
-    Unused << NS_WARN_IF(NS_FAILED(rv));
+    unused << NS_WARN_IF(NS_FAILED(rv));
   }
 
   // Finally try to restart the read transaction if we rolled it back earlier.
@@ -10219,7 +10219,7 @@ DatabaseConnection::ReclaimFreePagesWhileIdle(
     MOZ_ASSERT(mInWriteTransaction);
 
     // Something failed, make sure we roll everything back.
-    Unused << aRollbackStatement->Execute();
+    unused << aRollbackStatement->Execute();
 
     mInWriteTransaction = false;
 
@@ -11187,7 +11187,7 @@ ConnectionPool::Start(const nsID& aBackgroundChildLoggingId,
   }
 
   if (!transactionInfo->mBlockedOn.Count()) {
-    Unused << ScheduleTransaction(transactionInfo,
+    unused << ScheduleTransaction(transactionInfo,
                                   /* aFromQueuedTransactions */ false);
   }
 
@@ -11280,7 +11280,7 @@ ConnectionPool::WaitForDatabasesToComplete(nsTArray<nsCString>&& aDatabaseIds,
   }
 
   if (mayRunCallbackImmediately) {
-    Unused << aCallback->Run();
+    unused << aCallback->Run();
     return;
   }
 
@@ -11352,7 +11352,7 @@ ConnectionPool::Cleanup()
       MOZ_ASSERT(completeCallback);
       MOZ_ASSERT(completeCallback->mCallback);
 
-      Unused << completeCallback->mCallback->Run();
+      unused << completeCallback->mCallback->Run();
     }
 
     mCompleteCallbacks.Clear();
@@ -11878,7 +11878,7 @@ ConnectionPool::NoteClosedDatabase(DatabaseInfo* aDatabaseInfo)
     for (uint32_t index = 0, count = scheduledTransactions.Length();
          index < count;
          index++) {
-      Unused << ScheduleTransaction(scheduledTransactions[index],
+      unused << ScheduleTransaction(scheduledTransactions[index],
                                     /* aFromQueuedTransactions */ false);
     }
 
@@ -11943,7 +11943,7 @@ ConnectionPool::MaybeFireCallback(DatabasesCompleteCallback* aCallback)
     }
   }
 
-  Unused << aCallback->mCallback->Run();
+  unused << aCallback->mCallback->Run();
   return true;
 }
 
@@ -12222,7 +12222,7 @@ FinishCallbackWrapper::Run()
 
     mHasRunOnce = true;
 
-    Unused << mCallback->Run();
+    unused << mCallback->Run();
 
     MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
       mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL)));
@@ -12520,7 +12520,7 @@ TransactionInfo::Schedule()
   MOZ_ASSERT(connectionPool);
   connectionPool->AssertIsOnOwningThread();
 
-  Unused <<
+  unused <<
     connectionPool->ScheduleTransaction(this,
                                         /* aFromQueuedTransactions */ false);
 }
@@ -12910,7 +12910,7 @@ WaitForTransactionsHelper::WaitForTransactions()
 {
   MOZ_ASSERT(mState == State::Initial);
 
-  Unused << this->Run();
+  unused << this->Run();
 }
 
 void
@@ -13142,7 +13142,7 @@ Database::Invalidate()
   mInvalidated = true;
 
   if (mActorWasAlive && !mActorDestroyed) {
-    Unused << SendInvalidate();
+    unused << SendInvalidate();
   }
 
   if (!Helper::InvalidateTransactions(mTransactions)) {
@@ -14748,7 +14748,7 @@ NormalTransaction::SendCompleteNotification(nsresult aResult)
   AssertIsOnBackgroundThread();
 
   if (!IsActorDestroyed()) {
-    Unused << SendComplete(aResult);
+    unused << SendComplete(aResult);
   }
 }
 
@@ -15047,7 +15047,7 @@ VersionChangeTransaction::SendCompleteNotification(nsresult aResult)
   openDatabaseOp->mState = OpenDatabaseOp::State::SendingResults;
 
   if (!IsActorDestroyed()) {
-    Unused << SendComplete(aResult);
+    unused << SendComplete(aResult);
   }
 
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(openDatabaseOp->Run()));
@@ -16843,7 +16843,7 @@ QuotaClient::PerformIdleMaintenance()
 
   if (kRunningXPCShellTests) {
     // We don't want user activity to impact this code if we're running tests.
-    Unused << Observe(nullptr, OBSERVER_TOPIC_IDLE, nullptr);
+    unused << Observe(nullptr, OBSERVER_TOPIC_IDLE, nullptr);
   } else if (!mIdleObserverRegistered) {
     nsCOMPtr<nsIIdleService> idleService =
       do_GetService(kIdleServiceContractId);
@@ -18009,7 +18009,7 @@ AutoProgressHandler::Unregister()
 
   nsCOMPtr<mozIStorageProgressHandler> oldHandler;
   nsresult rv = mConnection->RemoveProgressHandler(getter_AddRefs(oldHandler));
-  Unused << NS_WARN_IF(NS_FAILED(rv));
+  unused << NS_WARN_IF(NS_FAILED(rv));
 
   MOZ_ASSERT_IF(NS_SUCCEEDED(rv), oldHandler == this);
 }
@@ -20932,7 +20932,7 @@ OpenDatabaseOp::SendBlockedNotification()
   MOZ_ASSERT(mState == State::WaitingForOtherDatabasesToClose);
 
   if (!IsActorDestroyed()) {
-    Unused << SendBlocked(mMetadata->mCommonMetadata.version());
+    unused << SendBlocked(mMetadata->mCommonMetadata.version());
   }
 }
 
@@ -21095,7 +21095,7 @@ OpenDatabaseOp::SendResults()
       response = ClampResultCode(mResultCode);
     }
 
-    Unused <<
+    unused <<
       PBackgroundIDBFactoryRequestParent::Send__delete__(this, response);
   }
 
@@ -21821,7 +21821,7 @@ DeleteDatabaseOp::SendBlockedNotification()
   MOZ_ASSERT(mState == State::WaitingForOtherDatabasesToClose);
 
   if (!IsActorDestroyed()) {
-    Unused << SendBlocked(0);
+    unused << SendBlocked(0);
   }
 }
 
@@ -21840,7 +21840,7 @@ DeleteDatabaseOp::SendResults()
       response = ClampResultCode(mResultCode);
     }
 
-    Unused <<
+    unused <<
       PBackgroundIDBFactoryRequestParent::Send__delete__(this, response);
   }
 
@@ -22914,7 +22914,7 @@ CreateFileOp::SendResults()
       response = ClampResultCode(mResultCode);
     }
 
-    Unused <<
+    unused <<
       PBackgroundIDBDatabaseRequestParent::Send__delete__(this, response);
   }
 
@@ -27272,7 +27272,7 @@ PermissionRequestHelper::OnPromptComplete(PermissionValue aPermissionValue)
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!mActorDestroyed) {
-    Unused <<
+    unused <<
       PIndexedDBPermissionRequestParent::Send__delete__(this, aPermissionValue);
   }
 }

@@ -565,7 +565,7 @@ nsresult nsNPAPIPluginInstance::SetWindow(NPWindow* window)
     // That is somewhat complex to check, so we just use "unused"
     // to suppress any compiler warnings in build configurations
     // where the logging is a no-op.
-    mozilla::Unused << error;
+    mozilla::unused << error;
 
     mInPluginInitCall = oldVal;
 

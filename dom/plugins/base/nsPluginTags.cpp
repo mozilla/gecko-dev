@@ -163,7 +163,7 @@ IsEnabledStateLockedForPlugin(nsIInternalPluginTag* aTag,
     return NS_ERROR_FAILURE;
   }
 
-  Unused << prefs->PrefIsLocked(GetStatePrefNameForPlugin(aTag).get(),
+  unused << prefs->PrefIsLocked(GetStatePrefNameForPlugin(aTag).get(),
                                 aIsEnabledStateLocked);
 
   return NS_OK;

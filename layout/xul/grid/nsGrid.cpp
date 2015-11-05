@@ -92,9 +92,9 @@ In this case 5 extra columns will be added to the column list to handle the situ
 These are called extraColumns/Rows.
 */
 
-using namespace mozilla;
-
 nsGrid::nsGrid():mBox(nullptr),
+                 mRows(nullptr),
+                 mColumns(nullptr), 
                  mRowsBox(nullptr),
                  mColumnsBox(nullptr),
                  mNeedsRebuild(true),
@@ -102,6 +102,7 @@ nsGrid::nsGrid():mBox(nullptr),
                  mColumnCount(0),
                  mExtraRowCount(0),
                  mExtraColumnCount(0),
+                 mCellMap(nullptr),
                  mMarkingDirty(false)
 {
     MOZ_COUNT_CTOR(nsGrid);
@@ -204,8 +205,8 @@ nsGrid::RebuildIfNeeded()
   }
 
   // build and poplulate row and columns arrays
-  mRows = BuildRows(mRowsBox, rowCount, true);
-  mColumns = BuildRows(mColumnsBox, columnCount, false);
+  BuildRows(mRowsBox, rowCount, &mRows, true);
+  BuildRows(mColumnsBox, columnCount, &mColumns, false);
 
   // build and populate the cell map
   mCellMap = BuildCellMap(rowCount, columnCount);
@@ -214,13 +215,22 @@ nsGrid::RebuildIfNeeded()
   mColumnCount = columnCount;
 
   // populate the cell map from column and row children
-  PopulateCellMap(mRows.get(), mColumns.get(), mRowCount, mColumnCount, true);
-  PopulateCellMap(mColumns.get(), mRows.get(), mColumnCount, mRowCount, false);
+  PopulateCellMap(mRows, mColumns, mRowCount, mColumnCount, true);
+  PopulateCellMap(mColumns, mRows, mColumnCount, mRowCount, false);
 }
 
 void
 nsGrid::FreeMap()
 {
+  if (mRows) 
+    delete[] mRows;
+
+  if (mColumns)
+    delete[] mColumns;
+
+  if (mCellMap)
+    delete[] mCellMap;
+
   mRows = nullptr;
   mColumns = nullptr;
   mCellMap = nullptr;
@@ -303,36 +313,44 @@ nsGrid::CountRowsColumns(nsIFrame* aRowBox, int32_t& aRowCount, int32_t& aComput
 /**
  * Given the number of rows create nsGridRow objects for them and full them out.
  */
-UniquePtr<nsGridRow[]>
-nsGrid::BuildRows(nsIFrame* aBox, int32_t aRowCount, bool aIsHorizontal)
+void
+nsGrid::BuildRows(nsIFrame* aBox, int32_t aRowCount, nsGridRow** aRows, bool aIsHorizontal)
 {
   // if no rows then return null
   if (aRowCount == 0) {
-    return nullptr;
+
+    // make sure we free up the memory.
+    if (*aRows)
+      delete[] (*aRows);
+
+    *aRows = nullptr;
+    return;
   }
 
   // create the array
-  UniquePtr<nsGridRow[]> row;
+  nsGridRow* row;
   
   // only create new rows if we have to. Reuse old rows.
   if (aIsHorizontal)
   { 
     if (aRowCount > mRowCount) {
-       row = MakeUnique<nsGridRow[]>(aRowCount);
+       delete[] mRows;
+       row = new nsGridRow[aRowCount];
     } else {
       for (int32_t i=0; i < mRowCount; i++)
         mRows[i].Init(nullptr, false);
 
-      row = Move(mRows);
+      row = mRows;
     }
   } else {
     if (aRowCount > mColumnCount) {
-       row = MakeUnique<nsGridRow[]>(aRowCount);
+       delete[] mColumns;
+       row = new nsGridRow[aRowCount];
     } else {
        for (int32_t i=0; i < mColumnCount; i++)
          mColumns[i].Init(nullptr, false);
 
-       row = Move(mColumns);
+       row = mColumns;
     }
   }
 
@@ -341,36 +359,40 @@ nsGrid::BuildRows(nsIFrame* aBox, int32_t aRowCount, bool aIsHorizontal)
   {
     nsCOMPtr<nsIGridPart> monument = GetPartFromBox(aBox);
     if (monument) {
-       monument->BuildRows(aBox, row.get());
+       monument->BuildRows(aBox, row);
     }
   }
 
-  return row;
+  *aRows = row;
 }
 
 
 /**
  * Given the number of rows and columns. Build a cellmap
  */
-UniquePtr<nsGridCell[]>
+nsGridCell*
 nsGrid::BuildCellMap(int32_t aRows, int32_t aColumns)
 {
   int32_t size = aRows*aColumns;
   int32_t oldsize = mRowCount*mColumnCount;
   if (size == 0) {
-    return nullptr;
+    delete[] mCellMap;
   }
-
-  if (size > oldsize) {
-    return MakeUnique<nsGridCell[]>(size);
+  else {
+    if (size > oldsize) {
+      delete[] mCellMap;
+      return new nsGridCell[size];
+    } else {
+      // clear out cellmap
+      for (int32_t i=0; i < oldsize; i++)
+      {
+        mCellMap[i].SetBoxInRow(nullptr);
+        mCellMap[i].SetBoxInColumn(nullptr);
+      }
+      return mCellMap;
+    }
   }
-
-  // clear out cellmap
-  for (int32_t i=0; i < oldsize; i++) {
-    mCellMap[i].SetBoxInRow(nullptr);
-    mCellMap[i].SetBoxInColumn(nullptr);
-  }
-  return Move(mCellMap);
+  return nullptr;
 }
 
 /** 

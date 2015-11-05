@@ -2424,9 +2424,6 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         clockTime = std::max(int64_t(0), std::max(clockTime, Duration().ToMicroseconds()));
         UpdatePlaybackPosition(clockTime);
 
-        // Ensure readyState is updated before firing the 'ended' event.
-        UpdateNextFrameStatus();
-
         nsCOMPtr<nsIRunnable> event =
           NS_NewRunnableMethod(mDecoder, &MediaDecoder::PlaybackEnded);
         AbstractThread::MainThread()->Dispatch(event.forget());
@@ -2656,7 +2653,7 @@ MediaDecoderStateMachine::DropAudioUpToSeekTarget(MediaData* aSample)
   }
   uint32_t frames = audio->mFrames - static_cast<uint32_t>(framesToPrune.value());
   uint32_t channels = audio->mChannels;
-  auto audioData = MakeUnique<AudioDataValue[]>(frames * channels);
+  nsAutoArrayPtr<AudioDataValue> audioData(new AudioDataValue[frames * channels]);
   memcpy(audioData.get(),
          audio->mAudioData.get() + (framesToPrune.value() * channels),
          frames * channels * sizeof(AudioDataValue));
@@ -2665,12 +2662,12 @@ MediaDecoderStateMachine::DropAudioUpToSeekTarget(MediaData* aSample)
     return NS_ERROR_FAILURE;
   }
   RefPtr<AudioData> data(new AudioData(audio->mOffset,
-                                       mCurrentSeek.mTarget.mTime,
-                                       duration.value(),
-                                       frames,
-                                       Move(audioData),
-                                       channels,
-                                       audio->mRate));
+                                         mCurrentSeek.mTarget.mTime,
+                                         duration.value(),
+                                         frames,
+                                         audioData.forget(),
+                                         channels,
+                                         audio->mRate));
   PushFront(data, MediaData::AUDIO_DATA);
 
   return NS_OK;

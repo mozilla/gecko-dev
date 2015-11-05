@@ -29,7 +29,8 @@
 // the file nspr.log
 //
 
-static mozilla::LazyLogModule gLog("Autodial");
+static PRLogModuleInfo* gLog = nullptr;
+
 #undef LOGD
 #undef LOGE
 #define LOGD(args) MOZ_LOG(gLog, mozilla::LogLevel::Debug, args)
@@ -61,6 +62,9 @@ nsAutodial::~nsAutodial()
 // Returns NS_ERROR_FAILURE if error or NS_OK if success.
 nsresult nsAutodial::Init()
 {
+    if (!gLog)
+        gLog = PR_NewLogModule("Autodial");
+
     mDefaultEntryName[0] = '\0';
     mNumRASConnectionEntries = 0;
     mAutodialBehavior = QueryAutodialBehavior();

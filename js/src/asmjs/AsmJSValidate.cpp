@@ -8153,9 +8153,7 @@ CheckModule(ExclusiveContext* cx, AsmJSParser& parser, ParseNode* stmtList,
     m.startFunctionBodies();
 
 #if !defined(ENABLE_SHARED_ARRAY_BUFFER)
-    if (m.module().hasArrayView() && m.module().isSharedView())
-        return m.failOffset(m.parser().tokenStream.currentToken().pos.begin,
-                            "shared views not supported by this build");
+    MOZ_ASSERT(!m.module().hasArrayView() || !m.module().isSharedView());
 #endif
 
     ScopedJSDeletePtr<ModuleCompileResults> mcd;

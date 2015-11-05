@@ -47,16 +47,6 @@ class js::jit::OutOfLineTableSwitch : public OutOfLineCodeBase<CodeGeneratorMIPS
 };
 
 void
-CodeGeneratorMIPS::visitOutOfLineBailout(OutOfLineBailout* ool)
-{
-    // Push snapshotOffset and make sure stack is aligned.
-    masm.subPtr(Imm32(2 * sizeof(void*)), StackPointer);
-    masm.storePtr(ImmWord(ool->snapshot()->snapshotOffset()), Address(StackPointer, 0));
-
-    masm.jump(&deoptLabel_);
-}
-
-void
 CodeGeneratorMIPS::visitOutOfLineTableSwitch(OutOfLineTableSwitch* ool)
 {
     MTableSwitch* mir = ool->mir();

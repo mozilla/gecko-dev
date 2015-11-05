@@ -90,9 +90,7 @@ function test() {
     window.addEventListener("documentload", function() {
       initialWidth = parseInt(document.querySelector("div#pageContainer1").style.width);
       previousWidth = initialWidth;
-      runTests(document, window, function () {
-        closePDFViewer(window, finish);
-      });
+      runTests(document, window, finish);
     }, false, true);
   }, true);
 }
@@ -104,7 +102,7 @@ function runTests(document, window, callback) {
 
   // Start the zooming tests after the document is loaded
   waitForDocumentLoad(document).then(function () {
-    zoomPDF(document, window, TESTS.shift(), callback);
+    zoomPDF(document, window, TESTS.shift(), finish);
   });
 }
 
@@ -174,12 +172,4 @@ function zoomPDF(document, window, test, endCallback) {
     // Simulate key press
     EventUtils.synthesizeKey(test.action.event, { ctrlKey: true });
   }
-}
-
-/**
- * Destroys PDF.js viewer opened document.
- */
-function closePDFViewer(window, callback) {
-  var viewer = window.wrappedJSObject.PDFViewerApplication;
-  viewer.close().then(callback);
 }

@@ -52,11 +52,13 @@
 
 #include "mozilla/CheckedInt.h"
 
-#if defined(MOZ_LOGGING)
-GFX2D_API mozilla::LogModule*
+#if defined(PR_LOGGING)
+GFX2D_API PRLogModuleInfo *
 GetGFX2DLog()
 {
-  static mozilla::LazyLogModule sLog("gfx2d");
+  static PRLogModuleInfo *sLog;
+  if (!sLog)
+    sLog = PR_NewLogModule("gfx2d");
   return sLog;
 }
 #endif

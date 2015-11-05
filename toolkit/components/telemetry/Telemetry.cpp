@@ -87,11 +87,6 @@ using base::Histogram;
 using base::LinearHistogram;
 using base::StatisticsRecorder;
 
-// The maximum number of chrome hangs stacks that we're keeping.
-const size_t kMaxChromeStacksKept = 50;
-// The maximum depth of a single chrome hang stack.
-const size_t kMaxChromeStackDepth = 50;
-
 #define KEYED_HISTOGRAM_NAME_SEPARATOR "#"
 #define SUBSESSION_HISTOGRAM_PREFIX "sub#"
 
@@ -113,20 +108,16 @@ ReflectHistogramSnapshot(JSContext *cx, JS::Handle<JSObject*> obj, Histogram *h)
 // more efficiently by keeping a single global list of modules.
 class CombinedStacks {
 public:
-  CombinedStacks() : mNextIndex(0) {}
   typedef std::vector<Telemetry::ProcessedStack::Frame> Stack;
   const Telemetry::ProcessedStack::Module& GetModule(unsigned aIndex) const;
   size_t GetModuleCount() const;
   const Stack& GetStack(unsigned aIndex) const;
-  size_t AddStack(const Telemetry::ProcessedStack& aStack);
+  void AddStack(const Telemetry::ProcessedStack& aStack);
   size_t GetStackCount() const;
   size_t SizeOfExcludingThis() const;
 private:
   std::vector<Telemetry::ProcessedStack::Module> mModules;
-  // A circular buffer to hold the stacks.
   std::vector<Stack> mStacks;
-  // The index of the next buffer element to write to in mStacks.
-  size_t mNextIndex;
 };
 
 static JSObject *
@@ -142,18 +133,10 @@ CombinedStacks::GetModule(unsigned aIndex) const {
   return mModules[aIndex];
 }
 
-size_t
+void
 CombinedStacks::AddStack(const Telemetry::ProcessedStack& aStack) {
-  // Advance the indices of the circular queue holding the stacks.
-  size_t index = mNextIndex++ % kMaxChromeStacksKept;
-  // Grow the vector up to the maximum size, if needed.
-  if (mStacks.size() < kMaxChromeStacksKept) {
-    mStacks.resize(mStacks.size() + 1);
-  }
-  // Get a reference to the location holding the new stack.
-  CombinedStacks::Stack& adjustedStack = mStacks[index];
-  // If we're using an old stack to hold aStack, clear it.
-  adjustedStack.clear();
+  mStacks.resize(mStacks.size() + 1);
+  CombinedStacks::Stack& adjustedStack = mStacks.back();
 
   size_t stackSize = aStack.GetStackSize();
   for (size_t i = 0; i < stackSize; ++i) {
@@ -176,7 +159,6 @@ CombinedStacks::AddStack(const Telemetry::ProcessedStack& aStack) {
     Telemetry::ProcessedStack::Frame adjustedFrame = { frame.mOffset, modIndex };
     adjustedStack.push_back(adjustedFrame);
   }
-  return index;
 }
 
 const CombinedStacks::Stack&
@@ -267,7 +249,6 @@ public:
   void AddHang(const Telemetry::ProcessedStack& aStack, uint32_t aDuration,
                int32_t aSystemUptime, int32_t aFirefoxUptime,
                HangAnnotationsPtr aAnnotations);
-  void PruneStackReferences(const size_t aRemovedStackIndex);
   uint32_t GetDuration(unsigned aIndex) const;
   int32_t GetSystemUptime(unsigned aIndex) const;
   int32_t GetFirefoxUptime(unsigned aIndex) const;
@@ -297,24 +278,17 @@ HangReports::AddHang(const Telemetry::ProcessedStack& aStack,
                      int32_t aSystemUptime,
                      int32_t aFirefoxUptime,
                      HangAnnotationsPtr aAnnotations) {
-  // Append the new stack to the stack's circular queue.
-  size_t hangIndex = mStacks.AddStack(aStack);
-  // Append the hang info at the same index, in mHangInfo.
   HangInfo info = { aDuration, aSystemUptime, aFirefoxUptime };
-  if (mHangInfo.size() < kMaxChromeStacksKept) {
-    mHangInfo.push_back(info);
-  } else {
-    mHangInfo[hangIndex] = info;
-    // Remove any reference to the stack overwritten in the circular queue
-    // from the annotations.
-    PruneStackReferences(hangIndex);
-  }
+  mHangInfo.push_back(info);
+  mStacks.AddStack(aStack);
 
   if (!aAnnotations) {
     return;
   }
 
   nsAutoString annotationsKey;
+  uint32_t hangIndex = static_cast<uint32_t>(mHangInfo.size() - 1);
+
   // Generate a key to index aAnnotations in the hash map.
   nsresult rv = ComputeAnnotationsKey(aAnnotations, annotationsKey);
   if (NS_FAILED(rv)) {
@@ -331,38 +305,6 @@ HangReports::AddHang(const Telemetry::ProcessedStack& aStack,
 
   // If the key was not found, add the annotations to the hash map.
   mAnnotationInfo.Put(annotationsKey, new AnnotationInfo(hangIndex, Move(aAnnotations)));
-}
-
-/**
- * This function removes links to discarded chrome hangs stacks and prunes unused
- * annotations.
- */
-void
-HangReports::PruneStackReferences(const size_t aRemovedStackIndex) {
-  // We need to adjust the indices that link annotations to chrome hangs. Since we
-  // removed a stack, we must remove all references to it and prune annotations
-  // linked to no stacks.
-  for (auto iter = mAnnotationInfo.Iter(); !iter.Done(); iter.Next()) {
-    nsTArray<uint32_t>& stackIndices = iter.Data()->mHangIndices;
-    size_t toRemove = stackIndices.NoIndex;
-    for (size_t k = 0; k < stackIndices.Length(); k++) {
-      // Is this index referencing the removed stack?
-      if (stackIndices[k] == aRemovedStackIndex) {
-        toRemove = k;
-        break;
-      }
-    }
-
-    // Remove the index referencing the old stack from the annotation.
-    if (toRemove != stackIndices.NoIndex) {
-      stackIndices.RemoveElementAt(toRemove);
-    }
-
-    // If this annotation no longer references any stack, drop it.
-    if (!stackIndices.Length()) {
-      iter.Remove();
-    }
-  }
 }
 
 size_t
@@ -811,6 +753,12 @@ private:
 
   typedef nsClassHashtable<nsCStringHashKey, KeyedHistogram> KeyedHistogramMapType;
   KeyedHistogramMapType mKeyedHistograms;
+
+  struct KeyedHistogramReflectArgs {
+    JSContext* jsContext;
+    JS::Handle<JSObject*> object;
+  };
+  static PLDHashOperator KeyedHistogramsReflector(const nsACString&, nsAutoPtr<KeyedHistogram>&, void* args);
 };
 
 TelemetryImpl*  TelemetryImpl::sTelemetry = nullptr;
@@ -2461,6 +2409,29 @@ TelemetryImpl::GetAddonHistogramSnapshots(JSContext *cx, JS::MutableHandle<JS::V
   return NS_OK;
 }
 
+/* static */
+PLDHashOperator
+TelemetryImpl::KeyedHistogramsReflector(const nsACString& key, nsAutoPtr<KeyedHistogram>& entry, void* arg)
+{
+  KeyedHistogramReflectArgs* args = static_cast<KeyedHistogramReflectArgs*>(arg);
+  JSContext *cx = args->jsContext;
+  JS::RootedObject snapshot(cx, JS_NewPlainObject(cx));
+  if (!snapshot) {
+    return PL_DHASH_STOP;
+  }
+
+  if (!NS_SUCCEEDED(entry->GetJSSnapshot(cx, snapshot, false, false))) {
+    return PL_DHASH_STOP;
+  }
+
+  if (!JS_DefineProperty(cx, args->object, PromiseFlatCString(key).get(),
+                         snapshot, JSPROP_ENUMERATE)) {
+    return PL_DHASH_STOP;
+  }
+
+  return PL_DHASH_NEXT;
+}
+
 NS_IMETHODIMP
 TelemetryImpl::GetKeyedHistogramSnapshots(JSContext *cx, JS::MutableHandle<JS::Value> ret)
 {
@@ -2469,20 +2440,11 @@ TelemetryImpl::GetKeyedHistogramSnapshots(JSContext *cx, JS::MutableHandle<JS::V
     return NS_ERROR_FAILURE;
   }
 
-  for (auto iter = mKeyedHistograms.Iter(); !iter.Done(); iter.Next()) {
-    JS::RootedObject snapshot(cx, JS_NewPlainObject(cx));
-    if (!snapshot) {
-      return NS_ERROR_FAILURE;
-    }
-
-    if (!NS_SUCCEEDED(iter.Data()->GetJSSnapshot(cx, snapshot, false, false))) {
-      return NS_ERROR_FAILURE;
-    }
-
-    if (!JS_DefineProperty(cx, obj, PromiseFlatCString(iter.Key()).get(),
-                           snapshot, JSPROP_ENUMERATE)) {
-      return NS_ERROR_FAILURE;
-    }
+  KeyedHistogramReflectArgs reflectArgs = {cx, obj};
+  const uint32_t num = mKeyedHistograms.Enumerate(&TelemetryImpl::KeyedHistogramsReflector,
+                                                      static_cast<void*>(&reflectArgs));
+  if (num != mKeyedHistograms.Count()) {
+    return NS_ERROR_FAILURE;
   }
 
   ret.setObject(*obj);
@@ -3998,8 +3960,8 @@ ProcessedStack
 GetStackAndModules(const std::vector<uintptr_t>& aPCs)
 {
   std::vector<StackFrame> rawStack;
-  auto stackEnd = aPCs.begin() + std::min(aPCs.size(), kMaxChromeStackDepth);
-  for (auto i = aPCs.begin(); i != stackEnd; ++i) {
+  for (std::vector<uintptr_t>::const_iterator i = aPCs.begin(),
+         e = aPCs.end(); i != e; ++i) {
     uintptr_t aPC = *i;
     StackFrame Frame = {aPC, static_cast<uint16_t>(rawStack.size()),
                         std::numeric_limits<uint16_t>::max()};

@@ -78,11 +78,3 @@ workerHelper.createTask(self, "takeCensusDiff", request => {
     return delta;
   }
 });
-
-/**
- * @see HeapAnalysesClient.prototype.getCreationTime
- */
-workerHelper.createTask(self, "getCreationTime", (snapshotFilePath) => {
-  let snapshot = snapshots[snapshotFilePath];
-  return snapshot ? snapshot.creationTime : null;
-});

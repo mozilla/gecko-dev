@@ -1089,11 +1089,9 @@ SwatchBasedEditorTooltip.prototype = {
    */
   revert: function() {
     if (this.activeSwatch) {
-      this._reverted = true;
       let swatch = this.swatches.get(this.activeSwatch);
-      this.tooltip.once("hiding", () => {
-        swatch.callbacks.onRevert();
-      });
+      swatch.callbacks.onRevert();
+      this._reverted = true;
     }
   },
 

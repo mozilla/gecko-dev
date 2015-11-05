@@ -125,15 +125,15 @@ RemoteOpenFileChild::~RemoteOpenFileChild()
                                                           NS_DISPATCH_NORMAL)));
       }
     } else {
-      using mozilla::Unused;
+      using mozilla::unused;
 
       NS_WARNING("RemoteOpenFileChild released after thread shutdown, leaking "
                  "its members!");
 
-      Unused << mURI.forget();
-      Unused << mAppURI.forget();
-      Unused << mListener.forget();
-      Unused << mTabChild.forget();
+      unused << mURI.forget();
+      unused << mAppURI.forget();
+      unused << mListener.forget();
+      unused << mTabChild.forget();
     }
   }
 

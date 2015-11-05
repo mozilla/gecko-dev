@@ -20,18 +20,17 @@
 #include "state.h"
 #include "decode.h"
 
+extern PRLogModuleInfo *gHttpLog;
+#define LOG(args) MOZ_LOG(gHttpLog, mozilla::LogLevel::Debug, args)
+
 namespace mozilla {
 namespace net {
-
-extern LazyLogModule gHttpLog;
-#define LOG(args) MOZ_LOG(mozilla::net::gHttpLog, mozilla::LogLevel::Debug, args)
 
 // nsISupports implementation
 NS_IMPL_ISUPPORTS(nsHTTPCompressConv,
                   nsIStreamConverter,
                   nsIStreamListener,
-                  nsIRequestObserver,
-                  nsICompressConvStats)
+                  nsIRequestObserver)
 
 // nsFTPDirListingConv methods
 nsHTTPCompressConv::nsHTTPCompressConv()
@@ -47,7 +46,6 @@ nsHTTPCompressConv::nsHTTPCompressConv()
   , hMode(0)
   , mSkipCount(0)
   , mFlags(0)
-  , mDecodedDataLength(0)
 {
   LOG(("nsHttpCompresssConv %p ctor\n", this));
   if (NS_IsMainThread()) {
@@ -74,13 +72,6 @@ nsHTTPCompressConv::~nsHTTPCompressConv()
   if (mStreamInitialized && !mStreamEnded) {
     inflateEnd (&d_stream);
   }
-}
-
-NS_IMETHODIMP
-nsHTTPCompressConv::GetDecodedDataLength(uint64_t *aDecodedDataLength)
-{
-    *aDecodedDataLength = mDecodedDataLength;
-    return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -485,7 +476,6 @@ nsHTTPCompressConv::do_OnDataAvailable(nsIRequest* request,
   // Make sure the stream no longer references |buffer| in case our listener
   // is crazy enough to try to read from |mStream| after ODA.
   mStream->ShareData("", 0);
-  mDecodedDataLength += count;
 
   return rv;
 }

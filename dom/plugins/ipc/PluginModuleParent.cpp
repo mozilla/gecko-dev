@@ -868,7 +868,7 @@ PluginModuleParent::TimeoutChanged(const char* aPref, void* aModule)
       // The timeout value used by the child for its parent
       MOZ_ASSERT(module->IsChrome());
       int32_t timeoutSecs = Preferences::GetInt(kParentTimeoutPref, 0);
-      Unused << static_cast<PluginModuleChromeParent*>(module)->SendSetParentHangTimeout(timeoutSecs);
+      unused << static_cast<PluginModuleChromeParent*>(module)->SendSetParentHangTimeout(timeoutSecs);
     } else if (!strcmp(aPref, kContentTimeoutPref)) {
       MOZ_ASSERT(!module->IsChrome());
       int32_t timeoutSecs = Preferences::GetInt(kContentTimeoutPref, 0);
@@ -1702,7 +1702,7 @@ PluginModuleParent::SetPluginFuncs(NPPluginFuncs* aFuncs)
     // Provide 'NPP_URLRedirectNotify', 'NPP_ClearSiteData', and
     // 'NPP_GetSitesWithData' functionality if it is supported by the plugin.
     bool urlRedirectSupported = false;
-    Unused << CallOptionalFunctionsSupported(&urlRedirectSupported,
+    unused << CallOptionalFunctionsSupported(&urlRedirectSupported,
                                              &mClearSiteDataSupported,
                                              &mGetSitesWithDataSupported);
     if (urlRedirectSupported) {
@@ -1747,7 +1747,7 @@ PluginModuleParent::NPP_Destroy(NPP instance,
     NPError retval = parentInstance->Destroy();
     instance->pdata = nullptr;
 
-    Unused << PluginInstanceParent::Call__delete__(parentInstance);
+    unused << PluginInstanceParent::Call__delete__(parentInstance);
     return retval;
 }
 
@@ -2090,7 +2090,7 @@ PluginModuleChromeParent::CachedSettingChanged()
 {
     PluginSettings settings;
     GetSettings(&settings);
-    Unused << SendSettingChanged(settings);
+    unused << SendSettingChanged(settings);
 }
 
 /* static */ void
@@ -2343,7 +2343,7 @@ PluginModuleChromeParent::RecvNP_InitializeResult(const NPError& aError)
 
         if (NS_SUCCEEDED(mozilla::widget::GetAudioSessionData(id, sessionName,
                                                               iconPath))) {
-            Unused << SendSetAudioSessionData(id, sessionName, iconPath);
+            unused << SendSetAudioSessionData(id, sessionName, iconPath);
         }
 #endif
 
@@ -2811,7 +2811,7 @@ void
 PluginModuleParent::ProcessRemoteNativeEventsInInterruptCall()
 {
 #if defined(OS_WIN)
-    Unused << SendProcessNativeEventsInInterruptCall();
+    unused << SendProcessNativeEventsInInterruptCall();
     return;
 #endif
     NS_NOTREACHED(
@@ -3150,9 +3150,9 @@ PluginProfilerObserver::Observe(nsISupports *aSubject,
         params->GetInterval(&interval);
         const nsTArray<nsCString>& features = params->GetFeatures();
         const nsTArray<nsCString>& threadFilterNames = params->GetThreadFilterNames();
-        Unused << mPmp->SendStartProfiler(entries, interval, features, threadFilterNames);
+        unused << mPmp->SendStartProfiler(entries, interval, features, threadFilterNames);
     } else if (!strcmp(aTopic, "profiler-stopped")) {
-        Unused << mPmp->SendStopProfiler();
+        unused << mPmp->SendStopProfiler();
     } else if (!strcmp(aTopic, "profiler-subprocess-gather")) {
         RefPtr<ProfileGatherer> gatherer = static_cast<ProfileGatherer*>(aSubject);
         mPmp->GatherAsyncProfile(gatherer);
@@ -3193,7 +3193,7 @@ PluginModuleChromeParent::GatherAsyncProfile(ProfileGatherer* aGatherer)
 {
     mGatherer = aGatherer;
     mGatherer->WillGatherOOPProfile();
-    Unused << SendGatherProfile();
+    unused << SendGatherProfile();
 }
 
 void

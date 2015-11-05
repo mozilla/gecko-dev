@@ -14,6 +14,7 @@ EXTRA_JS_MODULES += [
     'NewTabURL.jsm',
     'PlacesProvider.jsm',
     'RemoteAboutNewTab.jsm',
+    'RemoteDirectoryLinksProvider.jsm',
     'RemoteNewTabLocation.jsm',
     'RemoteNewTabUtils.jsm',
 ]

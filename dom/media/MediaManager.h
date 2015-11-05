@@ -134,7 +134,7 @@ public:
 
   ~GetUserMediaCallbackMediaStreamListener()
   {
-    Unused << mMediaThread;
+    unused << mMediaThread;
     // It's OK to release mStream on any thread; they have thread-safe
     // refcounts.
   }

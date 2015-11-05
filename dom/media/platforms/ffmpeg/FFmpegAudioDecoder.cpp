@@ -35,21 +35,22 @@ FFmpegAudioDecoder<LIBAV_VER>::Init()
                      : InitPromise::CreateAndReject(DecoderFailureReason::INIT_ERROR, __func__);
 }
 
-static UniquePtr<AudioDataValue[]>
+static AudioDataValue*
 CopyAndPackAudio(AVFrame* aFrame, uint32_t aNumChannels, uint32_t aNumAFrames)
 {
   MOZ_ASSERT(aNumChannels <= MAX_CHANNELS);
 
-  auto audio = MakeUnique<AudioDataValue[]>(aNumChannels * aNumAFrames);
+  nsAutoArrayPtr<AudioDataValue> audio(
+    new AudioDataValue[aNumChannels * aNumAFrames]);
 
   if (aFrame->format == AV_SAMPLE_FMT_FLT) {
     // Audio data already packed. No need to do anything other than copy it
     // into a buffer we own.
-    memcpy(audio.get(), aFrame->data[0],
+    memcpy(audio, aFrame->data[0],
            aNumChannels * aNumAFrames * sizeof(AudioDataValue));
   } else if (aFrame->format == AV_SAMPLE_FMT_FLTP) {
     // Planar audio data. Pack it into something we can understand.
-    AudioDataValue* tmp = audio.get();
+    AudioDataValue* tmp = audio;
     AudioDataValue** data = reinterpret_cast<AudioDataValue**>(aFrame->data);
     for (uint32_t frame = 0; frame < aNumAFrames; frame++) {
       for (uint32_t channel = 0; channel < aNumChannels; channel++) {
@@ -58,7 +59,7 @@ CopyAndPackAudio(AVFrame* aFrame, uint32_t aNumChannels, uint32_t aNumAFrames)
     }
   } else if (aFrame->format == AV_SAMPLE_FMT_S16) {
     // Audio data already packed. Need to convert from S16 to 32 bits Float
-    AudioDataValue* tmp = audio.get();
+    AudioDataValue* tmp = audio;
     int16_t* data = reinterpret_cast<int16_t**>(aFrame->data)[0];
     for (uint32_t frame = 0; frame < aNumAFrames; frame++) {
       for (uint32_t channel = 0; channel < aNumChannels; channel++) {
@@ -68,7 +69,7 @@ CopyAndPackAudio(AVFrame* aFrame, uint32_t aNumChannels, uint32_t aNumAFrames)
   } else if (aFrame->format == AV_SAMPLE_FMT_S16P) {
     // Planar audio data. Convert it from S16 to 32 bits float
     // and pack it into something we can understand.
-    AudioDataValue* tmp = audio.get();
+    AudioDataValue* tmp = audio;
     int16_t** data = reinterpret_cast<int16_t**>(aFrame->data);
     for (uint32_t frame = 0; frame < aNumAFrames; frame++) {
       for (uint32_t channel = 0; channel < aNumChannels; channel++) {
@@ -77,7 +78,7 @@ CopyAndPackAudio(AVFrame* aFrame, uint32_t aNumChannels, uint32_t aNumAFrames)
     }
   }
 
-  return audio;
+  return audio.forget();
 }
 
 void
@@ -114,8 +115,8 @@ FFmpegAudioDecoder<LIBAV_VER>::DecodePacket(MediaRawData* aSample)
       uint32_t numChannels = mCodecContext->channels;
       uint32_t samplingRate = mCodecContext->sample_rate;
 
-      UniquePtr<AudioDataValue[]> audio =
-        CopyAndPackAudio(mFrame, numChannels, mFrame->nb_samples);
+      nsAutoArrayPtr<AudioDataValue> audio(
+        CopyAndPackAudio(mFrame, numChannels, mFrame->nb_samples));
 
       media::TimeUnit duration =
         FramesToTimeUnit(mFrame->nb_samples, samplingRate);
@@ -126,12 +127,12 @@ FFmpegAudioDecoder<LIBAV_VER>::DecodePacket(MediaRawData* aSample)
       }
 
       RefPtr<AudioData> data = new AudioData(samplePosition,
-                                             pts.ToMicroseconds(),
-                                             duration.ToMicroseconds(),
-                                             mFrame->nb_samples,
-                                             Move(audio),
-                                             numChannels,
-                                             samplingRate);
+                                               pts.ToMicroseconds(),
+                                               duration.ToMicroseconds(),
+                                               mFrame->nb_samples,
+                                               audio.forget(),
+                                               numChannels,
+                                               samplingRate);
       mCallback->Output(data);
       pts += duration;
       if (!pts.IsValid()) {

@@ -26,7 +26,7 @@ function LoadModules(modulelist)
     return;
 
   let modulenames = modulelist.split(',');
-  for (let modulename of modulenames) {
+  for each (let modulename in modulenames) {
     let module = { __proto__: this };
     include(modulename, module);
     modules.push(module);
@@ -39,7 +39,7 @@ if (treehydra_enabled())
 
 function process_type(c)
 {
-  for (let module of modules)
+  for each (let module in modules)
     if (module.hasOwnProperty('process_type'))
       module.process_type(c);
 }
@@ -51,11 +51,9 @@ function hasAttribute(c, attrname)
   if (c.attributes === undefined)
     return false;
 
-  for (var key in c.attributes) {
-    attr = c.attributes[key];
+  for each (attr in c.attributes)
     if (attr.name == 'user' && attr.value[0] == attrname)
       return true;
-  }
 
   return false;
 }
@@ -137,7 +135,7 @@ const forward_functions = [
 function setup_forwarding(n)
 {
   this[n] = function() {
-    for (let module of modules) {
+    for each (let module in modules) {
       if (module.hasOwnProperty(n)) {
         module[n].apply(this, arguments);
       }
@@ -145,5 +143,5 @@ function setup_forwarding(n)
   }
 }
 
-for (let n of forward_functions)
+for each (let n in forward_functions)
   setup_forwarding(n);

@@ -83,11 +83,10 @@ AllocationIntegrityState::check(bool populateSafepoints)
 {
     MOZ_ASSERT(!instructions.empty());
 
-#ifdef JS_JITSPEW
+#ifdef DEBUG
     if (JitSpewEnabled(JitSpew_RegAlloc))
         dump();
-#endif
-#ifdef DEBUG
+
     for (size_t blockIndex = 0; blockIndex < graph.numBlocks(); blockIndex++) {
         LBlock* block = graph.getBlock(blockIndex);
 

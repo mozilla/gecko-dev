@@ -7,13 +7,11 @@
 #define nsTemporaryFileInputStream_h__
 
 #include "mozilla/Mutex.h"
-#include "nsAutoPtr.h"
 #include "nsIInputStream.h"
-#include "nsISeekableStream.h"
+#include "nsAutoPtr.h"
 #include "prio.h"
 
 class nsTemporaryFileInputStream : public nsIInputStream
-                                 , public nsISeekableStream
 {
 public:
   //used to release a PRFileDesc
@@ -45,14 +43,12 @@ public:
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIINPUTSTREAM
-  NS_DECL_NSISEEKABLESTREAM
 
 private:
   virtual ~nsTemporaryFileInputStream() { }
 
   RefPtr<FileDescOwner> mFileDescOwner;
   uint64_t mStartPos;
-  uint64_t mCurPos;
   uint64_t mEndPos;
   bool mClosed;
 };

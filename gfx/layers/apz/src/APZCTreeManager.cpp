@@ -364,8 +364,9 @@ APZCTreeManager::StartScrollbarDrag(const ScrollableLayerGuid& aGuid,
     return;
   }
 
-  uint64_t inputBlockId = aDragMetrics.mDragStartSequenceNumber;
-  mInputQueue->ConfirmDragBlock(inputBlockId, apzc, aDragMetrics);
+  // TODO Confirm the input block
+  //uint64_t inputBlockId = aDragMetrics.mDragStartSequenceNumber;
+  //mInputQueue->SetConfirmedMouseBlock(inputBlockId, apzc, aDragMetrics);
 }
 
 HitTestingTreeNode*
@@ -698,13 +699,6 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
 
       RefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(mouseInput.mOrigin,
                                                             &hitResult);
-
-      // When the mouse is outside the window we still want to handle dragging
-      // but we won't find an APZC. Fallback to root APZC then.
-      if (!apzc) {
-        apzc = mRootNode->GetApzc();
-      }
-
       if (apzc) {
         result = mInputQueue->ReceiveInputEvent(
           apzc,
@@ -1051,11 +1045,6 @@ APZCTreeManager::ProcessMouseEvent(WidgetMouseEventBase& aEvent,
                                    ScrollableLayerGuid* aOutTargetGuid,
                                    uint64_t* aOutInputBlockId)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  // Note, we call this before having transformed the reference point.
-  UpdateWheelTransaction(aEvent);
-
   MouseInput input(aEvent);
   input.mOrigin = ScreenPoint(aEvent.refPoint.x, aEvent.refPoint.y);
 
@@ -1063,7 +1052,6 @@ APZCTreeManager::ProcessMouseEvent(WidgetMouseEventBase& aEvent,
 
   aEvent.refPoint.x = input.mOrigin.x;
   aEvent.refPoint.y = input.mOrigin.y;
-  aEvent.mFlags.mHandledByAPZ = true;
   return status;
 }
 

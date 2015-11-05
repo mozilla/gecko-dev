@@ -26,7 +26,7 @@
 #include "win_wifiScanner.h"
 #endif
 
-extern mozilla::LazyLogModule gWifiMonitorLog;
+extern PRLogModuleInfo *gWifiMonitorLog;
 #define LOG(args)     MOZ_LOG(gWifiMonitorLog, mozilla::LogLevel::Debug, args)
 
 class nsWifiAccessPoint;

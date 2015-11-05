@@ -24,7 +24,7 @@ static NS_DEFINE_CID(kStreamTransportServiceCID, NS_STREAMTRANSPORTSERVICE_CID);
 //
 // NSPR_LOG_MODULES=nsStreamPump:5
 //
-static mozilla::LazyLogModule gStreamPumpLog("nsStreamPump");
+static PRLogModuleInfo *gStreamPumpLog = nullptr;
 #undef LOG
 #define LOG(args) MOZ_LOG(gStreamPumpLog, mozilla::LogLevel::Debug, args)
 
@@ -45,6 +45,8 @@ nsInputStreamPump::nsInputStreamPump()
     , mRetargeting(false)
     , mMonitor("nsInputStreamPump")
 {
+    if (!gStreamPumpLog)
+        gStreamPumpLog = PR_NewLogModule("nsStreamPump");
 }
 
 nsInputStreamPump::~nsInputStreamPump()

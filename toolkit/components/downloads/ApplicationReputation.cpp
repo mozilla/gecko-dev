@@ -596,7 +596,7 @@ PendingLookup::GenerateWhitelistStringsForChain(
       aChain.element(i).certificate().size(), getter_AddRefs(issuer));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = GenerateWhitelistStringsForPair(signer, issuer);
+    nsresult rv = GenerateWhitelistStringsForPair(signer, issuer);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;
@@ -706,24 +706,24 @@ PendingLookup::DoLookupInternal()
   nsresult rv = mQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCString sourceSpec;
-  rv = GetStrippedSpec(uri, sourceSpec);
+  nsCString spec;
+  rv = GetStrippedSpec(uri, spec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mAnylistSpecs.AppendElement(sourceSpec);
+  mAnylistSpecs.AppendElement(spec);
 
   ClientDownloadRequest_Resource* resource = mRequest.add_resources();
-  resource->set_url(sourceSpec.get());
+  resource->set_url(spec.get());
   resource->set_type(ClientDownloadRequest::DOWNLOAD_URL);
 
   nsCOMPtr<nsIURI> referrer = nullptr;
   rv = mQuery->GetReferrerURI(getter_AddRefs(referrer));
   if (referrer) {
-    nsCString referrerSpec;
-    rv = GetStrippedSpec(referrer, referrerSpec);
+    nsCString spec;
+    rv = GetStrippedSpec(referrer, spec);
     NS_ENSURE_SUCCESS(rv, rv);
-    mAnylistSpecs.AppendElement(referrerSpec);
-    resource->set_referrer(referrerSpec.get());
+    mAnylistSpecs.AppendElement(spec);
+    resource->set_referrer(spec.get());
   }
   nsCOMPtr<nsIArray> redirects;
   rv = mQuery->GetRedirects(getter_AddRefs(redirects));
@@ -790,11 +790,11 @@ PendingLookup::ParseCertificates(nsIArray* aSigArray)
   NS_ENSURE_SUCCESS(rv, rv);
 
   while (hasMoreChains) {
-    nsCOMPtr<nsISupports> chainSupports;
-    rv = chains->GetNext(getter_AddRefs(chainSupports));
+    nsCOMPtr<nsISupports> supports;
+    rv = chains->GetNext(getter_AddRefs(supports));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIX509CertList> certList = do_QueryInterface(chainSupports, &rv);
+    nsCOMPtr<nsIX509CertList> certList = do_QueryInterface(supports, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     safe_browsing::ClientDownloadRequest_CertificateChain* certChain =
@@ -807,11 +807,11 @@ PendingLookup::ParseCertificates(nsIArray* aSigArray)
     bool hasMoreCerts = false;
     rv = chainElt->HasMoreElements(&hasMoreCerts);
     while (hasMoreCerts) {
-      nsCOMPtr<nsISupports> certSupports;
-      rv = chainElt->GetNext(getter_AddRefs(certSupports));
+      nsCOMPtr<nsISupports> supports;
+      rv = chainElt->GetNext(getter_AddRefs(supports));
       NS_ENSURE_SUCCESS(rv, rv);
 
-      nsCOMPtr<nsIX509Cert> cert = do_QueryInterface(certSupports, &rv);
+      nsCOMPtr<nsIX509Cert> cert = do_QueryInterface(supports, &rv);
       NS_ENSURE_SUCCESS(rv, rv);
 
       uint8_t* data = nullptr;

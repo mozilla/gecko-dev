@@ -186,6 +186,13 @@ public:
     return mLifecycleState == LIFECYCLE_RUNNING;
   }
 
+  // Get the message queue, from the current GraphDriver thread.
+  nsTArray<MessageBlock>& MessageQueue()
+  {
+    mMonitor.AssertCurrentThreadOwns();
+    return mFrontMessageQueue;
+  }
+
   /* This is the end of the current iteration, that is, the current time of the
    * graph. */
   GraphTime IterationEnd() const;
@@ -225,8 +232,6 @@ public:
 
   void SwapMessageQueues()
   {
-    MOZ_ASSERT(CurrentDriver()->OnThread());
-    MOZ_ASSERT(mFrontMessageQueue.IsEmpty());
     mMonitor.AssertCurrentThreadOwns();
     mFrontMessageQueue.SwapElements(mBackMessageQueue);
   }
@@ -236,11 +241,20 @@ public:
    */
   void Process();
   /**
+   * Update the consumption state of aStream to reflect whether its data
+   * is needed or not.
+   */
+  void UpdateConsumptionState(SourceMediaStream* aStream);
+  /**
    * Extract any state updates pending in aStream, and apply them.
    */
   void ExtractPendingInput(SourceMediaStream* aStream,
                            GraphTime aDesiredUpToTime,
                            bool* aEnsureNextIteration);
+  /**
+   * Update "have enough data" flags in aStream.
+   */
+  void UpdateBufferSufficiencyState(SourceMediaStream* aStream);
 
   /**
    * Called when a suspend/resume/close operation has been completed, on the
@@ -587,15 +601,9 @@ public:
    * A list of batches of messages to process. Each batch is processed
    * as an atomic unit.
    */
-  /*
-   * Message queue processed by the MSG thread during an iteration.
-   * Accessed on graph thread only.
-   */
+  /* Message queue processed by the MSG thread during an iteration. */
   nsTArray<MessageBlock> mFrontMessageQueue;
-  /*
-   * Message queue in which the main thread appends messages.
-   * Access guarded by mMonitor.
-   */
+  /* Message queue in which the main thread appends messages. */
   nsTArray<MessageBlock> mBackMessageQueue;
 
   /* True if there will messages to process if we swap the message queues. */

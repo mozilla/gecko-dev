@@ -726,9 +726,6 @@ public:
                                  const nsCSSValue* aValues[],
                                  nsAString& aResult,
                                  Serialization aValueSerialization);
-  static void
-  AppendAlignJustifyValueToString(int32_t aValue, nsAString& aResult);
-
 private:
   static const char16_t* GetBufferValue(nsStringBuffer* aBuffer) {
     return static_cast<char16_t*>(aBuffer->Data());

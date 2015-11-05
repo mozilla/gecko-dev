@@ -112,7 +112,7 @@ function saveImageURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
                                  .getService(Components.interfaces.imgITools)
                                  .getImgCacheForDocument(aDoc);
       var props =
-        imageCache.findEntryProperties(makeURI(aURL, getCharsetforSave(null)), aDoc);
+        imageCache.findEntryProperties(makeURI(aURL, getCharsetforSave(null)));
       if (props) {
         aContentType = props.get("type", nsISupportsCString);
         aContentDisp = props.get("content-disposition", nsISupportsCString);

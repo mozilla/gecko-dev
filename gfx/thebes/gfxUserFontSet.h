@@ -466,7 +466,7 @@ public:
         mLocalRulesUsed = true;
     }
 
-    static mozilla::LogModule* GetUserFontsLog();
+    static PRLogModuleInfo* GetUserFontsLog();
 
 protected:
     // Protected destructor, to discourage deletion outside of Release():

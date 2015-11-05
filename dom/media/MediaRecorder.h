@@ -156,7 +156,7 @@ private:
   void RegisterActivityObserver();
   void UnRegisterActivityObserver();
 
-  bool CheckPermission(const nsString &aType);
+  bool Check3gppPermission();
 };
 
 } // namespace dom

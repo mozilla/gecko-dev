@@ -698,9 +698,7 @@ this.Presentation = { // jshint ignore:line
     aPosition, aOldPosition, aReason, aStartOffset, aEndOffset, aIsUserInput) {
     let context = new PivotContext(
       aPosition, aOldPosition, aStartOffset, aEndOffset);
-    if (context.accessible) {
-      this.displayedAccessibles.set(context.accessible.document.window, context);
-    }
+    this.displayedAccessibles.set(context.accessible.document.window, context);
 
     return this.presenters.map(p => p.pivotChanged(context, aReason, aIsUserInput));
   },

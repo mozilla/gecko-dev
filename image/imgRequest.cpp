@@ -413,7 +413,7 @@ imgRequest::ContinueEvict()
 }
 
 void
-imgRequest::StartDecoding()
+imgRequest::RequestDecode()
 {
   MutexAutoLock lock(mMutex);
   mDecodeRequested = true;
@@ -501,7 +501,7 @@ imgRequest::RemoveFromCache()
     if (mCacheEntry) {
       mLoader->RemoveFromCache(mCacheEntry);
     } else {
-      mLoader->RemoveFromCache(mCacheKey);
+      mLoader->RemoveFromCache(ImageCacheKey(mURI));
     }
   }
 
@@ -1053,7 +1053,7 @@ imgRequest::FinishPreparingForNewPart(const NewPartResult& aResult)
   }
 
   if (IsDecodeRequested()) {
-    aResult.mImage->StartDecoding();
+    aResult.mImage->RequestDecode();
   }
 }
 

@@ -3,7 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const { DOM: dom, createClass, PropTypes } = require("devtools/client/shared/vendor/react");
-const { L10N, parseSource } = require("../utils");
+const { URL } = require("sdk/url");
 
 const Frame = module.exports = createClass({
   displayName: "frame-view",
@@ -15,24 +15,24 @@ const Frame = module.exports = createClass({
 
   render() {
     let { toolbox, frame } = this.props;
-    const { short, long, host } = parseSource(frame.source);
 
-    let func = frame.functionDisplayName || "";
-    let tooltip = `${func} (${long}:${frame.line}:${frame.column})`;
-    let viewTooltip = L10N.getFormatStr("viewsourceindebugger", `${long}:${frame.line}:${frame.column}`);
-    let onClick = () => toolbox.viewSourceInDebugger(long, frame.line);
+    let url = new URL(frame.source);
+    let spec = url.toString();
+    let func = frame.functionDisplayFrame || "";
+    let tooltip = `${func} (${spec}:${frame.line}:${frame.column})`;
+    let onClick = () => toolbox.viewSourceInDebugger(spec, frame.line);
 
     let fields = [
       dom.span({ className: "frame-link-function-display-name" }, func),
-      dom.a({ className: "frame-link-filename", onClick, title: viewTooltip }, short),
+      dom.a({ className: "frame-link-filename", onClick }, url.fileName),
       dom.span({ className: "frame-link-colon" }, ":"),
       dom.span({ className: "frame-link-line" }, frame.line),
       dom.span({ className: "frame-link-colon" }, ":"),
       dom.span({ className: "frame-link-column" }, frame.column)
     ];
 
-    if (host) {
-      fields.push(dom.span({ className: "frame-link-host" }, host));
+    if (url.scheme === "http" || url.scheme === "https" || url.scheme === "ftp") {
+      fields.push(dom.span({ className: "frame-link-host" }, url.host));
     }
 
     return dom.span({ className: "frame-link", title: tooltip }, ...fields);

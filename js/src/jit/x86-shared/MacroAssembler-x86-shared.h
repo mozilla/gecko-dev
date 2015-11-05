@@ -1455,14 +1455,6 @@ class MacroAssemblerX86Shared : public Assembler
         ret();
     }
 
-    template<typename T>
-    void compareExchangeToTypedIntArray(Scalar::Type arrayType, const T& mem, Register oldval, Register newval,
-                                        Register temp, AnyRegister output);
-
-    template<typename T>
-    void atomicExchangeToTypedIntArray(Scalar::Type arrayType, const T& mem, Register value,
-                                       Register temp, AnyRegister output);
-
   protected:
     bool buildOOLFakeExitFrame(void* fakeReturnAddr);
 };

@@ -153,7 +153,7 @@ void SetPref(const char* a, T value);
 template <>
 void SetPref<bool>(const char* aPrefKey, bool aValue)
 {
-  Unused << Preferences::SetBool(aPrefKey, aValue);
+  unused << Preferences::SetBool(aPrefKey, aValue);
 }
 
 template <typename T>

@@ -381,11 +381,6 @@ TextureClient::CreateForDrawing(CompositableForwarder* aAllocator,
                                 TextureFlags aTextureFlags,
                                 TextureAllocationFlags aAllocFlags)
 {
-  MOZ_ASSERT(aAllocator->IPCOpen());
-  if (!aAllocator || !aAllocator->IPCOpen()) {
-    return nullptr;
-  }
-
   LayersBackend parentBackend = aAllocator->GetCompositorBackendType();
   gfx::BackendType moz2DBackend = BackendTypeForBackendSelector(parentBackend, aSelector);
 
@@ -492,11 +487,6 @@ TextureClient::CreateForRawBufferAccess(ISurfaceAllocator* aAllocator,
                                         TextureFlags aTextureFlags,
                                         TextureAllocationFlags aAllocFlags)
 {
-  MOZ_ASSERT(aAllocator->IPCOpen());
-  if (!aAllocator || !aAllocator->IPCOpen()) {
-    return nullptr;
-  }
-
   RefPtr<BufferTextureClient> texture =
     CreateBufferTextureClient(aAllocator, aFormat,
                               aTextureFlags, aMoz2DBackend);
@@ -516,11 +506,6 @@ TextureClient::CreateForYCbCr(ISurfaceAllocator* aAllocator,
                               StereoMode aStereoMode,
                               TextureFlags aTextureFlags)
 {
-  MOZ_ASSERT(aAllocator->IPCOpen());
-  if (!aAllocator || !aAllocator->IPCOpen()) {
-    return nullptr;
-  }
-
   RefPtr<BufferTextureClient> texture;
   if (aAllocator->IsSameProcess()) {
     texture = new MemoryTextureClient(aAllocator, gfx::SurfaceFormat::YUV,
@@ -546,11 +531,6 @@ TextureClient::CreateWithBufferSize(ISurfaceAllocator* aAllocator,
                      size_t aSize,
                      TextureFlags aTextureFlags)
 {
-  MOZ_ASSERT(aAllocator->IPCOpen());
-  if (!aAllocator || !aAllocator->IPCOpen()) {
-    return nullptr;
-  }
-
   RefPtr<BufferTextureClient> texture;
   if (aAllocator->IsSameProcess()) {
     texture = new MemoryTextureClient(aAllocator, gfx::SurfaceFormat::YUV,

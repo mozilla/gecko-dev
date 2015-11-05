@@ -9,7 +9,6 @@
 #define nsHTMLFrameset_h___
 
 #include "mozilla/Attributes.h"
-#include "mozilla/UniquePtr.h"
 #include "nsContainerFrame.h"
 #include "nsColor.h"
 
@@ -188,19 +187,16 @@ protected:
   
   void SetBorderResize(nsHTMLFramesetBorderFrame* aBorderFrame);
 
-  template<typename T, class D = mozilla::DefaultDelete<T>>
-  using UniquePtr = mozilla::UniquePtr<T, D>;
-
   nsFramesetDrag   mDrag;
   nsBorderColor    mEdgeColors;
   nsHTMLFramesetBorderFrame* mDragger;
   nsHTMLFramesetFrame* mTopLevelFrameset;
-  UniquePtr<nsHTMLFramesetBorderFrame*[]> mVerBorders;  // vertical borders
-  UniquePtr<nsHTMLFramesetBorderFrame*[]> mHorBorders;  // horizontal borders
-  UniquePtr<nsFrameborder[]> mChildFrameborder; // the frameborder attr of children
-  UniquePtr<nsBorderColor[]> mChildBorderColors;
-  UniquePtr<nscoord[]> mRowSizes;  // currently computed row sizes
-  UniquePtr<nscoord[]> mColSizes;  // currently computed col sizes
+  nsHTMLFramesetBorderFrame** mVerBorders;  // vertical borders
+  nsHTMLFramesetBorderFrame** mHorBorders;  // horizontal borders
+  nsFrameborder*   mChildFrameborder; // the frameborder attr of children
+  nsBorderColor*   mChildBorderColors;
+  nscoord*         mRowSizes;  // currently computed row sizes
+  nscoord*         mColSizes;  // currently computed col sizes
   mozilla::LayoutDeviceIntPoint mFirstDragPoint;
   int32_t          mNumRows;
   int32_t          mNumCols;

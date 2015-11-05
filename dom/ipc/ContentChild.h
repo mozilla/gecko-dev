@@ -17,7 +17,6 @@
 #include "nsTHashtable.h"
 
 #include "nsWeakPtr.h"
-#include "nsIWindowProvider.h"
 
 
 struct ChromePackage;
@@ -48,7 +47,6 @@ class ClonedMessageData;
 class TabChild;
 
 class ContentChild final : public PContentChild
-                         , public nsIWindowProvider
                          , public nsIContentChild
 {
     typedef mozilla::dom::ClonedMessageData ClonedMessageData;
@@ -57,8 +55,6 @@ class ContentChild final : public PContentChild
     typedef mozilla::ipc::URIParams URIParams;
 
 public:
-    NS_DECL_NSIWINDOWPROVIDER
-
     ContentChild();
     virtual ~ContentChild();
     NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
@@ -74,20 +70,6 @@ public:
         nsCString ID;
         nsCString vendor;
     };
-
-    nsresult
-    ProvideWindowCommon(TabChild* aTabOpener,
-                        nsIDOMWindow* aOpener,
-                        bool aIframeMoz,
-                        uint32_t aChromeFlags,
-                        bool aCalledFromJS,
-                        bool aPositionSpecified,
-                        bool aSizeSpecified,
-                        nsIURI* aURI,
-                        const nsAString& aName,
-                        const nsACString& aFeatures,
-                        bool* aWindowIsNew,
-                        nsIDOMWindow** aReturn);
 
     bool Init(MessageLoop* aIOLoop,
               base::ProcessId aParentPid,
@@ -305,8 +287,6 @@ public:
                                                         const nsString& aSessionId) override;
     virtual bool RecvNotifyPresentationReceiverCleanUp(const nsString& aSessionId) override;
 
-    virtual bool RecvNotifyGMPsChanged() override;
-
     virtual PSpeechSynthesisChild* AllocPSpeechSynthesisChild() override;
     virtual bool DeallocPSpeechSynthesisChild(PSpeechSynthesisChild* aActor) override;
 
@@ -328,6 +308,8 @@ public:
     virtual bool RecvSpeakerManagerNotify() override;
 
     virtual bool RecvBidiKeyboardNotify(const bool& isLangRTL) override;
+
+    virtual bool RecvUpdateServiceWorkerRegistrations() override;
 
     virtual bool RecvNotifyVisited(const URIParams& aURI) override;
     // auto remove when alertfinished is received.

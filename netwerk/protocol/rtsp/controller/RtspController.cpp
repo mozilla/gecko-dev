@@ -42,11 +42,12 @@
 #include <algorithm>
 #include "nsDebug.h"
 
+extern PRLogModuleInfo* gRtspLog;
+#undef LOG
+#define LOG(args) MOZ_LOG(gRtspLog, mozilla::LogLevel::Debug, args)
+
 namespace mozilla {
 namespace net {
-extern LazyLogModule gRtspLog;
-#undef LOG
-#define LOG(args) MOZ_LOG(mozilla::net::gRtspLog, mozilla::LogLevel::Debug, args)
 
 //-----------------------------------------------------------------------------
 // RtspController

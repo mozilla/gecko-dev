@@ -996,7 +996,7 @@ XPCWrappedNative::SystemIsBeingShutDown()
         }
         // We leak the tearoff mNative
         // (for the same reason we leak mIdentity - see above).
-        Unused << to->TakeNative().take();
+        unused << to->TakeNative().take();
         to->SetInterface(nullptr);
     }
 

@@ -22,7 +22,7 @@ mozilla::StaticRefPtr<CompositorLRU> CompositorLRU::sSingleton;
 void
 CompositorLRU::Init()
 {
-  Unused << GetSingleton();
+  unused << GetSingleton();
 }
 
 CompositorLRU*
@@ -55,13 +55,13 @@ CompositorLRU::Add(PCompositorParent* aCompositor, const uint64_t& aId)
   }
 
   if (mLRUSize == 0) {
-    Unused << aCompositor->SendClearCachedResources(aId);
+    unused << aCompositor->SendClearCachedResources(aId);
     return;
   }
 
   if (mLRU.Length() == mLRUSize) {
     CompositorLayerPair victim = mLRU.LastElement();
-    Unused << victim.first->SendClearCachedResources(victim.second);
+    unused << victim.first->SendClearCachedResources(victim.second);
     mLRU.RemoveElement(victim);
   }
   mLRU.InsertElementAt(0, std::make_pair(aCompositor, aId));

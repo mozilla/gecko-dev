@@ -168,7 +168,9 @@ public:
     , mSnapEffectiveTransforms(true)
     , mId(0)
     , mInTransaction(false)
-  {}
+  {
+    InitLog();
+  }
 
   /**
    * Release layers and resources held by this layer manager, and mark
@@ -619,7 +621,7 @@ public:
   void BeginTabSwitch();
 
   static bool IsLogEnabled();
-  static mozilla::LogModule* GetLog();
+  static PRLogModuleInfo* GetLog() { return sLog; }
 
   bool IsCompositingCheap(LayersBackend aBackend)
   {
@@ -682,6 +684,8 @@ protected:
   // Internally used to implement Dump().
   virtual void DumpPacket(layerscope::LayersPacket* aPacket);
 
+  static void InitLog();
+  static PRLogModuleInfo* sLog;
   uint64_t mId;
   bool mInTransaction;
   // The time when painting most recently finished. This is recorded so that

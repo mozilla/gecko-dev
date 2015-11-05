@@ -14,7 +14,7 @@
 #include "nsIHttpEventSink.h"
 #include "nsIPackagedAppChannelListener.h"
 
-using mozilla::Unused;
+using mozilla::unused;
 
 namespace mozilla {
 namespace net {

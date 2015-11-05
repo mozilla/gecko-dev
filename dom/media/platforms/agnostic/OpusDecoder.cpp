@@ -168,17 +168,17 @@ OpusDataDecoder::DoDecode(MediaRawData* aSample)
     return -1;
   }
 
-  auto buffer = MakeUnique<AudioDataValue[]>(frames * channels);
+  nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[frames * channels]);
 
   // Decode to the appropriate sample type.
 #ifdef MOZ_SAMPLE_TYPE_FLOAT32
   int ret = opus_multistream_decode_float(mOpusDecoder,
                                           aSample->Data(), aSample->Size(),
-                                          buffer.get(), frames, false);
+                                          buffer, frames, false);
 #else
   int ret = opus_multistream_decode(mOpusDecoder,
                                     aSample->Data(), aSample->Size(),
-                                    buffer.get(), frames, false);
+                                    buffer, frames, false);
 #endif
   if (ret < 0) {
     return -1;
@@ -264,7 +264,7 @@ OpusDataDecoder::DoDecode(MediaRawData* aSample)
                                   time.value(),
                                   duration.value(),
                                   frames,
-                                  Move(buffer),
+                                  buffer.forget(),
                                   mOpusParser->mChannels,
                                   mOpusParser->mRate));
   mFrames += frames;

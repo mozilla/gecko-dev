@@ -82,13 +82,28 @@ namespace {
   static const char kHfpCrlf[] = "\xd\xa";
 
   // UUID of Handsfree Audio Gateway
-  static const BluetoothUuid kHandsfreeAG(HANDSFREE_AG);
+  static const BluetoothUuid kHandsfreeAG = {
+    {
+      0x00, 0x00, 0x11, 0x1F, 0x00, 0x00, 0x10, 0x00,
+      0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB
+    }
+  };
 
   // UUID of Headset Audio Gateway
-  static const BluetoothUuid kHeadsetAG(HEADSET_AG);
+  static const BluetoothUuid kHeadsetAG = {
+    {
+      0x00, 0x00, 0x11, 0x12, 0x00, 0x00, 0x10, 0x00,
+      0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB
+    }
+  };
 
   // Unknown service UUID (for SCO socket)
-  static const BluetoothUuid kUnknownService(BluetoothServiceClass::UNKNOWN);
+  static const BluetoothUuid kUnknownService = {
+    {
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
+      0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB
+    }
+  };
 
 #ifdef MOZ_B2G_RIL
   // Sending ringtone related
@@ -525,11 +540,8 @@ BluetoothHfpManager::NotifyConnectionStatusChanged(const nsAString& aType)
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   NS_ENSURE_TRUE_VOID(obs);
 
-  nsAutoString deviceAddressStr;
-  AddressToString(mDeviceAddress, deviceAddressStr);
-
   if (NS_FAILED(obs->NotifyObservers(this, NS_ConvertUTF16toUTF8(aType).get(),
-                                     deviceAddressStr.get()))) {
+                                     mDeviceAddress.get()))) {
     BT_WARNING("Failed to notify observsers!");
   }
 
@@ -547,7 +559,7 @@ BluetoothHfpManager::NotifyConnectionStatusChanged(const nsAString& aType)
     return;
   }
 
-  DispatchStatusChangedEvent(eventName, deviceAddressStr, status);
+  DispatchStatusChangedEvent(eventName, mDeviceAddress, status);
 }
 
 #ifdef MOZ_B2G_RIL
@@ -1110,7 +1122,7 @@ respond_with_ok:
 }
 
 void
-BluetoothHfpManager::Connect(const BluetoothAddress& aDeviceAddress,
+BluetoothHfpManager::Connect(const nsAString& aDeviceAddress,
                              BluetoothProfileController* aController)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -1131,7 +1143,8 @@ BluetoothHfpManager::Connect(const BluetoothAddress& aDeviceAddress,
     return;
   }
 
-  const BluetoothUuid uuid(HANDSFREE);
+  nsString uuid;
+  BluetoothUuidHelper::GetString(BluetoothServiceClass::HANDSFREE, uuid);
 
   if (NS_FAILED(bs->GetServiceChannel(aDeviceAddress, uuid, this))) {
     aController->NotifyCompletion(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
@@ -1868,7 +1881,7 @@ BluetoothHfpManager::OnSocketDisconnect(BluetoothSocket* aSocket)
 }
 
 void
-BluetoothHfpManager::OnUpdateSdpRecords(const BluetoothAddress& aDeviceAddress)
+BluetoothHfpManager::OnUpdateSdpRecords(const nsAString& aDeviceAddress)
 {
   // UpdateSdpRecord() is not called so this callback function should not
   // be invoked.
@@ -1876,13 +1889,12 @@ BluetoothHfpManager::OnUpdateSdpRecords(const BluetoothAddress& aDeviceAddress)
 }
 
 void
-BluetoothHfpManager::OnGetServiceChannel(
-  const BluetoothAddress& aDeviceAddress,
-  const BluetoothUuid& aServiceUuid,
-  int aChannel)
+BluetoothHfpManager::OnGetServiceChannel(const nsAString& aDeviceAddress,
+                                         const nsAString& aServiceUuid,
+                                         int aChannel)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!aDeviceAddress.IsCleared());
+  MOZ_ASSERT(!aDeviceAddress.IsEmpty());
 
   BluetoothService* bs = BluetoothService::Get();
   NS_ENSURE_TRUE_VOID(bs);
@@ -1890,12 +1902,13 @@ BluetoothHfpManager::OnGetServiceChannel(
   if (aChannel < 0) {
     // If we can't find Handsfree server channel number on the remote device,
     // try to create HSP connection instead.
-    const BluetoothUuid uuid(HEADSET);
+    nsString hspUuid;
+    BluetoothUuidHelper::GetString(BluetoothServiceClass::HEADSET, hspUuid);
 
-    if (aServiceUuid == uuid) {
+    if (aServiceUuid.Equals(hspUuid)) {
       OnConnect(NS_LITERAL_STRING(ERR_SERVICE_CHANNEL_NOT_FOUND));
     } else if (NS_FAILED(bs->GetServiceChannel(aDeviceAddress,
-                                               uuid, this))) {
+                                               hspUuid, this))) {
       OnConnect(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
     } else {
       mIsHsp = true;
@@ -1965,7 +1978,7 @@ BluetoothHfpManager::IsConnected()
 }
 
 void
-BluetoothHfpManager::GetAddress(BluetoothAddress& aDeviceAddress)
+BluetoothHfpManager::GetAddress(nsAString& aDeviceAddress)
 {
   return mSocket->GetAddress(aDeviceAddress);
 }

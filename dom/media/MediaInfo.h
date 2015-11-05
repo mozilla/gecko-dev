@@ -37,7 +37,7 @@ public:
             const nsAString& aLabel,
             const nsAString& aLanguage,
             bool aEnabled,
-            TrackID aTrackId)
+            TrackID aTrackId = TRACK_INVALID)
     : mId(aId)
     , mKind(aKind)
     , mLabel(aLabel)
@@ -53,17 +53,21 @@ public:
   }
 
   // Only used for backward compatibility. Do not use in new code.
-  void Init(const nsAString& aId,
+  void Init(TrackType aType,
+            const nsAString& aId,
             const nsAString& aKind,
             const nsAString& aLabel,
             const nsAString& aLanguage,
-            bool aEnabled)
+            bool aEnabled,
+            TrackID aTrackId = TRACK_INVALID)
   {
     mId = aId;
     mKind = aKind;
     mLabel = aLabel;
     mLanguage = aLanguage;
     mEnabled = aEnabled;
+    mTrackId = aTrackId;
+    mType = aType;
   }
 
   // Fields common with MediaTrack object.
@@ -375,17 +379,6 @@ public:
   bool HasValidMedia() const
   {
     return HasVideo() || HasAudio();
-  }
-
-  void AssertValid() const
-  {
-    NS_ASSERTION(!HasAudio() || mAudio.mTrackId != TRACK_INVALID,
-                 "Audio track ID must be valid");
-    NS_ASSERTION(!HasVideo() || mVideo.mTrackId != TRACK_INVALID,
-                 "Audio track ID must be valid");
-    NS_ASSERTION(!HasAudio() || !HasVideo() ||
-                 mAudio.mTrackId != mVideo.mTrackId,
-                 "Duplicate track IDs");
   }
 
   // TODO: Store VideoInfo and AudioIndo in arrays to support multi-tracks.

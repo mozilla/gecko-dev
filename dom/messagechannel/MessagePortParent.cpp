@@ -103,7 +103,7 @@ MessagePortParent::RecvStopSendingData()
   }
 
   mCanSendData = false;
-  Unused << SendStopSendingDataConfirmed();
+  unused << SendStopSendingDataConfirmed();
   return true;
 }
 
@@ -122,7 +122,7 @@ MessagePortParent::RecvClose()
 
   MOZ_ASSERT(!mEntangled);
 
-  Unused << Send__delete__(this);
+  unused << Send__delete__(this);
   return true;
 }
 
@@ -149,7 +149,7 @@ void
 MessagePortParent::CloseAndDelete()
 {
   Close();
-  Unused << Send__delete__(this);
+  unused << Send__delete__(this);
 }
 
 void

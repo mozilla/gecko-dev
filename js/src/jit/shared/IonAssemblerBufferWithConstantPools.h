@@ -452,8 +452,8 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst
 
         insertNopFill();
 
-#ifdef JS_JITSPEW
-        if (numPoolEntries && JitSpewEnabled(JitSpew_Pools)) {
+#ifdef DEBUG
+        if (numPoolEntries) {
             JitSpew(JitSpew_Pools, "[%d] Inserting %d entries into pool", id, numPoolEntries);
             JitSpewStart(JitSpew_Pools, "[%d] data is: 0x", id);
             size_t length = numPoolEntries * sizeof(PoolAllocUnit);

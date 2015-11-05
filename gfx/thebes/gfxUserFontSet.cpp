@@ -24,10 +24,12 @@
 
 using namespace mozilla;
 
-mozilla::LogModule*
+PRLogModuleInfo*
 gfxUserFontSet::GetUserFontsLog()
 {
-    static LazyLogModule sLog("userfonts");
+    static PRLogModuleInfo* sLog;
+    if (!sLog)
+        sLog = PR_NewLogModule("userfonts");
     return sLog;
 }
 

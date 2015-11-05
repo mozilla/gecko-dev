@@ -782,7 +782,7 @@ TextureParent::CompositorRecycle()
   mTextureHost->ClearRecycleCallback();
 
   if (mTextureHost->GetFlags() & TextureFlags::RECYCLE) {
-    mozilla::Unused << SendCompositorRecycle();
+    mozilla::unused << SendCompositorRecycle();
     // Don't forget to prepare for the next reycle
     // if TextureClient request it.
     mWaitForClientRecycle = mTextureHost;

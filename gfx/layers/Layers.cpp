@@ -15,7 +15,6 @@
 #include "LayersLogging.h"              // for AppendToString
 #include "ReadbackLayer.h"              // for ReadbackLayer
 #include "UnitTransforms.h"             // for ViewAs
-#include "gfxEnv.h"
 #include "gfxPlatform.h"                // for gfxPlatform
 #include "gfxPrefs.h"
 #include "gfxUtils.h"                   // for gfxUtils, etc
@@ -61,14 +60,6 @@ using namespace mozilla::Compression;
 
 //--------------------------------------------------
 // LayerManager
-
-/* static */ mozilla::LogModule*
-LayerManager::GetLog()
-{
-  static LazyLogModule sLog("Layers");
-  return sLog;
-}
-
 FrameMetrics::ViewID
 LayerManager::GetRootScrollableLayerId()
 {
@@ -660,9 +651,7 @@ Layer::SnapTransformTranslation(const Matrix4x4& aTransform,
   }
 
   if(aTransform.IsSingular() ||
-     aTransform.HasPerspectiveComponent() ||
-     aTransform.HasNonTranslation() ||
-     !aTransform.HasNonIntegerTranslation()) {
+     (aTransform._14 != 0 || aTransform._24 != 0 || aTransform._34 != 0)) {
     // For a singular transform, there is no reversed matrix, so we
     // don't snap it.
     // For a perspective transform, the content is transformed in
@@ -1063,12 +1052,6 @@ Layer::GetVisibleRegionRelativeToRootLayer(nsIntRegion& aResult,
       nsIntRegion siblingVisibleRegion(sibling->GetEffectiveVisibleRegion());
       // Translate the siblings region to |layer|'s origin.
       siblingVisibleRegion.MoveBy(-siblingOffset.x, -siblingOffset.y);
-      // Apply the sibling's clip.
-      // Layer clip rects are not affected by the layer's transform.
-      Maybe<ParentLayerIntRect> clipRect = sibling->GetEffectiveClipRect();
-      if (clipRect) {
-        siblingVisibleRegion.AndWith(ParentLayerIntRect::ToUntyped(*clipRect));
-      }
       // Subtract the sibling visible region from the visible region of |this|.
       aResult.SubOut(siblingVisibleRegion);
     }
@@ -1379,7 +1362,7 @@ ContainerLayer::DefaultComputeEffectiveTransforms(const Matrix4x4& aTransformToS
       GetForceIsolatedGroup()) {
     useIntermediateSurface = true;
 #ifdef MOZ_DUMP_PAINTING
-  } else if (gfxEnv::DumpPaintIntermediate() && !Extend3DContext()) {
+  } else if (gfxUtils::sDumpPaintingIntermediate && !Extend3DContext()) {
     useIntermediateSurface = true;
 #endif
   } else {
@@ -1702,9 +1685,9 @@ void
 Layer::Dump(std::stringstream& aStream, const char* aPrefix, bool aDumpHtml)
 {
 #ifdef MOZ_DUMP_PAINTING
-  bool dumpCompositorTexture = gfxEnv::DumpCompositorTextures() && AsLayerComposite() &&
+  bool dumpCompositorTexture = gfxUtils::sDumpCompositorTextures && AsLayerComposite() &&
                                AsLayerComposite()->GetCompositableHost();
-  bool dumpClientTexture = gfxEnv::DumpPaint() && AsShadowableLayer() &&
+  bool dumpClientTexture = gfxUtils::sDumpPainting && AsShadowableLayer() &&
                            AsShadowableLayer()->GetCompositableClient();
   nsCString layerId(Name());
   layerId.Append('-');
@@ -2396,10 +2379,19 @@ LayerManager::DumpPacket(layerscope::LayersPacket* aPacket)
   layer->set_parentptr(0);
 }
 
+/*static*/ void
+LayerManager::InitLog()
+{
+  if (!sLog)
+    sLog = PR_NewLogModule("Layers");
+}
+
 /*static*/ bool
 LayerManager::IsLogEnabled()
 {
-  return MOZ_LOG_TEST(GetLog(), LogLevel::Debug);
+  MOZ_ASSERT(!!sLog,
+             "layer manager must be created before logging is allowed");
+  return MOZ_LOG_TEST(sLog, LogLevel::Debug);
 }
 
 void
@@ -2446,6 +2438,8 @@ ToOutsideIntRect(const gfxRect &aRect)
   r.RoundOut();
   return IntRect(r.X(), r.Y(), r.Width(), r.Height());
 }
+
+PRLogModuleInfo* LayerManager::sLog;
 
 } // namespace layers
 } // namespace mozilla

@@ -33,6 +33,13 @@ BufferDecoder::BeginDecoding(TaskQueue* aTaskQueueIdentity)
   mTaskQueueIdentity = aTaskQueueIdentity;
 }
 
+bool
+BufferDecoder::OnStateMachineTaskQueue() const
+{
+  // BufferDecoder doesn't have the concept of a state machine.
+  return true;
+}
+
 MediaResource*
 BufferDecoder::GetResource() const
 {

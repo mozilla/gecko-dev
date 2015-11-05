@@ -133,7 +133,7 @@ SpeakerManagerService::Notify()
   nsTArray<ContentParent*> children;
   ContentParent::GetAll(children);
   for (uint32_t i = 0; i < children.Length(); i++) {
-    Unused << children[i]->SendSpeakerManagerNotify();
+    unused << children[i]->SendSpeakerManagerNotify();
   }
 
   for (uint32_t i = 0; i < mRegisteredSpeakerManagers.Length(); i++) {

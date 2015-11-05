@@ -56,7 +56,7 @@ CacheOpParent::Execute(ManagerId* aManagerId)
   RefPtr<Manager> manager;
   nsresult rv = Manager::GetOrCreate(aManagerId, getter_AddRefs(manager));
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    Unused << Send__delete__(this, ErrorResult(rv), void_t());
+    unused << Send__delete__(this, ErrorResult(rv), void_t());
     return;
   }
 
@@ -144,7 +144,7 @@ CacheOpParent::OnPrincipalVerified(nsresult aRv, ManagerId* aManagerId)
   mVerifier = nullptr;
 
   if (NS_WARN_IF(NS_FAILED(aRv))) {
-    Unused << Send__delete__(this, ErrorResult(aRv), void_t());
+    unused << Send__delete__(this, ErrorResult(aRv), void_t());
     return;
   }
 
@@ -165,7 +165,7 @@ CacheOpParent::OnOpComplete(ErrorResult&& aRv, const CacheOpResult& aResult,
   // Never send an op-specific result if we have an error.  Instead, send
   // void_t() to ensure that we don't leak actors on the child side.
   if (NS_WARN_IF(aRv.Failed())) {
-    Unused << Send__delete__(this, aRv, void_t());
+    unused << Send__delete__(this, aRv, void_t());
     aRv.SuppressException(); // We serialiazed it, as best we could.
     return;
   }
@@ -190,7 +190,7 @@ CacheOpParent::OnOpComplete(ErrorResult&& aRv, const CacheOpResult& aResult,
     result.Add(aSavedRequestList[i], aStreamList);
   }
 
-  Unused << Send__delete__(this, aRv, result.SendAsOpResult());
+  unused << Send__delete__(this, aRv, result.SendAsOpResult());
 }
 
 already_AddRefed<nsIInputStream>

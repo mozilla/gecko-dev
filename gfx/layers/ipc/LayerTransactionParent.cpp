@@ -459,10 +459,6 @@ LayerTransactionParent::RecvUpdate(InfallibleTArray<Edit>&& cset,
         edit.get_OpSetDiagnosticTypes().diagnostics());
       break;
     }
-    case Edit::TOpWindowOverlayChanged: {
-      mLayerManager->SetWindowOverlayChanged();
-      break;
-    }
     // Tree ops
     case Edit::TOpSetRoot: {
       MOZ_LAYERS_LOG(("[ParentSide] SetRoot"));
@@ -1022,7 +1018,7 @@ LayerTransactionParent::SendFenceHandleIfPresent(PTextureParent* aTexture,
 void
 LayerTransactionParent::SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage)
 {
-  mozilla::Unused << SendParentAsyncMessages(aMessage);
+  mozilla::unused << SendParentAsyncMessages(aMessage);
 }
 
 void
@@ -1030,7 +1026,7 @@ LayerTransactionParent::ReplyRemoveTexture(const OpReplyRemoveTexture& aReply)
 {
   InfallibleTArray<AsyncParentMessageData> messages;
   messages.AppendElement(aReply);
-  mozilla::Unused << SendParentAsyncMessages(messages);
+  mozilla::unused << SendParentAsyncMessages(messages);
 }
 
 } // namespace layers

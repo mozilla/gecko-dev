@@ -599,19 +599,37 @@ ProcessPriorityManagerImpl::ObserveContentParentDestroyed(nsISupports* aSubject)
   }
 }
 
+static PLDHashOperator
+FreezeParticularProcessPriorityManagers(
+  const uint64_t& aKey,
+  RefPtr<ParticularProcessPriorityManager> aValue,
+  void* aUserData)
+{
+  aValue->Freeze();
+  return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
+UnfreezeParticularProcessPriorityManagers(
+  const uint64_t& aKey,
+  RefPtr<ParticularProcessPriorityManager> aValue,
+  void* aUserData)
+{
+  aValue->Unfreeze();
+  return PL_DHASH_NEXT;
+}
+
 void
 ProcessPriorityManagerImpl::ObserveScreenStateChanged(const char16_t* aData)
 {
   if (NS_LITERAL_STRING("on").Equals(aData)) {
     sFrozen = false;
-    for (auto iter = mParticularManagers.Iter(); !iter.Done(); iter.Next()) {
-      iter.UserData()->Unfreeze();
-    }
+    mParticularManagers.EnumerateRead(
+      &UnfreezeParticularProcessPriorityManagers, nullptr);
   } else {
     sFrozen = true;
-    for (auto iter = mParticularManagers.Iter(); !iter.Done(); iter.Next()) {
-      iter.UserData()->Freeze();
-    }
+    mParticularManagers.EnumerateRead(
+      &FreezeParticularProcessPriorityManagers, nullptr);
   }
 }
 
@@ -1141,11 +1159,11 @@ ParticularProcessPriorityManager::SetPriorityNow(ProcessPriority aPriority,
     ProcessPriorityManagerImpl::GetSingleton()->
       NotifyProcessPriorityChanged(this, oldPriority);
 
-    Unused << mContentParent->SendNotifyProcessPriorityChanged(mPriority);
+    unused << mContentParent->SendNotifyProcessPriorityChanged(mPriority);
   }
 
   if (aPriority < PROCESS_PRIORITY_FOREGROUND) {
-    Unused << mContentParent->SendFlushMemory(NS_LITERAL_STRING("lowering-priority"));
+    unused << mContentParent->SendFlushMemory(NS_LITERAL_STRING("lowering-priority"));
   }
 
   FireTestOnlyObserverNotification("process-priority-set",
@@ -1359,7 +1377,7 @@ ProcessLRUPool::CalculateLRULevel(uint32_t aLRU)
   // (End of buffer)
 
   int exp;
-  Unused << frexp(static_cast<double>(aLRU), &exp);
+  unused << frexp(static_cast<double>(aLRU), &exp);
   uint32_t level = std::max(exp - 1, 0);
 
   return std::min(mLRUPoolLevels - 1, level);

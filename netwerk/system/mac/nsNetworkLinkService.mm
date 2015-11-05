@@ -19,7 +19,7 @@
 
 using namespace mozilla;
 
-static LazyLogModule gNotifyAddrLog("nsNotifyAddr");
+static PRLogModuleInfo *gNotifyAddrLog = nullptr;
 #define LOG(args) MOZ_LOG(gNotifyAddrLog, mozilla::LogLevel::Debug, args)
 
 // If non-successful, extract the error code and return it.  This
@@ -124,6 +124,9 @@ nsresult
 nsNetworkLinkService::Init(void)
 {
     nsresult rv;
+
+    if (!gNotifyAddrLog)
+        gNotifyAddrLog = PR_NewLogModule("nsNotifyAddr");
 
     nsCOMPtr<nsIObserverService> observerService =
         do_GetService("@mozilla.org/observer-service;1", &rv);

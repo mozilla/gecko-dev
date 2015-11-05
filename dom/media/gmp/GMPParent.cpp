@@ -122,7 +122,7 @@ void
 GMPParent::Crash()
 {
   if (mState != GMPStateNotLoaded) {
-    Unused << SendCrashPluginNow();
+    unused << SendCrashPluginNow();
   }
 }
 
@@ -233,7 +233,7 @@ GMPParent::EnsureAsyncShutdownTimeoutSet()
   rv = mAsyncShutdownTimeout->InitWithFuncCallback(
     &AbortWaitingForGMPAsyncShutdown, this, timeout,
     nsITimer::TYPE_ONE_SHOT);
-  Unused << NS_WARN_IF(NS_FAILED(rv));
+  unused << NS_WARN_IF(NS_FAILED(rv));
   return rv;
 }
 

@@ -537,7 +537,7 @@ bool
 OperatorIn(JSContext* cx, HandleValue key, HandleObject obj, bool* out)
 {
     RootedId id(cx);
-    return ToPropertyKey(cx, key, &id) &&
+    return ValueToId<CanGC>(cx, key, &id) &&
            HasProperty(cx, obj, id, out);
 }
 

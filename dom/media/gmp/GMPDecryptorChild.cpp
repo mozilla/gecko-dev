@@ -360,7 +360,7 @@ GMPDecryptorChild::RecvDecryptingComplete()
 
   session->DecryptingComplete();
 
-  Unused << Send__delete__(this);
+  unused << Send__delete__(this);
 
   return true;
 }

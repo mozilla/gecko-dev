@@ -11,7 +11,6 @@ const { Ci } = require("chrome");
 const core = require("../l10n/core");
 const { loadSheet, removeSheet } = require("../stylesheet/utils");
 const { process, frames } = require("../remote/child");
-const { Services } = require("resource://gre/modules/Services.jsm");
 
 const assetsURI = require('../self').data.url();
 
@@ -81,7 +80,7 @@ function onDocumentReady2Translate(event) {
   }
 }
 
-function onContentWindow(document) {
+function onContentWindow({ target: document }) {
   // Accept only HTML documents
   if (!(document instanceof Ci.nsIDOMHTMLDocument))
     return;
@@ -110,20 +109,13 @@ function onContentWindow(document) {
 
 // Listen to creation of content documents in order to translate them as soon
 // as possible in their loading process
-const ON_CONTENT = "document-element-inserted";
-let enabled = false;
+const ON_CONTENT = "DOMDocElementInserted";
 function enable() {
-  if (enabled)
-    return;
-  Services.obs.addObserver(onContentWindow, ON_CONTENT, false);
-  enabled = true;
+  frames.addEventListener(ON_CONTENT, onContentWindow, true);
 }
 process.port.on("sdk/l10n/html/enable", enable);
 
 function disable() {
-  if (!enabled)
-    return;
-  Services.obs.removeObserver(onContentWindow, ON_CONTENT);
-  enabled = false;
+  frames.removeEventListener(ON_CONTENT, onContentWindow, true);
 }
 process.port.on("sdk/l10n/html/disable", disable);

@@ -12,7 +12,6 @@
 
 #include "mozilla/Maybe.h"
 
-class nsIDOMDocument;
 class nsIURI;
 
 namespace mozilla {
@@ -25,14 +24,12 @@ class ImageURL;
  *
  * We key the cache on the initial URI (before any redirects), with some
  * canonicalization applied. See ComputeHash() for the details.
- * Controlled documents do not share their cache entries with
- * non-controlled documents, or other controlled documents.
  */
 class ImageCacheKey final
 {
 public:
-  ImageCacheKey(nsIURI* aURI, nsIDOMDocument* aDocument);
-  ImageCacheKey(ImageURL* aURI, nsIDOMDocument* aDocument);
+  explicit ImageCacheKey(nsIURI* aURI);
+  explicit ImageCacheKey(ImageURL* aURI);
 
   ImageCacheKey(const ImageCacheKey& aOther);
   ImageCacheKey(ImageCacheKey&& aOther);
@@ -46,19 +43,12 @@ public:
   /// Is this cache entry for a chrome image?
   bool IsChrome() const { return mIsChrome; }
 
-  /// A token indicating which service worker controlled document this entry
-  /// belongs to, if any.
-  void* ControlledDocument() const { return mControlledDocument; }
-
 private:
   static uint32_t ComputeHash(ImageURL* aURI,
-                              const Maybe<uint64_t>& aBlobSerial,
-                              void* aControlledDocument);
-  static void* GetControlledDocumentToken(nsIDOMDocument* aDocument);
+                              const Maybe<uint64_t>& aBlobSerial);
 
   RefPtr<ImageURL> mURI;
   Maybe<uint64_t> mBlobSerial;
-  void* mControlledDocument;
   uint32_t mHash;
   bool mIsChrome;
 };

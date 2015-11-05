@@ -814,11 +814,6 @@ or run without that action (ie: --no-{action})"
         self.info("Skipping......")
         return
 
-    def query_is_nightly_promotion(self):
-        platform_enabled = self.config.get('enable_nightly_promotion')
-        branch_enabled = self.branch in self.config.get('nightly_promotion_branches')
-        return platform_enabled and branch_enabled
-
     def query_build_env(self, replace_dict=None, **kwargs):
         c = self.config
 
@@ -838,11 +833,8 @@ or run without that action (ie: --no-{action})"
         # first grab the buildid
         env['MOZ_BUILD_DATE'] = self.query_buildid()
 
-        if self.query_is_nightly() or self.query_is_nightly_promotion():
-            if self.query_is_nightly():
-                # nightly promotion needs to set update_channel but not do all the 'IS_NIGHTLY'
-                # automation parts like uploading symbols for now
-                env["IS_NIGHTLY"] = "yes"
+        if self.query_is_nightly():
+            env["IS_NIGHTLY"] = "yes"
             # in branch_specifics.py we might set update_channel explicitly
             if c.get('update_channel'):
                 env["MOZ_UPDATE_CHANNEL"] = c['update_channel']
@@ -1608,29 +1600,9 @@ or run without that action (ie: --no-{action})"
         else:
             paths.append( ('libxul.so', os.path.join(dirs['abs_obj_dir'], 'dist', 'bin', 'libxul.so')) )
 
-        size_measurements = []
-        installer_size = 0
         for (name, path) in paths:
-            # FIXME: Remove the tinderboxprints when bug 1161249 is fixed and
-            # we're displaying perfherder data for each job automatically
             if os.path.exists(path):
-                filesize = self.query_filesize(path)
-                self.info('TinderboxPrint: Size of %s<br/>%s bytes\n' % (
-                    name, filesize))
-                if any(name.endswith(extension) for extension in ['apk',
-                                                                  'dmg',
-                                                                  'bz2',
-                                                                  'zip']):
-                    installer_size = filesize
-                else:
-                    size_measurements.append({'name': name, 'value': filesize})
-        if installer_size or size_measurements:
-            self.info('PERFHERDER_DATA: %s' % (json.dumps({
-                "framework": {"name": "build_metrics"},
-                "suites": [{"name": "installer size",
-                            "value": installer_size,
-                            "subtests": size_measurements}]
-            })))
+                self.info('TinderboxPrint: Size of %s<br/>%s bytes\n' % (name, self.query_filesize(path)))
 
     def _set_file_properties(self, file_name, find_dir, prop_type,
                              error_level=ERROR):

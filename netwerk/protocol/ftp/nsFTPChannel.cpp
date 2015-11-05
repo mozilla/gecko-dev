@@ -10,9 +10,7 @@
 #include "nsThreadUtils.h"
 #include "mozilla/Attributes.h"
 
-using namespace mozilla;
-using namespace mozilla::net;
-extern LazyLogModule gFTPLog;
+extern PRLogModuleInfo* gFTPLog;
 
 // There are two transport connections established for an 
 // ftp connection. One is used for the command channel , and

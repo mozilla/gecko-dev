@@ -484,7 +484,7 @@ CopyPlane(uint8_t *aDst, const uint8_t *aSrc,
   }
 }
 
-bool
+void
 PlanarYCbCrImage::CopyData(const Data& aData)
 {
   mData = aData;
@@ -496,7 +496,7 @@ PlanarYCbCrImage::CopyData(const Data& aData)
   // get new buffer
   mBuffer = AllocateBuffer(size);
   if (!mBuffer)
-    return false;
+    return;
 
   // update buffer size
   mBufferSize = size;
@@ -513,13 +513,12 @@ PlanarYCbCrImage::CopyData(const Data& aData)
             mData.mCbCrSize, mData.mCbCrStride, mData.mCrSkip);
 
   mSize = aData.mPicSize;
-  return true;
 }
 
-bool
+void
 PlanarYCbCrImage::SetData(const Data &aData)
 {
-  return CopyData(aData);
+  CopyData(aData);
 }
 
 gfxImageFormat
@@ -530,12 +529,11 @@ PlanarYCbCrImage::GetOffscreenFormat()
     mOffscreenFormat;
 }
 
-bool
+void
 PlanarYCbCrImage::SetDataNoCopy(const Data &aData)
 {
   mData = aData;
   mSize = aData.mPicSize;
-  return true;
 }
 
 uint8_t*

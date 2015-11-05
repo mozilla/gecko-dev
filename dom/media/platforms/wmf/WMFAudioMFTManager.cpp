@@ -280,7 +280,7 @@ WMFAudioMFTManager::Output(int64_t aStreamOffset,
     return S_OK;
   }
 
-  auto audioData = MakeUnique<AudioDataValue[]>(numSamples);
+  nsAutoArrayPtr<AudioDataValue> audioData(new AudioDataValue[numSamples]);
 
   int16_t* pcm = (int16_t*)data;
   for (int32_t i = 0; i < numSamples; ++i) {
@@ -302,7 +302,7 @@ WMFAudioMFTManager::Output(int64_t aStreamOffset,
                            timestamp.ToMicroseconds(),
                            duration.ToMicroseconds(),
                            numFrames,
-                           Move(audioData),
+                           audioData.forget(),
                            mAudioChannels,
                            mAudioRate);
 

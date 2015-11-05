@@ -705,12 +705,11 @@ nsresult
 CacheIndex::InitEntry(const SHA1Sum::Hash *aHash,
                       uint32_t             aAppId,
                       bool                 aAnonymous,
-                      bool                 aInBrowser,
-                      bool                 aPinned)
+                      bool                 aInBrowser)
 {
   LOG(("CacheIndex::InitEntry() [hash=%08x%08x%08x%08x%08x, appId=%u, "
-       "anonymous=%d, inBrowser=%d, pinned=%d]", LOGSHA1(aHash), aAppId,
-       aAnonymous, aInBrowser, aPinned));
+       "anonymous=%d, inBrowser=%d]", LOGSHA1(aHash), aAppId, aAnonymous,
+       aInBrowser));
 
   RefPtr<CacheIndex> index = gInstance;
 
@@ -800,10 +799,10 @@ CacheIndex::InitEntry(const SHA1Sum::Hash *aHash,
     }
 
     if (updated) {
-      updated->Init(aAppId, aAnonymous, aInBrowser, aPinned);
+      updated->Init(aAppId, aAnonymous, aInBrowser);
       updated->MarkDirty();
     } else {
-      entry->Init(aAppId, aAnonymous, aInBrowser, aPinned);
+      entry->Init(aAppId, aAnonymous, aInBrowser);
       entry->MarkDirty();
     }
   }
@@ -1109,22 +1108,10 @@ CacheIndex::RemoveAll()
 
 // static
 nsresult
-CacheIndex::HasEntry(const nsACString &aKey, EntryStatus *_retval, bool *_pinned)
+CacheIndex::HasEntry(const nsACString &aKey, EntryStatus *_retval)
 {
   LOG(("CacheIndex::HasEntry() [key=%s]", PromiseFlatCString(aKey).get()));
 
-  SHA1Sum sum;
-  SHA1Sum::Hash hash;
-  sum.update(aKey.BeginReading(), aKey.Length());
-  sum.finish(hash);
-
-  return HasEntry(hash, _retval, _pinned);
-}
-
-// static
-nsresult
-CacheIndex::HasEntry(const SHA1Sum::Hash &hash, EntryStatus *_retval, bool *_pinned)
-{
   RefPtr<CacheIndex> index = gInstance;
 
   if (!index) {
@@ -1137,9 +1124,10 @@ CacheIndex::HasEntry(const SHA1Sum::Hash &hash, EntryStatus *_retval, bool *_pin
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  if (_pinned) {
-    *_pinned = false;
-  }
+  SHA1Sum sum;
+  SHA1Sum::Hash hash;
+  sum.update(aKey.BeginReading(), aKey.Length());
+  sum.finish(hash);
 
   const CacheIndexEntry *entry = nullptr;
 
@@ -1175,9 +1163,6 @@ CacheIndex::HasEntry(const SHA1Sum::Hash &hash, EntryStatus *_retval, bool *_pin
       }
     } else {
       *_retval = EXISTS;
-      if (_pinned && entry->IsPinned()) {
-        *_pinned = true;
-      }
     }
   }
 
@@ -1208,16 +1193,12 @@ CacheIndex::GetEntryForEviction(bool aIgnoreEmptyEntries, SHA1Sum::Hash *aHash, 
   bool foundEntry = false;
   uint32_t i;
 
-  // find first non-forced valid and unpinned entry with the lowest frecency
+  // find first non-forced valid entry with the lowest frecency
   index->mFrecencyArray.Sort(FrecencyComparator());
   for (i = 0; i < index->mFrecencyArray.Length(); ++i) {
     memcpy(&hash, &index->mFrecencyArray[i]->mHash, sizeof(SHA1Sum::Hash));
 
     if (IsForcedValidEntry(&hash)) {
-      continue;
-    }
-
-    if (CacheIndexEntry::IsPinned(index->mFrecencyArray[i])) {
       continue;
     }
 
@@ -2594,8 +2575,7 @@ CacheIndex::InitEntryFromDiskData(CacheIndexEntry *aEntry,
   // Bug 1201042 - will pass OriginAttributes directly.
   aEntry->Init(aMetaData->OriginAttributes().mAppId,
                aMetaData->IsAnonymous(),
-               aMetaData->OriginAttributes().mInBrowser,
-               aMetaData->Pinned());
+               aMetaData->OriginAttributes().mInBrowser);
 
   uint32_t expirationTime;
   aMetaData->GetExpirationTime(&expirationTime);
@@ -3023,7 +3003,7 @@ CacheIndex::FinishUpdate(bool aSucceeded)
       NS_WARNING(("CacheIndex::FinishUpdate() - Leaking mDirEnumerator!"));
       // This can happen only in case dispatching event to IO thread failed in
       // CacheIndex::PreShutdown().
-      Unused << mDirEnumerator.forget(); // Leak it since dir enumerator is not threadsafe
+      unused << mDirEnumerator.forget(); // Leak it since dir enumerator is not threadsafe
     } else {
       mDirEnumerator->Close();
       mDirEnumerator = nullptr;

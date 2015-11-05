@@ -319,7 +319,7 @@ SendTestOnlyNotification(const char* aMessage)
   nsCOMPtr<nsIMessageBroadcaster> ppmm =
     do_GetService("@mozilla.org/parentprocessmessagemanager;1");
 
-  mozilla::Unused << ppmm->BroadcastAsyncMessage(
+  mozilla::unused << ppmm->BroadcastAsyncMessage(
       message, JS::NullHandleValue, JS::NullHandleValue, cx, 1);
 }
 

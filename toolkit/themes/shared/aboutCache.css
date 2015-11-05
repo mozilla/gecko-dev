@@ -42,10 +42,6 @@ td {
   width: 13%;
 }
 
-#col-pinned {
-  width: 5em;
-}
-
 #entries > tbody > tr:nth-child(odd) {
   background-color: rgba(0, 0, 0, .03);
 }

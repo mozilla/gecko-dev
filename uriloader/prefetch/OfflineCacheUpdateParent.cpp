@@ -156,7 +156,7 @@ OfflineCacheUpdateParent::UpdateStateChanged(nsIOfflineCacheUpdate *aUpdate, uin
 
     uint64_t byteProgress;
     aUpdate->GetByteProgress(&byteProgress);
-    Unused << SendNotifyStateEvent(state, byteProgress);
+    unused << SendNotifyStateEvent(state, byteProgress);
 
     if (state == nsIOfflineCacheUpdateObserver::STATE_FINISHED) {
         // Tell the child the particulars after the update has finished.
@@ -167,7 +167,7 @@ OfflineCacheUpdateParent::UpdateStateChanged(nsIOfflineCacheUpdate *aUpdate, uin
         bool succeeded;
         aUpdate->GetSucceeded(&succeeded);
 
-        Unused << SendFinish(succeeded, isUpgrade);
+        unused << SendFinish(succeeded, isUpgrade);
     }
 
     return NS_OK;
@@ -186,7 +186,7 @@ OfflineCacheUpdateParent::ApplicationCacheAvailable(nsIApplicationCache *aApplic
     nsCString cacheGroupId;
     aApplicationCache->GetGroupID(cacheGroupId);
 
-    Unused << SendAssociateDocuments(cacheGroupId, cacheClientId);
+    unused << SendAssociateDocuments(cacheGroupId, cacheClientId);
     return NS_OK;
 }
 

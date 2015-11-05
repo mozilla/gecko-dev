@@ -61,7 +61,7 @@ CacheStreamControlParent::SerializeFds(CacheReadStream* aReadStreamOut,
   if (!aFds.IsEmpty()) {
     fdSet = Manager()->SendPFileDescriptorSetConstructor(aFds[0]);
     for (uint32_t i = 1; i < aFds.Length(); ++i) {
-      Unused << fdSet->SendAddFileDescriptor(aFds[i]);
+      unused << fdSet->SendAddFileDescriptor(aFds[i]);
     }
   }
 
@@ -141,7 +141,7 @@ CacheStreamControlParent::Close(const nsID& aId)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlParent);
   NotifyClose(aId);
-  Unused << SendClose(aId);
+  unused << SendClose(aId);
 }
 
 void
@@ -149,7 +149,7 @@ CacheStreamControlParent::CloseAll()
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlParent);
   NotifyCloseAll();
-  Unused << SendCloseAll();
+  unused << SendCloseAll();
 }
 
 void

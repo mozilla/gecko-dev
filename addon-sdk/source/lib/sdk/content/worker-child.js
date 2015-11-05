@@ -51,9 +51,7 @@ const WorkerChild = Class({
 
     this.sandbox = WorkerSandbox(this, this.window);
 
-    // If the document is still loading wait for it to finish before passing on
-    // received messages
-    this.frozen = this.window.document.readyState == "loading";
+    this.frozen = false;
     this.frozenMessages = [];
     this.on('pageshow', () => {
       this.frozen = false;

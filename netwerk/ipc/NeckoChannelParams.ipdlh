@@ -37,7 +37,6 @@ struct LoadInfoArgs
   bool             enforceSecurity;
   bool             initialSecurityCheckDone;
   OriginAttributes originAttributes;
-  PrincipalInfo[]  redirectChainIncludingInternalRedirects;
   PrincipalInfo[]  redirectChain;
 };
 

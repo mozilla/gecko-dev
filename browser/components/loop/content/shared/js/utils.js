@@ -391,16 +391,17 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
     }
 
     var subject, body;
-    var footer = mozL10n.get("share_email_footer2");
+    var footer = mozL10n.get("share_email_footer");
+
     if (contextDescription) {
-      subject = mozL10n.get("share_email_subject7");
-      body = mozL10n.get("share_email_body_context3", {
+      subject = mozL10n.get("share_email_subject6");
+      body = mozL10n.get("share_email_body_context2", {
         callUrl: callUrl,
         title: contextDescription
       });
     } else {
-      subject = mozL10n.get("share_email_subject7");
-      body = mozL10n.get("share_email_body7", {
+      subject = mozL10n.get("share_email_subject6");
+      body = mozL10n.get("share_email_body6", {
         callUrl: callUrl
       });
     }

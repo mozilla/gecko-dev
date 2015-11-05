@@ -67,10 +67,11 @@ nsHttpAuthManager::GetAuthIdentity(const nsACString & aScheme,
   nsHttpAuthCache* auth_cache = aIsPrivate ? mPrivateAuthCache : mAuthCache;
   nsHttpAuthEntry * entry = nullptr;
   nsresult rv;
-
-  nsAutoCString originSuffix;
+  uint32_t appId = NECKO_NO_APP_ID;
+  bool inBrowserElement = false;
   if (aPrincipal) {
-    BasePrincipal::Cast(aPrincipal)->OriginAttributesRef().CreateSuffix(originSuffix);
+    appId = aPrincipal->GetAppId();
+    inBrowserElement = aPrincipal->GetIsInBrowserElement();
   }
 
   if (!aPath.IsEmpty())
@@ -78,14 +79,14 @@ nsHttpAuthManager::GetAuthIdentity(const nsACString & aScheme,
                                          PromiseFlatCString(aHost).get(),
                                          aPort,
                                          PromiseFlatCString(aPath).get(),
-                                         originSuffix,
+                                         appId, inBrowserElement,
                                          &entry);
   else
     rv = auth_cache->GetAuthEntryForDomain(PromiseFlatCString(aScheme).get(),
                                            PromiseFlatCString(aHost).get(),
                                            aPort,
                                            PromiseFlatCString(aRealm).get(),
-                                           originSuffix,
+                                           appId, inBrowserElement,
                                            &entry);
 
   if (NS_FAILED(rv))
@@ -116,11 +117,12 @@ nsHttpAuthManager::SetAuthIdentity(const nsACString & aScheme,
                            PromiseFlatString(aUserName).get(),
                            PromiseFlatString(aUserPassword).get());
 
-  nsAutoCString originSuffix;
+  uint32_t appId = NECKO_NO_APP_ID;
+  bool inBrowserElement = false;
   if (aPrincipal) {
-    BasePrincipal::Cast(aPrincipal)->OriginAttributesRef().CreateSuffix(originSuffix);
+    appId = aPrincipal->GetAppId();
+    inBrowserElement = aPrincipal->GetIsInBrowserElement();
   }
-
 
   nsHttpAuthCache* auth_cache = aIsPrivate ? mPrivateAuthCache : mAuthCache;
   return auth_cache->SetAuthEntry(PromiseFlatCString(aScheme).get(),
@@ -130,7 +132,7 @@ nsHttpAuthManager::SetAuthIdentity(const nsACString & aScheme,
                                   PromiseFlatCString(aRealm).get(),
                                   nullptr,  // credentials
                                   nullptr,  // challenge
-                                  originSuffix,
+                                  appId, inBrowserElement,
                                   &ident,
                                   nullptr); // metadata
 }

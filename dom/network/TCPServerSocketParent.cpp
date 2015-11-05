@@ -109,7 +109,7 @@ TCPServerSocketParent::SendCallbackAccept(TCPSocketParent *socket)
 
   if (mNeckoParent) {
     if (mNeckoParent->SendPTCPSocketConstructor(socket, host, port)) {
-      mozilla::Unused << PTCPServerSocketParent::SendCallbackAccept(socket);
+      mozilla::unused << PTCPServerSocketParent::SendCallbackAccept(socket);
     }
     else {
       NS_ERROR("Sending data from PTCPSocketParent was failed.");
@@ -142,7 +142,7 @@ TCPServerSocketParent::ActorDestroy(ActorDestroyReason why)
 bool
 TCPServerSocketParent::RecvRequestDelete()
 {
-  mozilla::Unused << Send__delete__(this);
+  mozilla::unused << Send__delete__(this);
   return true;
 }
 

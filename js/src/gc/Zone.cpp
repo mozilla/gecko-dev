@@ -48,8 +48,7 @@ JS::Zone::Zone(JSRuntime* rt)
     MOZ_ASSERT(reinterpret_cast<JS::shadow::Zone*>(this) ==
                static_cast<JS::shadow::Zone*>(this));
 
-    AutoLockGC lock(rt);
-    threshold.updateAfterGC(8192, GC_NORMAL, rt->gc.tunables, rt->gc.schedulingState, lock);
+    threshold.updateAfterGC(8192, GC_NORMAL, rt->gc.tunables, rt->gc.schedulingState);
     setGCMaxMallocBytes(rt->gc.maxMallocBytesAllocated() * 0.9);
 }
 

@@ -178,7 +178,7 @@ GMPVideoEncoderChild::RecvEncodingComplete()
   }
 
   if (!mVideoEncoder) {
-    Unused << Send__delete__(this);
+    unused << Send__delete__(this);
     return false;
   }
 
@@ -189,7 +189,7 @@ GMPVideoEncoderChild::RecvEncodingComplete()
 
   mPlugin = nullptr;
 
-  Unused << Send__delete__(this);
+  unused << Send__delete__(this);
 
   return true;
 }

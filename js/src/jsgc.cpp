@@ -739,7 +739,7 @@ GCRuntime::expireEmptyChunkPool(bool shrinkBuffers, const AutoLockGC& lock)
         MOZ_ASSERT(!fullChunks(lock).contains(chunk));
         MOZ_ASSERT(!availableChunks(lock).contains(chunk));
         if (freeChunkCount >= tunables.maxEmptyChunkCount() ||
-            (freeChunkCount >= tunables.minEmptyChunkCount(lock) &&
+            (freeChunkCount >= tunables.minEmptyChunkCount() &&
              (shrinkBuffers || chunk->info.age == MAX_EMPTY_CHUNK_AGE)))
         {
             emptyChunks(lock).remove(chunk);
@@ -754,7 +754,7 @@ GCRuntime::expireEmptyChunkPool(bool shrinkBuffers, const AutoLockGC& lock)
     MOZ_ASSERT(expired.verify());
     MOZ_ASSERT(emptyChunks(lock).verify());
     MOZ_ASSERT(emptyChunks(lock).count() <= tunables.maxEmptyChunkCount());
-    MOZ_ASSERT_IF(shrinkBuffers, emptyChunks(lock).count() <= tunables.minEmptyChunkCount(lock));
+    MOZ_ASSERT_IF(shrinkBuffers, emptyChunks(lock).count() <= tunables.minEmptyChunkCount());
     return expired;
 }
 
@@ -1021,7 +1021,7 @@ GCRuntime::wantBackgroundAllocation(const AutoLockGC& lock) const
     // allocation if we already have some empty chunks or when the runtime has
     // a small heap size (and therefore likely has a small growth rate).
     return allocTask.enabled() &&
-           emptyChunks(lock).count() < tunables.minEmptyChunkCount(lock) &&
+           emptyChunks(lock).count() < tunables.minEmptyChunkCount() &&
            (fullChunks(lock).count() + availableChunks(lock).count()) >= 4;
 }
 
@@ -1288,13 +1288,8 @@ GCRuntime::init(uint32_t maxbytes, uint32_t maxNurseryBytes)
      * Separate gcMaxMallocBytes from gcMaxBytes but initialize to maxbytes
      * for default backward API compatibility.
      */
-    AutoLockGC lock(rt);
-    tunables.setParameter(JSGC_MAX_BYTES, maxbytes, lock);
+    tunables.setParameter(JSGC_MAX_BYTES, maxbytes);
     setMaxMallocBytes(maxbytes);
-
-    const char* size = getenv("JSGC_MARK_STACK_LIMIT");
-    if (size)
-        setMarkStackLimit(atoi(size), lock);
 
     jitReleaseNumber = majorGCNumber + JIT_SCRIPT_RELEASE_TYPES_PERIOD;
 
@@ -1398,7 +1393,7 @@ GCRuntime::finishRoots()
 }
 
 void
-GCRuntime::setParameter(JSGCParamKey key, uint32_t value, AutoLockGC& lock)
+GCRuntime::setParameter(JSGCParamKey key, uint32_t value)
 {
     switch (key) {
       case JSGC_MAX_MALLOC_BYTES:
@@ -1410,7 +1405,7 @@ GCRuntime::setParameter(JSGCParamKey key, uint32_t value, AutoLockGC& lock)
         defaultTimeBudget_ = value ? value : SliceBudget::UnlimitedTimeBudget;
         break;
       case JSGC_MARK_STACK_LIMIT:
-        setMarkStackLimit(value, lock);
+        setMarkStackLimit(value);
         break;
       case JSGC_DECOMMIT_THRESHOLD:
         decommitThreshold = value * 1024 * 1024;
@@ -1425,16 +1420,16 @@ GCRuntime::setParameter(JSGCParamKey key, uint32_t value, AutoLockGC& lock)
         compactingEnabled = value != 0;
         break;
       default:
-        tunables.setParameter(key, value, lock);
+        tunables.setParameter(key, value);
         for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next()) {
             zone->threshold.updateAfterGC(zone->usage.gcBytes(), GC_NORMAL, tunables,
-                                          schedulingState, lock);
+                                         schedulingState);
         }
     }
 }
 
 void
-GCSchedulingTunables::setParameter(JSGCParamKey key, uint32_t value, const AutoLockGC& lock)
+GCSchedulingTunables::setParameter(JSGCParamKey key, uint32_t value)
 {
     switch(key) {
       case JSGC_MAX_BYTES:
@@ -1541,7 +1536,7 @@ GCRuntime::getParameter(JSGCParamKey key, const AutoLockGC& lock)
       case JSGC_ALLOCATION_THRESHOLD:
         return tunables.gcZoneAllocThresholdBase() / 1024 / 1024;
       case JSGC_MIN_EMPTY_CHUNK_COUNT:
-        return tunables.minEmptyChunkCount(lock);
+        return tunables.minEmptyChunkCount();
       case JSGC_MAX_EMPTY_CHUNK_COUNT:
         return tunables.maxEmptyChunkCount();
       case JSGC_COMPACTING_ENABLED:
@@ -1553,10 +1548,9 @@ GCRuntime::getParameter(JSGCParamKey key, const AutoLockGC& lock)
 }
 
 void
-GCRuntime::setMarkStackLimit(size_t limit, AutoLockGC& lock)
+GCRuntime::setMarkStackLimit(size_t limit)
 {
     MOZ_ASSERT(!rt->isHeapBusy());
-    AutoUnlockGC unlock(lock);
     AutoStopVerifyingBarriers pauseVerification(rt, false);
     marker.setMaxCapacity(limit);
 }
@@ -1595,36 +1589,6 @@ GCRuntime::setGCCallback(JSGCCallback callback, void* data)
     gcCallback.data = data;
 }
 
-void
-GCRuntime::callGCCallback(JSGCStatus status) const
-{
-    if (gcCallback.op)
-        gcCallback.op(rt, status, gcCallback.data);
-}
-
-namespace {
-
-class AutoNotifyGCActivity {
-  public:
-    explicit AutoNotifyGCActivity(GCRuntime& gc) : gc_(gc) {
-        if (!gc_.isIncrementalGCInProgress()) {
-            gcstats::AutoPhase ap(gc_.stats, gcstats::PHASE_GC_BEGIN);
-            gc_.callGCCallback(JSGC_BEGIN);
-        }
-    }
-    ~AutoNotifyGCActivity() {
-        if (!gc_.isIncrementalGCInProgress()) {
-            gcstats::AutoPhase ap(gc_.stats, gcstats::PHASE_GC_END);
-            gc_.callGCCallback(JSGC_END);
-        }
-    }
-
-  private:
-    GCRuntime& gc_;
-};
-
-} // (anon)
-
 bool
 GCRuntime::addFinalizeCallback(JSFinalizeCallback callback, void* data)
 {
@@ -1647,60 +1611,39 @@ GCRuntime::removeFinalizeCallback(JSFinalizeCallback callback)
 void
 GCRuntime::callFinalizeCallbacks(FreeOp* fop, JSFinalizeStatus status) const
 {
-    for (auto& p : finalizeCallbacks) {
-        p.op(fop, status, !isFull, p.data);
+    for (const Callback<JSFinalizeCallback>* p = finalizeCallbacks.begin();
+         p < finalizeCallbacks.end(); p++)
+    {
+        p->op(fop, status, !isFull, p->data);
     }
 }
 
 bool
-GCRuntime::addWeakPointerZoneGroupCallback(JSWeakPointerZoneGroupCallback callback, void* data)
+GCRuntime::addWeakPointerCallback(JSWeakPointerCallback callback, void* data)
 {
-    return updateWeakPointerZoneGroupCallbacks.append(
-            Callback<JSWeakPointerZoneGroupCallback>(callback, data));
+    return updateWeakPointerCallbacks.append(Callback<JSWeakPointerCallback>(callback, data));
 }
 
 void
-GCRuntime::removeWeakPointerZoneGroupCallback(JSWeakPointerZoneGroupCallback callback)
+GCRuntime::removeWeakPointerCallback(JSWeakPointerCallback callback)
 {
-    for (auto& p : updateWeakPointerZoneGroupCallbacks) {
-        if (p.op == callback) {
-            updateWeakPointerZoneGroupCallbacks.erase(&p);
+    for (Callback<JSWeakPointerCallback>* p = updateWeakPointerCallbacks.begin();
+         p < updateWeakPointerCallbacks.end(); p++)
+    {
+        if (p->op == callback) {
+            updateWeakPointerCallbacks.erase(p);
             break;
         }
     }
 }
 
 void
-GCRuntime::callWeakPointerZoneGroupCallbacks() const
+GCRuntime::callWeakPointerCallbacks() const
 {
-    for (auto const& p : updateWeakPointerZoneGroupCallbacks) {
-        p.op(rt, p.data);
-    }
-}
-
-bool
-GCRuntime::addWeakPointerCompartmentCallback(JSWeakPointerCompartmentCallback callback, void* data)
-{
-    return updateWeakPointerCompartmentCallbacks.append(
-            Callback<JSWeakPointerCompartmentCallback>(callback, data));
-}
-
-void
-GCRuntime::removeWeakPointerCompartmentCallback(JSWeakPointerCompartmentCallback callback)
-{
-    for (auto& p : updateWeakPointerCompartmentCallbacks) {
-        if (p.op == callback) {
-            updateWeakPointerCompartmentCallbacks.erase(&p);
-            break;
-        }
-    }
-}
-
-void
-GCRuntime::callWeakPointerCompartmentCallbacks(JSCompartment* comp) const
-{
-    for (auto const& p : updateWeakPointerCompartmentCallbacks) {
-        p.op(rt, comp, p.data);
+    for (const Callback<JSWeakPointerCallback>* p = updateWeakPointerCallbacks.begin();
+         p < updateWeakPointerCallbacks.end(); p++)
+    {
+        p->op(rt, p->data);
     }
 }
 
@@ -1839,11 +1782,10 @@ ZoneHeapThreshold::computeZoneHeapGrowthFactorForHeapSize(size_t lastBytes,
 /* static */ size_t
 ZoneHeapThreshold::computeZoneTriggerBytes(double growthFactor, size_t lastBytes,
                                            JSGCInvocationKind gckind,
-                                           const GCSchedulingTunables& tunables,
-                                           const AutoLockGC& lock)
+                                           const GCSchedulingTunables& tunables)
 {
     size_t base = gckind == GC_SHRINK
-                ? Max(lastBytes, tunables.minEmptyChunkCount(lock) * ChunkSize)
+                ? Max(lastBytes, tunables.minEmptyChunkCount() * ChunkSize)
                 : Max(lastBytes, tunables.gcZoneAllocThresholdBase());
     double trigger = double(base) * growthFactor;
     return size_t(Min(double(tunables.gcMaxBytes()), trigger));
@@ -1852,11 +1794,10 @@ ZoneHeapThreshold::computeZoneTriggerBytes(double growthFactor, size_t lastBytes
 void
 ZoneHeapThreshold::updateAfterGC(size_t lastBytes, JSGCInvocationKind gckind,
                                  const GCSchedulingTunables& tunables,
-                                 const GCSchedulingState& state, const AutoLockGC& lock)
+                                 const GCSchedulingState& state)
 {
     gcHeapGrowthFactor_ = computeZoneHeapGrowthFactorForHeapSize(lastBytes, tunables, state);
-    gcTriggerBytes_ = computeZoneTriggerBytes(gcHeapGrowthFactor_, lastBytes, gckind, tunables,
-                                              lock);
+    gcTriggerBytes_ = computeZoneTriggerBytes(gcHeapGrowthFactor_, lastBytes, gckind, tunables);
 }
 
 void
@@ -2724,9 +2665,7 @@ GCRuntime::updatePointersToRelocatedCells(Zone* zone)
     rt->nativeIterCache.purge();
 
     // Call callbacks to get the rest of the system to fixup other untraced pointers.
-    callWeakPointerZoneGroupCallbacks();
-    for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next())
-        callWeakPointerCompartmentCallbacks(comp);
+    callWeakPointerCallbacks();
 
     // Finally, iterate through all cells that can contain JSObject pointers to
     // update them. Since updating each cell is independent we try to
@@ -5081,17 +5020,7 @@ GCRuntime::beginSweepingZoneGroup()
     {
         gcstats::AutoPhase ap(stats, gcstats::PHASE_FINALIZE_START);
         callFinalizeCallbacks(&fop, JSFINALIZE_GROUP_START);
-        {
-            gcstats::AutoPhase ap2(stats, gcstats::PHASE_WEAK_ZONEGROUP_CALLBACK);
-            callWeakPointerZoneGroupCallbacks();
-        }
-        {
-            gcstats::AutoPhase ap2(stats, gcstats::PHASE_WEAK_COMPARTMENT_CALLBACK);
-            for (GCZoneGroupIter zone(rt); !zone.done(); zone.next()) {
-                for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next())
-                    callWeakPointerCompartmentCallbacks(comp);
-            }
-        }
+        callWeakPointerCallbacks();
     }
 
     if (sweepingAtoms) {
@@ -5244,10 +5173,9 @@ GCRuntime::endSweepingZoneGroup()
     /* Update the GC state for zones we have swept. */
     for (GCZoneGroupIter zone(rt); !zone.done(); zone.next()) {
         MOZ_ASSERT(zone->isGCSweeping());
-        AutoLockGC lock(rt);
         zone->setGCState(Zone::Finished);
         zone->threshold.updateAfterGC(zone->usage.gcBytes(), invocationKind, tunables,
-                                      schedulingState, lock);
+                                      schedulingState);
     }
 
     /* Start background thread to sweep zones if required. */
@@ -6229,8 +6157,6 @@ class AutoScheduleZonesForGC
 MOZ_NEVER_INLINE bool
 GCRuntime::gcCycle(bool nonincrementalByAPI, SliceBudget& budget, JS::gcreason::Reason reason)
 {
-    AutoNotifyGCActivity notify(*this);
-
     evictNursery(reason);
 
     /*
@@ -6397,8 +6323,24 @@ GCRuntime::collect(bool nonincrementalByAPI, SliceBudget budget, JS::gcreason::R
 
     bool repeat = false;
     do {
+        /*
+         * Let the API user decide to defer a GC if it wants to (unless this
+         * is the last context). Invoke the callback regardless.
+         */
+        if (!isIncrementalGCInProgress()) {
+            gcstats::AutoPhase ap(stats, gcstats::PHASE_GC_BEGIN);
+            if (gcCallback.op)
+                gcCallback.op(rt, JSGC_BEGIN, gcCallback.data);
+        }
+
         poked = false;
         bool wasReset = gcCycle(nonincrementalByAPI, budget, reason);
+
+        if (!isIncrementalGCInProgress()) {
+            gcstats::AutoPhase ap(stats, gcstats::PHASE_GC_END);
+            if (gcCallback.op)
+                gcCallback.op(rt, JSGC_END, gcCallback.data);
+        }
 
         /* Need to re-schedule all zones for GC. */
         if (poked && cleanUpEverything)

@@ -22,8 +22,7 @@
               android:gravity="right"
               android:visibility="gone"/>
 
-    <android.support.v7.widget.AppCompatCheckBox
-              android:id="@+id/doorhanger_checkbox"
+    <CheckBox android:id="@+id/doorhanger_checkbox"
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
               android:layout_marginTop="@dimen/doorhanger_section_padding_medium"

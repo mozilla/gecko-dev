@@ -99,8 +99,7 @@ var gTests = [
 
     let engine = yield promiseNewEngine("searchSuggestionEngine.xml");
     // Make this actually work in healthreport by giving it an ID:
-    Object.defineProperty(engine.wrappedJSObject, "identifier",
-                          {value: "org.mozilla.testsearchsuggestions"});
+    engine.wrappedJSObject._identifier = 'org.mozilla.testsearchsuggestions';
 
     let p = promiseContentSearchChange(engine.name);
     Services.search.currentEngine = engine;

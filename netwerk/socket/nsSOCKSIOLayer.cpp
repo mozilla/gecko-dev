@@ -30,8 +30,7 @@ static PRIOMethods nsSOCKSIOLayerMethods;
 static bool firstTime = true;
 static bool ipv6Supported = true;
 
-
-static mozilla::LazyLogModule gSOCKSLog("SOCKS");
+static PRLogModuleInfo *gSOCKSLog;
 #define LOGDEBUG(args) MOZ_LOG(gSOCKSLog, mozilla::LogLevel::Debug, args)
 #define LOGERROR(args) MOZ_LOG(gSOCKSLog, mozilla::LogLevel::Error , args)
 
@@ -1308,6 +1307,8 @@ nsSOCKSIOLayerAddToSocket(int32_t family,
         nsSOCKSIOLayerMethods.close = nsSOCKSIOLayerClose;
 
         firstTime = false;
+
+        gSOCKSLog = PR_NewLogModule("SOCKS");
     }
 
     LOGDEBUG(("Entering nsSOCKSIOLayerAddToSocket()."));

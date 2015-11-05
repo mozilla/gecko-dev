@@ -32,7 +32,7 @@ MediaSystemResourceManagerParent::RecvAcquire(const uint32_t& aId,
   MOZ_ASSERT(!request);
   if (request) {
     // Send fail response
-    mozilla::Unused << SendResponse(aId, false /* fail */);
+    mozilla::unused << SendResponse(aId, false /* fail */);
     return true;
   }
 

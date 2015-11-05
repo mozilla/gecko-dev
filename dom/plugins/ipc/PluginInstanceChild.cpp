@@ -33,7 +33,6 @@ using mozilla::gfx::SharedDIBSurface;
 #include "mozilla/ipc/MessageChannel.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/UniquePtr.h"
 #include "ImageContainer.h"
 
 using namespace mozilla;
@@ -229,8 +228,8 @@ PluginInstanceChild::DoNPP_New()
     NS_ASSERTION(argc == (int) mValues.Length(),
                  "argn.length != argv.length");
 
-    UniquePtr<char*[]> argn(new char*[1 + argc]);
-    UniquePtr<char*[]> argv(new char*[1 + argc]);
+    nsAutoArrayPtr<char*> argn(new char*[1 + argc]);
+    nsAutoArrayPtr<char*> argv(new char*[1 + argc]);
     argn[argc] = 0;
     argv[argc] = 0;
 
@@ -242,7 +241,7 @@ PluginInstanceChild::DoNPP_New()
     NPP npp = GetNPP();
 
     NPError rv = mPluginIface->newp((char*)NullableStringGet(mMimeType), npp,
-                                    mMode, argc, argn.get(), argv.get(), 0);
+                                    mMode, argc, argn, argv, 0);
     if (NPERR_NO_ERROR != rv) {
         return rv;
     }

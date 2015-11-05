@@ -823,7 +823,7 @@ FTPChannelParent::NotifyDiversionFailed(nsresult aErrorCode,
   mChannel = nullptr;
 
   if (!mIPCClosed) {
-    Unused << SendDeleteSelf();
+    unused << SendDeleteSelf();
   }
 }
 

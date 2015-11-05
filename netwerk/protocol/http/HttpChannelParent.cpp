@@ -469,7 +469,7 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
     fdSetActor->ForgetFileDescriptors(fds);
     MOZ_ASSERT(!fds.IsEmpty());
 
-    Unused << fdSetActor->Send__delete__(fdSetActor);
+    unused << fdSetActor->Send__delete__(fdSetActor);
   } else if (aFds.type() == OptionalFileDescriptorSet::TArrayOfFileDescriptor) {
     const_cast<OptionalFileDescriptorSet&>(aFds).
       get_ArrayOfFileDescriptor().SwapElements(fds);
@@ -1174,10 +1174,6 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   mChannel->GetAsyncOpen(&timing.fetchStart);
   mChannel->GetRedirectStart(&timing.redirectStart);
   mChannel->GetRedirectEnd(&timing.redirectEnd);
-  mChannel->GetTransferSize(&timing.transferSize);
-  mChannel->GetEncodedBodySize(&timing.encodedBodySize);
-  // decodedBodySize can be computed in the child process so it doesn't need
-  // to be passed down.
 
   if (mIPCClosed || !SendOnStopRequest(aStatusCode, timing))
     return NS_ERROR_UNEXPECTED;
@@ -1289,7 +1285,7 @@ NS_IMETHODIMP
 HttpChannelParent::NotifyTrackingProtectionDisabled()
 {
   if (!mIPCClosed)
-    Unused << SendNotifyTrackingProtectionDisabled();
+    unused << SendNotifyTrackingProtectionDisabled();
   return NS_OK;
 }
 
@@ -1297,7 +1293,7 @@ NS_IMETHODIMP
 HttpChannelParent::Delete()
 {
   if (!mIPCClosed)
-    Unused << SendDeleteSelf();
+    unused << SendDeleteSelf();
 
   return NS_OK;
 }
@@ -1357,7 +1353,7 @@ HttpChannelParent::CompleteRedirect(bool succeeded)
 
   if (succeeded && !mIPCClosed) {
     // TODO: check return value: assume child dead if failed
-    Unused << SendRedirect3Complete();
+    unused << SendRedirect3Complete();
   }
 
   mRedirectChannel = nullptr;
@@ -1578,7 +1574,7 @@ HttpChannelParent::NotifyDiversionFailed(nsresult aErrorCode,
   mChannel = nullptr;
 
   if (!mIPCClosed) {
-    Unused << SendDeleteSelf();
+    unused << SendDeleteSelf();
   }
 }
 
@@ -1644,7 +1640,7 @@ HttpChannelParent::ReportSecurityMessage(const nsAString& aMessageTag,
 NS_IMETHODIMP
 HttpChannelParent::IssueWarning(uint32_t aWarning, bool aAsError)
 {
-  Unused << SendIssueDeprecationWarning(aWarning, aAsError);
+  unused << SendIssueDeprecationWarning(aWarning, aAsError);
   return NS_OK;
 }
 

@@ -31,7 +31,7 @@ using mozilla::BitwiseCast;
 namespace js {
 namespace jit {
 
-#ifdef JS_JITSPEW
+#ifdef DEBUG
 void
 FallbackICSpew(JSContext* cx, ICFallbackStub* stub, const char* fmt, ...)
 {
@@ -81,7 +81,7 @@ TypeFallbackICSpew(JSContext* cx, ICTypeMonitor_Fallback* stub, const char* fmt,
                 fmtbuf);
     }
 }
-#endif // JS_JITSPEW
+#endif
 
 ICFallbackStub*
 ICEntry::fallbackStub() const

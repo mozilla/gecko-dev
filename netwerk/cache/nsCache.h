@@ -19,10 +19,12 @@
 #include "nsError.h"
 
 // PR_LOG args = "format string", arg, arg, ...
-extern mozilla::LazyLogModule gCacheLog;
+extern PRLogModuleInfo * gCacheLog;
+void   CacheLogInit();
 void   CacheLogPrintPath(mozilla::LogLevel level,
                          const char *     format,
                          nsIFile *        item);
+#define CACHE_LOG_INIT()        CacheLogInit()
 #define CACHE_LOG_INFO(args)  MOZ_LOG(gCacheLog, mozilla::LogLevel::Info, args)
 #define CACHE_LOG_ERROR(args)   MOZ_LOG(gCacheLog, mozilla::LogLevel::Error, args)
 #define CACHE_LOG_WARNING(args) MOZ_LOG(gCacheLog, mozilla::LogLevel::Warning, args)

@@ -17,7 +17,6 @@
 
 #include "gfxPlatform.h"
 #include "gfxPrefs.h"
-#include "gfxEnv.h"
 #include "gfxTextRun.h"
 #include "gfxVR.h"
 
@@ -311,11 +310,12 @@ CrashStatsLogForwarder::CrashAction(LogReason aReason)
 #ifndef RELEASE_BUILD
   // Non-release builds crash by default, but will use telemetry
   // if this environment variable is present.
-  static bool useTelemetry = gfxEnv::GfxCrashTelemetry();
+  static bool useTelemetry = getenv("MOZ_GFX_CRASH_TELEMETRY") != 0;
 #else
-  // Release builds use telemetry by default, but will crash instead
-  // if this environment variable is present.
-  static bool useTelemetry = !gfxEnv::GfxCrashMozCrash();
+  // Release builds use telemetry bu default, but will crash
+  // if this environment variable is present.  Double negative
+  // to make the intent clear.
+  static bool useTelemetry = !(getenv("MOZ_GFX_CRASH_MOZ_CRASH") != 0);
 #endif
 
   if (useTelemetry) {
@@ -1801,16 +1801,26 @@ gfxPlatform::FontsPrefsChanged(const char *aPref)
 }
 
 
-mozilla::LogModule*
+PRLogModuleInfo*
 gfxPlatform::GetLog(eGfxLog aWhichLog)
 {
     // logs shared across gfx
-    static LazyLogModule sFontlistLog("fontlist");
-    static LazyLogModule sFontInitLog("fontinit");
-    static LazyLogModule sTextrunLog("textrun");
-    static LazyLogModule sTextrunuiLog("textrunui");
-    static LazyLogModule sCmapDataLog("cmapdata");
-    static LazyLogModule sTextPerfLog("textperf");
+    static PRLogModuleInfo *sFontlistLog = nullptr;
+    static PRLogModuleInfo *sFontInitLog = nullptr;
+    static PRLogModuleInfo *sTextrunLog = nullptr;
+    static PRLogModuleInfo *sTextrunuiLog = nullptr;
+    static PRLogModuleInfo *sCmapDataLog = nullptr;
+    static PRLogModuleInfo *sTextPerfLog = nullptr;
+
+    // Assume that if one is initialized, all are initialized
+    if (!sFontlistLog) {
+        sFontlistLog = PR_NewLogModule("fontlist");
+        sFontInitLog = PR_NewLogModule("fontinit");
+        sTextrunLog = PR_NewLogModule("textrun");
+        sTextrunuiLog = PR_NewLogModule("textrunui");
+        sCmapDataLog = PR_NewLogModule("cmapdata");
+        sTextPerfLog = PR_NewLogModule("textperf");
+    }
 
     switch (aWhichLog) {
     case eGfxLog_fontlist:

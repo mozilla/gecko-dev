@@ -140,7 +140,7 @@ TextComposition::OnCompositionEventDiscarded(
 
   if (mTabParent) {
     // The composition event should be discarded in the child process too.
-    Unused << mTabParent->SendCompositionEvent(*aCompositionEvent);
+    unused << mTabParent->SendCompositionEvent(*aCompositionEvent);
   }
 
   // XXX If composition events are discarded, should we dispatch them with
@@ -218,7 +218,7 @@ TextComposition::DispatchCompositionEvent(
   // If the content is a container of TabParent, composition should be in the
   // remote process.
   if (mTabParent) {
-    Unused << mTabParent->SendCompositionEvent(*aCompositionEvent);
+    unused << mTabParent->SendCompositionEvent(*aCompositionEvent);
     aCompositionEvent->mFlags.mPropagationStopped = true;
     if (aCompositionEvent->CausesDOMTextEvent()) {
       mLastData = aCompositionEvent->mData;
@@ -386,7 +386,7 @@ TextComposition::HandleSelectionEvent(nsPresContext* aPresContext,
   // If the content is a container of TabParent, composition should be in the
   // remote process.
   if (aTabParent) {
-    Unused << aTabParent->SendSelectionEvent(*aSelectionEvent);
+    unused << aTabParent->SendSelectionEvent(*aSelectionEvent);
     aSelectionEvent->mFlags.mPropagationStopped = true;
     return;
   }

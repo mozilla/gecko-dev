@@ -385,7 +385,7 @@ TEST(Tokenizer, ShortcutChecks)
   Tokenizer p("test1 test2,123");
 
   nsAutoCString test1;
-  nsDependentCSubstring test2;
+  nsDependentCString test2;
   char comma;
   uint32_t integer;
 

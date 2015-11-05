@@ -1,16 +1,16 @@
-var s, v = "NOPE";
+var s, x = 0;
 
 s = '';
-for (let v = 0, x = v; x < 3; x++)
+for (let x = x; x < 3; x++)
     s += x;
 assertEq(s, '012');
 
 s = '';
-for (let v = 0, x = eval('v'); x < 3; x++)
+for (let x = eval('x'); x < 3; x++)
     s += x;
 assertEq(s, '012');
 
 s = ''
-for (let v = 0, x = function () { with ({}) return v; }(); x < 3; x++)
+for (let x = function () { with ({}) return x; }(); x < 3; x++)
     s += x;
 assertEq(s, '012');

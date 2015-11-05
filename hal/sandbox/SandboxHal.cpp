@@ -322,8 +322,8 @@ GetCurrentSwitchState(SwitchDevice aDevice)
 void
 NotifySwitchStateFromInputDevice(SwitchDevice aDevice, SwitchState aState)
 {
-  Unused << aDevice;
-  Unused << aState;
+  unused << aDevice;
+  unused << aState;
   NS_RUNTIMEABORT("Only the main process may notify switch state change.");
 }
 
@@ -545,7 +545,7 @@ public:
   }
 
   void Notify(const BatteryInformation& aBatteryInfo) override {
-    Unused << SendNotifyBatteryChange(aBatteryInfo);
+    unused << SendNotifyBatteryChange(aBatteryInfo);
   }
 
   virtual bool
@@ -568,7 +568,7 @@ public:
   }
 
   void Notify(const NetworkInformation& aNetworkInfo) override {
-    Unused << SendNotifyNetworkChange(aNetworkInfo);
+    unused << SendNotifyNetworkChange(aNetworkInfo);
   }
 
   virtual bool
@@ -610,7 +610,7 @@ public:
   }
 
   void Notify(const ScreenConfiguration& aScreenConfiguration) override {
-    Unused << SendNotifyScreenConfigurationChange(aScreenConfiguration);
+    unused << SendNotifyScreenConfigurationChange(aScreenConfiguration);
   }
 
   virtual bool
@@ -776,7 +776,7 @@ public:
   }
   
   void Notify(const SensorData& aSensorData) override {
-    Unused << SendNotifySensorChange(aSensorData);
+    unused << SendNotifySensorChange(aSensorData);
   }
 
   virtual bool
@@ -816,7 +816,7 @@ public:
   
   void Notify(const WakeLockInformation& aWakeLockInfo) override
   {
-    Unused << SendNotifyWakeLockChange(aWakeLockInfo);
+    unused << SendNotifyWakeLockChange(aWakeLockInfo);
   }
 
   virtual bool
@@ -836,7 +836,7 @@ public:
 
   void Notify(const SwitchEvent& aSwitchEvent) override
   {
-    Unused << SendNotifySwitchChange(aSwitchEvent);
+    unused << SendNotifySwitchChange(aSwitchEvent);
   }
 
   virtual bool
@@ -849,12 +849,12 @@ public:
 
   void Notify(const int64_t& aClockDeltaMS) override
   {
-    Unused << SendNotifySystemClockChange(aClockDeltaMS);
+    unused << SendNotifySystemClockChange(aClockDeltaMS);
   }
 
   void Notify(const SystemTimezoneChangeInformation& aSystemTimezoneChangeInfo) override
   {
-    Unused << SendNotifySystemTimezoneChange(aSystemTimezoneChangeInfo);
+    unused << SendNotifySystemTimezoneChange(aSystemTimezoneChangeInfo);
   }
 
   virtual bool

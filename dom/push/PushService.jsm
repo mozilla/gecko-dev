@@ -1236,10 +1236,10 @@ this.PushService = {
         if (record.isExpired()) {
           return record.quotaChanged().then(isChanged => {
             if (isChanged) {
-              return this._db.delete(record.keyID).then(_ => null);
+              return this._db.delete(record.keyID);
             }
-            return null;
-          });
+            throw {state: 0, error: "NotFoundError"};
+          }).then(_ => null);
         }
         return record.toRegistration();
       });
@@ -1299,7 +1299,7 @@ this.PushService = {
     }
 
     let permission = subject.QueryInterface(Ci.nsIPermission);
-    if (permission.type != "desktop-notification") {
+    if (permission.type != "push") {
       return Promise.resolve();
     }
 
@@ -1317,27 +1317,22 @@ this.PushService = {
       // Permission set to "allow". Drop all expired registrations for this
       // site, notify the associated service workers, and reset the quota
       // for active registrations.
-      return this._updateByPrincipal(
-        permission.principal,
-        record => this._permissionAllowed(record)
-      );
+      return this._getByPrincipal(permission.principal)
+        .then(records => this._permissionAllowed(records));
     } else if (isChange || (isAllow && type == "deleted")) {
       // Permission set to "block" or "always ask," or "allow" permission
       // removed. Expire all registrations for this site.
-      return this._updateByPrincipal(
-        permission.principal,
-        record => this._permissionDenied(record)
-      );
+      return this._getByPrincipal(permission.principal)
+        .then(records => this._permissionDenied(records));
     }
 
     return Promise.resolve();
   },
 
-  _updateByPrincipal: function(principal, updateFunc) {
-    return this._db.updateByOrigin(
+  _getByPrincipal: function(principal) {
+    return this._db.getAllByOrigin(
       principal.URI.prePath,
-      ChromeUtils.originAttributesToSuffix(principal.originAttributes),
-      updateFunc
+      ChromeUtils.originAttributesToSuffix(principal.originAttributes)
     );
   },
 
@@ -1350,15 +1345,13 @@ this.PushService = {
    * @param {Array} A list of records to expire.
    * @returns {Promise} A promise resolved with the expired records.
    */
-  _permissionDenied: function(record) {
-    if (!record.quotaApplies() || record.isExpired()) {
+  _permissionDenied: function(records) {
+    return Promise.all(records.filter(record =>
       // Ignore already-expired records.
-      return null;
-    }
-    // Drop the registration in the background.
-    this._unregisterIfConnected(record);
-    record.setQuota(0);
-    return record;
+      record.quotaApplies() && !record.isExpired()
+    ).map(record =>
+      this._expireRegistration(record)
+    ));
   },
 
   /**
@@ -1369,17 +1362,32 @@ this.PushService = {
    * @param {Array} A list of records to refresh.
    * @returns {Promise} A promise resolved with the refreshed records.
    */
-  _permissionAllowed: function(record) {
-    if (!record.quotaApplies()) {
-      return null;
-    }
-    if (record.isExpired()) {
-      // If the registration has expired, drop and notify the worker
-      // unconditionally.
-      this._notifySubscriptionChangeObservers(record);
-      return false;
-    }
-    record.resetQuota();
-    return record;
+  _permissionAllowed: function(records) {
+    return Promise.all(records.map(record => {
+      if (!record.quotaApplies()) {
+        return record;
+      }
+      if (record.isExpired()) {
+        // If the registration has expired, drop and notify the worker
+        // unconditionally.
+        return this.dropRecordAndNotifyApp(record);
+      }
+      return this._db.update(record.keyID, record => {
+        record.resetQuota();
+        return record;
+      });
+    }));
+  },
+
+  _expireRegistration: function(record) {
+    // Drop the registration in the background.
+    this._unregisterIfConnected(record);
+    return this._db.update(record.keyID, record => {
+      record.setQuota(0);
+      return record;
+    }).catch(error => {
+      debug("expireRegistration: Error dropping expired registration " +
+        record.keyID + ": " + error);
+    });
   },
 };

@@ -181,7 +181,6 @@ EnumerateNativeProperties(JSContext* cx, HandleNativeObject pobj, unsigned flags
         enumerateSymbols = true;
     } else {
         /* Collect any dense elements from this object. */
-        size_t firstElemIndex = props->length();
         size_t initlen = pobj->getDenseInitializedLength();
         const Value* vp = pobj->getDenseElements();
         bool hasHoles = false;
@@ -207,10 +206,7 @@ EnumerateNativeProperties(JSContext* cx, HandleNativeObject pobj, unsigned flags
         // Collect any sparse elements from this object.
         bool isIndexed = pobj->isIndexed();
         if (isIndexed) {
-            // If the dense elements didn't have holes, we don't need to include
-            // them in the sort.
-            if (!hasHoles)
-                firstElemIndex = props->length();
+            size_t numElements = props->length();
 
             for (Shape::Range<NoGC> r(pobj->lastProperty()); !r.empty(); r.popFront()) {
                 Shape& shape = r.front();
@@ -222,10 +218,12 @@ EnumerateNativeProperties(JSContext* cx, HandleNativeObject pobj, unsigned flags
                 }
             }
 
-            MOZ_ASSERT(firstElemIndex <= props->length());
+            // If the dense elements didn't have holes, we don't need to include
+            // them in the sort.
+            size_t startIndex = hasHoles ? 0 : numElements;
 
-            jsid* ids = props->begin() + firstElemIndex;
-            size_t n = props->length() - firstElemIndex;
+            jsid* ids = props->begin() + startIndex;
+            size_t n = props->length() - startIndex;
 
             AutoIdVector tmp(cx);
             if (!tmp.resize(n))

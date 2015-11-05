@@ -25,6 +25,8 @@ WyciwygChannelParent::WyciwygChannelParent()
  : mIPCClosed(false)
  , mReceivedAppData(false)
 {
+  if (!gWyciwygLog)
+    gWyciwygLog = PR_NewLogModule("nsWyciwygChannel");
 }
 
 WyciwygChannelParent::~WyciwygChannelParent()

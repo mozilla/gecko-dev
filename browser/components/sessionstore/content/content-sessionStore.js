@@ -29,6 +29,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
   "resource:///modules/sessionstore/SessionStorage.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
+                                   "@mozilla.org/childprocessmessagemanager;1",
+                                   "nsISyncMessageSender");
+
 Cu.import("resource:///modules/sessionstore/FrameTree.jsm", this);
 var gFrameTree = new FrameTree(this);
 
@@ -688,21 +692,12 @@ var MessageQueue = {
       FX_SESSION_RESTORE_CONTENT_COLLECT_DATA_LONGEST_OP_MS: durationMs
     }
 
-    try {
-      // Send all data to the parent process.
-      sendMessage("SessionStore:update", {
-        id: this._id, data, telemetry, flushID,
-        isFinal: options.isFinal || false,
-        epoch: gCurrentEpoch
-      });
-    } catch (ex if ex && ex.result == Cr.NS_ERROR_OUT_OF_MEMORY) {
-      let telemetry = {
-        FX_SESSION_RESTORE_SEND_UPDATE_CAUSED_OOM: 1
-      };
-      sendMessage("SessionStore:error", {
-        telemetry
-      });
-    }
+    // Send all data to the parent process.
+    sendMessage("SessionStore:update", {
+      id: this._id, data, telemetry, flushID,
+      isFinal: options.isFinal || false,
+      epoch: gCurrentEpoch
+    });
 
     // Increase our unique message ID.
     this._id++;

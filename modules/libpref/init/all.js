@@ -4152,6 +4152,9 @@ pref("image.multithreaded_decoding.limit", -1);
 // cache.
 pref("canvas.image.cache.limit", 0);
 
+// How many images to eagerly decode on a given page. 0 means "no limit".
+pref("image.onload.decode.limit", 0);
+
 // WebGL prefs
 #ifdef ANDROID
 // Disable MSAA on mobile.
@@ -4398,7 +4401,6 @@ pref("xpinstall.whitelist.required", true);
 pref("xpinstall.signatures.required", false);
 pref("extensions.alwaysUnpack", false);
 pref("extensions.minCompatiblePlatformVersion", "2.0");
-pref("extensions.webExtensionsMinPlatformVersion", "42.0a1");
 
 pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  32768);

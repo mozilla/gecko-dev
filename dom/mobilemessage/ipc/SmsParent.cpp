@@ -225,7 +225,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifyReceivedMessage(msgData);
+    unused << SendNotifyReceivedMessage(msgData);
     return NS_OK;
   }
 
@@ -236,7 +236,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifyRetrievingMessage(msgData);
+    unused << SendNotifyRetrievingMessage(msgData);
     return NS_OK;
   }
 
@@ -247,7 +247,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifySendingMessage(msgData);
+    unused << SendNotifySendingMessage(msgData);
     return NS_OK;
   }
 
@@ -258,7 +258,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifySentMessage(msgData);
+    unused << SendNotifySentMessage(msgData);
     return NS_OK;
   }
 
@@ -269,7 +269,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifyFailedMessage(msgData);
+    unused << SendNotifyFailedMessage(msgData);
     return NS_OK;
   }
 
@@ -280,7 +280,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifyDeliverySuccessMessage(msgData);
+    unused << SendNotifyDeliverySuccessMessage(msgData);
     return NS_OK;
   }
 
@@ -291,7 +291,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifyDeliveryErrorMessage(msgData);
+    unused << SendNotifyDeliveryErrorMessage(msgData);
     return NS_OK;
   }
 
@@ -309,7 +309,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
 
     MobileMessageData msgData =
       static_cast<SmsMessage*>(smsMsg.get())->GetData();
-    Unused << SendNotifyReceivedSilentMessage(msgData);
+    unused << SendNotifyReceivedSilentMessage(msgData);
     return NS_OK;
   }
 
@@ -320,7 +320,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifyReadSuccessMessage(msgData);
+    unused << SendNotifyReadSuccessMessage(msgData);
     return NS_OK;
   }
 
@@ -331,7 +331,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifyReadErrorMessage(msgData);
+    unused << SendNotifyReadErrorMessage(msgData);
     return NS_OK;
   }
 
@@ -342,7 +342,7 @@ SmsParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Unused << SendNotifyDeletedMessageInfo(
+    unused << SendNotifyDeletedMessageInfo(
       static_cast<DeletedMessageInfo*>(deletedInfo.get())->GetData());
     return NS_OK;
   }

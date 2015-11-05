@@ -68,7 +68,7 @@ VsyncParent::DispatchVsyncEvent(TimeStamp aTimeStamp)
   // NotifyVsync(). We use mObservingVsync and mDestroyed flags to skip this
   // notification.
   if (mObservingVsync && !mDestroyed) {
-    Unused << SendNotify(aTimeStamp);
+    unused << SendNotify(aTimeStamp);
   }
 }
 

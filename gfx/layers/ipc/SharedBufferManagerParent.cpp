@@ -327,7 +327,7 @@ void SharedBufferManagerParent::DropGrallocBufferImpl(mozilla::layers::SurfaceDe
   NS_ASSERTION(key != -1, "Invalid buffer key");
   NS_ASSERTION(mBuffers.count(key) == 1, "No such buffer");
   mBuffers.erase(key);
-  mozilla::Unused << SendDropGrallocBuffer(handle);
+  mozilla::unused << SendDropGrallocBuffer(handle);
 #endif
 }
 

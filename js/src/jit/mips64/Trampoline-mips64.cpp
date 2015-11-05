@@ -573,14 +573,20 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
  * (See: JitRuntime::generateBailoutHandler).
  */
 static void
-PushBailoutFrame(MacroAssembler& masm, Register spArg)
+PushBailoutFrame(MacroAssembler& masm, uint32_t frameClass, Register spArg)
 {
-    // Push the frameSize_ stored in ra
-    // See: CodeGeneratorMIPS64::generateOutOfLineCode()
-    masm.push(ra);
+    // Make sure that alignment is proper.
+    masm.checkStackAlignment();
 
     // Push registers such that we can access them from [base + code].
     masm.PushRegsInMask(AllRegs);
+
+    // Push the frameSize_ or tableOffset_ stored in ra
+    // See: CodeGeneratorMIPS64::generateOutOfLineCode()
+    masm.push(ra);
+
+    // Push frame class to stack
+    masm.push(ImmWord(frameClass));
 
     // Put pointer to BailoutStack as first argument to the Bailout()
     masm.movePtr(StackPointer, spArg);
@@ -589,11 +595,12 @@ PushBailoutFrame(MacroAssembler& masm, Register spArg)
 static void
 GenerateBailoutThunk(JSContext* cx, MacroAssembler& masm, uint32_t frameClass)
 {
-    PushBailoutFrame(masm, a0);
+    PushBailoutFrame(masm, frameClass, a0);
 
     // Put pointer to BailoutInfo
     static const uint32_t sizeOfBailoutInfo = sizeof(uintptr_t) * 2;
     masm.subPtr(Imm32(sizeOfBailoutInfo), StackPointer);
+    masm.storePtr(ImmPtr(nullptr), Address(StackPointer, 0));
     masm.movePtr(StackPointer, a1);
 
     masm.setupAlignedABICall();
@@ -604,13 +611,6 @@ GenerateBailoutThunk(JSContext* cx, MacroAssembler& masm, uint32_t frameClass)
     // Get BailoutInfo pointer
     masm.loadPtr(Address(StackPointer, 0), a2);
 
-    // Stack is:
-    //     [frame]
-    //     snapshotOffset
-    //     frameSize
-    //     [bailoutFrame]
-    //     [bailoutInfo]
-    //
     // Remove both the bailout frame and the topmost Ion frame's stack.
     // Load frameSize from stack
     masm.loadPtr(Address(StackPointer,

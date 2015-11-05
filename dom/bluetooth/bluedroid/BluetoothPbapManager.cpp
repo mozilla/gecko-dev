@@ -31,13 +31,20 @@ using namespace mozilla::ipc;
 
 namespace {
   // UUID of PBAP PSE
-  static const BluetoothUuid kPbapPSE(PBAP_PSE);
+  static const BluetoothUuid kPbapPSE = {
+    {
+      0x00, 0x00, 0x11, 0x2F, 0x00, 0x00, 0x10, 0x00,
+      0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB
+    }
+  };
 
   // UUID used in PBAP OBEX target header
-  static const BluetoothUuid kPbapObexTarget(0x79, 0x61, 0x35, 0xF0,
-                                             0xF0, 0xC5, 0x11, 0xD8,
-                                             0x09, 0x66, 0x08, 0x00,
-                                             0x20, 0x0C, 0x9A, 0x66);
+  static const BluetoothUuid kPbapObexTarget = {
+    {
+      0x79, 0x61, 0x35, 0xF0, 0xF0, 0xC5, 0x11, 0xD8,
+      0x09, 0x66, 0x08, 0x00, 0x20, 0x0C, 0x9A, 0x66
+    }
+  };
 
   // App parameters to pull phonebook
   static const AppParameterTag sPhonebookTags[] = {
@@ -100,6 +107,7 @@ BluetoothPbapManager::BluetoothPbapManager() : mPhonebookSizeRequired(false)
                                              , mConnected(false)
                                              , mRemoteMaxPacketLength(0)
 {
+  mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
   mCurrentPath.AssignLiteral("");
 }
 
@@ -654,7 +662,7 @@ BluetoothPbapManager::IsConnected()
 }
 
 void
-BluetoothPbapManager::GetAddress(BluetoothAddress& aDeviceAddress)
+BluetoothPbapManager::GetAddress(nsAString& aDeviceAddress)
 {
   return mSocket->GetAddress(aDeviceAddress);
 }
@@ -1012,7 +1020,7 @@ BluetoothPbapManager::OnSocketDisconnect(BluetoothSocket* aSocket)
   }
 
   AfterPbapDisconnected();
-  mDeviceAddress.Clear();
+  mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
   mSocket = nullptr;
 
   Listen();
@@ -1032,24 +1040,22 @@ BluetoothPbapManager::Disconnect(BluetoothProfileController* aController)
 NS_IMPL_ISUPPORTS(BluetoothPbapManager, nsIObserver)
 
 void
-BluetoothPbapManager::Connect(const BluetoothAddress& aDeviceAddress,
+BluetoothPbapManager::Connect(const nsAString& aDeviceAddress,
                               BluetoothProfileController* aController)
 {
   MOZ_ASSERT(false);
 }
 
 void
-BluetoothPbapManager::OnGetServiceChannel(
-  const BluetoothAddress& aDeviceAddress,
-  const BluetoothUuid& aServiceUuid,
-  int aChannel)
+BluetoothPbapManager::OnGetServiceChannel(const nsAString& aDeviceAddress,
+                                          const nsAString& aServiceUuid,
+                                          int aChannel)
 {
   MOZ_ASSERT(false);
 }
 
 void
-BluetoothPbapManager::OnUpdateSdpRecords(
-  const BluetoothAddress& aDeviceAddress)
+BluetoothPbapManager::OnUpdateSdpRecords(const nsAString& aDeviceAddress)
 {
   MOZ_ASSERT(false);
 }

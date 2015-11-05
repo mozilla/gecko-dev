@@ -24,7 +24,7 @@ using mozilla::Pair;
 using mozilla::Tie;
 using mozilla::Tuple;
 using mozilla::UniquePtr;
-using mozilla::Unused;
+using mozilla::unused;
 using std::pair;
 
 #if (_MSC_VER == 1800)
@@ -55,9 +55,9 @@ TestConstruction()
 {
   // Default construction
   Tuple<> a;
-  Unused << a;
+  unused << a;
   Tuple<int> b;
-  Unused << b;
+  unused << b;
 
   // Construction from elements
   int x = 1, y = 1;

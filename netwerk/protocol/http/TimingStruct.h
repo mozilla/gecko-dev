@@ -24,8 +24,6 @@ struct ResourceTimingStruct : TimingStruct {
   TimeStamp fetchStart;
   TimeStamp redirectStart;
   TimeStamp redirectEnd;
-  uint64_t transferSize;
-  uint64_t encodedBodySize;
 };
 
 } // namespace net

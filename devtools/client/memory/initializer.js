@@ -9,8 +9,7 @@ const BrowserLoaderModule = {};
 Cu.import("resource://devtools/client/shared/browser-loader.js", BrowserLoaderModule);
 const { require } = BrowserLoaderModule.BrowserLoader("resource://devtools/client/memory/", this);
 const { Task } = require("resource://gre/modules/Task.jsm");
-const { createFactory, createElement } = require("devtools/client/shared/vendor/react");
-const ReactDOM = require("devtools/client/shared/vendor/react-dom");
+const { createFactory, createElement, render, unmountComponentAtNode } = require("devtools/client/shared/vendor/react");
 const { Provider } = require("devtools/client/shared/vendor/react-redux");
 const App = createFactory(require("devtools/client/memory/app"));
 const Store = require("devtools/client/memory/store");
@@ -31,12 +30,12 @@ var initialize = Task.async(function*() {
   gStore = Store();
   gApp = createElement(App, { toolbox: gToolbox, front: gFront, heapWorker: gHeapAnalysesClient });
   gProvider = createElement(Provider, { store: gStore }, gApp);
-  ReactDOM.render(gProvider, gRoot);
+  render(gProvider, gRoot);
   unsubscribe = gStore.subscribe(onStateChange);
 });
 
 var destroy = Task.async(function*() {
-  const ok = ReactDOM.unmountComponentAtNode(gRoot);
+  const ok = unmountComponentAtNode(gRoot);
   assert(ok, "Should successfully unmount the memory tool's top level React component");
 
   unsubscribe();

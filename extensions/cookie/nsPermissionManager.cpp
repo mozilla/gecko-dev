@@ -47,7 +47,7 @@ static nsPermissionManager *gPermissionManager = nullptr;
 
 using mozilla::dom::ContentParent;
 using mozilla::dom::ContentChild;
-using mozilla::Unused; // ha!
+using mozilla::unused; // ha!
 
 static bool
 IsChildProcess()
@@ -1557,7 +1557,7 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
           aExpireType == nsIPermissionManager::EXPIRE_SESSION)
         continue;
       if (cp->NeedsPermissionsUpdate())
-        Unused << cp->SendAddPermission(permission);
+        unused << cp->SendAddPermission(permission);
     }
   }
 

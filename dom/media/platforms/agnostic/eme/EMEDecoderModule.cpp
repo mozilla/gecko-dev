@@ -92,7 +92,7 @@ public:
     } else {
       MOZ_ASSERT(!mIsShutdown);
       nsresult rv = mDecoder->Input(aDecrypted.mSample);
-      Unused << NS_WARN_IF(NS_FAILED(rv));
+      unused << NS_WARN_IF(NS_FAILED(rv));
     }
   }
 
@@ -105,7 +105,7 @@ public:
       iter.Remove();
     }
     nsresult rv = mDecoder->Flush();
-    Unused << NS_WARN_IF(NS_FAILED(rv));
+    unused << NS_WARN_IF(NS_FAILED(rv));
     mSamplesWaitingForKey->Flush();
     return rv;
   }
@@ -119,7 +119,7 @@ public:
       iter.Remove();
     }
     nsresult rv = mDecoder->Drain();
-    Unused << NS_WARN_IF(NS_FAILED(rv));
+    unused << NS_WARN_IF(NS_FAILED(rv));
     return rv;
   }
 
@@ -128,7 +128,7 @@ public:
     MOZ_ASSERT(!mIsShutdown);
     mIsShutdown = true;
     nsresult rv = mDecoder->Shutdown();
-    Unused << NS_WARN_IF(NS_FAILED(rv));
+    unused << NS_WARN_IF(NS_FAILED(rv));
     mSamplesWaitingForKey->BreakCycles();
     mSamplesWaitingForKey = nullptr;
     mDecoder = nullptr;

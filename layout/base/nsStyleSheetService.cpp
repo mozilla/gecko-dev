@@ -169,7 +169,7 @@ nsStyleSheetService::LoadAndRegisterSheet(nsIURI *aSheetURI,
       SerializeURI(aSheetURI, uri);
 
       for (uint32_t i = 0; i < children.Length(); i++) {
-        Unused << children[i]->SendLoadAndRegisterSheet(uri, aSheetType);
+        unused << children[i]->SendLoadAndRegisterSheet(uri, aSheetType);
       }
     }
   }
@@ -307,7 +307,7 @@ nsStyleSheetService::UnregisterSheet(nsIURI *aSheetURI, uint32_t aSheetType)
     SerializeURI(aSheetURI, uri);
 
     for (uint32_t i = 0; i < children.Length(); i++) {
-      Unused << children[i]->SendUnregisterSheet(uri, aSheetType);
+      unused << children[i]->SendUnregisterSheet(uri, aSheetType);
     }
   }
 

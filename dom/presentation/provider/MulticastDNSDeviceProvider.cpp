@@ -13,7 +13,6 @@
 #include "nsComponentManagerUtils.h"
 #include "nsIObserverService.h"
 #include "nsServiceManagerUtils.h"
-#include "nsThreadUtils.h"
 
 #ifdef MOZ_WIDGET_ANDROID
 #include "nsIPropertyBag2.h"
@@ -26,12 +25,16 @@
 
 #define SERVICE_TYPE "_mozilla_papi._tcp."
 
-static mozilla::LazyLogModule sMulticastDNSProviderLogModule("MulticastDNSDeviceProvider");
-
+inline static PRLogModuleInfo*
+GetProviderLog()
+{
+  static PRLogModuleInfo* log = PR_NewLogModule("MulticastDNSDeviceProvider");
+  return log;
+}
 #undef LOG_I
-#define LOG_I(...) MOZ_LOG(sMulticastDNSProviderLogModule, mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define LOG_I(...) MOZ_LOG(GetProviderLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
 #undef LOG_E
-#define LOG_E(...) MOZ_LOG(sMulticastDNSProviderLogModule, mozilla::LogLevel::Error, (__VA_ARGS__))
+#define LOG_E(...) MOZ_LOG(GetProviderLog(), mozilla::LogLevel::Error, (__VA_ARGS__))
 
 namespace mozilla {
 namespace dom {
@@ -54,7 +57,7 @@ GetAndroidDeviceName(nsACString& aRetVal)
   nsCOMPtr<nsIPropertyBag2> infoService = do_GetService("@mozilla.org/system-info;1");
   MOZ_ASSERT(infoService, "Could not find a system info service");
 
-  Unused << NS_WARN_IF(NS_FAILED(infoService->GetPropertyAsACString(
+  unused << NS_WARN_IF(NS_FAILED(infoService->GetPropertyAsACString(
                                    NS_LITERAL_STRING("device"), aRetVal)));
 }
 #endif // MOZ_WIDGET_ANDROID
@@ -203,11 +206,11 @@ MulticastDNSDeviceProvider::Init()
   // FIXME: Bug 1185806 - Provide a common device name setting.
   if (mServiceName.IsEmpty()) {
     GetAndroidDeviceName(mServiceName);
-    Unused << Preferences::SetCString(PREF_PRESENTATION_DEVICE_NAME, mServiceName);
+    unused << Preferences::SetCString(PREF_PRESENTATION_DEVICE_NAME, mServiceName);
   }
 #endif // MOZ_WIDGET_ANDROID
 
-  Unused << mPresentationServer->SetId(mServiceName);
+  unused << mPresentationServer->SetId(mServiceName);
 
   if (mDiscoveryEnabled && NS_WARN_IF(NS_FAILED(rv = ForceDiscovery()))) {
     return rv;
@@ -258,33 +261,18 @@ MulticastDNSDeviceProvider::RegisterService()
     return NS_OK;
   }
 
-  nsresult rv;
+  MOZ_ASSERT(!mRegisterRequest);
 
+  nsresult rv;
+  if (NS_WARN_IF(NS_FAILED(rv = mPresentationServer->SetListener(mWrappedListener)))) {
+    return rv;
+  }
+  if (NS_WARN_IF(NS_FAILED(rv = mPresentationServer->StartService(0)))) {
+    return rv;
+  }
   uint16_t servicePort;
   if (NS_WARN_IF(NS_FAILED(rv = mPresentationServer->GetPort(&servicePort)))) {
     return rv;
-  }
-
-  /**
-    * If |servicePort| is non-zero, it means PresentationServer is running.
-    * Otherwise, we should make it start serving.
-    */
-  if (!servicePort) {
-    if (NS_WARN_IF(NS_FAILED(rv = mPresentationServer->SetListener(mWrappedListener)))) {
-      return rv;
-    }
-    if (NS_WARN_IF(NS_FAILED(rv = mPresentationServer->StartService(0)))) {
-      return rv;
-    }
-    if (NS_WARN_IF(NS_FAILED(rv = mPresentationServer->GetPort(&servicePort)))) {
-      return rv;
-    }
-  }
-
-  // Cancel on going service registration.
-  if (mRegisterRequest) {
-    mRegisterRequest->Cancel(NS_OK);
-    mRegisterRequest = nullptr;
   }
 
   /**
@@ -337,7 +325,7 @@ MulticastDNSDeviceProvider::StopDiscovery(nsresult aReason)
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mDiscoveryTimer);
 
-  Unused << mDiscoveryTimer->Cancel();
+  unused << mDiscoveryTimer->Cancel();
 
   if (mDiscoveryRequest) {
     mDiscoveryRequest->Cancel(aReason);
@@ -383,7 +371,7 @@ MulticastDNSDeviceProvider::AddDevice(const nsACString& aId,
 
   nsCOMPtr<nsIPresentationDeviceListener> listener;
   if (NS_SUCCEEDED(GetListener(getter_AddRefs(listener))) && listener) {
-    Unused << listener->AddDevice(device);
+    unused << listener->AddDevice(device);
   }
 
   mDevices.AppendElement(device);
@@ -411,7 +399,7 @@ MulticastDNSDeviceProvider::UpdateDevice(const uint32_t aIndex,
 
   nsCOMPtr<nsIPresentationDeviceListener> listener;
   if (NS_SUCCEEDED(GetListener(getter_AddRefs(listener))) && listener) {
-    Unused << listener->UpdateDevice(device);
+    unused << listener->UpdateDevice(device);
   }
 
   return NS_OK;
@@ -434,7 +422,7 @@ MulticastDNSDeviceProvider::RemoveDevice(const uint32_t aIndex)
 
   nsCOMPtr<nsIPresentationDeviceListener> listener;
   if (NS_SUCCEEDED(GetListener(getter_AddRefs(listener))) && listener) {
-    Unused << listener->RemoveDevice(device);
+    unused << listener->RemoveDevice(device);
   }
 
   return NS_OK;
@@ -580,7 +568,7 @@ MulticastDNSDeviceProvider::ForceDiscovery()
 
   // if it's already discovering, extend existing discovery timeout.
   if (mIsDiscovering) {
-    Unused << mDiscoveryTimer->Cancel();
+    unused << mDiscoveryTimer->Cancel();
 
     NS_WARN_IF(NS_FAILED(mDiscoveryTimer->Init(this,
                                                mDiscveryTimeoutMs,
@@ -767,9 +755,12 @@ MulticastDNSDeviceProvider::OnRegistrationFailed(nsIDNSServiceInfo* aServiceInfo
 
   mRegisterRequest = nullptr;
 
+  nsresult rv;
+
   if (aErrorCode == nsIDNSRegistrationListener::ERROR_SERVICE_NOT_RUNNING) {
-    return NS_DispatchToMainThread(
-             NS_NewRunnableMethod(this, &MulticastDNSDeviceProvider::RegisterService));
+    if (NS_WARN_IF(NS_FAILED(rv = RegisterService()))) {
+      return rv;
+    }
   }
 
   return NS_OK;
@@ -864,13 +855,17 @@ MulticastDNSDeviceProvider::OnResolveFailed(nsIDNSServiceInfo* aServiceInfo,
 
 // nsITCPPresentationServerListener
 NS_IMETHODIMP
-MulticastDNSDeviceProvider::OnPortChange(uint16_t aPort)
+MulticastDNSDeviceProvider::OnClose(nsresult aReason)
 {
-  LOG_I("OnPortChange: %d", aPort);
+  LOG_I("OnClose: %x", aReason);
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (mDiscoverable) {
-    RegisterService();
+  UnregisterService(aReason);
+
+  nsresult rv;
+
+  if (mDiscoverable && NS_WARN_IF(NS_FAILED(rv = RegisterService()))) {
+    return rv;
   }
 
   return NS_OK;
@@ -885,7 +880,7 @@ MulticastDNSDeviceProvider::OnSessionRequest(nsITCPDeviceInfo* aDeviceInfo,
   MOZ_ASSERT(NS_IsMainThread());
 
   nsAutoCString address;
-  Unused << aDeviceInfo->GetAddress(address);
+  unused << aDeviceInfo->GetAddress(address);
 
   LOG_I("OnSessionRequest: %s", address.get());
 
@@ -898,9 +893,9 @@ MulticastDNSDeviceProvider::OnSessionRequest(nsITCPDeviceInfo* aDeviceInfo,
     // this device will not be listed in available device list and cannot
     // be used for requesting session.
     nsAutoCString id;
-    Unused << aDeviceInfo->GetId(id);
+    unused << aDeviceInfo->GetId(id);
     uint16_t port;
-    Unused << aDeviceInfo->GetPort(&port);
+    unused << aDeviceInfo->GetPort(&port);
 
     device = new Device(id,
                         /* aName = */ id,
@@ -913,7 +908,7 @@ MulticastDNSDeviceProvider::OnSessionRequest(nsITCPDeviceInfo* aDeviceInfo,
 
   nsCOMPtr<nsIPresentationDeviceListener> listener;
   if (NS_SUCCEEDED(GetListener(getter_AddRefs(listener))) && listener) {
-    Unused << listener->OnSessionRequest(device, aUrl, aPresentationId,
+    unused << listener->OnSessionRequest(device, aUrl, aPresentationId,
                                          aControlChannel);
   }
 

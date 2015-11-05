@@ -37,7 +37,7 @@
 #define GEO_ALA_TYPE_VALUE_FIXED   "user-defined"
 #define GEO_ALA_TYPE_VALUE_NONE    "no-location"
 
-using mozilla::Unused;
+using mozilla::unused;
 using namespace mozilla;
 using namespace mozilla::dom;
 

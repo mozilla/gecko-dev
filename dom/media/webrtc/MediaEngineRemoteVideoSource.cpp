@@ -315,10 +315,7 @@ MediaEngineRemoteVideoSource::DeliverFrame(unsigned char* buffer,
   data.mPicSize = IntSize(mWidth, mHeight);
   data.mStereoMode = StereoMode::MONO;
 
-  if (!videoImage->SetData(data)) {
-    MOZ_ASSERT(false);
-    return 0;
-  }
+  videoImage->SetData(data);
 
 #ifdef DEBUG
   static uint32_t frame_num = 0;

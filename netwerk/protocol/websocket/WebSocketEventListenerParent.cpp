@@ -35,7 +35,7 @@ WebSocketEventListenerParent::RecvClose()
 {
   if (mService) {
     UnregisterListener();
-    Unused << Send__delete__(this);
+    unused << Send__delete__(this);
   }
 
   return true;
@@ -61,7 +61,7 @@ WebSocketEventListenerParent::WebSocketCreated(uint32_t aWebSocketSerialID,
                                                const nsAString& aURI,
                                                const nsACString& aProtocols)
 {
-  Unused << SendWebSocketCreated(aWebSocketSerialID, nsString(aURI),
+  unused << SendWebSocketCreated(aWebSocketSerialID, nsString(aURI),
                                  nsCString(aProtocols));
   return NS_OK;
 }
@@ -72,7 +72,7 @@ WebSocketEventListenerParent::WebSocketOpened(uint32_t aWebSocketSerialID,
                                               const nsACString& aProtocols,
                                               const nsACString& aExtensions)
 {
-  Unused << SendWebSocketOpened(aWebSocketSerialID, nsString(aEffectiveURI),
+  unused << SendWebSocketOpened(aWebSocketSerialID, nsString(aEffectiveURI),
                                 nsCString(aProtocols), nsCString(aExtensions));
   return NS_OK;
 }
@@ -83,7 +83,7 @@ WebSocketEventListenerParent::WebSocketClosed(uint32_t aWebSocketSerialID,
                                               uint16_t aCode,
                                               const nsAString& aReason)
 {
-  Unused << SendWebSocketClosed(aWebSocketSerialID, aWasClean, aCode,
+  unused << SendWebSocketClosed(aWebSocketSerialID, aWasClean, aCode,
                                 nsString(aReason));
   return NS_OK;
 }
@@ -93,7 +93,7 @@ WebSocketEventListenerParent::WebSocketMessageAvailable(uint32_t aWebSocketSeria
                                                         const nsACString& aData,
                                                         uint16_t aMessageType)
 {
-  Unused << SendWebSocketMessageAvailable(aWebSocketSerialID, nsCString(aData),
+  unused << SendWebSocketMessageAvailable(aWebSocketSerialID, nsCString(aData),
                                           aMessageType);
   return NS_OK;
 }
@@ -107,7 +107,7 @@ WebSocketEventListenerParent::FrameReceived(uint32_t aWebSocketSerialID,
   }
 
   WebSocketFrame* frame = static_cast<WebSocketFrame*>(aFrame);
-  Unused << SendFrameReceived(aWebSocketSerialID, frame->Data());
+  unused << SendFrameReceived(aWebSocketSerialID, frame->Data());
   return NS_OK;
 }
 
@@ -120,7 +120,7 @@ WebSocketEventListenerParent::FrameSent(uint32_t aWebSocketSerialID,
   }
 
   WebSocketFrame* frame = static_cast<WebSocketFrame*>(aFrame);
-  Unused << SendFrameSent(aWebSocketSerialID, frame->Data());
+  unused << SendFrameSent(aWebSocketSerialID, frame->Data());
   return NS_OK;
 }
 

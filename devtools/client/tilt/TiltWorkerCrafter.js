@@ -265,8 +265,7 @@ self.random = {
   {
     let h, n = 0xefc8249d;
 
-    data = data.toString();
-    for (let i = 0, len = data.length; i < len; i++) {
+    for (let i = 0, data = data.toString(), len = data.length; i < len; i++) {
       n += data.charCodeAt(i);
       h = 0.02519603282416938 * n;
       n = h >>> 0;

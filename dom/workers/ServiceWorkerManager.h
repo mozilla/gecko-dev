@@ -51,7 +51,9 @@ class ServiceWorkerJobQueue;
 class ServiceWorkerManagerChild;
 class ServiceWorkerPrivate;
 
-class ServiceWorkerRegistrationInfo final : public nsIServiceWorkerRegistrationInfo
+// Needs to inherit from nsISupports because NS_ProxyRelease() does not support
+// non-ISupports classes.
+class ServiceWorkerRegistrationInfo final : public nsISupports
 {
   uint32_t mControlledDocumentsCounter;
 
@@ -59,7 +61,6 @@ class ServiceWorkerRegistrationInfo final : public nsIServiceWorkerRegistrationI
 
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSISERVICEWORKERREGISTRATIONINFO
 
   nsCString mScope;
   // The scriptURL for the registration. This may be completely different from

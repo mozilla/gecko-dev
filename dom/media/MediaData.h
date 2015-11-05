@@ -13,7 +13,6 @@
 #include "nsIMemoryReporter.h"
 #include "SharedBuffer.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/UniquePtr.h"
 #include "nsTArray.h"
 
 namespace mozilla {
@@ -124,13 +123,13 @@ public:
             int64_t aTime,
             int64_t aDuration,
             uint32_t aFrames,
-            UniquePtr<AudioDataValue[]> aData,
+            AudioDataValue* aData,
             uint32_t aChannels,
             uint32_t aRate)
     : MediaData(sType, aOffset, aTime, aDuration, aFrames)
     , mChannels(aChannels)
     , mRate(aRate)
-    , mAudioData(Move(aData)) {}
+    , mAudioData(aData) {}
 
   static const Type sType = AUDIO_DATA;
   static const char* sTypeName;
@@ -155,7 +154,7 @@ public:
   // mChannels channels, each with mFrames frames
   RefPtr<SharedBuffer> mAudioBuffer;
   // mFrames frames, each with mChannels values
-  UniquePtr<AudioDataValue[]> mAudioData;
+  nsAutoArrayPtr<AudioDataValue> mAudioData;
 
 protected:
   ~AudioData() {}
@@ -283,7 +282,7 @@ public:
 
   // Initialize PlanarYCbCrImage. Only When aCopyData is true,
   // video data is copied to PlanarYCbCrImage.
-  static bool SetVideoDataToImage(PlanarYCbCrImage* aVideoImage,
+  static void SetVideoDataToImage(PlanarYCbCrImage* aVideoImage,
                                   const VideoInfo& aInfo,
                                   const YCbCrBuffer &aBuffer,
                                   const IntRect& aPicture,

@@ -59,7 +59,7 @@ GetDataFromPasteboard(NSPasteboard* aPasteboard, NSString* aType)
   } @catch (NSException* e) {
     NS_WARNING(nsPrintfCString("Exception raised while getting data from the pasteboard: \"%s - %s\"",
                                [[e name] UTF8String], [[e reason] UTF8String]).get());
-    mozilla::Unused << e;
+    mozilla::unused << e;
   }
   return data;
 }

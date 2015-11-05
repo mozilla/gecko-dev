@@ -7,8 +7,9 @@
 #include "nsMemory.h"
 #include "mozilla/Logging.h"
 
-extern mozilla::LazyLogModule gWifiMonitorLog;
+extern PRLogModuleInfo *gWifiMonitorLog;
 #define LOG(args)     MOZ_LOG(gWifiMonitorLog, mozilla::LogLevel::Debug, args)
+
 
 NS_IMPL_ISUPPORTS(nsWifiAccessPoint, nsIWifiAccessPoint)
 

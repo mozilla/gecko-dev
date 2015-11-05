@@ -177,8 +177,7 @@ function test_invalid_signature(aBypassVerification) {
   const kManifestContent = 'Content-Location: manifest.webapp\r\n' +
                            'Content-Type: application/x-web-app-manifest+json\r\n' +
                            '\r\n' +
-                           '{ "package-identifier": "' + kPackagedId + '",\n' +
-                           '  "moz-package-origin": "' + kOrigin + '" }';
+                           '{ "package-identifier": "' + kPackagedId + '" }';
 
   const expectedCallbacks = [
   // URL                      statusCode   verificationResult     content

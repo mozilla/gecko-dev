@@ -157,7 +157,7 @@ protected:
             event->PostTo(mQueue);
             if (event->isInList()) {
                 // Ownership of event object transfers to the queue.
-                mozilla::Unused << event.release();
+                mozilla::unused << event.release();
             }
             lock.NotifyAll();
         }

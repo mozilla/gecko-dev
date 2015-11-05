@@ -394,10 +394,10 @@ Accessible::VisibilityState()
   if (frame->GetType() == nsGkAtoms::textFrame &&
       !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
       frame->GetRect().IsEmpty()) {
-    nsIFrame::RenderedText text = frame->GetRenderedText();
-    if (text.mString.IsEmpty()) {
+    nsAutoString renderedText;
+    frame->GetRenderedText(&renderedText, nullptr, nullptr, 0, 1);
+    if (renderedText.IsEmpty())
       return states::INVISIBLE;
-    }
   }
 
   return 0;
@@ -1238,13 +1238,11 @@ Accessible::ApplyARIAState(uint64_t* aState) const
       *aState &= ~states::READONLY;
 
     if (mContent->HasID()) {
-      // If has a role & ID and aria-activedescendant on the container, assume
-      // focusable.
-      const Accessible* ancestor = this;
-      while ((ancestor = ancestor->Parent()) && !ancestor->IsDoc()) {
-        dom::Element* el = ancestor->Elm();
-        if (el &&
-            el->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_activedescendant)) {
+      // If has a role & ID and aria-activedescendant on the container, assume focusable
+      nsIContent *ancestorContent = mContent;
+      while ((ancestorContent = ancestorContent->GetParent()) != nullptr) {
+        if (ancestorContent->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_activedescendant)) {
+            // ancestor has activedescendant property, this content could be active
           *aState |= states::FOCUSABLE;
           break;
         }
@@ -1253,12 +1251,12 @@ Accessible::ApplyARIAState(uint64_t* aState) const
   }
 
   if (*aState & states::FOCUSABLE) {
-    // Propogate aria-disabled from ancestors down to any focusable descendant.
-    const Accessible* ancestor = this;
-    while ((ancestor = ancestor->Parent()) && !ancestor->IsDoc()) {
-      dom::Element* el = ancestor->Elm();
-      if (el && el->AttrValueIs(kNameSpaceID_None, nsGkAtoms::aria_disabled,
-                                nsGkAtoms::_true, eCaseMatters)) {
+    // Special case: aria-disabled propagates from ancestors down to any focusable descendant
+    nsIContent *ancestorContent = mContent;
+    while ((ancestorContent = ancestorContent->GetParent()) != nullptr) {
+      if (ancestorContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::aria_disabled,
+                                       nsGkAtoms::_true, eCaseMatters)) {
+          // ancestor has aria-disabled property, this is disabled
         *aState |= states::UNAVAILABLE;
         break;
       }
@@ -1605,7 +1603,8 @@ Accessible::RelationByType(RelationType aType)
     }
 
     case RelationType::NODE_CHILD_OF: {
-      Relation rel;
+      Relation rel(new ARIAOwnedByIterator(this));
+
       // This is an ARIA tree or treegrid that doesn't use owns, so we need to
       // get the parent the hard way.
       if (mRoleMapEntry && (mRoleMapEntry->role == roles::OUTLINEITEM ||
@@ -1634,6 +1633,8 @@ Accessible::RelationByType(RelationType aType)
     }
 
     case RelationType::NODE_PARENT_OF: {
+      Relation rel(new ARIAOwnsIterator(this));
+
       // ARIA tree or treegrid can do the hierarchy by @aria-level, ARIA trees
       // also can be organized by groups.
       if (mRoleMapEntry &&
@@ -1643,10 +1644,10 @@ Accessible::RelationByType(RelationType aType)
            mRoleMapEntry->role == roles::OUTLINE ||
            mRoleMapEntry->role == roles::LIST ||
            mRoleMapEntry->role == roles::TREE_TABLE)) {
-        return Relation(new ItemIterator(this));
+        rel.AppendIter(new ItemIterator(this));
       }
 
-      return Relation();
+      return rel;
     }
 
     case RelationType::CONTROLLED_BY:

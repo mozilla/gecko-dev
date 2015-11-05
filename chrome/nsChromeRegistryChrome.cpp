@@ -749,7 +749,7 @@ SendManifestEntry(const ChromeRegistryItem &aItem)
     return;
 
   for (uint32_t i = 0; i < parents.Length(); i++) {
-    Unused << parents[i]->SendRegisterChromeItem(aItem);
+    unused << parents[i]->SendRegisterChromeItem(aItem);
   }
 }
 

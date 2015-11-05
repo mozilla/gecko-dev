@@ -15,7 +15,7 @@ import android.view.KeyEvent;
 interface GeckoEditableClient {
     void sendKeyEvent(KeyEvent event, int action, int metaState);
     Editable getEditable();
-    void setBatchMode(boolean isBatchMode);
+    void setUpdateGecko(boolean update);
     void setSuppressKeyUp(boolean suppress);
     Handler getInputConnectionHandler();
     boolean setInputConnectionHandler(Handler handler);

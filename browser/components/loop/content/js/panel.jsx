@@ -806,7 +806,9 @@ loop.panel = (function(_, mozL10n) {
     },
 
     handleCreateButtonClick: function() {
-      var createRoomAction = new sharedActions.CreateRoom();
+      var createRoomAction = new sharedActions.CreateRoom({
+        nameTemplate: mozL10n.get("rooms_default_room_name_template")
+      });
 
       createRoomAction.urls = [{
         location: this.state.url,
@@ -942,7 +944,6 @@ loop.panel = (function(_, mozL10n) {
 
       return (
         <div className="panel-content">
-          <div className="beta-ribbon" />
           <NotificationListView
             clearOnDocumentHidden={true}
             notifications={this.props.notifications} />
