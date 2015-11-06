@@ -100,6 +100,7 @@ class InputPortManager;
 class DeviceStorageAreaListener;
 class Presentation;
 class LegacyMozTCPSocket;
+class FileSystemProvider;
 
 namespace time {
 class TimeManager;
@@ -350,6 +351,8 @@ public:
   // any, else null.
   static already_AddRefed<nsPIDOMWindow> GetWindowFromGlobal(JSObject* aGlobal);
 
+  FileSystemProvider* GetFileSystemProvider(ErrorResult& aRv);
+
 #ifdef MOZ_EME
   already_AddRefed<Promise>
   RequestMediaKeySystemAccess(const nsAString& aKeySystem,
@@ -405,6 +408,7 @@ private:
   nsCOMPtr<nsPIDOMWindow> mWindow;
   RefPtr<DeviceStorageAreaListener> mDeviceStorageAreaListener;
   RefPtr<Presentation> mPresentation;
+  RefPtr<FileSystemProvider> mFileSystemProvider;
 
   // Hashtable for saving cached objects DoResolve created, so we don't create
   // the object twice if asked for it twice, whether due to use of "delete" or

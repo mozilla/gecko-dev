@@ -1,0 +1,128 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "domstubs.idl"
+
+interface nsIArray;
+
+%{C++
+#define VIRTUALFILESYSTEMABORTCALLBACK_CID \
+  { 0x86c25578, 0x0470, 0x48be, \
+    { 0x86, 0x17, 0x06, 0x23, 0x2c, 0x8f, 0x4d, 0xee }}
+#define ENTRYMETADATA_CID \
+  { 0xd94c977c, 0xfac1, 0x42c2, \
+    { 0xa5, 0x5e, 0xc1, 0x66, 0x6e, 0xe0, 0x68, 0x8b }}
+
+#define VIRTUAL_FILE_SYSTEM_CALLBACK_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/virtualfilesystem-callback;1"
+#define ENTRY_METADATA_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/entry-metadata;1"
+
+namespace mozilla {
+namespace dom {
+namespace virtualfilesystem {
+// Convert a request error into a loggable/printable string.
+const char* NS_RequestErrorStr(uint32_t aType);
+}
+}
+}
+%}
+
+/**
+ * XPCOM component which represents the metadata of a file or a directory.
+ * This is the same as EntryMetadata defined in FileSystemProviderGetMetadataEvent.webidl.
+ */
+[scriptable, uuid(f6c620a2-e1b4-410f-b286-cc04eedf6a63)]
+interface nsIEntryMetadata : nsISupports
+{
+  // The data is a directory or not.
+  attribute boolean isDirectory;
+
+  // Base name of the data.
+  attribute DOMString name;
+
+  // Size of the data.
+  attribute unsigned long long size;
+
+  // Modification time of the data.
+  attribute DOMTimeStamp modificationTime;
+
+  // Optional string for MIME type, might be empty.
+  attribute DOMString mimeType;
+};
+
+/**
+ * XPCOM component which acts as a container for data returned from
+ * FileSystemProvider events.
+ */
+[scriptable, uuid(1d0be5e1-7608-48c4-950a-c09e56643ad9)]
+interface nsIVirtualFileSystemRequestValue : nsISupports
+{
+  /**
+   * Called when we want to combine a value into the same one.
+   */
+  void Concat(in nsIVirtualFileSystemRequestValue value);
+};
+
+[scriptable, uuid(6f227457-fd61-4bd1-b98d-86c0cdc36846)]
+interface nsIVirtualFileSystemGetMetadataRequestValue : nsIVirtualFileSystemRequestValue
+{
+  attribute nsIEntryMetadata metadata;
+};
+
+[scriptable, uuid(1f942e8d-721c-47c1-ae0d-779c15c60ad8)]
+interface nsIVirtualFileSystemReadDirectoryRequestValue : nsIVirtualFileSystemRequestValue
+{
+  attribute nsIArray entries;
+};
+
+[scriptable, uuid(d750c71b-e86a-4a29-8233-42e9ed830fc0)]
+interface nsIVirtualFileSystemReadFileRequestValue : nsIVirtualFileSystemRequestValue
+{
+  attribute ACString data;
+};
+
+[scriptable, uuid(94ddd4fb-8b69-4d53-b7ef-d872273ad29a)]
+interface nsIVirtualFileSystemCallback : nsISupports
+{
+  /**
+   * Note: MUST be matched with enum FileSystemProviderError in FileSystemProviderError.webidl
+   */
+  const unsigned long ERROR_FAILED = 0x0000;
+  const unsigned long ERROR_IN_USE = 0x0001;
+  const unsigned long ERROR_EXISTS = 0x0002;
+  const unsigned long ERROR_NOT_FOUND = 0x0003;
+  const unsigned long ERROR_ACCESS_DENIED = 0x0004;
+  const unsigned long ERROR_TOO_MANY_OPENED = 0x0005;
+  const unsigned long ERROR_NO_MEMORY = 0x0006;
+  const unsigned long ERROR_NO_SPACE = 0x0007;
+  const unsigned long ERROR_NOT_A_DIRECTORY = 0x0008;
+  const unsigned long ERROR_INVALID_OPERATION = 0x0009;
+  const unsigned long ERROR_SECURITY = 0x000A;
+  const unsigned long ERROR_ABORT = 0x000B;
+  const unsigned long ERROR_NOT_A_FILE = 0x000C;
+  const unsigned long ERROR_NOT_EMPTY = 0x000D;
+  const unsigned long ERROR_INVALID_URL = 0x000E;
+  const unsigned long ERROR_TIME_OUT = 0xFFFF;
+
+  /**
+   * Called when a request succeeds.
+   *
+   * @param requestId   The ID of the request.
+   * @param value       The value returned from the provider.
+   * @param hasMore     Indicate if there is more data will be returned. NOTE: in our current
+   *                    implementation, we assume hasMore is always false.
+   */
+  void onSuccess(in unsigned long requestId,
+                 in nsIVirtualFileSystemRequestValue value,
+                 in boolean hasMore);
+
+  /**
+   * Called when a request fails.
+   *
+   * @param requestId   The ID of the request.
+   * @param error       The error code listed above.
+   */
+  void onError(in unsigned long requestId, in unsigned long error);
+};

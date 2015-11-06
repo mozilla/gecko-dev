@@ -1,0 +1,6 @@
+{
+  "name": "FileSystemProvider Test App (hosted)",
+  "description": "FileSystemProvider test app used for mochitest.",
+  "launch_path": "/tests/dom/virtualfilesystem/test/mochitest/TESTTOKEN",
+  "icons": { "128": "default_icon" }
+}

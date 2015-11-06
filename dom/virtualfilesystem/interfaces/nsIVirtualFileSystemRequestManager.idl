@@ -1,0 +1,80 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIVirtualFileSystemCallback;
+interface nsIVirtualFileSystemRequestOption;
+interface nsIVirtualFileSystemRequestValue;
+interface nsIFileSystemProviderEventDispatcher;
+
+/**
+ * XPCOM component which manages requests created by nsIVirtualFileSystem.
+ * Request manager will create a timer each time a request is created. The request will
+ * be destroyed when the timer is expired.
+ */
+[scriptable, uuid(17e44980-2b90-4d22-9a77-83af45310a2c)]
+interface nsIVirtualFileSystemRequestManager : nsISupports
+{
+  /**
+   * The types of request we support currently.
+   */
+  const unsigned long REQUEST_ABORT         = 0x0000;
+  const unsigned long REQUEST_GETMETADATA   = 0x0001;
+  const unsigned long REQUEST_CLOSEFILE     = 0x0002;
+  const unsigned long REQUEST_OPENFILE      = 0x0003;
+  const unsigned long REQUEST_READDIRECTORY = 0x0004;
+  const unsigned long REQUEST_READFILE      = 0x0005;
+  const unsigned long REQUEST_UNMOUNT       = 0x0006;
+  const unsigned long REQUEST_UNKNOWN       = 0x0007;
+
+  /**
+   * Creates a request and returns its request id (greater than 0). Returns 0 in
+   * case of an error.
+   *
+   * @param requestType   The type of the request.
+   * @param option        The information for the request to be created.
+   * @param callback      The callback to be called for passing the result.
+   */
+  unsigned long createRequest(in unsigned long requestType,
+                              in nsIVirtualFileSystemRequestOption option,
+                              in nsIVirtualFileSystemCallback callback);
+  /**
+   * Handles successful response for the request. It may be called more than once,
+   * until hasMore is set to false.
+   *
+   * @param requestId   The id of the request.
+   * @param value       The result sent back from the provider.
+   * @param hasMore     If hasMore is true, request manager will call
+   *                    nsIVirtualFileSystemRequestValue::Concat to merge the result into one value.
+   *                    Until hasMore is set to false, nsIVirtualFileSystemCallback::OnSuccess will be
+   *                    called for passing the result.
+   */
+  void fufillRequest(in unsigned long requestId,
+                     in nsIVirtualFileSystemRequestValue value,
+                     in boolean hasMore);
+
+  /**
+   * Handles failed response for the request.
+   *
+   * @param requestId   The id of the request.
+   * @param error       The error code listed in nsIVirtualFileSystemCallback.idl.
+   */
+  void rejectRequest(in unsigned long requestId, in unsigned long error);
+
+  /**
+   * Set the request dispatcher.
+   *
+   * @param dispatcher   Used to dispatch the request.
+   */
+  void setRequestDispatcher(in nsIFileSystemProviderEventDispatcher dispatcher);
+
+};
+
+%{C++
+#define VIRTUALFILESYSTEMREQUESTMANAGER_CID \
+  {0x8c2e7d9d, 0xac56, 0x4804, {0x89, 0x6a, 0xcd, 0x57, 0x67, 0x0b, 0xd5, 0xab}}
+#define VIRTUAL_FILE_SYSTEM_REQUEST_MANAGER_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/virtualfilesystem-request-manager;1"
+%}

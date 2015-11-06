@@ -1,0 +1,22 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIVirtualFileSystemRequestOption;
+
+[scriptable, uuid(e162a1ff-a758-4bf9-85ec-98d1a94b1f24)]
+interface nsIFileSystemProviderEventDispatcher : nsISupports
+{
+  /**
+   * Dispatch a FileSystemProvider event to the provider.
+   *
+   * @param requestId   The ID of the request.
+   * @param requestType The type that incidates which event should be generated.
+   * @param option      The option for the request.
+   */
+  void dispatchFileSystemProviderEvent(in unsigned long requestId,
+                                       in unsigned long requestType,
+                                       in nsIVirtualFileSystemRequestOption option);
+};

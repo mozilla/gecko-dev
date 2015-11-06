@@ -457,3 +457,8 @@ partial interface Navigator {
   readonly attribute boolean mozE10sEnabled;
 };
 #endif
+
+partial interface Navigator {
+  [Throws, Pref="device.storage.enabled", CheckAnyPermissions="filesystemprovider", AvailableIn="CertifiedApps"]
+  readonly attribute FileSystemProvider fileSystemProvider;
+};

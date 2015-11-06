@@ -1,0 +1,123 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIVirtualFileSystemCallback;
+interface nsIVirtualFileSystemRequestManager;
+
+/**
+ * XPCOM component which represents the options of the request.
+ * The options below are the same as the options defined in FileSystemProvider.webidl.
+ */
+[scriptable, uuid(88480bfb-100a-4821-9fd5-7dfcdc1c79c1)]
+interface nsIVirtualFileSystemRequestOption : nsISupports
+{
+  attribute DOMString fileSystemId;
+};
+
+[scriptable, uuid(daf8313a-ac60-4604-bfe3-5d3487075167)]
+interface nsIVirtualFileSystemAbortRequestOption : nsIVirtualFileSystemRequestOption
+{
+  attribute unsigned long operationRequestId;
+};
+
+[scriptable, uuid(a52bd515-da07-42f1-a30e-e2891b1e471b)]
+interface nsIVirtualFileSystemGetMetadataRequestOption : nsIVirtualFileSystemRequestOption
+{
+  // the entry path of the meta data
+  attribute DOMString entryPath;
+};
+
+[scriptable, uuid(c9fabeed-9585-4ed8-960b-79d29b056255)]
+interface nsIVirtualFileSystemCloseFileRequestOption : nsIVirtualFileSystemRequestOption
+{
+  // the request ID of the opened file
+  attribute unsigned long openRequestId;
+};
+
+[scriptable, uuid(12909eee-130d-498f-8477-71c043d4851e)]
+interface nsIVirtualFileSystemOpenFileRequestOption : nsIVirtualFileSystemRequestOption
+{
+  /**
+   * Note: MUST be matched with enum OpenFileMode in FileSystemProvider.webidl
+   */
+  const unsigned long OPEN_MODE_READ  = 0;
+  const unsigned long OPEN_MODE_WRITE = 1;
+
+  // the file path to be opened
+  attribute DOMString filePath;
+
+  // the open mode of opened file
+  attribute unsigned long mode;
+};
+
+[scriptable, uuid(ae224dfc-6f90-4e5b-8a12-de6673b36295)]
+interface nsIVirtualFileSystemReadDirectoryRequestOption : nsIVirtualFileSystemRequestOption
+{
+  // the directory path
+  attribute DOMString dirPath;
+};
+
+[scriptable, uuid(afd6b7ea-fa4e-4675-8246-583bf62a8e53)]
+interface nsIVirtualFileSystemReadFileRequestOption : nsIVirtualFileSystemRequestOption
+{
+  // the request ID of the opened file
+  attribute unsigned long openRequestId;
+
+  // the offset (in byte) of the file
+  attribute unsigned long long offset;
+
+  // the length (in byte) that read from the file
+  attribute unsigned long long length;
+};
+
+%{C++
+
+#define VIRTUALFILESYSTEMABORTREQUESTOPTION_CID \
+  {0x2ec43120, 0x471a, 0x11e5, {0xb7, 0x81, 0xfa, 0x1d, 0x1e, 0x5d, 0x46, 0xb0}}
+
+#define VIRTUALFILESYSTEMCLOSEFILEREQUESTOPTION_CID \
+  {0x416ff854, 0x471a, 0x11e5, {0xb5, 0x01, 0x01, 0x1e, 0x1e, 0x5d, 0x46, 0xb0}}
+
+#define VIRTUALFILESYSTEMOPENFILEREQUESTOPTION_CID \
+  {0x4757579e, 0x471a, 0x11e5, {0xb3, 0xf5, 0x12, 0x1e, 0x1e, 0x5d, 0x46, 0xb0}}
+
+#define VIRTUALFILESYSTEMGETMETADATAREQUESTOPTION_CID \
+  {0x3aa5ded0, 0x471a, 0x11e5, {0x94, 0xa1, 0xfb, 0x1d, 0x1e, 0x5d, 0x46, 0xb0}}
+
+#define VIRTUALFILESYSTEMREADDIRECTORYREQUESTOPTION_CID \
+  {0x508247d4, 0x471a, 0x11e5, {0xb2, 0x1a, 0x16, 0x1e, 0x1e, 0x5d, 0x46, 0xb0}}
+
+#define VIRTUALFILESYSTEMREADFILEREQUESTOPTION_CID \
+  {0x56f558b8, 0x471a, 0x11e5, {0x8d, 0x6c, 0x17, 0x1e, 0x1e, 0x5d, 0x46, 0xb0}}
+
+#define VIRTUAL_FILE_SYSTEM_ABORT_REQUEST_OPTION_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/virtualfilesystem-abort-request-option;1"
+
+#define VIRTUAL_FILE_SYSTEM_CLOSEFILE_REQUEST_OPTION_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/virtualfilesystem-closefile-request-option;1"
+
+#define VIRTUAL_FILE_SYSTEM_OPENFILE_REQUEST_OPTION_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/virtualfilesystem-openfile-request-option;1"
+
+#define VIRTUAL_FILE_SYSTEM_GETMETADATA_REQUEST_OPTION_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/virtualfilesystem-getmetadata-request-option;1"
+
+#define VIRTUAL_FILE_SYSTEM_READDIRECTORY_REQUEST_OPTION_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/virtualfilesystem-readdirectory-request-option;1"
+
+#define VIRTUAL_FILE_SYSTEM_READFILE_REQUEST_OPTION_CONTRACT_ID \
+  "@mozilla.org/virtualfilesystem/virtualfilesystem-readfile-request-option;1"
+
+namespace mozilla {
+namespace dom {
+namespace virtualfilesystem {
+// Convert a request type into a loggable/printable string.
+const char* NS_RequestTypeStr(uint32_t aType);
+}
+}
+}
+
+%}
