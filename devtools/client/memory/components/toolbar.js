@@ -3,7 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const { DOM: dom, createClass, PropTypes } = require("devtools/client/shared/vendor/react");
-
+const { L10N } = require("../utils");
 const models = require("../models");
 
 const Toolbar = module.exports = createClass({
@@ -34,35 +34,41 @@ const Toolbar = module.exports = createClass({
 
     return (
       dom.div({ className: "devtools-toolbar" },
-        dom.button({ className: `take-snapshot devtools-button`, onClick: onTakeSnapshotClick }),
+        dom.button({
+          className: `take-snapshot devtools-button`,
+          onClick: onTakeSnapshotClick,
+          title: L10N.getStr("take-snapshot")
+        }),
 
-        dom.label({},
-          "Breakdown by ",
-          dom.select({
-            className: `select-breakdown`,
-            onChange: e => onBreakdownChange(e.target.value),
-          }, ...breakdowns.map(({ name, displayName }) => dom.option({ key: name, value: name }, displayName)))
-        ),
+        dom.div({ className: "toolbar-group" },
+          dom.label({ className: "breakdown-by" },
+            L10N.getStr("toolbar.breakdownBy"),
+            dom.select({
+              id: "select-breakdown",
+              className: `select-breakdown`,
+              onChange: e => onBreakdownChange(e.target.value),
+            }, ...breakdowns.map(({ name, displayName }) => dom.option({ key: name, value: name }, displayName)))
+          ),
 
-        dom.label({},
-          dom.input({
-            type: "checkbox",
-            checked: inverted,
-            onChange: onToggleInverted,
-          }),
-          // TODO bug 1214799
-          "Invert tree"
-        ),
+          dom.label({},
+            dom.input({
+              id: "invert-tree-checkbox",
+              type: "checkbox",
+              checked: inverted,
+              onChange: onToggleInverted,
+            }),
+            L10N.getStr("checkbox.invertTree")
+          ),
 
-        dom.label({},
-          dom.input({
-            type: "checkbox",
-            checked: allocations.recording,
-            disabled: allocations.togglingInProgress,
-            onChange: onToggleRecordAllocationStacks,
-          }),
-          // TODO bug 1214799
-          "Record allocation stacks"
+          dom.label({},
+            dom.input({
+              type: "checkbox",
+              checked: allocations.recording,
+              disabled: allocations.togglingInProgress,
+              onChange: onToggleRecordAllocationStacks,
+            }),
+            L10N.getStr("checkbox.recordAllocationStacks")
+          )
         )
       )
     );
