@@ -17,7 +17,7 @@ config = {
         "B2G_UPDATER": "1",
         "LIGHTSABER": "1",
         "DOGFOOD": "1",
-        "B2G_UPDATE_CHANNEL": "dogfood",
+        "B2G_UPDATE_CHANNEL": "nightly-b2g44",
         "BOWER_FLAGS": "--allow-root",
         "B2G_PATH": "%(work_dir)s",
         "GAIA_DISTRIBUTION_DIR": "%(work_dir)s/gaia/distros/spark",
