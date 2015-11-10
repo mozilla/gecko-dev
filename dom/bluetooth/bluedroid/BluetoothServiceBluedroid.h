@@ -206,8 +206,10 @@ public:
                              BluetoothReplyRunnable* aRunnable);
 
   virtual void
-  ReplyToMapSendMessage(
-    long aMasId, bool aStatus, BluetoothReplyRunnable* aRunnable);
+  ReplyToMapSendMessage(long aMasId,
+                        const nsAString& aHandleId,
+                        bool aStatus,
+                        BluetoothReplyRunnable* aRunnable);
 
   virtual void
   ReplyToMapMessageUpdate(

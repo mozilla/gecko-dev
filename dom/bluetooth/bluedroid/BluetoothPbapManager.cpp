@@ -13,6 +13,7 @@
 #include "BluetoothUuid.h"
 
 #include "mozilla/dom/BluetoothPbapParametersBinding.h"
+#include "mozilla/Endian.h"
 #include "mozilla/dom/ipc/BlobParent.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/RefPtr.h"
@@ -541,7 +542,7 @@ BluetoothPbapManager::AppendNamedValueByTagId(
       AppendNamedValue(aValues, "searchText", nsCString((char *) buf));
       break;
     case AppParameterTag::MaxListCount: {
-      uint16_t maxListCount = ReadLittleEndianUInt16(buf);
+      uint16_t maxListCount = BigEndian::readUint16(buf);
       AppendNamedValue(aValues, "maxListCount",
                        static_cast<uint32_t>(maxListCount));
 
@@ -553,7 +554,7 @@ BluetoothPbapManager::AppendNamedValueByTagId(
     }
     case AppParameterTag::ListStartOffset:
       AppendNamedValue(aValues, "listStartOffset",
-                       static_cast<uint32_t>(ReadLittleEndianUInt16(buf)));
+                       static_cast<uint32_t>(BigEndian::readUint16(buf)));
       break;
     case AppParameterTag::PropertySelector:
       AppendNamedValue(aValues, "propSelector", PackPropertiesMask(buf, 64));
@@ -733,10 +734,7 @@ BluetoothPbapManager::PackPropertiesMask(uint8_t* aData, int aSize)
   // the requested vCard objects. We only support bit 0~31 since the rest are
   // reserved for future use or vendor specific properties.
 
-  // convert big endian to little endian
-  uint32_t x = (aData[7] << 0)  | (aData[6] << 8) |
-               (aData[5] << 16) | (aData[4] << 24);
-
+  uint32_t x = BigEndian::readUint32(&aData[4]);
   uint32_t count = 0;
   while (x) {
     if (x & 1) {
@@ -864,7 +862,8 @@ BluetoothPbapManager::ReplyToGet(uint16_t aPhonebookSize)
 
   if (mPhonebookSizeRequired) {
     // ---- Part 2: [headerId:1][length:2][PhonebookSize:4] ---- //
-    uint16_t pbSizeBigEndian = ConvertEndiannessUInt16(aPhonebookSize);
+    uint8_t phonebookSize[2];
+    BigEndian::writeUint16(&phonebookSize[0], aPhonebookSize);
 
     // Section 6.2.1 "Application Parameters Header", PBAP 1.2
     // appParameters: [headerId:1][length:2][PhonebookSize:4], where
@@ -873,8 +872,8 @@ BluetoothPbapManager::ReplyToGet(uint16_t aPhonebookSize)
     AppendAppParameter(appParameters,
                        sizeof(appParameters),
                        static_cast<uint8_t>(AppParameterTag::PhonebookSize),
-                       (uint8_t*) &pbSizeBigEndian,
-                       sizeof(pbSizeBigEndian));
+                       phonebookSize,
+                       sizeof(phonebookSize));
 
     index += AppendHeaderAppParameters(&res[index],
                                        mRemoteMaxPacketLength,

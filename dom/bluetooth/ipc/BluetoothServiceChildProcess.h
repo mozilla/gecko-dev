@@ -214,8 +214,10 @@ public:
                              BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
 
   virtual void
-  ReplyToMapSendMessage(
-    long aMasId, bool aStatus, BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+  ReplyToMapSendMessage(long aMasId,
+                        const nsAString& aHandleId,
+                        bool aStatus,
+                        BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
 
   virtual void
   ReplyToMapMessageUpdate(

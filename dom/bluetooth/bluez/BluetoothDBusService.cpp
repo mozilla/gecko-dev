@@ -4487,7 +4487,9 @@ BluetoothDBusService::ReplyToMapSetMessageStatus(long aMasId,
 }
 
 void
-BluetoothDBusService::ReplyToMapSendMessage(long aMasId, bool aStatus,
+BluetoothDBusService::ReplyToMapSendMessage(long aMasId,
+  const nsAString& aHandleId,
+  bool aStatus,
   BluetoothReplyRunnable* aRunnable)
 {
 }
