@@ -36,6 +36,7 @@ config = {
     },
     "env": {
         "GAIA_OPTIMIZE": "1",
+        "B2G_UPDATE_CHANNEL": "nightly-b2g44",
         "WGET_OPTS": "-c -q"
     },
     "is_automation": True,
