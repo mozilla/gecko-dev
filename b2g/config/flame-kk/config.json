@@ -38,7 +38,7 @@
         "VARIANT": "userdebug",
         "MOZILLA_OFFICIAL": "1",
         "MOZ_TELEMETRY_REPORTING": "1",
-        "B2G_UPDATE_CHANNEL": "nightly",
+        "B2G_UPDATE_CHANNEL": "nightly-b2g44",
         "GAIA_KEYBOARD_LAYOUTS": "en,pt-BR,es,de,fr,pl,zh-Hans-Pinyin,zh-Hant-Zhuyin,en-Dvorak",
         "FOTA_FINGERPRINTS": "qcom/flame/flame:4.4.2/KOT49H/eng.cltbld.20150527.043015:userdebug/test-keys"
     },

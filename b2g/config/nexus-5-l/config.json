@@ -35,7 +35,7 @@
         "VARIANT": "userdebug",
         "MOZILLA_OFFICIAL": "1",
         "MOZ_TELEMETRY_REPORTING": "1",
-        "B2G_UPDATE_CHANNEL": "nightly"
+        "B2G_UPDATE_CHANNEL": "nightly-b2g44"
     },
     "b2g_manifest": "nexus-5-l.xml",
     "b2g_manifest_intree": true,
