@@ -932,7 +932,7 @@ var BrowserApp = {
         let doc = aTarget.ownerDocument;
         let imageCache = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
                                                          .getImgCacheForDocument(doc);
-        let props = imageCache.findEntryProperties(aTarget.currentURI, doc.characterSet);
+        let props = imageCache.findEntryProperties(aTarget.currentURI, doc);
         let src = aTarget.src;
         return {
           title: src,
@@ -4767,7 +4767,9 @@ var BrowserEventHandler = {
 
     InitLater(() => BrowserApp.deck.addEventListener("click", InputWidgetHelper, true));
     InitLater(() => BrowserApp.deck.addEventListener("click", SelectHelper, true));
-    InitLater(() => BrowserApp.deck.addEventListener("InsecureLoginFormsStateChange", IdentityHandler.sendLoginInsecure, true));
+    if (AppConstants.NIGHTLY_BUILD) {
+      InitLater(() => BrowserApp.deck.addEventListener("InsecureLoginFormsStateChange", IdentityHandler.sendLoginInsecure, true));
+    }
 
     // ReaderViews support backPress listeners.
     Messaging.addListener(() => {
