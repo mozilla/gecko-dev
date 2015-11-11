@@ -16,3 +16,4 @@ task:
       build-flame-kk-ota-user-objdir-gecko-{{project}}: /home/worker/objdir-gecko
     env:
       VARIANT: user
+      MOZHARNESS_CONFIG: b2g/taskcluster-phone-fota.py
