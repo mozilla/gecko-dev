@@ -42,7 +42,7 @@
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
-            "root": "https://hg.mozilla.org/gaia-l10n"
+            "root": "https://hg.mozilla.org/releases/gaia-l10n/v2_5"
         }
     }
 }
