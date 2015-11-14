@@ -1152,6 +1152,9 @@ pref("dom.performance.enable_notify_performance_timing", true);
 pref("b2g.multiscreen.chrome_remote_url", "chrome://b2g/content/shell_remote.html");
 pref("b2g.multiscreen.system_remote_url", "index_remote.html");
 
+// Clipboard only supports text/plain.
+pref("clipboard.plainTextOnly", true);
+
 // Because we can't have nice things.
 #ifdef MOZ_GRAPHENE
 #include ../graphene/graphene.js
