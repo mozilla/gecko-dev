@@ -1169,6 +1169,13 @@ MobileConnection::NotifyNetworkSelectionModeChanged()
   return NS_OK;
 }
 
+NS_IMETHODIMP
+MobileConnection::NotifyDeviceIdentitiesChanged()
+{
+  // To be supported in bug 1222870.
+  return NS_OK;
+}
+
 #ifdef MOZ_B2G_RIL
 // nsIIccListener
 

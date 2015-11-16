@@ -1919,6 +1919,13 @@ RadioInterface.prototype = {
           QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileConnectionCallback])
         });
         break;
+      case "deviceidentitieschange":
+        gMobileConnectionService.notifyDeviceIdentitiesChanged(this.clientId,
+                                                               message.deviceIdentities.imei,
+                                                               message.deviceIdentities.imeisv,
+                                                               message.deviceIdentities.esn,
+                                                               message.deviceIdentities.meid);
+        break;
       case "radiostatechange":
         // gRadioEnabledController should know the radio state for each client,
         // so notify gRadioEnabledController here.

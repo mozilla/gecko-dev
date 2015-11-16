@@ -459,12 +459,13 @@ RilObject.prototype = {
     this.cardState = GECKO_CARDSTATE_UNINITIALIZED;
 
     /**
+     * Device Identities including IMEI, IMEISV, ESN and MEID.
+     */
+    this.deviceIdentities = null;
+
+    /**
      * Strings
      */
-    this.IMEI = null;
-    this.IMEISV = null;
-    this.ESN = null;
-    this.MEID = null;
     this.SMSC = null;
 
     /**
@@ -1576,16 +1577,8 @@ RilObject.prototype = {
     this.context.Buf.simpleRequest(REQUEST_SIGNAL_STRENGTH);
   },
 
-  getIMEI: function(options) {
-    this.context.Buf.simpleRequest(REQUEST_GET_IMEI, options);
-  },
-
-  getIMEISV: function() {
-    this.context.Buf.simpleRequest(REQUEST_GET_IMEISV);
-  },
-
-  getDeviceIdentity: function() {
-    this.context.Buf.simpleRequest(REQUEST_DEVICE_IDENTITY);
+  getDeviceIdentity: function(options) {
+    this.context.Buf.simpleRequest(REQUEST_DEVICE_IDENTITY, options);
   },
 
   getBasebandVersion: function() {
@@ -2716,13 +2709,13 @@ RilObject.prototype = {
       // IMEI
       case MMI_SC_IMEI:
         // A device's IMEI can't change, so we only need to request it once.
-        if (this.IMEI == null) {
-          this.getIMEI(options);
+        if (!this.deviceIdentities) {
+          this.getDeviceIdentity(options);
           return;
         }
         // If we already had the device's IMEI, we just send it to chrome.
         options.success = true;
-        options.statusMessage = this.IMEI;
+        options.statusMessage = this.deviceIdentities.imei;
         this.sendChromeMessage(options);
         return;
 
@@ -4617,12 +4610,7 @@ RilObject.prototype = {
     if (this._waitingRadioTech || isCdma != this._isCdma) {
       this._isCdma = isCdma;
       this._waitingRadioTech = false;
-      if (this._isCdma) {
-        this.getDeviceIdentity();
-      } else {
-        this.getIMEI();
-        this.getIMEISV();
-      }
+      this.deviceIdentities || this.getDeviceIdentity();
       this.getICCStatus();
     }
   },
@@ -6124,29 +6112,8 @@ RilObject.prototype[REQUEST_SET_CALL_WAITING] = function REQUEST_SET_CALL_WAITIN
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_SMS_ACKNOWLEDGE] = null;
-RilObject.prototype[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
-  this.IMEI = this.context.Buf.readString();
-  let rilMessageType = options.rilMessageType;
-  // So far we only send the IMEI back to chrome if it was requested via MMI.
-  if (rilMessageType !== "sendMMI") {
-    return;
-  }
-
-  options.success = (options.rilRequestError === 0);
-  options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-  if ((!options.success || this.IMEI == null) && !options.errorMsg) {
-    options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-  }
-  options.statusMessage = this.IMEI;
-  this.sendChromeMessage(options);
-};
-RilObject.prototype[REQUEST_GET_IMEISV] = function REQUEST_GET_IMEISV(length, options) {
-  if (options.rilRequestError) {
-    return;
-  }
-
-  this.IMEISV = this.context.Buf.readString();
-};
+RilObject.prototype[REQUEST_GET_IMEI] = null;
+RilObject.prototype[REQUEST_GET_IMEISV] = null;
 RilObject.prototype[REQUEST_ANSWER] = function REQUEST_ANSWER(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
@@ -6709,17 +6676,38 @@ RilObject.prototype[REQUEST_CDMA_SUBSCRIPTION] = function REQUEST_CDMA_SUBSCRIPT
 RilObject.prototype[REQUEST_CDMA_WRITE_SMS_TO_RUIM] = null;
 RilObject.prototype[REQUEST_CDMA_DELETE_SMS_ON_RUIM] = null;
 RilObject.prototype[REQUEST_DEVICE_IDENTITY] = function REQUEST_DEVICE_IDENTITY(length, options) {
-  if (options.rilRequestError) {
+  options.success = (options.rilRequestError === 0);
+  options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+
+  if (options.errorMsg) {
+    if (options.rilMessageType === "sendMMI") {
+      this.sendChromeMessage(options);
+    }
     return;
   }
 
   let result = this.context.Buf.readStringList();
+  this.deviceIdentities = {
+    imei: result[0] || null,
+    imeisv: result[1] || null,
+    esn: result[2] || null,
+    meid: result[3] || null,
+  };
 
-  // The result[0] is for IMEI. (Already be handled in REQUEST_GET_IMEI)
-  // The result[1] is for IMEISV. (Already be handled in REQUEST_GET_IMEISV)
-  // They are both ignored.
-  this.ESN = result[2];
-  this.MEID = result[3];
+  if (options.rilMessageType === "sendMMI") {
+    if (!this.deviceIdentities.imei) {
+      options.success = false;
+      options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+    } else {
+      options.statusMessage = this.deviceIdentities.imei;
+    }
+    this.sendChromeMessage(options);
+  }
+
+  this.sendChromeMessage({
+    rilMessageType: "deviceidentitieschange",
+    deviceIdentities: this.deviceIdentities
+  });
 };
 RilObject.prototype[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = function REQUEST_EXIT_EMERGENCY_CALLBACK_MODE(length, options) {
   if (options.internal) {
@@ -6948,12 +6936,7 @@ RilObject.prototype[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLIC
        newState == GECKO_RADIOSTATE_ENABLED) {
     // The radio became available, let's get its info.
     if (!this._waitingRadioTech) {
-      if (this._isCdma) {
-        this.getDeviceIdentity();
-      } else {
-        this.getIMEI();
-        this.getIMEISV();
-      }
+      this.deviceIdentities || this.getDeviceIdentity();
     }
     this.getBasebandVersion();
     this.updateCellBroadcastConfig();

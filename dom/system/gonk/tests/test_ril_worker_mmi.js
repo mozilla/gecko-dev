@@ -283,7 +283,7 @@ add_test(function test_sendMMI_get_IMEI() {
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
 
-  context.RIL.getIMEI = function getIMEI(options){
+  context.RIL.getDeviceIdentity = function getDeviceIdentity(options){
     mmiOptions = options;
     context.RIL[REQUEST_SEND_USSD](0, {
       rilRequestError: ERROR_SUCCESS,
@@ -307,7 +307,7 @@ add_test(function test_sendMMI_get_IMEI_error() {
   let context = worker.ContextPool._contexts[0];
   let mmiOptions;
 
-  context.RIL.getIMEI = function getIMEI(options){
+  context.RIL.getDeviceIdentity = function getDeviceIdentity(options){
     mmiOptions = options;
     context.RIL[REQUEST_SEND_USSD](0, {
       rilRequestError: ERROR_RADIO_NOT_AVAILABLE,
