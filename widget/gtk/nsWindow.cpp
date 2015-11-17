@@ -414,6 +414,7 @@ nsWindow::nsWindow()
     mIsTopLevel          = false;
     mIsDestroyed         = false;
     mListenForResizes    = false;
+    mNeedsDispatchResized = false;
     mIsShown             = false;
     mNeedsShow           = false;
     mEnabled             = true;
@@ -527,13 +528,23 @@ nsWindow::DispatchDeactivateEvent(void)
 }
 
 void
-nsWindow::DispatchResized(int32_t aWidth, int32_t aHeight)
+nsWindow::DispatchResized()
 {
+    mNeedsDispatchResized = false;
     if (mWidgetListener) {
-        mWidgetListener->WindowResized(this, aWidth, aHeight);
+        mWidgetListener->WindowResized(this, mBounds.width, mBounds.height);
     }
     if (mAttachedWidgetListener) {
-        mAttachedWidgetListener->WindowResized(this, aWidth, aHeight);
+        mAttachedWidgetListener->WindowResized(this,
+                                               mBounds.width, mBounds.height);
+    }
+}
+
+void
+nsWindow::MaybeDispatchResized()
+{
+    if (mNeedsDispatchResized && !mIsDestroyed) {
+        DispatchResized();
     }
 }
 
@@ -1094,7 +1105,7 @@ nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
 
     // send a resize notification if this is a toplevel
     if (mIsTopLevel || mListenForResizes) {
-        DispatchResized(width, height);
+        DispatchResized();
     }
 
     return NS_OK;
@@ -1125,7 +1136,7 @@ nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
     ResizePluginSocketWidget();
 
     if (mIsTopLevel || mListenForResizes) {
-        DispatchResized(width, height);
+        DispatchResized();
     }
 
     return NS_OK;
@@ -2091,6 +2102,10 @@ gboolean
 nsWindow::OnExposeEvent(cairo_t *cr)
 #endif
 {
+    // Send any pending resize events so that layout can update.
+    // May run event loop.
+    MaybeDispatchResized();
+
     if (mIsDestroyed) {
         return FALSE;
     }
@@ -2446,10 +2461,13 @@ nsWindow::OnSizeAllocate(GtkAllocation *aAllocation)
 
     mBounds.SizeTo(size);
 
-    if (!mGdkWindow)
-        return;
-
-    DispatchResized(size.width, size.height);
+    // Gecko permits running nested event loops during processing of events,
+    // GtkWindow callers of gtk_widget_size_allocate expect the signal
+    // handlers to return sometime in the near future.
+    mNeedsDispatchResized = true;
+    nsCOMPtr<nsIRunnable> r =
+        NS_NewRunnableMethod(this, &nsWindow::MaybeDispatchResized);
+    NS_DispatchToCurrentThread(r.forget());
 }
 
 void
