@@ -315,6 +315,10 @@ TextureClient::CreateForDrawing(ISurfaceAllocator* aAllocator,
     aMoz2DBackend = gfxPlatform::GetPlatform()->GetContentBackend();
   }
 
+  if (!gfx::Factory::AllowedSurfaceSize(aSize)) {
+    return nullptr;
+  }
+
   RefPtr<TextureClient> texture;
 
 #if defined(MOZ_WIDGET_GONK) || defined(XP_WIN)
@@ -415,6 +419,10 @@ TextureClient::CreateForRawBufferAccess(ISurfaceAllocator* aAllocator,
                                         TextureFlags aTextureFlags,
                                         TextureAllocationFlags aAllocFlags)
 {
+  if (!gfx::Factory::AllowedSurfaceSize(aSize)) {
+    return nullptr;
+  }
+
   RefPtr<BufferTextureClient> texture =
     CreateBufferTextureClient(aAllocator, aFormat,
                               aTextureFlags, aMoz2DBackend);
@@ -434,6 +442,10 @@ TextureClient::CreateForYCbCr(ISurfaceAllocator* aAllocator,
                               StereoMode aStereoMode,
                               TextureFlags aTextureFlags)
 {
+  if (!gfx::Factory::AllowedSurfaceSize(aYSize)) {
+    return nullptr;
+  }
+
   RefPtr<BufferTextureClient> texture;
   if (aAllocator->IsSameProcess()) {
     texture = new MemoryTextureClient(aAllocator, gfx::SurfaceFormat::YUV,
