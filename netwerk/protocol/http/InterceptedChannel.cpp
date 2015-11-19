@@ -13,6 +13,7 @@
 #include "nsHttpChannel.h"
 #include "HttpChannelChild.h"
 #include "nsHttpResponseHead.h"
+#include "mozilla/ConsoleReportCollector.h"
 #include "mozilla/dom/ChannelInfo.h"
 
 namespace mozilla {
@@ -37,6 +38,7 @@ NS_IMPL_ISUPPORTS(InterceptedChannelBase, nsIInterceptedChannel)
 
 InterceptedChannelBase::InterceptedChannelBase(nsINetworkInterceptController* aController)
 : mController(aController)
+, mReportCollector(new ConsoleReportCollector())
 {
 }
 
@@ -107,6 +109,25 @@ InterceptedChannelBase::DoSynthesizeHeader(const nsACString& aName, const nsACSt
     return NS_OK;
 }
 
+NS_IMETHODIMP
+InterceptedChannelBase::GetConsoleReportCollector(nsIConsoleReportCollector** aCollectorOut)
+{
+  MOZ_ASSERT(aCollectorOut);
+  nsCOMPtr<nsIConsoleReportCollector> ref = mReportCollector;
+  ref.forget(aCollectorOut);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+InterceptedChannelBase::SetReleaseHandle(nsISupports* aHandle)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!mReleaseHandle);
+  MOZ_ASSERT(aHandle);
+  mReleaseHandle = aHandle;
+  return NS_OK;
+}
+
 InterceptedChannelChrome::InterceptedChannelChrome(nsHttpChannel* aChannel,
                                                    nsINetworkInterceptController* aController,
                                                    nsICacheEntry* aEntry)
@@ -134,16 +155,6 @@ InterceptedChannelChrome::NotifyController()
   DoNotifyController();
 }
 
-nsIConsoleReportCollector*
-InterceptedChannelChrome::GetConsoleReportCollector() const
-{
-  // The ConsoleReportCollector should only be used when the inner channel is
-  // stable.  Nothing should try to use it once we return to the main thread
-  // and clear the inner channel.
-  MOZ_ASSERT(mChannel);
-  return mChannel;
-}
-
 NS_IMETHODIMP
 InterceptedChannelChrome::GetChannel(nsIChannel** aChannel)
 {
@@ -158,6 +169,8 @@ InterceptedChannelChrome::ResetInterception()
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  mReportCollector->FlushConsoleReports(mChannel);
+
   mSynthesizedCacheEntry->AsyncDoom(nullptr);
   mSynthesizedCacheEntry = nullptr;
 
@@ -169,6 +182,7 @@ InterceptedChannelChrome::ResetInterception()
   nsresult rv = mChannel->StartRedirectChannelToURI(uri, nsIChannelEventSink::REDIRECT_INTERNAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  mReleaseHandle = nullptr;
   mChannel = nullptr;
   return NS_OK;
 }
@@ -199,6 +213,8 @@ InterceptedChannelChrome::FinishSynthesizedResponse(const nsACString& aFinalURLS
   if (!mChannel) {
     return NS_ERROR_NOT_AVAILABLE;
   }
+
+  mReportCollector->FlushConsoleReports(mChannel);
 
   EnsureSynthesizedResponse();
 
@@ -260,6 +276,7 @@ InterceptedChannelChrome::FinishSynthesizedResponse(const nsACString& aFinalURLS
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
+  mReleaseHandle = nullptr;
   mChannel = nullptr;
   return NS_OK;
 }
@@ -273,10 +290,13 @@ InterceptedChannelChrome::Cancel(nsresult aStatus)
     return NS_ERROR_FAILURE;
   }
 
+  mReportCollector->FlushConsoleReports(mChannel);
+
   // we need to use AsyncAbort instead of Cancel since there's no active pump
   // to cancel which will provide OnStart/OnStopRequest to the channel.
   nsresult rv = mChannel->AsyncAbort(aStatus);
   NS_ENSURE_SUCCESS(rv, rv);
+  mReleaseHandle = nullptr;
   return NS_OK;
 }
 
@@ -322,16 +342,6 @@ InterceptedChannelContent::NotifyController()
   DoNotifyController();
 }
 
-nsIConsoleReportCollector*
-InterceptedChannelContent::GetConsoleReportCollector() const
-{
-  // The ConsoleReportCollector should only be used when the inner channel is
-  // stable.  Nothing should try to use it once we return to the main thread
-  // and clear the inner channel.
-  MOZ_ASSERT(mChannel);
-  return mChannel;
-}
-
 NS_IMETHODIMP
 InterceptedChannelContent::GetChannel(nsIChannel** aChannel)
 {
@@ -346,10 +356,13 @@ InterceptedChannelContent::ResetInterception()
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  mReportCollector->FlushConsoleReports(mChannel);
+
   mResponseBody = nullptr;
   mSynthesizedInput = nullptr;
 
   mChannel->ResetInterception();
+  mReleaseHandle = nullptr;
   mChannel = nullptr;
   return NS_OK;
 }
@@ -381,6 +394,8 @@ InterceptedChannelContent::FinishSynthesizedResponse(const nsACString& aFinalURL
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  mReportCollector->FlushConsoleReports(mChannel);
+
   EnsureSynthesizedResponse();
 
   nsCOMPtr<nsIURI> originalURI;
@@ -406,6 +421,7 @@ InterceptedChannelContent::FinishSynthesizedResponse(const nsACString& aFinalURL
   }
 
   mResponseBody = nullptr;
+  mReleaseHandle = nullptr;
   mChannel = nullptr;
   mStreamListener = nullptr;
   return NS_OK;
@@ -420,10 +436,13 @@ InterceptedChannelContent::Cancel(nsresult aStatus)
     return NS_ERROR_FAILURE;
   }
 
+  mReportCollector->FlushConsoleReports(mChannel);
+
   // we need to use AsyncAbort instead of Cancel since there's no active pump
   // to cancel which will provide OnStart/OnStopRequest to the channel.
   nsresult rv = mChannel->AsyncAbort(aStatus);
   NS_ENSURE_SUCCESS(rv, rv);
+  mReleaseHandle = nullptr;
   mChannel = nullptr;
   mStreamListener = nullptr;
   return NS_OK;
