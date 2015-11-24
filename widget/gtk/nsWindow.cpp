@@ -422,6 +422,7 @@ nsWindow::nsWindow()
 #if GTK_CHECK_VERSION(3,4,0)
     mHandleTouchEvent    = false;
 #endif
+    mIsDragPopup         = false;
 
     mContainer           = nullptr;
     mGdkWindow           = nullptr;
@@ -1895,16 +1896,11 @@ nsWindow::CaptureRollupEvents(nsIRollupListener *aListener,
 
     if (aDoCapture) {
         gRollupListener = aListener;
-        // real grab is only done when there is no dragging
-        if (!nsWindow::DragInProgress()) {
-            // Maybe the dnd flag is not yet set at this point, but dnd has already started
-            // so let's be extra careful and skip this operation for dnd popup panels always
-            // (panels with type="drag").
-            GdkWindowTypeHint gdkTypeHint = gtk_window_get_type_hint(GTK_WINDOW(mShell));
-            if (gdkTypeHint != GDK_WINDOW_TYPE_HINT_DND) {
-              gtk_grab_add(GTK_WIDGET(mContainer));
-              GrabPointer(GetLastUserInputTime());
-            }
+        // Don't add a grab if a drag is in progress, or if the widget is a drag
+        // feedback popup. (panels with type="drag").
+        if (!mIsDragPopup && !nsWindow::DragInProgress()) {
+            gtk_grab_add(GTK_WIDGET(mContainer));
+            GrabPointer(GetLastUserInputTime());
         }
     }
     else {
@@ -3662,6 +3658,7 @@ nsWindow::Create(nsIWidget        *aParent,
             GdkWindowTypeHint gtkTypeHint;
             if (aInitData->mIsDragPopup) {
                 gtkTypeHint = GDK_WINDOW_TYPE_HINT_DND;
+                mIsDragPopup = true;
             }
             else {
                 switch (aInitData->mPopupHint) {
@@ -5450,6 +5447,18 @@ gboolean
 expose_event_cb(GtkWidget *widget, cairo_t *cr)
 {
     draw_window_of_widget(widget, gtk_widget_get_window(widget), cr);
+
+    // A strong reference is already held during "draw" signal emission,
+    // but GTK+ 3.4 wants the object to live a little longer than that
+    // (bug 1225970).
+    g_object_ref(widget);
+    g_idle_add(
+        [](gpointer data) -> gboolean {
+            g_object_unref(data);
+            return G_SOURCE_REMOVE;
+        },
+        widget);
+
     return FALSE;
 }
 #endif //MOZ_WIDGET_GTK2

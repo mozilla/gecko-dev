@@ -2642,11 +2642,13 @@ GenerateCallSetter(JSContext* cx, IonScript* ion, MacroAssembler& masm,
     // Remaining registers should basically be free, but we need to use |object| still
     // so leave it alone.  And of course we need our value, if it's not a constant.
     AllocatableRegisterSet regSet(RegisterSet::All());
-    regSet.take(AnyRegister(object));
     if (!value.constant())
-        regSet.takeUnchecked(value.reg());
+        regSet.take(value.reg());
+    bool valueAliasesObject = !regSet.has(object);
+    if (!valueAliasesObject)
+        regSet.take(object);
 
-    regSet.takeUnchecked(tempReg);
+    regSet.take(tempReg);
 
     // This is a slower stub path, and we're going to be doing a call anyway.  Don't need
     // to try so hard to not use the stack.  Scratch regs are just taken from the register
@@ -2730,7 +2732,8 @@ GenerateCallSetter(JSContext* cx, IonScript* ion, MacroAssembler& masm,
             masm.Push(value.value());
         } else {
             masm.Push(value.reg());
-            regSet.add(value.reg());
+            if (!valueAliasesObject)
+                regSet.add(value.reg());
         }
 
         // OK, now we can grab our remaining registers and grab the pointer to
@@ -3960,7 +3963,7 @@ static void
 GenerateGetTypedOrUnboxedArrayElement(JSContext* cx, MacroAssembler& masm,
                                       IonCache::StubAttacher& attacher,
                                       HandleObject array, const Value& idval, Register object,
-                                      TypedOrValueRegister index, TypedOrValueRegister output,
+                                      ConstantOrRegister index, TypedOrValueRegister output,
                                       bool allowDoubleResult)
 {
     MOZ_ASSERT(GetPropertyIC::canAttachTypedOrUnboxedArrayElement(array, idval, output));
@@ -3976,49 +3979,54 @@ GenerateGetTypedOrUnboxedArrayElement(JSContext* cx, MacroAssembler& masm,
     if (idval.isString()) {
         MOZ_ASSERT(GetIndexFromString(idval.toString()) != UINT32_MAX);
 
-        // Part 1: Get the string into a register
-        Register str;
-        if (index.hasValue()) {
-            ValueOperand val = index.valueReg();
-            masm.branchTestString(Assembler::NotEqual, val, &failures);
-
-            str = masm.extractString(val, indexReg);
+        if (index.constant()) {
+            MOZ_ASSERT(idval == index.value());
+            masm.move32(Imm32(GetIndexFromString(idval.toString())), indexReg);
         } else {
-            MOZ_ASSERT(!index.typedReg().isFloat());
-            str = index.typedReg().gpr();
+            // Part 1: Get the string into a register
+            Register str;
+            if (index.reg().hasValue()) {
+                ValueOperand val = index.reg().valueReg();
+                masm.branchTestString(Assembler::NotEqual, val, &failures);
+
+                str = masm.extractString(val, indexReg);
+            } else {
+                MOZ_ASSERT(!index.reg().typedReg().isFloat());
+                str = index.reg().typedReg().gpr();
+            }
+
+            // Part 2: Call to translate the str into index
+            AllocatableRegisterSet regs(RegisterSet::Volatile());
+            LiveRegisterSet save(regs.asLiveSet());
+            masm.PushRegsInMask(save);
+            regs.takeUnchecked(str);
+
+            Register temp = regs.takeAnyGeneral();
+
+            masm.setupUnalignedABICall(temp);
+            masm.passABIArg(str);
+            masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, GetIndexFromString));
+            masm.mov(ReturnReg, indexReg);
+
+            LiveRegisterSet ignore;
+            ignore.add(indexReg);
+            masm.PopRegsInMaskIgnore(save, ignore);
+
+            masm.branch32(Assembler::Equal, indexReg, Imm32(UINT32_MAX), &failures);
         }
-
-        // Part 2: Call to translate the str into index
-        AllocatableRegisterSet regs(RegisterSet::Volatile());
-        LiveRegisterSet save(regs.asLiveSet());
-        masm.PushRegsInMask(save);
-        regs.takeUnchecked(str);
-
-        Register temp = regs.takeAnyGeneral();
-
-        masm.setupUnalignedABICall(temp);
-        masm.passABIArg(str);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, GetIndexFromString));
-        masm.mov(ReturnReg, indexReg);
-
-        LiveRegisterSet ignore;
-        ignore.add(indexReg);
-        masm.PopRegsInMaskIgnore(save, ignore);
-
-        masm.branch32(Assembler::Equal, indexReg, Imm32(UINT32_MAX), &failures);
-
     } else {
         MOZ_ASSERT(idval.isInt32());
+        MOZ_ASSERT(!index.constant());
 
-        if (index.hasValue()) {
-            ValueOperand val = index.valueReg();
+        if (index.reg().hasValue()) {
+            ValueOperand val = index.reg().valueReg();
             masm.branchTestInt32(Assembler::NotEqual, val, &failures);
 
             // Unbox the index.
             masm.unboxInt32(val, indexReg);
         } else {
-            MOZ_ASSERT(!index.typedReg().isFloat());
-            indexReg = index.typedReg().gpr();
+            MOZ_ASSERT(!index.reg().typedReg().isFloat());
+            indexReg = index.reg().typedReg().gpr();
         }
     }
 
@@ -4092,7 +4100,7 @@ GetPropertyIC::tryAttachTypedOrUnboxedArrayElement(JSContext* cx, HandleScript o
 
     MacroAssembler masm(cx, ion, outerScript, profilerLeavePc_);
     StubAttacher attacher(*this);
-    GenerateGetTypedOrUnboxedArrayElement(cx, masm, attacher, obj, idval, object(), id().reg(),
+    GenerateGetTypedOrUnboxedArrayElement(cx, masm, attacher, obj, idval, object(), id(),
                                           output(), allowDoubleResult_);
     return linkAndAttachStub(cx, masm, attacher, ion, "typed array",
                              JS::TrackedOutcome::ICGetElemStub_TypedArray);
