@@ -189,7 +189,9 @@ WebGLContext::BufferData(GLenum target, WebGLsizeiptr size, GLenum usage)
     }
 
     boundBuffer->SetByteLength(size);
+
     if (!boundBuffer->ElementArrayCacheBufferData(nullptr, size)) {
+        boundBuffer->SetByteLength(0);
         return ErrorOutOfMemory("bufferData: out of memory");
     }
 }
@@ -239,8 +241,11 @@ WebGLContext::BufferData(GLenum target,
     }
 
     boundBuffer->SetByteLength(data.Length());
-    if (!boundBuffer->ElementArrayCacheBufferData(data.Data(), data.Length()))
+
+    if (!boundBuffer->ElementArrayCacheBufferData(data.Data(), data.Length())) {
+        boundBuffer->SetByteLength(0);
         return ErrorOutOfMemory("bufferData: out of memory");
+    }
 }
 
 void
