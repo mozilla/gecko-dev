@@ -608,12 +608,13 @@ FxAccountsInternal.prototype = {
 
   signOut: function signOut(localOnly) {
     let currentState = this.currentAccountState;
-    let sessionToken;
-    let tokensToRevoke;
+    let sessionToken, tokensToRevoke, deviceId;
     return currentState.getUserAccountData().then(data => {
-      // Save the session token for use in the call to signOut below.
-      sessionToken = data && data.sessionToken;
-      tokensToRevoke = data && data.oauthTokens;
+      if (data) {
+        sessionToken = data.sessionToken;
+        tokensToRevoke = data.oauthTokens;
+        deviceId = data.deviceId
+      }
       return this._signOutLocal();
     }).then(() => {
       // FxAccountsManager calls here, then does its own call
@@ -625,7 +626,7 @@ FxAccountsInternal.prototype = {
           // This can happen in the background and shouldn't block
           // the user from signing out. The server must tolerate
           // clients just disappearing, so this call should be best effort.
-          return this._signOutServer(sessionToken);
+          return this._signOutServer(sessionToken, deviceId);
         }).catch(err => {
           log.error("Error during remote sign out of Firefox Accounts", err);
         }).then(() => {
@@ -657,11 +658,13 @@ FxAccountsInternal.prototype = {
     });
   },
 
-  _signOutServer: function signOutServer(sessionToken) {
+  _signOutServer: function signOutServer(sessionToken, deviceId) {
     // For now we assume the service being logged out from is Sync - we might
     // need to revisit this when this FxA code is used in a context that
     // isn't Sync.
-    return this.fxAccountsClient.signOut(sessionToken, {service: "sync"});
+    return this.fxAccountsClient.deviceDestroy(sessionToken, deviceId, {
+      service: "sync"
+    });
   },
 
   /**
