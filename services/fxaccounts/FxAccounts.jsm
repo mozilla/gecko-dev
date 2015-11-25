@@ -128,6 +128,7 @@ AccountState.prototype = {
     this.oauthTokens = null;
     let storageManager = this.storageManager;
     this.storageManager = null;
+    log.debug("!!!!!!!!!! PHIL !!!!!!!!!! clobbering, ");
     return storageManager.deleteAccountData().then(() => {
       return storageManager.finalize();
     });
@@ -662,6 +663,7 @@ FxAccountsInternal.prototype = {
     // For now we assume the service being logged out from is Sync - we might
     // need to revisit this when this FxA code is used in a context that
     // isn't Sync.
+    log.debug("!!!!!!!!!! PHIL !!!!!!!!!! destroying device " + deviceId);
     return this.fxAccountsClient.deviceDestroy(sessionToken, deviceId, {
       service: "sync"
     });
