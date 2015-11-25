@@ -17,6 +17,7 @@ Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/FxAccountsStorage.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
+Cu.import("resource://services-sync/util.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsClient",
   "resource://gre/modules/FxAccountsClient.jsm");
@@ -48,6 +49,7 @@ var publicProperties = [
   "promiseAccountsChangeProfileURI",
   "promiseAccountsManageURI",
   "removeCachedOAuthToken",
+  "updateDevice",
   "resendVerificationEmail",
   "setSignedInUser",
   "signOut",
@@ -341,8 +343,10 @@ FxAccountsInternal.prototype = {
   // All significant initialization should be done in this initialize() method,
   // as it's called after this object has been mocked for tests.
   initialize() {
+    log.trace('PHIL!!! initializing FxAccounts');
     this.currentTimer = null;
     this.currentAccountState = this.newAccountState();
+    return this.updateDevice();
   },
 
   get fxAccountsClient() {
@@ -481,6 +485,7 @@ FxAccountsInternal.prototype = {
    *         successfully and is rejected on error.
    */
   setSignedInUser: function setSignedInUser(credentials) {
+    log.trace('PHIL!!! setting signed-in user');
     log.debug("setSignedInUser - aborting any existing flows");
     return this.abortExistingFlow().then(() => {
       let currentAccountState = this.currentAccountState = this.newAccountState(
@@ -492,6 +497,7 @@ FxAccountsInternal.prototype = {
       // the background? Already does for updateAccountData ;)
       return currentAccountState.promiseInitialized.then(() => {
         Services.telemetry.getHistogramById("FXA_CONFIGURED").add(1);
+        this.updateDevice();
         this.notifyObservers(ONLOGIN_NOTIFICATION);
         if (!this.isUserEmailVerified(credentials)) {
           this.startVerifiedCheck(credentials);
@@ -1333,6 +1339,55 @@ FxAccountsInternal.prototype = {
         return currentState.reject(error);
       }
     ).catch(err => Promise.reject(this._errorToErrorClass(err)));
+  },
+
+  updateDevice() {
+    return this.getSignedInUser().then(signedInUser => {
+      if (! signedInUser) {
+        log.debug("not registering device because user is not signed in");
+        return;
+      }
+
+      return this._getWeaveService();
+    }).then(weaveService => {
+      log.debug(`PHIL!!! weave device: ${weaveService.clientsEngine.localName} (${weaveService.clientsEngine.localType})`);
+      log.debug(`PHIL!!! prefs device: ${Services.prefs.get("services.sync.client.name")} (${Services.prefs.get("services.sync.client.type")})`);
+      log.debug(typeof getDefaultDeviceName);
+
+      let deviceName = weaveService.clientsEngine.localName;
+      let deviceType = weaveService.clientsEngine.localType;
+
+      if (signedInUser.deviceId) {
+        log.debug("updating existing device details");
+        return this.fxAccountsClient.deviceUpdate(
+          signedInUser.sessionToken,
+          signedInUser.deviceId,
+          deviceName
+        );
+      }
+
+      log.debug("registering new device details");
+      return this.fxAccountsClient.deviceRegister(
+        signedInUser.sessionToken,
+        deviceName,
+        deviceType
+      );
+    }).then(response => {
+      return resonse;
+    }).catch(err => {
+      log.error("device registration failed", err);
+      // TODO: error handling
+      return Promise.reject(this._errorToErrorClass(err));
+    });
+  },
+
+  _getWeaveService() {
+    let service = Cc["@mozilla.org/weave/service;1"]
+      .getService(Ci.nsISupports)
+      wrappedJSObject;
+    return service.whenLoaded().then(() => {
+      return Weave.Service;
+    });
   },
 };
 
