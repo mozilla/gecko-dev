@@ -498,6 +498,8 @@ this.FxAccountsClient.prototype = {
    *        }
    */
   _request: function hawkRequest(path, method, credentials, jsonPayload) {
+    log.trace(`client._request: ${method} ${path}`);
+
     let deferred = Promise.defer();
 
     // We were asked to back off.
