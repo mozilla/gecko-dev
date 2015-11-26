@@ -92,6 +92,8 @@ exports.ON_FXA_UPDATE_NOTIFICATION = "fxaccounts:update";
 
 exports.ON_PROFILE_CHANGE_NOTIFICATION = "fxaccounts:profilechange";
 
+exports.DEVICE_REFRESH_NOTIFICATION = "fxaccounts:device_refresh";
+
 // UI Requests.
 exports.UI_REQUEST_SIGN_IN_FLOW = "signInFlow";
 exports.UI_REQUEST_REFRESH_AUTH = "refreshAuthentication";
