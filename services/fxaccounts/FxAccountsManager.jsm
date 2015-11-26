@@ -370,6 +370,7 @@ this.FxAccountsManager = {
   },
 
   signOut: function() {
+    log.debug("!!!!!!!!!! PHIL !!!!!!!!!! FxAccountsManager.signOut");
     if (!this._activeSession) {
       // If there is no cached active session, we try to get it from the
       // account storage.

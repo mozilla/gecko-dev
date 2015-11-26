@@ -610,6 +610,7 @@ FxAccountsInternal.prototype = {
   signOut: function signOut(localOnly) {
     let currentState = this.currentAccountState;
     let sessionToken, tokensToRevoke, deviceId;
+    log.debug("!!!!!!!!!! PHIL !!!!!!!!!! signing out, localOnly=" + localOnly);
     return currentState.getUserAccountData().then(data => {
       if (data) {
         sessionToken = data.sessionToken;
@@ -1348,22 +1349,22 @@ FxAccountsInternal.prototype = {
   registerDeviceIfNotRegistered() {
     return this.getSignedInUser().then(signedInUser => {
       if (signedInUser && !signedInUser.deviceId) {
-        return this._updateDevice(signedInUser);
+        return this._registerOrUpdateDevice(signedInUser);
       }
-      log.debug("!!!!!!!!!! PHIL !!!!!!!!!! not registering device");
+      log.debug("!!!!!!!!!! PHIL !!!!!!!!!! not registering device", signedInUser);
     })
   },
 
   updateDevice() {
     return this.getSignedInUser().then(signedInUser => {
       if (signedInUser) {
-        return this._updateDevice(signedInUser);
+        return this._registerOrUpdateDevice(signedInUser);
       }
       log.debug("!!!!!!!!!! PHIL !!!!!!!!!! not updating device");
     });
   },
 
-  _updateDevice(signedInUser) {
+  _registerOrUpdateDevice(signedInUser) {
     let deviceName = this._getDeviceName(), promise;
 
     if (signedInUser.deviceId) {
