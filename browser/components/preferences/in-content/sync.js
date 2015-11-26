@@ -175,6 +175,7 @@ var gSyncPane = {
     let textbox = document.getElementById("fxaSyncComputerName");
     if (save) {
       Weave.Service.clientsEngine.localName = textbox.value;
+      fxAccounts.updateDevice();
     }
     else {
       textbox.value = Weave.Service.clientsEngine.localName;
