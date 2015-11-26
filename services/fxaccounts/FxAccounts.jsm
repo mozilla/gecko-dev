@@ -615,7 +615,7 @@ FxAccountsInternal.prototype = {
       if (data) {
         sessionToken = data.sessionToken;
         tokensToRevoke = data.oauthTokens;
-        deviceId = data.deviceId
+        deviceId = data.deviceId;
       }
       return this._signOutLocal();
     }).then(() => {
@@ -1383,14 +1383,14 @@ FxAccountsInternal.prototype = {
         deviceName,
         // TODO: check this is ok
         "desktop"
-      );
-    }
-    return promise.then(response => {
-      log.debug("!!!!!!!!!! PHIL !!!!!!!!!! saving device id " + response.id);
-      return this.currentAccountState.updateUserAccountData({
-        deviceId: response.id
+      ).then(response => {
+        log.debug("!!!!!!!!!! PHIL !!!!!!!!!! saving device id " + response.id);
+        return this.currentAccountState.updateUserAccountData({
+          deviceId: response.id
+        });
       });
-    }).catch(err => {
+    }
+    return promise.catch(err => {
       log.error("device registration failed", err);
       // TODO: error handling
       return Promise.reject(this._errorToErrorClass(err));
