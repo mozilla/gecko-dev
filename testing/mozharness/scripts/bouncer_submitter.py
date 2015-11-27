@@ -10,10 +10,11 @@ sys.path.insert(1, os.path.dirname(sys.path[0]))
 
 from mozharness.base.script import BaseScript
 from mozharness.mozilla.bouncer.submitter import BouncerSubmitterMixin
+from mozharness.mozilla.buildbot import BuildbotMixin
 from mozharness.mozilla.purge import PurgeMixin
 
 
-class BouncerSubmitter(BaseScript, PurgeMixin, BouncerSubmitterMixin):
+class BouncerSubmitter(BaseScript, PurgeMixin, BouncerSubmitterMixin, BuildbotMixin):
     config_options = [
         [["--repo"], {
             "dest": "repo",
@@ -67,6 +68,19 @@ class BouncerSubmitter(BaseScript, PurgeMixin, BouncerSubmitterMixin):
 
     def _pre_config_lock(self, rw_config):
         super(BouncerSubmitter, self)._pre_config_lock(rw_config)
+
+        #override properties from buildbot properties here as defined by taskcluster properties
+        self.read_buildbot_config()
+
+        #check if release promotion is true first before overwriting these properties
+        if self.buildbot_config["properties"].get("release_promotion"):
+            for prop in ['product', 'version', 'build_number', 'revision', 'bouncer_submitter_config']:
+                if self.buildbot_config["properties"].get(prop):
+                    self.info("Overriding %s with %s" %
+                              prop, self.buildbot_config["properties"][prop])
+                    self.config[prop] = self.buildbot_config["properties"][prop]
+            if self.buildbot_config["properties"].get("partial_versions"):
+                self.config["prev_versions"] = self.buildbot_config["properties"].get("partial_versions").split()
 
         for opt in ["version", "credentials_file", "bouncer-api-prefix"]:
             if opt not in self.config:
@@ -157,7 +171,7 @@ class BouncerSubmitter(BaseScript, PurgeMixin, BouncerSubmitterMixin):
                 product_name = product_name_tmpl % subs
                 if self.product_exists(product_name):
                     self.warning("Product %s already exists. Skipping..." %
-                                product_name)
+                                 product_name)
                     continue
                 self.info("Adding partial updates for %s" % product_name)
                 self.api_add_product(
