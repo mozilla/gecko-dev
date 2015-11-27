@@ -406,21 +406,10 @@ public:
       NS_RUNTIMEABORT("Failed to dispatch life cycle event handler.");
     }
 
-    JS::Rooted<JSObject*> obj(aCx, workerPrivate->GlobalScope()->GetWrapper());
-    JS::ExposeValueToActiveJS(aValue);
-
-    js::ErrorReport report(aCx);
-    if (NS_WARN_IF(!report.init(aCx, aValue))) {
-      JS_ClearPendingException(aCx);
-      return;
-    }
-
-    RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
-    xpcReport->Init(report.report(), report.message(),
-                    /* aIsChrome = */ false, workerPrivate->WindowID());
-
-    RefPtr<AsyncErrorReporter> aer = new AsyncErrorReporter(xpcReport);
-    NS_DispatchToMainThread(aer);
+    // Note, all WaitUntil() rejections are reported to client consoles
+    // by the WaitUntilHandler in ServiceWorkerEvents.  This ensures that
+    // errors in non-lifecycle events like FetchEvent and PushEvent are
+    // reported properly.
   }
 };
 
@@ -598,6 +587,14 @@ ServiceWorkerPrivate::SendPushEvent(const Maybe<nsTArray<uint8_t>>& aData,
                                                          mKeepAliveToken,
                                                          aData,
                                                          regInfo);
+
+  if (mInfo->State() == ServiceWorkerState::Activating) {
+    mPendingFunctionalEvents.AppendElement(r.forget());
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(mInfo->State() == ServiceWorkerState::Activated);
+
   AutoJSAPI jsapi;
   jsapi.Init();
   if (NS_WARN_IF(!r->Dispatch(jsapi.cx()))) {
@@ -1065,6 +1062,17 @@ public:
     return DispatchFetchEvent(aCx, aWorkerPrivate);
   }
 
+  NS_IMETHOD
+  Cancel() override
+  {
+    nsCOMPtr<nsIRunnable> runnable = new ResumeRequest(mInterceptedChannel);
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
+      NS_WARNING("Failed to resume channel on FetchEventRunnable::Cancel()!\n");
+    }
+    WorkerRunnable::Cancel();
+    return NS_OK;
+  }
+
 private:
   ~FetchEventRunnable() {}
 
@@ -1254,6 +1262,8 @@ ServiceWorkerPrivate::SendFetchEvent(nsIInterceptedChannel* aChannel,
                                      UniquePtr<ServiceWorkerClientInfo>&& aClientInfo,
                                      bool aIsReload)
 {
+  AssertIsOnMainThread();
+
   // if the ServiceWorker script fails to load for some reason, just resume
   // the original channel.
   nsCOMPtr<nsIRunnable> failRunnable =
@@ -1286,6 +1296,13 @@ ServiceWorkerPrivate::SendFetchEvent(nsIInterceptedChannel* aChannel,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+
+  if (mInfo->State() == ServiceWorkerState::Activating) {
+    mPendingFunctionalEvents.AppendElement(r.forget());
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(mInfo->State() == ServiceWorkerState::Activated);
 
   AutoJSAPI jsapi;
   jsapi.Init();
@@ -1433,6 +1450,15 @@ ServiceWorkerPrivate::TerminateWorker()
     NS_WARN_IF(!mWorkerPrivate->Terminate(jsapi.cx()));
     mWorkerPrivate = nullptr;
     mSupportsArray.Clear();
+
+    // Any pending events are never going to fire on this worker.  Cancel
+    // them so that intercepted channels can be reset and other resources
+    // cleaned up.
+    nsTArray<RefPtr<WorkerRunnable>> pendingEvents;
+    mPendingFunctionalEvents.SwapElements(pendingEvents);
+    for (uint32_t i = 0; i < pendingEvents.Length(); ++i) {
+      pendingEvents[i]->Cancel();
+    }
   }
 }
 
@@ -1453,6 +1479,29 @@ ServiceWorkerPrivate::NoteStoppedControllingDocuments()
   }
 
   TerminateWorker();
+}
+
+void
+ServiceWorkerPrivate::Activated()
+{
+  AssertIsOnMainThread();
+
+  // If we had to queue up events due to the worker activating, that means
+  // the worker must be currently running.  We should be called synchronously
+  // when the worker becomes activated.
+  MOZ_ASSERT_IF(!mPendingFunctionalEvents.IsEmpty(), mWorkerPrivate);
+
+  nsTArray<RefPtr<WorkerRunnable>> pendingEvents;
+  mPendingFunctionalEvents.SwapElements(pendingEvents);
+
+  for (uint32_t i = 0; i < pendingEvents.Length(); ++i) {
+    RefPtr<WorkerRunnable> r = pendingEvents[i].forget();
+    AutoJSAPI jsapi;
+    jsapi.Init();
+    if (NS_WARN_IF(!r->Dispatch(jsapi.cx()))) {
+      NS_WARNING("Failed to dispatch pending functional event!");
+    }
+  }
 }
 
 /* static */ void
